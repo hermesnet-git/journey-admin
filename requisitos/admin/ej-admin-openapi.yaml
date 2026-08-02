@@ -1,0 +1,1527 @@
+openapi: 3.0.3
+
+info:
+  title: Elastic Journey Admin Portal API
+  description: >
+    API do Elastic Journey Admin Portal para gestão de produtos, canais,
+    jornadas específicas por canal, fluxos, formulários, simulações
+    e publicações. A publicação aciona uma API externa mockada no MVP;
+    este contrato descreve somente a API do Admin Portal.
+  version: 1.0.0
+
+servers:
+  - url: https://admin.elasticjourney.com/api/v1
+    description: Production
+  - url: https://admin-hml.elasticjourney.com/api/v1
+    description: Homologation
+
+# O MVP opera em ambiente controlado e não implementa autenticação ou autorização.
+# As respostas 401 e 403 permanecem documentadas, mas estão reservadas para uso futuro.
+security: []
+
+tags:
+  - name: Products
+  - name: Channels
+  - name: Journeys
+  - name: Flows
+  - name: Forms
+  - name: Simulations
+  - name: Publications
+  - name: Dashboard
+
+paths:
+  /products:
+    get:
+      tags: [Products]
+      summary: List products
+      operationId: listProducts
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE]
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Product list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+    post:
+      tags: [Products]
+      summary: Create product
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /products/{productId}:
+    get:
+      tags: [Products]
+      summary: Get product
+      operationId: getProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    put:
+      tags: [Products]
+      summary: Update product
+      operationId: updateProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /products/{productId}/deactivate:
+    post:
+      tags: [Products]
+      summary: Deactivate product
+      description: Returns 409 while any journey under the product has a PUBLISHED publication.
+      operationId: deactivateProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Product deactivated
+
+  /products/{productId}/activate:
+    post:
+      tags: [Products]
+      summary: Reactivate product
+      operationId: activateProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Product reactivated
+
+  /products/{productId}/channels:
+    get:
+      tags: [Channels]
+      summary: List channels by product
+      operationId: listChannelsByProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/ChannelType'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE]
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Channel list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+    post:
+      tags: [Channels]
+      summary: Create channel for product
+      operationId: createChannel
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '201':
+          description: Channel created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+
+  /channels/{channelId}:
+    get:
+      tags: [Channels]
+      summary: Get channel
+      operationId: getChannel
+      parameters:
+        - $ref: '#/components/parameters/ChannelId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Channel found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+    put:
+      tags: [Channels]
+      summary: Update channel
+      operationId: updateChannel
+      parameters:
+        - $ref: '#/components/parameters/ChannelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Channel updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+
+  /channels/{channelId}/deactivate:
+    post:
+      tags: [Channels]
+      summary: Deactivate channel
+      description: Returns 409 while any journey under the channel has a PUBLISHED publication.
+      operationId: deactivateChannel
+      parameters:
+        - $ref: '#/components/parameters/ChannelId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Channel deactivated
+
+  /channels/{channelId}/activate:
+    post:
+      tags: [Channels]
+      summary: Reactivate channel
+      operationId: activateChannel
+      parameters:
+        - $ref: '#/components/parameters/ChannelId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Channel reactivated
+
+  /journeys:
+    get:
+      tags: [Journeys]
+      summary: List journeys
+      operationId: listJourneys
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: channelId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: Sort order, most recent first
+          schema:
+            type: string
+            enum: [CREATED_AT, UPDATED_AT]
+            default: UPDATED_AT
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Journey list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Journey'
+    post:
+      tags: [Journeys]
+      summary: Create journey for channel
+      operationId: createJourney
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JourneyCreateInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '201':
+          description: Journey created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journey'
+
+  /journeys/{journeyId}:
+    get:
+      tags: [Journeys]
+      summary: Get journey
+      operationId: getJourney
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Journey found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journey'
+    put:
+      tags: [Journeys]
+      summary: Update journey
+      operationId: updateJourney
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JourneyUpdateInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Journey updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journey'
+    delete:
+      tags: [Journeys]
+      summary: Delete a journey that has never been published
+      operationId: deleteJourney
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '204':
+          description: Journey deleted
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /journeys/{journeyId}/deactivate:
+    post:
+      tags: [Journeys]
+      summary: Deactivate journey while preserving its publication record
+      description: Returns 409 while the journey publication is PUBLISHED. The journey must be unpublished first.
+      operationId: deactivateJourney
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Journey deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journey'
+
+  /journeys/{journeyId}/activate:
+    post:
+      tags: [Journeys]
+      summary: Reactivate journey, returning it to DRAFT
+      operationId: activateJourney
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Journey reactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journey'
+
+  /journeys/{journeyId}/flow:
+    get:
+      tags: [Flows]
+      summary: Get journey flow
+      operationId: getFlow
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Flow found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flow'
+    put:
+      tags: [Flows]
+      summary: Update journey flow
+      description: >
+        Replaces the complete flow. The backend returns 422 unless the payload
+        contains exactly one START, exactly one END and every node belongs to a
+        continuous path between them.
+      operationId: updateFlow
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Flow'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Flow updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flow'
+
+  /forms:
+    get:
+      tags: [Forms]
+      summary: List forms
+      operationId: listForms
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE]
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Form list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Form'
+    post:
+      tags: [Forms]
+      summary: Create form
+      operationId: createForm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '201':
+          description: Form created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+
+  /forms/{formId}:
+    get:
+      tags: [Forms]
+      summary: Get form
+      operationId: getForm
+      parameters:
+        - $ref: '#/components/parameters/FormId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Form found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+    put:
+      tags: [Forms]
+      summary: Update form
+      operationId: updateForm
+      parameters:
+        - $ref: '#/components/parameters/FormId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Form updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+    delete:
+      tags: [Forms]
+      summary: Delete unused form
+      operationId: deleteForm
+      parameters:
+        - $ref: '#/components/parameters/FormId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '204':
+          description: Form deleted
+
+  /journeys/{journeyId}/simulations:
+    post:
+      tags: [Simulations]
+      summary: Start journey simulation
+      operationId: executeSimulation
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '201':
+          description: Simulation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationExecution'
+
+  /simulations/{simulationId}:
+    get:
+      tags: [Simulations]
+      summary: Get simulation
+      operationId: getSimulation
+      parameters:
+        - $ref: '#/components/parameters/SimulationId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Simulation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationDetails'
+
+  /publications:
+    get:
+      tags: [Publications]
+      summary: List publications
+      operationId: listPublications
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: channelId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Publication list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JourneyPublication'
+    post:
+      tags: [Publications]
+      summary: Publish or republish journey through the mocked runtime API
+      description: >
+        Sends the complete snapshot to the mocked runtime publication API. After
+        a successful response, creates or replaces the single publication for
+        the journey and changes the journey status to PUBLISHED.
+      operationId: publishJourney
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishJourneyRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Journey published and previous snapshot replaced when applicable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JourneyPublication'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /publications/{publicationId}:
+    get:
+      tags: [Publications]
+      summary: Get publication
+      operationId: getPublication
+      parameters:
+        - $ref: '#/components/parameters/PublicationId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Publication found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JourneyPublication'
+
+  /publications/{publicationId}/unpublish:
+    post:
+      tags: [Publications]
+      summary: Unpublish journey through the mocked runtime API
+      description: >
+        Calls the mocked runtime API. After a successful response, changes both
+        the journey and publication status to UNPUBLISHED. If the mock fails,
+        current states and snapshot are preserved.
+      operationId: unpublishJourney
+      parameters:
+        - $ref: '#/components/parameters/PublicationId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Journey unpublished
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JourneyPublication'
+
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get administrative dashboard counters
+      operationId: getDashboard
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummary'
+
+components:
+  responses:
+    BadRequest:
+      description: Malformed request or invalid parameter
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Unauthorized:
+      description: Missing or unauthenticated identity; reserved for future use
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Forbidden:
+      description: Authenticated identity is not allowed to perform the operation; reserved for future use
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: Request conflicts with the current resource state or a uniqueness constraint
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    UnprocessableEntity:
+      description: Request is syntactically valid but violates a functional rule
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    InternalServerError:
+      description: Unexpected internal failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+  parameters:
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ChannelId:
+      name: channelId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    JourneyId:
+      name: journeyId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    FormId:
+      name: formId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    SimulationId:
+      name: simulationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    PublicationId:
+      name: publicationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    ApiError:
+      type: object
+      required: [timestamp, status, code, message, path]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          format: int32
+        code:
+          type: string
+          description: Stable machine-readable error identifier
+        message:
+          type: string
+          description: Human-readable error description
+        path:
+          type: string
+          description: Request path that produced the error
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiErrorDetail'
+
+    ApiErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+
+    ProductInput:
+      type: object
+      required: [name, description]
+      properties:
+        name:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/ProductInput'
+        - type: object
+          required: [productId, status, createdAt, updatedAt]
+          properties:
+            productId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [ACTIVE, INACTIVE]
+            channelCount:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    ChannelType:
+      type: string
+      enum: [WEB, MOBILE, WHATSAPP, URA, CONTACT_CENTER, OTHER]
+
+    ChannelInput:
+      type: object
+      required: [name, description, type]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/ChannelType'
+
+    Channel:
+      allOf:
+        - $ref: '#/components/schemas/ChannelInput'
+        - type: object
+          required: [channelId, productId, status, createdAt, updatedAt]
+          properties:
+            channelId:
+              type: string
+              format: uuid
+            productId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [ACTIVE, INACTIVE]
+            journeyCount:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    JourneyCreateInput:
+      type: object
+      required: [channelId, name, description]
+      properties:
+        channelId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+
+    JourneyUpdateInput:
+      type: object
+      required: [name, description]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+
+    Journey:
+      allOf:
+        - $ref: '#/components/schemas/JourneyUpdateInput'
+        - type: object
+          required: [journeyId, channelId, channelName, productId, productName, status, createdAt, updatedAt]
+          properties:
+            journeyId:
+              type: string
+              format: uuid
+            channelId:
+              type: string
+              format: uuid
+            channelName:
+              type: string
+            productId:
+              type: string
+              format: uuid
+            productName:
+              type: string
+            status:
+              type: string
+              enum: [DRAFT, PUBLISHED, UNPUBLISHED, INACTIVE]
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    Flow:
+      type: object
+      required: [flowId, journeyId, name, nodes, connections]
+      properties:
+        flowId:
+          type: string
+          format: uuid
+        journeyId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowNode'
+        connections:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowConnection'
+
+    FlowNode:
+      type: object
+      required: [nodeId, nodeType, name]
+      properties:
+        nodeId:
+          type: string
+          format: uuid
+        nodeType:
+          type: string
+          enum: [START, END, USER_TASK]
+        name:
+          type: string
+        description:
+          type: string
+        positionX:
+          type: integer
+        positionY:
+          type: integer
+        userTaskConfig:
+          $ref: '#/components/schemas/UserTaskConfig'
+
+    UserTaskConfig:
+      type: object
+      required: [formId]
+      properties:
+        formId:
+          type: string
+          format: uuid
+
+    FlowConnection:
+      type: object
+      required: [connectionId, sourceNodeId, targetNodeId]
+      properties:
+        connectionId:
+          type: string
+          format: uuid
+        sourceNodeId:
+          type: string
+          format: uuid
+        targetNodeId:
+          type: string
+          format: uuid
+
+    FormInput:
+      type: object
+      required: [code, name, components]
+      properties:
+        code:
+          type: string
+          maxLength: 80
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormComponent'
+
+    Form:
+      allOf:
+        - $ref: '#/components/schemas/FormInput'
+        - type: object
+          required: [formId, status, createdAt, updatedAt]
+          properties:
+            formId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [ACTIVE, INACTIVE]
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    FormComponent:
+      type: object
+      required: [componentId, componentType, displayOrder]
+      properties:
+        componentId:
+          type: string
+          format: uuid
+        componentType:
+          type: string
+          enum: [TEXT, INPUT, SELECT, MULTISELECT, UPLOAD, CONTENT]
+        label:
+          type: string
+        helpText:
+          type: string
+        required:
+          type: boolean
+        defaultValue:
+          type: string
+        displayOrder:
+          type: integer
+        configuration:
+          type: object
+          additionalProperties: true
+
+    SimulationRequest:
+      type: object
+      properties:
+        inputData:
+          type: object
+          additionalProperties: true
+
+    SimulationExecution:
+      type: object
+      required: [simulationId, journeyId, status, executedAt]
+      properties:
+        simulationId:
+          type: string
+          format: uuid
+        journeyId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [RUNNING, COMPLETED, FAILED, CANCELLED]
+        executedAt:
+          type: string
+          format: date-time
+
+    SimulationStep:
+      type: object
+      required: [stepId, nodeId, stepOrder]
+      properties:
+        stepId:
+          type: string
+          format: uuid
+        nodeId:
+          type: string
+          format: uuid
+        stepOrder:
+          type: integer
+        result:
+          type: string
+          enum: [SUCCESS, FAILED, SKIPPED]
+        formData:
+          type: object
+          additionalProperties: true
+
+    SimulationResult:
+      type: object
+      properties:
+        executedPath:
+          type: array
+          items:
+            type: string
+            format: uuid
+        executionSummary:
+          type: object
+          additionalProperties: true
+
+    SimulationDetails:
+      type: object
+      required: [execution, steps]
+      properties:
+        execution:
+          $ref: '#/components/schemas/SimulationExecution'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimulationStep'
+        result:
+          $ref: '#/components/schemas/SimulationResult'
+
+    JourneySnapshot:
+      type: object
+      required: [product, channel, journey, flow, forms]
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        channel:
+          $ref: '#/components/schemas/Channel'
+        journey:
+          $ref: '#/components/schemas/Journey'
+        flow:
+          $ref: '#/components/schemas/Flow'
+        forms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Form'
+
+    JourneyPublication:
+      type: object
+      required:
+        - publicationId
+        - journeyId
+        - productCode
+        - channelCode
+        - journeyCode
+        - publicationStatus
+        - journeySnapshot
+      properties:
+        publicationId:
+          type: string
+          format: uuid
+        journeyId:
+          type: string
+          format: uuid
+        productCode:
+          type: string
+        channelCode:
+          type: string
+        journeyCode:
+          type: string
+        publicationStatus:
+          type: string
+          enum: [PUBLISHED, UNPUBLISHED]
+        publicationDate:
+          type: string
+          format: date-time
+        unpublishedDate:
+          type: string
+          format: date-time
+        journeySnapshot:
+          $ref: '#/components/schemas/JourneySnapshot'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PublishJourneyRequest:
+      type: object
+      required: [journeyId]
+      properties:
+        journeyId:
+          type: string
+          format: uuid
+
+    DashboardSummary:
+      type: object
+      required:
+        - productCount
+        - channelCount
+        - journeyCount
+        - formCount
+        - publishedJourneyCount
+        - recentlyUpdatedJourneys
+      properties:
+        productCount:
+          type: integer
+        channelCount:
+          type: integer
+        journeyCount:
+          type: integer
+        formCount:
+          type: integer
+        publishedJourneyCount:
+          type: integer
+        recentlyUpdatedJourneys:
+          type: array
+          description: Journeys ordered by updatedAt descending
+          items:
+            $ref: '#/components/schemas/Journey'

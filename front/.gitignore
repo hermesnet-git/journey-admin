@@ -1,0 +1,22 @@
+# Dependências do React
+node_modules/
+
+# Pasta de build do Vite
+dist/
+dist-ssr/
+
+# Arquivos de log e cache
+*.log
+.eslintcache
+.vite
+
+# Arquivos de ambiente local (contêm senhas/chaves de API)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Arquivos do Sistema Operacional
+.DS_Store
+Thumbs.db

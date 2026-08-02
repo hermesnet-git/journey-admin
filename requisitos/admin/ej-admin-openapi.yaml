@@ -1244,11 +1244,23 @@ components:
 
     Flow:
       type: object
+      description: >
+        Persisted as a single JSONB document per journey (flow, journeyId,
+        name, nodes, connections). flowId, FlowNode.nodeId and
+        FlowConnection.connectionId are the identifiers later embedded
+        verbatim as BPMN element ids by the runtime when the flow is
+        translated to a Camunda process definition; XML ID/NCName forbids an
+        identifier starting with a digit, which a raw UUID cannot guarantee.
+        These three identifiers are therefore generated as a fixed prefix
+        + UUID (Process_<uuid>, Node_<uuid>, Flow_<uuid> respectively), never
+        a bare UUID. All other entity identifiers in this API (productId,
+        channelId, journeyId, formId, ...) never appear inside generated BPMN
+        XML and remain plain UUIDs.
       required: [flowId, journeyId, name, nodes, connections]
       properties:
         flowId:
           type: string
-          format: uuid
+          example: Process_f47ac10b-58cc-4372-a567-0e02b2c3d479
         journeyId:
           type: string
           format: uuid
@@ -1269,7 +1281,7 @@ components:
       properties:
         nodeId:
           type: string
-          format: uuid
+          example: Node_f47ac10b-58cc-4372-a567-0e02b2c3d479
         nodeType:
           type: string
           enum: [START, END, USER_TASK]
@@ -1298,13 +1310,13 @@ components:
       properties:
         connectionId:
           type: string
-          format: uuid
+          example: Flow_f47ac10b-58cc-4372-a567-0e02b2c3d479
         sourceNodeId:
           type: string
-          format: uuid
+          example: Node_f47ac10b-58cc-4372-a567-0e02b2c3d479
         targetNodeId:
           type: string
-          format: uuid
+          example: Node_f47ac10b-58cc-4372-a567-0e02b2c3d479
 
     FormInput:
       type: object

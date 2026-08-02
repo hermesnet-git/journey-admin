@@ -12,18 +12,14 @@ import { ApiClientError } from '../api/client';
 import { listProducts, listChannels, type Product, type Channel } from '../api/products';
 import {
   listJourneys,
-  createJourney,
-  updateJourney,
   deactivateJourney,
   activateJourney,
   deleteJourney,
   type Journey,
   type JourneyStatus,
   type JourneySort,
-  type JourneyCreateInput,
-  type JourneyUpdateInput,
 } from '../api/journeys';
-import { JourneyFormModal } from './JourneyFormModal';
+import { JourneyDesignerPage } from '../flow-designer/JourneyDesignerPage';
 
 type StatusFilter = 'all' | JourneyStatus;
 
@@ -125,16 +121,19 @@ function JourneysPageContent() {
     [journeys],
   );
 
-  async function handleSubmit(input: JourneyCreateInput | JourneyUpdateInput) {
-    const isNew = editingJourney === 'new';
-    if (isNew) {
-      await createJourney(input as JourneyCreateInput);
-    } else if (editingJourney) {
-      await updateJourney(editingJourney.journeyId, input as JourneyUpdateInput);
-    }
-    setEditingJourney(null);
-    await reload();
-    showToast(isNew ? 'Jornada criada com sucesso.' : 'Jornada atualizada com sucesso.');
+  if (editingJourney) {
+    const wasNew = editingJourney === 'new';
+    return (
+      <JourneyDesignerPage
+        journey={wasNew ? null : editingJourney}
+        onClose={() => setEditingJourney(null)}
+        onSaved={async () => {
+          setEditingJourney(null);
+          await reload();
+          showToast(wasNew ? 'Jornada criada com sucesso.' : 'Jornada atualizada com sucesso.');
+        }}
+      />
+    );
   }
 
   async function confirmDeactivate() {
@@ -323,16 +322,6 @@ function JourneysPageContent() {
             />
           ))}
         </div>
-      )}
-
-      {editingJourney && (
-        <JourneyFormModal
-          journey={editingJourney === 'new' ? null : editingJourney}
-          defaultProductId={productFilter || undefined}
-          defaultChannelId={channelFilter || undefined}
-          onClose={() => setEditingJourney(null)}
-          onSubmit={handleSubmit}
-        />
       )}
 
       {deactivatingJourney && (

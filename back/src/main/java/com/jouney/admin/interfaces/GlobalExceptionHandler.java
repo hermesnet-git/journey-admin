@@ -3,6 +3,7 @@ package com.jouney.admin.interfaces;
 import com.jouney.admin.domain.ActivePublicationExistsException;
 import com.jouney.admin.domain.channel.ChannelNotFoundException;
 import com.jouney.admin.domain.channel.ProductInactiveException;
+import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.domain.journey.ChannelInactiveException;
 import com.jouney.admin.domain.journey.JourneyDeletionBlockedException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
@@ -33,6 +34,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ProductInactiveException.class, ChannelInactiveException.class})
     public ResponseEntity<ApiError> handleUnprocessable(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(FlowValidationException.class)
+    public ResponseEntity<ApiError> handleFlowValidation(FlowValidationException ex, HttpServletRequest request) {
+        List<ApiError.ApiErrorDetail> details = ex.getViolations().stream()
+                .map(v -> new ApiError.ApiErrorDetail("flow", "STRUCTURAL_VIOLATION", v))
+                .toList();
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, details);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

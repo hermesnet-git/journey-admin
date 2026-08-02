@@ -180,6 +180,20 @@ START, END, USER_TASK
 
 Liga dois nós do mesmo fluxo. Cada fluxo possui exatamente um `START` e um `END`. O `START` não possui entrada e possui exatamente uma saída; cada `USER_TASK` possui ao menos uma entrada e exatamente uma saída; o `END` possui ao menos uma entrada e nenhuma saída. Todos os nós integram um caminho contínuo e alcançável entre `START` e `END`.
 
+## Persistência e identificadores
+
+O `Flow` (nós e conexões) é persistido como um único documento `jsonb` associado à jornada — não há necessidade de consultar nós/conexões individualmente hoje, então não são normalizados em tabelas próprias.
+
+Na publicação, a runtime traduz este `Flow` para uma definição de processo BPMN (Camunda). Elementos BPMN em XML exigem identificadores no formato `NCName` (não podem iniciar com dígito), o que um UUID puro não garante. Por isso, os identificadores que a runtime embute diretamente como `id` de elemento BPMN nascem com um prefixo fixo, nunca como UUID puro:
+
+| Identificador | Formato | Vira, na runtime |
+|---|---|---|
+| `Flow.flowId` | `Process_<uuid>` | `id` do `<bpmn:process>` |
+| `FlowNode.nodeId` | `Node_<uuid>` | `id` de `<bpmn:startEvent>` / `<bpmn:userTask>` / `<bpmn:endEvent>` |
+| `FlowConnection.connectionId` | `Flow_<uuid>` | `id` de `<bpmn:sequenceFlow>` |
+
+Os demais identificadores do domínio (`productId`, `channelId`, `journeyId`, `formId`, etc.) nunca aparecem no XML BPMN gerado e permanecem UUID puro — o prefixo é aplicado apenas onde a restrição do XML exige.
+
 ---
 
 # 9. User Task Configuration

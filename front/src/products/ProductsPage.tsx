@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, Boxes, ChevronRight } from 'lucide-react';
-import { PrimaryButton, LinkButton, StatusTag, FilterDropdown } from './ui';
+import { Search, Plus, Boxes } from 'lucide-react';
+import { PrimaryButton, LinkButton, StatusTag, FilterDropdown, SelectInput } from './ui';
 import { useAppTheme } from '../shell/theme';
 import {
   listProducts,
@@ -42,7 +42,8 @@ function ProductsPageContent() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
   const [editingProduct, setEditingProduct] = useState<Product | 'new' | null>(null);
-  const [openProduct, setOpenProduct] = useState<Product | null>(null);
+  const [dualProductId, setDualProductId] = useState<string | null>(null);
+  const [newChannelRequest, setNewChannelRequest] = useState<{ productId: string; token: number } | null>(null);
   const [deactivatingProduct, setDeactivatingProduct] = useState<Product | null>(null);
 
   const reload = useCallback(async () => {
@@ -110,9 +111,12 @@ function ProductsPageContent() {
     }
   }
 
-  if (openProduct) {
-    return <ProductChannelsPage product={openProduct} onBack={() => setOpenProduct(null)} />;
+  function handleNewChannel(productId: string) {
+    setDualProductId(productId);
+    setNewChannelRequest((current) => ({ productId, token: (current?.token ?? 0) + 1 }));
   }
+
+  const selectedProduct = filtered.find((p) => p.productId === dualProductId) ?? filtered[0] ?? null;
 
   return (
     <div className="flex-1 overflow-auto p-[32px_40px] box-border">
@@ -126,7 +130,7 @@ function ProductsPageContent() {
       </div>
 
       <div className="flex items-center justify-between gap-3 mb-[18px] flex-wrap">
-        <div className="relative w-[280px]">
+        <div className="relative w-[240px]">
           <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
           <input
             aria-label="Buscar produto"
@@ -161,26 +165,47 @@ function ProductsPageContent() {
       ) : filtered.length === 0 ? (
         <EmptyState hasProducts={products.length > 0} onCreate={() => setEditingProduct('new')} />
       ) : (
-        <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-          <div
-            className="grid px-4 py-[10px] text-[11.5px] font-semibold border-b"
-            style={{ gridTemplateColumns: '2fr 1fr 2fr 1.2fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
-          >
-            <span>Produto</span>
-            <span>Status</span>
-            <span>Canais</span>
-            <span>Ações</span>
+        <div className="flex flex-col gap-5">
+          <ProductsTable
+            products={filtered}
+            selectedId={selectedProduct?.productId ?? null}
+            onSelect={(p) => setDualProductId(p.productId)}
+            onEdit={setEditingProduct}
+            onDeactivate={setDeactivatingProduct}
+            onActivate={handleActivate}
+          />
+          <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b flex-wrap" style={{ borderColor: c.border, background: c.bg }}>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-semibold" style={{ color: c.textPrimary }}>Canais</span>
+                <span className="text-[12.5px]" style={{ color: c.textSecondary }}>do produto</span>
+                <div className="w-[220px]">
+                  <SelectInput value={selectedProduct?.productId ?? ''} onChange={(e) => setDualProductId(e.target.value)}>
+                    {filtered.map((p) => (
+                      <option key={p.productId} value={p.productId}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </div>
+              </div>
+              {selectedProduct && (
+                <PrimaryButton onClick={() => handleNewChannel(selectedProduct.productId)}>
+                  <Plus size={14} /> Novo canal
+                </PrimaryButton>
+              )}
+            </div>
+            <div className="p-4">
+              {selectedProduct && (
+                <ProductChannelsPage
+                  key={selectedProduct.productId}
+                  product={selectedProduct}
+                  openNewSignal={newChannelRequest?.productId === selectedProduct.productId ? newChannelRequest.token : undefined}
+                  onOpenNewConsumed={() => setNewChannelRequest(null)}
+                />
+              )}
+            </div>
           </div>
-          {filtered.map((p) => (
-            <ProductRow
-              key={p.productId}
-              product={p}
-              onOpen={() => setOpenProduct(p)}
-              onEdit={() => setEditingProduct(p)}
-              onDeactivate={() => setDeactivatingProduct(p)}
-              onActivate={() => handleActivate(p)}
-            />
-          ))}
         </div>
       )}
 
@@ -234,62 +259,73 @@ function EmptyState({ hasProducts, onCreate }: { hasProducts: boolean; onCreate:
   );
 }
 
-function ProductRow({
-  product,
-  onOpen,
+function ProductsTable({
+  products,
+  selectedId,
+  onSelect,
   onEdit,
   onDeactivate,
   onActivate,
 }: {
-  product: Product;
-  onOpen: () => void;
-  onEdit: () => void;
-  onDeactivate: () => void;
-  onActivate: () => void;
+  products: Product[];
+  selectedId: string | null;
+  onSelect: (p: Product) => void;
+  onEdit: (p: Product) => void;
+  onDeactivate: (p: Product) => void;
+  onActivate: (p: Product) => void;
 }) {
   const { colors: c } = useAppTheme();
   return (
-    <div
-      className="grid items-center px-4 py-3 text-[13px] border-b box-border last:border-b-0"
-      style={{ gridTemplateColumns: '2fr 1fr 2fr 1.2fr', borderColor: c.border }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-    >
-      <div className="min-w-0 cursor-pointer group" onClick={onOpen}>
-        <div className="flex items-center gap-[6px] text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
-          {product.name}
-          <ChevronRight size={13} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: c.textMuted }} />
-        </div>
-        {product.description && (
-          <div className="text-[11.5px] truncate" style={{ color: c.textMuted }}>
-            {product.description}
-          </div>
-        )}
+    <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+      <div
+        className="grid px-4 py-[10px] text-[11.5px] font-semibold border-b"
+        style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1.2fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
+      >
+        <span>Produto</span>
+        <span>Status</span>
+        <span>Canais</span>
+        <span>Ações</span>
       </div>
-      <span className="w-fit">
-        <StatusTag active={product.status === 'ACTIVE'} />
-      </span>
-      {product.channelNames.length === 0 ? (
-        <span style={{ color: c.textMuted }}>—</span>
-      ) : (
-        <div className="flex flex-wrap gap-[6px] min-w-0">
-          {product.channelNames.map((name) => (
-            <span
-              key={name}
-              className="inline-flex items-center gap-[4px] rounded-full px-[9px] py-[2px] text-[11.5px] max-w-full truncate"
-              style={{ background: c.chipBg, color: c.textPrimary }}
-            >
-              <Boxes size={11} className="shrink-0" style={{ color: c.textMuted }} />
-              {name}
+      {products.map((p) => {
+        const selected = p.productId === selectedId;
+        return (
+          <div
+            key={p.productId}
+            className="grid items-center px-4 py-3 text-[13px] border-b box-border last:border-b-0 cursor-pointer"
+            style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1.2fr', borderColor: c.border, background: selected ? c.accentSoft : 'transparent' }}
+            onClick={() => onSelect(p)}
+            onMouseEnter={(e) => {
+              if (!selected) e.currentTarget.style.background = c.hoverBg;
+            }}
+            onMouseLeave={(e) => {
+              if (!selected) e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <div className="min-w-0">
+              <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
+                {p.name}
+              </div>
+              {p.description && (
+                <div className="text-[11.5px] truncate" style={{ color: c.textMuted }}>
+                  {p.description}
+                </div>
+              )}
+            </div>
+            <span className="w-fit">
+              <StatusTag active={p.status === 'ACTIVE'} />
             </span>
-          ))}
-        </div>
-      )}
-      <div className="flex items-center gap-4">
-        <LinkButton onClick={onEdit}>Editar</LinkButton>
-        {product.status === 'ACTIVE' && <LinkButton onClick={onDeactivate}>Desativar</LinkButton>}
-        {product.status === 'INACTIVE' && <LinkButton onClick={onActivate}>Ativar</LinkButton>}
-      </div>
+            <span className="inline-flex items-center gap-[4px]" style={{ color: c.textSecondary }}>
+              <Boxes size={12} />
+              {p.channelNames.length}
+            </span>
+            <div className="flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
+              <LinkButton onClick={() => onEdit(p)}>Editar</LinkButton>
+              {p.status === 'ACTIVE' && <LinkButton onClick={() => onDeactivate(p)}>Desativar</LinkButton>}
+              {p.status === 'INACTIVE' && <LinkButton onClick={() => onActivate(p)}>Ativar</LinkButton>}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

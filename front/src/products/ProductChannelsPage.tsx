@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { ArrowLeft, Search, Plus, Route } from 'lucide-react';
-import { PrimaryButton, LinkButton, StatusTag, FilterDropdown } from './ui';
+import { useEffect, useState, useCallback } from 'react';
+import { Plus, Route } from 'lucide-react';
+import { PrimaryButton, LinkButton, StatusTag } from './ui';
 import { useAppTheme } from '../shell/theme';
 import {
   listChannels,
@@ -17,14 +17,6 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { ApiClientError } from '../api/client';
 import { useToast } from './Toast';
 
-type StatusFilter = '' | 'ACTIVE' | 'INACTIVE';
-
-const STATUS_OPTIONS = [
-  { value: '', label: 'Todos os status' },
-  { value: 'ACTIVE', label: 'Ativos' },
-  { value: 'INACTIVE', label: 'Inativos' },
-];
-
 const CHANNEL_TYPE_LABELS: Record<string, string> = {
   WEB: 'Web',
   MOBILE: 'Mobile',
@@ -36,19 +28,26 @@ const CHANNEL_TYPE_LABELS: Record<string, string> = {
 
 interface ProductChannelsPageProps {
   product: Product;
-  onBack: () => void;
+  openNewSignal?: number;
+  onOpenNewConsumed?: () => void;
 }
 
-export function ProductChannelsPage({ product, onBack }: ProductChannelsPageProps) {
+export function ProductChannelsPage({ product, openNewSignal, onOpenNewConsumed }: ProductChannelsPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
   const [editingChannel, setEditingChannel] = useState<Channel | 'new' | null>(null);
   const [deactivatingChannel, setDeactivatingChannel] = useState<Channel | null>(null);
+
+  useEffect(() => {
+    if (openNewSignal) {
+      setEditingChannel('new');
+      onOpenNewConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openNewSignal]);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -65,14 +64,6 @@ export function ProductChannelsPage({ product, onBack }: ProductChannelsPageProp
   useEffect(() => {
     reload();
   }, [reload]);
-
-  const filtered = useMemo(
-    () =>
-      channels
-        .filter((c) => !statusFilter || c.status === statusFilter)
-        .filter((c) => !search || c.name.toLowerCase().includes(search.toLowerCase())),
-    [channels, search, statusFilter],
-  );
 
   async function handleSubmit(input: ChannelInput) {
     const isNew = editingChannel === 'new';
@@ -116,47 +107,7 @@ export function ProductChannelsPage({ product, onBack }: ProductChannelsPageProp
   }
 
   return (
-    <div className="flex-1 overflow-auto p-[28px_40px] box-border">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-[6px] text-[12.5px] bg-transparent border-0 p-0 cursor-pointer"
-        style={{ color: c.textSecondary }}
-      >
-        <ArrowLeft size={14} /> Voltar para produtos
-      </button>
-
-      <div className="mb-6 mt-3">
-        <h1 className="m-0 text-[21px] font-semibold tracking-[-0.02em]" style={{ color: c.textPrimary }}>
-          {product.name}
-        </h1>
-      </div>
-
-      <div className="flex items-center justify-between gap-3 mb-[18px] flex-wrap">
-        <div className="relative w-[280px]">
-          <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
-          <input
-            aria-label="Buscar canal"
-            placeholder="Buscar por nome..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2 pl-[32px] pr-3 rounded-md text-[13px] outline-none box-border"
-            style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <FilterDropdown
-            label="Status"
-            options={STATUS_OPTIONS}
-            value={statusFilter}
-            onChange={(v) => setStatusFilter(v as StatusFilter)}
-          />
-          <PrimaryButton onClick={() => setEditingChannel('new')}>
-            <Plus size={14} /> Novo canal
-          </PrimaryButton>
-        </div>
-      </div>
-
+    <div className="flex-1 overflow-auto min-w-0">
       {error && <p className="text-[13px]" style={{ color: c.danger }}>{error}</p>}
 
       {loading ? (
@@ -165,7 +116,7 @@ export function ProductChannelsPage({ product, onBack }: ProductChannelsPageProp
             <div key={i} className="h-[52px] rounded-lg animate-pulse" style={{ background: c.skeletonBg }} />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : channels.length === 0 ? (
         <EmptyState hasChannels={channels.length > 0} onCreate={() => setEditingChannel('new')} />
       ) : (
         <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
@@ -179,7 +130,7 @@ export function ProductChannelsPage({ product, onBack }: ProductChannelsPageProp
             <span>Jornadas</span>
             <span>Ações</span>
           </div>
-          {filtered.map((ch) => (
+          {channels.map((ch) => (
             <ChannelRow
               key={ch.channelId}
               channel={ch}

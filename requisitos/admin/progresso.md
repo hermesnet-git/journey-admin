@@ -17,24 +17,24 @@
 | Total de Épicos (EP) | 8 |
 | Total de Features (FT) | 28 |
 | Total de Requisitos (REQ) | 121 |
-| Concluídos (`done`) | 84 |
-| Em andamento (`in_progress`) | 4 |
-| Não iniciados (`todo`) | 31 |
-| Bloqueados (`blocked`) | 2 |
+| Concluídos (`done`) | 106 |
+| Em andamento (`in_progress`) | 0 |
+| Não iniciados (`todo`) | 15 |
+| Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 0 |
-| % Concluído | 69% |
+| % Concluído | 88% |
 
 ## Progresso por Épico
 
 | EP | Nome | REQs | Concluídos | % |
 |---|---|---:|---:|---:|
-| EP-01 | Gestão de Produtos e Canais | 24 | 21 | 88% |
-| EP-02 | Gestão de Jornadas | 23 | 20 | 87% |
+| EP-01 | Gestão de Produtos e Canais | 24 | 24 | 100% |
+| EP-02 | Gestão de Jornadas | 23 | 23 | 100% |
 | EP-03 | Modelagem Visual | 25 | 25 | 100% |
 | EP-04 | Formulários (SDUI) | 18 | 18 | 100% |
 | EP-05 | Simulação | 10 | 0 | 0% |
-| EP-06 | Publicação | 12 | 0 | 0% |
-| EP-07 | Publicação no Runtime | 4 | 0 | 0% |
+| EP-06 | Publicação | 12 | 12 | 100% |
+| EP-07 | Publicação no Runtime | 4 | 4 | 100% |
 | EP-08 | Dashboard Administrativo | 5 | 0 | 0% |
 
 ---
@@ -81,9 +81,9 @@
 |---|---|---|---|---|---|
 | [x] | REQ-01.04.001 | A desativação de um produto não deve remover seus canais, jornadas ou publicações existentes. | done | back: `DeactivateProduct` apenas altera `status`, sem exclusão | |
 | [x] | REQ-01.04.002 | A desativação de um canal não deve remover suas jornadas ou publicações existentes. | done | back: `DeactivateChannel` apenas altera `status`, sem exclusão | |
-| [~] | REQ-01.04.003 | O sistema deve impedir a criação e a publicação de jornadas quando o produto ou o canal estiver inativo. | in_progress | back: `CreateJourney` valida canal e produto ativos (`ChannelInactiveException`/`ProductInactiveException`) | criação já bloqueada; bloqueio de publicação depende de EP-06 |
-| [~] | REQ-01.04.004 | O sistema deve impedir a desativação de um produto enquanto qualquer jornada de seus canais possuir publicação ativa. | in_progress | back: `DeactivateProduct` + `ActivePublicationPort` (stub `NoPublicationsYetAdapter` retorna sempre `false`) | guarda implementada e testada; verificação end-to-end pendente de EP-02/EP-06 |
-| [~] | REQ-01.04.005 | O sistema deve impedir a desativação de um canal enquanto qualquer uma de suas jornadas possuir publicação ativa. | in_progress | back: `DeactivateChannel` + `ActivePublicationPort` (stub `NoPublicationsYetAdapter` retorna sempre `false`) | guarda implementada e testada; verificação end-to-end pendente de EP-02/EP-06 |
+| [x] | REQ-01.04.003 | O sistema deve impedir a criação e a publicação de jornadas quando o produto ou o canal estiver inativo. | done | back: `CreateJourney` (criação) e `PublishJourney` (publicação) validam canal e produto ativos (`ChannelInactiveException`/`ProductInactiveException`, 422) | |
+| [x] | REQ-01.04.004 | O sistema deve impedir a desativação de um produto enquanto qualquer jornada de seus canais possuir publicação ativa. | done | back: `DeactivateProduct` + `ActivePublicationPort` real (`JourneyPublicationStatusAdapter.existsForProduct`) | testado via curl: 409 com jornada `PUBLISHED`, 200 após despublicar |
+| [x] | REQ-01.04.005 | O sistema deve impedir a desativação de um canal enquanto qualquer uma de suas jornadas possuir publicação ativa. | done | back: `DeactivateChannel` + `ActivePublicationPort` real (`JourneyPublicationStatusAdapter.existsForChannel`) | testado via curl: 409 com jornada `PUBLISHED`, 200 após despublicar |
 
 ---
 
@@ -97,8 +97,8 @@
 | [x] | REQ-02.01.002 | O sistema deve permitir editar jornadas. | done | back: `PUT /api/v1/journeys/{id}`; front: ação "Editar" | |
 | [x] | REQ-02.01.003 | O sistema deve permitir consultar jornadas. | done | back: `GET /api/v1/journeys`, `GET /api/v1/journeys/{id}`; front: `JourneysPage` | |
 | [x] | REQ-02.01.004 | O sistema deve permitir remover fisicamente somente jornadas que nunca tenham sido publicadas. | done | back: `DELETE /api/v1/journeys/{id}` + `DeleteJourney` + `HasEverBeenPublishedPort` (stub `NeverPublishedAdapter` retorna sempre `false`) | front: ação "Excluir" com confirmação |
-| [x] | REQ-02.01.005 | Uma jornada que possua ou tenha possuído publicação não deve poder ser removida fisicamente; o sistema deve permitir apenas sua desativação, preservando o registro de publicação. | done | back: `DeleteJourney` lança `JourneyDeletionBlockedException` (409) quando `hasEverBeenPublished` | verificação end-to-end pendente de EP-06 (stub sempre `false` hoje) |
-| [~] | REQ-02.01.006 | O sistema deve impedir a desativação de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes da desativação. | in_progress | back: `DeactivateJourney` + `ActivePublicationPort.existsForJourney` (stub sempre `false`) | guarda implementada e testada; verificação end-to-end pendente de EP-06 |
+| [x] | REQ-02.01.005 | Uma jornada que possua ou tenha possuído publicação não deve poder ser removida fisicamente; o sistema deve permitir apenas sua desativação, preservando o registro de publicação. | done | back: `DeleteJourney` lança `JourneyDeletionBlockedException` (409) quando `HasEverBeenPublishedPort.hasEverBeenPublished` (real, via `journey_publication`) | testado via curl: 409 mesmo após despublicar (registro preservado) |
+| [x] | REQ-02.01.006 | O sistema deve impedir a desativação de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes da desativação. | done | back: `DeactivateJourney` + `ActivePublicationPort.existsForJourney` real | |
 
 ### FT-02.02 Identificação e Metadados
 
@@ -133,8 +133,8 @@
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
 | [x] | REQ-02.05.001 | O sistema deve permitir criar jornadas distintas para diferentes canais do mesmo produto. | done | back: cada `Journey` pertence a um único `channel_id`, sem restrição entre canais do mesmo produto | |
-| [ ] | REQ-02.05.002 | Cada jornada deve possuir definição independente de fluxo e formulários. | blocked | | depende de `Flow` (EP-03) e `Form` (EP-04) |
-| [ ] | REQ-02.05.003 | Alterações realizadas em uma jornada não devem modificar automaticamente jornadas de outros canais. | blocked | | depende de `Flow` (EP-03) existir para ter substância a verificar |
+| [x] | REQ-02.05.002 | Cada jornada deve possuir definição independente de fluxo e formulários. | done | back: `flow.journey_id UNIQUE` — um `Flow` por jornada; `FlowNode.formId` referencia `Form` por nó, sem acoplamento entre jornadas | satisfeito desde EP-03/EP-04 |
+| [x] | REQ-02.05.003 | Alterações realizadas em uma jornada não devem modificar automaticamente jornadas de outros canais. | done | back: cada `Flow` é uma linha isolada por `journey_id`; `UpdateFlow` só afeta o `flow` da própria jornada | satisfeito desde EP-03 |
 | [x] | REQ-02.05.004 | O sistema deve exibir o produto e o canal durante toda a edição da jornada. | done | front: breadcrumb "Produto › Canal" nos cards/linhas e no modal de edição | |
 
 ---
@@ -280,28 +280,28 @@
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-06.01.001 | O sistema deve permitir publicar jornadas. | todo | | |
-| [ ] | REQ-06.01.002 | O sistema deve permitir despublicar jornadas por meio da API do runtime. | todo | | |
-| [ ] | REQ-06.01.003 | O sistema deve permitir consultar jornadas publicadas. | todo | | |
-| [ ] | REQ-06.01.004 | Cada jornada deve possuir no máximo uma publicação. Alterações realizadas após a publicação não devem modificar automaticamente o snapshot publicado; para disponibilizá-las, o usuário deve publicar novamente, substituindo integralmente o snapshot anterior. | todo | | |
+| [x] | REQ-06.01.001 | O sistema deve permitir publicar jornadas. | done | back: `POST /api/v1/journeys/{id}/publish` + `PublishJourney`; front: `JourneysPage` (ação "Publicar"/"Republicar") | |
+| [x] | REQ-06.01.002 | O sistema deve permitir despublicar jornadas por meio da API do runtime. | done | back: `POST /api/v1/journeys/{id}/unpublish` + `UnpublishJourney` (chama `RuntimePublicationPort.unpublish`); front: ação "Despublicar" | |
+| [x] | REQ-06.01.003 | O sistema deve permitir consultar jornadas publicadas. | done | back: `GET /api/v1/journeys?status=PUBLISHED`; front: filtro "Publicadas" em `JourneysPage` | |
+| [x] | REQ-06.01.004 | Cada jornada deve possuir no máximo uma publicação. Alterações realizadas após a publicação não devem modificar automaticamente o snapshot publicado; para disponibilizá-las, o usuário deve publicar novamente, substituindo integralmente o snapshot anterior. | done | back: `journey_publication.journey_id UNIQUE`; `PublishJourney` reaproveita o `id` existente (upsert) ao republicar, substituindo o `snapshot` por inteiro | testado via curl (republicar troca `publishedAt`) |
 
 ### FT-06.02 Estado da Publicação
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-06.02.001 | O sistema deve indicar se uma jornada está publicada. | todo | | |
-| [ ] | REQ-06.02.002 | O sistema deve indicar a data da publicação. | todo | | |
-| [ ] | REQ-06.02.003 | O sistema deve indicar o produto associado à publicação. | todo | | |
-| [ ] | REQ-06.02.004 | O sistema deve indicar o canal associado à publicação. | todo | | |
+| [x] | REQ-06.02.001 | O sistema deve indicar se uma jornada está publicada. | done | back: `JourneyResponse.status`; front: `JourneyStatusTag` | |
+| [x] | REQ-06.02.002 | O sistema deve indicar a data da publicação. | done | back: `JourneyResponse.publishedAt` (via `JourneyViewAssembler` + `PublicationRepository`); front: "Publicada em ..." em `JourneyCard`/`JourneyRow` | |
+| [x] | REQ-06.02.003 | O sistema deve indicar o produto associado à publicação. | done | front: `journey.productName` já exibido em todo lugar da listagem (produto é imutável por jornada) | |
+| [x] | REQ-06.02.004 | O sistema deve indicar o canal associado à publicação. | done | front: `journey.channelName` já exibido em todo lugar da listagem | |
 
 ### FT-06.03 Catálogo de Publicações
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-06.03.001 | O sistema deve permitir listar jornadas publicadas. | todo | | |
-| [ ] | REQ-06.03.002 | O sistema deve permitir pesquisar jornadas publicadas. | todo | | |
-| [ ] | REQ-06.03.003 | O sistema deve permitir filtrar jornadas publicadas por produto. | todo | | |
-| [ ] | REQ-06.03.004 | O sistema deve permitir filtrar jornadas publicadas por canal. | todo | | |
+| [x] | REQ-06.03.001 | O sistema deve permitir listar jornadas publicadas. | done | back/front: mesma listagem de Jornadas, filtro de status "Publicadas" — sem menu novo, por decisão de produto | |
+| [x] | REQ-06.03.002 | O sistema deve permitir pesquisar jornadas publicadas. | done | front: campo de busca de `JourneysPage`, combinável com o filtro "Publicadas" | |
+| [x] | REQ-06.03.003 | O sistema deve permitir filtrar jornadas publicadas por produto. | done | back: `GET /api/v1/journeys?productId=&status=PUBLISHED`; front: `FilterDropdown` "Produto" | |
+| [x] | REQ-06.03.004 | O sistema deve permitir filtrar jornadas publicadas por canal. | done | back: `GET /api/v1/journeys?channelId=&status=PUBLISHED`; front: `FilterDropdown` "Canal" | |
 
 ---
 
@@ -311,10 +311,10 @@
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-07.01.001 | O Admin Portal deve iniciar a publicação por meio de uma chamada de saída para a API de publicação do runtime. | todo | | |
-| [ ] | REQ-07.01.002 | A chamada deve enviar a definição completa da jornada, incluindo produto, canal, fluxo e formulários. | todo | | |
-| [ ] | REQ-07.01.003 | No MVP, a API de publicação do runtime deve ser representada por um mock. Após o retorno de sucesso do mock, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`. | todo | | |
-| [ ] | REQ-07.01.004 | Ao despublicar no MVP, o Admin Portal deve chamar a API mockada do runtime. Após o sucesso, jornada e publicação assumem `UNPUBLISHED`; em caso de falha, os estados atuais são preservados. | todo | | |
+| [x] | REQ-07.01.001 | O Admin Portal deve iniciar a publicação por meio de uma chamada de saída para a API de publicação do runtime. | done | back: `PublishJourney`/`UnpublishJourney` chamam `RuntimePublicationPort` (`MockRuntimePublicationAdapter`) | |
+| [x] | REQ-07.01.002 | A chamada deve enviar a definição completa da jornada, incluindo produto, canal, fluxo e formulários. | done | back: `Publication` (passada para `RuntimePublicationPort.publish`) carrega jornada, produto, canal, `FlowNode`/`FlowConnection` e `Form`s referenciados | |
+| [x] | REQ-07.01.003 | No MVP, a API de publicação do runtime deve ser representada por um mock. Após o retorno de sucesso do mock, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`. | done | back: `MockRuntimePublicationAdapter` sempre "sucede" (loga e retorna); `PublishJourney` só persiste `Publication`/`journey.publish()` depois da chamada não lançar | |
+| [x] | REQ-07.01.004 | Ao despublicar no MVP, o Admin Portal deve chamar a API mockada do runtime. Após o sucesso, jornada e publicação assumem `UNPUBLISHED`; em caso de falha, os estados atuais são preservados. | done | back: `UnpublishJourney` só chama `journey.unpublish()`/`save` após `runtimePublicationPort.unpublish` retornar sem exceção; se lançasse, nada seria persistido | jornada assume `UNPUBLISHED` (não existe estado "publicação" separado — o registro é preservado, ver REQ-06.01.004) |
 
 ---
 
@@ -336,6 +336,7 @@
 
 | Data | Alteração |
 |---|---|
+| 2026-08-03 | EP-06 (Publicação) + EP-07 (Publicação no Runtime) implementados por completo: 16/16 REQs. Backend novo (`domain/application/infrastructure/interfaces` para `publication`, migration `V6__create_journey_publication.sql`, endpoints `POST /journeys/{id}/publish`\|`unpublish`, filtro `?status=` em `GET /journeys`) e mock do runtime (`MockRuntimePublicationAdapter`, sempre "sucede"). Isso também deu implementação real aos guard-rails que ficaram stubados até aqui (`ActivePublicationPort`/`HasEverBeenPublishedPort`, antes sempre `false`), fechando de quebra REQ-01.04.003/004/005 e REQ-02.01.006 (eram `in_progress`) e REQ-02.05.002/003 (eram `blocked`, já satisfeitos desde EP-03/EP-04). Sem menu novo: publicar/despublicar vive na listagem de Jornadas (`JourneysPage`), reaproveitando filtros de produto/canal/busca já existentes para o "catálogo de publicações" (basta filtrar por status "Publicadas"). Progresso geral de 69% para 88%, zerando os `in_progress`/`blocked` restantes. |
 | 2026-08-03 | EP-04 (Formulários/SDUI) implementado por completo: 18/18 REQs. Backend novo (`domain/application/infrastructure/interfaces/form`, migration `V5__create_form.sql`, CRUD `/api/v1/forms`) e frontend novo (`front/src/forms/FormsPage.tsx` + `FormBuilderPage.tsx`, `api/forms.ts`, item "Formulários" na sidebar). `FlowNode.formId` (já existente no backend) agora é editável de fato: `PropertiesPanel` ganhou o seletor "Formulário associado" para nós User Task e `JourneyDesignerPage` para de mandar `formId: null` fixo. EP-04 avança de 0% para 100%; progresso geral de 55% para 69%. |
 | 2026-08-02 | Implementados REQ-03.04.004 (copiar) e REQ-03.04.005 (duplicar) via atalhos `Ctrl+C`/`Ctrl+V`/`Ctrl+D` e botão "Duplicar nó" no `NodePropertiesPanel`, restritos a User Tasks (START/END mantêm regra de unicidade). REQ-03.06.001 (autosave) marcado como `n/a`: decisão de produto de não implementar no MVP, salvamento permanece manual. EP-03 avança para 25/26 (96%). |
 | 2026-08-02 | Atualização do EP-03 (Modelagem Visual) com base na implementação do Flow Designer: 23/26 REQs concluídos (nós START/END/USER_TASK, conexões, validação estrutural client+server com 422, navegação, drag-and-drop, zoom/pan/fit, undo/redo). Restam `todo`: copiar elementos, duplicar elementos e salvamento automático. |

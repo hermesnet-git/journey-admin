@@ -3,6 +3,7 @@ package com.jouney.admin.infrastructure.persistence.journey;
 import com.jouney.admin.domain.journey.Journey;
 import com.jouney.admin.domain.journey.JourneyRepository;
 import com.jouney.admin.domain.journey.JourneySort;
+import com.jouney.admin.domain.journey.JourneyStatus;
 import com.jouney.admin.infrastructure.persistence.channel.ChannelJpaEntity;
 import jakarta.persistence.criteria.Subquery;
 import java.util.List;
@@ -39,8 +40,11 @@ public class JourneyRepositoryAdapter implements JourneyRepository {
     }
 
     @Override
-    public List<Journey> search(UUID productId, UUID channelId, String query, JourneySort sort) {
+    public List<Journey> search(UUID productId, UUID channelId, String query, JourneyStatus status, JourneySort sort) {
         Specification<JourneyJpaEntity> spec = Specification.allOf();
+        if (status != null) {
+            spec = spec.and((root, cq, cb) -> cb.equal(root.get("status"), status));
+        }
         if (channelId != null) {
             spec = spec.and((root, cq, cb) -> cb.equal(root.get("channelId"), channelId));
         }

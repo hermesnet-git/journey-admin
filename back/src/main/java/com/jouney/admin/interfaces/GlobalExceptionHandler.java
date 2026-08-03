@@ -8,6 +8,7 @@ import com.jouney.admin.domain.form.FormNotFoundException;
 import com.jouney.admin.domain.journey.ChannelInactiveException;
 import com.jouney.admin.domain.journey.JourneyDeletionBlockedException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
+import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.product.ProductNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
@@ -27,7 +28,8 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
     }
 
-    @ExceptionHandler({ActivePublicationExistsException.class, JourneyDeletionBlockedException.class})
+    @ExceptionHandler({ActivePublicationExistsException.class, JourneyDeletionBlockedException.class,
+            JourneyNotPublishedException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }

@@ -145,7 +145,7 @@ function DesignerInner({
         id: n.nodeId,
         type: n.nodeType === 'START' ? 'start' : n.nodeType === 'END' ? 'end' : 'userTask',
         position: { x: n.positionX, y: n.positionY },
-        data: { name: n.name, description: n.description ?? '', formId: n.formId },
+        data: { name: n.name, description: n.description ?? '', formId: n.userTaskConfig?.formId ?? null },
       }));
       setNodes(loadedNodes);
       setEdges(flow.connections.map((c) => ({ id: c.connectionId, source: c.sourceNodeId, target: c.targetNodeId })));
@@ -368,7 +368,7 @@ function DesignerInner({
           description: n.data.description || null,
           positionX: Math.round(n.position.x),
           positionY: Math.round(n.position.y),
-          formId: n.data.formId ?? null,
+          userTaskConfig: n.data.formId ? { formId: n.data.formId } : null,
         })),
         connections: edges.map((e) => ({ connectionId: e.id, sourceNodeId: e.source, targetNodeId: e.target })),
       });

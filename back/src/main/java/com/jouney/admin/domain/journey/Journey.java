@@ -45,6 +45,16 @@ public class Journey {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    public void publish() {
+        this.status = JourneyStatus.PUBLISHED;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void unpublish() {
+        this.status = JourneyStatus.UNPUBLISHED;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
     public UUID getId() {
         return id;
     }

@@ -16,6 +16,8 @@ import {
   deactivateJourney,
   activateJourney,
   deleteJourney,
+  publishJourney,
+  unpublishJourney,
   type Journey,
   type JourneyStatus,
   type JourneySort,
@@ -27,6 +29,8 @@ type StatusFilter = 'all' | JourneyStatus;
 const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'all', label: 'Todas' },
   { key: 'DRAFT', label: 'Rascunho' },
+  { key: 'PUBLISHED', label: 'Publicadas' },
+  { key: 'UNPUBLISHED', label: 'Despublicadas' },
   { key: 'INACTIVE', label: 'Inativas' },
 ];
 
@@ -77,6 +81,8 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
   const [editingJourney, setEditingJourney] = useState<Journey | 'new' | null>(null);
   const [deactivatingJourney, setDeactivatingJourney] = useState<Journey | null>(null);
   const [deletingJourney, setDeletingJourney] = useState<Journey | null>(null);
+  const [publishingJourney, setPublishingJourney] = useState<Journey | null>(null);
+  const [unpublishingJourney, setUnpublishingJourney] = useState<Journey | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -124,6 +130,7 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
     () => ({
       total: journeys.length,
       draft: journeys.filter((j) => j.status === 'DRAFT').length,
+      published: journeys.filter((j) => j.status === 'PUBLISHED').length,
       inactive: journeys.filter((j) => j.status === 'INACTIVE').length,
     }),
     [journeys],
@@ -164,6 +171,44 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
           : err instanceof Error
             ? err.message
             : 'Erro ao desativar jornada';
+      showToast(message, 'error');
+    }
+  }
+
+  async function confirmPublish() {
+    if (!publishingJourney) return;
+    const journey = publishingJourney;
+    setPublishingJourney(null);
+    try {
+      await publishJourney(journey.journeyId);
+      await reload();
+      showToast('Jornada publicada com sucesso.');
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError && err.status === 422
+          ? 'Não é possível publicar: o produto ou o canal da jornada está inativo.'
+          : err instanceof Error
+            ? err.message
+            : 'Erro ao publicar jornada';
+      showToast(message, 'error');
+    }
+  }
+
+  async function confirmUnpublish() {
+    if (!unpublishingJourney) return;
+    const journey = unpublishingJourney;
+    setUnpublishingJourney(null);
+    try {
+      await unpublishJourney(journey.journeyId);
+      await reload();
+      showToast('Jornada despublicada com sucesso.');
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError && err.status === 409
+          ? 'A jornada não está publicada.'
+          : err instanceof Error
+            ? err.message
+            : 'Erro ao despublicar jornada';
       showToast(message, 'error');
     }
   }
@@ -230,9 +275,10 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-[14px] mb-[22px]">
+      <div className="grid grid-cols-4 gap-[14px] mb-[22px]">
         <StatCard label="Jornadas cadastradas" value={kpis.total} />
         <StatCard label="Em rascunho" value={kpis.draft} />
+        <StatCard label="Publicadas" value={kpis.published} />
         <StatCard label="Inativas" value={kpis.inactive} />
       </div>
 
@@ -314,6 +360,8 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
               onDeactivate={() => setDeactivatingJourney(j)}
               onActivate={() => handleActivate(j)}
               onDelete={() => setDeletingJourney(j)}
+              onPublish={() => setPublishingJourney(j)}
+              onUnpublish={() => setUnpublishingJourney(j)}
             />
           ))}
         </div>
@@ -337,6 +385,8 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
               onDeactivate={() => setDeactivatingJourney(j)}
               onActivate={() => handleActivate(j)}
               onDelete={() => setDeletingJourney(j)}
+              onPublish={() => setPublishingJourney(j)}
+              onUnpublish={() => setUnpublishingJourney(j)}
             />
           ))}
         </div>
@@ -359,6 +409,30 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
           confirmLabel="Excluir"
           onConfirm={confirmDelete}
           onCancel={() => setDeletingJourney(null)}
+        />
+      )}
+
+      {publishingJourney && (
+        <ConfirmDialog
+          title={publishingJourney.status === 'PUBLISHED' ? 'Republicar jornada' : 'Publicar jornada'}
+          message={
+            publishingJourney.status === 'PUBLISHED'
+              ? `Isso substitui integralmente a publicação atual de "${publishingJourney.name}" pela versão mais recente do fluxo e dos formulários.`
+              : `Isso publica "${publishingJourney.name}" com o fluxo e os formulários configurados atualmente.`
+          }
+          confirmLabel={publishingJourney.status === 'PUBLISHED' ? 'Republicar' : 'Publicar'}
+          onConfirm={confirmPublish}
+          onCancel={() => setPublishingJourney(null)}
+        />
+      )}
+
+      {unpublishingJourney && (
+        <ConfirmDialog
+          title="Despublicar jornada"
+          message={`Tem certeza que deseja despublicar "${unpublishingJourney.name}"? O registro da publicação é preservado, mas ela deixa de estar disponível.`}
+          confirmLabel="Despublicar"
+          onConfirm={confirmUnpublish}
+          onCancel={() => setUnpublishingJourney(null)}
         />
       )}
     </div>
@@ -427,17 +501,25 @@ function JourneyActions({
   onDeactivate,
   onActivate,
   onDelete,
+  onPublish,
+  onUnpublish,
 }: {
   journey: Journey;
   onEdit: () => void;
   onDeactivate: () => void;
   onActivate: () => void;
   onDelete: () => void;
+  onPublish: () => void;
+  onUnpublish: () => void;
 }) {
   const { colors: c } = useAppTheme();
   return (
     <div className="flex items-center gap-4">
       <LinkButton onClick={onEdit}>Editar</LinkButton>
+      {journey.status !== 'INACTIVE' && (
+        <LinkButton onClick={onPublish}>{journey.status === 'PUBLISHED' ? 'Republicar' : 'Publicar'}</LinkButton>
+      )}
+      {journey.status === 'PUBLISHED' && <LinkButton onClick={onUnpublish}>Despublicar</LinkButton>}
       {journey.status === 'DRAFT' && <LinkButton onClick={onDeactivate}>Desativar</LinkButton>}
       {journey.status === 'INACTIVE' && <LinkButton onClick={onActivate}>Ativar</LinkButton>}
       <button
@@ -461,12 +543,16 @@ function JourneyCard({
   onDeactivate,
   onActivate,
   onDelete,
+  onPublish,
+  onUnpublish,
 }: {
   journey: Journey;
   onEdit: () => void;
   onDeactivate: () => void;
   onActivate: () => void;
   onDelete: () => void;
+  onPublish: () => void;
+  onUnpublish: () => void;
 }) {
   const { colors: c } = useAppTheme();
   return (
@@ -488,10 +574,19 @@ function JourneyCard({
           {journey.description}
         </p>
       )}
-      <div className="flex items-center justify-between pt-[10px] border-t text-[12px]" style={{ borderColor: c.border, color: c.textMuted }}>
+      <div className="flex flex-col gap-[2px] pt-[10px] border-t text-[12px]" style={{ borderColor: c.border, color: c.textMuted }}>
         <span>Atualizada em {formatDate(journey.updatedAt)}</span>
+        {journey.publishedAt && <span>Publicada em {formatDate(journey.publishedAt)}</span>}
       </div>
-      <JourneyActions journey={journey} onEdit={onEdit} onDeactivate={onDeactivate} onActivate={onActivate} onDelete={onDelete} />
+      <JourneyActions
+        journey={journey}
+        onEdit={onEdit}
+        onDeactivate={onDeactivate}
+        onActivate={onActivate}
+        onDelete={onDelete}
+        onPublish={onPublish}
+        onUnpublish={onUnpublish}
+      />
     </div>
   );
 }
@@ -502,12 +597,16 @@ function JourneyRow({
   onDeactivate,
   onActivate,
   onDelete,
+  onPublish,
+  onUnpublish,
 }: {
   journey: Journey;
   onEdit: () => void;
   onDeactivate: () => void;
   onActivate: () => void;
   onDelete: () => void;
+  onPublish: () => void;
+  onUnpublish: () => void;
 }) {
   const { colors: c } = useAppTheme();
   return (
@@ -533,8 +632,23 @@ function JourneyRow({
       <span className="w-fit">
         <JourneyStatusTag status={journey.status} />
       </span>
-      <span style={{ color: c.textSecondary }}>{formatDate(journey.updatedAt)}</span>
-      <JourneyActions journey={journey} onEdit={onEdit} onDeactivate={onDeactivate} onActivate={onActivate} onDelete={onDelete} />
+      <span className="flex flex-col gap-[2px]" style={{ color: c.textSecondary }}>
+        <span>{formatDate(journey.updatedAt)}</span>
+        {journey.publishedAt && (
+          <span className="text-[11px]" style={{ color: c.textMuted }}>
+            Publicada em {formatDate(journey.publishedAt)}
+          </span>
+        )}
+      </span>
+      <JourneyActions
+        journey={journey}
+        onEdit={onEdit}
+        onDeactivate={onDeactivate}
+        onActivate={onActivate}
+        onDelete={onDelete}
+        onPublish={onPublish}
+        onUnpublish={onUnpublish}
+      />
     </div>
   );
 }

@@ -9,7 +9,7 @@ export interface FlowNode {
   description: string | null;
   positionX: number;
   positionY: number;
-  formId: string | null;
+  userTaskConfig: { formId: string } | null;
 }
 
 export interface FlowConnection {

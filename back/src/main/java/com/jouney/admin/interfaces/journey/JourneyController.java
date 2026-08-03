@@ -7,7 +7,10 @@ import com.jouney.admin.application.journey.DeleteJourney;
 import com.jouney.admin.application.journey.FindJourneys;
 import com.jouney.admin.application.journey.GetJourney;
 import com.jouney.admin.application.journey.UpdateJourney;
+import com.jouney.admin.application.publication.PublishJourney;
+import com.jouney.admin.application.publication.UnpublishJourney;
 import com.jouney.admin.domain.journey.JourneySort;
+import com.jouney.admin.domain.journey.JourneyStatus;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -34,11 +37,14 @@ public class JourneyController {
     private final DeactivateJourney deactivateJourney;
     private final ActivateJourney activateJourney;
     private final DeleteJourney deleteJourney;
+    private final PublishJourney publishJourney;
+    private final UnpublishJourney unpublishJourney;
 
     public JourneyController(CreateJourney createJourney, UpdateJourney updateJourney, GetJourney getJourney,
                               FindJourneys findJourneys, DeactivateJourney deactivateJourney,
                               ActivateJourney activateJourney,
-                              DeleteJourney deleteJourney) {
+                              DeleteJourney deleteJourney, PublishJourney publishJourney,
+                              UnpublishJourney unpublishJourney) {
         this.createJourney = createJourney;
         this.updateJourney = updateJourney;
         this.getJourney = getJourney;
@@ -46,14 +52,18 @@ public class JourneyController {
         this.deactivateJourney = deactivateJourney;
         this.activateJourney = activateJourney;
         this.deleteJourney = deleteJourney;
+        this.publishJourney = publishJourney;
+        this.unpublishJourney = unpublishJourney;
     }
 
     @GetMapping
     public List<JourneyResponse> list(@RequestParam(required = false) UUID productId,
                                        @RequestParam(required = false) UUID channelId,
                                        @RequestParam(required = false) String q,
+                                       @RequestParam(required = false) JourneyStatus status,
                                        @RequestParam(required = false, defaultValue = "UPDATED_AT") JourneySort sort) {
-        return findJourneys.execute(productId, channelId, q, sort).stream().map(JourneyResponse::from).toList();
+        return findJourneys.execute(productId, channelId, q, status, sort).stream()
+                .map(JourneyResponse::from).toList();
     }
 
     @PostMapping
@@ -89,5 +99,17 @@ public class JourneyController {
     public ResponseEntity<Void> activate(@PathVariable UUID journeyId) {
         activateJourney.execute(journeyId);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{journeyId}/publish")
+    public JourneyResponse publish(@PathVariable UUID journeyId) {
+        publishJourney.execute(journeyId);
+        return JourneyResponse.from(getJourney.execute(journeyId));
+    }
+
+    @PostMapping("/{journeyId}/unpublish")
+    public JourneyResponse unpublish(@PathVariable UUID journeyId) {
+        unpublishJourney.execute(journeyId);
+        return JourneyResponse.from(getJourney.execute(journeyId));
     }
 }

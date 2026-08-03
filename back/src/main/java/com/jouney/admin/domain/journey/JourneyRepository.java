@@ -12,5 +12,5 @@ public interface JourneyRepository {
 
     void deleteById(UUID id);
 
-    List<Journey> search(UUID productId, UUID channelId, String query, JourneySort sort);
+    List<Journey> search(UUID productId, UUID channelId, String query, JourneyStatus status, JourneySort sort);
 }

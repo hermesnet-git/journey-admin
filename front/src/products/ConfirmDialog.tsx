@@ -1,5 +1,8 @@
 import { useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { ButtonDanger } from '@telefonica/mistica';
+import { useAppTheme } from '../shell/theme';
+import { SecondaryButton } from './ui';
 
 interface ConfirmDialogProps {
   title: string;
@@ -18,6 +21,8 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { colors: c } = useAppTheme();
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel();
@@ -33,32 +38,27 @@ export function ConfirmDialog({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[400px] bg-white rounded-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,.25)] border border-[#e4e4e7] p-6 flex flex-col gap-4 box-border animate-[modal-panel-in_180ms_cubic-bezier(0.16,1,0.3,1)]"
+        className="w-full max-w-[400px] rounded-2xl p-6 flex flex-col gap-4 box-border animate-[modal-panel-in_180ms_cubic-bezier(0.16,1,0.3,1)]"
+        style={{ background: c.surface, border: `1px solid ${c.border}`, boxShadow: `0 20px 50px -12px ${c.shadow}` }}
       >
         <div className="flex items-start gap-3">
-          <div className="shrink-0 w-9 h-9 rounded-full bg-[#fef2f2] flex items-center justify-center">
-            <AlertTriangle size={17} color="#b91c1c" />
+          <div className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: c.dangerSoft }}>
+            <AlertTriangle size={17} color={c.danger} />
           </div>
           <div className="min-w-0">
-            <h2 className="m-0 text-[15px] font-semibold text-[#1a1a1a]">{title}</h2>
-            <p className="m-0 mt-[6px] text-[13px] text-[#71717a]">{message}</p>
+            <h2 className="m-0 text-[15px] font-semibold" style={{ color: c.textPrimary }}>
+              {title}
+            </h2>
+            <p className="m-0 mt-[6px] text-[13px]" style={{ color: c.textSecondary }}>
+              {message}
+            </p>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="inline-flex items-center gap-[6px] rounded-md bg-white border border-[#e4e4e7] px-4 py-2 text-[13px] font-medium text-[#1a1a1a] cursor-pointer transition-colors hover:bg-[#f4f4f5]"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="inline-flex items-center gap-[6px] rounded-md bg-[#dc2626] px-4 py-2 text-[13px] font-medium text-white border-0 cursor-pointer transition-colors hover:bg-[#b91c1c]"
-          >
+          <SecondaryButton onClick={onCancel}>{cancelLabel}</SecondaryButton>
+          <ButtonDanger small onPress={onConfirm}>
             {confirmLabel}
-          </button>
+          </ButtonDanger>
         </div>
       </div>
     </div>

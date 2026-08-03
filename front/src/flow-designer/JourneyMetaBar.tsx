@@ -2,10 +2,10 @@ import { ChevronDown } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import type { Product, Channel } from '../api/products';
 
-const fieldLabelClass = 'text-[9px] font-semibold uppercase tracking-wide';
-const fieldFontSize = 10;
-const controlBase = 'h-[20px] rounded-md px-[7px] text-[10px] leading-[20px] outline-none box-border w-full';
-const textareaClass = 'rounded-md px-[7px] py-[5px] text-[10px] leading-[14px] outline-none box-border w-full resize-none';
+const fieldLabelClass = 'text-[12.5px] font-medium';
+const fieldFontSize = 13;
+const controlBase = 'rounded-md px-3 py-2 text-[13px] outline-none box-border w-full';
+const textareaClass = 'rounded-md px-3 py-2 text-[13px] leading-[18px] outline-none box-border w-full resize-none';
 
 export function JourneyMetaBar({
   products,
@@ -48,8 +48,8 @@ export function JourneyMetaBar({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-[6px]">
         <span className={fieldLabelClass} style={{ color: c.textSecondary }}>
           Produto
         </span>
@@ -62,7 +62,7 @@ export function JourneyMetaBar({
             <select
               value={productId}
               onChange={(e) => onProductChange(e.target.value)}
-              className={`${controlBase} appearance-none pr-5 cursor-pointer`}
+              className={`${controlBase} appearance-none pr-8 cursor-pointer`}
               style={selectStyle}
             >
               <option value="">Selecione...</option>
@@ -72,12 +72,12 @@ export function JourneyMetaBar({
                 </option>
               ))}
             </select>
-            <ChevronDown size={10} className="absolute right-[6px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textSecondary }} />
+            <ChevronDown size={14} className="absolute right-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textSecondary }} />
           </div>
         )}
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-[6px]">
         <span className={fieldLabelClass} style={{ color: c.textSecondary }}>
           Canal
         </span>
@@ -91,7 +91,7 @@ export function JourneyMetaBar({
               value={channelId}
               onChange={(e) => onChannelChange(e.target.value)}
               disabled={!productId}
-              className={`${controlBase} appearance-none pr-5 cursor-pointer disabled:cursor-not-allowed`}
+              className={`${controlBase} appearance-none pr-8 cursor-pointer disabled:cursor-not-allowed`}
               style={!productId ? disabledStyle : selectStyle}
             >
               <option value="">Selecione...</option>
@@ -101,12 +101,12 @@ export function JourneyMetaBar({
                 </option>
               ))}
             </select>
-            <ChevronDown size={10} className="absolute right-[6px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textSecondary }} />
+            <ChevronDown size={14} className="absolute right-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textSecondary }} />
           </div>
         )}
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-[6px]">
         <span className={fieldLabelClass} style={{ color: c.textSecondary }}>
           Nome da jornada
         </span>
@@ -119,7 +119,7 @@ export function JourneyMetaBar({
         />
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-[6px]">
         <span className={fieldLabelClass} style={{ color: c.textSecondary }}>
           Descrição
         </span>

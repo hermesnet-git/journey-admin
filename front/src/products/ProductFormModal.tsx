@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal } from './Modal';
-import { Field, TextInput, TextArea, PrimaryButton, SecondaryButton } from './ui';
+import { Field, TextInput, TextArea, PrimaryButton, SecondaryButton, ErrorBanner } from './ui';
 import type { Product, ProductInput } from '../api/products';
 
 interface ProductFormModalProps {
@@ -33,10 +33,8 @@ export function ProductFormModal({ product, onClose, onSubmit }: ProductFormModa
       onClose={onClose}
       footer={
         <>
-          <SecondaryButton type="button" onClick={onClose}>
-            Cancelar
-          </SecondaryButton>
-          <PrimaryButton type="submit" form="product-form" loading={saving} disabled={!name || !description}>
+          <SecondaryButton onClick={onClose}>Cancelar</SecondaryButton>
+          <PrimaryButton onClick={submit} loading={saving} disabled={!name || !description}>
             {product ? 'Salvar alterações' : 'Criar produto'}
           </PrimaryButton>
         </>
@@ -56,11 +54,7 @@ export function ProductFormModal({ product, onClose, onSubmit }: ProductFormModa
         <Field label="Descrição">
           <TextArea value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
-        {error && (
-          <div className="rounded-lg bg-[#fef2f2] border border-[#fecaca] px-3 py-2 text-[12.5px] text-[#b91c1c]">
-            {error}
-          </div>
-        )}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
       </form>
     </Modal>
   );

@@ -4,7 +4,6 @@ import {
   ReactFlowProvider,
   Background,
   BackgroundVariant,
-  MiniMap,
   MarkerType,
   applyNodeChanges,
   applyEdgeChanges,
@@ -23,7 +22,7 @@ import { FlowThemeContext, DARK_COLORS, LIGHT_COLORS } from './theme';
 import { useAppTheme } from '../shell/theme';
 import { WorkflowNode } from './WorkflowNode';
 import { Palette } from './Palette';
-import { NodePropertiesPanel } from './NodePropertiesPanel';
+import { PropertiesPanel } from './PropertiesPanel';
 import { ErrorModal } from './ErrorModal';
 import { Toolbar } from './Toolbar';
 import { validateFlow } from './validation';
@@ -32,6 +31,7 @@ import {
   initialFlowNodes,
   initialFlowEdges,
   makeNode,
+  newNodeId,
   newConnectionId,
   computeLayout,
   type NodeType,
@@ -88,7 +88,6 @@ function DesignerInner({
   const [nodes, setNodes] = useState<WFNode[]>(() => initialFlowNodes());
   const [edges, setEdges] = useState<WFEdge[]>(() => initialFlowEdges(nodes));
   const [loading, setLoading] = useState(!!journey);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [invalidNodeIds, setInvalidNodeIds] = useState<Set<string>>(new Set());
@@ -153,7 +152,6 @@ function DesignerInner({
     const prev = undoStack.current.pop()!;
     setNodes(prev.nodes);
     setEdges(prev.edges);
-    setSelectedNodeId(null);
     setHistoryTick((t) => t + 1);
   }, []);
 
@@ -163,9 +161,26 @@ function DesignerInner({
     const next = redoStack.current.pop()!;
     setNodes(next.nodes);
     setEdges(next.edges);
-    setSelectedNodeId(null);
     setHistoryTick((t) => t + 1);
   }, []);
+
+  // Marks exactly one node as selected (used when a node is created/duplicated).
+  const selectOnlyNode = useCallback((nodeId: string) => {
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === nodeId })));
+  }, []);
+
+  const updateNodeData = useCallback((nodeId: string, patch: Partial<WFNodeData>) => {
+    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n)));
+  }, []);
+
+  const deleteNode = useCallback(
+    (nodeId: string) => {
+      pushHistory();
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    },
+    [pushHistory],
+  );
 
   const onNodesChange = useCallback<OnNodesChange<WFNode>>(
     (changes: NodeChange<WFNode>[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -183,27 +198,18 @@ function DesignerInner({
     [pushHistory],
   );
   const onNodeDragStart = useCallback(() => pushHistory(), [pushHistory]);
-  const onBeforeDelete = useCallback(
-    async ({ nodes: toDelete }: { nodes: WFNode[] }) => {
-      // Only block deleting the last remaining START/END — the flow must always
-      // keep exactly one of each, but extras (e.g. from quick-add) can be removed.
-      const startCount = nodesRef.current.filter((n) => n.type === 'start').length;
-      const endCount = nodesRef.current.filter((n) => n.type === 'end').length;
-      const deletingLastStart = toDelete.some((n) => n.type === 'start') && startCount <= 1;
-      const deletingLastEnd = toDelete.some((n) => n.type === 'end') && endCount <= 1;
-      if (deletingLastStart || deletingLastEnd) return false;
-      pushHistory();
-      return true;
-    },
-    [pushHistory],
-  );
+  const onBeforeDelete = useCallback(async () => {
+    // START/END can be deleted freely; the "exactly one of each" rule is
+    // enforced only at save time via validateFlow.
+    pushHistory();
+    return true;
+  }, [pushHistory]);
 
   const addNodeAt = useCallback(
     (type: NodeType, x: number, y: number) => {
       pushHistory();
-      const node = makeNode(type, x, y);
-      setNodes((nds) => [...nds, node]);
-      setSelectedNodeId(node.id);
+      const node = { ...makeNode(type, x, y), selected: true };
+      setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
     },
     [pushHistory],
   );
@@ -229,29 +235,58 @@ function DesignerInner({
     [addNodeAt, screenToFlowPosition],
   );
 
-  const updateNodeData = useCallback((nodeId: string, patch: Partial<WFNodeData>) => {
-    setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n)));
-  }, []);
+  // START/END must stay unique, so copy/duplicate only apply to userTask nodes.
+  const clipboardRef = useRef<WFNode | null>(null);
 
-  const deleteNode = useCallback(
+  const duplicateNode = useCallback(
     (nodeId: string) => {
+      const source = nodesRef.current.find((n) => n.id === nodeId);
+      if (!source || source.type !== 'userTask') return;
       pushHistory();
-      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
-      setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
-      setSelectedNodeId(null);
+      const clone = {
+        ...source,
+        id: newNodeId(),
+        position: { x: source.position.x + 40, y: source.position.y + 40 },
+        data: { ...source.data },
+        selected: true,
+      };
+      setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), clone]);
     },
     [pushHistory],
   );
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      const selected = nodesRef.current.filter((n) => n.selected);
+      if (e.key === 'c') {
+        if (selected.length === 1 && selected[0].type === 'userTask') clipboardRef.current = selected[0];
+      } else if (e.key === 'v') {
+        if (clipboardRef.current) {
+          e.preventDefault();
+          duplicateNode(clipboardRef.current.id);
+        }
+      } else if (e.key === 'd') {
+        if (selected.length === 1) {
+          e.preventDefault();
+          duplicateNode(selected[0].id);
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [duplicateNode]);
 
   const onQuickAdd = useCallback(
     (nodeId: string, type: NodeType) => {
       const source = nodesRef.current.find((n) => n.id === nodeId);
       if (!source) return;
       pushHistory();
-      const node = makeNode(type, source.position.x + NODE_WIDTH + 140, source.position.y);
-      setNodes((nds) => [...nds, node]);
+      const node = { ...makeNode(type, source.position.x + NODE_WIDTH + 140, source.position.y), selected: true };
+      setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
       setEdges((eds) => [...eds, { id: newConnectionId(), source: nodeId, target: node.id }]);
-      setSelectedNodeId(node.id);
     },
     [pushHistory],
   );
@@ -264,36 +299,29 @@ function DesignerInner({
 
   const actions = useMemo<WorkflowActions>(
     () => ({
-      onEdit: (nodeId) => setSelectedNodeId(nodeId),
+      onEdit: (nodeId) => selectOnlyNode(nodeId),
       onQuickAdd,
     }),
-    [onQuickAdd],
+    [onQuickAdd, selectOnlyNode],
   );
 
   const displayNodes = useMemo(
-    () =>
-      nodes.map((n) => ({
-        ...n,
-        selected: n.id === selectedNodeId,
-        data: { ...n.data, invalid: invalidNodeIds.has(n.id) },
-      })),
-    [nodes, invalidNodeIds, selectedNodeId],
+    () => nodes.map((n) => ({ ...n, data: { ...n.data, invalid: invalidNodeIds.has(n.id) } })),
+    [nodes, invalidNodeIds],
   );
 
   const displayEdges = useMemo(
     () =>
       edges.map((e) => {
-        const highlighted = selectedNodeId != null && (e.source === selectedNodeId || e.target === selectedNodeId);
-        const color = highlighted ? c.accent : c.handleColor;
+        const color = e.selected ? c.accent : c.handleColor;
         return {
           ...e,
           type: 'smoothstep',
-          animated: highlighted,
-          style: { stroke: color, strokeWidth: highlighted ? 2.5 : 1.5 },
+          style: { stroke: color, strokeWidth: e.selected ? 2.5 : 1.5 },
           markerEnd: { type: MarkerType.ArrowClosed, color },
         };
       }),
-    [edges, selectedNodeId, c],
+    [edges, c],
   );
 
   async function handleSave() {
@@ -333,7 +361,8 @@ function DesignerInner({
     }
   }
 
-  const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null;
+  const selectedNodes = nodes.filter((n) => n.selected);
+  const singleSelectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
 
   if (loading) {
     return (
@@ -397,9 +426,9 @@ function DesignerInner({
                 onConnect={onConnect}
                 onNodeDragStart={onNodeDragStart}
                 onBeforeDelete={onBeforeDelete}
-                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-                onPaneClick={() => setSelectedNodeId(null)}
                 deleteKeyCode={['Delete', 'Backspace']}
+                multiSelectionKeyCode={['Control', 'Meta']}
+                selectionKeyCode={['Control', 'Meta']}
                 minZoom={0.4}
                 maxZoom={1.6}
                 snapToGrid
@@ -410,25 +439,14 @@ function DesignerInner({
                 proOptions={{ hideAttribution: true }}
               >
                 <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={20} size={1.4} />
-                <MiniMap
-                  pannable
-                  zoomable
-                  nodeColor={(n) => (n.type === 'start' ? '#16a34a' : n.type === 'end' ? '#dc2626' : '#019DF4')}
-                  maskColor={dark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.65)'}
-                  style={{ background: c.cardBg, border: `1px solid ${c.border}` }}
-                />
               </ReactFlow>
             </div>
-            {selectedNode && (
-              <NodePropertiesPanel
-                node={selectedNode}
-                canDelete={
-                  (selectedNode.type !== 'start' || nodes.filter((n) => n.type === 'start').length > 1) &&
-                  (selectedNode.type !== 'end' || nodes.filter((n) => n.type === 'end').length > 1)
-                }
-                onClose={() => setSelectedNodeId(null)}
-                onUpdate={(patch) => updateNodeData(selectedNode.id, patch)}
-                onDelete={() => deleteNode(selectedNode.id)}
+            {singleSelectedNode && (
+              <PropertiesPanel
+                node={singleSelectedNode}
+                onClose={() => selectOnlyNode('')}
+                onUpdate={(patch) => updateNodeData(singleSelectedNode.id, patch)}
+                onDelete={() => deleteNode(singleSelectedNode.id)}
               />
             )}
           </div>

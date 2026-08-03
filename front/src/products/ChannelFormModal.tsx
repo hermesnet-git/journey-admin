@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal } from './Modal';
-import { Field, TextInput, TextArea, SelectInput, PrimaryButton, SecondaryButton } from './ui';
+import { Field, TextInput, TextArea, SelectInput, PrimaryButton, SecondaryButton, ErrorBanner } from './ui';
 import type { Channel, ChannelInput, ChannelType } from '../api/products';
 
 const CHANNEL_TYPE_OPTIONS: { value: ChannelType; text: string }[] = [
@@ -43,10 +43,8 @@ export function ChannelFormModal({ channel, onClose, onSubmit }: ChannelFormModa
       onClose={onClose}
       footer={
         <>
-          <SecondaryButton type="button" onClick={onClose}>
-            Cancelar
-          </SecondaryButton>
-          <PrimaryButton type="submit" form="channel-form" loading={saving} disabled={!name || !description}>
+          <SecondaryButton onClick={onClose}>Cancelar</SecondaryButton>
+          <PrimaryButton onClick={submit} loading={saving} disabled={!name || !description}>
             {channel ? 'Salvar alterações' : 'Criar canal'}
           </PrimaryButton>
         </>
@@ -75,11 +73,7 @@ export function ChannelFormModal({ channel, onClose, onSubmit }: ChannelFormModa
         <Field label="Descrição">
           <TextArea value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
-        {error && (
-          <div className="rounded-lg bg-[#fef2f2] border border-[#fecaca] px-3 py-2 text-[12.5px] text-[#b91c1c]">
-            {error}
-          </div>
-        )}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
       </form>
     </Modal>
   );

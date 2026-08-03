@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, Plus, Boxes, ChevronRight } from 'lucide-react';
 import { PrimaryButton, LinkButton, StatusTag, FilterDropdown } from './ui';
+import { useAppTheme } from '../shell/theme';
 import {
   listProducts,
   createProduct,
@@ -33,6 +34,7 @@ export function ProductsPage() {
 }
 
 function ProductsPageContent() {
+  const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,19 +117,24 @@ function ProductsPageContent() {
   return (
     <div className="flex-1 overflow-auto p-[32px_40px] box-border">
       <div className="mb-6">
-        <h1 className="m-0 mb-1 text-[22px] font-semibold tracking-[-0.02em]">Produtos</h1>
-        <p className="m-0 text-[13.5px] text-[#71717a]">Gerencie produtos e seus canais de atendimento</p>
+        <h1 className="m-0 mb-1 text-[22px] font-semibold tracking-[-0.02em]" style={{ color: c.textPrimary }}>
+          Produtos
+        </h1>
+        <p className="m-0 text-[13.5px]" style={{ color: c.textSecondary }}>
+          Gerencie produtos e seus canais de atendimento
+        </p>
       </div>
 
       <div className="flex items-center justify-between gap-3 mb-[18px] flex-wrap">
         <div className="relative w-[280px]">
-          <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 text-[#a1a1aa] pointer-events-none" />
+          <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
           <input
             aria-label="Buscar produto"
             placeholder="Buscar por nome..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2 pl-[32px] pr-3 rounded-md border border-[#e4e4e7] text-[13px] bg-white outline-none box-border"
+            className="w-full py-2 pl-[32px] pr-3 rounded-md text-[13px] outline-none box-border"
+            style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -143,21 +150,21 @@ function ProductsPageContent() {
         </div>
       </div>
 
-      {error && <p className="text-[13px] text-[#b91c1c]">{error}</p>}
+      {error && <p className="text-[13px]" style={{ color: c.danger }}>{error}</p>}
 
       {loading ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-[52px] rounded-lg bg-[#f4f4f5] animate-pulse" />
+            <div key={i} className="h-[52px] rounded-lg animate-pulse" style={{ background: c.skeletonBg }} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState hasProducts={products.length > 0} onCreate={() => setEditingProduct('new')} />
       ) : (
-        <div className="bg-white border border-[#e4e4e7] rounded-2xl overflow-hidden">
+        <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
           <div
-            className="grid px-4 py-[10px] text-[11.5px] font-semibold text-[#71717a] border-b border-[#f4f4f5] bg-[#fafafa]"
-            style={{ gridTemplateColumns: '2fr 1fr 2fr 1.2fr' }}
+            className="grid px-4 py-[10px] text-[11.5px] font-semibold border-b"
+            style={{ gridTemplateColumns: '2fr 1fr 2fr 1.2fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
           >
             <span>Produto</span>
             <span>Status</span>
@@ -199,16 +206,20 @@ function ProductsPageContent() {
 }
 
 function EmptyState({ hasProducts, onCreate }: { hasProducts: boolean; onCreate: () => void }) {
+  const { colors: c } = useAppTheme();
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-3 py-[64px] px-6 bg-white border border-dashed border-[#e4e4e7] rounded-2xl">
-      <div className="w-11 h-11 rounded-full bg-[#f0f9ff] flex items-center justify-center">
-        <Boxes size={20} color="#019DF4" />
+    <div
+      className="flex flex-col items-center justify-center text-center gap-3 py-[64px] px-6 rounded-2xl border-dashed"
+      style={{ background: c.surface, border: `1px dashed ${c.border}` }}
+    >
+      <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: c.accentSoft }}>
+        <Boxes size={20} color={c.accent} />
       </div>
       <div>
-        <p className="m-0 text-[14px] font-semibold text-[#1a1a1a]">
+        <p className="m-0 text-[14px] font-semibold" style={{ color: c.textPrimary }}>
           {hasProducts ? 'Nenhum produto encontrado' : 'Nenhum produto cadastrado ainda'}
         </p>
-        <p className="m-0 mt-1 text-[12.5px] text-[#71717a] max-w-[320px]">
+        <p className="m-0 mt-1 text-[12.5px] max-w-[320px]" style={{ color: c.textSecondary }}>
           {hasProducts
             ? 'Ajuste a busca ou os filtros para encontrar o que procura.'
             : 'Produtos agrupam os canais pelos quais suas jornadas serão disponibilizadas.'}
@@ -236,33 +247,39 @@ function ProductRow({
   onDeactivate: () => void;
   onActivate: () => void;
 }) {
+  const { colors: c } = useAppTheme();
   return (
     <div
-      className="grid items-center px-4 py-3 text-[13px] border-b border-[#f4f4f5] box-border last:border-b-0 hover:bg-[#fafafa]"
-      style={{ gridTemplateColumns: '2fr 1fr 2fr 1.2fr' }}
+      className="grid items-center px-4 py-3 text-[13px] border-b box-border last:border-b-0"
+      style={{ gridTemplateColumns: '2fr 1fr 2fr 1.2fr', borderColor: c.border }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
       <div className="min-w-0 cursor-pointer group" onClick={onOpen}>
-        <div className="flex items-center gap-[6px] text-[13.5px] font-semibold text-[#1a1a1a] truncate">
+        <div className="flex items-center gap-[6px] text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
           {product.name}
-          <ChevronRight size={13} className="text-[#a1a1aa] opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ChevronRight size={13} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: c.textMuted }} />
         </div>
         {product.description && (
-          <div className="text-[11.5px] text-[#a1a1aa] truncate">{product.description}</div>
+          <div className="text-[11.5px] truncate" style={{ color: c.textMuted }}>
+            {product.description}
+          </div>
         )}
       </div>
       <span className="w-fit">
         <StatusTag active={product.status === 'ACTIVE'} />
       </span>
       {product.channelNames.length === 0 ? (
-        <span className="text-[#a1a1aa]">—</span>
+        <span style={{ color: c.textMuted }}>—</span>
       ) : (
         <div className="flex flex-wrap gap-[6px] min-w-0">
           {product.channelNames.map((name) => (
             <span
               key={name}
-              className="inline-flex items-center gap-[4px] rounded-full bg-[#f4f4f5] px-[9px] py-[2px] text-[11.5px] text-[#1a1a1a] max-w-full truncate"
+              className="inline-flex items-center gap-[4px] rounded-full px-[9px] py-[2px] text-[11.5px] max-w-full truncate"
+              style={{ background: c.chipBg, color: c.textPrimary }}
             >
-              <Boxes size={11} className="shrink-0 text-[#a1a1aa]" />
+              <Boxes size={11} className="shrink-0" style={{ color: c.textMuted }} />
               {name}
             </span>
           ))}

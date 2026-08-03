@@ -17,12 +17,12 @@
 | Total de Épicos (EP) | 8 |
 | Total de Features (FT) | 28 |
 | Total de Requisitos (REQ) | 122 |
-| Concluídos (`done`) | 64 |
+| Concluídos (`done`) | 66 |
 | Em andamento (`in_progress`) | 4 |
-| Não iniciados (`todo`) | 52 |
+| Não iniciados (`todo`) | 49 |
 | Bloqueados (`blocked`) | 2 |
-| Não aplicável (`n/a`) | 0 |
-| % Concluído | 52% |
+| Não aplicável (`n/a`) | 1 |
+| % Concluído | 54% |
 
 ## Progresso por Épico
 
@@ -30,7 +30,7 @@
 |---|---|---:|---:|---:|
 | EP-01 | Gestão de Produtos e Canais | 24 | 21 | 88% |
 | EP-02 | Gestão de Jornadas | 23 | 20 | 87% |
-| EP-03 | Modelagem Visual | 26 | 23 | 88% |
+| EP-03 | Modelagem Visual | 26 | 25 | 96% |
 | EP-04 | Formulários (SDUI) | 18 | 0 | 0% |
 | EP-05 | Simulação | 10 | 0 | 0% |
 | EP-06 | Publicação | 12 | 0 | 0% |
@@ -177,8 +177,8 @@
 | [x] | REQ-03.04.001 | O sistema deve suportar drag-and-drop de elementos. | done | front: `Palette` (drag) + `JourneyDesignerPage.onDrop`/`addNodeFromPalette` | |
 | [x] | REQ-03.04.002 | O usuário deve poder reposicionar elementos livremente. | done | front: `onNodesChange` (drag nativo do React Flow, `snapToGrid`) | |
 | [x] | REQ-03.04.003 | O usuário deve poder remover elementos do fluxo. | done | front: `deleteNode` / `onBeforeDelete` (bloqueia último START/END) | |
-| [ ] | REQ-03.04.004 | O usuário deve poder copiar elementos. | todo | | |
-| [ ] | REQ-03.04.005 | O usuário deve poder duplicar elementos. | todo | | |
+| [x] | REQ-03.04.004 | O usuário deve poder copiar elementos. | done | front: `JourneyDesignerPage` atalho `Ctrl+C`/`Ctrl+V` (copia/cola User Task selecionada) | START/END não são copiáveis (regra de unicidade) |
+| [x] | REQ-03.04.005 | O usuário deve poder duplicar elementos. | done | front: `JourneyDesignerPage.duplicateNode`, atalho `Ctrl+D` e botão "Duplicar nó" em `NodePropertiesPanel` | START/END não são duplicáveis (regra de unicidade) |
 
 ### FT-03.05 Canvas
 
@@ -193,7 +193,7 @@
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-03.06.001 | O sistema deve salvar automaticamente as alterações. | todo | | salvamento hoje é manual via botão "Salvar" no `Toolbar` |
+| [ ] | REQ-03.06.001 | O sistema deve salvar automaticamente as alterações. | n/a | | decisão de produto: fora do escopo do MVP; salvamento permanece manual via botão "Salvar" no `Toolbar` |
 | [x] | REQ-03.06.002 | O sistema deve permitir desfazer ações. | done | front: `JourneyDesignerPage.undo` (pilha `undoStack`) | |
 | [x] | REQ-03.06.003 | O sistema deve permitir refazer ações. | done | front: `JourneyDesignerPage.redo` (pilha `redoStack`) | |
 
@@ -337,5 +337,6 @@
 
 | Data | Alteração |
 |---|---|
+| 2026-08-02 | Implementados REQ-03.04.004 (copiar) e REQ-03.04.005 (duplicar) via atalhos `Ctrl+C`/`Ctrl+V`/`Ctrl+D` e botão "Duplicar nó" no `NodePropertiesPanel`, restritos a User Tasks (START/END mantêm regra de unicidade). REQ-03.06.001 (autosave) marcado como `n/a`: decisão de produto de não implementar no MVP, salvamento permanece manual. EP-03 avança para 25/26 (96%). |
 | 2026-08-02 | Atualização do EP-03 (Modelagem Visual) com base na implementação do Flow Designer: 23/26 REQs concluídos (nós START/END/USER_TASK, conexões, validação estrutural client+server com 422, navegação, drag-and-drop, zoom/pan/fit, undo/redo). Restam `todo`: copiar elementos, duplicar elementos e salvamento automático. |
 | 2026-08-02 | Sincronização com `ej-admin-requisitos.md`: 122 REQs em 8 EPs / 28 FTs, todos como `todo`. |

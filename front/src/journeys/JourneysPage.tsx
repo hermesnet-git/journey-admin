@@ -6,6 +6,7 @@ import {
   FilterDropdown,
   type FilterOption,
 } from '../products/ui';
+import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
 import { ConfirmDialog } from '../products/ConfirmDialog';
 import { ApiClientError } from '../api/client';
@@ -34,12 +35,14 @@ const SORT_OPTIONS: FilterOption[] = [
   { value: 'CREATED_AT', label: 'Criadas recentemente' },
 ];
 
-const JOURNEY_STATUS_META: Record<JourneyStatus, { label: string; bg: string; color: string }> = {
-  DRAFT: { label: 'Rascunho', bg: '#f4f4f5', color: '#71717a' },
-  PUBLISHED: { label: 'Publicada', bg: '#f0fdf4', color: '#15803d' },
-  UNPUBLISHED: { label: 'Despublicada', bg: '#fffbeb', color: '#b45309' },
-  INACTIVE: { label: 'Inativa', bg: '#f4f4f5', color: '#a1a1aa' },
-};
+function journeyStatusMeta(c: AppColors): Record<JourneyStatus, { label: string; bg: string; color: string }> {
+  return {
+    DRAFT: { label: 'Rascunho', bg: c.chipBg, color: c.textSecondary },
+    PUBLISHED: { label: 'Publicada', bg: c.successSoft, color: c.success },
+    UNPUBLISHED: { label: 'Despublicada', bg: c.warningSoft, color: c.warning },
+    INACTIVE: { label: 'Inativa', bg: c.chipBg, color: c.textMuted },
+  };
+}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -54,6 +57,7 @@ export function JourneysPage() {
 }
 
 function JourneysPageContent() {
+  const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -201,17 +205,22 @@ function JourneysPageContent() {
     <div className="flex-1 overflow-auto p-[32px_40px] box-border">
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
         <div>
-          <h1 className="m-0 mb-1 text-[22px] font-semibold tracking-[-0.02em]">Jornadas</h1>
-          <p className="m-0 text-[13.5px] text-[#71717a]">Jornadas específicas por canal, dentro de cada produto</p>
+          <h1 className="m-0 mb-1 text-[22px] font-semibold tracking-[-0.02em]" style={{ color: c.textPrimary }}>
+            Jornadas
+          </h1>
+          <p className="m-0 text-[13.5px]" style={{ color: c.textSecondary }}>
+            Jornadas específicas por canal, dentro de cada produto
+          </p>
         </div>
         <div className="relative w-[220px]">
-          <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 text-[#a1a1aa] pointer-events-none" />
+          <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
           <input
             aria-label="Buscar jornada"
             placeholder="Buscar jornada..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2 pl-[32px] pr-3 rounded-md border border-[#e4e4e7] text-[13px] bg-white outline-none box-border"
+            className="w-full py-2 pl-[32px] pr-3 rounded-md text-[13px] outline-none box-border"
+            style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
           />
         </div>
       </div>
@@ -232,9 +241,9 @@ function JourneysPageContent() {
                 onClick={() => setStatusFilter(f.key)}
                 className="px-[14px] py-[7px] rounded-full text-[12.5px] font-medium cursor-pointer border"
                 style={{
-                  borderColor: isActive ? '#019DF4' : '#e4e4e7',
-                  background: isActive ? '#019DF4' : '#fff',
-                  color: isActive ? '#fff' : '#1a1a1a',
+                  borderColor: isActive ? c.accent : c.border,
+                  background: isActive ? c.accent : c.surface,
+                  color: isActive ? '#fff' : c.textPrimary,
                 }}
               >
                 {f.label}
@@ -256,22 +265,22 @@ function JourneysPageContent() {
           />
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex gap-1 p-[3px] bg-[#f4f4f5] rounded-lg">
+          <div className="flex gap-1 p-[3px] rounded-lg" style={{ background: c.chipBg }}>
             <button
               onClick={() => setViewMode('cards')}
               title="Cards"
               className="flex items-center justify-center w-[30px] h-[26px] border-0 rounded-md cursor-pointer"
-              style={{ background: viewMode === 'cards' ? '#fff' : 'transparent' }}
+              style={{ background: viewMode === 'cards' ? c.surface : 'transparent' }}
             >
-              <LayoutGrid size={14} color={viewMode === 'cards' ? '#019DF4' : '#a1a1aa'} />
+              <LayoutGrid size={14} color={viewMode === 'cards' ? c.accent : c.textMuted} />
             </button>
             <button
               onClick={() => setViewMode('list')}
               title="Lista"
               className="flex items-center justify-center w-[30px] h-[26px] border-0 rounded-md cursor-pointer"
-              style={{ background: viewMode === 'list' ? '#fff' : 'transparent' }}
+              style={{ background: viewMode === 'list' ? c.surface : 'transparent' }}
             >
-              <ListIcon size={14} color={viewMode === 'list' ? '#019DF4' : '#a1a1aa'} />
+              <ListIcon size={14} color={viewMode === 'list' ? c.accent : c.textMuted} />
             </button>
           </div>
           <PrimaryButton onClick={() => setEditingJourney('new')}>
@@ -280,12 +289,12 @@ function JourneysPageContent() {
         </div>
       </div>
 
-      {error && <p className="text-[13px] text-[#b91c1c]">{error}</p>}
+      {error && <p className="text-[13px]" style={{ color: c.danger }}>{error}</p>}
 
       {loading ? (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))' }}>
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-[132px] rounded-2xl bg-[#f4f4f5] animate-pulse" />
+            <div key={i} className="h-[132px] rounded-2xl animate-pulse" style={{ background: c.skeletonBg }} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -304,10 +313,10 @@ function JourneysPageContent() {
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-[#e4e4e7] rounded-2xl overflow-hidden">
+        <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
           <div
-            className="grid px-4 py-[10px] text-[11.5px] font-semibold text-[#71717a] border-b border-[#f4f4f5] bg-[#fafafa]"
-            style={{ gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1.2fr' }}
+            className="grid px-4 py-[10px] text-[11.5px] font-semibold border-b"
+            style={{ gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1.2fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
           >
             <span>Jornada</span>
             <span>Produto / Canal</span>
@@ -352,16 +361,22 @@ function JourneysPageContent() {
 }
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
+  const { colors: c } = useAppTheme();
   return (
-    <div className="bg-white border border-[#e4e4e7] rounded-2xl p-[14px_16px] box-border">
-      <div className="text-[11.5px] text-[#71717a] mb-[6px]">{label}</div>
-      <div className="text-[22px] font-semibold text-[#1a1a1a]">{value}</div>
+    <div className="rounded-2xl p-[14px_16px] box-border" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+      <div className="text-[11.5px] mb-[6px]" style={{ color: c.textSecondary }}>
+        {label}
+      </div>
+      <div className="text-[22px] font-semibold" style={{ color: c.textPrimary }}>
+        {value}
+      </div>
     </div>
   );
 }
 
 function JourneyStatusTag({ status }: { status: JourneyStatus }) {
-  const meta = JOURNEY_STATUS_META[status];
+  const { colors: c } = useAppTheme();
+  const meta = journeyStatusMeta(c)[status];
   return (
     <span
       className="shrink-0 inline-flex items-center rounded-full px-[10px] py-[3px] text-[11.5px] font-medium"
@@ -373,16 +388,20 @@ function JourneyStatusTag({ status }: { status: JourneyStatus }) {
 }
 
 function EmptyState({ hasJourneys, onCreate }: { hasJourneys: boolean; onCreate: () => void }) {
+  const { colors: c } = useAppTheme();
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-3 py-[64px] px-6 bg-white border border-dashed border-[#e4e4e7] rounded-2xl">
-      <div className="w-11 h-11 rounded-full bg-[#f0f9ff] flex items-center justify-center">
-        <Route size={20} color="#019DF4" />
+    <div
+      className="flex flex-col items-center justify-center text-center gap-3 py-[64px] px-6 rounded-2xl border-dashed"
+      style={{ background: c.surface, border: `1px dashed ${c.border}` }}
+    >
+      <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: c.accentSoft }}>
+        <Route size={20} color={c.accent} />
       </div>
       <div>
-        <p className="m-0 text-[14px] font-semibold text-[#1a1a1a]">
+        <p className="m-0 text-[14px] font-semibold" style={{ color: c.textPrimary }}>
           {hasJourneys ? 'Nenhuma jornada encontrada' : 'Nenhuma jornada cadastrada ainda'}
         </p>
-        <p className="m-0 mt-1 text-[12.5px] text-[#71717a] max-w-[320px]">
+        <p className="m-0 mt-1 text-[12.5px] max-w-[320px]" style={{ color: c.textSecondary }}>
           {hasJourneys
             ? 'Ajuste a busca ou os filtros para encontrar o que procura.'
             : 'Jornadas definem o fluxo específico de um canal dentro de um produto.'}
@@ -410,6 +429,7 @@ function JourneyActions({
   onActivate: () => void;
   onDelete: () => void;
 }) {
+  const { colors: c } = useAppTheme();
   return (
     <div className="flex items-center gap-4">
       <LinkButton onClick={onEdit}>Editar</LinkButton>
@@ -419,7 +439,10 @@ function JourneyActions({
         type="button"
         onClick={onDelete}
         title="Excluir"
-        className="inline-flex items-center text-[#a1a1aa] bg-transparent border-0 p-0 cursor-pointer hover:text-[#dc2626]"
+        className="inline-flex items-center bg-transparent border-0 p-0 cursor-pointer"
+        style={{ color: c.textMuted }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = c.danger)}
+        onMouseLeave={(e) => (e.currentTarget.style.color = c.textMuted)}
       >
         <Trash2 size={14} />
       </button>
@@ -440,19 +463,27 @@ function JourneyCard({
   onActivate: () => void;
   onDelete: () => void;
 }) {
+  const { colors: c } = useAppTheme();
   return (
-    <div className="bg-white border border-[#e4e4e7] rounded-2xl p-[18px] flex flex-col gap-3 box-border transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,.06)] hover:border-[#e4e4e7]">
+    <div
+      className="rounded-2xl p-[18px] flex flex-col gap-3 box-border transition-shadow"
+      style={{ background: c.surface, border: `1px solid ${c.border}` }}
+    >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 text-[14.5px] font-semibold text-[#1a1a1a] truncate">{journey.name}</div>
+        <div className="min-w-0 text-[14.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
+          {journey.name}
+        </div>
         <JourneyStatusTag status={journey.status} />
       </div>
-      <div className="text-[12px] text-[#71717a] truncate">
-        {journey.productName} <span className="text-[#e4e4e7]">›</span> {journey.channelName}
+      <div className="text-[12px] truncate" style={{ color: c.textSecondary }}>
+        {journey.productName} <span style={{ color: c.border }}>›</span> {journey.channelName}
       </div>
       {journey.description && (
-        <p className="m-0 text-[12.5px] text-[#71717a] line-clamp-2">{journey.description}</p>
+        <p className="m-0 text-[12.5px] line-clamp-2" style={{ color: c.textSecondary }}>
+          {journey.description}
+        </p>
       )}
-      <div className="flex items-center justify-between pt-[10px] border-t border-[#f4f4f5] text-[12px] text-[#a1a1aa]">
+      <div className="flex items-center justify-between pt-[10px] border-t text-[12px]" style={{ borderColor: c.border, color: c.textMuted }}>
         <span>Atualizada em {formatDate(journey.updatedAt)}</span>
       </div>
       <JourneyActions journey={journey} onEdit={onEdit} onDeactivate={onDeactivate} onActivate={onActivate} onDelete={onDelete} />
@@ -473,24 +504,31 @@ function JourneyRow({
   onActivate: () => void;
   onDelete: () => void;
 }) {
+  const { colors: c } = useAppTheme();
   return (
     <div
-      className="grid items-center px-4 py-3 text-[13px] border-b border-[#f4f4f5] box-border last:border-b-0 hover:bg-[#fafafa]"
-      style={{ gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1.2fr' }}
+      className="grid items-center px-4 py-3 text-[13px] border-b box-border last:border-b-0"
+      style={{ gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1.2fr', borderColor: c.border }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
       <div className="min-w-0">
-        <div className="text-[13.5px] font-semibold text-[#1a1a1a] truncate">{journey.name}</div>
+        <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
+          {journey.name}
+        </div>
         {journey.description && (
-          <div className="text-[11.5px] text-[#a1a1aa] truncate">{journey.description}</div>
+          <div className="text-[11.5px] truncate" style={{ color: c.textMuted }}>
+            {journey.description}
+          </div>
         )}
       </div>
-      <span className="text-[#71717a] truncate">
-        {journey.productName} <span className="text-[#e4e4e7]">›</span> {journey.channelName}
+      <span className="truncate" style={{ color: c.textSecondary }}>
+        {journey.productName} <span style={{ color: c.border }}>›</span> {journey.channelName}
       </span>
       <span className="w-fit">
         <JourneyStatusTag status={journey.status} />
       </span>
-      <span className="text-[#71717a]">{formatDate(journey.updatedAt)}</span>
+      <span style={{ color: c.textSecondary }}>{formatDate(journey.updatedAt)}</span>
       <JourneyActions journey={journey} onEdit={onEdit} onDeactivate={onDeactivate} onActivate={onActivate} onDelete={onDelete} />
     </div>
   );

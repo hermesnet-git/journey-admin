@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useAppTheme } from '../shell/theme';
 
 type ToastType = 'success' | 'error';
 
@@ -23,6 +24,7 @@ export function useToast(): ToastContextValue {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { colors: c } = useAppTheme();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const nextId = useRef(0);
 
@@ -44,9 +46,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             role="status"
             className="flex items-center gap-[10px] rounded-lg border px-4 py-3 text-[13px] font-medium shadow-[0_8px_24px_-8px_rgba(0,0,0,.2)] animate-[toast-in_180ms_cubic-bezier(0.16,1,0.3,1)]"
             style={{
-              background: t.type === 'success' ? '#f0fdf4' : '#fef2f2',
-              borderColor: t.type === 'success' ? '#bbf7d0' : '#fecaca',
-              color: t.type === 'success' ? '#166534' : '#b91c1c',
+              background: t.type === 'success' ? c.successSoft : c.dangerSoft,
+              borderColor: t.type === 'success' ? c.successBorder : c.dangerBorder,
+              color: t.type === 'success' ? c.success : c.danger,
             }}
           >
             {t.type === 'success' ? <CheckCircle2 size={16} /> : <XCircle size={16} />}

@@ -353,7 +353,7 @@ O sistema deve suportar User Tasks.
 Cada fluxo deve possuir exatamente um nó `START` e exatamente um nó `END`.
 
 ### REQ-03.01.005
-Ao criar uma jornada, o sistema deve iniciar seu fluxo com os nós `START` e `END` conectados.
+Ao criar uma jornada, o sistema deve iniciar seu fluxo apenas com o nó `START`, cabendo ao usuário adicionar o nó `END` e os demais elementos antes de salvar.
 
 ---
 

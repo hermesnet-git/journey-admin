@@ -43,11 +43,11 @@ export function makeNode(type: NodeType, x: number, y: number): WFNode {
 }
 
 export function initialFlowNodes(): WFNode[] {
-  return [makeNode('start', 80, 80), makeNode('end', 400, 80)];
+  return [makeNode('start', 80, 80)];
 }
 
-export function initialFlowEdges(nodes: WFNode[]): WFEdge[] {
-  return [{ id: newConnectionId(), source: nodes[0].id, target: nodes[1].id }];
+export function initialFlowEdges(_nodes: WFNode[]): WFEdge[] {
+  return [];
 }
 
 const LAYER_GAP_X = 320;

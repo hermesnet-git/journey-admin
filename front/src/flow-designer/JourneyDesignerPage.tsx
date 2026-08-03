@@ -301,8 +301,9 @@ function DesignerInner({
     () => ({
       onEdit: (nodeId) => selectOnlyNode(nodeId),
       onQuickAdd,
+      onDelete: deleteNode,
     }),
-    [onQuickAdd, selectOnlyNode],
+    [onQuickAdd, selectOnlyNode, deleteNode],
   );
 
   const displayNodes = useMemo(
@@ -313,7 +314,7 @@ function DesignerInner({
   const displayEdges = useMemo(
     () =>
       edges.map((e) => {
-        const color = e.selected ? c.accent : c.handleColor;
+        const color = e.selected ? c.accent : c.edgeColor;
         return {
           ...e,
           type: 'smoothstep',

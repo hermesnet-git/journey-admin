@@ -149,7 +149,7 @@
 | [x] | REQ-03.01.002 | O sistema deve suportar eventos de término. | done | back: `FlowNodeType.END`; front: `NODE_META.end`, `Palette` | |
 | [x] | REQ-03.01.003 | O sistema deve suportar User Tasks. | done | back: `FlowNodeType.USER_TASK`; front: `NODE_META.userTask`, `Palette` | |
 | [x] | REQ-03.01.004 | Cada fluxo deve possuir exatamente um nó `START` e exatamente um nó `END`. | done | back: `FlowValidator.validate` (contagem de `starts`/`ends`); front: `validation.ts` + bloqueio de exclusão do último START/END em `JourneyDesignerPage.onBeforeDelete` | |
-| [x] | REQ-03.01.005 | Ao criar uma jornada, o sistema deve iniciar seu fluxo com os nós `START` e `END` conectados. | done | back: `CreateJourney` chama `flowRepository.save(Flow.initial(journey.getId()))`; front: `initialFlowNodes`/`initialFlowEdges` | |
+| [x] | REQ-03.01.005 | Ao criar uma jornada, o sistema deve iniciar seu fluxo apenas com o nó `START`, cabendo ao usuário adicionar o nó `END` e os demais elementos antes de salvar. | done | front: `initialFlowNodes`/`initialFlowEdges` (`model.ts`) retornam somente o nó `START`, sem conexões | validação de salvamento (`validateFlow`) já exige exatamente um `END` antes de permitir salvar |
 
 ### FT-03.02 Conexões
 

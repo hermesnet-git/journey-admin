@@ -13,6 +13,7 @@ export interface FlowColors {
   chipBg: string;
   dotColor: string;
   handleColor: string;
+  edgeColor: string;
   cardBg: string;
   cardBorder: string;
   danger: string;
@@ -33,6 +34,7 @@ export const LIGHT_COLORS: FlowColors = {
   chipBg: '#f0f0f3',
   dotColor: 'rgba(0,0,0,0.12)',
   handleColor: '#8A05BE',
+  edgeColor: '#b4b4c0',
   cardBg: '#ffffff',
   cardBorder: '#e2e2e8',
   danger: '#dc2626',
@@ -52,6 +54,7 @@ export const DARK_COLORS: FlowColors = {
   chipBg: '#232429',
   dotColor: 'rgba(255,255,255,0.09)',
   handleColor: '#A24EE8',
+  edgeColor: '#45464f',
   cardBg: '#1c1d22',
   cardBorder: '#2c2d33',
   danger: '#f87171',

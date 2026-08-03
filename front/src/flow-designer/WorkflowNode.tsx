@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Play, ClipboardList, CheckCircle2, Plus } from 'lucide-react';
+import { Play, ClipboardList, CheckCircle2, Plus, X } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
 import { NODE_META, NODE_WIDTH, TYPE_COLOR, type NodeType, type WFNode } from './model';
@@ -82,6 +82,7 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
 
   const borderColor = invalid ? c.danger : selected ? c.accent : c.cardBorder;
   const ringColor = invalid ? c.dangerSoft : c.accentSoft;
+  const deletable = nodeType !== 'start';
 
   return (
     <div
@@ -94,11 +95,31 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
       }}
       className="group relative rounded-xl border px-[14px] py-3 cursor-grab select-none"
     >
+      {deletable && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            actions.onDelete(id);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Remover nó"
+          className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ background: c.danger, color: '#fff', zIndex: 10 }}
+        >
+          <X size={12} strokeWidth={2.5} />
+        </button>
+      )}
       {hasInput && (
         <Handle
           type="target"
           position={Position.Left}
-          style={{ width: 10, height: 10, background: c.handleColor, border: `2px solid ${c.handleColor}` }}
+          style={{
+            width: 12,
+            height: 12,
+            background: c.cardBg,
+            border: `2.5px solid ${c.handleColor}`,
+            zIndex: 5,
+          }}
         />
       )}
       <div className="flex items-center gap-[10px]">
@@ -122,7 +143,13 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           <Handle
             type="source"
             position={Position.Right}
-            style={{ width: 10, height: 10, background: c.handleColor, border: `2px solid ${c.handleColor}` }}
+            style={{
+              width: 12,
+              height: 12,
+              background: c.cardBg,
+              border: `2.5px solid ${c.handleColor}`,
+              zIndex: 5,
+            }}
           />
           <QuickAdd nodeId={id} />
         </>

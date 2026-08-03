@@ -48,15 +48,19 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-export function JourneysPage() {
+interface JourneysPageProps {
+  onOpenForm: (formId: string) => void;
+}
+
+export function JourneysPage({ onOpenForm }: JourneysPageProps) {
   return (
     <ToastProvider>
-      <JourneysPageContent />
+      <JourneysPageContent onOpenForm={onOpenForm} />
     </ToastProvider>
   );
 }
 
-function JourneysPageContent() {
+function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [journeys, setJourneys] = useState<Journey[]>([]);
@@ -130,6 +134,7 @@ function JourneysPageContent() {
     return (
       <JourneyDesignerPage
         journey={wasNew ? null : editingJourney}
+        onOpenForm={onOpenForm}
         onClose={async () => {
           setEditingJourney(null);
           await reload();

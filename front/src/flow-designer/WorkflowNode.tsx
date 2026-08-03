@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Play, ClipboardList, CheckCircle2, Plus, X } from 'lucide-react';
+import { Play, ClipboardList, CheckCircle2, Plus, X, FileText, Pencil } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
 import { NODE_META, NODE_WIDTH, TYPE_COLOR, type NodeType, type WFNode } from './model';
@@ -95,6 +95,19 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
       }}
       className="group relative rounded-xl border px-[14px] py-3 cursor-grab select-none"
     >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          actions.onEdit(id);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+        title="Editar propriedades"
+        className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: c.cardBg, border: `1.5px solid ${c.handleColor}`, color: c.handleColor, zIndex: 10 }}
+      >
+        <Pencil size={11} strokeWidth={2.2} />
+      </button>
       {deletable && (
         <button
           onClick={(e) => {
@@ -123,11 +136,22 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
         />
       )}
       <div className="flex items-center gap-[10px]">
-        <div
-          className="w-[30px] h-[30px] rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: `${TYPE_COLOR[nodeType]}22` }}
-        >
-          <Icon size={16} color={TYPE_COLOR[nodeType]} strokeWidth={1.8} />
+        <div className="relative shrink-0">
+          <div
+            className="w-[30px] h-[30px] rounded-lg flex items-center justify-center"
+            style={{ background: `${TYPE_COLOR[nodeType]}22` }}
+          >
+            <Icon size={16} color={TYPE_COLOR[nodeType]} strokeWidth={1.8} />
+          </div>
+          {nodeType === 'userTask' && data.formId && (
+            <div
+              title="Formulário associado"
+              className="absolute -bottom-1 -right-1 w-[16px] h-[16px] rounded-full flex items-center justify-center"
+              style={{ background: c.accent, border: `1.5px solid ${c.cardBg}` }}
+            >
+              <FileText size={9} color="#fff" strokeWidth={2.5} />
+            </div>
+          )}
         </div>
         <div className="min-w-0">
           <div className="text-[14px] font-bold truncate" style={{ color: c.textPrimary }}>
@@ -138,6 +162,22 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           </div>
         </div>
       </div>
+      {nodeType === 'userTask' && data.formId && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            actions.onOpenForm(data.formId!);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+          title="Abrir formulário para edição"
+          className="flex items-center gap-[5px] mt-[9px] pt-[8px] w-full min-w-0 text-[10.5px] font-semibold border-0 bg-transparent cursor-pointer text-left"
+          style={{ borderTop: `1px solid ${c.border}`, color: c.accent }}
+        >
+          <FileText size={11} strokeWidth={2} className="shrink-0" />
+          <span className="truncate">{actions.getFormName(data.formId) ?? 'Formulário vinculado'}</span>
+        </button>
+      )}
       {hasOutput && (
         <>
           <Handle

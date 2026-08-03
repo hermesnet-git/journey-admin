@@ -5,6 +5,8 @@ export interface WorkflowActions {
   onEdit: (nodeId: string) => void;
   onQuickAdd: (nodeId: string, type: NodeType) => void;
   onDelete: (nodeId: string) => void;
+  onOpenForm: (formId: string) => void;
+  getFormName: (formId: string) => string | undefined;
 }
 
 export const WorkflowActionsContext = createContext<WorkflowActions | null>(null);

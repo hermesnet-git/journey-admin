@@ -55,14 +55,16 @@ export function JourneyDesignerPage({
   journey,
   onClose,
   onSaved,
+  onOpenForm,
 }: {
   journey: Journey | null;
   onClose: () => void;
   onSaved: () => void;
+  onOpenForm: (formId: string) => void;
 }) {
   return (
     <ReactFlowProvider>
-      <DesignerInner journey={journey} onClose={onClose} onSaved={onSaved} />
+      <DesignerInner journey={journey} onClose={onClose} onSaved={onSaved} onOpenForm={onOpenForm} />
     </ReactFlowProvider>
   );
 }
@@ -71,10 +73,12 @@ function DesignerInner({
   journey,
   onClose,
   onSaved,
+  onOpenForm,
 }: {
   journey: Journey | null;
   onClose: () => void;
   onSaved: () => void;
+  onOpenForm: (formId: string) => void;
 }) {
   const { dark } = useAppTheme();
   const c = dark ? DARK_COLORS : LIGHT_COLORS;
@@ -94,6 +98,9 @@ function DesignerInner({
   const [errors, setErrors] = useState<string[]>([]);
   const [invalidNodeIds, setInvalidNodeIds] = useState<Set<string>>(new Set());
   const [, setHistoryTick] = useState(0);
+  // Properties panel only opens explicitly (double-click / edit icon), never
+  // from React Flow's own single-click node selection.
+  const [propertiesNodeId, setPropertiesNodeId] = useState<string | null>(null);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -184,6 +191,7 @@ function DesignerInner({
       pushHistory();
       setNodes((nds) => nds.filter((n) => n.id !== nodeId));
       setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+      setPropertiesNodeId((cur) => (cur === nodeId ? null : cur));
     },
     [pushHistory],
   );
@@ -305,11 +313,16 @@ function DesignerInner({
 
   const actions = useMemo<WorkflowActions>(
     () => ({
-      onEdit: (nodeId) => selectOnlyNode(nodeId),
+      onEdit: (nodeId) => {
+        selectOnlyNode(nodeId);
+        setPropertiesNodeId(nodeId);
+      },
       onQuickAdd,
       onDelete: deleteNode,
+      onOpenForm,
+      getFormName: (formId) => forms.find((f) => f.formId === formId)?.name,
     }),
-    [onQuickAdd, selectOnlyNode, deleteNode],
+    [onQuickAdd, selectOnlyNode, deleteNode, onOpenForm, forms],
   );
 
   const displayNodes = useMemo(
@@ -368,8 +381,7 @@ function DesignerInner({
     }
   }
 
-  const selectedNodes = nodes.filter((n) => n.selected);
-  const singleSelectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
+  const propertiesNode = nodes.find((n) => n.id === propertiesNodeId) ?? null;
 
   if (loading) {
     return (
@@ -448,13 +460,13 @@ function DesignerInner({
                 <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={20} size={1.4} />
               </ReactFlow>
             </div>
-            {singleSelectedNode && (
+            {propertiesNode && (
               <PropertiesPanel
-                node={singleSelectedNode}
+                node={propertiesNode}
                 forms={forms}
-                onClose={() => selectOnlyNode('')}
-                onUpdate={(patch) => updateNodeData(singleSelectedNode.id, patch)}
-                onDelete={() => deleteNode(singleSelectedNode.id)}
+                onClose={() => setPropertiesNodeId(null)}
+                onUpdate={(patch) => updateNodeData(propertiesNode.id, patch)}
+                onDelete={() => deleteNode(propertiesNode.id)}
               />
             )}
           </div>

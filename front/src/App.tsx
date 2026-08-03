@@ -30,6 +30,7 @@ export function App() {
   const colors = dark ? DARK_APP_COLORS : LIGHT_APP_COLORS;
   const [tabs, setTabs] = useState<Tab[]>([DASHBOARD_TAB]);
   const [activeKey, setActiveKey] = useState('dashboard');
+  const [openFormId, setOpenFormId] = useState<string | null>(null);
 
   function openTab(tab: Tab) {
     setTabs((prev) => (prev.some((t) => t.key === tab.key) ? prev : [...prev, tab]));
@@ -64,6 +65,11 @@ export function App() {
       return;
     }
     openTab({ key: `nav-${navKey}`, title: NAV_LABELS[navKey], kind: 'placeholder', closable: true });
+  }
+
+  function openForm(formId: string) {
+    setOpenFormId(formId);
+    openTab(FORMS_TAB);
   }
 
   function handleOpenWorkflow(id: string, name: string) {
@@ -103,8 +109,10 @@ export function App() {
                   )}
                   {tab.kind === 'placeholder' && <PlaceholderPanel title={tab.title} />}
                   {tab.kind === 'products' && <ProductsPage />}
-                  {tab.kind === 'journeys' && <JourneysPage />}
-                  {tab.kind === 'forms' && <FormsPage />}
+                  {tab.kind === 'journeys' && <JourneysPage onOpenForm={openForm} />}
+                  {tab.kind === 'forms' && (
+                    <FormsPage openFormId={openFormId} onOpenFormIdHandled={() => setOpenFormId(null)} />
+                  )}
                 </div>
               ))}
             </div>

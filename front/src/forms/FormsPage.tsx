@@ -2,20 +2,25 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, Plus, FileText } from 'lucide-react';
 import { PrimaryButton, LinkButton } from '../products/ui';
 import { useAppTheme } from '../shell/theme';
-import { listForms, deleteForm, type Form } from '../api/forms';
+import { listForms, getForm, deleteForm, type Form } from '../api/forms';
 import { ConfirmDialog } from '../products/ConfirmDialog';
 import { ToastProvider, useToast } from '../products/Toast';
 import { FormBuilderPage } from './FormBuilderPage';
 
-export function FormsPage() {
+interface FormsPageProps {
+  openFormId?: string | null;
+  onOpenFormIdHandled?: () => void;
+}
+
+export function FormsPage(props: FormsPageProps) {
   return (
     <ToastProvider>
-      <FormsPageContent />
+      <FormsPageContent {...props} />
     </ToastProvider>
   );
 }
 
-function FormsPageContent() {
+function FormsPageContent({ openFormId, onOpenFormIdHandled }: FormsPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [forms, setForms] = useState<Form[]>([]);
@@ -40,6 +45,14 @@ function FormsPageContent() {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (!openFormId) return;
+    getForm(openFormId)
+      .then(setEditingForm)
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao abrir formulário', 'error'))
+      .finally(() => onOpenFormIdHandled?.());
+  }, [openFormId, onOpenFormIdHandled, showToast]);
 
   const filtered = useMemo(
     () => forms.filter((f) => !search || f.name.toLowerCase().includes(search.toLowerCase())),

@@ -430,12 +430,9 @@ O sistema deve permitir centralizar o fluxo na área visível.
 ## FT-03.06 Produtividade
 
 ### REQ-03.06.001
-O sistema deve salvar automaticamente as alterações.
-
-### REQ-03.06.002
 O sistema deve permitir desfazer ações.
 
-### REQ-03.06.003
+### REQ-03.06.002
 O sistema deve permitir refazer ações.
 
 ---

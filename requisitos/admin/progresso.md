@@ -16,13 +16,13 @@
 |---|---|
 | Total de Épicos (EP) | 8 |
 | Total de Features (FT) | 28 |
-| Total de Requisitos (REQ) | 122 |
+| Total de Requisitos (REQ) | 121 |
 | Concluídos (`done`) | 66 |
 | Em andamento (`in_progress`) | 4 |
 | Não iniciados (`todo`) | 49 |
 | Bloqueados (`blocked`) | 2 |
-| Não aplicável (`n/a`) | 1 |
-| % Concluído | 54% |
+| Não aplicável (`n/a`) | 0 |
+| % Concluído | 55% |
 
 ## Progresso por Épico
 
@@ -30,7 +30,7 @@
 |---|---|---:|---:|---:|
 | EP-01 | Gestão de Produtos e Canais | 24 | 21 | 88% |
 | EP-02 | Gestão de Jornadas | 23 | 20 | 87% |
-| EP-03 | Modelagem Visual | 26 | 25 | 96% |
+| EP-03 | Modelagem Visual | 25 | 25 | 100% |
 | EP-04 | Formulários (SDUI) | 18 | 0 | 0% |
 | EP-05 | Simulação | 10 | 0 | 0% |
 | EP-06 | Publicação | 12 | 0 | 0% |
@@ -193,9 +193,8 @@
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-03.06.001 | O sistema deve salvar automaticamente as alterações. | n/a | | decisão de produto: fora do escopo do MVP; salvamento permanece manual via botão "Salvar" no `Toolbar` |
-| [x] | REQ-03.06.002 | O sistema deve permitir desfazer ações. | done | front: `JourneyDesignerPage.undo` (pilha `undoStack`) | |
-| [x] | REQ-03.06.003 | O sistema deve permitir refazer ações. | done | front: `JourneyDesignerPage.redo` (pilha `redoStack`) | |
+| [x] | REQ-03.06.001 | O sistema deve permitir desfazer ações. | done | front: `JourneyDesignerPage.undo` (pilha `undoStack`) | |
+| [x] | REQ-03.06.002 | O sistema deve permitir refazer ações. | done | front: `JourneyDesignerPage.redo` (pilha `redoStack`) | |
 
 ---
 

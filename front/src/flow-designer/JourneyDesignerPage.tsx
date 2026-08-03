@@ -42,6 +42,7 @@ import {
 import { createJourney, updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow } from '../api/flows';
 import { listProducts, listChannels, type Product, type Channel } from '../api/products';
+import { listForms, type Form } from '../api/forms';
 
 const nodeTypes = { start: WorkflowNode, userTask: WorkflowNode, end: WorkflowNode };
 
@@ -83,6 +84,7 @@ function DesignerInner({
   const [description, setDescription] = useState(journey?.description ?? '');
   const [products, setProducts] = useState<Product[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [forms, setForms] = useState<Form[]>([]);
   const [productId, setProductId] = useState(journey?.productId ?? '');
   const [channelId, setChannelId] = useState(journey?.channelId ?? '');
   const [nodes, setNodes] = useState<WFNode[]>(() => initialFlowNodes());
@@ -118,6 +120,10 @@ function DesignerInner({
   }, [journey]);
 
   useEffect(() => {
+    listForms().then(setForms);
+  }, []);
+
+  useEffect(() => {
     if (journey || !productId) {
       if (!journey) setChannels([]);
       return;
@@ -132,7 +138,7 @@ function DesignerInner({
         id: n.nodeId,
         type: n.nodeType === 'START' ? 'start' : n.nodeType === 'END' ? 'end' : 'userTask',
         position: { x: n.positionX, y: n.positionY },
-        data: { name: n.name, description: n.description ?? '' },
+        data: { name: n.name, description: n.description ?? '', formId: n.formId },
       }));
       setNodes(loadedNodes);
       setEdges(flow.connections.map((c) => ({ id: c.connectionId, source: c.sourceNodeId, target: c.targetNodeId })));
@@ -349,7 +355,7 @@ function DesignerInner({
           description: n.data.description || null,
           positionX: Math.round(n.position.x),
           positionY: Math.round(n.position.y),
-          formId: null,
+          formId: n.data.formId ?? null,
         })),
         connections: edges.map((e) => ({ connectionId: e.id, sourceNodeId: e.source, targetNodeId: e.target })),
       });
@@ -445,6 +451,7 @@ function DesignerInner({
             {singleSelectedNode && (
               <PropertiesPanel
                 node={singleSelectedNode}
+                forms={forms}
                 onClose={() => selectOnlyNode('')}
                 onUpdate={(patch) => updateNodeData(singleSelectedNode.id, patch)}
                 onDelete={() => deleteNode(singleSelectedNode.id)}

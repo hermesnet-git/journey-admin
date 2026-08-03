@@ -4,6 +4,7 @@ import com.jouney.admin.domain.ActivePublicationExistsException;
 import com.jouney.admin.domain.channel.ChannelNotFoundException;
 import com.jouney.admin.domain.channel.ProductInactiveException;
 import com.jouney.admin.domain.flow.FlowValidationException;
+import com.jouney.admin.domain.form.FormNotFoundException;
 import com.jouney.admin.domain.journey.ChannelInactiveException;
 import com.jouney.admin.domain.journey.JourneyDeletionBlockedException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler({ProductNotFoundException.class, ChannelNotFoundException.class,
-            JourneyNotFoundException.class})
+            JourneyNotFoundException.class, FormNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
     }

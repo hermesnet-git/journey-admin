@@ -5,6 +5,7 @@ export type NodeType = 'start' | 'userTask' | 'end';
 export interface WFNodeData extends Record<string, unknown> {
   name: string;
   description: string;
+  formId: string | null;
   // Client-only highlight set by validation; never sent to the backend.
   invalid?: boolean;
 }
@@ -39,7 +40,7 @@ export function newConnectionId() {
 
 export function makeNode(type: NodeType, x: number, y: number): WFNode {
   const meta = NODE_META[type];
-  return { id: newNodeId(), type, position: { x, y }, data: { name: meta.title, description: meta.subtitle } };
+  return { id: newNodeId(), type, position: { x, y }, data: { name: meta.title, description: meta.subtitle, formId: null } };
 }
 
 export function initialFlowNodes(): WFNode[] {

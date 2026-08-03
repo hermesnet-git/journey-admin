@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
 import { useFlowTheme, type FlowColors } from './theme';
 import { NODE_META, type WFNode, type WFNodeData } from './model';
+import type { Form } from '../api/forms';
 
 // Ported from wf-designer's PropertiesPanel.tsx, kept visually faithful
 // (inline styles, same tokens/spacing) and trimmed to admin's node data
-// shape (name/description only — no fields/headers/branches yet).
+// shape (name/description/formId — no headers/branches yet).
 const inputStyle = (c: FlowColors): React.CSSProperties => ({
   width: '100%',
   padding: '9px 10px',
@@ -26,11 +27,13 @@ const labelStyle = (c: FlowColors): React.CSSProperties => ({
 
 export function PropertiesPanel({
   node,
+  forms,
   onClose,
   onUpdate,
   onDelete,
 }: {
   node: WFNode;
+  forms: Form[];
   onClose: () => void;
   onUpdate: (patch: Partial<WFNodeData>) => void;
   onDelete: () => void;
@@ -149,7 +152,7 @@ export function PropertiesPanel({
                   <div style={labelStyle(c)}>Nome</div>
                   <input style={inputStyle(c)} value={data.name} onChange={(e) => onUpdate({ name: e.target.value })} />
                 </div>
-                <div style={{ marginBottom: 6 }}>
+                <div style={{ marginBottom: node.type === 'userTask' ? 14 : 6 }}>
                   <div style={labelStyle(c)}>Descrição</div>
                   <textarea
                     style={{ ...inputStyle(c), minHeight: 70, resize: 'vertical' }}
@@ -157,6 +160,23 @@ export function PropertiesPanel({
                     onChange={(e) => onUpdate({ description: e.target.value })}
                   />
                 </div>
+                {node.type === 'userTask' && (
+                  <div style={{ marginBottom: 6 }}>
+                    <div style={labelStyle(c)}>Formulário associado</div>
+                    <select
+                      style={{ ...inputStyle(c), cursor: 'pointer' }}
+                      value={data.formId ?? ''}
+                      onChange={(e) => onUpdate({ formId: e.target.value || null })}
+                    >
+                      <option value="">Nenhum</option>
+                      {forms.map((f) => (
+                        <option key={f.formId} value={f.formId}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             )}
           </div>

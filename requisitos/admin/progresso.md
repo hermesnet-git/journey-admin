@@ -17,12 +17,12 @@
 | Total de Épicos (EP) | 8 |
 | Total de Features (FT) | 28 |
 | Total de Requisitos (REQ) | 121 |
-| Concluídos (`done`) | 66 |
+| Concluídos (`done`) | 84 |
 | Em andamento (`in_progress`) | 4 |
-| Não iniciados (`todo`) | 49 |
+| Não iniciados (`todo`) | 31 |
 | Bloqueados (`blocked`) | 2 |
 | Não aplicável (`n/a`) | 0 |
-| % Concluído | 55% |
+| % Concluído | 69% |
 
 ## Progresso por Épico
 
@@ -31,7 +31,7 @@
 | EP-01 | Gestão de Produtos e Canais | 24 | 21 | 88% |
 | EP-02 | Gestão de Jornadas | 23 | 20 | 87% |
 | EP-03 | Modelagem Visual | 25 | 25 | 100% |
-| EP-04 | Formulários (SDUI) | 18 | 0 | 0% |
+| EP-04 | Formulários (SDUI) | 18 | 18 | 100% |
 | EP-05 | Simulação | 10 | 0 | 0% |
 | EP-06 | Publicação | 12 | 0 | 0% |
 | EP-07 | Publicação no Runtime | 4 | 0 | 0% |
@@ -204,44 +204,44 @@
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-04.01.001 | O sistema deve permitir criar formulários. | todo | | |
-| [ ] | REQ-04.01.002 | O sistema deve permitir editar formulários. | todo | | |
-| [ ] | REQ-04.01.003 | O sistema deve permitir remover formulários. | todo | | |
-| [ ] | REQ-04.01.004 | O sistema deve permitir associar formulários a User Tasks. | todo | | |
-| [ ] | REQ-04.01.005 | O sistema deve permitir manter uma User Task sem formulário associado. | todo | | |
+| [x] | REQ-04.01.001 | O sistema deve permitir criar formulários. | done | back: `POST /api/v1/forms`; front: `FormsPage` (botão "Novo formulário") → `FormBuilderPage` | |
+| [x] | REQ-04.01.002 | O sistema deve permitir editar formulários. | done | back: `PUT /api/v1/forms/{id}`; front: `FormsPage` (ação "Editar") | |
+| [x] | REQ-04.01.003 | O sistema deve permitir remover formulários. | done | back: `DELETE /api/v1/forms/{id}`; front: `FormsPage` (ação "Excluir" + `ConfirmDialog`) | exclusão física, sem guarda de uso — ver nota |
+| [x] | REQ-04.01.004 | O sistema deve permitir associar formulários a User Tasks. | done | back: `FlowNode.formId` (já existente); front: seletor "Formulário associado" em `PropertiesPanel` (só para nós `userTask`), `formId` persistido via `updateFlow` | |
+| [x] | REQ-04.01.005 | O sistema deve permitir manter uma User Task sem formulário associado. | done | front: opção "Nenhum" no seletor de formulário (`formId: null`) | |
 
 ### FT-04.02 Componentes
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-04.02.001 | O sistema deve suportar componente de texto. | todo | | |
-| [ ] | REQ-04.02.002 | O sistema deve suportar campo de entrada. | todo | | |
-| [ ] | REQ-04.02.003 | O sistema deve suportar seleção simples. | todo | | |
-| [ ] | REQ-04.02.004 | O sistema deve suportar seleção múltipla. | todo | | |
-| [ ] | REQ-04.02.005 | O sistema deve suportar upload de arquivo. | todo | | |
-| [ ] | REQ-04.02.006 | O sistema deve suportar conteúdo estático. | todo | | |
+| [x] | REQ-04.02.001 | O sistema deve suportar componente de texto. | done | back: `FormFieldType.TEXT`; front: `FIELD_TYPE_META.TEXT`, renderizado como rótulo/parágrafo no preview | |
+| [x] | REQ-04.02.002 | O sistema deve suportar campo de entrada. | done | back: `FormFieldType.INPUT`; front: renderizado como `<input>` no preview | |
+| [x] | REQ-04.02.003 | O sistema deve suportar seleção simples. | done | back: `FormFieldType.SINGLE_SELECT`; front: editor de opções + preview `<select>` | |
+| [x] | REQ-04.02.004 | O sistema deve suportar seleção múltipla. | done | back: `FormFieldType.MULTI_SELECT`; front: editor de opções + preview checkboxes | |
+| [x] | REQ-04.02.005 | O sistema deve suportar upload de arquivo. | done | back: `FormFieldType.FILE_UPLOAD`; front: preview `<input type="file">` | |
+| [x] | REQ-04.02.006 | O sistema deve suportar conteúdo estático. | done | back: `FormFieldType.STATIC_CONTENT`; front: renderizado como bloco de conteúdo no preview | |
 
 ### FT-04.03 Reutilização
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-04.03.001 | O sistema deve permitir reutilizar formulários em múltiplas jornadas. | todo | | |
-| [ ] | REQ-04.03.002 | O sistema deve permitir reutilizar formulários em múltiplas User Tasks. | todo | | |
+| [x] | REQ-04.03.001 | O sistema deve permitir reutilizar formulários em múltiplas jornadas. | done | back: `Form` é uma entidade independente, sem vínculo de jornada; `FlowNode.formId` de qualquer jornada pode apontar para o mesmo `formId` | |
+| [x] | REQ-04.03.002 | O sistema deve permitir reutilizar formulários em múltiplas User Tasks. | done | back: idem — múltiplos `FlowNode` (mesma ou diferentes jornadas) podem compartilhar o mesmo `formId` | |
 
 ### FT-04.04 Configuração
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-04.04.001 | O usuário deve poder definir campos obrigatórios. | todo | | |
-| [ ] | REQ-04.04.002 | O usuário deve poder definir valores padrão. | todo | | |
-| [ ] | REQ-04.04.003 | O usuário deve poder definir textos de ajuda. | todo | | |
+| [x] | REQ-04.04.001 | O usuário deve poder definir campos obrigatórios. | done | back: `FormField.required`; front: checkbox "Campo obrigatório" em `FieldCard` | |
+| [x] | REQ-04.04.002 | O usuário deve poder definir valores padrão. | done | back: `FormField.defaultValue`; front: campo "Valor padrão" em `FieldCard` | não aplicável a `TEXT`/`STATIC_CONTENT`/`FILE_UPLOAD` |
+| [x] | REQ-04.04.003 | O usuário deve poder definir textos de ajuda. | done | back: `FormField.helpText`; front: campo "Texto de ajuda" em `FieldCard`, exibido no preview | |
 
 ### FT-04.05 Preview
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-04.05.001 | O sistema deve permitir visualizar o formulário durante a edição. | todo | | |
-| [ ] | REQ-04.05.002 | O preview deve refletir alterações em tempo real. | todo | | |
+| [x] | REQ-04.05.001 | O sistema deve permitir visualizar o formulário durante a edição. | done | front: painel "Preview" fixo em `FormBuilderPage` (`FormPreview`) | |
+| [x] | REQ-04.05.002 | O preview deve refletir alterações em tempo real. | done | front: `FormPreview` renderiza diretamente o state `fields` da própria página, sem etapa de sincronização | |
 
 ---
 
@@ -336,6 +336,7 @@
 
 | Data | Alteração |
 |---|---|
+| 2026-08-03 | EP-04 (Formulários/SDUI) implementado por completo: 18/18 REQs. Backend novo (`domain/application/infrastructure/interfaces/form`, migration `V5__create_form.sql`, CRUD `/api/v1/forms`) e frontend novo (`front/src/forms/FormsPage.tsx` + `FormBuilderPage.tsx`, `api/forms.ts`, item "Formulários" na sidebar). `FlowNode.formId` (já existente no backend) agora é editável de fato: `PropertiesPanel` ganhou o seletor "Formulário associado" para nós User Task e `JourneyDesignerPage` para de mandar `formId: null` fixo. EP-04 avança de 0% para 100%; progresso geral de 55% para 69%. |
 | 2026-08-02 | Implementados REQ-03.04.004 (copiar) e REQ-03.04.005 (duplicar) via atalhos `Ctrl+C`/`Ctrl+V`/`Ctrl+D` e botão "Duplicar nó" no `NodePropertiesPanel`, restritos a User Tasks (START/END mantêm regra de unicidade). REQ-03.06.001 (autosave) marcado como `n/a`: decisão de produto de não implementar no MVP, salvamento permanece manual. EP-03 avança para 25/26 (96%). |
 | 2026-08-02 | Atualização do EP-03 (Modelagem Visual) com base na implementação do Flow Designer: 23/26 REQs concluídos (nós START/END/USER_TASK, conexões, validação estrutural client+server com 422, navegação, drag-and-drop, zoom/pan/fit, undo/redo). Restam `todo`: copiar elementos, duplicar elementos e salvamento automático. |
 | 2026-08-02 | Sincronização com `ej-admin-requisitos.md`: 122 REQs em 8 EPs / 28 FTs, todos como `todo`. |

@@ -7,12 +7,14 @@ import { WorkflowsDashboard } from './dashboard/WorkflowsDashboard';
 import { WorkflowDetail } from './dashboard/WorkflowDetail';
 import { ProductsPage } from './products/ProductsPage';
 import { JourneysPage } from './journeys/JourneysPage';
+import { FormsPage } from './forms/FormsPage';
 import { AppThemeContext, LIGHT_APP_COLORS, DARK_APP_COLORS } from './shell/theme';
 import type { Tab } from './shell/types';
 
 const DASHBOARD_TAB: Tab = { key: 'dashboard', title: 'Dashboard', kind: 'dashboard', closable: false };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: true };
+const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
 
 const NAV_LABELS: Record<string, string> = {
   execucoes: 'Execuções',
@@ -57,6 +59,10 @@ export function App() {
       openTab(JOURNEYS_TAB);
       return;
     }
+    if (navKey === 'formularios') {
+      openTab(FORMS_TAB);
+      return;
+    }
     openTab({ key: `nav-${navKey}`, title: NAV_LABELS[navKey], kind: 'placeholder', closable: true });
   }
 
@@ -72,7 +78,9 @@ export function App() {
         ? 'produtos'
         : activeTab.kind === 'journeys'
           ? 'jornadas'
-          : 'workflows';
+          : activeTab.kind === 'forms'
+            ? 'formularios'
+            : 'workflows';
 
   return (
     <AppThemeContext.Provider value={{ dark, colors, toggle: () => setDark((d) => !d) }}>
@@ -96,6 +104,7 @@ export function App() {
                   {tab.kind === 'placeholder' && <PlaceholderPanel title={tab.title} />}
                   {tab.kind === 'products' && <ProductsPage />}
                   {tab.kind === 'journeys' && <JourneysPage />}
+                  {tab.kind === 'forms' && <FormsPage />}
                 </div>
               ))}
             </div>

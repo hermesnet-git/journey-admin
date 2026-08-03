@@ -30,8 +30,6 @@ Simular jornadas
 Publicar e despublicar jornadas
 
 Enviar jornadas para a API de publicação do runtime
-
-Exibir dashboard administrativo
 ```
 
 ---
@@ -644,33 +642,6 @@ No MVP, a API de publicação do runtime deve ser representada por um mock. Apó
 
 ### REQ-07.01.004
 Ao despublicar no MVP, o Admin Portal deve chamar a API mockada do runtime. Após o retorno de sucesso, a jornada e sua publicação devem assumir o estado `UNPUBLISHED`; em caso de falha, os estados atuais devem ser preservados.
-
----
-
-# EP-08 Dashboard Administrativo
-
-## Objetivo
-
-Fornecer visão consolidada dos ativos administrados pela plataforma.
-
----
-
-## FT-08.01 Indicadores Gerais
-
-### REQ-08.01.001
-O sistema deve exibir a quantidade de produtos cadastrados.
-
-### REQ-08.01.002
-O sistema deve exibir a quantidade de canais cadastrados.
-
-### REQ-08.01.003
-O sistema deve exibir a quantidade de jornadas cadastradas.
-
-### REQ-08.01.004
-O sistema deve exibir a quantidade de formulários cadastrados.
-
-### REQ-08.01.005
-O sistema deve exibir a quantidade de jornadas publicadas.
 
 ---
 

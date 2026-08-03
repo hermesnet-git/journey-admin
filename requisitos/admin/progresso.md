@@ -14,15 +14,15 @@
 
 | Métrica | Valor |
 |---|---|
-| Total de Épicos (EP) | 8 |
-| Total de Features (FT) | 28 |
-| Total de Requisitos (REQ) | 121 |
+| Total de Épicos (EP) | 7 |
+| Total de Features (FT) | 27 |
+| Total de Requisitos (REQ) | 116 |
 | Concluídos (`done`) | 106 |
 | Em andamento (`in_progress`) | 0 |
-| Não iniciados (`todo`) | 15 |
+| Não iniciados (`todo`) | 10 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 0 |
-| % Concluído | 88% |
+| % Concluído | 91% |
 
 ## Progresso por Épico
 
@@ -35,7 +35,6 @@
 | EP-05 | Simulação | 10 | 0 | 0% |
 | EP-06 | Publicação | 12 | 12 | 100% |
 | EP-07 | Publicação no Runtime | 4 | 4 | 100% |
-| EP-08 | Dashboard Administrativo | 5 | 0 | 0% |
 
 ---
 
@@ -315,20 +314,6 @@
 | [x] | REQ-07.01.002 | A chamada deve enviar a definição completa da jornada, incluindo produto, canal, fluxo e formulários. | done | back: `Publication` (passada para `RuntimePublicationPort.publish`) carrega jornada, produto, canal, `FlowNode`/`FlowConnection` e `Form`s referenciados | |
 | [x] | REQ-07.01.003 | No MVP, a API de publicação do runtime deve ser representada por um mock. Após o retorno de sucesso do mock, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`. | done | back: `MockRuntimePublicationAdapter` sempre "sucede" (loga e retorna); `PublishJourney` só persiste `Publication`/`journey.publish()` depois da chamada não lançar | |
 | [x] | REQ-07.01.004 | Ao despublicar no MVP, o Admin Portal deve chamar a API mockada do runtime. Após o sucesso, jornada e publicação assumem `UNPUBLISHED`; em caso de falha, os estados atuais são preservados. | done | back: `UnpublishJourney` só chama `journey.unpublish()`/`save` após `runtimePublicationPort.unpublish` retornar sem exceção; se lançasse, nada seria persistido | jornada assume `UNPUBLISHED` (não existe estado "publicação" separado — o registro é preservado, ver REQ-06.01.004) |
-
----
-
-## EP-08 Dashboard Administrativo
-
-### FT-08.01 Indicadores Gerais
-
-| # | REQ | Descrição | Status | Evidência | Notas |
-|---|---|---|---|---|---|
-| [ ] | REQ-08.01.001 | O sistema deve exibir a quantidade de produtos cadastrados. | todo | | |
-| [ ] | REQ-08.01.002 | O sistema deve exibir a quantidade de canais cadastrados. | todo | | |
-| [ ] | REQ-08.01.003 | O sistema deve exibir a quantidade de jornadas cadastradas. | todo | | |
-| [ ] | REQ-08.01.004 | O sistema deve exibir a quantidade de formulários cadastrados. | todo | | |
-| [ ] | REQ-08.01.005 | O sistema deve exibir a quantidade de jornadas publicadas. | todo | | |
 
 ---
 

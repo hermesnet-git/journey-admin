@@ -6,6 +6,7 @@ import { WorkflowsDashboard } from './dashboard/WorkflowsDashboard';
 import { WorkflowDetail } from './dashboard/WorkflowDetail';
 import { ProductsPage } from './products/ProductsPage';
 import { JourneysPage } from './journeys/JourneysPage';
+import { AppThemeContext, LIGHT_APP_COLORS, DARK_APP_COLORS } from './shell/theme';
 import type { Tab } from './shell/types';
 
 const DASHBOARD_TAB: Tab = { key: 'dashboard', title: 'Dashboard', kind: 'dashboard', closable: false };
@@ -20,6 +21,8 @@ const NAV_LABELS: Record<string, string> = {
 };
 
 export function App() {
+  const [dark, setDark] = useState(false);
+  const colors = dark ? DARK_APP_COLORS : LIGHT_APP_COLORS;
   const [tabs, setTabs] = useState<Tab[]>([DASHBOARD_TAB]);
   const [activeKey, setActiveKey] = useState('dashboard');
 
@@ -69,24 +72,29 @@ export function App() {
           : 'workflows';
 
   return (
-    <div className="flex h-screen w-full bg-[#fafafa] font-sans text-[#1a1a1a] overflow-hidden box-border">
-      <Sidebar activeKey={activeNavKey} onNavigate={handleNavigate} />
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <TabBar tabs={tabs} activeKey={activeKey} onSelect={setActiveKey} onClose={closeTab} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {tabs.map((tab) => (
-            <div key={tab.key} className="flex-1 flex flex-col overflow-hidden" style={{ display: tab.key === activeKey ? 'flex' : 'none' }}>
-              {tab.kind === 'dashboard' && <WorkflowsDashboard onOpenWorkflow={handleOpenWorkflow} />}
-              {tab.kind === 'detail' && tab.workflowId && (
-                <WorkflowDetail workflowId={tab.workflowId} onBack={() => setActiveKey('dashboard')} />
-              )}
-              {tab.kind === 'placeholder' && <PlaceholderPanel title={tab.title} />}
-              {tab.kind === 'products' && <ProductsPage />}
-              {tab.kind === 'journeys' && <JourneysPage />}
-            </div>
-          ))}
+    <AppThemeContext.Provider value={{ dark, colors, toggle: () => setDark((d) => !d) }}>
+      <div
+        className="flex h-screen w-full font-sans overflow-hidden box-border"
+        style={{ background: colors.bg, color: colors.textPrimary }}
+      >
+        <Sidebar activeKey={activeNavKey} onNavigate={handleNavigate} />
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          <TabBar tabs={tabs} activeKey={activeKey} onSelect={setActiveKey} onClose={closeTab} />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {tabs.map((tab) => (
+              <div key={tab.key} className="flex-1 flex flex-col overflow-hidden" style={{ display: tab.key === activeKey ? 'flex' : 'none' }}>
+                {tab.kind === 'dashboard' && <WorkflowsDashboard onOpenWorkflow={handleOpenWorkflow} />}
+                {tab.kind === 'detail' && tab.workflowId && (
+                  <WorkflowDetail workflowId={tab.workflowId} onBack={() => setActiveKey('dashboard')} />
+                )}
+                {tab.kind === 'placeholder' && <PlaceholderPanel title={tab.title} />}
+                {tab.kind === 'products' && <ProductsPage />}
+                {tab.kind === 'journeys' && <JourneysPage />}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </AppThemeContext.Provider>
   );
 }

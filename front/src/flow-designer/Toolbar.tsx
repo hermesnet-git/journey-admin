@@ -1,66 +1,93 @@
-import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, X } from 'lucide-react';
+import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard } from 'lucide-react';
+import { useFlowTheme } from './theme';
+
+const SHORTCUTS_HINT = [
+  'Ctrl+Z — Desfazer',
+  'Ctrl+Y — Refazer',
+  'Delete — Excluir nó/conexão selecionado',
+  'Arrastar da paleta — Adicionar nó',
+  'Duplo clique no nó — Editar propriedades',
+].join('\n');
 
 export function Toolbar({
-  journeyName,
   canUndo,
   canRedo,
   onUndo,
   onRedo,
+  onOrganize,
   zoomPct,
   onZoomIn,
   onZoomOut,
   onFitToScreen,
   onSave,
   saving,
-  onClose,
+  onCancel,
 }: {
-  journeyName: string;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  onOrganize: () => void;
   zoomPct: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitToScreen: () => void;
   onSave: () => void;
   saving: boolean;
-  onClose: () => void;
+  onCancel: () => void;
 }) {
+  const { c } = useFlowTheme();
   const iconBtn =
-    'w-[30px] h-[30px] rounded-lg border-0 bg-transparent flex items-center justify-center cursor-pointer text-[#71717a] hover:bg-[#f4f4f5] disabled:opacity-35';
+    'w-[30px] h-[30px] rounded-lg border-0 bg-transparent flex items-center justify-center cursor-pointer disabled:opacity-35';
 
   return (
-    <div className="h-[56px] shrink-0 flex items-center justify-between px-4 border-b border-[#e4e4e7] bg-white">
-      <div className="flex items-center gap-3 min-w-0">
-        <button onClick={onClose} className={iconBtn} title="Fechar">
-          <X size={18} />
+    <div className="shrink-0 border-b px-4 py-[9px] flex items-center justify-end gap-4" style={{ background: c.headerBg, borderColor: c.border }}>
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          onClick={onOrganize}
+          title="Organizar objetos no canvas"
+          className="h-[30px] px-[9px] rounded-lg flex items-center gap-[6px] text-[12.5px] font-semibold cursor-pointer"
+          style={{ border: `1px solid ${c.border}`, color: c.textPrimary }}
+        >
+          <LayoutGrid size={15} /> Organizar
         </button>
-        <div className="text-[14.5px] font-semibold truncate">{journeyName || 'Nova jornada'}</div>
-      </div>
-      <div className="flex items-center gap-1">
-        <button onClick={onUndo} disabled={!canUndo} className={iconBtn} title="Desfazer">
+        <div className="w-px h-[20px] mx-1" style={{ background: c.border }} />
+        <button onClick={onUndo} disabled={!canUndo} className={iconBtn} style={{ color: c.textSecondary }} title="Desfazer (Ctrl+Z)">
           <Undo2 size={17} />
         </button>
-        <button onClick={onRedo} disabled={!canRedo} className={iconBtn} title="Refazer">
+        <button onClick={onRedo} disabled={!canRedo} className={iconBtn} style={{ color: c.textSecondary }} title="Refazer (Ctrl+Y)">
           <Redo2 size={17} />
         </button>
-        <div className="w-px h-[20px] bg-[#e4e4e7] mx-1" />
-        <button onClick={onZoomOut} className={iconBtn} title="Diminuir zoom">
+        <div className="w-px h-[20px] mx-1" style={{ background: c.border }} />
+        <button onClick={onZoomOut} className={iconBtn} style={{ color: c.textSecondary }} title="Diminuir zoom">
           <ZoomOut size={17} />
         </button>
-        <div className="w-8 text-center text-[11.5px] font-medium text-[#71717a]">{zoomPct}%</div>
-        <button onClick={onZoomIn} className={iconBtn} title="Aumentar zoom">
+        <div className="w-8 text-center text-[11.5px] font-medium" style={{ color: c.textSecondary }}>
+          {zoomPct}%
+        </div>
+        <button onClick={onZoomIn} className={iconBtn} style={{ color: c.textSecondary }} title="Aumentar zoom">
           <ZoomIn size={17} />
         </button>
-        <button onClick={onFitToScreen} className={iconBtn} title="Ajustar à tela">
+        <button onClick={onFitToScreen} className={iconBtn} style={{ color: c.textSecondary }} title="Ajustar à tela">
           <Maximize size={17} />
         </button>
-        <div className="w-px h-[20px] bg-[#e4e4e7] mx-1" />
+        <div className="w-px h-[20px] mx-1" style={{ background: c.border }} />
+        <button className={iconBtn} style={{ color: c.textSecondary }} title={SHORTCUTS_HINT}>
+          <Keyboard size={17} />
+        </button>
+        <div className="w-px h-[20px] mx-1" style={{ background: c.border }} />
+        <button
+          onClick={onCancel}
+          className="h-[32px] px-4 rounded-md text-[13px] font-medium cursor-pointer"
+          style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}
+        >
+          Cancelar
+        </button>
         <button
           onClick={onSave}
           disabled={saving}
-          className="inline-flex items-center gap-[6px] rounded-md bg-[#019DF4] px-4 py-[7px] text-[13px] font-medium text-white border-0 cursor-pointer disabled:opacity-50"
+          className="inline-flex items-center gap-[6px] rounded-md px-4 py-[7px] text-[13px] font-medium text-white border-0 cursor-pointer disabled:opacity-50"
+          style={{ background: c.accent }}
         >
           <Save size={14} /> {saving ? 'Salvando...' : 'Salvar'}
         </button>

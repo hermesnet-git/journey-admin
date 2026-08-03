@@ -1,30 +1,104 @@
+import { useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Play, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { Play, ClipboardList, CheckCircle2, Plus } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
-import { NODE_WIDTH, TYPE_COLOR, type NodeType, type WFNode } from './model';
+import { useFlowTheme } from './theme';
+import { NODE_META, NODE_WIDTH, TYPE_COLOR, type NodeType, type WFNode } from './model';
 
 const ICON: Record<NodeType, typeof Play> = { start: Play, userTask: ClipboardList, end: CheckCircle2 };
+const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'end'];
+
+function QuickAdd({ nodeId }: { nodeId: string }) {
+  const { c } = useFlowTheme();
+  const actions = useWorkflowActions();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [open]);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+      style={{ right: -29, zIndex: open ? 20 : 1 }}
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        title="Adicionar próxima etapa"
+        className="w-5 h-5 rounded-full flex items-center justify-center cursor-pointer"
+        style={{ border: `1.5px solid ${c.handleColor}`, background: c.cardBg, color: c.handleColor }}
+      >
+        <Plus size={13} />
+      </button>
+      {open && (
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute left-[26px] top-0 w-[210px] rounded-[10px] p-[6px]"
+          style={{ background: c.cardBg, border: `1px solid ${c.border}`, boxShadow: '0 10px 30px -8px rgba(0,0,0,.25)' }}
+        >
+          {QUICK_ADD_TYPES.map((t) => {
+            const Icon = ICON[t];
+            return (
+              <button
+                key={t}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(false);
+                  actions.onQuickAdd(nodeId, t);
+                }}
+                className="w-full flex items-center gap-[9px] text-left px-[10px] py-2 rounded-[7px] border-0 bg-transparent cursor-pointer text-[13px] hover:bg-[var(--flow-hover)]"
+                style={{ color: c.textPrimary, ['--flow-hover' as string]: c.hoverBg }}
+              >
+                <Icon size={16} color={TYPE_COLOR[t]} strokeWidth={1.8} />
+                {NODE_META[t].title}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   const nodeType = type as NodeType;
   const actions = useWorkflowActions();
+  const { c } = useFlowTheme();
   const Icon = ICON[nodeType];
   const hasInput = nodeType !== 'start';
   const hasOutput = nodeType !== 'end';
+  const invalid = !!data.invalid;
+
+  const borderColor = invalid ? c.danger : selected ? c.accent : c.cardBorder;
+  const ringColor = invalid ? c.dangerSoft : c.accentSoft;
 
   return (
     <div
       onDoubleClick={() => actions.onEdit(id)}
-      style={{ width: NODE_WIDTH }}
-      className={`rounded-xl border bg-white px-[14px] py-3 cursor-grab select-none ${
-        selected ? 'border-[#019DF4] ring-4 ring-[#019DF4]/15' : 'border-[#e4e4e7]'
-      }`}
+      style={{
+        width: NODE_WIDTH,
+        background: c.cardBg,
+        borderColor,
+        boxShadow: selected || invalid ? `0 0 0 4px ${ringColor}` : 'none',
+      }}
+      className="group relative rounded-xl border px-[14px] py-3 cursor-grab select-none"
     >
       {hasInput && (
         <Handle
           type="target"
           position={Position.Left}
-          className="!w-[10px] !h-[10px] !bg-[#a1a1aa] !border-2 !border-[#a1a1aa]"
+          style={{ width: 10, height: 10, background: c.handleColor, border: `2px solid ${c.handleColor}` }}
         />
       )}
       <div className="flex items-center gap-[10px]">
@@ -35,16 +109,23 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           <Icon size={16} color={TYPE_COLOR[nodeType]} strokeWidth={1.8} />
         </div>
         <div className="min-w-0">
-          <div className="text-[14px] font-bold text-[#1a1a1a] truncate">{data.name}</div>
-          <div className="text-[11.5px] text-[#71717a] truncate">{data.description}</div>
+          <div className="text-[14px] font-bold truncate" style={{ color: c.textPrimary }}>
+            {data.name}
+          </div>
+          <div className="text-[11.5px] truncate" style={{ color: c.textSecondary }}>
+            {data.description}
+          </div>
         </div>
       </div>
       {hasOutput && (
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="!w-[10px] !h-[10px] !bg-[#a1a1aa] !border-2 !border-[#a1a1aa]"
-        />
+        <>
+          <Handle
+            type="source"
+            position={Position.Right}
+            style={{ width: 10, height: 10, background: c.handleColor, border: `2px solid ${c.handleColor}` }}
+          />
+          <QuickAdd nodeId={id} />
+        </>
       )}
     </div>
   );

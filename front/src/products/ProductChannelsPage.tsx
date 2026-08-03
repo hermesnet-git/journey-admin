@@ -253,11 +253,11 @@ function ChannelRow({
           <div className="text-[11.5px] text-[#a1a1aa] truncate">{channel.description}</div>
         )}
       </div>
-      <span className="text-[#52525b]">{CHANNEL_TYPE_LABELS[channel.type] ?? channel.type}</span>
+      <span className="text-[#71717a]">{CHANNEL_TYPE_LABELS[channel.type] ?? channel.type}</span>
       <span className="w-fit">
         <StatusTag active={channel.status === 'ACTIVE'} />
       </span>
-      <span className="text-[#52525b]">{channel.journeyCount}</span>
+      <span className="text-[#71717a]">{channel.journeyCount}</span>
       <div className="flex items-center gap-4">
         <LinkButton onClick={onEdit}>Editar</LinkButton>
         {channel.status === 'ACTIVE' && <LinkButton onClick={onDeactivate}>Desativar</LinkButton>}

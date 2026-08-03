@@ -17,12 +17,12 @@
 | Total de Épicos (EP) | 8 |
 | Total de Features (FT) | 28 |
 | Total de Requisitos (REQ) | 122 |
-| Concluídos (`done`) | 41 |
+| Concluídos (`done`) | 64 |
 | Em andamento (`in_progress`) | 4 |
-| Não iniciados (`todo`) | 75 |
+| Não iniciados (`todo`) | 52 |
 | Bloqueados (`blocked`) | 2 |
 | Não aplicável (`n/a`) | 0 |
-| % Concluído | 34% |
+| % Concluído | 52% |
 
 ## Progresso por Épico
 
@@ -30,7 +30,7 @@
 |---|---|---:|---:|---:|
 | EP-01 | Gestão de Produtos e Canais | 24 | 21 | 88% |
 | EP-02 | Gestão de Jornadas | 23 | 20 | 87% |
-| EP-03 | Modelagem Visual | 26 | 0 | 0% |
+| EP-03 | Modelagem Visual | 26 | 23 | 88% |
 | EP-04 | Formulários (SDUI) | 18 | 0 | 0% |
 | EP-05 | Simulação | 10 | 0 | 0% |
 | EP-06 | Publicação | 12 | 0 | 0% |
@@ -145,38 +145,38 @@
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-03.01.001 | O sistema deve suportar eventos de início. | todo | | |
-| [ ] | REQ-03.01.002 | O sistema deve suportar eventos de término. | todo | | |
-| [ ] | REQ-03.01.003 | O sistema deve suportar User Tasks. | todo | | |
-| [ ] | REQ-03.01.004 | Cada fluxo deve possuir exatamente um nó `START` e exatamente um nó `END`. | todo | | |
-| [ ] | REQ-03.01.005 | Ao criar uma jornada, o sistema deve iniciar seu fluxo com os nós `START` e `END` conectados. | todo | | |
+| [x] | REQ-03.01.001 | O sistema deve suportar eventos de início. | done | back: `FlowNodeType.START`; front: `NODE_META.start`, `Palette` | |
+| [x] | REQ-03.01.002 | O sistema deve suportar eventos de término. | done | back: `FlowNodeType.END`; front: `NODE_META.end`, `Palette` | |
+| [x] | REQ-03.01.003 | O sistema deve suportar User Tasks. | done | back: `FlowNodeType.USER_TASK`; front: `NODE_META.userTask`, `Palette` | |
+| [x] | REQ-03.01.004 | Cada fluxo deve possuir exatamente um nó `START` e exatamente um nó `END`. | done | back: `FlowValidator.validate` (contagem de `starts`/`ends`); front: `validation.ts` + bloqueio de exclusão do último START/END em `JourneyDesignerPage.onBeforeDelete` | |
+| [x] | REQ-03.01.005 | Ao criar uma jornada, o sistema deve iniciar seu fluxo com os nós `START` e `END` conectados. | done | back: `CreateJourney` chama `flowRepository.save(Flow.initial(journey.getId()))`; front: `initialFlowNodes`/`initialFlowEdges` | |
 
 ### FT-03.02 Conexões
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-03.02.001 | O sistema deve permitir criar conexões entre elementos. | todo | | |
-| [ ] | REQ-03.02.002 | O sistema deve permitir remover conexões. | todo | | |
-| [ ] | REQ-03.02.003 | O sistema deve permitir editar conexões. | todo | | |
-| [ ] | REQ-03.02.004 | O nó `START` não deve possuir entrada e deve possuir exatamente uma saída; cada `USER_TASK` deve possuir ao menos uma entrada e exatamente uma saída; o nó `END` deve possuir ao menos uma entrada e nenhuma saída. | todo | | |
-| [ ] | REQ-03.02.005 | Todos os nós devem pertencer a um caminho contínuo e alcançável entre `START` e `END`. | todo | | |
-| [ ] | REQ-03.02.006 | O editor deve impedir ações incompatíveis, e o backend deve rejeitar com `422` qualquer tentativa de persistir um fluxo que viole as restrições estruturais. | todo | | |
+| [x] | REQ-03.02.001 | O sistema deve permitir criar conexões entre elementos. | done | front: `JourneyDesignerPage.onConnect` (drag entre handles) | |
+| [x] | REQ-03.02.002 | O sistema deve permitir remover conexões. | done | front: seleção da aresta + `Delete`/`Backspace` (`deleteKeyCode`) | |
+| [x] | REQ-03.02.003 | O sistema deve permitir editar conexões. | done | front: reconectar arrastando a extremidade da aresta (React Flow `onEdgesChange`) | |
+| [x] | REQ-03.02.004 | O nó `START` não deve possuir entrada e deve possuir exatamente uma saída; cada `USER_TASK` deve possuir ao menos uma entrada e exatamente uma saída; o nó `END` deve possuir ao menos uma entrada e nenhuma saída. | done | back: `FlowValidator.validate`; front: `validation.ts` (mesma regra espelhada) | |
+| [x] | REQ-03.02.005 | Todos os nós devem pertencer a um caminho contínuo e alcançável entre `START` e `END`. | done | back: `FlowValidator` (BFS a partir de START/END); front: `validation.ts` (`reachableFrom`) | |
+| [x] | REQ-03.02.006 | O editor deve impedir ações incompatíveis, e o backend deve rejeitar com `422` qualquer tentativa de persistir um fluxo que viole as restrições estruturais. | done | back: `FlowValidationException` + `GlobalExceptionHandler` (422); front: `ErrorModal` exibe violações antes de salvar | |
 
 ### FT-03.03 Navegação
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-03.03.001 | O usuário deve visualizar o fluxo completo da jornada. | todo | | |
-| [ ] | REQ-03.03.002 | O usuário deve navegar livremente pelo fluxo. | todo | | |
-| [ ] | REQ-03.03.003 | O sistema deve destacar o elemento selecionado. | todo | | |
+| [x] | REQ-03.03.001 | O usuário deve visualizar o fluxo completo da jornada. | done | front: `getFlow` carrega todos os nós/conexões no `JourneyDesignerPage`; `MiniMap` do React Flow | |
+| [x] | REQ-03.03.002 | O usuário deve navegar livremente pelo fluxo. | done | front: pan/zoom nativos do `ReactFlow` | |
+| [x] | REQ-03.03.003 | O sistema deve destacar o elemento selecionado. | done | front: `WorkflowNode` (estado `selected`) + arestas conectadas destacadas em `displayEdges` | |
 
 ### FT-03.04 Experiência de Edição
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-03.04.001 | O sistema deve suportar drag-and-drop de elementos. | todo | | |
-| [ ] | REQ-03.04.002 | O usuário deve poder reposicionar elementos livremente. | todo | | |
-| [ ] | REQ-03.04.003 | O usuário deve poder remover elementos do fluxo. | todo | | |
+| [x] | REQ-03.04.001 | O sistema deve suportar drag-and-drop de elementos. | done | front: `Palette` (drag) + `JourneyDesignerPage.onDrop`/`addNodeFromPalette` | |
+| [x] | REQ-03.04.002 | O usuário deve poder reposicionar elementos livremente. | done | front: `onNodesChange` (drag nativo do React Flow, `snapToGrid`) | |
+| [x] | REQ-03.04.003 | O usuário deve poder remover elementos do fluxo. | done | front: `deleteNode` / `onBeforeDelete` (bloqueia último START/END) | |
 | [ ] | REQ-03.04.004 | O usuário deve poder copiar elementos. | todo | | |
 | [ ] | REQ-03.04.005 | O usuário deve poder duplicar elementos. | todo | | |
 
@@ -184,18 +184,18 @@
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-03.05.001 | O sistema deve permitir zoom in. | todo | | |
-| [ ] | REQ-03.05.002 | O sistema deve permitir zoom out. | todo | | |
-| [ ] | REQ-03.05.003 | O sistema deve permitir mover-se livremente pelo canvas. | todo | | |
-| [ ] | REQ-03.05.004 | O sistema deve permitir centralizar o fluxo na área visível. | todo | | |
+| [x] | REQ-03.05.001 | O sistema deve permitir zoom in. | done | front: `Toolbar` botão zoom+ → `zoomIn()` | |
+| [x] | REQ-03.05.002 | O sistema deve permitir zoom out. | done | front: `Toolbar` botão zoom− → `zoomOut()` | |
+| [x] | REQ-03.05.003 | O sistema deve permitir mover-se livremente pelo canvas. | done | front: pan nativo do `ReactFlow` | |
+| [x] | REQ-03.05.004 | O sistema deve permitir centralizar o fluxo na área visível. | done | front: `Toolbar` botão "Ajustar à tela" → `fitView()` | |
 
 ### FT-03.06 Produtividade
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-03.06.001 | O sistema deve salvar automaticamente as alterações. | todo | | |
-| [ ] | REQ-03.06.002 | O sistema deve permitir desfazer ações. | todo | | |
-| [ ] | REQ-03.06.003 | O sistema deve permitir refazer ações. | todo | | |
+| [ ] | REQ-03.06.001 | O sistema deve salvar automaticamente as alterações. | todo | | salvamento hoje é manual via botão "Salvar" no `Toolbar` |
+| [x] | REQ-03.06.002 | O sistema deve permitir desfazer ações. | done | front: `JourneyDesignerPage.undo` (pilha `undoStack`) | |
+| [x] | REQ-03.06.003 | O sistema deve permitir refazer ações. | done | front: `JourneyDesignerPage.redo` (pilha `redoStack`) | |
 
 ---
 
@@ -337,4 +337,5 @@
 
 | Data | Alteração |
 |---|---|
+| 2026-08-02 | Atualização do EP-03 (Modelagem Visual) com base na implementação do Flow Designer: 23/26 REQs concluídos (nós START/END/USER_TASK, conexões, validação estrutural client+server com 422, navegação, drag-and-drop, zoom/pan/fit, undo/redo). Restam `todo`: copiar elementos, duplicar elementos e salvamento automático. |
 | 2026-08-02 | Sincronização com `ej-admin-requisitos.md`: 122 REQs em 8 EPs / 28 FTs, todos como `todo`. |

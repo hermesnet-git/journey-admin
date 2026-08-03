@@ -105,7 +105,7 @@ export function WorkflowsDashboard({ onOpenWorkflow }: WorkflowsDashboardProps) 
                 style={{
                   borderColor: isActive ? '#019DF4' : '#e4e4e7',
                   background: isActive ? '#019DF4' : '#fff',
-                  color: isActive ? '#fff' : '#3f3f46',
+                  color: isActive ? '#fff' : '#1a1a1a',
                 }}
               >
                 {f.label}
@@ -161,10 +161,10 @@ export function WorkflowsDashboard({ onOpenWorkflow }: WorkflowsDashboardProps) 
                   <div className="text-[11.5px] text-[#a1a1aa]">{w.description}</div>
                 </div>
                 <span className="w-fit"><Tag type={tagTypeFor(w.status)} small>{meta.label}</Tag></span>
-                <span className="text-[#52525b]">{w.tasksCount}</span>
-                <span className="text-[#52525b]">{totalRuns(w).toLocaleString('pt-BR')}</span>
-                <span className="text-[#52525b]">{w.owner}</span>
-                <span className="text-[#52525b]">{w.lastRun}</span>
+                <span className="text-[#71717a]">{w.tasksCount}</span>
+                <span className="text-[#71717a]">{totalRuns(w).toLocaleString('pt-BR')}</span>
+                <span className="text-[#71717a]">{w.owner}</span>
+                <span className="text-[#71717a]">{w.lastRun}</span>
               </div>
             );
           })}
@@ -197,7 +197,7 @@ function WorkflowCard({ workflow: w, onOpen }: { workflow: Workflow; onOpen: () 
   return (
     <div
       onClick={onOpen}
-      className="bg-white border border-[#e4e4e7] rounded-2xl p-[18px] cursor-pointer flex flex-col gap-3 box-border transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,.06)] hover:border-[#d4d4d8]"
+      className="bg-white border border-[#e4e4e7] rounded-2xl p-[18px] cursor-pointer flex flex-col gap-3 box-border transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,.06)] hover:border-[#e4e4e7]"
     >
       <div className="flex items-start justify-between gap-2">
         <div>

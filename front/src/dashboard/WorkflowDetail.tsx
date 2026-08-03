@@ -115,8 +115,8 @@ export function WorkflowDetail({ workflowId, onBack }: WorkflowDetailProps) {
                     <span className="w-fit">
                       <Tag small backgroundColor={em.bg} textColor={em.fg}>{em.label}</Tag>
                     </span>
-                    <span className="text-[#52525b]">{ex.duration}</span>
-                    <span className="text-[#52525b]">{ex.owner}</span>
+                    <span className="text-[#71717a]">{ex.duration}</span>
+                    <span className="text-[#71717a]">{ex.owner}</span>
                     <span className="flex justify-end">
                       <ChevronDown size={14} color="#a1a1aa" style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
                     </span>
@@ -130,7 +130,7 @@ export function WorkflowDetail({ workflowId, onBack }: WorkflowDetailProps) {
                           {st.status === 'running' && <Clock size={14} color="#1d4ed8" className="mt-[1px] shrink-0" />}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-[#3f3f46]">{st.name}</span>
+                              <span className="font-medium text-[#1a1a1a]">{st.name}</span>
                               <span className="text-[#a1a1aa]">{st.duration}</span>
                             </div>
                             {st.status === 'failed' && st.error && (
@@ -150,10 +150,10 @@ export function WorkflowDetail({ workflowId, onBack }: WorkflowDetailProps) {
         </>
       ) : (
         <div className="bg-white border border-[#e4e4e7] rounded-2xl p-10 text-center">
-          <Clock size={30} color="#c4c4c8" className="mx-auto mb-3" />
+          <Clock size={30} color="#a1a1aa" className="mx-auto mb-3" />
           {workflow.status === 'draft' && (
             <>
-              <div className="text-[13.5px] font-semibold text-[#3f3f46] mb-1">Ainda em rascunho</div>
+              <div className="text-[13.5px] font-semibold text-[#1a1a1a] mb-1">Ainda em rascunho</div>
               <div className="text-[12.5px] text-[#a1a1aa]">
                 Este workflow ainda não foi publicado. Publique para começar a monitorar execuções em produção.
               </div>
@@ -161,7 +161,7 @@ export function WorkflowDetail({ workflowId, onBack }: WorkflowDetailProps) {
           )}
           {workflow.status === 'review' && (
             <>
-              <div className="text-[13.5px] font-semibold text-[#3f3f46] mb-1">Aguardando aprovação</div>
+              <div className="text-[13.5px] font-semibold text-[#1a1a1a] mb-1">Aguardando aprovação</div>
               <div className="text-[12.5px] text-[#a1a1aa]">
                 Este workflow está em aprovação. O histórico completo de execuções ficará disponível após a publicação.
               </div>
@@ -175,7 +175,7 @@ export function WorkflowDetail({ workflowId, onBack }: WorkflowDetailProps) {
                   const em = EXEC_STATUS_META[ex.status];
                   return (
                     <div key={ex.id} className="flex items-center justify-between gap-[10px] px-[14px] py-[10px] text-[12.5px] border-b border-[#f4f4f5]">
-                      <span className="text-[#3f3f46]">{ex.startedAt}</span>
+                      <span className="text-[#1a1a1a]">{ex.startedAt}</span>
                       <Tag small backgroundColor={em.bg} textColor={em.fg}>{em.label}</Tag>
                       <span className="text-[#a1a1aa]">{ex.duration}</span>
                       <span className="text-[#a1a1aa]">{ex.owner}</span>

@@ -1,7 +1,13 @@
 import type { WFNode, WFEdge } from './model';
 
-export function validateFlow(nodes: WFNode[], edges: WFEdge[]): string[] {
+export interface FlowValidationResult {
+  errors: string[];
+  invalidNodeIds: Set<string>;
+}
+
+export function validateFlow(nodes: WFNode[], edges: WFEdge[]): FlowValidationResult {
   const errors: string[] = [];
+  const invalidNodeIds = new Set<string>();
   const starts = nodes.filter((n) => n.type === 'start');
   const ends = nodes.filter((n) => n.type === 'end');
   if (starts.length !== 1) errors.push('O fluxo deve ter exatamente um nó de Início.');
@@ -23,12 +29,15 @@ export function validateFlow(nodes: WFNode[], edges: WFEdge[]): string[] {
     const outCount = outdeg.get(n.id) ?? 0;
     if (n.type === 'start' && (inCount !== 0 || outCount !== 1)) {
       errors.push(`O nó de Início "${n.data.name}" deve ter nenhuma entrada e exatamente uma saída.`);
+      invalidNodeIds.add(n.id);
     }
     if (n.type === 'userTask' && (inCount < 1 || outCount !== 1)) {
       errors.push(`A tarefa "${n.data.name}" deve ter ao menos uma entrada e exatamente uma saída.`);
+      invalidNodeIds.add(n.id);
     }
     if (n.type === 'end' && (inCount < 1 || outCount !== 0)) {
       errors.push(`O nó de Fim "${n.data.name}" deve ter ao menos uma entrada e nenhuma saída.`);
+      invalidNodeIds.add(n.id);
     }
   });
 
@@ -64,9 +73,10 @@ export function validateFlow(nodes: WFNode[], edges: WFEdge[]): string[] {
     nodes.forEach((n) => {
       if (!fromStart.has(n.id) || !toEnd.has(n.id)) {
         errors.push(`O nó "${n.data.name}" não está em um caminho contínuo entre Início e Fim.`);
+        invalidNodeIds.add(n.id);
       }
     });
   }
 
-  return errors;
+  return { errors, invalidNodeIds };
 }

@@ -126,11 +126,15 @@ function JourneysPageContent() {
     return (
       <JourneyDesignerPage
         journey={wasNew ? null : editingJourney}
-        onClose={() => setEditingJourney(null)}
+        onClose={async () => {
+          setEditingJourney(null);
+          await reload();
+        }}
         onSaved={async () => {
           setEditingJourney(null);
           await reload();
-          showToast(wasNew ? 'Jornada criada com sucesso.' : 'Jornada atualizada com sucesso.');
+          const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          showToast(`${wasNew ? 'Jornada criada' : 'Jornada salva'} às ${time}.`);
         }}
       />
     );
@@ -230,7 +234,7 @@ function JourneysPageContent() {
                 style={{
                   borderColor: isActive ? '#019DF4' : '#e4e4e7',
                   background: isActive ? '#019DF4' : '#fff',
-                  color: isActive ? '#fff' : '#3f3f46',
+                  color: isActive ? '#fff' : '#1a1a1a',
                 }}
               >
                 {f.label}
@@ -437,13 +441,13 @@ function JourneyCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-white border border-[#e4e4e7] rounded-2xl p-[18px] flex flex-col gap-3 box-border transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,.06)] hover:border-[#d4d4d8]">
+    <div className="bg-white border border-[#e4e4e7] rounded-2xl p-[18px] flex flex-col gap-3 box-border transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,.06)] hover:border-[#e4e4e7]">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 text-[14.5px] font-semibold text-[#1a1a1a] truncate">{journey.name}</div>
         <JourneyStatusTag status={journey.status} />
       </div>
       <div className="text-[12px] text-[#71717a] truncate">
-        {journey.productName} <span className="text-[#d4d4d8]">›</span> {journey.channelName}
+        {journey.productName} <span className="text-[#e4e4e7]">›</span> {journey.channelName}
       </div>
       {journey.description && (
         <p className="m-0 text-[12.5px] text-[#71717a] line-clamp-2">{journey.description}</p>
@@ -480,13 +484,13 @@ function JourneyRow({
           <div className="text-[11.5px] text-[#a1a1aa] truncate">{journey.description}</div>
         )}
       </div>
-      <span className="text-[#52525b] truncate">
-        {journey.productName} <span className="text-[#d4d4d8]">›</span> {journey.channelName}
+      <span className="text-[#71717a] truncate">
+        {journey.productName} <span className="text-[#e4e4e7]">›</span> {journey.channelName}
       </span>
       <span className="w-fit">
         <JourneyStatusTag status={journey.status} />
       </span>
-      <span className="text-[#52525b]">{formatDate(journey.updatedAt)}</span>
+      <span className="text-[#71717a]">{formatDate(journey.updatedAt)}</span>
       <JourneyActions journey={journey} onEdit={onEdit} onDeactivate={onDeactivate} onActivate={onActivate} onDelete={onDelete} />
     </div>
   );

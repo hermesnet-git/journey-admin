@@ -8,8 +8,9 @@ import type { ButtonHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'reac
 // Adding that plugin app-wide is out of scope for this fix, so this feature
 // uses plain styled controls that match the rest of the app's look instead.
 
+// disabled:* covers every read-only/disabled field app-wide: muted background + muted text, no opacity hacks.
 const inputClass =
-  'w-full rounded-md border border-[#e4e4e7] bg-white px-3 py-2 text-[13px] text-[#1a1a1a] outline-none box-border transition-colors focus:border-[#019DF4] focus:ring-2 focus:ring-[#019DF4]/15 placeholder:text-[#a1a1aa]';
+  'w-full rounded-md border border-[#e4e4e7] bg-white px-3 py-2 text-[13px] text-[#1a1a1a] outline-none box-border transition-colors focus:border-[#019DF4] focus:ring-2 focus:ring-[#019DF4]/15 placeholder:text-[#a1a1aa] disabled:bg-[#f4f4f5] disabled:text-[#a1a1aa] disabled:border-[#e4e4e7] disabled:cursor-not-allowed';
 
 interface FieldProps {
   label: string;
@@ -21,7 +22,7 @@ interface FieldProps {
 export function Field({ label, helperText, optional, children }: FieldProps) {
   return (
     <label className="flex flex-col gap-[6px]">
-      <span className="text-[12.5px] font-medium text-[#3f3f46]">
+      <span className="text-[12.5px] font-medium text-[#1a1a1a]">
         {label}
         {!optional && <span className="ml-[2px] text-[#dc2626]">*</span>}
         {optional && <span className="ml-1 font-normal text-[#a1a1aa]">(opcional)</span>}
@@ -72,7 +73,7 @@ export function SecondaryButton({ children, className, ...rest }: ButtonProps) {
   return (
     <button
       {...rest}
-      className={`inline-flex items-center gap-[6px] rounded-md bg-white border border-[#e4e4e7] px-4 py-2 text-[13px] font-medium text-[#3f3f46] cursor-pointer transition-colors hover:bg-[#f4f4f5] ${className ?? ''}`}
+      className={`inline-flex items-center gap-[6px] rounded-md bg-white border border-[#e4e4e7] px-4 py-2 text-[13px] font-medium text-[#1a1a1a] cursor-pointer transition-colors hover:bg-[#f4f4f5] ${className ?? ''}`}
     >
       {children}
     </button>
@@ -132,8 +133,8 @@ export function FilterDropdown({ label, options, value, onChange }: FilterDropdo
         className="inline-flex items-center gap-[6px] rounded-md border px-3 py-2 text-[13px] font-medium cursor-pointer transition-colors"
         style={{
           borderColor: isDefault ? '#e4e4e7' : '#019DF4',
-          background: isDefault ? '#fff' : '#eff8ff',
-          color: isDefault ? '#3f3f46' : '#019DF4',
+          background: isDefault ? '#fff' : '#f0f9ff',
+          color: isDefault ? '#1a1a1a' : '#019DF4',
         }}
       >
         <Filter size={14} />
@@ -151,7 +152,7 @@ export function FilterDropdown({ label, options, value, onChange }: FilterDropdo
                 setOpen(false);
               }}
               className="w-full flex items-center justify-between gap-2 px-3 py-[8px] text-[13px] text-left bg-transparent border-0 cursor-pointer hover:bg-[#f4f4f5]"
-              style={{ color: o.value === value ? '#019DF4' : '#3f3f46' }}
+              style={{ color: o.value === value ? '#019DF4' : '#1a1a1a' }}
             >
               {o.label}
               {o.value === value && <Check size={14} />}

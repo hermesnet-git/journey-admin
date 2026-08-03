@@ -1,5 +1,19 @@
-import { GitBranch, ListChecks, Boxes, Route, Clock, CheckSquare, Settings, HelpCircle, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import {
+  GitBranch,
+  ListChecks,
+  Boxes,
+  Route,
+  Clock,
+  CheckSquare,
+  Settings,
+  HelpCircle,
+  ChevronDown,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useAppTheme } from './theme';
 
 interface NavItem {
   key: string;
@@ -22,14 +36,89 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
-  return (
-    <div className="w-[220px] shrink-0 bg-white border-r border-[#e4e4e7] flex flex-col p-[18px_12px] box-border">
-      <div className="flex items-start gap-[9px] px-2 pt-2 pb-[22px]">
-        <div className="w-[30px] h-[30px] shrink-0 rounded-lg bg-[#019DF4] flex items-center justify-center">
+  const { colors: c } = useAppTheme();
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (collapsed) {
+    return (
+      <div
+        className="w-[64px] shrink-0 border-r flex flex-col items-center p-[18px_8px] box-border"
+        style={{ background: c.surface, borderColor: c.border }}
+      >
+        <div className="w-[30px] h-[30px] shrink-0 rounded-lg flex items-center justify-center mb-[22px]" style={{ background: c.accent }}>
           <GitBranch size={17} color="#fff" strokeWidth={2} />
         </div>
-        <div className="min-w-0 flex items-center h-[30px]">
-          <div className="text-[18px] font-bold tracking-[-0.02em] text-[#1a1a1a] leading-none">Elastic Journey</div>
+
+        <nav className="flex flex-col gap-[2px] w-full items-center">
+          {NAV_ITEMS.map((item) => {
+            const active = item.key === activeKey;
+            return (
+              <button
+                key={item.key}
+                onClick={() => onNavigate(item.key)}
+                title={item.label}
+                className="flex items-center justify-center w-[36px] h-[36px] rounded-md cursor-pointer border-0"
+                style={{
+                  background: active ? c.activeBg : 'transparent',
+                  color: active ? c.accent : c.textMuted,
+                }}
+              >
+                {item.icon}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="mt-auto flex flex-col items-center gap-[6px] pt-2 w-full">
+          <button
+            onClick={() => onNavigate('ajuda')}
+            title="Ajuda e suporte"
+            className="flex items-center justify-center w-[36px] h-[36px] rounded-md cursor-pointer border-0 bg-transparent"
+            style={{ color: c.textSecondary }}
+          >
+            <HelpCircle size={15} />
+          </button>
+          <button
+            title="Hermes González"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0 cursor-pointer border-0"
+            style={{ background: c.accent }}
+          >
+            HG
+          </button>
+          <button
+            onClick={() => setCollapsed(false)}
+            title="Expandir menu"
+            className="flex items-center justify-center w-[36px] h-[36px] rounded-md cursor-pointer border-0 bg-transparent mt-[6px]"
+            style={{ color: c.textSecondary }}
+          >
+            <ChevronsRight size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="w-[220px] shrink-0 border-r flex flex-col p-[18px_12px] box-border"
+      style={{ background: c.surface, borderColor: c.border }}
+    >
+      <div className="flex items-start gap-[9px] px-2 pt-2 pb-[22px]">
+        <div className="w-[30px] h-[30px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: c.accent }}>
+          <GitBranch size={17} color="#fff" strokeWidth={2} />
+        </div>
+        <div className="min-w-0 flex-1 flex items-center justify-between h-[30px]">
+          <div className="text-[18px] font-bold tracking-[-0.02em] leading-none" style={{ color: c.textPrimary }}>
+            Elastic Journey
+          </div>
+          <button
+            onClick={() => setCollapsed(true)}
+            title="Recolher menu"
+            className="flex items-center justify-center w-[24px] h-[24px] rounded-md cursor-pointer border-0 bg-transparent shrink-0"
+            style={{ color: c.textMuted }}
+          >
+            <ChevronsLeft size={15} />
+          </button>
         </div>
       </div>
 
@@ -42,12 +131,12 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
               onClick={() => onNavigate(item.key)}
               className="flex items-center gap-[10px] px-[10px] py-2 rounded-md text-[13px] text-left cursor-pointer border-0"
               style={{
-                background: active ? '#f4f4f5' : 'transparent',
-                color: active ? '#019DF4' : '#a1a1aa',
+                background: active ? c.activeBg : 'transparent',
+                color: active ? c.accent : c.textMuted,
                 fontWeight: active ? 500 : 400,
               }}
             >
-              <span style={{ color: active ? '#019DF4' : '#a1a1aa' }}>{item.icon}</span>
+              <span style={{ color: active ? c.accent : c.textMuted }}>{item.icon}</span>
               {item.label}
             </button>
           );
@@ -57,28 +146,34 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
       <div className="mt-auto flex flex-col gap-[2px] pt-2">
         <button
           onClick={() => onNavigate('ajuda')}
-          className="flex items-center gap-[10px] px-[10px] py-2 rounded-md text-[12.5px] text-[#71717a] cursor-pointer border-0 bg-transparent text-left hover:bg-[#f4f4f5]"
+          className="flex items-center gap-[10px] px-[10px] py-2 rounded-md text-[12.5px] cursor-pointer border-0 bg-transparent text-left"
+          style={{ color: c.textSecondary }}
         >
           <HelpCircle size={15} />
           Ajuda e suporte
         </button>
-        <div className="flex items-center justify-between gap-[10px] p-[10px] border-t border-[#e4e4e7] mt-[6px] cursor-pointer hover:bg-[#f4f4f5]">
+        <div
+          className="flex items-center justify-between gap-[10px] p-[10px] border-t mt-[6px] cursor-pointer"
+          style={{ borderColor: c.border }}
+        >
           <div className="flex items-center gap-[10px] min-w-0">
-            <div className="w-8 h-8 rounded-full bg-[#019DF4] flex items-center justify-center text-[12px] font-semibold text-white shrink-0">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0" style={{ background: c.accent }}>
               HG
             </div>
             <div className="min-w-0">
-              <div className="text-[12.5px] font-semibold text-[#1a1a1a] whitespace-nowrap overflow-hidden text-ellipsis">
+              <div className="text-[12.5px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.textPrimary }}>
                 Hermes González
               </div>
-              <div className="text-[11px] text-[#a1a1aa] whitespace-nowrap overflow-hidden text-ellipsis">
+              <div className="text-[11px] whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.textMuted }}>
                 Admin de Workflows
               </div>
             </div>
           </div>
-          <ChevronDown size={14} className="shrink-0 text-[#a1a1aa]" />
+          <ChevronDown size={14} className="shrink-0" style={{ color: c.textMuted }} />
         </div>
-        <div className="text-center text-[10px] text-[#c4c4c8] pt-2">Elastic Journey · v1.2.0</div>
+        <div className="text-center text-[10px] pt-2" style={{ color: c.textMuted }}>
+          Elastic Journey · v1.2.0
+        </div>
       </div>
     </div>
   );

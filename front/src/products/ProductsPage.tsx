@@ -260,7 +260,7 @@ function ProductRow({
           {product.channelNames.map((name) => (
             <span
               key={name}
-              className="inline-flex items-center gap-[4px] rounded-full bg-[#f4f4f5] px-[9px] py-[2px] text-[11.5px] text-[#3f3f46] max-w-full truncate"
+              className="inline-flex items-center gap-[4px] rounded-full bg-[#f4f4f5] px-[9px] py-[2px] text-[11.5px] text-[#1a1a1a] max-w-full truncate"
             >
               <Boxes size={11} className="shrink-0 text-[#a1a1aa]" />
               {name}

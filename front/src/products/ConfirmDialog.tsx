@@ -41,14 +41,14 @@ export function ConfirmDialog({
           </div>
           <div className="min-w-0">
             <h2 className="m-0 text-[15px] font-semibold text-[#1a1a1a]">{title}</h2>
-            <p className="m-0 mt-[6px] text-[13px] text-[#52525b]">{message}</p>
+            <p className="m-0 mt-[6px] text-[13px] text-[#71717a]">{message}</p>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 pt-1">
           <button
             type="button"
             onClick={onCancel}
-            className="inline-flex items-center gap-[6px] rounded-md bg-white border border-[#e4e4e7] px-4 py-2 text-[13px] font-medium text-[#3f3f46] cursor-pointer transition-colors hover:bg-[#f4f4f5]"
+            className="inline-flex items-center gap-[6px] rounded-md bg-white border border-[#e4e4e7] px-4 py-2 text-[13px] font-medium text-[#1a1a1a] cursor-pointer transition-colors hover:bg-[#f4f4f5]"
           >
             {cancelLabel}
           </button>

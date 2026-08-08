@@ -14,10 +14,10 @@
 
 | Métrica | Valor |
 |---|---|
-| Total de Épicos (EP) | 8 |
-| Total de Features (FT) | 42 |
-| Total de Requisitos (REQ) | 219 |
-| Concluídos (`done`) | 207 |
+| Total de Épicos (EP) | 9 |
+| Total de Features (FT) | 43 |
+| Total de Requisitos (REQ) | 224 |
+| Concluídos (`done`) | 212 |
 | Em andamento (`in_progress`) | 0 |
 | Não iniciados (`todo`) | 10 |
 | Bloqueados (`blocked`) | 0 |
@@ -36,6 +36,7 @@
 | EP-06 | Versionamento de jornadas | 35 | 35 | 100% |
 | EP-07 | Autenticação e autorização | 25 | 24 | 96% (1 n/a) |
 | EP-08 | Auditoria | 22 | 21 | 95% (1 n/a) |
+| EP-09 | Ajuda e Suporte | 5 | 5 | 100% |
 
 ---
 
@@ -507,10 +508,23 @@ Observação: a ocultação de botões de criar/editar por papel não foi replic
 
 Observação: os registros não armazenam senhas, tokens, segredos ou outros dados sensíveis (REQ-08.03.003/004).
 
+## EP-09 Ajuda e Suporte
+
+### FT-09.01 Central de ajuda
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-09.01.001 | O sistema deve disponibilizar uma tela de ajuda acessível a partir do menu do Admin Portal. | done | front: item "Ajuda e suporte" em `Sidebar.tsx` abre `HELP_TAB` (`App.tsx`, `kind: 'help'`) | |
+| [x] | REQ-09.01.002 | A tela de ajuda deve apresentar um conjunto de perguntas frequentes (FAQ) organizadas por tema. | done | front: `HelpPage.tsx` (`FAQ_ITEMS` agrupado por `topic`, `TOPIC_LABELS`) | |
+| [x] | REQ-09.01.003 | O sistema deve permitir pesquisar textualmente o conteúdo do FAQ. | done | front: campo de busca em `HelpPage.tsx`, filtra por pergunta/resposta | |
+| [x] | REQ-09.01.004 | O conteúdo do FAQ deve ser mantido como conteúdo estático versionado com o sistema. | done | front: `FAQ_ITEMS` é um array estático no próprio `HelpPage.tsx`, sem backend/CMS | |
+| [x] | REQ-09.01.005 | A tela de ajuda deve exibir o contato do time de sustentação (`sustentacao@telefonica.com`) como link `mailto:`, abrindo o cliente de e-mail padrão do usuário. | done | front: link `mailto:sustentacao@telefonica.com` no rodapé de `HelpPage.tsx` | |
+
 ## Changelog deste arquivo
 
 | Data | Alteração |
 |---|---|
+| 2026-08-08 | EP-09 (Ajuda e Suporte) novo e implementado por completo: 5/5 REQs. Tela de ajuda estática (`front/src/shell/HelpPage.tsx`) com FAQ agrupado por tema, busca textual e link `mailto:sustentacao@telefonica.com`; acessível pelo item "Ajuda e suporte" da sidebar (antes um placeholder genérico). Simplificação deliberada: sem ajuda contextual por tela, sem canal de suporte com registro/consulta de solicitações e sem tela de diagnóstico — cortados do escopo por decisão de produto antes da implementação, não fazem parte do backlog. Progresso geral de 95% (207/219) para 95% (212/224). |
 | 2026-08-08 | EP-06 (Versionamento de jornadas), EP-07 (Autenticação e autorização) e EP-08 (Auditoria) implementados, na ordem EP-07 → EP-06 → EP-08 (dependência: versão precisa de usuário autenticado; auditoria precisa de ambos). EP-06: tabela `journey_version` (`V7`) + backfill de jornadas existentes (`V8`), criação automática de versão `DRAFT` ao criar jornada, publicação de versão arquiva a anterior, snapshot imutável, painel de versões no designer de fluxo — 35/35 REQs. EP-07: token opaco em memória (`Authorization: Bearer`, expiração por inatividade configurável), usuário mockado `admin`/`admin`/`ADMIN`, papéis `ADMIN`/`EDITOR`/`VIEWER` aplicados via `@PreAuthorize` em todos os controllers, tela de login com aviso de autenticação mockada — 24/25 REQs (REQ-07.04.002 n/a, sem CRUD de usuário no MVP). EP-08: tabela `audit_event` (`V9`), gravação em login/logout/sessão, CRUD de produto/canal/jornada, versões, publicações e acessos negados, consulta com filtros e paginação restrita a `ADMIN` — 21/22 REQs (REQ-08.02.007 n/a, sem CRUD de papéis no MVP). De quebra, REQ-02.06.004 (que dependia do EP-06) passou de `todo` para `done`. Simplificações deliberadas: sem rollback/restauração de versão (REQ-06.05.004, fora de escopo); flow-designer continua editando o estado "vivo" da jornada, versionar tira um snapshot desse estado; ocultação de botões por papel na UI não foi replicada em todas as telas (enforcement real é no backend). Progresso geral de 57% para 95% (207/219; 2 n/a; restam apenas os 10 REQs do EP-05 Simulação). |
 | 2026-08-08 | Escopo do MVP evoluído com EP-06 Versionamento de jornadas, EP-07 Autenticação e autorização e EP-08 Auditoria. A autenticação será representada por provedor externo mockado, com tela de login e usuário `admin`/`admin` no perfil `ADMIN`; os papéis `ADMIN`, `EDITOR` e `VIEWER` foram incluídos. Versões publicadas são imutáveis; restauração/rollback permanece fora do MVP; auditoria não armazena dados sensíveis. Total: 8 EPs, 42 FTs e 220 REQs; 126 concluídos e 94 todo (57%). |
 | 2026-08-08 | REQ-04.01.006 novo: na seção "Formulário" do painel de propriedades (User Task), dois botões de ícone — "Novo formulário" (abre a aba Formulários já em modo de criação, via nova prop `onOpenNewForm` propagada de `App.tsx` → `JourneysPage` → `JourneyDesignerPage` → `PropertiesDock` → `PropertiesPanel`) e "Atualizar" (recarrega `listForms()` sem sair do editor de fluxo, via `refreshForms`). `FormsPage.tsx` ganhou suporte a abrir direto em modo `'new'` (props `openNew`/`onOpenNewHandled`), espelhando o padrão já existente de `openFormId`. Progresso geral de 93% para 93% (arredondamento; 127/137). |

@@ -1,4 +1,4 @@
-export type TabKind = 'placeholder' | 'products' | 'journeys' | 'forms' | 'audit';
+export type TabKind = 'placeholder' | 'products' | 'journeys' | 'forms' | 'audit' | 'help';
 
 export interface Tab {
   key: string;

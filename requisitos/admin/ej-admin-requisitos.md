@@ -512,6 +512,21 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-08.04.003 - O sistema deve permitir pesquisar eventos por recurso ou correlação.
 #### REQ-08.04.004 - O sistema deve apresentar os eventos em ordem cronológica e com paginação.
 
+# 4.4 EP-09 Ajuda e Suporte
+
+## Objetivo
+
+Fornecer aos usuários do Admin Portal orientação sobre o uso do sistema por
+meio de perguntas frequentes e um canal direto de contato com o time de
+sustentação.
+
+### FT-09.01 Central de ajuda
+#### REQ-09.01.001 - O sistema deve disponibilizar uma tela de ajuda acessível a partir do menu do Admin Portal.
+#### REQ-09.01.002 - A tela de ajuda deve apresentar um conjunto de perguntas frequentes (FAQ) organizadas por tema.
+#### REQ-09.01.003 - O sistema deve permitir pesquisar textualmente o conteúdo do FAQ.
+#### REQ-09.01.004 - O conteúdo do FAQ deve ser mantido como conteúdo estático versionado com o sistema.
+#### REQ-09.01.005 - A tela de ajuda deve exibir o contato do time de sustentação (`sustentacao@telefonica.com`) como link `mailto:`, abrindo o cliente de e-mail padrão do usuário.
+
 <br/><br/>
 
 # 5. Fora do Escopo do MVP 

@@ -32,6 +32,8 @@ Simulação
 Publicação de Jornadas
 
 Publicação no Runtime
+
+Ajuda e Suporte
 ```
 
 ---
@@ -76,6 +78,8 @@ Simulação
 Publicação de Jornadas
 
 Publicação no Runtime por API mockada
+
+Ajuda e Suporte (FAQ e contato com sustentação)
 
 ```
 
@@ -175,6 +179,10 @@ Provedor externo representado por mock no MVP. O acesso inicial utiliza o usuár
 
 Registro imutável de uma ação relevante, com usuário, recurso, resultado e data, sem armazenamento de credenciais ou outros dados sensíveis.
 
+## Help FAQ
+
+Conteúdo estático de perguntas frequentes sobre o uso do Admin Portal, acessível pelo menu, com busca textual e contato do time de sustentação.
+
 ---
 
 # 7. Cardinalidades Principais
@@ -213,7 +221,7 @@ Especificação OpenAPI
 
 ## Requisitos Funcionais
 
-**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo do MVP, organizado em oito épicos.
+**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo do MVP, organizado em nove épicos.
 
 ## Arquitetura Lógica
 
@@ -284,4 +292,4 @@ Especificação OpenAPI
 
 # 12. Resumo Executivo
 
-O Elastic Journey Admin Portal MVP cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, simulação, autenticação mockada, autorização por papéis, auditoria e publicação por uma chamada mockada para a futura API de publicação do runtime.
+O Elastic Journey Admin Portal MVP cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, simulação, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime e uma central de ajuda com FAQ e contato do time de sustentação.

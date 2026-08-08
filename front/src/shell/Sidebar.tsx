@@ -156,7 +156,7 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
       <div className="mt-auto flex flex-col gap-[2px] pt-2">
         <button
           onClick={() => onNavigate('ajuda')}
-          className="flex items-center gap-[10px] px-[10px] py-2 rounded-md text-[12.5px] cursor-pointer border-0 bg-transparent text-left"
+          className="flex items-center justify-center gap-[10px] px-[10px] py-2 rounded-md text-[12.5px] cursor-pointer border-0 bg-transparent"
           style={{ color: c.textSecondary }}
         >
           <HelpCircle size={15} />

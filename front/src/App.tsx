@@ -11,17 +11,18 @@ import { AppThemeContext, LIGHT_APP_COLORS, DARK_APP_COLORS } from './shell/them
 import type { Tab } from './shell/types';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { LoginPage } from './auth/LoginPage';
+import { HelpPage } from './shell/HelpPage';
 
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: false };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
 const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
 const AUDIT_TAB: Tab = { key: 'auditoria', title: 'Auditoria', kind: 'audit', closable: true };
+const HELP_TAB: Tab = { key: 'ajuda', title: 'Ajuda e suporte', kind: 'help', closable: true };
 
 const NAV_LABELS: Record<string, string> = {
   execucoes: 'Execuções',
   aprovacoes: 'Aprovações',
   configuracoes: 'Configurações',
-  ajuda: 'Ajuda e suporte',
 };
 
 const skin = getBlauSkin();
@@ -75,6 +76,10 @@ function AppShell() {
       openTab(AUDIT_TAB);
       return;
     }
+    if (navKey === 'ajuda') {
+      openTab(HELP_TAB);
+      return;
+    }
     openTab({ key: `nav-${navKey}`, title: NAV_LABELS[navKey], kind: 'placeholder', closable: true });
   }
 
@@ -98,7 +103,9 @@ function AppShell() {
           ? 'formularios'
           : activeTab.kind === 'audit'
             ? 'auditoria'
-            : 'jornadas';
+            : activeTab.kind === 'help'
+              ? 'ajuda'
+              : 'jornadas';
 
   return (
     <AppThemeContext.Provider value={{ dark, colors, toggle: () => setDark((d) => !d) }}>
@@ -130,6 +137,7 @@ function AppShell() {
                     />
                   )}
                   {tab.kind === 'audit' && <AuditPage />}
+                  {tab.kind === 'help' && <HelpPage />}
                 </div>
               ))}
             </div>

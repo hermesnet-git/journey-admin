@@ -14,15 +14,15 @@
 
 | Métrica | Valor |
 |---|---|
-| Total de Épicos (EP) | 5 |
-| Total de Features (FT) | 29 |
-| Total de Requisitos (REQ) | 137 |
-| Concluídos (`done`) | 127 |
+| Total de Épicos (EP) | 8 |
+| Total de Features (FT) | 42 |
+| Total de Requisitos (REQ) | 220 |
+| Concluídos (`done`) | 126 |
 | Em andamento (`in_progress`) | 0 |
-| Não iniciados (`todo`) | 10 |
+| Não iniciados (`todo`) | 94 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 0 |
-| % Concluído | 93% |
+| % Concluído | 57% |
 
 ## Progresso por Épico
 
@@ -33,6 +33,9 @@
 | EP-03 | Modelagem Visual | 46 | 46 | 100% |
 | EP-04 | Formulários (SDUI) | 19 | 19 | 100% |
 | EP-05 | Simulação | 10 | 0 | 0% |
+| EP-06 | Versionamento de jornadas | 35 | 0 | 0% |
+| EP-07 | Autenticação e autorização | 25 | 0 | 0% |
+| EP-08 | Auditoria | 23 | 0 | 0% |
 
 ---
 
@@ -312,7 +315,7 @@
 | [x] | REQ-02.06.001 | O sistema deve permitir publicar jornadas. | done | back: `POST /api/v1/journeys/{id}/publish` + `PublishJourney`; front: `JourneysPage` (ação "Publicar"/"Republicar") | |
 | [x] | REQ-02.06.002 | O sistema deve permitir despublicar jornadas por meio da API do runtime. | done | back: `POST /api/v1/journeys/{id}/unpublish` + `UnpublishJourney` (chama `RuntimePublicationPort.unpublish`); front: ação "Despublicar" | |
 | [x] | REQ-02.06.003 | O sistema deve permitir consultar jornadas publicadas. | done | back: `GET /api/v1/journeys?status=PUBLISHED`; front: filtro "Publicadas" em `JourneysPage` | |
-| [x] | REQ-02.06.004 | Cada jornada deve possuir no máximo uma publicação. Alterações realizadas após a publicação não devem modificar automaticamente o snapshot publicado; para disponibilizá-las, o usuário deve publicar novamente, substituindo integralmente o snapshot anterior. | done | back: `journey_publication.journey_id UNIQUE`; `PublishJourney` reaproveita o `id` existente (upsert) ao republicar, substituindo o `snapshot` por inteiro | testado via curl (republicar troca `publishedAt`) |
+| [ ] | REQ-02.06.004 | Cada jornada deve possuir no máximo uma publicação ativa, associada a uma versão imutável. Alterações realizadas após a publicação não devem modificar o snapshot publicado; para disponibilizá-las, o usuário deve publicar uma nova versão. | todo | depende do EP-06 — Versionamento de jornadas | requisito evoluído |
 
 ### FT-02.07 Estado da publicação
 
@@ -347,10 +350,43 @@
 
 ---
 
+## EP-06 Versionamento de jornadas
+
+| Feature | REQs | Concluídos | Status |
+|---|---:|---:|---|
+| FT-06.01 Modelo de versões | 8 | 0 | todo |
+| FT-06.02 Criação e edição de versões | 8 | 0 | todo |
+| FT-06.03 Histórico e consulta | 6 | 0 | todo |
+| FT-06.04 Publicação de versões | 8 | 0 | todo |
+| FT-06.05 Compatibilidade e limites do MVP | 5 | 0 | todo |
+
+## EP-07 Autenticação e autorização
+
+| Feature | REQs | Concluídos | Status |
+|---|---:|---:|---|
+| FT-07.01 Autenticação mockada por provedor externo | 7 | 0 | todo |
+| FT-07.02 Sessão e proteção de acesso | 6 | 0 | todo |
+| FT-07.03 Papéis e permissões | 8 | 0 | todo |
+| FT-07.04 Administração de usuários mockados | 4 | 0 | todo |
+
+Observação: o MVP deve usar um provedor externo mockado, com usuário `admin`, senha `admin` e papel `ADMIN`. A tela de login também faz parte do escopo planejado.
+
+## EP-08 Auditoria
+
+| Feature | REQs | Concluídos | Status |
+|---|---:|---:|---|
+| FT-08.01 Registro de eventos | 6 | 0 | todo |
+| FT-08.02 Eventos auditáveis | 7 | 0 | todo |
+| FT-08.03 Proteção dos registros | 5 | 0 | todo |
+| FT-08.04 Consulta de auditoria | 5 | 0 | todo |
+
+Observação: os registros não devem armazenar senhas, tokens, segredos ou outros dados sensíveis.
+
 ## Changelog deste arquivo
 
 | Data | Alteração |
 |---|---|
+| 2026-08-08 | Escopo do MVP evoluído com EP-06 Versionamento de jornadas, EP-07 Autenticação e autorização e EP-08 Auditoria. A autenticação será representada por provedor externo mockado, com tela de login e usuário `admin`/`admin` no perfil `ADMIN`; os papéis `ADMIN`, `EDITOR` e `VIEWER` foram incluídos. Versões publicadas são imutáveis; restauração/rollback permanece fora do MVP; auditoria não armazena dados sensíveis. Total: 8 EPs, 42 FTs e 220 REQs; 126 concluídos e 94 todo (57%). |
 | 2026-08-08 | REQ-04.01.006 novo: na seção "Formulário" do painel de propriedades (User Task), dois botões de ícone — "Novo formulário" (abre a aba Formulários já em modo de criação, via nova prop `onOpenNewForm` propagada de `App.tsx` → `JourneysPage` → `JourneyDesignerPage` → `PropertiesDock` → `PropertiesPanel`) e "Atualizar" (recarrega `listForms()` sem sair do editor de fluxo, via `refreshForms`). `FormsPage.tsx` ganhou suporte a abrir direto em modo `'new'` (props `openNew`/`onOpenNewHandled`), espelhando o padrão já existente de `openFormId`. Progresso geral de 93% para 93% (arredondamento; 127/137). |
 | 2026-08-08 | REQ-03.09.009 novo: headers (REST e Kafka) ganharam editor dedicado de lista nome/valor (`HeadersEditor` em `PropertiesPanel.tsx`) em vez de ficarem dentro do bloco JSON "Configuração adicional". Params/body/payload/mapeamentos de entrada/saída continuam como JSON declarativo — decisão deliberada, já que o formato desses campos (ex.: linguagem de mapeamento) ainda não foi definido em nenhum requisito, então estruturar UI em cima de um contrato não fechado seria prematuro; headers, ao contrário, são sempre par chave/valor simples e universal. Progresso geral de 93% para 93% (arredondamento; 126/136). |
 | 2026-08-08 | Refinamento de conectores após revisão de domínio, com 2 REQs novos (REQ-03.09.007/008): (1) `REST` deixou de ser oferecido para `MESSAGE_START_EVENT` — sua config representa uma chamada de saída (método+URL), o que não bate com "iniciar o fluxo a partir de uma mensagem recebida"; só `KAFKA` continua disponível para esse tipo. (2) A operação Kafka deixou de ser uma escolha livre: agora é implícita pelo tipo de nó (`SERVICE_TASK` → `PRODUCE`, `RECEIVE_TASK`/`MESSAGE_START_EVENT` → `CONSUME`), com o campo virando somente-leitura no front. (3) Removida a menção a "fila" na config Kafka (REQ-03.09.004) — Kafka só tem tópico. Implementado em `model.ts` (`CONNECTOR_TYPES_BY_NODE`, `KAFKA_OPERATION_BY_NODE`) e `FlowValidator` (rejeita REST em MESSAGE_START_EVENT e operação divergente do tipo, ambos 422). Também: painel de propriedades reorganizado em `PropertiesDock.tsx` (sempre visível, colapsável, redimensionável só na largura, sem botão de fechar), sincronizado com a seleção no canvas; multi-seleção não desenha mais a caixa de agrupamento; novos nós usam `findFreeSpot` para não empilhar. Progresso geral de 92% para 93%. |

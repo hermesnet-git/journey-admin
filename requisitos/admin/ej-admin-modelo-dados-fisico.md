@@ -38,7 +38,7 @@ Configurações visuais, dados de simulação e snapshots publicados utilizam `J
 
 `product` agrupa canais. Cada `channel` pertence a um produto, e cada `journey` pertence a exatamente um canal. O produto de uma jornada é obtido através do canal.
 
-Formulários são ativos reutilizáveis associados às User Tasks por `user_task_config`. A publicação armazena o snapshot atual enviado para a API de publicação do runtime e o substitui integralmente em uma nova publicação.
+Formulários são ativos reutilizáveis associados às User Tasks por `user_task_config`. A publicação armazena o snapshot da versão imutável enviada para a API de publicação do runtime e preserva versões anteriores.
 
 ---
 
@@ -58,6 +58,8 @@ simulation_execution
 simulation_step
 simulation_result
 journey_publication
+journey_version
+audit_event
 ```
 
 ---
@@ -303,12 +305,15 @@ CREATE TABLE simulation_result (
 
 # 17. Tabela JourneyPublication
 
-A publicação armazena o snapshot atual contendo produto, canal, jornada, fluxo e formulários. Existe no máximo uma linha por jornada.
+Atualização do escopo: `journey_publication` representa a publicação ativa e deve possuir `version_id` apontando para a `journey_version` publicada. Versões anteriores não são sobrescritas.
+
+A publicação armazena o snapshot da versão contendo produto, canal, jornada, fluxo e formulários. Existe no máximo uma publicação ativa por jornada; versões anteriores são preservadas.
 
 ```sql
 CREATE TABLE journey_publication (
     publication_id UUID PRIMARY KEY,
     journey_id UUID NOT NULL UNIQUE,
+    version_id UUID NOT NULL,
     publication_status VARCHAR(30) NOT NULL CHECK (
         publication_status IN ('PUBLISHED', 'UNPUBLISHED')
     ),
@@ -317,7 +322,8 @@ CREATE TABLE journey_publication (
     journey_snapshot JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (journey_id) REFERENCES journey(journey_id)
+    FOREIGN KEY (journey_id) REFERENCES journey(journey_id),
+    FOREIGN KEY (version_id) REFERENCES journey_version(version_id)
 );
 ```
 
@@ -325,7 +331,54 @@ A chave estrangeira sem `ON DELETE CASCADE` impede a exclusão física de uma jo
 
 ---
 
-# 18. Chaves Primárias
+# 18. Tabela JourneyVersion
+
+```sql
+CREATE TABLE journey_version (
+    version_id UUID PRIMARY KEY,
+    journey_id UUID NOT NULL,
+    version_number INTEGER NOT NULL,
+    version_status VARCHAR(20) NOT NULL CHECK (
+        version_status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')
+    ),
+    version_snapshot JSONB NOT NULL,
+    description TEXT,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    published_at TIMESTAMPTZ,
+    UNIQUE (journey_id, version_number),
+    FOREIGN KEY (journey_id) REFERENCES journey(journey_id)
+);
+```
+
+Versões publicadas são imutáveis. O MVP não contempla restauração ou rollback. A publicação deve referenciar a versão publicada, preservando versões anteriores.
+
+---
+
+# 19. Tabelas de Identidade e Auditoria
+
+O MVP utiliza provedor externo mockado. O usuário `admin`, com senha `admin` e papel `ADMIN`, pode ser representado por configuração mockada; a senha não deve ser persistida nem auditada.
+
+```sql
+CREATE TABLE audit_event (
+    audit_event_id UUID PRIMARY KEY,
+    user_id UUID,
+    action VARCHAR(100) NOT NULL,
+    resource_type VARCHAR(80) NOT NULL,
+    resource_id UUID,
+    result VARCHAR(20) NOT NULL CHECK (result IN ('SUCCESS', 'FAILURE', 'DENIED')),
+    correlation_id VARCHAR(100),
+    previous_value JSONB,
+    new_value JSONB,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+Registros de auditoria são protegidos contra edição e remoção por operações normais e não podem conter senhas, tokens, secrets ou credenciais.
+
+---
+
+# 20. Chaves Primárias
 
 | Tabela | PK |
 |--------|----|
@@ -342,10 +395,12 @@ A chave estrangeira sem `ON DELETE CASCADE` impede a exclusão física de uma jo
 | simulation_step | step_id |
 | simulation_result | result_id |
 | journey_publication | publication_id |
+| journey_version | version_id |
+| audit_event | audit_event_id |
 
 ---
 
-# 19. Chaves Estrangeiras Principais
+# 21. Chaves Estrangeiras Principais
 
 | Origem | Destino |
 |--------|---------|
@@ -363,10 +418,12 @@ A chave estrangeira sem `ON DELETE CASCADE` impede a exclusão física de uma jo
 | simulation_step.node_id | flow_node.node_id |
 | simulation_result.simulation_id | simulation_execution.simulation_id |
 | journey_publication.journey_id | journey.journey_id |
+| journey_version.journey_id | journey.journey_id |
+| journey_publication.version_id | journey_version.version_id |
 
 ---
 
-# 20. Estratégia de Índices
+# 22. Estratégia de Índices
 
 ```sql
 CREATE INDEX idx_product_status ON product(status);
@@ -394,11 +451,16 @@ CREATE INDEX idx_simulation_step_execution ON simulation_step(simulation_id);
 
 CREATE INDEX idx_publication_status ON journey_publication(publication_status);
 CREATE INDEX idx_publication_snapshot ON journey_publication USING GIN (journey_snapshot);
+CREATE INDEX idx_journey_version_journey ON journey_version(journey_id, version_number);
+CREATE INDEX idx_journey_version_status ON journey_version(version_status);
+CREATE INDEX idx_audit_event_user ON audit_event(user_id);
+CREATE INDEX idx_audit_event_resource ON audit_event(resource_type, resource_id);
+CREATE INDEX idx_audit_event_occurred_at ON audit_event(occurred_at);
 ```
 
 ---
 
-# 21. Estratégia de Consulta
+# 23. Estratégia de Consulta
 
 ```text
 Pesquisar produtos e listar seus canais
@@ -410,13 +472,17 @@ Carregar fluxo e formulários completos
 Executar simulações
 
 Consultar publicações por produto e canal no Admin Portal
+
+Consultar versões por jornada
+
+Consultar eventos de auditoria por usuário, recurso, resultado e período
 ```
 
 ---
 
-# 22. Estratégia de Publicação
+# 24. Estratégia de Publicação
 
-`journey_publication` mantém um snapshot separado da jornada em edição. A restrição `UNIQUE (journey_id)` garante no máximo uma publicação por jornada. Uma nova publicação atualiza a mesma linha e substitui integralmente `journey_snapshot`.
+`journey_publication` mantém o snapshot da versão publicada separado da jornada em edição. A restrição `UNIQUE (journey_id)` garante no máximo uma publicação ativa por jornada. Uma nova publicação deve apontar para uma nova `journey_version` e preservar os snapshots anteriores.
 
 ## Conteúdo do Snapshot
 
@@ -446,7 +512,7 @@ Antes de desativar uma jornada, um canal ou um produto, o backend deve consultar
 
 ---
 
-# 23. Diagrama ER Físico
+# 25. Diagrama ER Físico
 
 ```mermaid
 erDiagram
@@ -466,15 +532,16 @@ erDiagram
     SIMULATION_EXECUTION ||--o| SIMULATION_RESULT : generates
 
     JOURNEY ||--o| JOURNEY_PUBLICATION : publishes
+    JOURNEY ||--o{ JOURNEY_VERSION : versions
+    JOURNEY_VERSION ||--o| JOURNEY_PUBLICATION : published_as
+    USER ||--o{ AUDIT_EVENT : performs
 ```
 
 ---
 
-# 24. Considerações de Evolução
+# 26. Considerações de Evolução
 
 ```text
-Versionamento de jornadas e publicações
-
 Templates e clonagem entre canais
 
 Workflow de Aprovação
@@ -482,16 +549,10 @@ Workflow de Aprovação
 Rollback
 
 Promotion Between Environments
-
-Auditoria
-
-Autenticação
-
-RBAC
 ```
 
 ---
 
-# 25. Resumo Técnico
+# 27. Resumo Técnico
 
-O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, registra simulações e possui no máximo uma publicação, substituída quando um novo snapshot é publicado.
+O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, registra simulações, possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado e eventos de auditoria sem dados sensíveis.

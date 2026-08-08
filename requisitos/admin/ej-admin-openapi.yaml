@@ -15,9 +15,11 @@ servers:
   - url: https://admin-hml.elasticjourney.com/api/v1
     description: Homologation
 
-# O MVP opera em ambiente controlado e não implementa autenticação ou autorização.
-# As respostas 401 e 403 permanecem documentadas, mas estão reservadas para uso futuro.
-security: []
+# No MVP, a autenticação utiliza um provedor externo mockado. O acesso inicial
+# usa o usuário admin, senha admin e papel ADMIN; as operações devem preservar
+# a identidade autenticada e aplicar os papéis ADMIN, EDITOR e VIEWER.
+security:
+  - bearerAuth: []
 
 tags:
   - name: Products
@@ -27,8 +29,152 @@ tags:
   - name: Forms
   - name: Simulations
   - name: Publications
+  - name: Authentication
+  - name: Versions
+  - name: Audit
 
 paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate the mocked admin user
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Mocked session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: End the authenticated session
+      operationId: logout
+      responses:
+        '204':
+          description: Session ended
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /journeys/{journeyId}/versions:
+    get:
+      tags: [Versions]
+      summary: List journey versions
+      operationId: listJourneyVersions
+      parameters:
+        - name: journeyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Journey versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JourneyVersion'
+    post:
+      tags: [Versions]
+      summary: Create a draft journey version
+      operationId: createJourneyVersion
+      parameters:
+        - name: journeyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Draft version created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JourneyVersion'
+
+  /audit-events:
+    get:
+      tags: [Audit]
+      summary: List audit events
+      operationId: listAuditEvents
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: resourceType
+          in: query
+          schema:
+            type: string
+        - name: result
+          in: query
+          schema:
+            type: string
+            enum: [SUCCESS, FAILURE, DENIED]
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEvent'
+
+  /journeys/{journeyId}/versions/{versionId}/publish:
+    post:
+      tags: [Versions]
+      summary: Publish a journey version
+      operationId: publishJourneyVersion
+      parameters:
+        - name: journeyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Published journey version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JourneyVersion'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
   /products:
     get:
       tags: [Products]
@@ -971,6 +1117,12 @@ paths:
                 $ref: '#/components/schemas/JourneyPublication'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: mock-session
+
   responses:
     BadRequest:
       description: Malformed request or invalid parameter
@@ -1065,6 +1217,90 @@ components:
         format: uuid
 
   schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          format: password
+          example: admin
+
+    LoginResponse:
+      type: object
+      required: [token, userId, username, role]
+      properties:
+        token:
+          type: string
+          description: Sessão mockada emitida pelo provedor externo mockado.
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, EDITOR, VIEWER]
+
+    JourneyVersion:
+      type: object
+      required: [versionId, journeyId, versionNumber, status, snapshot]
+      properties:
+        versionId:
+          type: string
+          format: uuid
+        journeyId:
+          type: string
+          format: uuid
+        versionNumber:
+          type: integer
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, ARCHIVED]
+        description:
+          type: string
+        snapshot:
+          type: object
+          additionalProperties: true
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+
+    AuditEvent:
+      type: object
+      required: [auditEventId, action, resourceType, result, occurredAt]
+      properties:
+        auditEventId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        action:
+          type: string
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+          format: uuid
+        result:
+          type: string
+          enum: [SUCCESS, FAILURE, DENIED]
+        correlationId:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+
     ApiError:
       type: object
       required: [timestamp, status, code, message, path]

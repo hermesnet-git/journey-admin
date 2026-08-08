@@ -32,7 +32,7 @@ Product, Channel e Journey possuem códigos para identificação e pesquisa no A
 
 ## 2.4 Publicação como Snapshot
 
-A publicação preserva a definição da jornada no momento da publicação, incluindo produto, canal, fluxo e formulários. Cada jornada possui no máximo uma publicação, cujo snapshot é substituído integralmente em uma nova publicação.
+A publicação preserva a definição da versão da jornada no momento da publicação, incluindo produto, canal, fluxo e formulários. Cada jornada possui no máximo uma publicação ativa, associada a uma versão imutável.
 
 ## 2.5 Desacoplamento do Motor BPM
 
@@ -40,7 +40,7 @@ Nenhuma entidade possui dependência de BPMN, Camunda ou outro motor de execuç�
 
 ## 2.6 Simplicidade
 
-O MVP não contempla versionamento, governança, rollback, auditoria ou ownership.
+O MVP contempla versionamento de jornadas, autenticação mockada, autorização por papéis e auditoria. Rollback, governança e ownership permanecem fora do MVP.
 
 ---
 
@@ -54,13 +54,19 @@ flowchart TD
     FLOW[Flow]
     FORMS[Forms]
     SIMULATION[Simulation Execution]
+    VERSION[Journey Version]
     PUBLICATION[Journey Publication]
+    USER[User / Role]
+    AUDIT[Audit Event]
 
     PRODUCT --> CHANNEL
     CHANNEL --> JOURNEY
     JOURNEY --> FLOW
     JOURNEY --> SIMULATION
+    JOURNEY --> VERSION
     JOURNEY --> PUBLICATION
+    USER --> AUDIT
+    VERSION --> AUDIT
     FLOW --> FORMS
 ```
 
@@ -82,7 +88,10 @@ flowchart TD
 | Simulation Execution | Execução simulada da jornada |
 | Simulation Step | Etapa registrada durante a simulação |
 | Simulation Result | Resultado consolidado da simulação |
-| Journey Publication | Snapshot atual enviado para a API de publicação do runtime |
+| Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
+| Journey Version | Versão imutável de uma jornada |
+| User / Role | Identidade autenticada e papel de autorização |
+| Audit Event | Registro de operação realizada no sistema |
 
 ---
 
@@ -272,7 +281,7 @@ flowchart TD
 
 ## Descrição
 
-Representa o snapshot atual de uma jornada enviado para a API de publicação do runtime. A chamada é mockada no MVP.
+Representa o snapshot de uma versão imutável enviado para a API de publicação do runtime. A chamada é mockada no MVP e a publicação ativa referencia uma `Journey Version`.
 
 ## Conteúdo
 
@@ -316,6 +325,9 @@ Ao despublicar, o Admin Portal chama a API mockada do runtime. Somente após o r
 | Simulation Execution | Simulation Step | 1:N |
 | Simulation Execution | Simulation Result | 1:0..1 |
 | Journey | Journey Publication | 1:0..1 |
+| Journey | Journey Version | 1:N |
+| Journey Version | Journey Publication | 1:0..1 |
+| User | Audit Event | 1:N |
 
 ---
 
@@ -339,6 +351,9 @@ erDiagram
     SIMULATION_EXECUTION ||--o| SIMULATION_RESULT : generates
 
     JOURNEY ||--o| JOURNEY_PUBLICATION : publishes
+    JOURNEY ||--o{ JOURNEY_VERSION : versions
+    JOURNEY_VERSION ||--o| JOURNEY_PUBLICATION : published_as
+    USER ||--o{ AUDIT_EVENT : performs
 ```
 
 ---
@@ -354,10 +369,10 @@ erDiagram
 | User Task Configuration | Associação entre User Task e Form |
 | Form / Form Component | Formulário e seus componentes visuais |
 | Simulation Execution / Step / Result | Execução simulada, etapas e resultado |
-| Journey Publication | Snapshot atual enviado para a API de publicação do runtime |
+| Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 
 ---
 
 # 17. Resumo Conceitual
 
-O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo, simulações e no máximo uma publicação. O snapshot publicado preserva a definição visual atual e é substituído integralmente quando a jornada é publicada novamente.
+O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo, simulações e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, e eventos de auditoria registram operações relevantes sem dados sensíveis.

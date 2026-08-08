@@ -46,7 +46,7 @@ API de Publicação do Runtime (mock no MVP)
 
 ## Elastic Journey Admin Portal
 
-Responsável por cadastrar produtos e canais e por criar, modelar, simular e publicar jornadas específicas para cada canal. Produz uma **Journey Publication** e inicia sua publicação por uma chamada outbound.
+Responsável por cadastrar produtos e canais e por criar, modelar, versionar, simular e publicar jornadas específicas para cada canal. Controla o acesso por autenticação mockada de provedor externo e registra eventos de auditoria. Produz uma **Journey Publication** associada a uma versão e inicia sua publicação por uma chamada outbound.
 
 ## API de Publicação do Runtime
 
@@ -65,6 +65,12 @@ Modelagem Visual de Fluxos
 
 Gestão de Formulários
 
+Versionamento de Jornadas
+
+Autenticação e Autorização mockadas
+
+Auditoria
+
 Simulação
 
 Publicação de Jornadas
@@ -82,17 +88,9 @@ Dashboard Administrativo de Jornadas
 
 Governança
 
-Versionamento
-
 Rollback
 
 Promotion Between Environments
-
-RBAC
-
-Autenticação
-
-Auditoria
 
 Analytics
 
@@ -161,9 +159,21 @@ Formulário utilizado por uma User Task.
 
 Execução simulada do caminho e das telas da jornada.
 
+## Journey Version
+
+Versão imutável de uma jornada, contendo o fluxo, conexões e referências aos formulários utilizados em uma determinada publicação.
+
 ## Journey Publication
 
-Snapshot atual de uma jornada enviado para a API de publicação do runtime. Cada jornada possui no máximo uma publicação, substituída integralmente quando publicada novamente.
+Snapshot de uma versão de jornada enviado para a API de publicação do runtime. Cada jornada possui no máximo uma publicação ativa, associada a uma versão imutável.
+
+## External Identity Provider (mock)
+
+Provedor externo representado por mock no MVP. O acesso inicial utiliza o usuário `admin`, senha `admin` e papel `ADMIN`.
+
+## Audit Event
+
+Registro imutável de uma ação relevante, com usuário, recurso, resultado e data, sem armazenamento de credenciais ou outros dados sensíveis.
 
 ---
 
@@ -203,7 +213,7 @@ Especificação OpenAPI
 
 ## Requisitos Funcionais
 
-**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo do MVP, organizado em cinco épicos.
+**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo do MVP, organizado em oito épicos.
 
 ## Arquitetura Lógica
 
@@ -247,7 +257,10 @@ Especificação OpenAPI
 | Simulation Execution | Execução simulada da jornada |
 | Simulation Step | Etapa executada durante a simulação |
 | Simulation Result | Resultado consolidado da simulação |
-| Journey Publication | Snapshot atual enviado para a API de publicação do runtime |
+| Journey Version | Versão imutável de uma jornada |
+| Journey Publication | Snapshot de uma versão enviado para a API de publicação do runtime |
+| External Identity Provider | Provedor externo de autenticação, mockado no MVP |
+| Audit Event | Evento de auditoria de uma operação do sistema |
 
 ---
 
@@ -262,7 +275,7 @@ Especificação OpenAPI
 | User Task | Interação humana realizada durante a jornada |
 | Form | Formulário exibido em uma User Task |
 | Simulation | Execução simulada |
-| Publication | Envio do snapshot atual da jornada para a API de publicação do runtime |
+| Publication | Envio do snapshot de uma versão imutável para a API de publicação do runtime |
 | Runtime | Camada responsável pela execução das jornadas |
 | ms-journey | Motor de execução que não conhece nem consulta o Admin Portal |
 | BPMN | Modelo executável utilizado pelo motor de workflow |
@@ -271,4 +284,4 @@ Especificação OpenAPI
 
 # 12. Resumo Executivo
 
-O Elastic Journey Admin Portal MVP cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, simulação e publicação por uma chamada mockada para a futura API de publicação do runtime.
+O Elastic Journey Admin Portal MVP cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, simulação, autenticação mockada, autorização por papéis, auditoria e publicação por uma chamada mockada para a futura API de publicação do runtime.

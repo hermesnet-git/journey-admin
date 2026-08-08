@@ -244,10 +244,13 @@ O backend deve registrar o passo somente quando `NodeId` pertencer ao fluxo da m
 
 # 16. JourneyPublication
 
+No MVP, a publicação ativa deve referenciar uma `JourneyVersion`. Versões publicadas são imutáveis e versões anteriores devem ser preservadas.
+
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | PublicationId | UUID | Sim | Identificador da publicação |
 | JourneyId | UUID | Sim | Jornada publicada; valor único na tabela |
+| VersionId | UUID | Sim | Versão imutável associada à publicação |
 | PublicationStatus | VARCHAR(30) | Sim | `PUBLISHED` ou `UNPUBLISHED` |
 | PublicationDate | TIMESTAMPTZ | Não | Data da publicação |
 | UnpublishedDate | TIMESTAMPTZ | Não | Data da despublicação |
@@ -255,13 +258,67 @@ O backend deve registrar o passo somente quando `NodeId` pertencer ao fluxo da m
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação do registro |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última substituição do snapshot |
 
-Cada jornada possui no máximo uma publicação. Uma nova publicação atualiza esse registro e substitui integralmente `JourneySnapshot` após o retorno de sucesso da API mockada do runtime.
+Cada jornada possui no máximo uma publicação ativa, associada a uma `JourneyVersion`. Uma nova publicação aponta para uma nova versão e preserva os snapshots anteriores após o retorno de sucesso da API mockada do runtime.
 
 Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somente após o retorno de sucesso do mock. Uma jornada nunca publicada utiliza o estado `DRAFT`.
 
 ---
 
-# 17. Glossário Geral
+# 17. JourneyVersion
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| VersionId | UUID | Sim | Identificador único da versão |
+| JourneyId | UUID | Sim | Jornada à qual a versão pertence |
+| VersionNumber | INTEGER | Sim | Número sequencial dentro da jornada |
+| Status | VARCHAR(20) | Sim | `DRAFT`, `PUBLISHED` ou `ARCHIVED` |
+| Snapshot | JSONB | Sim | Definição completa e independente da versão |
+| Description | TEXT | Não | Observação da versão |
+| CreatedBy | UUID | Sim | Usuário que criou a versão |
+| CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
+| PublishedAt | TIMESTAMPTZ | Não | Data de publicação |
+
+Versões `PUBLISHED` são imutáveis. Restauração e rollback não fazem parte do MVP.
+
+`JourneyPublication` deve manter referência à `VersionId` publicada. Uma nova publicação deve associar-se a uma nova versão e preservar os snapshots anteriores.
+
+---
+
+# 18. User e Role
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| UserId | UUID | Sim | Identificador único do usuário |
+| Username | VARCHAR(100) | Sim | Nome utilizado no login |
+| Password | Não persistido | Sim | Credencial mockada; não deve ser armazenada na auditoria |
+| Role | VARCHAR(20) | Sim | `ADMIN`, `EDITOR` ou `VIEWER` |
+| Status | VARCHAR(20) | Sim | `ACTIVE`, `INACTIVE` ou `BLOCKED` |
+| AuthProvider | VARCHAR(50) | Sim | Provedor externo mockado no MVP |
+
+O MVP deve disponibilizar o usuário `admin`, senha `admin` e papel `ADMIN` por meio do provedor externo mockado.
+
+---
+
+# 19. AuditEvent
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| AuditEventId | UUID | Sim | Identificador único do evento |
+| UserId | UUID | Não | Usuário responsável, quando autenticado |
+| Action | VARCHAR(100) | Sim | Ação realizada |
+| ResourceType | VARCHAR(80) | Sim | Tipo do recurso afetado |
+| ResourceId | UUID | Não | Identificador do recurso afetado |
+| Result | VARCHAR(20) | Sim | `SUCCESS`, `FAILURE` ou `DENIED` |
+| CorrelationId | VARCHAR(100) | Não | Identificador de rastreamento da requisição |
+| PreviousValue | JSONB | Não | Estado anterior sem dados sensíveis |
+| NewValue | JSONB | Não | Estado posterior sem dados sensíveis |
+| OccurredAt | TIMESTAMPTZ | Sim | Data e hora do evento |
+
+Auditoria não deve armazenar senhas, tokens, secrets ou credenciais.
+
+---
+
+# 20. Glossário Geral
 
 | Conceito | Descrição |
 |----------|-----------|
@@ -274,10 +331,10 @@ Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somen
 | UserTaskConfig | Associação entre User Task e Form |
 | Form / FormComponent | Formulário e componentes visuais |
 | SimulationExecution / Step / Result | Execução simulada, etapas e resultado |
-| JourneyPublication | Snapshot atual enviado para a API de publicação do runtime |
+| JourneyPublication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 
 ---
 
-# 18. Resumo
+# 21. Resumo
 
-O dicionário descreve a hierarquia Product → Channel → Journey e os campos necessários para modelagem visual, formulários, simulação e publicação de jornadas específicas por canal.
+O dicionário descreve a hierarquia Product → Channel → Journey, o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual, formulários, simulação e publicação de jornadas específicas por canal.

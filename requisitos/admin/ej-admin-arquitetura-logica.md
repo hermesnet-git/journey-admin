@@ -52,14 +52,12 @@ Publicação no Runtime por API mockada
 ```text
 Governança / Workflow de Aprovação
 
-Versionamento / Rollback / Promotion Between Environments
-
-Autenticação / RBAC / Auditoria
+Rollback / Promotion Between Environments
 
 Analytics / IA Assistida
 ```
 
-O MVP será executado em ambiente controlado. O Admin Portal não implementará autenticação nem autorização, e todas as operações administrativas estarão disponíveis sem identificação de usuário.
+O MVP utilizará um provedor externo de autenticação representado por mock, com tela de login e usuário `admin`/`admin` no papel `ADMIN`. A autorização será baseada nos papéis `ADMIN`, `EDITOR` e `VIEWER`, e as operações relevantes serão auditadas sem armazenamento de dados sensíveis.
 
 ## Contrato de Erros da API
 
@@ -68,9 +66,9 @@ Todas as operações utilizam o schema `ApiError`. O campo `code` possui um iden
 ```text
 400 — Requisição malformada ou parâmetro inválido
 
-401 — Identidade ausente ou não autenticada, reservado para uso futuro
+401 — Identidade ausente, inválida ou sessão expirada
 
-403 — Identidade sem permissão para a operação, reservado para uso futuro
+403 — Identidade autenticada sem permissão para a operação
 
 404 — Recurso não encontrado
 
@@ -81,13 +79,13 @@ Todas as operações utilizam o schema `ApiError`. O campo `code` possui um iden
 500 — Falha interna inesperada
 ```
 
-Como o MVP utiliza acesso anônimo, `401` e `403` fazem parte do contrato para compatibilidade futura, mas não serão retornados nesta versão.
+As respostas `401` e `403` fazem parte do comportamento do MVP autenticado e mockado.
 
 ---
 
 # 5. Domínios Lógicos
 
-O MVP é composto por seis domínios, organizados em três grupos funcionais.
+O MVP é composto por nove domínios, organizados em cinco grupos funcionais.
 
 ```text
 Grupo Administração
@@ -101,6 +99,13 @@ Grupo Autoria
 
 Grupo Publicação
   06. Publication Management
+
+Grupo Governança de Acesso
+  07. Authentication & Authorization
+
+Grupo Governança Operacional
+  08. Version Management
+  09. Audit Management
 ```
 
 ---
@@ -114,7 +119,10 @@ Grupo Publicação
 | Journey Modeler | Autoria | Construção visual dos fluxos |
 | Forms Management | Autoria | Gestão de formulários SDUI |
 | Simulation | Autoria | Simulação das jornadas |
-| Publication Management | Publicação | Manutenção do snapshot atual e chamada outbound para a API do runtime |
+| Publication Management | Publicação | Manutenção do snapshot da versão publicada e chamada outbound para a API do runtime |
+| Authentication & Authorization | Governança de Acesso | Autenticação mockada por provedor externo e autorização por papéis |
+| Version Management | Governança Operacional | Criação, consulta e imutabilidade das versões de jornadas |
+| Audit Management | Governança Operacional | Registro e consulta de eventos sem dados sensíveis |
 
 ---
 
@@ -392,7 +400,7 @@ flowchart LR
     PUBLICATION -->|chamada outbound| RUNTIME_API
 ```
 
-Cada jornada possui no máximo uma `Journey Publication`. Uma nova publicação substitui integralmente o snapshot anterior. No MVP, o retorno de sucesso do mock confirma a publicação e altera o estado da jornada para `PUBLISHED`. A despublicação também chama o mock; após o sucesso, a jornada e a publicação passam para `UNPUBLISHED`. Uma falha preserva os estados atuais.
+Cada jornada possui no máximo uma `Journey Publication` ativa, associada a uma `Journey Version`. Uma nova publicação aponta para uma nova versão imutável e preserva as versões anteriores. No MVP, o retorno de sucesso do mock confirma a publicação e altera o estado da versão para `PUBLISHED`. A despublicação também chama o mock; após o sucesso, a publicação passa para `UNPUBLISHED`. Uma falha preserva os estados atuais.
 
 ---
 
@@ -475,10 +483,10 @@ flowchart TD
 | Simulation Execution | Execução simulada da jornada |
 | Simulation Step | Etapa registrada durante a simulação |
 | Simulation Result | Resultado consolidado da simulação |
-| Journey Publication | Snapshot atual enviado para a API de publicação do runtime |
+| Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 
 ---
 
 # 19. Resumo Arquitetural
 
-O Elastic Journey Admin Portal MVP é composto por seis domínios lógicos. A arquitetura parte do cadastro de produtos e canais, mantém jornadas independentes por canal e publica um único snapshot atual por jornada por meio de uma chamada mockada para a futura API do runtime.
+O Elastic Journey Admin Portal MVP é composto por nove domínios lógicos. A arquitetura parte do cadastro de produtos e canais, mantém jornadas independentes por canal, autentica usuários por um provedor externo mockado, versiona jornadas, registra auditoria e publica uma versão imutável por meio de uma chamada mockada para a futura API do runtime.

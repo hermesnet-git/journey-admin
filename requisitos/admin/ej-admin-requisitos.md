@@ -11,18 +11,25 @@
 Este documento descreve os requisitos funcionais do MVP do Elastic Journey
 Admin Portal.
 
-O Admin Portal permite cadastrar produtos e seus canais de atendimento, criar
-jornadas específicas para cada canal, modelar fluxos e formulários, simular
-jornadas e publicá-las por meio de uma API do runtime.
+O Admin Portal permite cadastrar produtos e seus canais de atendimento, criar,
+modelar e versionar jornadas específicas para cada canal, configurar
+formulários, simular jornadas, controlar o acesso por autenticação mockada,
+registrar auditoria e publicar versões por meio de uma API do runtime.
 
 ---
 
 # 2. Escopo do MVP
 
+Escopo adicional do MVP: versionamento de jornadas, autenticação por provedor
+externo mockado, autorização pelos papéis `ADMIN`, `EDITOR` e `VIEWER`, e
+auditoria de operações relevantes sem armazenamento de dados sensíveis.
+
 O MVP do Elastic Journey Admin Portal permite cadastrar produtos e canais,
 construir jornadas independentes para cada canal, modelar fluxos e
-formulários, simular jornadas e publicar suas definições por meio de uma
-chamada mockada para a futura API de publicação do runtime.
+formulários, criar e consultar versões, simular jornadas, autenticar usuários
+por provedor externo mockado, aplicar papéis, registrar auditoria e publicar
+versões por meio de uma chamada mockada para a futura API de publicação do
+runtime.
 
 ```text
 Gerenciar produtos e canais
@@ -62,9 +69,9 @@ Contrato Padronizado de Erros da API
 
 Todas as operações da API devem utilizar uma estrutura comum de erro e
 documentar, quando aplicáveis, as respostas `400`, `401`, `403`, `404`, `409`,
-`422` e `500`. Os códigos `401` e `403` ficam reservados para evoluções
-futuras e não são produzidos enquanto autenticação e autorização estiverem
-desabilitadas no MVP.
+`422` e `500`. Com a autenticação e autorização mockadas do MVP, `401` deve
+representar identidade ausente ou inválida e `403` deve representar identidade
+sem permissão para a operação.
 
 
 </br> </br>
@@ -208,7 +215,7 @@ futura e nÃ£o faz parte dos requisitos entregÃ¡veis desta versÃ£o.
 #### REQ-02.06.001 - O sistema deve permitir publicar jornadas.
 #### REQ-02.06.002 - O sistema deve permitir despublicar jornadas por meio da API do runtime.
 #### REQ-02.06.003 - O sistema deve permitir consultar jornadas publicadas.
-#### REQ-02.06.004 - Cada jornada deve possuir no maximo uma publicacao. Alteracoes reali zadas apos a publicacao nao devem modificar automaticamente o snapshot publicado; para disponibiliza-las, o usuario deve publicar novamente, substituindo integralmente o snapshot anterior.
+#### REQ-02.06.004 - Cada jornada deve possuir no maximo uma publicacao ativa, associada a uma versao imutavel. Alteracoes realizadas apos a publicacao nao devem modificar o snapshot publicado; para disponibiliza-las, o usuario deve publicar uma nova versao.
 ---
 
 ### FT-02.07 Estado da publicação
@@ -386,25 +393,134 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 
 <br/><br/>
 
+# 4.1 EP-06 Versionamento de jornadas
+
+### FT-06.01 Modelo de versões
+#### REQ-06.01.001 - O sistema deve permitir que uma jornada possua múltiplas versões.
+#### REQ-06.01.002 - Cada versão deve possuir identificador único (`versionId`).
+#### REQ-06.01.003 - Cada versão deve possuir número sequencial iniciado em `1` dentro da jornada.
+#### REQ-06.01.004 - Cada versão deve estar associada a exatamente uma jornada.
+#### REQ-06.01.005 - Cada versão deve possuir status `DRAFT`, `PUBLISHED` ou `ARCHIVED`.
+#### REQ-06.01.006 - Uma jornada deve possuir no máximo uma versão `PUBLISHED`.
+#### REQ-06.01.007 - Cada versão deve registrar criação e publicação, quando aplicável.
+#### REQ-06.01.008 - Cada versão deve permitir observação opcional.
+
+### FT-06.02 Criação e edição de versões
+#### REQ-06.02.001 - Ao criar uma jornada, o sistema deve criar sua primeira versão em `DRAFT`.
+#### REQ-06.02.002 - O sistema deve permitir criar uma nova versão a partir da versão atual.
+#### REQ-06.02.003 - O sistema deve criar a nova versão a partir da versão atualmente selecionada para edição.
+#### REQ-06.02.004 - A nova versão deve possuir cópia independente do fluxo, conexões e referências aos formulários.
+#### REQ-06.02.005 - Alterações em uma versão `DRAFT` não devem modificar outras versões.
+#### REQ-06.02.006 - Uma versão `PUBLISHED` deve ser imutável.
+#### REQ-06.02.007 - O sistema deve indicar claramente qual versão está sendo editada.
+#### REQ-06.02.008 - O sistema deve impedir números de versão duplicados dentro da mesma jornada.
+
+### FT-06.03 Histórico e consulta
+#### REQ-06.03.001 - O sistema deve permitir listar todas as versões de uma jornada.
+#### REQ-06.03.002 - O sistema deve permitir consultar o conteúdo completo de uma versão.
+#### REQ-06.03.003 - O histórico deve exibir número, status, datas e autor da versão.
+#### REQ-06.03.004 - O sistema deve permitir ordenar versões por número ou data.
+#### REQ-06.03.005 - O sistema deve diferenciar versões em edição, publicadas e arquivadas.
+#### REQ-06.03.006 - O sistema deve permitir visualizar uma versão anterior sem editá-la diretamente.
+
+### FT-06.04 Publicação de versões
+#### REQ-06.04.001 - O sistema deve permitir publicar uma versão `DRAFT`.
+#### REQ-06.04.002 - Antes da publicação, o sistema deve validar a versão completa da jornada.
+#### REQ-06.04.003 - A publicação deve enviar ao runtime o snapshot completo da versão selecionada.
+#### REQ-06.04.004 - Ao publicar uma nova versão, a versão anteriormente publicada deve ser marcada como `ARCHIVED`.
+#### REQ-06.04.005 - O sistema deve preservar o snapshot da versão anteriormente publicada.
+#### REQ-06.04.006 - A publicação deve registrar qual versão foi enviada ao runtime.
+#### REQ-06.04.007 - A jornada deve indicar sua versão atualmente publicada.
+#### REQ-06.04.008 - Alterações em `DRAFT` não devem modificar o snapshot publicado.
+
+### FT-06.05 Compatibilidade e limites do MVP
+#### REQ-06.05.001 - O sistema deve preservar versões de jornadas desativadas.
+#### REQ-06.05.002 - Jornadas existentes devem receber uma versão inicial durante a migração do modelo atual.
+#### REQ-06.05.003 - O sistema deve preservar a compatibilidade das operações atuais de consulta e publicação.
+#### REQ-06.05.004 - O sistema não deve permitir restauração ou rollback de versão no MVP.
+#### REQ-06.05.005 - O sistema deve registrar a versão associada a cada publicação.
+
+# 4.2 EP-07 Autenticação e autorização
+
+### FT-07.01 Autenticação mockada por provedor externo
+#### REQ-07.01.001 - O sistema deve representar a autenticação por meio de um provedor externo.
+#### REQ-07.01.002 - No MVP, a integração com o provedor externo deve ser mockada.
+#### REQ-07.01.003 - O sistema deve disponibilizar uma tela de login padrão.
+#### REQ-07.01.004 - A tela de login deve permitir informar usuário e senha.
+#### REQ-07.01.005 - O MVP deve disponibilizar o usuário mockado `admin`, com senha `admin` e perfil `ADMIN`.
+#### REQ-07.01.006 - O sistema deve rejeitar credenciais diferentes das credenciais mockadas configuradas.
+#### REQ-07.01.007 - O sistema deve indicar que a autenticação utilizada no MVP é mockada e não representa integração real com um provedor.
+
+### FT-07.02 Sessão e proteção de acesso
+#### REQ-07.02.001 - O sistema deve criar uma sessão autenticada após login bem-sucedido.
+#### REQ-07.02.002 - O sistema deve permitir encerrar a sessão.
+#### REQ-07.02.003 - O sistema deve expirar sessões após período configurável de inatividade.
+#### REQ-07.02.004 - O sistema deve rejeitar requisições com sessão expirada ou inválida.
+#### REQ-07.02.005 - As rotas administrativas devem ser protegidas contra acesso anônimo.
+#### REQ-07.02.006 - O sistema deve preservar a identificação do usuário autenticado nas operações realizadas.
+
+### FT-07.03 Papéis e permissões
+#### REQ-07.03.001 - O sistema deve suportar os papéis `ADMIN`, `EDITOR` e `VIEWER`.
+#### REQ-07.03.002 - O sistema deve permitir associar um papel a cada usuário.
+#### REQ-07.03.003 - O sistema deve impedir operações não autorizadas pelo papel do usuário.
+#### REQ-07.03.004 - `VIEWER` deve permitir consulta sem permitir alterações.
+#### REQ-07.03.005 - `EDITOR` deve permitir criar e editar jornadas e versões.
+#### REQ-07.03.006 - `EDITOR` deve permitir publicar versões.
+#### REQ-07.03.007 - `ADMIN` deve possuir acesso administrativo aos recursos do portal.
+#### REQ-07.03.008 - A autorização deve ser validada no backend, independentemente da interface.
+
+### FT-07.04 Administração de usuários mockados
+#### REQ-07.04.001 - O sistema deve representar no MVP o usuário `admin` como usuário administrativo mockado.
+#### REQ-07.04.002 - O sistema deve impedir a remoção do último usuário com papel `ADMIN`.
+#### REQ-07.04.003 - O sistema deve permitir consultar o usuário autenticado e seu papel.
+#### REQ-07.04.004 - O sistema deve deixar explícito que cadastro, alteração e persistência de usuários reais estão fora do MVP.
+
+# 4.3 EP-08 Auditoria
+
+### FT-08.01 Registro de eventos
+#### REQ-08.01.001 - O sistema deve registrar eventos relevantes de autenticação, autorização e negócio.
+#### REQ-08.01.002 - Cada evento deve possuir identificador único (`auditEventId`).
+#### REQ-08.01.003 - Cada evento deve registrar data e hora, ação, resultado e recurso afetado.
+#### REQ-08.01.004 - Cada evento deve registrar o usuário responsável ou indicar que foi anônimo.
+#### REQ-08.01.005 - Cada evento deve registrar identificador de correlação da requisição, quando disponível.
+#### REQ-08.01.006 - O sistema deve registrar eventos de sucesso, falha e acesso negado.
+
+### FT-08.02 Eventos auditáveis
+#### REQ-08.02.001 - O sistema deve auditar login bem-sucedido e malsucedido.
+#### REQ-08.02.002 - O sistema deve auditar logout, expiração e bloqueio de sessão.
+#### REQ-08.02.003 - O sistema deve auditar criação, alteração e desativação de produtos, canais e jornadas.
+#### REQ-08.02.004 - O sistema deve auditar criação e alteração de versões.
+#### REQ-08.02.005 - O sistema deve auditar publicação, republicação e despublicação de jornadas.
+#### REQ-08.02.006 - O sistema deve auditar tentativas de acesso negadas por falta de permissão.
+#### REQ-08.02.007 - O sistema deve auditar alterações de papéis e configurações de acesso mockadas.
+
+### FT-08.03 Proteção dos registros
+#### REQ-08.03.001 - Os registros de auditoria não devem ser editáveis por usuários comuns.
+#### REQ-08.03.002 - Os registros de auditoria não devem ser removidos por operações normais do sistema.
+#### REQ-08.03.003 - O sistema não deve armazenar senhas, tokens, segredos ou credenciais sensíveis nos registros.
+#### REQ-08.03.004 - O sistema deve evitar o armazenamento de dados sensíveis nos valores anterior e posterior.
+#### REQ-08.03.005 - Falhas de auditoria não podem ser ignoradas silenciosamente.
+
+### FT-08.04 Consulta de auditoria
+#### REQ-08.04.001 - Usuários autorizados devem poder consultar eventos de auditoria.
+#### REQ-08.04.002 - O sistema deve permitir filtrar eventos por usuário, ação, recurso, resultado e período.
+#### REQ-08.04.003 - O sistema deve permitir pesquisar eventos por recurso ou correlação.
+#### REQ-08.04.004 - O sistema deve apresentar os eventos em ordem cronológica e com paginação.
+#### REQ-08.04.005 - O sistema deve auditar a consulta dos próprios registros de auditoria.
+
+<br/><br/>
+
 # 5. Fora do Escopo do MVP 
 
 ## Evolução de Plataforma
 ```text
 Workflow de Aprovação
 
-Versionamento
-
 Publicação Agendada
 
 Rollback
 
 Promotion Between Environments
-
-Autenticação
-
-RBAC
-
-Auditoria
 
 Analytics
 

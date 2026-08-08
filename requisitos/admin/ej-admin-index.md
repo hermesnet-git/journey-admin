@@ -34,6 +34,8 @@ Publicação de Jornadas
 Publicação no Runtime
 
 Ajuda e Suporte
+
+Observabilidade (log técnico de aplicação)
 ```
 
 ---
@@ -80,6 +82,8 @@ Publicação de Jornadas
 Publicação no Runtime por API mockada
 
 Ajuda e Suporte (FAQ e contato com sustentação)
+
+Observabilidade: log de entrada/saída de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK
 
 ```
 
@@ -183,6 +187,10 @@ Registro imutável de uma ação relevante, com usuário, recurso, resultado e d
 
 Conteúdo estático de perguntas frequentes sobre o uso do Admin Portal, acessível pelo menu, com busca textual e contato do time de sustentação.
 
+## Correlation Id
+
+Identificador técnico (`X-Correlation-Id`) que amarra os logs de entrada/saída de uma requisição de API aos logs das transações de persistência disparadas por ela. Reaproveitado do header quando presente, gerado quando ausente, e devolvido ao cliente na resposta. Não deve ser confundido com o `correlationId` do Audit Event (EP-08), embora ambos usem o mesmo header como origem.
+
 ---
 
 # 7. Cardinalidades Principais
@@ -221,7 +229,7 @@ Especificação OpenAPI
 
 ## Requisitos Funcionais
 
-**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo do MVP, organizado em nove épicos.
+**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo do MVP, organizado em dez épicos.
 
 ## Arquitetura Lógica
 
@@ -292,4 +300,4 @@ Especificação OpenAPI
 
 # 12. Resumo Executivo
 
-O Elastic Journey Admin Portal MVP cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, simulação, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime e uma central de ajuda com FAQ e contato do time de sustentação.
+O Elastic Journey Admin Portal MVP cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, simulação, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).

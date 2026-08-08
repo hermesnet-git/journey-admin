@@ -2,8 +2,10 @@ package com.jouney.admin.infrastructure.security;
 
 import com.jouney.admin.application.audit.RecordAuditEvent;
 import com.jouney.admin.domain.audit.AuditResult;
+import com.jouney.admin.infrastructure.logging.HttpRequestLoggingFilter;
 import com.jouney.admin.interfaces.ApiError;
 import java.time.OffsetDateTime;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,6 +21,9 @@ import tools.jackson.databind.ObjectMapper;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    @Value("${app.logging.include-payload:false}")
+    private boolean includePayloadInLogs;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, SessionStore sessionStore, ObjectMapper objectMapper,
@@ -44,7 +49,8 @@ public class SecurityConfig {
                                     "You do not have permission to perform this operation", request.getRequestURI());
                         }))
                 .addFilterBefore(new BearerTokenAuthFilter(sessionStore, recordAuditEvent),
-                        UsernamePasswordAuthenticationFilter.class);
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new HttpRequestLoggingFilter(includePayloadInLogs), BearerTokenAuthFilter.class);
         return http.build();
     }
 

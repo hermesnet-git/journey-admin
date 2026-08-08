@@ -39,9 +39,19 @@ Gestão de Formulários
 
 Simulação
 
+Versionamento de Jornadas
+
+Autenticação e Autorização
+
+Auditoria
+
 Publicação de Jornadas
 
 Publicação no Runtime por API mockada
+
+Ajuda e Suporte
+
+Observabilidade
 
 ```
 
@@ -85,7 +95,7 @@ As respostas `401` e `403` fazem parte do comportamento do MVP autenticado e moc
 
 # 5. Domínios Lógicos
 
-O MVP é composto por nove domínios, organizados em cinco grupos funcionais.
+O MVP é composto por dez domínios, organizados em seis grupos funcionais.
 
 ```text
 Grupo Administração
@@ -106,6 +116,9 @@ Grupo Governança de Acesso
 Grupo Governança Operacional
   08. Version Management
   09. Audit Management
+
+Grupo Observabilidade Técnica
+  10. Observability
 ```
 
 ---
@@ -123,6 +136,7 @@ Grupo Governança Operacional
 | Authentication & Authorization | Governança de Acesso | Autenticação mockada por provedor externo e autorização por papéis |
 | Version Management | Governança Operacional | Criação, consulta e imutabilidade das versões de jornadas |
 | Audit Management | Governança Operacional | Registro e consulta de eventos sem dados sensíveis |
+| Observability | Observabilidade Técnica | Log técnico de requisições de API e de transações de persistência, correlacionados por requisição |
 
 ---
 
@@ -151,6 +165,8 @@ flowchart TD
 ## Interpretação
 
 O usuário cadastra um produto e seus canais, cria uma jornada para um canal específico, modela o fluxo e os formulários, simula a jornada e então publica seu snapshot por meio da API do runtime mockada no MVP.
+
+Observability (domínio 10) é transversal a todos os domínios acima — instrumenta toda requisição de API e toda transação de persistência independentemente do domínio de negócio envolvido — e por isso não aparece como um nó no fluxo.
 
 ---
 
@@ -465,9 +481,68 @@ flowchart TD
     SIMULATION --> PUBLICATION
 ```
 
+Observability não possui dependência de fluxo com os demais domínios — atua de forma transversal, instrumentando a execução de qualquer um deles.
+
 ---
 
-# 18. Artefatos Arquiteturais
+# 18. Domínio 10 — Observability
+
+## Objetivo
+
+Registrar em log técnico toda requisição de API e toda transação de aplicação que represente persistência em banco de dados, correlacionando-as por requisição para apoiar diagnóstico e troubleshooting em produção.
+
+## Distinção em relação ao Audit Management (domínio 09)
+
+Audit Management (domínio 09) é uma trilha de negócio, persistida em banco (`Audit Event`), com finalidade de compliance/rastreabilidade e consulta pelo usuário `ADMIN`. Observability é log técnico de execução (não persistido em banco), com finalidade de diagnóstico operacional, consumido via console/arquivo local e, futuramente, por uma stack de observabilidade centralizada. Os dois mecanismos compartilham o conceito de identificador de correlação (`X-Correlation-Id`), mas são trilhas independentes.
+
+## Responsabilidades
+
+```text
+Registrar entrada e saída de toda requisição de API (método, path, status, duração)
+
+Registrar início, sucesso e falha de toda transação de persistência da camada de aplicação
+
+Correlacionar, por requisição, os logs de API e os logs de transação por ela disparados
+
+Devolver o identificador de correlação ao cliente na resposta
+
+Manter a integração com uma stack ELK como ponto de extensão preparado, porém desativado no MVP
+```
+
+## Componentes
+
+```text
+HTTP Request Logging Filter — loga entrada/saída de toda requisição de API e propaga o identificador de correlação
+
+Transaction Logging Aspect — loga início/sucesso/falha de toda transação de persistência da camada de aplicação
+
+Log Appender — destino dos logs; console no MVP, com ponto de extensão preparado para um appender ELK/Logstash desativado
+```
+
+## Fluxo de Observação de uma Requisição
+
+```mermaid
+flowchart LR
+    REQUEST[Requisição HTTP]
+    FILTER[HTTP Request Logging Filter]
+    APP[Camada de Aplicação]
+    ASPECT[Transaction Logging Aspect]
+    LOG[Log Appender<br/>console no MVP]
+    ELK[Stack ELK<br/>desativado no MVP]
+
+    REQUEST --> FILTER
+    FILTER --> APP
+    APP --> ASPECT
+    FILTER --> LOG
+    ASPECT --> LOG
+    LOG -.->|preparado, desativado| ELK
+```
+
+Não há entidade de domínio persistida por este domínio — os logs técnicos não são armazenados em banco de dados, ao contrário do Audit Event.
+
+---
+
+# 19. Artefatos Arquiteturais
 
 | Artefato | Descrição |
 |----------|-----------|
@@ -487,6 +562,6 @@ flowchart TD
 
 ---
 
-# 19. Resumo Arquitetural
+# 20. Resumo Arquitetural
 
-O Elastic Journey Admin Portal MVP é composto por nove domínios lógicos. A arquitetura parte do cadastro de produtos e canais, mantém jornadas independentes por canal, autentica usuários por um provedor externo mockado, versiona jornadas, registra auditoria e publica uma versão imutável por meio de uma chamada mockada para a futura API do runtime.
+O Elastic Journey Admin Portal MVP é composto por dez domínios lógicos. A arquitetura parte do cadastro de produtos e canais, mantém jornadas independentes por canal, autentica usuários por um provedor externo mockado, versiona jornadas, registra auditoria e publica uma versão imutável por meio de uma chamada mockada para a futura API do runtime. Observability instrumenta, de forma transversal, todos os domínios de negócio com log técnico de API e de transações de persistência.

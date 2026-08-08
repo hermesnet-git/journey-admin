@@ -12,6 +12,10 @@ Referência semântica das entidades e campos do Elastic Journey Admin Portal.
 
 ---
 
+# 1.1 Fora do Escopo Deste Dicionário
+
+Os logs técnicos de observabilidade (requisições de API e transações de persistência, EP-10) não são persistidos em banco de dados e, portanto, não possuem entrada neste dicionário. Não confundir com o Audit Event (seção de auditoria), que é persistido.
+
 # 2. Convenções
 
 ## Tipos de Dados

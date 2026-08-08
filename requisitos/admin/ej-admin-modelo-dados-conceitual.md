@@ -42,6 +42,10 @@ Nenhuma entidade possui dependência de BPMN, Camunda ou outro motor de execuç�
 
 O MVP contempla versionamento de jornadas, autenticação mockada, autorização por papéis e auditoria. Rollback, governança e ownership permanecem fora do MVP.
 
+## 2.7 Observabilidade Não Persistida
+
+Os logs técnicos de observabilidade (requisições de API e transações de persistência, EP-10) não constituem entidade de domínio: não são armazenados em banco de dados, ao contrário do Audit Event. Por isso não aparecem nas seções seguintes deste documento.
+
 ---
 
 # 3. Visão Conceitual

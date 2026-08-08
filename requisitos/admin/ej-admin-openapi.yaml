@@ -21,6 +21,14 @@ servers:
 security:
   - bearerAuth: []
 
+# Observabilidade (EP-10): toda requisição aceita o header opcional
+# X-Correlation-Id; quando ausente, o servidor gera um valor. O mesmo valor é
+# devolvido no header de resposta X-Correlation-Id e correlaciona, nos logs
+# técnicos do backend, a entrada/saída da requisição às transações de
+# persistência por ela disparadas. Cross-cutting, omitido dos schemas de
+# request/response de cada operação abaixo para não repetir o mesmo header em
+# cada endpoint.
+
 tags:
   - name: Products
   - name: Channels

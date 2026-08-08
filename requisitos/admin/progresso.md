@@ -14,10 +14,10 @@
 
 | Métrica | Valor |
 |---|---|
-| Total de Épicos (EP) | 9 |
-| Total de Features (FT) | 43 |
-| Total de Requisitos (REQ) | 224 |
-| Concluídos (`done`) | 212 |
+| Total de Épicos (EP) | 10 |
+| Total de Features (FT) | 47 |
+| Total de Requisitos (REQ) | 236 |
+| Concluídos (`done`) | 224 |
 | Em andamento (`in_progress`) | 0 |
 | Não iniciados (`todo`) | 10 |
 | Bloqueados (`blocked`) | 0 |
@@ -37,6 +37,7 @@
 | EP-07 | Autenticação e autorização | 25 | 24 | 96% (1 n/a) |
 | EP-08 | Auditoria | 22 | 21 | 95% (1 n/a) |
 | EP-09 | Ajuda e Suporte | 5 | 5 | 100% |
+| EP-10 | Observabilidade | 12 | 12 | 100% |
 
 ---
 
@@ -520,10 +521,92 @@ Observação: os registros não armazenam senhas, tokens, segredos ou outros dad
 | [x] | REQ-09.01.004 | O conteúdo do FAQ deve ser mantido como conteúdo estático versionado com o sistema. | done | front: `FAQ_ITEMS` é um array estático no próprio `HelpPage.tsx`, sem backend/CMS | |
 | [x] | REQ-09.01.005 | A tela de ajuda deve exibir o contato do time de sustentação (`sustentacao@telefonica.com`) como link `mailto:`, abrindo o cliente de e-mail padrão do usuário. | done | front: link `mailto:sustentacao@telefonica.com` no rodapé de `HelpPage.tsx` | |
 
+## EP-10 Observabilidade
+
+### FT-10.01 Log de requisições de API
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-10.01.001 | O sistema deve registrar em log a entrada de toda requisição HTTP recebida pela API, incluindo método e caminho. | done | back: `HttpRequestLoggingFilter.doFilterInternal` loga `--> {method} {uri}` antes de `filterChain.doFilter` | |
+| [x] | REQ-10.01.002 | O sistema deve registrar em log a saída de toda requisição HTTP, incluindo status de resposta e duração do processamento. | done | back: `HttpRequestLoggingFilter` loga `<-- {method} {uri} status={} durationMs={}` no `finally` | |
+| [x] | REQ-10.01.003 | O log de requisição e resposta não deve registrar o corpo (body) da requisição por padrão, para evitar exposição de dados sensíveis. | done | back: `HttpRequestLoggingFilter` não lê/loga `HttpServletRequest`/`HttpServletResponse` body, só metadados (método, path, status, duração) | simplificação deliberada — sem `ContentCachingRequestWrapper`; adicionar log de body em `DEBUG` se necessário no futuro |
+
+### FT-10.02 Log de transações de persistência
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-10.02.001 | O sistema deve registrar em log o início de toda transação da camada de aplicação que represente uma operação de persistência em banco de dados. | done | back: `TransactionLoggingAspect.logTransaction` (`@Around`) loga `BEGIN {signature}`; pointcut cobre todo `@Service` em `com.jouney.admin.application..*` | |
+| [x] | REQ-10.02.002 | O sistema deve registrar em log a conclusão de uma transação bem-sucedida, incluindo sua duração. | done | back: `TransactionLoggingAspect` loga `COMMIT {signature} durationMs={}` após `joinPoint.proceed()` | |
+| [x] | REQ-10.02.003 | O sistema deve registrar em log a falha de uma transação, incluindo a causa do erro, sem interromper a propagação da exceção original. | done | back: `TransactionLoggingAspect` loga `ROLLBACK {signature} durationMs={} error={}` em `catch (Throwable ex)` e relança (`throw ex`) | |
+
+### FT-10.03 Correlação de logs
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-10.03.001 | Toda requisição de API deve ser associada a um identificador de correlação. | done | back: `HttpRequestLoggingFilter.resolveCorrelationId` | mesmo conceito de correlação já usado pela auditoria (`RecordAuditEvent.correlationId`, EP-08) |
+| [x] | REQ-10.03.002 | O identificador de correlação deve ser reaproveitado do cabeçalho `X-Correlation-Id` da requisição quando presente, ou gerado pelo sistema quando ausente. | done | back: `HttpRequestLoggingFilter.resolveCorrelationId` lê o header `X-Correlation-Id`; se ausente/vazio, gera `UUID.randomUUID()` | |
+| [x] | REQ-10.03.003 | O identificador de correlação deve estar presente em todas as linhas de log emitidas durante o processamento da requisição, incluindo as de transação de persistência. | done | back: `HttpRequestLoggingFilter` grava o id no `MDC` (`correlationId`) antes de `filterChain.doFilter`; `logback-spring.xml` inclui `%X{correlationId}` no pattern, aplicado a toda linha da thread da requisição — inclusive as do `TransactionLoggingAspect`, que roda na mesma thread | `MDC.remove` no `finally` evita vazamento entre requisições (pool de threads) |
+| [x] | REQ-10.03.004 | O identificador de correlação deve ser retornado ao cliente no cabeçalho de resposta. | done | back: `HttpRequestLoggingFilter` faz `response.setHeader("X-Correlation-Id", correlationId)` | |
+
+### FT-10.04 Preparação para integração com ELK
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-10.04.001 | O sistema deve estar tecnicamente preparado para o envio dos logs de aplicação a uma stack ELK (Elasticsearch/Logstash/Kibana), permanecendo essa integração desativada no MVP por não haver ambiente ELK disponível. | done | back: `logback-spring.xml` centraliza toda a configuração de log (appender único `CONSOLE`); bloco de comentário reserva o ponto de extensão para um appender Logstash, ainda não adicionado/habilitado | integração desativada por decisão deliberada — sem ambiente ELK neste momento |
+| [x] | REQ-10.04.002 | O sistema deve documentar o procedimento (how-to) para habilitar a integração com o ELK quando um ambiente estiver disponível. | done | doc: seção "HOW TO — habilitar integração com ELK" abaixo | |
+
+#### HOW TO — habilitar integração com ELK
+
+Pré-requisito: stack ELK (Elasticsearch + Logstash + Kibana) acessível pela
+rede do backend, com um input Logstash TCP ou Beats configurado para receber
+logs.
+
+1. Adicionar a dependência ao `back/pom.xml`:
+   ```xml
+   <dependency>
+       <groupId>net.logstash.logback</groupId>
+       <artifactId>logstash-logback-encoder</artifactId>
+       <version>8.0</version> <!-- checar versão compatível com Logback do Spring Boot 4.1 -->
+   </dependency>
+   ```
+2. Em `back/src/main/resources/logback-spring.xml`, adicionar um appender TCP
+   apontando para o Logstash, no lugar do comentário existente:
+   ```xml
+   <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+       <destination>${LOGSTASH_HOST:-logstash}:${LOGSTASH_PORT:-5000}</destination>
+       <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+           <includeMdcKeyName>correlationId</includeMdcKeyName>
+       </encoder>
+   </appender>
+   ```
+3. Referenciar o novo appender em `<root>` (mantendo o `CONSOLE` para
+   observação local):
+   ```xml
+   <root level="INFO">
+       <appender-ref ref="CONSOLE"/>
+       <appender-ref ref="LOGSTASH"/>
+   </root>
+   ```
+4. Parametrizar `LOGSTASH_HOST`/`LOGSTASH_PORT` via variável de ambiente no
+   deploy (não versionar endpoint fixo de produção).
+5. No Kibana, criar um index pattern para os documentos recebidos e validar
+   que `correlationId` chega como campo pesquisável — ele é o que permite
+   juntar, numa mesma busca, os logs de entrada/saída de API
+   (`com.jouney.admin.http`) com os de transação
+   (`com.jouney.admin.transaction`) de uma mesma requisição.
+6. Rodar um smoke test: disparar uma requisição autenticada, confirmar no
+   Kibana que apareceram as linhas `-->`/`<--` e `BEGIN`/`COMMIT` com o mesmo
+   `correlationId`.
+
+Nenhum código Java precisa mudar para habilitar isso — a instrumentação
+(filtro + aspecto + MDC) já está pronta; a integração é só configuração de
+appender.
+
 ## Changelog deste arquivo
 
 | Data | Alteração |
 |---|---|
+| 2026-08-08 | EP-10 (Observabilidade) novo e implementado por completo: 12/12 REQs. Log técnico de aplicação (distinto da auditoria de negócio do EP-08): `HttpRequestLoggingFilter` (entrada/saída de toda API, sem log de body, registrado no `SecurityConfig` antes do filtro de autenticação) e `TransactionLoggingAspect` (`@Around` sobre todo `@Service` de `application.*`, logando início/commit/rollback de cada transação de persistência). Correlação via `X-Correlation-Id` (reaproveitado do header ou gerado) propagada por `MDC` e incluída no pattern do novo `logback-spring.xml`, cobrindo tanto os logs de API quanto os de transação da mesma requisição/thread. Integração com ELK preparada mas desativada (sem ambiente ELK neste momento) — ver seção "HOW TO — habilitar integração com ELK" no EP-10 para o procedimento de ativação (dependência `logstash-logback-encoder` + appender TCP + variáveis de ambiente de destino). Build: no Spring Boot 4.1 o starter de AOP foi renomeado de `spring-boot-starter-aop` para `spring-boot-starter-aspectj` — usado o novo nome no `pom.xml`. Progresso geral de 95% (212/224) para 95% (224/236). |
 | 2026-08-08 | EP-09 (Ajuda e Suporte) novo e implementado por completo: 5/5 REQs. Tela de ajuda estática (`front/src/shell/HelpPage.tsx`) com FAQ agrupado por tema, busca textual e link `mailto:sustentacao@telefonica.com`; acessível pelo item "Ajuda e suporte" da sidebar (antes um placeholder genérico). Simplificação deliberada: sem ajuda contextual por tela, sem canal de suporte com registro/consulta de solicitações e sem tela de diagnóstico — cortados do escopo por decisão de produto antes da implementação, não fazem parte do backlog. Progresso geral de 95% (207/219) para 95% (212/224). |
 | 2026-08-08 | EP-06 (Versionamento de jornadas), EP-07 (Autenticação e autorização) e EP-08 (Auditoria) implementados, na ordem EP-07 → EP-06 → EP-08 (dependência: versão precisa de usuário autenticado; auditoria precisa de ambos). EP-06: tabela `journey_version` (`V7`) + backfill de jornadas existentes (`V8`), criação automática de versão `DRAFT` ao criar jornada, publicação de versão arquiva a anterior, snapshot imutável, painel de versões no designer de fluxo — 35/35 REQs. EP-07: token opaco em memória (`Authorization: Bearer`, expiração por inatividade configurável), usuário mockado `admin`/`admin`/`ADMIN`, papéis `ADMIN`/`EDITOR`/`VIEWER` aplicados via `@PreAuthorize` em todos os controllers, tela de login com aviso de autenticação mockada — 24/25 REQs (REQ-07.04.002 n/a, sem CRUD de usuário no MVP). EP-08: tabela `audit_event` (`V9`), gravação em login/logout/sessão, CRUD de produto/canal/jornada, versões, publicações e acessos negados, consulta com filtros e paginação restrita a `ADMIN` — 21/22 REQs (REQ-08.02.007 n/a, sem CRUD de papéis no MVP). De quebra, REQ-02.06.004 (que dependia do EP-06) passou de `todo` para `done`. Simplificações deliberadas: sem rollback/restauração de versão (REQ-06.05.004, fora de escopo); flow-designer continua editando o estado "vivo" da jornada, versionar tira um snapshot desse estado; ocultação de botões por papel na UI não foi replicada em todas as telas (enforcement real é no backend). Progresso geral de 57% para 95% (207/219; 2 n/a; restam apenas os 10 REQs do EP-05 Simulação). |
 | 2026-08-08 | Escopo do MVP evoluído com EP-06 Versionamento de jornadas, EP-07 Autenticação e autorização e EP-08 Auditoria. A autenticação será representada por provedor externo mockado, com tela de login e usuário `admin`/`admin` no perfil `ADMIN`; os papéis `ADMIN`, `EDITOR` e `VIEWER` foram incluídos. Versões publicadas são imutáveis; restauração/rollback permanece fora do MVP; auditoria não armazena dados sensíveis. Total: 8 EPs, 42 FTs e 220 REQs; 126 concluídos e 94 todo (57%). |

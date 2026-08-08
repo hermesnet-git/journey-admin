@@ -13,23 +13,29 @@ Admin Portal.
 
 O Admin Portal permite cadastrar produtos e seus canais de atendimento, criar,
 modelar e versionar jornadas específicas para cada canal, configurar
-formulários, simular jornadas, controlar o acesso por autenticação mockada,
-registrar auditoria e publicar versões por meio de uma API do runtime.
+formulários, simular jornadas, controlar o acesso por autenticação e
+autorização mockadas, registrar auditoria, publicar versões por meio de uma
+API do runtime, disponibilizar uma central de ajuda e registrar log técnico
+de observabilidade (API e transações de persistência).
 
 ---
 
 # 2. Escopo do MVP
 
 Escopo adicional do MVP: versionamento de jornadas, autenticação por provedor
-externo mockado, autorização pelos papéis `ADMIN`, `EDITOR` e `VIEWER`, e
-auditoria de operações relevantes sem armazenamento de dados sensíveis.
+externo mockado, autorização pelos papéis `ADMIN`, `EDITOR` e `VIEWER`,
+auditoria de operações relevantes sem armazenamento de dados sensíveis, uma
+central de ajuda com FAQ e contato de sustentação, e observabilidade técnica
+(log de requisições de API e de transações de persistência, correlacionados
+por requisição, preparados para integração futura com ELK).
 
 O MVP do Elastic Journey Admin Portal permite cadastrar produtos e canais,
 construir jornadas independentes para cada canal, modelar fluxos e
 formulários, criar e consultar versões, simular jornadas, autenticar usuários
-por provedor externo mockado, aplicar papéis, registrar auditoria e publicar
+por provedor externo mockado, aplicar papéis, registrar auditoria, publicar
 versões por meio de uma chamada mockada para a futura API de publicação do
-runtime.
+runtime, consultar uma central de ajuda e observar a aplicação por meio de
+logs técnicos correlacionados.
 
 ```text
 Gerenciar produtos e canais
@@ -42,9 +48,19 @@ Criar formulários
 
 Simular jornadas
 
+Versionar jornadas
+
+Autenticar e autorizar usuários
+
+Registrar auditoria
+
 Publicar e despublicar jornadas
 
 Enviar jornadas para a API de publicação do runtime
+
+Disponibilizar central de ajuda e suporte
+
+Registrar log técnico de observabilidade
 ```
 
 ---
@@ -398,7 +414,7 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 
 <br/><br/>
 
-# 4.1 EP-06 Versionamento de jornadas
+# EP-06 Versionamento de jornadas
 
 ### FT-06.01 Modelo de versões
 #### REQ-06.01.001 - O sistema deve permitir que uma jornada possua múltiplas versões.
@@ -445,7 +461,7 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-06.05.004 - O sistema não deve permitir restauração ou rollback de versão no MVP.
 #### REQ-06.05.005 - O sistema deve registrar a versão associada a cada publicação.
 
-# 4.2 EP-07 Autenticação e autorização
+# EP-07 Autenticação e autorização
 
 ### FT-07.01 Autenticação mockada por provedor externo
 #### REQ-07.01.001 - O sistema deve representar a autenticação por meio de um provedor externo.
@@ -480,7 +496,7 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-07.04.003 - O sistema deve permitir consultar o usuário autenticado e seu papel.
 #### REQ-07.04.004 - O sistema deve deixar explícito que cadastro, alteração e persistência de usuários reais estão fora do MVP.
 
-# 4.3 EP-08 Auditoria
+# EP-08 Auditoria
 
 ### FT-08.01 Registro de eventos
 #### REQ-08.01.001 - O sistema deve registrar eventos relevantes de autenticação, autorização e negócio.
@@ -512,7 +528,7 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-08.04.003 - O sistema deve permitir pesquisar eventos por recurso ou correlação.
 #### REQ-08.04.004 - O sistema deve apresentar os eventos em ordem cronológica e com paginação.
 
-# 4.4 EP-09 Ajuda e Suporte
+# EP-09 Ajuda e Suporte
 
 ## Objetivo
 
@@ -526,6 +542,38 @@ sustentação.
 #### REQ-09.01.003 - O sistema deve permitir pesquisar textualmente o conteúdo do FAQ.
 #### REQ-09.01.004 - O conteúdo do FAQ deve ser mantido como conteúdo estático versionado com o sistema.
 #### REQ-09.01.005 - A tela de ajuda deve exibir o contato do time de sustentação (`sustentacao@telefonica.com`) como link `mailto:`, abrindo o cliente de e-mail padrão do usuário.
+
+# EP-10 Observabilidade
+
+## Objetivo
+
+Registrar em log técnico da aplicação toda transação de persistência em banco
+de dados e toda entrada/saída de API do backend, correlacionando as linhas de
+log de uma mesma requisição, para apoiar diagnóstico e troubleshooting em
+produção. Distinto da auditoria de negócio (EP-08), que é uma trilha
+persistida em banco para fins de compliance/rastreabilidade — observabilidade
+aqui é log técnico de execução, consumido via console/arquivo e, futuramente,
+por uma stack de observabilidade centralizada (ELK).
+
+### FT-10.01 Log de requisições de API
+#### REQ-10.01.001 - O sistema deve registrar em log a entrada de toda requisição HTTP recebida pela API, incluindo método e caminho.
+#### REQ-10.01.002 - O sistema deve registrar em log a saída de toda requisição HTTP, incluindo status de resposta e duração do processamento.
+#### REQ-10.01.003 - O log de requisição e resposta não deve registrar o corpo (body) da requisição por padrão, para evitar exposição de dados sensíveis.
+
+### FT-10.02 Log de transações de persistência
+#### REQ-10.02.001 - O sistema deve registrar em log o início de toda transação da camada de aplicação que represente uma operação de persistência em banco de dados.
+#### REQ-10.02.002 - O sistema deve registrar em log a conclusão de uma transação bem-sucedida, incluindo sua duração.
+#### REQ-10.02.003 - O sistema deve registrar em log a falha de uma transação, incluindo a causa do erro, sem interromper a propagação da exceção original.
+
+### FT-10.03 Correlação de logs
+#### REQ-10.03.001 - Toda requisição de API deve ser associada a um identificador de correlação.
+#### REQ-10.03.002 - O identificador de correlação deve ser reaproveitado do cabeçalho `X-Correlation-Id` da requisição quando presente, ou gerado pelo sistema quando ausente.
+#### REQ-10.03.003 - O identificador de correlação deve estar presente em todas as linhas de log emitidas durante o processamento da requisição, incluindo as de transação de persistência.
+#### REQ-10.03.004 - O identificador de correlação deve ser retornado ao cliente no cabeçalho de resposta.
+
+### FT-10.04 Preparação para integração com ELK
+#### REQ-10.04.001 - O sistema deve estar tecnicamente preparado para o envio dos logs de aplicação a uma stack ELK (Elasticsearch/Logstash/Kibana), permanecendo essa integração desativada no MVP por não haver ambiente ELK disponível.
+#### REQ-10.04.002 - O sistema deve documentar o procedimento (how-to) para habilitar a integração com o ELK quando um ambiente estiver disponível.
 
 <br/><br/>
 

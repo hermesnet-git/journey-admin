@@ -1,6 +1,8 @@
 spring:
   application:
     name: admin-back
+  profiles:
+    active: dev
   datasource:
     url: jdbc:postgresql://localhost:5432/journey_admin
     username: postgres
@@ -17,3 +19,5 @@ app:
     allowed-origins: http://localhost:5173
   security:
     session-inactivity-minutes: 30
+  logging:
+    include-payload: false

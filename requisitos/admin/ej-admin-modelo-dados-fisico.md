@@ -40,6 +40,8 @@ Configurações visuais, dados de simulação e snapshots publicados utilizam `J
 
 Formulários são ativos reutilizáveis associados às User Tasks por `user_task_config`. A publicação armazena o snapshot da versão imutável enviada para a API de publicação do runtime e preserva versões anteriores.
 
+Os logs técnicos de observabilidade (EP-10) não são persistidos no PostgreSQL — trafegam por `logback` (console no MVP, com ponto de extensão preparado e desativado para ELK) e, por isso, não possuem tabela neste modelo.
+
 ---
 
 # 4. Modelo Relacional — Tabelas

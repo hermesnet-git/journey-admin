@@ -73,6 +73,11 @@ documentar, quando aplicáveis, as respostas `400`, `401`, `403`, `404`, `409`,
 representar identidade ausente ou inválida e `403` deve representar identidade
 sem permissão para a operação.
 
+Falha de rede (ex.: backend indisponível durante um restart) não deve
+derrubar a sessão nem redirecionar o usuário para o login: o cliente HTTP do
+frontend deve tentar novamente a chamada algumas vezes antes de reportar erro,
+e a tela deve exibir uma mensagem de erro amigável em vez de forçar refresh.
+
 
 </br> </br>
 
@@ -506,7 +511,6 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-08.04.002 - O sistema deve permitir filtrar eventos por usuário, ação, recurso, resultado e período.
 #### REQ-08.04.003 - O sistema deve permitir pesquisar eventos por recurso ou correlação.
 #### REQ-08.04.004 - O sistema deve apresentar os eventos em ordem cronológica e com paginação.
-#### REQ-08.04.005 - O sistema deve auditar a consulta dos próprios registros de auditoria.
 
 <br/><br/>
 

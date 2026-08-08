@@ -13,6 +13,8 @@ export class ApiClientError extends Error {
   }
 }
 
+export class NetworkError extends Error {}
+
 let onUnauthorized: (() => void) | null = null;
 
 /** Registered by AuthContext so a 401 response can clear the session and show the login screen. */
@@ -30,16 +32,37 @@ export function getStoredToken(): string | null {
   }
 }
 
+const NETWORK_RETRY_ATTEMPTS = 3;
+const NETWORK_RETRY_DELAY_MS = 800;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getStoredToken();
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const requestInit: RequestInit = {
     ...init,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
-  });
+  };
+
+  let response: Response | undefined;
+  for (let attempt = 1; attempt <= NETWORK_RETRY_ATTEMPTS; attempt++) {
+    try {
+      response = await fetch(`${BASE_URL}${path}`, requestInit);
+      break;
+    } catch (err) {
+      if (attempt === NETWORK_RETRY_ATTEMPTS) {
+        throw new NetworkError('Não foi possível conectar ao servidor. Tente novamente em instantes.');
+      }
+      await delay(NETWORK_RETRY_DELAY_MS);
+    }
+  }
+  response = response as Response;
 
   if (!response.ok) {
     if (response.status === 401) {

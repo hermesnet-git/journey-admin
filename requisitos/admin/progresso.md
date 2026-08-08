@@ -16,25 +16,29 @@
 |---|---|
 | Total de Épicos (EP) | 10 |
 | Total de Features (FT) | 47 |
-| Total de Requisitos (REQ) | 236 |
-| Concluídos (`done`) | 224 |
+| Total de Requisitos (REQ) | 235 |
+| Concluídos (`done`) | 218 |
 | Em andamento (`in_progress`) | 0 |
-| Não iniciados (`todo`) | 10 |
+| Não iniciados (`todo`) | 15 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
-| % Concluído | 95% |
+| % Concluído | 93% |
+
+> 5 requisitos foram reclassificados de `done` para `todo` por serem atendidos apenas por mocks/simulações no MVP (sem integração real): REQ-02.09.003, REQ-02.09.004, REQ-07.01.002, REQ-07.01.005, REQ-07.04.001. Ver nota em cada requisito.
+>
+> Correção de contagem: o total de requisitos do EP-02 estava divergente entre este resumo (38) e a seção detalhada (37 linhas). Ajustado para 37, refletido no total geral.
 
 ## Progresso por Épico
 
 | EP | Nome | REQs | Concluídos | % |
 |---|---|---:|---:|---:|
 | EP-01 | Gestão de Produtos e Canais | 24 | 24 | 100% |
-| EP-02 | Gestão de Jornadas | 38 | 38 | 100% |
+| EP-02 | Gestão de Jornadas | 37 | 35 | 95% |
 | EP-03 | Modelagem Visual | 46 | 46 | 100% |
 | EP-04 | Formulários (SDUI) | 19 | 19 | 100% |
 | EP-05 | Simulação | 10 | 0 | 0% |
 | EP-06 | Versionamento de jornadas | 35 | 35 | 100% |
-| EP-07 | Autenticação e autorização | 25 | 24 | 96% (1 n/a) |
+| EP-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
 | EP-08 | Auditoria | 22 | 21 | 95% (1 n/a) |
 | EP-09 | Ajuda e Suporte | 5 | 5 | 100% |
 | EP-10 | Observabilidade | 12 | 12 | 100% |
@@ -347,8 +351,8 @@
 |---|---|---|---|---|---|
 | [x] | REQ-02.09.001 | O Admin Portal deve iniciar a publicação por meio de uma chamada de saída para a API de publicação do runtime. | done | back: `PublishJourney`/`UnpublishJourney` chamam `RuntimePublicationPort` (`MockRuntimePublicationAdapter`) | |
 | [x] | REQ-02.09.002 | A chamada deve enviar a definição completa da jornada, incluindo produto, canal, fluxo e formulários. | done | back: `Publication` (passada para `RuntimePublicationPort.publish`) carrega jornada, produto, canal, `FlowNode`/`FlowConnection` e `Form`s referenciados | |
-| [x] | REQ-02.09.003 | No MVP, a API de publicação do runtime deve ser representada por um mock. Após o retorno de sucesso do mock, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`. | done | back: `MockRuntimePublicationAdapter` sempre "sucede" (loga e retorna); `PublishJourney` só persiste `Publication`/`journey.publish()` depois da chamada não lançar | |
-| [x] | REQ-02.09.004 | Ao despublicar no MVP, o Admin Portal deve chamar a API mockada do runtime. Após o sucesso, jornada e publicação assumem `UNPUBLISHED`; em caso de falha, os estados atuais são preservados. | done | back: `UnpublishJourney` só chama `journey.unpublish()`/`save` após `runtimePublicationPort.unpublish` retornar sem exceção; se lançasse, nada seria persistido | jornada assume `UNPUBLISHED` (não existe estado "publicação" separado — o registro é preservado, ver REQ-02.06.004) |
+| [ ] | REQ-02.09.003 | No MVP, a API de publicação do runtime deve ser representada por um mock. Após o retorno de sucesso do mock, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`. | todo | back: `MockRuntimePublicationAdapter` sempre "sucede" (loga e retorna); `PublishJourney` só persiste `Publication`/`journey.publish()` depois da chamada não lançar | Implementado, porém mockado — não é uma integração real com o runtime |
+| [ ] | REQ-02.09.004 | Ao despublicar no MVP, o Admin Portal deve chamar a API mockada do runtime. Após o sucesso, jornada e publicação assumem `UNPUBLISHED`; em caso de falha, os estados atuais são preservados. | todo | back: `UnpublishJourney` só chama `journey.unpublish()`/`save` após `runtimePublicationPort.unpublish` retornar sem exceção; se lançasse, nada seria persistido | Implementado, porém mockado — não é uma integração real com o runtime; jornada assume `UNPUBLISHED` (registro preservado, ver REQ-02.06.004) |
 
 ---
 
@@ -421,10 +425,10 @@
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
 | [x] | REQ-07.01.001 | O sistema deve representar a autenticação por meio de um provedor externo. | done | back: `POST /auth/login` modela a fronteira de um provedor externo | |
-| [x] | REQ-07.01.002 | No MVP, a integração com o provedor externo deve ser mockada. | done | back: `MockUserStore` (usuário hardcoded, sem integração real) | |
+| [ ] | REQ-07.01.002 | No MVP, a integração com o provedor externo deve ser mockada. | todo | back: `MockUserStore` (usuário hardcoded, sem integração real) | Implementado, porém mockado — não é uma integração real |
 | [x] | REQ-07.01.003 | O sistema deve disponibilizar uma tela de login padrão. | done | front: `LoginPage.tsx` | |
 | [x] | REQ-07.01.004 | A tela de login deve permitir informar usuário e senha. | done | front: campos usuário/senha em `LoginPage` (`Field`/`TextInput`) | |
-| [x] | REQ-07.01.005 | O MVP deve disponibilizar o usuário mockado `admin`, com senha `admin` e perfil `ADMIN`. | done | back: `MockUserStore` (`admin`/`admin`/`ADMIN`, UUID fixo `00000000-0000-0000-0000-000000000001`) | |
+| [ ] | REQ-07.01.005 | O MVP deve disponibilizar o usuário mockado `admin`, com senha `admin` e perfil `ADMIN`. | todo | back: `MockUserStore` (`admin`/`admin`/`ADMIN`, UUID fixo `00000000-0000-0000-0000-000000000001`) | Implementado, porém mockado — não é uma integração real |
 | [x] | REQ-07.01.006 | O sistema deve rejeitar credenciais diferentes das credenciais mockadas configuradas. | done | back: `LoginUseCase` retorna 401 (`InvalidCredentialsException`) para credenciais inválidas | |
 | [x] | REQ-07.01.007 | O sistema deve indicar que a autenticação utilizada no MVP é mockada e não representa integração real com um provedor. | done | front: nota/tag "Autenticação mockada" visível em `LoginPage` | |
 
@@ -456,7 +460,7 @@
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-07.04.001 | O sistema deve representar no MVP o usuário `admin` como usuário administrativo mockado. | done | back: `MockUserStore` | |
+| [ ] | REQ-07.04.001 | O sistema deve representar no MVP o usuário `admin` como usuário administrativo mockado. | todo | back: `MockUserStore` | Implementado, porém mockado — não é uma integração real |
 | [ ] | REQ-07.04.002 | O sistema deve impedir a remoção do último usuário com papel `ADMIN`. | n/a | | não há CRUD de usuário no MVP (usuário único hardcoded, não removível por design) |
 | [x] | REQ-07.04.003 | O sistema deve permitir consultar o usuário autenticado e seu papel. | done | back: `GET /auth/me`; front: `AuthContext` expõe `user` (username/role) | endpoint adicional não previsto no OpenAPI original, alinhado ao requisito |
 | [x] | REQ-07.04.004 | O sistema deve deixar explícito que cadastro, alteração e persistência de usuários reais estão fora do MVP. | done | back: comentário no `MockUserStore`; front: nota "mockado" em `LoginPage` | |

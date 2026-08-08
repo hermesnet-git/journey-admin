@@ -12,10 +12,12 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ShieldCheck,
+  Info,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAppTheme } from './theme';
 import { useAuth } from '../auth/AuthContext';
+import { APP_NAME, APP_VERSION } from './appInfo';
 
 interface NavItem {
   key: string;
@@ -86,6 +88,14 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
             style={{ color: c.textSecondary }}
           >
             <HelpCircle size={15} />
+          </button>
+          <button
+            onClick={() => onNavigate('sobre')}
+            title={`Sobre · ${APP_NAME} · ${APP_VERSION}`}
+            className="flex items-center justify-center w-[36px] h-[36px] rounded-md cursor-pointer border-0 bg-transparent"
+            style={{ color: c.textSecondary }}
+          >
+            <Info size={15} />
           </button>
           <button
             onClick={logout}
@@ -183,9 +193,13 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
           </div>
           <ChevronDown size={14} className="shrink-0" style={{ color: c.textMuted }} />
         </div>
-        <div className="text-center text-[10px] pt-2" style={{ color: c.textMuted }}>
-          Elastic Journey · v1.2.0
-        </div>
+        <button
+          onClick={() => onNavigate('sobre')}
+          className="text-center text-[10px] pt-2 cursor-pointer border-0 bg-transparent"
+          style={{ color: c.textMuted }}
+        >
+          <span style={{ color: c.accent }}>Sobre</span> · {APP_NAME} · {APP_VERSION}
+        </button>
       </div>
     </div>
   );

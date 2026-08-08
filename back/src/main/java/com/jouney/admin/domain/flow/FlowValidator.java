@@ -10,13 +10,25 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * Enforces REQ-03.01.004 and REQ-03.02.004/005/006: exactly one START and one
- * END; START has no input and exactly one output; USER_TASK has at least one
- * input and exactly one output; END has at least one input and no outputs;
- * every node sits on a continuous path reachable from START and able to
- * reach END.
+ * Enforces REQ-03.01.004, REQ-03.02.004/005/006 and REQ-03.07.005: exactly
+ * one start element (START or MESSAGE_START_EVENT) and one END; the start
+ * element has no input and exactly one output; USER_TASK/SERVICE_TASK/
+ * RECEIVE_TASK have at least one input and exactly one output; END has at
+ * least one input and no outputs; every node sits on a continuous path
+ * reachable from the start element and able to reach END. Also enforces
+ * REQ-03.08.004 (connector must be enabled), REQ-03.09.007 (REST is not a
+ * valid connector for MESSAGE_START_EVENT — it starts the flow from an
+ * incoming message, it never calls out) and REQ-03.09.008 (Kafka operation is
+ * implied by the node's role: SERVICE_TASK produces, RECEIVE_TASK and
+ * MESSAGE_START_EVENT only ever consume).
  */
 public final class FlowValidator {
+
+    private static final Set<FlowNodeType> START_TYPES = Set.of(FlowNodeType.START, FlowNodeType.MESSAGE_START_EVENT);
+    private static final Map<FlowNodeType, String> KAFKA_OPERATION_BY_TYPE = Map.of(
+            FlowNodeType.SERVICE_TASK, "PRODUCE",
+            FlowNodeType.RECEIVE_TASK, "CONSUME",
+            FlowNodeType.MESSAGE_START_EVENT, "CONSUME");
 
     private FlowValidator() {
     }
@@ -24,10 +36,11 @@ public final class FlowValidator {
     public static void validate(List<FlowNode> nodes, List<FlowConnection> connections) {
         List<String> violations = new ArrayList<>();
 
-        List<FlowNode> starts = nodes.stream().filter(n -> n.getType() == FlowNodeType.START).toList();
+        List<FlowNode> starts = nodes.stream().filter(n -> START_TYPES.contains(n.getType())).toList();
         List<FlowNode> ends = nodes.stream().filter(n -> n.getType() == FlowNodeType.END).toList();
         if (starts.size() != 1) {
-            violations.add("The flow must contain exactly one START node (found " + starts.size() + ")");
+            violations.add("The flow must contain exactly one start element, START or MESSAGE_START_EVENT (found "
+                    + starts.size() + ")");
         }
         if (ends.size() != 1) {
             violations.add("The flow must contain exactly one END node (found " + ends.size() + ")");
@@ -56,15 +69,15 @@ public final class FlowValidator {
             int in = inDegree.getOrDefault(node.getId(), 0);
             int out = outDegree.getOrDefault(node.getId(), 0);
             switch (node.getType()) {
-                case START -> {
+                case START, MESSAGE_START_EVENT -> {
                     if (in != 0 || out != 1) {
-                        violations.add("START node '" + node.getName()
+                        violations.add(node.getType() + " node '" + node.getName()
                                 + "' must have no inputs and exactly one output");
                     }
                 }
-                case USER_TASK -> {
+                case USER_TASK, SERVICE_TASK, RECEIVE_TASK -> {
                     if (in < 1 || out != 1) {
-                        violations.add("USER_TASK node '" + node.getName()
+                        violations.add(node.getType() + " node '" + node.getName()
                                 + "' must have at least one input and exactly one output");
                     }
                 }
@@ -72,6 +85,27 @@ public final class FlowValidator {
                     if (in < 1 || out != 0) {
                         violations.add("END node '" + node.getName()
                                 + "' must have at least one input and no outputs");
+                    }
+                }
+            }
+
+            if (node.getConnectorConfig() != null) {
+                ConnectorConfig connectorConfig = node.getConnectorConfig();
+                if (!connectorConfig.getConnectorType().isEnabled()) {
+                    violations.add("Node '" + node.getName() + "' references a disabled connector ("
+                            + connectorConfig.getConnectorType() + ")");
+                }
+                if (node.getType() == FlowNodeType.MESSAGE_START_EVENT
+                        && connectorConfig.getConnectorType() == ConnectorType.REST) {
+                    violations.add("MESSAGE_START_EVENT node '" + node.getName()
+                            + "' cannot use a REST connector; only KAFKA (consume) starts a flow from an incoming message");
+                }
+                if (connectorConfig.getConnectorType() == ConnectorType.KAFKA) {
+                    String expectedOperation = KAFKA_OPERATION_BY_TYPE.get(node.getType());
+                    Object operation = connectorConfig.getConfig() != null ? connectorConfig.getConfig().get("operation") : null;
+                    if (expectedOperation != null && operation != null && !expectedOperation.equals(operation)) {
+                        violations.add("Node '" + node.getName() + "' Kafka operation must be " + expectedOperation
+                                + " for " + node.getType());
                     }
                 }
             }

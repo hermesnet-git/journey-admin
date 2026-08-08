@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Play, ClipboardList, CheckCircle2, Plus, X, FileText, Pencil } from 'lucide-react';
+import { Play, ClipboardList, CheckCircle2, Plus, X, FileText, Pencil, Server, Mail, Plug } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
 import { NODE_META, NODE_WIDTH, TYPE_COLOR, type NodeType, type WFNode } from './model';
 
-const ICON: Record<NodeType, typeof Play> = { start: Play, userTask: ClipboardList, end: CheckCircle2 };
-const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'end'];
+const ICON: Record<NodeType, typeof Play> = {
+  start: Play,
+  userTask: ClipboardList,
+  end: CheckCircle2,
+  serviceTask: Server,
+  receiveTask: Mail,
+  messageStartEvent: Mail,
+};
+const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask', 'end'];
 
 function QuickAdd({ nodeId }: { nodeId: string }) {
   const { c } = useFlowTheme();
@@ -76,14 +83,16 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   const actions = useWorkflowActions();
   const { c } = useFlowTheme();
   const Icon = ICON[nodeType];
-  const hasInput = nodeType !== 'start';
+  const hasInput = nodeType !== 'start' && nodeType !== 'messageStartEvent';
   const hasOutput = nodeType !== 'end';
   const outgoingLimitReached = !!data.outgoingLimitReached;
   const invalid = !!data.invalid;
 
   const borderColor = invalid ? c.danger : selected ? c.accent : c.cardBorder;
   const ringColor = invalid ? c.dangerSoft : c.accentSoft;
-  const deletable = nodeType !== 'start';
+  // Both start-type elements are deletable so a MESSAGE_START_EVENT can replace the
+  // default START (REQ-03.07.005 allows exactly one, of either type).
+  const deletable = true;
 
   return (
     <div
@@ -128,10 +137,10 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           type="target"
           position={Position.Left}
           style={{
-            width: 12,
-            height: 12,
+            width: 8.4,
+            height: 8.4,
             background: c.cardBg,
-            border: `2.5px solid ${c.handleColor}`,
+            border: `1.75px solid ${c.handleColor}`,
             zIndex: 5,
           }}
         />
@@ -153,6 +162,16 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
               <FileText size={9} color="#fff" strokeWidth={2.5} />
             </div>
           )}
+          {(nodeType === 'serviceTask' || nodeType === 'receiveTask' || nodeType === 'messageStartEvent') &&
+            data.connectorConfig && (
+              <div
+                title={`Conector ${data.connectorConfig.connectorType} associado`}
+                className="absolute -bottom-1 -right-1 w-[16px] h-[16px] rounded-full flex items-center justify-center"
+                style={{ background: c.accent, border: `1.5px solid ${c.cardBg}` }}
+              >
+                <Plug size={9} color="#fff" strokeWidth={2.5} />
+              </div>
+            )}
         </div>
         <div className="min-w-0">
           <div className="text-[14px] font-bold truncate" style={{ color: c.textPrimary }}>
@@ -186,10 +205,10 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
             position={Position.Right}
             isConnectable={!outgoingLimitReached}
             style={{
-              width: 12,
-              height: 12,
+              width: 8.4,
+              height: 8.4,
               background: c.cardBg,
-              border: `2.5px solid ${c.handleColor}`,
+              border: `1.75px solid ${c.handleColor}`,
               zIndex: 5,
               opacity: outgoingLimitReached ? 0.4 : 1,
             }}

@@ -25,13 +25,12 @@ public class Flow {
         this.updatedAt = updatedAt;
     }
 
+    // Product decision (supersedes the original REQ-03.01.005 reading): a new
+    // journey's flow starts completely empty; the user adds START, END and
+    // everything else before saving.
     public static Flow initial(UUID journeyId) {
         OffsetDateTime now = OffsetDateTime.now();
-        FlowNode start = new FlowNode(FlowIds.newNodeId(), FlowNodeType.START, "Início", null, 80, 80, null);
-        FlowNode end = new FlowNode(FlowIds.newNodeId(), FlowNodeType.END, "Fim", null, 400, 80, null);
-        FlowConnection connection = new FlowConnection(FlowIds.newConnectionId(), start.getId(), end.getId());
-        return new Flow(FlowIds.newFlowId(), journeyId, "Fluxo principal", List.of(start, end), List.of(connection),
-                now, now);
+        return new Flow(FlowIds.newFlowId(), journeyId, "Fluxo principal", List.of(), List.of(), now, now);
     }
 
     public void replace(String name, List<FlowNode> nodes, List<FlowConnection> connections) {

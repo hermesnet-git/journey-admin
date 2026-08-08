@@ -297,19 +297,22 @@ Permitir a construção visual do fluxo específico de cada jornada.
 
 ### FT-03.08 Framework de Conectores
 #### REQ-03.08.001 - O sistema deve representar a integração por meio de um framework conceitual de conectores.
-#### REQ-03.08.002 - O framework deve permitir associar um conector a uma `SERVICE_TASK`, `RECEIVE_TASK` ou `MESSAGE_START_EVENT`.
+#### REQ-03.08.002 - O framework deve permitir associar um conector a uma `SERVICE_TASK`, `RECEIVE_TASK` ou `MESSAGE_START_EVENT`, respeitando quais conectores são válidos para cada tipo (REQ-03.09.007).
 #### REQ-03.08.003 - O catálogo deve possuir os conectores `REST` e `KAFKA` habilitados para uso no MVP.
 #### REQ-03.08.004 - O catálogo deve possuir conectores adicionais registrados como desabilitados, sem permitir seu uso em fluxos.
 #### REQ-03.08.005 - O sistema deve persistir o tipo do conector e sua configuração específica de forma extensível.
 ---
 
 ### FT-03.09 Configuração REST e Kafka
-#### REQ-03.09.001 - O sistema deve permitir configurar `REST` em `SERVICE_TASK`.
+#### REQ-03.09.001 - O sistema deve permitir configurar `REST` em `SERVICE_TASK` e `RECEIVE_TASK`.
 #### REQ-03.09.002 - A configuração REST deve suportar método HTTP, URL, headers, parâmetros, body, mapeamento de entrada e mapeamento de saída.
 #### REQ-03.09.003 - O sistema deve permitir configurar `KAFKA` em `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT`.
-#### REQ-03.09.004 - A configuração Kafka deve suportar tópico ou fila, operação, headers, payload, mapeamento de entrada e mapeamento de saída.
+#### REQ-03.09.004 - A configuração Kafka deve suportar tópico, operação, headers, payload, mapeamento de entrada e mapeamento de saída. Kafka não possui o conceito de fila; a unidade de endereçamento é sempre o tópico.
 #### REQ-03.09.005 - Configurações de integração devem suportar referência de credencial sem armazenar secrets diretamente no fluxo ou no snapshot.
 #### REQ-03.09.006 - O snapshot publicado deve incluir o tipo do elemento, o conector, a configuração declarativa e os mapeamentos necessários para execução pelo runtime.
+#### REQ-03.09.007 - `REST` não é um conector válido para `MESSAGE_START_EVENT`: a configuração REST representa uma chamada de saída (método e URL a serem chamados), e o elemento inicia o fluxo a partir de uma mensagem recebida, nunca chamando algo externamente. `MESSAGE_START_EVENT` deve suportar apenas `KAFKA`.
+#### REQ-03.09.008 - A operação Kafka é determinada pelo tipo de nó, não é uma escolha livre do usuário: `SERVICE_TASK` deve usar `PRODUCE` (publica um evento como efeito da tarefa); `RECEIVE_TASK` e `MESSAGE_START_EVENT` devem usar `CONSUME` (aguardam uma mensagem chegar).
+#### REQ-03.09.009 - Headers (REST e Kafka) devem ser editados como uma lista de pares nome/valor (com opção de adicionar e remover pares), e não como texto declarativo livre — diferente de parâmetros, body, payload e mapeamentos de entrada/saída, cujo formato ainda não é padronizado e por isso permanecem como configuração declarativa livre.
 
 
 <br/><br/>
@@ -328,6 +331,7 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 #### REQ-04.01.003 - O sistema deve permitir remover formulários.
 #### REQ-04.01.004 - O sistema deve permitir associar formulários a User Tasks.
 #### REQ-04.01.005 - O sistema deve permitir manter uma User Task sem formulário associado.
+#### REQ-04.01.006 - Ao associar um formulário a uma User Task no editor de fluxo, o sistema deve permitir criar um novo formulário sem sair do editor, sendo levado à tela de criação, e deve permitir atualizar a lista de formulários disponíveis para refletir formulários criados nesse meio-tempo.
 ---
 
 ### FT-04.02 Componentes

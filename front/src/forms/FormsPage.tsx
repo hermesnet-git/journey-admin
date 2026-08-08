@@ -10,6 +10,8 @@ import { FormBuilderPage } from './FormBuilderPage';
 interface FormsPageProps {
   openFormId?: string | null;
   onOpenFormIdHandled?: () => void;
+  openNew?: boolean;
+  onOpenNewHandled?: () => void;
 }
 
 export function FormsPage(props: FormsPageProps) {
@@ -20,7 +22,7 @@ export function FormsPage(props: FormsPageProps) {
   );
 }
 
-function FormsPageContent({ openFormId, onOpenFormIdHandled }: FormsPageProps) {
+function FormsPageContent({ openFormId, onOpenFormIdHandled, openNew, onOpenNewHandled }: FormsPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [forms, setForms] = useState<Form[]>([]);
@@ -53,6 +55,12 @@ function FormsPageContent({ openFormId, onOpenFormIdHandled }: FormsPageProps) {
       .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao abrir formulário', 'error'))
       .finally(() => onOpenFormIdHandled?.());
   }, [openFormId, onOpenFormIdHandled, showToast]);
+
+  useEffect(() => {
+    if (!openNew) return;
+    setEditingForm('new');
+    onOpenNewHandled?.();
+  }, [openNew, onOpenNewHandled]);
 
   const filtered = useMemo(
     () => forms.filter((f) => !search || f.name.toLowerCase().includes(search.toLowerCase())),

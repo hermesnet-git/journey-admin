@@ -1,6 +1,13 @@
 import { apiGet, apiPut } from './client';
 
-export type FlowNodeType = 'START' | 'USER_TASK' | 'END';
+export type FlowNodeType = 'START' | 'USER_TASK' | 'END' | 'SERVICE_TASK' | 'RECEIVE_TASK' | 'MESSAGE_START_EVENT';
+export type ConnectorType = 'REST' | 'KAFKA';
+
+export interface ConnectorConfig {
+  connectorType: ConnectorType;
+  config: Record<string, unknown> | null;
+  credentialRef: string | null;
+}
 
 export interface FlowNode {
   nodeId: string;
@@ -10,6 +17,7 @@ export interface FlowNode {
   positionX: number;
   positionY: number;
   userTaskConfig: { formId: string } | null;
+  connectorConfig: ConnectorConfig | null;
 }
 
 export interface FlowConnection {

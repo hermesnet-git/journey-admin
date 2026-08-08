@@ -15,10 +15,12 @@ public record FlowNodeInput(
         String description,
         @NotNull Integer positionX,
         @NotNull Integer positionY,
-        @Valid UserTaskConfigInput userTaskConfig) {
+        @Valid UserTaskConfigInput userTaskConfig,
+        @Valid ConnectorConfigInput connectorConfig) {
 
     public FlowNode toDomain() {
         UUID formId = userTaskConfig != null ? userTaskConfig.formId() : null;
-        return new FlowNode(nodeId, nodeType, name, description, positionX, positionY, formId);
+        return new FlowNode(nodeId, nodeType, name, description, positionX, positionY, formId,
+                connectorConfig != null ? connectorConfig.toDomain() : null);
     }
 }

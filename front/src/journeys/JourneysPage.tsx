@@ -55,17 +55,18 @@ function formatDate(iso: string): string {
 
 interface JourneysPageProps {
   onOpenForm: (formId: string) => void;
+  onOpenNewForm: () => void;
 }
 
-export function JourneysPage({ onOpenForm }: JourneysPageProps) {
+export function JourneysPage({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
   return (
     <ToastProvider>
-      <JourneysPageContent onOpenForm={onOpenForm} />
+      <JourneysPageContent onOpenForm={onOpenForm} onOpenNewForm={onOpenNewForm} />
     </ToastProvider>
   );
 }
 
-function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
+function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [journeys, setJourneys] = useState<Journey[]>([]);
@@ -143,6 +144,7 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
       <JourneyDesignerPage
         journey={editingJourney}
         onOpenForm={onOpenForm}
+        onOpenNewForm={onOpenNewForm}
         onClose={async () => {
           setEditingJourney(null);
           await reload();

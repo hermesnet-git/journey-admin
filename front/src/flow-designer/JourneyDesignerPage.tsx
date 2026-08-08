@@ -22,7 +22,7 @@ import { FlowThemeContext, DARK_COLORS, LIGHT_COLORS } from './theme';
 import { useAppTheme } from '../shell/theme';
 import { WorkflowNode } from './WorkflowNode';
 import { Palette } from './Palette';
-import { PropertiesPanel } from './PropertiesPanel';
+import { PropertiesDock } from './PropertiesDock';
 import { ErrorModal } from './ErrorModal';
 import { Toolbar } from './Toolbar';
 import { validateFlow } from './validation';
@@ -34,6 +34,10 @@ import {
   newNodeId,
   newConnectionId,
   computeLayout,
+  findFreeSpot,
+  SINGLE_OUTPUT_TYPES,
+  FRONT_TO_BACKEND_TYPE,
+  BACKEND_TO_FRONT_TYPE,
   type NodeType,
   type WFNode,
   type WFEdge,
@@ -43,7 +47,14 @@ import { updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow } from '../api/flows';
 import { listForms, type Form } from '../api/forms';
 
-const nodeTypes = { start: WorkflowNode, userTask: WorkflowNode, end: WorkflowNode };
+const nodeTypes = {
+  start: WorkflowNode,
+  userTask: WorkflowNode,
+  end: WorkflowNode,
+  serviceTask: WorkflowNode,
+  receiveTask: WorkflowNode,
+  messageStartEvent: WorkflowNode,
+};
 
 interface HistorySnapshot {
   nodes: WFNode[];
@@ -55,15 +66,17 @@ export function JourneyDesignerPage({
   onClose,
   onSaved,
   onOpenForm,
+  onOpenNewForm,
 }: {
   journey: Journey;
   onClose: () => void;
   onSaved: () => void;
   onOpenForm: (formId: string) => void;
+  onOpenNewForm: () => void;
 }) {
   return (
     <ReactFlowProvider>
-      <DesignerInner journey={journey} onClose={onClose} onSaved={onSaved} onOpenForm={onOpenForm} />
+      <DesignerInner journey={journey} onClose={onClose} onSaved={onSaved} onOpenForm={onOpenForm} onOpenNewForm={onOpenNewForm} />
     </ReactFlowProvider>
   );
 }
@@ -73,11 +86,13 @@ function DesignerInner({
   onClose,
   onSaved,
   onOpenForm,
+  onOpenNewForm,
 }: {
   journey: Journey;
   onClose: () => void;
   onSaved: () => void;
   onOpenForm: (formId: string) => void;
+  onOpenNewForm: () => void;
 }) {
   const { dark } = useAppTheme();
   const c = dark ? DARK_COLORS : LIGHT_COLORS;
@@ -93,8 +108,9 @@ function DesignerInner({
   const [errors, setErrors] = useState<string[]>([]);
   const [invalidNodeIds, setInvalidNodeIds] = useState<Set<string>>(new Set());
   const [, setHistoryTick] = useState(0);
-  // Properties panel only opens explicitly (double-click / edit icon), never
-  // from React Flow's own single-click node selection.
+  // The properties dock is always visible. It shows this node's properties
+  // when set, and falls back to the journey's own properties when null (e.g.
+  // after a blank-canvas click).
   const [propertiesNodeId, setPropertiesNodeId] = useState<string | null>(null);
 
   const nodesRef = useRef(nodes);
@@ -109,9 +125,9 @@ function DesignerInner({
     setInvalidNodeIds(new Set());
   }, [nodes, edges]);
 
-  // Keep the properties panel in sync with the current selection while it's open.
+  // Keep the always-visible dock in sync with the current selection: clicking
+  // any node on canvas updates it to that node's properties.
   useEffect(() => {
-    if (!propertiesNodeId) return;
     const selectedNode = nodes.find((n) => n.selected);
     if (selectedNode && selectedNode.id !== propertiesNodeId) setPropertiesNodeId(selectedNode.id);
   }, [nodes, propertiesNodeId]);
@@ -123,17 +139,26 @@ function DesignerInner({
   const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow();
   const { zoom } = useViewport();
 
-  useEffect(() => {
+  const refreshForms = useCallback(() => {
     listForms().then(setForms);
   }, []);
+
+  useEffect(() => {
+    refreshForms();
+  }, [refreshForms]);
 
   useEffect(() => {
     getFlow(journey.journeyId).then((flow) => {
       const loadedNodes: WFNode[] = flow.nodes.map((n) => ({
         id: n.nodeId,
-        type: n.nodeType === 'START' ? 'start' : n.nodeType === 'END' ? 'end' : 'userTask',
+        type: BACKEND_TO_FRONT_TYPE[n.nodeType],
         position: { x: n.positionX, y: n.positionY },
-        data: { name: n.name, description: n.description ?? '', formId: n.userTaskConfig?.formId ?? null },
+        data: {
+          name: n.name,
+          description: n.description ?? '',
+          formId: n.userTaskConfig?.formId ?? null,
+          connectorConfig: n.connectorConfig,
+        },
       }));
       setNodes(loadedNodes);
       setEdges(flow.connections.map((c) => ({ id: c.connectionId, source: c.sourceNodeId, target: c.targetNodeId })));
@@ -195,7 +220,7 @@ function DesignerInner({
   const onConnect = useCallback<OnConnect>(
     (params) => {
       const source = nodesRef.current.find((n) => n.id === params.source);
-      if (source?.type === 'userTask' && edgesRef.current.some((e) => e.source === params.source)) return;
+      if (source?.type && SINGLE_OUTPUT_TYPES.includes(source.type) && edgesRef.current.some((e) => e.source === params.source)) return;
       pushHistory();
       setEdges((eds) => addEdge({ ...params, id: newConnectionId() }, eds));
     },
@@ -212,7 +237,8 @@ function DesignerInner({
   const addNodeAt = useCallback(
     (type: NodeType, x: number, y: number) => {
       pushHistory();
-      const node = { ...makeNode(type, x, y), selected: true };
+      const spot = findFreeSpot(nodesRef.current, x, y);
+      const node = { ...makeNode(type, spot.x, spot.y), selected: true };
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
     },
     [pushHistory],
@@ -239,13 +265,14 @@ function DesignerInner({
     [addNodeAt, screenToFlowPosition],
   );
 
-  // START/END must stay unique, so copy/duplicate only apply to userTask nodes.
+  // Single-of-a-kind types (start/end/messageStartEvent) must stay unique, so
+  // copy/duplicate only apply to the repeatable task types.
   const clipboardRef = useRef<WFNode | null>(null);
 
   const duplicateNode = useCallback(
     (nodeId: string) => {
       const source = nodesRef.current.find((n) => n.id === nodeId);
-      if (!source || source.type !== 'userTask') return;
+      if (!source || !source.type || !SINGLE_OUTPUT_TYPES.includes(source.type)) return;
       pushHistory();
       const clone = {
         ...source,
@@ -266,7 +293,8 @@ function DesignerInner({
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
       const selected = nodesRef.current.filter((n) => n.selected);
       if (e.key === 'c') {
-        if (selected.length === 1 && selected[0].type === 'userTask') clipboardRef.current = selected[0];
+        const type = selected[0]?.type;
+        if (selected.length === 1 && type && SINGLE_OUTPUT_TYPES.includes(type)) clipboardRef.current = selected[0];
       } else if (e.key === 'v') {
         if (clipboardRef.current) {
           e.preventDefault();
@@ -287,7 +315,7 @@ function DesignerInner({
     (nodeId: string, type: NodeType) => {
       const source = nodesRef.current.find((n) => n.id === nodeId);
       if (!source) return;
-      if (source.type === 'userTask' && edgesRef.current.some((e) => e.source === nodeId)) return;
+      if (source.type && SINGLE_OUTPUT_TYPES.includes(source.type) && edgesRef.current.some((e) => e.source === nodeId)) return;
       pushHistory();
       const node = { ...makeNode(type, source.position.x + NODE_WIDTH + 140, source.position.y), selected: true };
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
@@ -295,6 +323,10 @@ function DesignerInner({
     },
     [pushHistory],
   );
+
+  const onPaneClick = useCallback(() => {
+    setPropertiesNodeId(null);
+  }, []);
 
   const organize = useCallback(() => {
     pushHistory();
@@ -323,7 +355,7 @@ function DesignerInner({
         data: {
           ...n.data,
           invalid: invalidNodeIds.has(n.id),
-          outgoingLimitReached: n.type === 'userTask' && edges.some((e) => e.source === n.id),
+          outgoingLimitReached: !!n.type && SINGLE_OUTPUT_TYPES.includes(n.type) && edges.some((e) => e.source === n.id),
         },
       })),
     [nodes, edges, invalidNodeIds],
@@ -359,12 +391,13 @@ function DesignerInner({
         name: 'Fluxo principal',
         nodes: nodes.map((n) => ({
           nodeId: n.id,
-          nodeType: n.type === 'start' ? 'START' : n.type === 'end' ? 'END' : 'USER_TASK',
+          nodeType: FRONT_TO_BACKEND_TYPE[n.type as NodeType],
           name: n.data.name,
           description: n.data.description || null,
           positionX: Math.round(n.position.x),
           positionY: Math.round(n.position.y),
           userTaskConfig: n.data.formId ? { formId: n.data.formId } : null,
+          connectorConfig: n.data.connectorConfig,
         })),
         connections: edges.map((e) => ({ connectionId: e.id, sourceNodeId: e.source, targetNodeId: e.target })),
       });
@@ -392,7 +425,6 @@ function DesignerInner({
       <WorkflowActionsContext.Provider value={actions}>
         <div className="flex-1 flex flex-col overflow-hidden">
           <Toolbar
-            onAddComponent={addNodeFromPalette}
             canUndo={undoStack.current.length > 0}
             canRedo={redoStack.current.length > 0}
             onUndo={undo}
@@ -407,16 +439,7 @@ function DesignerInner({
             onCancel={onClose}
           />
           <div className="flex-1 flex min-h-0">
-            <Palette
-              journey={{
-                productName: activeJourney.productName,
-                channelName: activeJourney.channelName,
-                name,
-                onNameChange: setName,
-                description,
-                onDescriptionChange: setDescription,
-              }}
-            />
+            <Palette onAdd={addNodeFromPalette} />
             <div
               ref={wrapperRef}
               className="flex-1 relative min-w-0"
@@ -430,6 +453,7 @@ function DesignerInner({
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                onPaneClick={onPaneClick}
                 onNodeDragStart={onNodeDragStart}
                 onBeforeDelete={onBeforeDelete}
                 deleteKeyCode={['Delete', 'Backspace']}
@@ -447,15 +471,22 @@ function DesignerInner({
                 <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={20} size={1.4} />
               </ReactFlow>
             </div>
-            {propertiesNode && (
-              <PropertiesPanel
-                node={propertiesNode}
-                forms={forms}
-                onClose={() => setPropertiesNodeId(null)}
-                onUpdate={(patch) => updateNodeData(propertiesNode.id, patch)}
-                onDelete={() => deleteNode(propertiesNode.id)}
-              />
-            )}
+            <PropertiesDock
+              node={propertiesNode}
+              forms={forms}
+              onUpdateNode={(patch) => propertiesNode && updateNodeData(propertiesNode.id, patch)}
+              onDeleteNode={() => propertiesNode && deleteNode(propertiesNode.id)}
+              onOpenNewForm={onOpenNewForm}
+              onRefreshForms={refreshForms}
+              journey={{
+                productName: activeJourney.productName,
+                channelName: activeJourney.channelName,
+                name,
+                onNameChange: setName,
+                description,
+                onDescriptionChange: setDescription,
+              }}
+            />
           </div>
         </div>
         {errors.length > 0 && <ErrorModal errors={errors} onClose={() => setErrors([])} />}

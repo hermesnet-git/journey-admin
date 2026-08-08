@@ -25,3 +25,11 @@ html, body, #root {
     animation-duration: 0.001ms !important;
   }
 }
+
+/* Multi-selection in the flow designer keeps working (drag to select, move as
+   a group), but the bounding box React Flow draws around the group is hidden —
+   only the individually selected nodes should look selected. */
+.react-flow__nodesselection-rect {
+  background: transparent !important;
+  border: none !important;
+}

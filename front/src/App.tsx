@@ -3,17 +3,14 @@ import { ThemeContextProvider, getBlauSkin } from '@telefonica/mistica';
 import { Sidebar } from './shell/Sidebar';
 import { TabBar } from './shell/TabBar';
 import { PlaceholderPanel } from './shell/PlaceholderPanel';
-import { WorkflowsDashboard } from './dashboard/WorkflowsDashboard';
-import { WorkflowDetail } from './dashboard/WorkflowDetail';
 import { ProductsPage } from './products/ProductsPage';
 import { JourneysPage } from './journeys/JourneysPage';
 import { FormsPage } from './forms/FormsPage';
 import { AppThemeContext, LIGHT_APP_COLORS, DARK_APP_COLORS } from './shell/theme';
 import type { Tab } from './shell/types';
 
-const DASHBOARD_TAB: Tab = { key: 'dashboard', title: 'Dashboard', kind: 'dashboard', closable: false };
+const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: false };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
-const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: true };
 const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
 
 const NAV_LABELS: Record<string, string> = {
@@ -28,9 +25,10 @@ const skin = getBlauSkin();
 export function App() {
   const [dark, setDark] = useState(false);
   const colors = dark ? DARK_APP_COLORS : LIGHT_APP_COLORS;
-  const [tabs, setTabs] = useState<Tab[]>([DASHBOARD_TAB]);
-  const [activeKey, setActiveKey] = useState('dashboard');
+  const [tabs, setTabs] = useState<Tab[]>([JOURNEYS_TAB]);
+  const [activeKey, setActiveKey] = useState('jornadas');
   const [openFormId, setOpenFormId] = useState<string | null>(null);
+  const [openNewForm, setOpenNewForm] = useState(false);
 
   function openTab(tab: Tab) {
     setTabs((prev) => (prev.some((t) => t.key === tab.key) ? prev : [...prev, tab]));
@@ -41,17 +39,13 @@ export function App() {
     setTabs((prev) => {
       const next = prev.filter((t) => t.key !== key);
       if (activeKey === key) {
-        setActiveKey(next[next.length - 1]?.key ?? 'dashboard');
+        setActiveKey(next[next.length - 1]?.key ?? 'jornadas');
       }
       return next;
     });
   }
 
   function handleNavigate(navKey: string) {
-    if (navKey === 'workflows') {
-      setActiveKey('dashboard');
-      return;
-    }
     if (navKey === 'produtos') {
       openTab(PRODUCTS_TAB);
       return;
@@ -72,21 +66,20 @@ export function App() {
     openTab(FORMS_TAB);
   }
 
-  function handleOpenWorkflow(id: string, name: string) {
-    openTab({ key: `wf-${id}`, title: name, kind: 'detail', workflowId: id, closable: true });
+  function openNewFormScreen() {
+    setOpenNewForm(true);
+    openTab(FORMS_TAB);
   }
 
-  const activeTab = tabs.find((t) => t.key === activeKey) ?? DASHBOARD_TAB;
+  const activeTab = tabs.find((t) => t.key === activeKey) ?? JOURNEYS_TAB;
   const activeNavKey =
     activeTab.kind === 'placeholder'
       ? activeTab.key.replace('nav-', '')
       : activeTab.kind === 'products'
         ? 'produtos'
-        : activeTab.kind === 'journeys'
-          ? 'jornadas'
-          : activeTab.kind === 'forms'
-            ? 'formularios'
-            : 'workflows';
+        : activeTab.kind === 'forms'
+          ? 'formularios'
+          : 'jornadas';
 
   return (
     <AppThemeContext.Provider value={{ dark, colors, toggle: () => setDark((d) => !d) }}>
@@ -103,15 +96,16 @@ export function App() {
             <div className="flex-1 flex flex-col overflow-hidden">
               {tabs.map((tab) => (
                 <div key={tab.key} className="flex-1 flex flex-col overflow-hidden" style={{ display: tab.key === activeKey ? 'flex' : 'none' }}>
-                  {tab.kind === 'dashboard' && <WorkflowsDashboard onOpenWorkflow={handleOpenWorkflow} />}
-                  {tab.kind === 'detail' && tab.workflowId && (
-                    <WorkflowDetail workflowId={tab.workflowId} onBack={() => setActiveKey('dashboard')} />
-                  )}
                   {tab.kind === 'placeholder' && <PlaceholderPanel title={tab.title} />}
                   {tab.kind === 'products' && <ProductsPage />}
-                  {tab.kind === 'journeys' && <JourneysPage onOpenForm={openForm} />}
+                  {tab.kind === 'journeys' && <JourneysPage onOpenForm={openForm} onOpenNewForm={openNewFormScreen} />}
                   {tab.kind === 'forms' && (
-                    <FormsPage openFormId={openFormId} onOpenFormIdHandled={() => setOpenFormId(null)} />
+                    <FormsPage
+                      openFormId={openFormId}
+                      onOpenFormIdHandled={() => setOpenFormId(null)}
+                      openNew={openNewForm}
+                      onOpenNewHandled={() => setOpenNewForm(false)}
+                    />
                   )}
                 </div>
               ))}

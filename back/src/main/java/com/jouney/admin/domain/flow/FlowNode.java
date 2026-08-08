@@ -11,9 +11,10 @@ public class FlowNode {
     private final int positionX;
     private final int positionY;
     private final UUID formId;
+    private final ConnectorConfig connectorConfig;
 
     public FlowNode(String id, FlowNodeType type, String name, String description, int positionX, int positionY,
-                     UUID formId) {
+                     UUID formId, ConnectorConfig connectorConfig) {
         this.id = id;
         this.type = type;
         this.name = name;
@@ -21,6 +22,7 @@ public class FlowNode {
         this.positionX = positionX;
         this.positionY = positionY;
         this.formId = formId;
+        this.connectorConfig = connectorConfig;
     }
 
     public String getId() {
@@ -49,5 +51,9 @@ public class FlowNode {
 
     public UUID getFormId() {
         return formId;
+    }
+
+    public ConnectorConfig getConnectorConfig() {
+        return connectorConfig;
     }
 }

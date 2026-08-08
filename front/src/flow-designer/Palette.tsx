@@ -1,21 +1,35 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
+import {
+  Play,
+  ClipboardList,
+  CheckCircle2,
+  Server,
+  Mail,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  type LucideIcon,
+} from 'lucide-react';
 import { useFlowTheme } from './theme';
-import { JourneyMetaBar } from './JourneyMetaBar';
+import { NODE_META, TYPE_COLOR, type NodeType } from './model';
 
-interface JourneyMetaProps {
-  productName: string;
-  channelName: string;
-  name: string;
-  onNameChange: (value: string) => void;
-  description: string;
-  onDescriptionChange: (value: string) => void;
-}
+// Both start-type elements are offered since 'start' is now deletable/re-addable
+// (only one of start/messageStartEvent may exist at a time — validated at save).
+const PALETTE_TYPES: NodeType[] = ['start', 'messageStartEvent', 'userTask', 'serviceTask', 'receiveTask', 'end'];
+const ICON: Partial<Record<NodeType, LucideIcon>> = {
+  start: Play,
+  userTask: ClipboardList,
+  end: CheckCircle2,
+  serviceTask: Server,
+  receiveTask: Mail,
+  messageStartEvent: Mail,
+};
 
-export function Palette({ journey }: { journey: JourneyMetaProps }) {
+export function Palette({ onAdd }: { onAdd: (type: NodeType) => void }) {
   const { c } = useFlowTheme();
   const [collapsed, setCollapsed] = useState(false);
-  const [journeyOpen, setJourneyOpen] = useState(true);
+  const [componentsOpen, setComponentsOpen] = useState(true);
 
   if (collapsed) {
     return (
@@ -31,6 +45,23 @@ export function Palette({ journey }: { journey: JourneyMetaProps }) {
         >
           <ChevronRight size={16} />
         </button>
+        <div className="w-6 h-px" style={{ background: c.border }} />
+        {PALETTE_TYPES.map((type) => {
+          const Icon = ICON[type]!;
+          return (
+            <div
+              key={type}
+              draggable
+              onDragStart={(e) => e.dataTransfer.setData('text/plain', type)}
+              onClick={() => onAdd(type)}
+              title={NODE_META[type].title}
+              className="w-[30px] h-[30px] rounded-lg flex items-center justify-center shrink-0 cursor-grab"
+              style={{ background: `${TYPE_COLOR[type]}22` }}
+            >
+              <Icon size={16} color={TYPE_COLOR[type]} strokeWidth={1.8} />
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -44,21 +75,21 @@ export function Palette({ journey }: { journey: JourneyMetaProps }) {
         <div
           className="relative flex items-center justify-center px-3 py-2 border-b border-l-[3px] cursor-pointer"
           style={{ background: c.chipBg, borderColor: c.border, borderLeftColor: c.accent }}
-          onClick={() => setJourneyOpen((o) => !o)}
+          onClick={() => setComponentsOpen((o) => !o)}
         >
           <div className="text-[14px] font-semibold text-center" style={{ color: c.textPrimary }}>
-            Dados da jornada
+            Componentes
           </div>
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setJourneyOpen((o) => !o);
+              setComponentsOpen((o) => !o);
             }}
-            title={journeyOpen ? 'Recolher seção' : 'Expandir seção'}
+            title={componentsOpen ? 'Recolher seção' : 'Expandir seção'}
             className="absolute left-2 w-[22px] h-[22px] rounded-md border-0 bg-transparent flex items-center justify-center cursor-pointer"
             style={{ color: c.textSecondary }}
           >
-            {journeyOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            {componentsOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
           <button
             onClick={(e) => {
@@ -72,9 +103,31 @@ export function Palette({ journey }: { journey: JourneyMetaProps }) {
             <ChevronLeft size={15} />
           </button>
         </div>
-        {journeyOpen && (
-          <div className="p-3">
-            <JourneyMetaBar {...journey} />
+        {componentsOpen && (
+          <div className="p-3 flex flex-col gap-2">
+            {PALETTE_TYPES.map((type) => {
+              const Icon = ICON[type]!;
+              return (
+                <div
+                  key={type}
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData('text/plain', type)}
+                  onClick={() => onAdd(type)}
+                  className="flex items-center gap-[10px] p-[10px] rounded-lg cursor-grab"
+                  style={{ background: c.cardBg, border: `1px solid ${c.border}` }}
+                >
+                  <div
+                    className="w-[30px] h-[30px] rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: `${TYPE_COLOR[type]}22` }}
+                  >
+                    <Icon size={16} color={TYPE_COLOR[type]} strokeWidth={1.8} />
+                  </div>
+                  <div className="text-[13px] font-medium" style={{ color: c.textPrimary }}>
+                    {NODE_META[type].title}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

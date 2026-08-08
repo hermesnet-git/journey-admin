@@ -1,4 +1,5 @@
 import type { WFNode, WFEdge } from './model';
+import { SINGLE_OUTPUT_TYPES } from './model';
 
 export interface FlowValidationResult {
   errors: string[];
@@ -8,9 +9,9 @@ export interface FlowValidationResult {
 export function validateFlow(nodes: WFNode[], edges: WFEdge[]): FlowValidationResult {
   const errors: string[] = [];
   const invalidNodeIds = new Set<string>();
-  const starts = nodes.filter((n) => n.type === 'start');
+  const starts = nodes.filter((n) => n.type === 'start' || n.type === 'messageStartEvent');
   const ends = nodes.filter((n) => n.type === 'end');
-  if (starts.length !== 1) errors.push('O fluxo deve ter exatamente um nó de Início.');
+  if (starts.length !== 1) errors.push('O fluxo deve ter exatamente um elemento inicial (Início ou Início por Mensagem).');
   if (ends.length !== 1) errors.push('O fluxo deve ter exatamente um nó de Fim.');
 
   const indeg = new Map<string, number>();
@@ -27,11 +28,11 @@ export function validateFlow(nodes: WFNode[], edges: WFEdge[]): FlowValidationRe
   nodes.forEach((n) => {
     const inCount = indeg.get(n.id) ?? 0;
     const outCount = outdeg.get(n.id) ?? 0;
-    if (n.type === 'start' && (inCount !== 0 || outCount !== 1)) {
-      errors.push(`O nó de Início "${n.data.name}" deve ter nenhuma entrada e exatamente uma saída.`);
+    if ((n.type === 'start' || n.type === 'messageStartEvent') && (inCount !== 0 || outCount !== 1)) {
+      errors.push(`O nó "${n.data.name}" deve ter nenhuma entrada e exatamente uma saída.`);
       invalidNodeIds.add(n.id);
     }
-    if (n.type === 'userTask' && (inCount < 1 || outCount !== 1)) {
+    if (n.type && SINGLE_OUTPUT_TYPES.includes(n.type) && (inCount < 1 || outCount !== 1)) {
       errors.push(`A tarefa "${n.data.name}" deve ter ao menos uma entrada e exatamente uma saída.`);
       invalidNodeIds.add(n.id);
     }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   GitBranch,
-  ListChecks,
   Boxes,
   Route,
   FileText,
@@ -23,7 +22,6 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: 'workflows', label: 'Workflows', icon: <ListChecks size={16} /> },
   { key: 'produtos', label: 'Produtos', icon: <Boxes size={16} /> },
   { key: 'jornadas', label: 'Jornadas', icon: <Route size={16} /> },
   { key: 'formularios', label: 'Formulários', icon: <FileText size={16} /> },

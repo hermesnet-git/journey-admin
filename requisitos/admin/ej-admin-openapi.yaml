@@ -27,7 +27,6 @@ tags:
   - name: Forms
   - name: Simulations
   - name: Publications
-  - name: Dashboard
 
 paths:
   /products:
@@ -608,8 +607,8 @@ paths:
       summary: Update journey flow
       description: >
         Replaces the complete flow. The backend returns 422 unless the payload
-        contains exactly one START, exactly one END and every node belongs to a
-        continuous path between them.
+        contains exactly one initial element (START or MESSAGE_START_EVENT),
+        exactly one END and every node belongs to a continuous path between them.
       operationId: updateFlow
       parameters:
         - $ref: '#/components/parameters/JourneyId'
@@ -971,25 +970,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/JourneyPublication'
 
-  /dashboard:
-    get:
-      tags: [Dashboard]
-      summary: Get administrative dashboard counters
-      operationId: getDashboard
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Dashboard summary
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DashboardSummary'
-
 components:
   responses:
     BadRequest:
@@ -1284,7 +1264,7 @@ components:
           example: Node_f47ac10b-58cc-4372-a567-0e02b2c3d479
         nodeType:
           type: string
-          enum: [START, END, USER_TASK]
+          enum: [START, END, USER_TASK, SERVICE_TASK, RECEIVE_TASK, MESSAGE_START_EVENT]
         name:
           type: string
         description:
@@ -1295,6 +1275,8 @@ components:
           type: integer
         userTaskConfig:
           $ref: '#/components/schemas/UserTaskConfig'
+        integrationTaskConfig:
+          $ref: '#/components/schemas/IntegrationTaskConfig'
 
     UserTaskConfig:
       type: object
@@ -1303,6 +1285,71 @@ components:
         formId:
           type: string
           format: uuid
+
+    IntegrationTaskConfig:
+      type: object
+      required: [connectorType, connectorEnabled, connectorConfig]
+      properties:
+        connectorType:
+          type: string
+          enum: [REST, KAFKA]
+        connectorEnabled:
+          type: boolean
+          description: Must be true for connectors available in the MVP catalog.
+        connectorConfig:
+          oneOf:
+            - $ref: '#/components/schemas/RestConnectorConfig'
+            - $ref: '#/components/schemas/KafkaConnectorConfig'
+        credentialRef:
+          type: string
+          maxLength: 200
+          description: Runtime-resolved credential reference; secret values are not stored.
+        inputMapping:
+          type: object
+          additionalProperties: true
+        outputMapping:
+          type: object
+          additionalProperties: true
+
+    RestConnectorConfig:
+      type: object
+      required: [method, url]
+      properties:
+        method:
+          type: string
+          enum: [GET, POST, PUT, PATCH, DELETE]
+        url:
+          type: string
+          format: uri
+        headers:
+          type: object
+          additionalProperties: true
+        query:
+          type: object
+          additionalProperties: true
+        body:
+          type: object
+          additionalProperties: true
+
+    KafkaConnectorConfig:
+      type: object
+      required: [topic, operation]
+      properties:
+        topic:
+          type: string
+        queue:
+          type: string
+        operation:
+          type: string
+          enum: [PUBLISH, CONSUME]
+        headers:
+          type: object
+          additionalProperties: true
+        payload:
+          type: object
+          additionalProperties: true
+        correlationKey:
+          type: string
 
     FlowConnection:
       type: object
@@ -1511,29 +1558,3 @@ components:
         journeyId:
           type: string
           format: uuid
-
-    DashboardSummary:
-      type: object
-      required:
-        - productCount
-        - channelCount
-        - journeyCount
-        - formCount
-        - publishedJourneyCount
-        - recentlyUpdatedJourneys
-      properties:
-        productCount:
-          type: integer
-        channelCount:
-          type: integer
-        journeyCount:
-          type: integer
-        formCount:
-          type: integer
-        publishedJourneyCount:
-          type: integer
-        recentlyUpdatedJourneys:
-          type: array
-          description: Journeys ordered by updatedAt descending
-          items:
-            $ref: '#/components/schemas/Journey'

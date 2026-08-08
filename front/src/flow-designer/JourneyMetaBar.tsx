@@ -1,6 +1,4 @@
-import { ChevronDown } from 'lucide-react';
 import { useFlowTheme } from './theme';
-import type { Product, Channel } from '../api/products';
 
 const fieldLabelClass = 'text-[12.5px] font-medium';
 const fieldFontSize = 13;
@@ -8,33 +6,20 @@ const controlBase = 'rounded-md px-3 py-2 text-[13px] outline-none box-border w-
 const textareaClass = 'rounded-md px-3 py-2 text-[13px] leading-[18px] outline-none box-border w-full resize-none';
 
 export function JourneyMetaBar({
-  products,
-  channels,
-  productId,
-  channelId,
-  onProductChange,
-  onChannelChange,
-  lockedProductName,
-  lockedChannelName,
+  productName,
+  channelName,
   name,
   onNameChange,
   description,
   onDescriptionChange,
 }: {
-  products: Product[];
-  channels: Channel[];
-  productId: string;
-  channelId: string;
-  onProductChange: (productId: string) => void;
-  onChannelChange: (channelId: string) => void;
-  lockedProductName?: string;
-  lockedChannelName?: string;
+  productName: string;
+  channelName: string;
   name: string;
   onNameChange: (value: string) => void;
   description: string;
   onDescriptionChange: (value: string) => void;
 }) {
-  const productChannelLocked = lockedProductName !== undefined;
   const { c } = useFlowTheme();
   // fontSize is explicit (not just the text-[10px] class) so every field — input, select and textarea — renders pixel-identical across browsers.
   const selectStyle = { background: c.cardBg, border: `1px solid ${c.border}`, color: c.textPrimary, fontSize: fieldFontSize };
@@ -53,57 +38,18 @@ export function JourneyMetaBar({
         <span className={fieldLabelClass} style={{ color: c.textSecondary }}>
           Produto
         </span>
-        {productChannelLocked ? (
-          <div className={`${controlBase} flex items-center`} style={disabledStyle}>
-            {lockedProductName || '—'}
-          </div>
-        ) : (
-          <div className="relative">
-            <select
-              value={productId}
-              onChange={(e) => onProductChange(e.target.value)}
-              className={`${controlBase} appearance-none pr-8 cursor-pointer`}
-              style={selectStyle}
-            >
-              <option value="">Selecione...</option>
-              {products.map((p) => (
-                <option key={p.productId} value={p.productId}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={14} className="absolute right-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textSecondary }} />
-          </div>
-        )}
+        <div className={`${controlBase} flex items-center`} style={disabledStyle}>
+          {productName || '—'}
+        </div>
       </div>
 
       <div className="flex flex-col gap-[6px]">
         <span className={fieldLabelClass} style={{ color: c.textSecondary }}>
           Canal
         </span>
-        {productChannelLocked ? (
-          <div className={`${controlBase} flex items-center`} style={disabledStyle}>
-            {lockedChannelName || '—'}
-          </div>
-        ) : (
-          <div className="relative">
-            <select
-              value={channelId}
-              onChange={(e) => onChannelChange(e.target.value)}
-              disabled={!productId}
-              className={`${controlBase} appearance-none pr-8 cursor-pointer disabled:cursor-not-allowed`}
-              style={!productId ? disabledStyle : selectStyle}
-            >
-              <option value="">Selecione...</option>
-              {channels.map((ch) => (
-                <option key={ch.channelId} value={ch.channelId}>
-                  {ch.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={14} className="absolute right-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textSecondary }} />
-          </div>
-        )}
+        <div className={`${controlBase} flex items-center`} style={disabledStyle}>
+          {channelName || '—'}
+        </div>
       </div>
 
       <div className="flex flex-col gap-[6px]">

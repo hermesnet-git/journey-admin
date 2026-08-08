@@ -23,6 +23,8 @@ Gestão de Jornadas por Canal
 
 Modelagem Visual de Fluxos
 
+Service Tasks, Receive Tasks e Message Start Events com conectores REST e Kafka
+
 Formulários
 
 Simulação
@@ -69,7 +71,6 @@ Publicação de Jornadas
 
 Publicação no Runtime por API mockada
 
-Dashboard Administrativo
 ```
 
 ---
@@ -77,6 +78,8 @@ Dashboard Administrativo
 # 5. Fora do Escopo
 
 ```text
+Dashboard Administrativo de Jornadas
+
 Governança
 
 Versionamento
@@ -98,6 +101,32 @@ IA Assistida
 Workflow de Aprovação
 
 Gestão de Tenants
+
+Publicação Agendada
+
+Governança Corporativa
+
+Criação rápida de elementos
+
+Seleção múltipla
+
+Duplicação em massa
+
+Criação automática de próximos passos
+
+Clonagem de jornadas entre canais
+
+Templates de jornadas
+
+Biblioteca de componentes de formulário
+
+Debug completo por etapa
+
+Visualização dos dados de formulário por etapa
+
+Seções e exibição condicional em formulários
+
+Organização dinâmica de campos
 ```
 
 ---
@@ -118,7 +147,11 @@ Workflow específico de um canal. Cada jornada pertence a exatamente um canal e 
 
 ## Flow
 
-Estrutura visual da jornada: início, User Tasks, término e conexões.
+Estrutura visual da jornada: Start, Message Start Event, User Tasks, Service Tasks, Receive Tasks, término e conexões.
+
+## Connectors
+
+Framework de integrações com REST e Kafka habilitados no MVP e conectores adicionais catalogados como desabilitados.
 
 ## Form
 
@@ -170,7 +203,7 @@ Especificação OpenAPI
 
 ## Requisitos Funcionais
 
-**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo do MVP, organizado em oito épicos.
+**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo do MVP, organizado em cinco épicos.
 
 ## Arquitetura Lógica
 
@@ -204,6 +237,10 @@ Especificação OpenAPI
 | Flow | Estrutura visual da jornada |
 | Flow Node | Elemento individual do fluxo |
 | Flow Connection | Conexão entre elementos do fluxo |
+| Service Task | Tarefa que executa uma integração externa |
+| Receive Task | Tarefa que aguarda uma mensagem externa |
+| Message Start Event | Elemento que inicia uma jornada por mensagem externa |
+| Connector | Tipo e configuração da integração utilizada por uma tarefa |
 | User Task Configuration | Associação entre uma User Task e seu formulário |
 | Form | Formulário utilizado por User Tasks |
 | Form Component | Componente visual pertencente a um formulário |
@@ -214,23 +251,7 @@ Especificação OpenAPI
 
 ---
 
-# 11. Roadmap Futuro
-
-```text
-Produtividade: criação rápida, seleção múltipla e duplicação em massa
-
-Reutilização: clonagem e templates de jornadas entre canais
-
-Governança: versionamento, aprovação, publicação agendada e rollback
-
-Segurança: autenticação, RBAC, auditoria e controle de acesso
-
-Inteligência: analytics, recomendações e IA assistida
-```
-
----
-
-# 12. Glossário
+# 11. Glossário
 
 | Termo | Descrição |
 |-------|-----------|
@@ -248,6 +269,6 @@ Inteligência: analytics, recomendações e IA assistida
 
 ---
 
-# 13. Resumo Executivo
+# 12. Resumo Executivo
 
 O Elastic Journey Admin Portal MVP cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, simulação e publicação por uma chamada mockada para a futura API de publicação do runtime.

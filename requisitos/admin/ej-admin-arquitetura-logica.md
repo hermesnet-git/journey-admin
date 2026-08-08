@@ -8,7 +8,7 @@
 
 # 1. Objetivo
 
-Este documento descreve a arquitetura lógica do Elastic Journey Admin Portal, incluindo cadastro de produtos e canais, autoria de jornadas específicas por canal, simulação, publicação e dashboard administrativo.
+Este documento descreve a arquitetura lógica do Elastic Journey Admin Portal, incluindo cadastro de produtos e canais, autoria de jornadas específicas por canal, simulação e publicação.
 
 ---
 
@@ -43,7 +43,6 @@ Publicação de Jornadas
 
 Publicação no Runtime por API mockada
 
-Dashboard Administrativo
 ```
 
 ---
@@ -88,21 +87,20 @@ Como o MVP utiliza acesso anônimo, `401` e `403` fazem parte do contrato para c
 
 # 5. Domínios Lógicos
 
-O MVP é composto por sete domínios, organizados em três grupos funcionais.
+O MVP é composto por seis domínios, organizados em três grupos funcionais.
 
 ```text
 Grupo Administração
   01. Product & Channel Management
-  02. Administrative Dashboard
 
 Grupo Autoria
-  03. Journey Management
-  04. Journey Modeler
-  05. Forms Management
-  06. Simulation
+  02. Journey Management
+  03. Journey Modeler
+  04. Forms Management
+  05. Simulation
 
 Grupo Publicação
-  07. Publication Management
+  06. Publication Management
 ```
 
 ---
@@ -112,7 +110,6 @@ Grupo Publicação
 | Domínio | Grupo | Responsabilidade |
 |---------|-------|------------------|
 | Product & Channel Management | Administração | Gestão de produtos e seus canais |
-| Administrative Dashboard | Administração | Visão consolidada dos ativos |
 | Journey Management | Autoria | Ciclo de vida das jornadas específicas por canal |
 | Journey Modeler | Autoria | Construção visual dos fluxos |
 | Forms Management | Autoria | Gestão de formulários SDUI |
@@ -131,7 +128,6 @@ flowchart TD
     FORMS[Forms Management]
     SIMULATION[Simulation]
     PUBLICATION[Publication Management]
-    DASHBOARD[Administrative Dashboard]
     RUNTIME_API[API de Publicação do Runtime<br/>mock no MVP]
 
     CATALOG --> JOURNEY
@@ -142,9 +138,6 @@ flowchart TD
     SIMULATION --> PUBLICATION
     PUBLICATION --> RUNTIME_API
 
-    CATALOG --> DASHBOARD
-    JOURNEY --> DASHBOARD
-    PUBLICATION --> DASHBOARD
 ```
 
 ## Interpretação
@@ -195,31 +188,9 @@ Product 1 → 0..N Channel
 
 ---
 
-# 9. Domínio 02 — Administrative Dashboard
-
-## Objetivo
-
-Fornecer uma visão consolidada dos ativos administrados.
-
-## Indicadores
-
-```text
-Quantidade de produtos
-
-Quantidade de canais
-
-Quantidade de jornadas
-
-Quantidade de formulários
-
-Quantidade de jornadas publicadas
-
-Jornadas recentemente alteradas, ordenadas por updatedAt decrescente
-```
-
 ---
 
-# 10. Domínio 03 — Journey Management
+# 10. Domínio 02 — Journey Management
 
 ## Objetivo
 
@@ -261,7 +232,7 @@ Jornadas de canais diferentes são independentes e podem possuir quantidades dis
 
 ---
 
-# 11. Domínio 04 — Journey Modeler
+# 11. Domínio 03 — Journey Modeler
 
 ## Objetivo
 
@@ -270,18 +241,32 @@ Permitir a construção visual do fluxo de uma jornada.
 ## Elementos Suportados
 
 ```text
-Eventos: Start, End
+Eventos: Start, Message Start Event, End
 
-Atividades: User Task
+Atividades: User Task, Service Task, Receive Task
+
+Conectores habilitados: REST, Kafka
+
+Conectores catalogados e desabilitados: GraphQL, SOAP, Database, Webhook
 ```
 
 ## Capacidades
 
 ```text
-Drag and Drop, Zoom, Pan, Undo, Redo, Autosave
+Drag and Drop, Zoom, Pan, Undo, Redo
 ```
 
-Uma nova jornada inicia com `START → END`. O editor insere e remove elementos preservando exatamente um `START`, exatamente um `END` e um caminho contínuo entre eles. O backend repete essas restrições na gravação e responde com `422` quando a estrutura recebida for incompatível.
+Uma nova jornada inicia com `START → END`. O editor pode configurar o elemento inicial como `START` ou `MESSAGE_START_EVENT`, preservando exatamente um elemento inicial, exatamente um `END` e um caminho contínuo entre eles. Service Tasks executam integrações externas e Receive Tasks aguardam mensagens em instâncias já iniciadas. O runtime traduz esses elementos para BPMN e executa os conectores habilitados.
+
+## Conectores de Integração
+
+O framework de conectores é extensível. No MVP, `REST` e `KAFKA` são habilitados. Os demais conectores permanecem registrados no catálogo como desabilitados e não podem ser usados em fluxos publicados.
+
+```text
+SERVICE_TASK       → bpmn:serviceTask
+RECEIVE_TASK       → bpmn:receiveTask
+MESSAGE_START_EVENT → bpmn:startEvent + messageEventDefinition
+```
 
 ## Entidades
 
@@ -295,7 +280,7 @@ Flow Connection
 
 ---
 
-# 12. Domínio 05 — Forms Management
+# 12. Domínio 04 — Forms Management
 
 ## Objetivo
 
@@ -329,7 +314,7 @@ Uma User Task pode possuir um formulário associado. No MVP, essa associação �
 
 ---
 
-# 13. Domínio 06 — Simulation
+# 13. Domínio 05 — Simulation
 
 ## Objetivo
 
@@ -363,7 +348,7 @@ flowchart TD
 
 ---
 
-# 14. Domínio 07 — Publication Management
+# 14. Domínio 06 — Publication Management
 
 ## Objetivo
 
@@ -496,4 +481,4 @@ flowchart TD
 
 # 19. Resumo Arquitetural
 
-O Elastic Journey Admin Portal MVP é composto por sete domínios lógicos. A arquitetura parte do cadastro de produtos e canais, mantém jornadas independentes por canal e publica um único snapshot atual por jornada por meio de uma chamada mockada para a futura API do runtime.
+O Elastic Journey Admin Portal MVP é composto por seis domínios lógicos. A arquitetura parte do cadastro de produtos e canais, mantém jornadas independentes por canal e publica um único snapshot atual por jornada por meio de uma chamada mockada para a futura API do runtime.

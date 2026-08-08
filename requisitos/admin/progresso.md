@@ -14,27 +14,25 @@
 
 | Métrica | Valor |
 |---|---|
-| Total de Épicos (EP) | 7 |
-| Total de Features (FT) | 27 |
-| Total de Requisitos (REQ) | 116 |
-| Concluídos (`done`) | 106 |
+| Total de Épicos (EP) | 5 |
+| Total de Features (FT) | 29 |
+| Total de Requisitos (REQ) | 132 |
+| Concluídos (`done`) | 105 |
 | Em andamento (`in_progress`) | 0 |
-| Não iniciados (`todo`) | 10 |
+| Não iniciados (`todo`) | 27 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 0 |
-| % Concluído | 91% |
+| % Concluído | 80% |
 
 ## Progresso por Épico
 
 | EP | Nome | REQs | Concluídos | % |
 |---|---|---:|---:|---:|
 | EP-01 | Gestão de Produtos e Canais | 24 | 24 | 100% |
-| EP-02 | Gestão de Jornadas | 23 | 23 | 100% |
-| EP-03 | Modelagem Visual | 25 | 25 | 100% |
+| EP-02 | Gestão de Jornadas | 38 | 38 | 100% |
+| EP-03 | Modelagem Visual | 42 | 25 | 60% |
 | EP-04 | Formulários (SDUI) | 18 | 18 | 100% |
 | EP-05 | Simulação | 10 | 0 | 0% |
-| EP-06 | Publicação | 12 | 12 | 100% |
-| EP-07 | Publicação no Runtime | 4 | 4 | 100% |
 
 ---
 
@@ -120,13 +118,6 @@
 | [x] | REQ-02.03.004 | O sistema deve permitir ordenar jornadas por data de criação. | done | back: `?sort=CREATED_AT`; front: `FilterDropdown` "Ordenar" → "Criadas recentemente" | |
 | [x] | REQ-02.03.005 | O sistema deve permitir ordenar jornadas por data de alteração. | done | back: `?sort=UPDATED_AT` (padrão); front: "Alteradas recentemente" | |
 
-### FT-02.04 Dashboard de Jornadas
-
-| # | REQ | Descrição | Status | Evidência | Notas |
-|---|---|---|---|---|---|
-| [x] | REQ-02.04.001 | O sistema deve exibir jornadas recentemente alteradas, ordenadas da alteração mais recente para a mais antiga. | done | back: `?sort=UPDATED_AT` é o padrão; front: lista já carrega ordenada | |
-| [x] | REQ-02.04.002 | O sistema deve exibir a quantidade total de jornadas cadastradas. | done | front: card "Jornadas cadastradas" em `JourneysPage` | |
-
 ### FT-02.05 Jornadas Específicas por Canal
 
 | # | REQ | Descrição | Status | Evidência | Notas |
@@ -196,6 +187,38 @@
 | [x] | REQ-03.06.002 | O sistema deve permitir refazer ações. | done | front: `JourneyDesignerPage.redo` (pilha `redoStack`) | |
 
 ---
+
+### FT-03.07 Elementos de Integração
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-03.07.001 | O sistema deve suportar nós de integração `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT`. | todo | | |
+| [ ] | REQ-03.07.002 | Uma `SERVICE_TASK` deve representar a execução de uma integração externa durante a jornada. | todo | | |
+| [ ] | REQ-03.07.003 | Uma `RECEIVE_TASK` deve representar a espera por uma mensagem externa em uma instância de jornada já iniciada. | todo | | |
+| [ ] | REQ-03.07.004 | Uma `MESSAGE_START_EVENT` deve permitir iniciar uma nova instância de jornada a partir de uma mensagem externa. | todo | | |
+| [ ] | REQ-03.07.005 | O fluxo deve possuir exatamente um elemento inicial, que pode ser `START` ou `MESSAGE_START_EVENT`. | todo | | |
+| [ ] | REQ-03.07.006 | O sistema deve permitir editar, mover, remover, copiar e duplicar elementos de integração, respeitando as regras de unicidade do elemento inicial. | todo | | |
+
+### FT-03.08 Framework de Conectores
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-03.08.001 | O sistema deve representar a integração por meio de um framework conceitual de conectores. | todo | | |
+| [ ] | REQ-03.08.002 | O framework deve permitir associar um conector a uma `SERVICE_TASK`, `RECEIVE_TASK` ou `MESSAGE_START_EVENT`. | todo | | |
+| [ ] | REQ-03.08.003 | O catálogo deve possuir os conectores `REST` e `KAFKA` habilitados para uso no MVP. | todo | | |
+| [ ] | REQ-03.08.004 | O catálogo deve possuir conectores adicionais registrados como desabilitados, sem permitir seu uso em fluxos. | todo | | |
+| [ ] | REQ-03.08.005 | O sistema deve persistir o tipo do conector e sua configuração específica de forma extensível. | todo | | |
+
+### FT-03.09 Configuração REST e Kafka
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-03.09.001 | O sistema deve permitir configurar `REST` em `SERVICE_TASK`. | todo | | |
+| [ ] | REQ-03.09.002 | A configuração REST deve suportar método HTTP, URL, headers, parâmetros, body, mapeamento de entrada e mapeamento de saída. | todo | | |
+| [ ] | REQ-03.09.003 | O sistema deve permitir configurar `KAFKA` em `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT`. | todo | | |
+| [ ] | REQ-03.09.004 | A configuração Kafka deve suportar tópico ou fila, operação, headers, payload, mapeamento de entrada e mapeamento de saída. | todo | | |
+| [ ] | REQ-03.09.005 | Configurações de integração devem suportar referência de credencial sem armazenar secrets diretamente no fluxo ou no snapshot. | todo | | |
+| [ ] | REQ-03.09.006 | O snapshot publicado deve incluir o tipo do elemento, o conector, a configuração declarativa e os mapeamentos necessários para execução pelo runtime. | todo | | |
 
 ## EP-04 Formulários (SDUI)
 
@@ -273,47 +296,49 @@
 
 ---
 
-## EP-06 Publicação
+## EP-02 Gestão de Jornadas — continuação: publicação
 
-### FT-06.01 Publicação de Jornadas
+### FT-02.06 Publicação de Jornadas
 
-| # | REQ | Descrição | Status | Evidência | Notas |
-|---|---|---|---|---|---|
-| [x] | REQ-06.01.001 | O sistema deve permitir publicar jornadas. | done | back: `POST /api/v1/journeys/{id}/publish` + `PublishJourney`; front: `JourneysPage` (ação "Publicar"/"Republicar") | |
-| [x] | REQ-06.01.002 | O sistema deve permitir despublicar jornadas por meio da API do runtime. | done | back: `POST /api/v1/journeys/{id}/unpublish` + `UnpublishJourney` (chama `RuntimePublicationPort.unpublish`); front: ação "Despublicar" | |
-| [x] | REQ-06.01.003 | O sistema deve permitir consultar jornadas publicadas. | done | back: `GET /api/v1/journeys?status=PUBLISHED`; front: filtro "Publicadas" em `JourneysPage` | |
-| [x] | REQ-06.01.004 | Cada jornada deve possuir no máximo uma publicação. Alterações realizadas após a publicação não devem modificar automaticamente o snapshot publicado; para disponibilizá-las, o usuário deve publicar novamente, substituindo integralmente o snapshot anterior. | done | back: `journey_publication.journey_id UNIQUE`; `PublishJourney` reaproveita o `id` existente (upsert) ao republicar, substituindo o `snapshot` por inteiro | testado via curl (republicar troca `publishedAt`) |
-
-### FT-06.02 Estado da Publicação
+#### Publicação de Jornadas — requisitos consolidados no EP-02
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-06.02.001 | O sistema deve indicar se uma jornada está publicada. | done | back: `JourneyResponse.status`; front: `JourneyStatusTag` | |
-| [x] | REQ-06.02.002 | O sistema deve indicar a data da publicação. | done | back: `JourneyResponse.publishedAt` (via `JourneyViewAssembler` + `PublicationRepository`); front: "Publicada em ..." em `JourneyCard`/`JourneyRow` | |
-| [x] | REQ-06.02.003 | O sistema deve indicar o produto associado à publicação. | done | front: `journey.productName` já exibido em todo lugar da listagem (produto é imutável por jornada) | |
-| [x] | REQ-06.02.004 | O sistema deve indicar o canal associado à publicação. | done | front: `journey.channelName` já exibido em todo lugar da listagem | |
+| [x] | REQ-02.06.001 | O sistema deve permitir publicar jornadas. | done | back: `POST /api/v1/journeys/{id}/publish` + `PublishJourney`; front: `JourneysPage` (ação "Publicar"/"Republicar") | |
+| [x] | REQ-02.06.002 | O sistema deve permitir despublicar jornadas por meio da API do runtime. | done | back: `POST /api/v1/journeys/{id}/unpublish` + `UnpublishJourney` (chama `RuntimePublicationPort.unpublish`); front: ação "Despublicar" | |
+| [x] | REQ-02.06.003 | O sistema deve permitir consultar jornadas publicadas. | done | back: `GET /api/v1/journeys?status=PUBLISHED`; front: filtro "Publicadas" em `JourneysPage` | |
+| [x] | REQ-02.06.004 | Cada jornada deve possuir no máximo uma publicação. Alterações realizadas após a publicação não devem modificar automaticamente o snapshot publicado; para disponibilizá-las, o usuário deve publicar novamente, substituindo integralmente o snapshot anterior. | done | back: `journey_publication.journey_id UNIQUE`; `PublishJourney` reaproveita o `id` existente (upsert) ao republicar, substituindo o `snapshot` por inteiro | testado via curl (republicar troca `publishedAt`) |
 
-### FT-06.03 Catálogo de Publicações
+### FT-02.07 Estado da Publicação
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-06.03.001 | O sistema deve permitir listar jornadas publicadas. | done | back/front: mesma listagem de Jornadas, filtro de status "Publicadas" — sem menu novo, por decisão de produto | |
-| [x] | REQ-06.03.002 | O sistema deve permitir pesquisar jornadas publicadas. | done | front: campo de busca de `JourneysPage`, combinável com o filtro "Publicadas" | |
-| [x] | REQ-06.03.003 | O sistema deve permitir filtrar jornadas publicadas por produto. | done | back: `GET /api/v1/journeys?productId=&status=PUBLISHED`; front: `FilterDropdown` "Produto" | |
-| [x] | REQ-06.03.004 | O sistema deve permitir filtrar jornadas publicadas por canal. | done | back: `GET /api/v1/journeys?channelId=&status=PUBLISHED`; front: `FilterDropdown` "Canal" | |
+| [x] | REQ-02.07.001 | O sistema deve indicar se uma jornada está publicada. | done | back: `JourneyResponse.status`; front: `JourneyStatusTag` | |
+| [x] | REQ-02.07.002 | O sistema deve indicar a data da publicação. | done | back: `JourneyResponse.publishedAt` (via `JourneyViewAssembler` + `PublicationRepository`); front: "Publicada em ..." em `JourneyCard`/`JourneyRow` | |
+| [x] | REQ-02.07.003 | O sistema deve indicar o produto associado à publicação. | done | front: `journey.productName` já exibido em todo lugar da listagem (produto é imutável por jornada) | |
+| [x] | REQ-02.07.004 | O sistema deve indicar o canal associado à publicação. | done | front: `journey.channelName` já exibido em todo lugar da listagem | |
+
+### FT-02.08 Catálogo de Publicações
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-02.08.001 | O sistema deve permitir listar jornadas publicadas. | done | back/front: mesma listagem de Jornadas, filtro de status "Publicadas" — sem menu novo, por decisão de produto | |
+| [x] | REQ-02.08.002 | O sistema deve permitir pesquisar jornadas publicadas. | done | front: campo de busca de `JourneysPage`, combinável com o filtro "Publicadas" | |
+| [x] | REQ-02.08.003 | O sistema deve permitir filtrar jornadas publicadas por produto. | done | back: `GET /api/v1/journeys?productId=&status=PUBLISHED`; front: `FilterDropdown` "Produto" | |
+| [x] | REQ-02.08.004 | O sistema deve permitir filtrar jornadas publicadas por canal. | done | back: `GET /api/v1/journeys?channelId=&status=PUBLISHED`; front: `FilterDropdown` "Canal" | |
 
 ---
 
-## EP-07 Publicação no Runtime
+### FT-02.09 Publicação no Runtime
 
-### FT-07.01 Chamadas de Publicação e Despublicação
+#### Chamadas de Publicação e Despublicação — requisitos consolidados no EP-02
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-07.01.001 | O Admin Portal deve iniciar a publicação por meio de uma chamada de saída para a API de publicação do runtime. | done | back: `PublishJourney`/`UnpublishJourney` chamam `RuntimePublicationPort` (`MockRuntimePublicationAdapter`) | |
-| [x] | REQ-07.01.002 | A chamada deve enviar a definição completa da jornada, incluindo produto, canal, fluxo e formulários. | done | back: `Publication` (passada para `RuntimePublicationPort.publish`) carrega jornada, produto, canal, `FlowNode`/`FlowConnection` e `Form`s referenciados | |
-| [x] | REQ-07.01.003 | No MVP, a API de publicação do runtime deve ser representada por um mock. Após o retorno de sucesso do mock, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`. | done | back: `MockRuntimePublicationAdapter` sempre "sucede" (loga e retorna); `PublishJourney` só persiste `Publication`/`journey.publish()` depois da chamada não lançar | |
-| [x] | REQ-07.01.004 | Ao despublicar no MVP, o Admin Portal deve chamar a API mockada do runtime. Após o sucesso, jornada e publicação assumem `UNPUBLISHED`; em caso de falha, os estados atuais são preservados. | done | back: `UnpublishJourney` só chama `journey.unpublish()`/`save` após `runtimePublicationPort.unpublish` retornar sem exceção; se lançasse, nada seria persistido | jornada assume `UNPUBLISHED` (não existe estado "publicação" separado — o registro é preservado, ver REQ-06.01.004) |
+| [x] | REQ-02.09.001 | O Admin Portal deve iniciar a publicação por meio de uma chamada de saída para a API de publicação do runtime. | done | back: `PublishJourney`/`UnpublishJourney` chamam `RuntimePublicationPort` (`MockRuntimePublicationAdapter`) | |
+| [x] | REQ-02.09.002 | A chamada deve enviar a definição completa da jornada, incluindo produto, canal, fluxo e formulários. | done | back: `Publication` (passada para `RuntimePublicationPort.publish`) carrega jornada, produto, canal, `FlowNode`/`FlowConnection` e `Form`s referenciados | |
+| [x] | REQ-02.09.003 | No MVP, a API de publicação do runtime deve ser representada por um mock. Após o retorno de sucesso do mock, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`. | done | back: `MockRuntimePublicationAdapter` sempre "sucede" (loga e retorna); `PublishJourney` só persiste `Publication`/`journey.publish()` depois da chamada não lançar | |
+| [x] | REQ-02.09.004 | Ao despublicar no MVP, o Admin Portal deve chamar a API mockada do runtime. Após o sucesso, jornada e publicação assumem `UNPUBLISHED`; em caso de falha, os estados atuais são preservados. | done | back: `UnpublishJourney` só chama `journey.unpublish()`/`save` após `runtimePublicationPort.unpublish` retornar sem exceção; se lançasse, nada seria persistido | jornada assume `UNPUBLISHED` (não existe estado "publicação" separado — o registro é preservado, ver REQ-02.06.004) |
 
 ---
 

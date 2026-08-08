@@ -23,6 +23,7 @@ import {
   type JourneySort,
 } from '../api/journeys';
 import { JourneyDesignerPage } from '../flow-designer/JourneyDesignerPage';
+import { NewJourneyModal } from './NewJourneyModal';
 
 type StatusFilter = 'all' | JourneyStatus;
 
@@ -78,7 +79,8 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
   const [channelFilter, setChannelFilter] = useState('');
   const [sort, setSort] = useState<JourneySort>('UPDATED_AT');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
-  const [editingJourney, setEditingJourney] = useState<Journey | 'new' | null>(null);
+  const [editingJourney, setEditingJourney] = useState<Journey | null>(null);
+  const [creatingJourney, setCreatingJourney] = useState(false);
   const [deactivatingJourney, setDeactivatingJourney] = useState<Journey | null>(null);
   const [deletingJourney, setDeletingJourney] = useState<Journey | null>(null);
   const [publishingJourney, setPublishingJourney] = useState<Journey | null>(null);
@@ -137,10 +139,9 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
   );
 
   if (editingJourney) {
-    const wasNew = editingJourney === 'new';
     return (
       <JourneyDesignerPage
-        journey={wasNew ? null : editingJourney}
+        journey={editingJourney}
         onOpenForm={onOpenForm}
         onClose={async () => {
           setEditingJourney(null);
@@ -150,7 +151,7 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
           setEditingJourney(null);
           await reload();
           const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          showToast(`${wasNew ? 'Jornada criada' : 'Jornada salva'} às ${time}.`);
+          showToast(`Jornada salva às ${time}.`);
         }}
       />
     );
@@ -334,7 +335,7 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
               <ListIcon size={14} color={viewMode === 'list' ? c.accent : c.textMuted} />
             </button>
           </div>
-          <PrimaryButton onClick={() => setEditingJourney('new')}>
+          <PrimaryButton onClick={() => setCreatingJourney(true)}>
             <Plus size={14} /> Nova jornada
           </PrimaryButton>
         </div>
@@ -349,7 +350,7 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState hasJourneys={journeys.length > 0} onCreate={() => setEditingJourney('new')} />
+        <EmptyState hasJourneys={journeys.length > 0} onCreate={() => setCreatingJourney(true)} />
       ) : viewMode === 'cards' ? (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))' }}>
           {filtered.map((j) => (
@@ -390,6 +391,17 @@ function JourneysPageContent({ onOpenForm }: JourneysPageProps) {
             />
           ))}
         </div>
+      )}
+
+      {creatingJourney && (
+        <NewJourneyModal
+          onClose={() => setCreatingJourney(false)}
+          onCreated={(journey) => {
+            setCreatingJourney(false);
+            setEditingJourney(journey);
+            showToast('Jornada criada com sucesso.');
+          }}
+        />
       )}
 
       {deactivatingJourney && (

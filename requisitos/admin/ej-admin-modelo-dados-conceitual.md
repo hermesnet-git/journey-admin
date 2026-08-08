@@ -173,12 +173,12 @@ Estrutura principal da jornada; define a sequência das telas e etapas.
 ## Flow Node — Tipos
 
 ```text
-START, END, USER_TASK
+START, END, USER_TASK, SERVICE_TASK, RECEIVE_TASK, MESSAGE_START_EVENT
 ```
 
 ## Flow Connection
 
-Liga dois nós do mesmo fluxo. Cada fluxo possui exatamente um `START` e um `END`. O `START` não possui entrada e possui exatamente uma saída; cada `USER_TASK` possui ao menos uma entrada e exatamente uma saída; o `END` possui ao menos uma entrada e nenhuma saída. Todos os nós integram um caminho contínuo e alcançável entre `START` e `END`.
+Liga dois nós do mesmo fluxo. Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e um `END`. O elemento inicial não possui entrada e possui exatamente uma saída; cada `USER_TASK`, `SERVICE_TASK` e `RECEIVE_TASK` possui ao menos uma entrada e exatamente uma saída; o `END` possui ao menos uma entrada e nenhuma saída. Todos os nós integram um caminho contínuo e alcançável entre o elemento inicial e `END`.
 
 ## Persistência e identificadores
 
@@ -189,14 +189,28 @@ Na publicação, a runtime traduz este `Flow` para uma definição de processo B
 | Identificador | Formato | Vira, na runtime |
 |---|---|---|
 | `Flow.flowId` | `Process_<uuid>` | `id` do `<bpmn:process>` |
-| `FlowNode.nodeId` | `Node_<uuid>` | `id` de `<bpmn:startEvent>` / `<bpmn:userTask>` / `<bpmn:endEvent>` |
+| `FlowNode.nodeId` | `Node_<uuid>` | `id` de elementos BPMN de início, tarefa, espera ou término |
 | `FlowConnection.connectionId` | `Flow_<uuid>` | `id` de `<bpmn:sequenceFlow>` |
 
 Os demais identificadores do domínio (`productId`, `channelId`, `journeyId`, `formId`, etc.) nunca aparecem no XML BPMN gerado e permanecem UUID puro — o prefixo é aplicado apenas onde a restrição do XML exige.
 
 ---
 
-# 9. User Task Configuration
+# 9. Integration Tasks and Connectors
+
+`SERVICE_TASK` executes an external integration. `RECEIVE_TASK` waits for a message in an already running journey instance. `MESSAGE_START_EVENT` creates a new journey instance from an external message.
+
+The connector framework is extensible. `REST` and `KAFKA` are enabled in the MVP; additional connectors may be cataloged as disabled without being available for use in flows.
+
+```text
+SERVICE_TASK        → bpmn:serviceTask
+RECEIVE_TASK        → bpmn:receiveTask
+MESSAGE_START_EVENT → bpmn:startEvent + messageEventDefinition
+```
+
+Connector configuration is declarative and stored with the flow snapshot. Credential values are not stored; only a runtime-resolved credential reference is persisted.
+
+# 10. User Task Configuration
 
 Associa um nó `USER_TASK` a um formulário. No MVP, a associação é opcional: cada User Task pode possuir zero ou uma configuração e, quando configurada, referencia exatamente um formulário.
 
@@ -212,7 +226,7 @@ flowchart LR
 
 ---
 
-# 10. Form e Form Component
+# 11. Form e Form Component
 
 ## Form
 
@@ -228,7 +242,7 @@ Um formulário pode ser utilizado por User Tasks de jornadas diferentes. A publi
 
 ---
 
-# 11. Simulation Execution, Simulation Step e Simulation Result
+# 12. Simulation Execution, Simulation Step e Simulation Result
 
 ## Simulation Execution
 
@@ -254,7 +268,7 @@ flowchart TD
 
 ---
 
-# 12. Journey Publication
+# 13. Journey Publication
 
 ## Descrição
 
@@ -286,7 +300,7 @@ Ao despublicar, o Admin Portal chama a API mockada do runtime. Somente após o r
 
 ---
 
-# 13. Relacionamentos das Entidades
+# 14. Relacionamentos das Entidades
 
 | Origem | Destino | Cardinalidade |
 |--------|---------|---------------|
@@ -305,7 +319,7 @@ Ao despublicar, o Admin Portal chama a API mockada do runtime. Somente após o r
 
 ---
 
-# 14. Diagrama ER Conceitual
+# 15. Diagrama ER Conceitual
 
 ```mermaid
 erDiagram
@@ -329,7 +343,7 @@ erDiagram
 
 ---
 
-# 15. Glossário
+# 16. Glossário
 
 | Conceito | Descrição |
 |----------|-----------|
@@ -344,6 +358,6 @@ erDiagram
 
 ---
 
-# 16. Resumo Conceitual
+# 17. Resumo Conceitual
 
 O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo, simulações e no máximo uma publicação. O snapshot publicado preserva a definição visual atual e é substituído integralmente quando a jornada é publicada novamente.

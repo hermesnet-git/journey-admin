@@ -140,7 +140,7 @@ CREATE TABLE flow_node (
     node_id UUID PRIMARY KEY,
     flow_id UUID NOT NULL,
     node_type VARCHAR(30) NOT NULL CHECK (
-        node_type IN ('START', 'END', 'USER_TASK')
+        node_type IN ('START', 'END', 'USER_TASK', 'SERVICE_TASK', 'RECEIVE_TASK', 'MESSAGE_START_EVENT')
     ),
     name VARCHAR(200) NOT NULL,
     description TEXT,
@@ -151,6 +151,26 @@ CREATE TABLE flow_node (
     FOREIGN KEY (flow_id) REFERENCES flow(flow_id),
     UNIQUE (flow_id, node_id)
 );
+```
+
+As configurações de integração dos nós `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT` permanecem no documento JSONB do fluxo. A estrutura deve separar propriedades comuns (`connector_type`, `credential_ref`, `input_mapping`, `output_mapping`) das propriedades específicas de `REST` e `KAFKA`, permitindo a inclusão futura de novos conectores sem alteração da tabela `flow_node`.
+
+```json
+{
+  "nodeType": "SERVICE_TASK",
+  "connectorType": "REST",
+  "connectorEnabled": true,
+  "connectorConfig": {
+    "method": "POST",
+    "url": "https://example.test/resource",
+    "headers": {},
+    "query": {},
+    "body": {}
+  },
+  "credentialRef": "runtime-secret-ref",
+  "inputMapping": {},
+  "outputMapping": {}
+}
 ```
 
 ---
@@ -171,7 +191,7 @@ CREATE TABLE flow_connection (
 );
 ```
 
-A restrição `UNIQUE (flow_id, source_node_id)` limita cada origem a uma saída. Antes de persistir o fluxo completo, o backend deve garantir exatamente um `START`, exatamente um `END`, as cardinalidades de entrada e saída de cada tipo e a existência de um caminho contínuo entre `START` e `END`.
+A restrição `UNIQUE (flow_id, source_node_id)` limita cada origem a uma saída. Antes de persistir o fluxo completo, o backend deve garantir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`), exatamente um `END`, as cardinalidades de entrada e saída de cada tipo e a existência de um caminho contínuo entre o elemento inicial e `END`.
 
 ---
 

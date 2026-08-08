@@ -78,6 +78,7 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   const Icon = ICON[nodeType];
   const hasInput = nodeType !== 'start';
   const hasOutput = nodeType !== 'end';
+  const outgoingLimitReached = !!data.outgoingLimitReached;
   const invalid = !!data.invalid;
 
   const borderColor = invalid ? c.danger : selected ? c.accent : c.cardBorder;
@@ -183,15 +184,17 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           <Handle
             type="source"
             position={Position.Right}
+            isConnectable={!outgoingLimitReached}
             style={{
               width: 12,
               height: 12,
               background: c.cardBg,
               border: `2.5px solid ${c.handleColor}`,
               zIndex: 5,
+              opacity: outgoingLimitReached ? 0.4 : 1,
             }}
           />
-          <QuickAdd nodeId={id} />
+          {!outgoingLimitReached && <QuickAdd nodeId={id} />}
         </>
       )}
     </div>

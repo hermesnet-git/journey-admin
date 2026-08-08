@@ -8,6 +8,8 @@ export interface WFNodeData extends Record<string, unknown> {
   formId: string | null;
   // Client-only highlight set by validation; never sent to the backend.
   invalid?: boolean;
+  // Client-only flag: a userTask may have at most one outgoing path (REQ-03.02.007).
+  outgoingLimitReached?: boolean;
 }
 
 export type WFNode = Node<WFNodeData, NodeType>;

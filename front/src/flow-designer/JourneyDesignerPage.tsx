@@ -39,9 +39,8 @@ import {
   type WFEdge,
   type WFNodeData,
 } from './model';
-import { createJourney, updateJourney, type Journey } from '../api/journeys';
+import { updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow } from '../api/flows';
-import { listProducts, listChannels, type Product, type Channel } from '../api/products';
 import { listForms, type Form } from '../api/forms';
 
 const nodeTypes = { start: WorkflowNode, userTask: WorkflowNode, end: WorkflowNode };
@@ -57,7 +56,7 @@ export function JourneyDesignerPage({
   onSaved,
   onOpenForm,
 }: {
-  journey: Journey | null;
+  journey: Journey;
   onClose: () => void;
   onSaved: () => void;
   onOpenForm: (formId: string) => void;
@@ -75,7 +74,7 @@ function DesignerInner({
   onSaved,
   onOpenForm,
 }: {
-  journey: Journey | null;
+  journey: Journey;
   onClose: () => void;
   onSaved: () => void;
   onOpenForm: (formId: string) => void;
@@ -83,17 +82,13 @@ function DesignerInner({
   const { dark } = useAppTheme();
   const c = dark ? DARK_COLORS : LIGHT_COLORS;
 
-  const [activeJourney, setActiveJourney] = useState<Journey | null>(journey);
-  const [name, setName] = useState(journey?.name ?? '');
-  const [description, setDescription] = useState(journey?.description ?? '');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [channels, setChannels] = useState<Channel[]>([]);
+  const [activeJourney, setActiveJourney] = useState<Journey>(journey);
+  const [name, setName] = useState(journey.name);
+  const [description, setDescription] = useState(journey.description ?? '');
   const [forms, setForms] = useState<Form[]>([]);
-  const [productId, setProductId] = useState(journey?.productId ?? '');
-  const [channelId, setChannelId] = useState(journey?.channelId ?? '');
   const [nodes, setNodes] = useState<WFNode[]>(() => initialFlowNodes());
   const [edges, setEdges] = useState<WFEdge[]>(() => initialFlowEdges(nodes));
-  const [loading, setLoading] = useState(!!journey);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [invalidNodeIds, setInvalidNodeIds] = useState<Set<string>>(new Set());
@@ -114,6 +109,13 @@ function DesignerInner({
     setInvalidNodeIds(new Set());
   }, [nodes, edges]);
 
+  // Keep the properties panel in sync with the current selection while it's open.
+  useEffect(() => {
+    if (!propertiesNodeId) return;
+    const selectedNode = nodes.find((n) => n.selected);
+    if (selectedNode && selectedNode.id !== propertiesNodeId) setPropertiesNodeId(selectedNode.id);
+  }, [nodes, propertiesNodeId]);
+
   const undoStack = useRef<HistorySnapshot[]>([]);
   const redoStack = useRef<HistorySnapshot[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -122,24 +124,10 @@ function DesignerInner({
   const { zoom } = useViewport();
 
   useEffect(() => {
-    if (journey) return;
-    listProducts({ status: 'ACTIVE' }).then(setProducts);
-  }, [journey]);
-
-  useEffect(() => {
     listForms().then(setForms);
   }, []);
 
   useEffect(() => {
-    if (journey || !productId) {
-      if (!journey) setChannels([]);
-      return;
-    }
-    listChannels(productId, { status: 'ACTIVE' }).then(setChannels);
-  }, [journey, productId]);
-
-  useEffect(() => {
-    if (!journey) return;
     getFlow(journey.journeyId).then((flow) => {
       const loadedNodes: WFNode[] = flow.nodes.map((n) => ({
         id: n.nodeId,
@@ -206,6 +194,8 @@ function DesignerInner({
   );
   const onConnect = useCallback<OnConnect>(
     (params) => {
+      const source = nodesRef.current.find((n) => n.id === params.source);
+      if (source?.type === 'userTask' && edgesRef.current.some((e) => e.source === params.source)) return;
       pushHistory();
       setEdges((eds) => addEdge({ ...params, id: newConnectionId() }, eds));
     },
@@ -297,6 +287,7 @@ function DesignerInner({
     (nodeId: string, type: NodeType) => {
       const source = nodesRef.current.find((n) => n.id === nodeId);
       if (!source) return;
+      if (source.type === 'userTask' && edgesRef.current.some((e) => e.source === nodeId)) return;
       pushHistory();
       const node = { ...makeNode(type, source.position.x + NODE_WIDTH + 140, source.position.y), selected: true };
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
@@ -326,8 +317,16 @@ function DesignerInner({
   );
 
   const displayNodes = useMemo(
-    () => nodes.map((n) => ({ ...n, data: { ...n.data, invalid: invalidNodeIds.has(n.id) } })),
-    [nodes, invalidNodeIds],
+    () =>
+      nodes.map((n) => ({
+        ...n,
+        data: {
+          ...n.data,
+          invalid: invalidNodeIds.has(n.id),
+          outgoingLimitReached: n.type === 'userTask' && edges.some((e) => e.source === n.id),
+        },
+      })),
+    [nodes, edges, invalidNodeIds],
   );
 
   const displayEdges = useMemo(
@@ -347,7 +346,6 @@ function DesignerInner({
   async function handleSave() {
     const { errors: validationErrors, invalidNodeIds: invalid } = validateFlow(nodes, edges);
     if (!name.trim()) validationErrors.push('Informe o nome da jornada.');
-    if (!activeJourney && !channelId) validationErrors.push('Selecione o produto e o canal da jornada.');
     if (validationErrors.length) {
       setInvalidNodeIds(invalid);
       setErrors(validationErrors);
@@ -356,9 +354,7 @@ function DesignerInner({
 
     setSaving(true);
     try {
-      const journeyRecord = activeJourney
-        ? await updateJourney(activeJourney.journeyId, { name, description })
-        : await createJourney({ channelId, name, description });
+      const journeyRecord = await updateJourney(activeJourney.journeyId, { name, description });
       await updateFlow(journeyRecord.journeyId, {
         name: 'Fluxo principal',
         nodes: nodes.map((n) => ({
@@ -396,6 +392,7 @@ function DesignerInner({
       <WorkflowActionsContext.Provider value={actions}>
         <div className="flex-1 flex flex-col overflow-hidden">
           <Toolbar
+            onAddComponent={addNodeFromPalette}
             canUndo={undoStack.current.length > 0}
             canRedo={redoStack.current.length > 0}
             onUndo={undo}
@@ -411,19 +408,9 @@ function DesignerInner({
           />
           <div className="flex-1 flex min-h-0">
             <Palette
-              onAdd={addNodeFromPalette}
               journey={{
-                products,
-                channels,
-                productId,
-                channelId,
-                onProductChange: (id) => {
-                  setProductId(id);
-                  setChannelId('');
-                },
-                onChannelChange: setChannelId,
-                lockedProductName: activeJourney ? activeJourney.productName : undefined,
-                lockedChannelName: activeJourney ? activeJourney.channelName : undefined,
+                productName: activeJourney.productName,
+                channelName: activeJourney.channelName,
                 name,
                 onNameChange: setName,
                 description,

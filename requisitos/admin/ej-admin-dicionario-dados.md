@@ -110,7 +110,7 @@ Cada jornada possui no máximo um fluxo.
 |-------|------|-------------|-----------|
 | NodeId | UUID | Sim | Identificador do nó |
 | FlowId | UUID | Sim | Fluxo ao qual o nó pertence |
-| NodeType | VARCHAR(30) | Sim | `START`, `END` ou `USER_TASK` |
+| NodeType | VARCHAR(30) | Sim | `START`, `END`, `USER_TASK`, `SERVICE_TASK`, `RECEIVE_TASK` ou `MESSAGE_START_EVENT` |
 | Name | VARCHAR(200) | Sim | Nome do nó |
 | Description | TEXT | Não | Descrição do nó |
 | PositionX | INTEGER | Não | Coordenada horizontal no canvas |
@@ -130,11 +130,27 @@ Cada jornada possui no máximo um fluxo.
 | TargetNodeId | UUID | Sim | Nó de destino do mesmo fluxo |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 
-Cada fluxo possui exatamente um `START` e um `END`. O `START` e cada `USER_TASK` possuem exatamente uma conexão de saída; o `END` não possui saída. Todos os nós devem integrar um caminho contínuo entre `START` e `END`.
+Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e um `END`. O elemento inicial e cada `USER_TASK`, `SERVICE_TASK` ou `RECEIVE_TASK` possuem exatamente uma conexão de saída; o `END` não possui saída. Todos os nós devem integrar um caminho contínuo entre o elemento inicial e `END`.
 
 ---
 
-# 9. Form
+# 9. IntegrationTaskConfig
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| NodeId | UUID | Sim | Nó de integração configurado |
+| ConnectorType | VARCHAR(30) | Sim | `REST` ou `KAFKA` no MVP |
+| ConnectorEnabled | BOOLEAN | Sim | Indica se o conector está habilitado no catálogo |
+| ConnectorConfig | JSONB | Sim | Configuração específica do conector |
+| CredentialRef | VARCHAR(200) | Não | Referência de credencial resolvida pelo runtime |
+| InputMapping | JSONB | Não | Mapeamento do contexto para a integração |
+| OutputMapping | JSONB | Não | Mapeamento da resposta para o contexto |
+
+`ConnectorConfig` deve suportar configuração REST e Kafka sem armazenar secrets. Conectores catalogados como desabilitados não podem ser associados a nós de fluxo.
+
+---
+
+# 10. Form
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -148,7 +164,7 @@ Cada fluxo possui exatamente um `START` e um `END`. O `START` e cada `USER_TASK`
 
 ---
 
-# 10. FormComponent
+# 11. FormComponent
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -175,7 +191,7 @@ CONTENT
 
 ---
 
-# 11. UserTaskConfig
+# 12. UserTaskConfig
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -186,7 +202,7 @@ Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, 
 
 ---
 
-# 12. SimulationExecution
+# 13. SimulationExecution
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -198,7 +214,7 @@ Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, 
 
 ---
 
-# 13. SimulationStep
+# 14. SimulationStep
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -215,7 +231,7 @@ O backend deve registrar o passo somente quando `NodeId` pertencer ao fluxo da m
 
 ---
 
-# 14. SimulationResult
+# 15. SimulationResult
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -226,7 +242,7 @@ O backend deve registrar o passo somente quando `NodeId` pertencer ao fluxo da m
 
 ---
 
-# 15. JourneyPublication
+# 16. JourneyPublication
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -245,7 +261,7 @@ Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somen
 
 ---
 
-# 16. Glossário Geral
+# 17. Glossário Geral
 
 | Conceito | Descrição |
 |----------|-----------|
@@ -253,6 +269,8 @@ Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somen
 | Channel | Aplicação ou interface de atendimento de um produto |
 | Journey | Jornada específica de um canal |
 | Flow / FlowNode / FlowConnection | Estrutura visual da jornada |
+| IntegrationTaskConfig | Configuração de integração e conector de uma Service Task, Receive Task ou Message Start Event |
+| ConnectorType | Tipo de conector habilitado ou catalogado como desabilitado |
 | UserTaskConfig | Associação entre User Task e Form |
 | Form / FormComponent | Formulário e componentes visuais |
 | SimulationExecution / Step / Result | Execução simulada, etapas e resultado |
@@ -260,6 +278,6 @@ Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somen
 
 ---
 
-# 17. Resumo
+# 18. Resumo
 
 O dicionário descreve a hierarquia Product → Channel → Journey e os campos necessários para modelagem visual, formulários, simulação e publicação de jornadas específicas por canal.

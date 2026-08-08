@@ -9,6 +9,7 @@ import com.jouney.admin.application.journey.GetJourney;
 import com.jouney.admin.application.journey.UpdateJourney;
 import com.jouney.admin.application.publication.PublishJourney;
 import com.jouney.admin.application.publication.UnpublishJourney;
+import com.jouney.admin.domain.auth.AuthenticatedUser;
 import com.jouney.admin.domain.journey.JourneySort;
 import com.jouney.admin.domain.journey.JourneyStatus;
 import jakarta.validation.Valid;
@@ -16,6 +17,8 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,6 +59,7 @@ public class JourneyController {
         this.unpublishJourney = unpublishJourney;
     }
 
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping
     public List<JourneyResponse> list(@RequestParam(required = false) UUID productId,
                                        @RequestParam(required = false) UUID channelId,
@@ -66,47 +70,57 @@ public class JourneyController {
                 .map(JourneyResponse::from).toList();
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping
-    public ResponseEntity<JourneyResponse> create(@Valid @RequestBody JourneyCreateInput input) {
-        var journey = createJourney.execute(input.channelId(), input.name(), input.description());
+    public ResponseEntity<JourneyResponse> create(@Valid @RequestBody JourneyCreateInput input,
+                                                   @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        var journey = createJourney.execute(input.channelId(), input.name(), input.description(),
+                currentUser.userId());
         return ResponseEntity.status(HttpStatus.CREATED).body(JourneyResponse.from(getJourney.execute(journey.getId())));
     }
 
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping("/{journeyId}")
     public JourneyResponse get(@PathVariable UUID journeyId) {
         return JourneyResponse.from(getJourney.execute(journeyId));
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PutMapping("/{journeyId}")
     public JourneyResponse update(@PathVariable UUID journeyId, @Valid @RequestBody JourneyUpdateInput input) {
         updateJourney.execute(journeyId, input.name(), input.description());
         return JourneyResponse.from(getJourney.execute(journeyId));
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @DeleteMapping("/{journeyId}")
     public ResponseEntity<Void> delete(@PathVariable UUID journeyId) {
         deleteJourney.execute(journeyId);
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping("/{journeyId}/deactivate")
     public ResponseEntity<Void> deactivate(@PathVariable UUID journeyId) {
         deactivateJourney.execute(journeyId);
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping("/{journeyId}/activate")
     public ResponseEntity<Void> activate(@PathVariable UUID journeyId) {
         activateJourney.execute(journeyId);
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping("/{journeyId}/publish")
     public JourneyResponse publish(@PathVariable UUID journeyId) {
         publishJourney.execute(journeyId);
         return JourneyResponse.from(getJourney.execute(journeyId));
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping("/{journeyId}/unpublish")
     public JourneyResponse unpublish(@PathVariable UUID journeyId) {
         unpublishJourney.execute(journeyId);

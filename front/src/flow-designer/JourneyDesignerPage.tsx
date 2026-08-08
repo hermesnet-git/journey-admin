@@ -46,6 +46,8 @@ import {
 import { updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow } from '../api/flows';
 import { listForms, type Form } from '../api/forms';
+import { listJourneyVersions, type JourneyVersion } from '../api/versions';
+import { VersionsPanel } from './VersionsPanel';
 
 const nodeTypes = {
   start: WorkflowNode,
@@ -112,6 +114,8 @@ function DesignerInner({
   // when set, and falls back to the journey's own properties when null (e.g.
   // after a blank-canvas click).
   const [propertiesNodeId, setPropertiesNodeId] = useState<string | null>(null);
+  const [editingVersion, setEditingVersion] = useState<JourneyVersion | null>(null);
+  const [showVersions, setShowVersions] = useState(false);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -146,6 +150,19 @@ function DesignerInner({
   useEffect(() => {
     refreshForms();
   }, [refreshForms]);
+
+  const refreshVersionBadge = useCallback(() => {
+    // The most recently created version (highest number) is the one this canvas edits — the
+    // live flow/form data behind it, per REQ-06.03.004 ("indicar claramente qual versão está
+    // sendo editada").
+    listJourneyVersions(journey.journeyId).then((versions) => {
+      setEditingVersion(versions[0] ?? null);
+    });
+  }, [journey.journeyId]);
+
+  useEffect(() => {
+    refreshVersionBadge();
+  }, [refreshVersionBadge]);
 
   useEffect(() => {
     getFlow(journey.journeyId).then((flow) => {
@@ -437,6 +454,10 @@ function DesignerInner({
             onSave={handleSave}
             saving={saving}
             onCancel={onClose}
+            versionLabel={
+              editingVersion ? `Editando v${editingVersion.versionNumber} (${editingVersion.status})` : undefined
+            }
+            onOpenVersions={() => setShowVersions(true)}
           />
           <div className="flex-1 flex min-h-0">
             <Palette onAdd={addNodeFromPalette} />
@@ -490,6 +511,15 @@ function DesignerInner({
           </div>
         </div>
         {errors.length > 0 && <ErrorModal errors={errors} onClose={() => setErrors([])} />}
+        {showVersions && (
+          <VersionsPanel
+            journeyId={journey.journeyId}
+            onClose={() => {
+              setShowVersions(false);
+              refreshVersionBadge();
+            }}
+          />
+        )}
       </WorkflowActionsContext.Provider>
     </FlowThemeContext.Provider>
   );

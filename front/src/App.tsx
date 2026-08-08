@@ -6,12 +6,16 @@ import { PlaceholderPanel } from './shell/PlaceholderPanel';
 import { ProductsPage } from './products/ProductsPage';
 import { JourneysPage } from './journeys/JourneysPage';
 import { FormsPage } from './forms/FormsPage';
+import { AuditPage } from './audit/AuditPage';
 import { AppThemeContext, LIGHT_APP_COLORS, DARK_APP_COLORS } from './shell/theme';
 import type { Tab } from './shell/types';
+import { AuthProvider, useAuth } from './auth/AuthContext';
+import { LoginPage } from './auth/LoginPage';
 
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: false };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
 const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
+const AUDIT_TAB: Tab = { key: 'auditoria', title: 'Auditoria', kind: 'audit', closable: true };
 
 const NAV_LABELS: Record<string, string> = {
   execucoes: 'Execuções',
@@ -23,6 +27,15 @@ const NAV_LABELS: Record<string, string> = {
 const skin = getBlauSkin();
 
 export function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
+  );
+}
+
+function AppShell() {
+  const { isAuthenticated } = useAuth();
   const [dark, setDark] = useState(false);
   const colors = dark ? DARK_APP_COLORS : LIGHT_APP_COLORS;
   const [tabs, setTabs] = useState<Tab[]>([JOURNEYS_TAB]);
@@ -58,6 +71,10 @@ export function App() {
       openTab(FORMS_TAB);
       return;
     }
+    if (navKey === 'auditoria') {
+      openTab(AUDIT_TAB);
+      return;
+    }
     openTab({ key: `nav-${navKey}`, title: NAV_LABELS[navKey], kind: 'placeholder', closable: true });
   }
 
@@ -79,13 +96,18 @@ export function App() {
         ? 'produtos'
         : activeTab.kind === 'forms'
           ? 'formularios'
-          : 'jornadas';
+          : activeTab.kind === 'audit'
+            ? 'auditoria'
+            : 'jornadas';
 
   return (
     <AppThemeContext.Provider value={{ dark, colors, toggle: () => setDark((d) => !d) }}>
       <ThemeContextProvider
         theme={{ skin, colorScheme: dark ? 'dark' : 'light', i18n: { locale: 'pt-BR', phoneNumberFormattingRegionCode: 'BR' } }}
       >
+        {!isAuthenticated ? (
+          <LoginPage />
+        ) : (
         <div
           className="flex h-screen w-full font-sans overflow-hidden box-border"
           style={{ background: colors.bg, color: colors.textPrimary }}
@@ -107,11 +129,13 @@ export function App() {
                       onOpenNewHandled={() => setOpenNewForm(false)}
                     />
                   )}
+                  {tab.kind === 'audit' && <AuditPage />}
                 </div>
               ))}
             </div>
           </div>
         </div>
+        )}
       </ThemeContextProvider>
     </AppThemeContext.Provider>
   );

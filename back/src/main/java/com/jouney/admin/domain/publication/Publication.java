@@ -22,6 +22,7 @@ public class Publication {
     private final List<FlowNode> flowNodes;
     private final List<FlowConnection> flowConnections;
     private final List<Form> forms;
+    private final UUID versionId;
     private final OffsetDateTime publishedAt;
     private final OffsetDateTime createdAt;
     private final OffsetDateTime updatedAt;
@@ -29,7 +30,8 @@ public class Publication {
     public Publication(UUID id, UUID journeyId, String journeyName, String journeyDescription, UUID productId,
                         String productName, UUID channelId, String channelName, ChannelType channelType,
                         List<FlowNode> flowNodes, List<FlowConnection> flowConnections, List<Form> forms,
-                        OffsetDateTime publishedAt, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                        UUID versionId, OffsetDateTime publishedAt, OffsetDateTime createdAt,
+                        OffsetDateTime updatedAt) {
         this.id = id;
         this.journeyId = journeyId;
         this.journeyName = journeyName;
@@ -42,21 +44,23 @@ public class Publication {
         this.flowNodes = flowNodes;
         this.flowConnections = flowConnections;
         this.forms = forms;
+        this.versionId = versionId;
         this.publishedAt = publishedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
     // existingId is non-null on republish (keeps the same row/PK, replacing it entirely);
-    // null on first publish for the journey.
+    // null on first publish for the journey. versionId is null for the legacy (version-unaware)
+    // publish flow, and set to the journey_version that was published via the EP-06 flow.
     public static Publication create(UUID existingId, UUID journeyId, String journeyName, String journeyDescription,
                                       UUID productId, String productName, UUID channelId, String channelName,
                                       ChannelType channelType, List<FlowNode> flowNodes,
-                                      List<FlowConnection> flowConnections, List<Form> forms) {
+                                      List<FlowConnection> flowConnections, List<Form> forms, UUID versionId) {
         OffsetDateTime now = OffsetDateTime.now();
         UUID id = existingId != null ? existingId : UUID.randomUUID();
         return new Publication(id, journeyId, journeyName, journeyDescription, productId, productName, channelId,
-                channelName, channelType, flowNodes, flowConnections, forms, now, now, now);
+                channelName, channelType, flowNodes, flowConnections, forms, versionId, now, now, now);
     }
 
     public UUID getId() {
@@ -105,6 +109,10 @@ public class Publication {
 
     public List<Form> getForms() {
         return forms;
+    }
+
+    public UUID getVersionId() {
+        return versionId;
     }
 
     public OffsetDateTime getPublishedAt() {

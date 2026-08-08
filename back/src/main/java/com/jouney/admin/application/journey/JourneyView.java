@@ -5,5 +5,5 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record JourneyView(Journey journey, UUID productId, String productName, String channelName,
-                           OffsetDateTime publishedAt) {
+                           OffsetDateTime publishedAt, UUID publishedVersionId) {
 }

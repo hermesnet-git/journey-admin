@@ -1,6 +1,8 @@
 package com.jouney.admin.interfaces;
 
 import com.jouney.admin.domain.ActivePublicationExistsException;
+import com.jouney.admin.domain.auth.InvalidCredentialsException;
+import com.jouney.admin.domain.auth.InvalidSessionException;
 import com.jouney.admin.domain.channel.ChannelNotFoundException;
 import com.jouney.admin.domain.channel.ProductInactiveException;
 import com.jouney.admin.domain.flow.FlowValidationException;
@@ -10,6 +12,8 @@ import com.jouney.admin.domain.journey.JourneyDeletionBlockedException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.product.ProductNotFoundException;
+import com.jouney.admin.domain.version.JourneyVersionNotFoundException;
+import com.jouney.admin.domain.version.VersionNotDraftException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -23,13 +27,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler({ProductNotFoundException.class, ChannelNotFoundException.class,
-            JourneyNotFoundException.class, FormNotFoundException.class})
+            JourneyNotFoundException.class, FormNotFoundException.class, JourneyVersionNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler({ActivePublicationExistsException.class, JourneyDeletionBlockedException.class,
-            JourneyNotPublishedException.class})
+            JourneyNotPublishedException.class, VersionNotDraftException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }
@@ -37,6 +41,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ProductInactiveException.class, ChannelInactiveException.class})
     public ResponseEntity<ApiError> handleUnprocessable(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler({InvalidCredentialsException.class, InvalidSessionException.class})
+    public ResponseEntity<ApiError> handleUnauthorized(RuntimeException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(FlowValidationException.class)

@@ -9,6 +9,9 @@ import com.jouney.admin.domain.product.ProductNotFoundException;
 import com.jouney.admin.domain.product.ProductRepository;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.domain.publication.PublicationRepository;
+import com.jouney.admin.domain.version.JourneyVersion;
+import com.jouney.admin.domain.version.JourneyVersionRepository;
+import com.jouney.admin.domain.version.VersionStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,12 +20,15 @@ class JourneyViewAssembler {
     private final ChannelRepository channelRepository;
     private final ProductRepository productRepository;
     private final PublicationRepository publicationRepository;
+    private final JourneyVersionRepository journeyVersionRepository;
 
     JourneyViewAssembler(ChannelRepository channelRepository, ProductRepository productRepository,
-                          PublicationRepository publicationRepository) {
+                          PublicationRepository publicationRepository,
+                          JourneyVersionRepository journeyVersionRepository) {
         this.channelRepository = channelRepository;
         this.productRepository = productRepository;
         this.publicationRepository = publicationRepository;
+        this.journeyVersionRepository = journeyVersionRepository;
     }
 
     JourneyView assemble(Journey journey) {
@@ -33,6 +39,10 @@ class JourneyViewAssembler {
         var publishedAt = publicationRepository.findByJourneyId(journey.getId())
                 .map(Publication::getPublishedAt)
                 .orElse(null);
-        return new JourneyView(journey, product.getId(), product.getName(), channel.getName(), publishedAt);
+        var publishedVersionId = journeyVersionRepository.findByJourneyIdAndStatus(journey.getId(), VersionStatus.PUBLISHED)
+                .map(JourneyVersion::getId)
+                .orElse(null);
+        return new JourneyView(journey, product.getId(), product.getName(), channel.getName(), publishedAt,
+                publishedVersionId);
     }
 }

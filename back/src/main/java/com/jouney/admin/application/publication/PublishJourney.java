@@ -1,5 +1,7 @@
 package com.jouney.admin.application.publication;
 
+import com.jouney.admin.application.audit.RecordAuditEvent;
+import com.jouney.admin.domain.audit.AuditResult;
 import com.jouney.admin.domain.Status;
 import com.jouney.admin.domain.channel.Channel;
 import com.jouney.admin.domain.channel.ChannelNotFoundException;
@@ -20,6 +22,7 @@ import com.jouney.admin.domain.product.ProductRepository;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.domain.publication.PublicationRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -34,11 +37,12 @@ public class PublishJourney {
     private final FormRepository formRepository;
     private final PublicationRepository publicationRepository;
     private final RuntimePublicationPort runtimePublicationPort;
+    private final RecordAuditEvent recordAuditEvent;
 
     public PublishJourney(JourneyRepository journeyRepository, ChannelRepository channelRepository,
                            ProductRepository productRepository, FlowRepository flowRepository,
                            FormRepository formRepository, PublicationRepository publicationRepository,
-                           RuntimePublicationPort runtimePublicationPort) {
+                           RuntimePublicationPort runtimePublicationPort, RecordAuditEvent recordAuditEvent) {
         this.journeyRepository = journeyRepository;
         this.channelRepository = channelRepository;
         this.productRepository = productRepository;
@@ -46,6 +50,7 @@ public class PublishJourney {
         this.formRepository = formRepository;
         this.publicationRepository = publicationRepository;
         this.runtimePublicationPort = runtimePublicationPort;
+        this.recordAuditEvent = recordAuditEvent;
     }
 
     public void execute(UUID journeyId) {
@@ -78,12 +83,14 @@ public class PublishJourney {
         UUID existingId = publicationRepository.findByJourneyId(journeyId).map(Publication::getId).orElse(null);
         Publication snapshot = Publication.create(existingId, journeyId, journey.getName(), journey.getDescription(),
                 product.getId(), product.getName(), channel.getId(), channel.getName(), channel.getType(),
-                flow.getNodes(), flow.getConnections(), forms);
+                flow.getNodes(), flow.getConnections(), forms, null);
 
         runtimePublicationPort.publish(snapshot);
 
         publicationRepository.save(snapshot);
         journey.publish();
         journeyRepository.save(journey);
+        recordAuditEvent.record("JOURNEY_PUBLISH", "JOURNEY", journeyId, AuditResult.SUCCESS,
+                Map.of("status", "PUBLISHED"), null);
     }
 }

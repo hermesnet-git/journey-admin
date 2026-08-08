@@ -1,5 +1,7 @@
 package com.jouney.admin.application.channel;
 
+import com.jouney.admin.application.audit.RecordAuditEvent;
+import com.jouney.admin.domain.audit.AuditResult;
 import com.jouney.admin.domain.channel.Channel;
 import com.jouney.admin.domain.channel.ChannelRepository;
 import com.jouney.admin.domain.channel.ChannelType;
@@ -15,10 +17,13 @@ public class CreateChannel {
 
     private final ChannelRepository channelRepository;
     private final ProductRepository productRepository;
+    private final RecordAuditEvent recordAuditEvent;
 
-    public CreateChannel(ChannelRepository channelRepository, ProductRepository productRepository) {
+    public CreateChannel(ChannelRepository channelRepository, ProductRepository productRepository,
+                          RecordAuditEvent recordAuditEvent) {
         this.channelRepository = channelRepository;
         this.productRepository = productRepository;
+        this.recordAuditEvent = recordAuditEvent;
     }
 
     public Channel execute(UUID productId, String name, String description, ChannelType type) {
@@ -29,6 +34,8 @@ public class CreateChannel {
             throw new ProductInactiveException(productId);
         }
 
-        return channelRepository.save(Channel.create(productId, name, description, type));
+        Channel channel = channelRepository.save(Channel.create(productId, name, description, type));
+        recordAuditEvent.record("CHANNEL_CREATE", "CHANNEL", channel.getId(), AuditResult.SUCCESS);
+        return channel;
     }
 }

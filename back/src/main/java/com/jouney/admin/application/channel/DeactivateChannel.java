@@ -1,7 +1,9 @@
 package com.jouney.admin.application.channel;
 
 import com.jouney.admin.application.ActivePublicationPort;
+import com.jouney.admin.application.audit.RecordAuditEvent;
 import com.jouney.admin.domain.ActivePublicationExistsException;
+import com.jouney.admin.domain.audit.AuditResult;
 import com.jouney.admin.domain.channel.Channel;
 import com.jouney.admin.domain.channel.ChannelNotFoundException;
 import com.jouney.admin.domain.channel.ChannelRepository;
@@ -13,10 +15,13 @@ public class DeactivateChannel {
 
     private final ChannelRepository channelRepository;
     private final ActivePublicationPort activePublicationPort;
+    private final RecordAuditEvent recordAuditEvent;
 
-    public DeactivateChannel(ChannelRepository channelRepository, ActivePublicationPort activePublicationPort) {
+    public DeactivateChannel(ChannelRepository channelRepository, ActivePublicationPort activePublicationPort,
+                              RecordAuditEvent recordAuditEvent) {
         this.channelRepository = channelRepository;
         this.activePublicationPort = activePublicationPort;
+        this.recordAuditEvent = recordAuditEvent;
     }
 
     public void execute(UUID id) {
@@ -30,5 +35,6 @@ public class DeactivateChannel {
 
         channel.deactivate();
         channelRepository.save(channel);
+        recordAuditEvent.record("CHANNEL_DEACTIVATE", "CHANNEL", id, AuditResult.SUCCESS);
     }
 }

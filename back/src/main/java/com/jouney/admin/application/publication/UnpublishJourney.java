@@ -1,10 +1,13 @@
 package com.jouney.admin.application.publication;
 
+import com.jouney.admin.application.audit.RecordAuditEvent;
+import com.jouney.admin.domain.audit.AuditResult;
 import com.jouney.admin.domain.journey.Journey;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.journey.JourneyRepository;
 import com.jouney.admin.domain.journey.JourneyStatus;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -13,10 +16,13 @@ public class UnpublishJourney {
 
     private final JourneyRepository journeyRepository;
     private final RuntimePublicationPort runtimePublicationPort;
+    private final RecordAuditEvent recordAuditEvent;
 
-    public UnpublishJourney(JourneyRepository journeyRepository, RuntimePublicationPort runtimePublicationPort) {
+    public UnpublishJourney(JourneyRepository journeyRepository, RuntimePublicationPort runtimePublicationPort,
+                             RecordAuditEvent recordAuditEvent) {
         this.journeyRepository = journeyRepository;
         this.runtimePublicationPort = runtimePublicationPort;
+        this.recordAuditEvent = recordAuditEvent;
     }
 
     public void execute(UUID journeyId) {
@@ -33,5 +39,7 @@ public class UnpublishJourney {
 
         journey.unpublish();
         journeyRepository.save(journey);
+        recordAuditEvent.record("JOURNEY_UNPUBLISH", "JOURNEY", journeyId, AuditResult.SUCCESS,
+                Map.of("status", "UNPUBLISHED"), null);
     }
 }

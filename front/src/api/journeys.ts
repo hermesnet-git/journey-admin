@@ -13,6 +13,7 @@ export interface Journey {
   description: string | null;
   status: JourneyStatus;
   publishedAt: string | null;
+  publishedVersionId: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -15,3 +15,5 @@ spring:
 app:
   cors:
     allowed-origins: http://localhost:5173
+  security:
+    session-inactivity-minutes: 30

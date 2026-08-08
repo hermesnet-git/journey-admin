@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -54,41 +55,48 @@ public class ProductController {
         this.findChannelsByProduct = findChannelsByProduct;
     }
 
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping
     public List<ProductResponse> list(@RequestParam(required = false) String q,
                                        @RequestParam(required = false) Status status) {
         return findProducts.execute(q, status).stream().map(ProductResponse::from).toList();
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductInput input) {
         var product = createProduct.execute(input.name(), input.description());
         return ResponseEntity.status(HttpStatus.CREATED).body(ProductResponse.from(getProduct.execute(product.getId())));
     }
 
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping("/{productId}")
     public ProductResponse get(@PathVariable UUID productId) {
         return ProductResponse.from(getProduct.execute(productId));
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PutMapping("/{productId}")
     public ProductResponse update(@PathVariable UUID productId, @Valid @RequestBody ProductInput input) {
         updateProduct.execute(productId, input.name(), input.description());
         return ProductResponse.from(getProduct.execute(productId));
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping("/{productId}/deactivate")
     public ResponseEntity<Void> deactivate(@PathVariable UUID productId) {
         deactivateProduct.execute(productId);
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping("/{productId}/activate")
     public ResponseEntity<Void> activate(@PathVariable UUID productId) {
         activateProduct.execute(productId);
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping("/{productId}/channels")
     public List<ChannelResponse> listChannels(@PathVariable UUID productId,
                                                @RequestParam(required = false) String q,
@@ -97,6 +105,7 @@ public class ProductController {
         return findChannelsByProduct.execute(productId, q, type, status).stream().map(ChannelResponse::from).toList();
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping("/{productId}/channels")
     public ResponseEntity<ChannelResponse> createChannel(@PathVariable UUID productId,
                                                            @Valid @RequestBody ChannelInput input) {

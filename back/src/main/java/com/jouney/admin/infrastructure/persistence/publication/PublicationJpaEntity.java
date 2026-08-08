@@ -24,6 +24,9 @@ public class PublicationJpaEntity {
     @Column(nullable = false)
     private String snapshot;
 
+    @Column(name = "version_id")
+    private UUID versionId;
+
     @Column(name = "published_at", nullable = false)
     private OffsetDateTime publishedAt;
 
@@ -36,11 +39,12 @@ public class PublicationJpaEntity {
     protected PublicationJpaEntity() {
     }
 
-    public PublicationJpaEntity(UUID id, UUID journeyId, String snapshot, OffsetDateTime publishedAt,
-                                 OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+    public PublicationJpaEntity(UUID id, UUID journeyId, String snapshot, UUID versionId,
+                                 OffsetDateTime publishedAt, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.journeyId = journeyId;
         this.snapshot = snapshot;
+        this.versionId = versionId;
         this.publishedAt = publishedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -56,6 +60,10 @@ public class PublicationJpaEntity {
 
     public String getSnapshot() {
         return snapshot;
+    }
+
+    public UUID getVersionId() {
+        return versionId;
     }
 
     public OffsetDateTime getPublishedAt() {

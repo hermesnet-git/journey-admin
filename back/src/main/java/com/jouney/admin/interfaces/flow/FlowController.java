@@ -4,6 +4,7 @@ import com.jouney.admin.application.flow.GetFlow;
 import com.jouney.admin.application.flow.UpdateFlow;
 import jakarta.validation.Valid;
 import java.util.UUID;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -23,11 +24,13 @@ public class FlowController {
         this.updateFlow = updateFlow;
     }
 
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping
     public FlowResponse get(@PathVariable UUID journeyId) {
         return FlowResponse.from(getFlow.execute(journeyId));
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PutMapping
     public FlowResponse update(@PathVariable UUID journeyId, @Valid @RequestBody FlowInput input) {
         var nodes = input.nodes().stream().map(FlowNodeInput::toDomain).toList();

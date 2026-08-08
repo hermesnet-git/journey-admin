@@ -1,4 +1,4 @@
-import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard } from 'lucide-react';
+import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard, History } from 'lucide-react';
 import { useFlowTheme } from './theme';
 
 const SHORTCUTS_HINT = [
@@ -22,6 +22,8 @@ export function Toolbar({
   onSave,
   saving,
   onCancel,
+  versionLabel,
+  onOpenVersions,
 }: {
   canUndo: boolean;
   canRedo: boolean;
@@ -35,14 +37,32 @@ export function Toolbar({
   onSave: () => void;
   saving: boolean;
   onCancel: () => void;
+  versionLabel?: string;
+  onOpenVersions: () => void;
 }) {
   const { c } = useFlowTheme();
   const iconBtn =
     'w-[30px] h-[30px] rounded-lg border-0 bg-transparent flex items-center justify-center cursor-pointer disabled:opacity-35';
 
   return (
-    <div className="shrink-0 border-b px-4 py-[9px] flex items-center justify-end gap-4" style={{ background: c.headerBg, borderColor: c.border }}>
-      <div className="flex items-center gap-1 shrink-0">
+    <div className="shrink-0 border-b px-4 py-[9px] flex items-center justify-between gap-4" style={{ background: c.headerBg, borderColor: c.border }}>
+      {versionLabel && (
+        <span
+          className="shrink-0 inline-flex items-center rounded-full px-[10px] py-[4px] text-[12px] font-medium"
+          style={{ background: c.accentSoft, color: c.accent }}
+        >
+          {versionLabel}
+        </span>
+      )}
+      <div className="flex items-center gap-1 shrink-0 ml-auto">
+        <button
+          onClick={onOpenVersions}
+          title="Histórico de versões"
+          className="h-[30px] px-[9px] rounded-lg flex items-center gap-[6px] text-[12.5px] font-semibold cursor-pointer"
+          style={{ border: `1px solid ${c.border}`, color: c.textPrimary }}
+        >
+          <History size={15} /> Versões
+        </button>
         <button
           onClick={onOrganize}
           title="Organizar objetos no canvas"

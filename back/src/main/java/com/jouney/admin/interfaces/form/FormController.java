@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,11 +40,13 @@ public class FormController {
         this.deleteForm = deleteForm;
     }
 
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping
     public List<FormResponse> list(@RequestParam(required = false) String q) {
         return findForms.execute(q).stream().map(FormResponse::from).toList();
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping
     public ResponseEntity<FormResponse> create(@Valid @RequestBody FormInput input) {
         var form = createForm.execute(input.name(), input.description(),
@@ -51,11 +54,13 @@ public class FormController {
         return ResponseEntity.status(HttpStatus.CREATED).body(FormResponse.from(form));
     }
 
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping("/{formId}")
     public FormResponse get(@PathVariable UUID formId) {
         return FormResponse.from(getForm.execute(formId));
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PutMapping("/{formId}")
     public FormResponse update(@PathVariable UUID formId, @Valid @RequestBody FormInput input) {
         var form = updateForm.execute(formId, input.name(), input.description(),
@@ -63,6 +68,7 @@ public class FormController {
         return FormResponse.from(form);
     }
 
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @DeleteMapping("/{formId}")
     public ResponseEntity<Void> delete(@PathVariable UUID formId) {
         deleteForm.execute(formId);

@@ -11,9 +11,11 @@ import {
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
+  ShieldCheck,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAppTheme } from './theme';
+import { useAuth } from '../auth/AuthContext';
 
 interface NavItem {
   key: string;
@@ -30,6 +32,8 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'configuracoes', label: 'Configurações', icon: <Settings size={16} /> },
 ];
 
+const AUDIT_NAV_ITEM: NavItem = { key: 'auditoria', label: 'Auditoria', icon: <ShieldCheck size={16} /> };
+
 interface SidebarProps {
   activeKey: string;
   onNavigate: (key: string) => void;
@@ -37,7 +41,12 @@ interface SidebarProps {
 
 export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
   const { colors: c } = useAppTheme();
+  const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const initials = user ? user.username.slice(0, 2).toUpperCase() : '';
+  // Audit log access is ADMIN-only (the API rejects everyone else), so the nav entry
+  // is only shown to admins — matches the backend's @PreAuthorize("hasRole('ADMIN')").
+  const navItems = user?.role === 'ADMIN' ? [...NAV_ITEMS, AUDIT_NAV_ITEM] : NAV_ITEMS;
 
   if (collapsed) {
     return (
@@ -50,7 +59,7 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
         </div>
 
         <nav className="flex flex-col gap-[2px] w-full items-center">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = item.key === activeKey;
             return (
               <button
@@ -79,11 +88,12 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
             <HelpCircle size={15} />
           </button>
           <button
-            title="Hermes González"
+            onClick={logout}
+            title={user ? `${user.username} (${user.role}) · Sair` : 'Sair'}
             className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0 cursor-pointer border-0"
             style={{ background: c.accent }}
           >
-            HG
+            {initials}
           </button>
           <button
             onClick={() => setCollapsed(false)}
@@ -123,7 +133,7 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
       </div>
 
       <nav className="flex flex-col gap-[2px]">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = item.key === activeKey;
           return (
             <button
@@ -155,17 +165,19 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
         <div
           className="flex items-center justify-between gap-[10px] p-[10px] border-t mt-[6px] cursor-pointer"
           style={{ borderColor: c.border }}
+          onClick={logout}
+          title="Sair"
         >
           <div className="flex items-center gap-[10px] min-w-0">
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0" style={{ background: c.accent }}>
-              HG
+              {initials}
             </div>
             <div className="min-w-0">
               <div className="text-[12.5px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.textPrimary }}>
-                Hermes González
+                {user?.username}
               </div>
               <div className="text-[11px] whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.textMuted }}>
-                Admin de Workflows
+                {user?.role}
               </div>
             </div>
           </div>

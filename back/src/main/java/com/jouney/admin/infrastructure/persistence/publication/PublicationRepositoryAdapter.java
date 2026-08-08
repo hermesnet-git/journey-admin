@@ -50,8 +50,8 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
                         .toList());
 
         PublicationJpaEntity entity = new PublicationJpaEntity(publication.getId(), publication.getJourneyId(),
-                writeJson(record), publication.getPublishedAt(), publication.getCreatedAt(),
-                publication.getUpdatedAt());
+                writeJson(record), publication.getVersionId(), publication.getPublishedAt(),
+                publication.getCreatedAt(), publication.getUpdatedAt());
         return toDomain(jpaRepository.save(entity));
     }
 
@@ -82,7 +82,7 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
         return new Publication(entity.getId(), entity.getJourneyId(), record.journeyName(),
                 record.journeyDescription(), record.productId(), record.productName(), record.channelId(),
                 record.channelName(), record.channelType(), flowNodes, flowConnections, forms,
-                entity.getPublishedAt(), entity.getCreatedAt(), entity.getUpdatedAt());
+                entity.getVersionId(), entity.getPublishedAt(), entity.getCreatedAt(), entity.getUpdatedAt());
     }
 
     private String writeJson(Object value) {

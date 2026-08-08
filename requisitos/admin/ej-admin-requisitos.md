@@ -123,7 +123,7 @@ jornadas serão disponibilizadas.
 
 
 
-### FT-01.01 Gestão de Produtos
+### FT-01.01 Gestão de produtos
 
 #### REQ-01.01.001 - O sistema deve permitir cadastrar produtos.
 #### REQ-01.01.002 - O sistema deve permitir editar produtos.
@@ -131,7 +131,7 @@ jornadas serão disponibilizadas.
 #### REQ-01.01.004 - O sistema deve permitir desativar e reativar produtos.
 #### REQ-01.01.005 - Cada produto deve possuir identificador único (`productId`), nome, descrição obrigatória e status.
 
-### FT-01.02 Gestão de Canais
+### FT-01.02 Gestão de canais
 #### REQ-01.02.001 - O sistema deve permitir cadastrar canais dentro de um produto.
 #### REQ-01.02.002 - O sistema deve permitir editar canais.
 #### REQ-01.02.003 - O sistema deve permitir consultar canais.
@@ -141,7 +141,7 @@ jornadas serão disponibilizadas.
 #### REQ-01.02.007 - O sistema deve suportar os tipos de canal `WEB`, `MOBILE`, `WHATSAPP`, `URA`, `CONTACT_CENTER` e `OTHER`.
 
 
-### FT-01.03 Catálogo e Descoberta
+### FT-01.03 Catálogo e descoberta
 #### REQ-01.03.001 - O sistema deve permitir pesquisar produtos por nome.
 #### REQ-01.03.002 - O sistema deve permitir filtrar produtos por status.
 #### REQ-01.03.003 - O sistema deve permitir listar os canais de um produto.
@@ -151,7 +151,7 @@ jornadas serão disponibilizadas.
 #### REQ-01.03.007 - O sistema deve exibir a quantidade de jornadas associadas a cada canal.
 
 
-### FT-01.04 Integridade e Ciclo de Vida
+### FT-01.04 Integridade e ciclo de vida
 #### REQ-01.04.001 - A desativação de um produto não deve remover seus canais, jornadas ou publicações existentes.
 #### REQ-01.04.002 - A desativação de um canal não deve remover suas jornadas ou publicações existentes.
 #### REQ-01.04.003 - O sistema deve impedir a criação e a publicação de jornadas quando o produto ou o canal estiver inativo.
@@ -167,7 +167,7 @@ jornadas serão disponibilizadas.
 Permitir a criação, organização e manutenção de jornadas específicas para os
 canais de um produto.
 
-### FT-02.01 Cadastro de Jornadas
+### FT-02.01 Cadastro de jornadas
 #### REQ-02.01.001 - O sistema deve permitir criar jornadas.
 #### REQ-02.01.002 - O sistema deve permitir editar jornadas.
 #### REQ-02.01.003 - O sistema deve permitir consultar jornadas.
@@ -177,7 +177,7 @@ canais de um produto.
 #### REQ-02.01.007 - O sistema deve permitir reativar uma jornada inativa, retornando-a ao status `DRAFT`.
 
 
-### FT-02.02 Identificação e Metadados
+### FT-02.02 Identificação e metadados
 #### REQ-02.02.001 - O sistema deve permitir definir nome para a jornada.
 #### REQ-02.02.002 - O sistema deve exigir uma descrição para a jornada.
 #### REQ-02.02.003 - Cada jornada deve possuir identificador único (`journeyId`).
@@ -197,35 +197,35 @@ canais de um produto.
 Fora do escopo do MVP. Esta capacidade permanece registrada como evoluÃ§Ã£o
 futura e nÃ£o faz parte dos requisitos entregÃ¡veis desta versÃ£o.
 
-### FT-02.05 Jornadas Específicas por Canal
+### FT-02.05 Jornadas específicas por canal
 #### REQ-02.05.001 - O sistema deve permitir criar jornadas distintas para diferentes canais do mesmo produto.
 #### REQ-02.05.002 - Cada jornada deve possuir definição independente de fluxo e formulários.
 #### REQ-02.05.003 - Alterações reali zadas em uma jornada não devem modificar automaticamente jornadas de outros canais.
 #### REQ-02.05.004 - O sistema deve exibir o produto e o canal durante toda a edição da jornada.
 ---
 
-### FT-02.06 Publicação de Jornadas
+### FT-02.06 Publicação de jornadas
 #### REQ-02.06.001 - O sistema deve permitir publicar jornadas.
 #### REQ-02.06.002 - O sistema deve permitir despublicar jornadas por meio da API do runtime.
 #### REQ-02.06.003 - O sistema deve permitir consultar jornadas publicadas.
 #### REQ-02.06.004 - Cada jornada deve possuir no maximo uma publicacao. Alteracoes reali zadas apos a publicacao nao devem modificar automaticamente o snapshot publicado; para disponibiliza-las, o usuario deve publicar novamente, substituindo integralmente o snapshot anterior.
 ---
 
-### FT-02.07 Estado da Publicação
+### FT-02.07 Estado da publicação
 #### REQ-02.07.001 - O sistema deve indicar se uma jornada esta publicada.
 #### REQ-02.07.002 - O sistema deve indicar a data da publicacao.
 #### REQ-02.07.003 - O sistema deve indicar o produto associado a publicacao.
 #### REQ-02.07.004 - O sistema deve indicar o canal associado a publicacao.
 ---
 
-### FT-02.08 Catálogo de Publicações
+### FT-02.08 Catálogo de publicações
 #### REQ-02.08.001 - O sistema deve permitir listar jornadas publicadas.
 #### REQ-02.08.002 - O sistema deve permitir pesquisar jornadas publicadas.
 #### REQ-02.08.003 - O sistema deve permitir filtrar jornadas publicadas por produto.
 #### REQ-02.08.004 - O sistema deve permitir filtrar jornadas publicadas por canal.
 ---
 
-### FT-02.09 Publicação no Runtime
+### FT-02.09 Publicação no runtime
 #### REQ-02.09.001 - O Admin Portal deve iniciar a publicacao por meio de uma chamada de saida para a API de publicacao do runtime.
 #### REQ-02.09.002 - A chamada deve enviar a definicao completa da jornada, incluindo produto, canal, fluxo e formularios.
 #### REQ-02.09.003 - No MVP, a API de publicacao do runtime deve ser representada por um mock. Apos o retorno de sucesso do mock, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`.
@@ -242,7 +242,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 
 ---
 
-### FT-03.01 Flow Designer
+### FT-03.01 Flow designer
 #### REQ-03.01.001 - O sistema deve suportar eventos de início, incluindo `START` e `MESSAGE_START_EVENT`.
 #### REQ-03.01.002 - O sistema deve suportar eventos de término.
 #### REQ-03.01.003 - O sistema deve suportar User Tasks, Service Tasks e Receive Tasks.
@@ -286,7 +286,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.06.002 - O sistema deve permitir refazer ações.
 ---
 
-### FT-03.07 Elementos de Integração
+### FT-03.07 Elementos de integração
 #### REQ-03.07.001 - O sistema deve suportar nós de integração `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT`.
 #### REQ-03.07.002 - Uma `SERVICE_TASK` deve representar a execução de uma integração externa durante a jornada.
 #### REQ-03.07.003 - Uma `RECEIVE_TASK` deve representar a espera por uma mensagem externa em uma instância de jornada já iniciada.
@@ -295,7 +295,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.07.006 - O sistema deve permitir editar, mover, remover, copiar e duplicar elementos de integração, respeitando as regras de unicidade do elemento inicial.
 ---
 
-### FT-03.08 Framework de Conectores
+### FT-03.08 Framework de conectores
 #### REQ-03.08.001 - O sistema deve representar a integração por meio de um framework conceitual de conectores.
 #### REQ-03.08.002 - O framework deve permitir associar um conector a uma `SERVICE_TASK`, `RECEIVE_TASK` ou `MESSAGE_START_EVENT`, respeitando quais conectores são válidos para cada tipo (REQ-03.09.007).
 #### REQ-03.08.003 - O catálogo deve possuir os conectores `REST` e `KAFKA` habilitados para uso no MVP.
@@ -325,7 +325,7 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 
 ---
 
-### FT-04.01 Form Builder
+### FT-04.01 Form builder
 #### REQ-04.01.001 - O sistema deve permitir criar formulários.
 #### REQ-04.01.002 - O sistema deve permitir editar formulários.
 #### REQ-04.01.003 - O sistema deve permitir remover formulários.
@@ -379,7 +379,7 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-05.02.004 - O sistema deve apresentar o resultado final da simulação.
 ---
 
-### FT-05.03 Visualização da Execução
+### FT-05.03 Visualização da execução
 #### REQ-05.03.001 - O sistema deve destacar o caminho percorrido durante a simulação.
 #### REQ-05.03.002 - O sistema deve destacar as User Tasks e os formulários executados.
 ---

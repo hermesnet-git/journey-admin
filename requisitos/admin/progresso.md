@@ -38,7 +38,7 @@
 
 ## EP-01 Gestão de Produtos e Canais
 
-### FT-01.01 Gestão de Produtos
+### FT-01.01 Gestão de produtos
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -48,7 +48,7 @@
 | [x] | REQ-01.01.004 | O sistema deve permitir desativar produtos. | done | back: `POST /api/v1/products/{id}/deactivate`; front: `ProductsPage` (ação "Desativar") | |
 | [x] | REQ-01.01.005 | Cada produto deve possuir identificador único (`productId`), nome, descrição opcional e status. | done | back: `Product` domain + `V1__create_product.sql` (`product_id UUID PRIMARY KEY`) | |
 
-### FT-01.02 Gestão de Canais
+### FT-01.02 Gestão de canais
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -60,7 +60,7 @@
 | [x] | REQ-01.02.006 | Cada canal deve possuir identificador único (`channelId`), nome, descrição opcional, tipo e status. | done | back: `channel_id UUID PRIMARY KEY` (`V2__create_channel.sql`) + `Channel` domain | |
 | [x] | REQ-01.02.007 | O sistema deve suportar os tipos de canal `WEB`, `MOBILE`, `WHATSAPP`, `URA`, `CONTACT_CENTER` e `OTHER`. | done | back: `ChannelType` enum + CHECK constraint; front: `ChannelFormModal` (Select) | |
 
-### FT-01.03 Catálogo e Descoberta
+### FT-01.03 Catálogo e descoberta
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -72,7 +72,7 @@
 | [x] | REQ-01.03.006 | O sistema deve exibir a quantidade de canais associados a cada produto. | done | back: `ProductView.channelCount`; front: coluna "Canais" em `ProductsPage` | |
 | [x] | REQ-01.03.007 | O sistema deve exibir a quantidade de jornadas associadas a cada canal. | done | back: `ChannelView.journeyCount` via `JourneyCountPort` (stub retorna 0 até EP-02); front: coluna "Jornadas" | contagem real depende de EP-02 |
 
-### FT-01.04 Integridade e Ciclo de Vida
+### FT-01.04 Integridade e ciclo de vida
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -86,7 +86,7 @@
 
 ## EP-02 Gestão de Jornadas
 
-### FT-02.01 Cadastro de Jornadas
+### FT-02.01 Cadastro de jornadas
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -97,7 +97,7 @@
 | [x] | REQ-02.01.005 | Uma jornada que possua ou tenha possuído publicação não deve poder ser removida fisicamente; o sistema deve permitir apenas sua desativação, preservando o registro de publicação. | done | back: `DeleteJourney` lança `JourneyDeletionBlockedException` (409) quando `HasEverBeenPublishedPort.hasEverBeenPublished` (real, via `journey_publication`) | testado via curl: 409 mesmo após despublicar (registro preservado) |
 | [x] | REQ-02.01.006 | O sistema deve impedir a desativação de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes da desativação. | done | back: `DeactivateJourney` + `ActivePublicationPort.existsForJourney` real | |
 
-### FT-02.02 Identificação e Metadados
+### FT-02.02 Identificação e metadados
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -118,7 +118,7 @@
 | [x] | REQ-02.03.004 | O sistema deve permitir ordenar jornadas por data de criação. | done | back: `?sort=CREATED_AT`; front: `FilterDropdown` "Ordenar" → "Criadas recentemente" | |
 | [x] | REQ-02.03.005 | O sistema deve permitir ordenar jornadas por data de alteração. | done | back: `?sort=UPDATED_AT` (padrão); front: "Alteradas recentemente" | |
 
-### FT-02.05 Jornadas Específicas por Canal
+### FT-02.05 Jornadas específicas por canal
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -131,7 +131,7 @@
 
 ## EP-03 Modelagem Visual
 
-### FT-03.01 Flow Designer
+### FT-03.01 Flow designer
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -161,7 +161,7 @@
 | [x] | REQ-03.03.002 | O usuário deve navegar livremente pelo fluxo. | done | front: pan/zoom nativos do `ReactFlow` | |
 | [x] | REQ-03.03.003 | O sistema deve destacar o elemento selecionado. | done | front: `WorkflowNode` (estado `selected`) + arestas conectadas destacadas em `displayEdges` | |
 
-### FT-03.04 Experiência de Edição
+### FT-03.04 Experiência de edição
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -189,7 +189,7 @@
 
 ---
 
-### FT-03.07 Elementos de Integração
+### FT-03.07 Elementos de integração
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -200,7 +200,7 @@
 | [x] | REQ-03.07.005 | O fluxo deve possuir exatamente um elemento inicial, que pode ser `START` ou `MESSAGE_START_EVENT`. | done | back: `FlowValidator.START_TYPES` (conta `START`+`MESSAGE_START_EVENT` juntos, exige exatamente 1); front: `validation.ts` (mesma regra); `start` passou a ser removível em `WorkflowNode.tsx` para permitir a troca | |
 | [x] | REQ-03.07.006 | O sistema deve permitir editar, mover, remover, copiar e duplicar elementos de integração, respeitando as regras de unicidade do elemento inicial. | done | front: `SERVICE_TASK`/`RECEIVE_TASK` incluídos em `SINGLE_OUTPUT_TYPES` (copiáveis/duplicáveis, `JourneyDesignerPage.tsx`); `MESSAGE_START_EVENT` fica fora (mantém unicidade, como `start`/`end`); mover/editar/remover já são genéricos no React Flow | |
 
-### FT-03.08 Framework de Conectores
+### FT-03.08 Framework de conectores
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -226,7 +226,7 @@
 
 ## EP-04 Formulários (SDUI)
 
-### FT-04.01 Form Builder
+### FT-04.01 Form builder
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -292,7 +292,7 @@
 | [ ] | REQ-05.02.003 | O sistema deve apresentar os formulários exibidos. | todo | | |
 | [ ] | REQ-05.02.004 | O sistema deve apresentar o resultado final da simulação. | todo | | |
 
-### FT-05.03 Visualização da Execução
+### FT-05.03 Visualização da execução
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -303,7 +303,7 @@
 
 ## EP-02 Gestão de Jornadas — continuação: publicação
 
-### FT-02.06 Publicação de Jornadas
+### FT-02.06 Publicação de jornadas
 
 #### Publicação de Jornadas — requisitos consolidados no EP-02
 
@@ -314,7 +314,7 @@
 | [x] | REQ-02.06.003 | O sistema deve permitir consultar jornadas publicadas. | done | back: `GET /api/v1/journeys?status=PUBLISHED`; front: filtro "Publicadas" em `JourneysPage` | |
 | [x] | REQ-02.06.004 | Cada jornada deve possuir no máximo uma publicação. Alterações realizadas após a publicação não devem modificar automaticamente o snapshot publicado; para disponibilizá-las, o usuário deve publicar novamente, substituindo integralmente o snapshot anterior. | done | back: `journey_publication.journey_id UNIQUE`; `PublishJourney` reaproveita o `id` existente (upsert) ao republicar, substituindo o `snapshot` por inteiro | testado via curl (republicar troca `publishedAt`) |
 
-### FT-02.07 Estado da Publicação
+### FT-02.07 Estado da publicação
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -323,7 +323,7 @@
 | [x] | REQ-02.07.003 | O sistema deve indicar o produto associado à publicação. | done | front: `journey.productName` já exibido em todo lugar da listagem (produto é imutável por jornada) | |
 | [x] | REQ-02.07.004 | O sistema deve indicar o canal associado à publicação. | done | front: `journey.channelName` já exibido em todo lugar da listagem | |
 
-### FT-02.08 Catálogo de Publicações
+### FT-02.08 Catálogo de publicações
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -334,7 +334,7 @@
 
 ---
 
-### FT-02.09 Publicação no Runtime
+### FT-02.09 Publicação no runtime
 
 #### Chamadas de Publicação e Despublicação — requisitos consolidados no EP-02
 

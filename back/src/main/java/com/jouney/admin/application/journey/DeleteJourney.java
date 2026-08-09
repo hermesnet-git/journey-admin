@@ -17,11 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Deletes a journey (REQ-02.01.004/005/006/009). Already-INACTIVE journeys can't be deleted again.
- * A journey with no publication history is removed
- * physically, along with its versions and flow (nothing worth keeping — it never went further than
- * a DRAFT). A journey that has ever been published can't be removed physically: if it's currently
- * PUBLISHED, deletion is blocked outright (same guard as {@link DeactivateJourney}); otherwise it's
- * soft-deleted instead — the journey and every one of its versions are marked
+ * A journey with no publication history is removed physically, along with its versions and flow
+ * (nothing worth keeping — it never went further than a DRAFT). A journey that has ever been
+ * published can't be removed physically: if it's currently PUBLISHED, deletion is blocked outright
+ * ({@link ActivePublicationExistsException}); otherwise it's soft-deleted instead — the journey and
+ * every one of its versions are marked
  * INACTIVE/{@link com.jouney.admin.domain.version.VersionStatus#INACTIVE}, preserving the
  * publication trail.
  */

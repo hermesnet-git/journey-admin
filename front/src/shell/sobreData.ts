@@ -110,7 +110,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-02.01.006',
-            'O sistema deve impedir a desativação ou a exclusão de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes.',
+            'O sistema deve impedir a exclusão de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes.',
           ),
           d(
             'REQ-02.01.008',
@@ -782,6 +782,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      '"Desativar jornada" removido: com "Excluir" já cobrindo o caso (soft-delete para INACTIVE quando a jornada já foi publicada, exclusão física quando não), manter um botão de desativação manual separado — que virava a jornada INACTIVE sem tocar nas versões, resultado diferente e inconsistente com o significado que INACTIVE passou a ter (jornada excluída) — não fazia mais sentido. Removidos DeactivateJourney (back), POST /journeys/{id}/deactivate, deactivateJourney (front), estado deactivatingJourney, seu ConfirmDialog e o botão (ícone PowerOff) do grid de jornadas. REQ-02.01.006 reformulado para falar só de bloqueio de exclusão; REQ-06.05.001 com evidência atualizada para DeleteJourney. Journey.deactivate() (método de domínio) continua existindo — é o que DeleteJourney chama internamente no caminho de soft-delete.',
+  },
   {
     date: '2026-08-09',
     source: 'progresso',

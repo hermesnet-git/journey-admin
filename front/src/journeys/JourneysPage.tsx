@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, Route, Trash2, Pencil, CloudOff, PowerOff, ChevronRight } from 'lucide-react';
+import { Search, Plus, Route, Trash2, Pencil, CloudOff, ChevronRight } from 'lucide-react';
 import { PrimaryButton, SecondaryButton, FilterDropdown, type FilterOption } from '../products/ui';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
@@ -7,7 +7,6 @@ import { ConfirmDialog } from '../products/ConfirmDialog';
 import { ApiClientError } from '../api/client';
 import {
   listJourneys,
-  deactivateJourney,
   deleteJourney,
   unpublishJourney,
   type Journey,
@@ -73,7 +72,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [editingJourney, setEditingJourney] = useState<Journey | null>(null);
   const [creatingJourney, setCreatingJourney] = useState(false);
-  const [deactivatingJourney, setDeactivatingJourney] = useState<Journey | null>(null);
   const [deletingJourney, setDeletingJourney] = useState<Journey | null>(null);
   const [unpublishingJourney, setUnpublishingJourney] = useState<Journey | null>(null);
 
@@ -120,25 +118,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
         }}
       />
     );
-  }
-
-  async function confirmDeactivate() {
-    if (!deactivatingJourney) return;
-    const journey = deactivatingJourney;
-    setDeactivatingJourney(null);
-    try {
-      await deactivateJourney(journey.journeyId);
-      await reload();
-      showToast('Jornada desativada com sucesso.');
-    } catch (err) {
-      const message =
-        err instanceof ApiClientError && err.status === 409
-          ? 'Não é possível desativar: a jornada possui publicação ativa.'
-          : err instanceof Error
-            ? err.message
-            : 'Erro ao desativar jornada';
-      showToast(message, 'error');
-    }
   }
 
   async function confirmUnpublish() {
@@ -252,7 +231,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
               key={j.journeyId}
               journey={j}
               onEdit={() => setEditingJourney(j)}
-              onDeactivate={() => setDeactivatingJourney(j)}
               onDelete={() => setDeletingJourney(j)}
               onUnpublish={() => setUnpublishingJourney(j)}
               onVersionsChanged={reload}
@@ -269,16 +247,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
             setEditingJourney(journey);
             showToast('Jornada criada com sucesso.');
           }}
-        />
-      )}
-
-      {deactivatingJourney && (
-        <ConfirmDialog
-          title="Desativar jornada"
-          message={`Tem certeza que deseja desativar "${deactivatingJourney.name}"? O histórico da jornada será preservado.`}
-          confirmLabel="Desativar"
-          onConfirm={confirmDeactivate}
-          onCancel={() => setDeactivatingJourney(null)}
         />
       )}
 
@@ -403,13 +371,11 @@ function IconAction({
 function JourneyActions({
   journey,
   onEdit,
-  onDeactivate,
   onDelete,
   onUnpublish,
 }: {
   journey: Journey;
   onEdit: () => void;
-  onDeactivate: () => void;
   onDelete: () => void;
   onUnpublish: () => void;
 }) {
@@ -425,9 +391,6 @@ function JourneyActions({
       {journey.status === 'PUBLISHED' && (
         <IconAction icon={CloudOff} label="Despublicar jornada" onClick={onUnpublish} hoverColor={c.warning} />
       )}
-      {journey.status === 'DRAFT' && (
-        <IconAction icon={PowerOff} label="Desativar jornada" onClick={onDeactivate} hoverColor={c.warning} />
-      )}
       <IconAction
         icon={Trash2}
         label={journey.status === 'INACTIVE' ? 'Jornada já está inativa' : 'Excluir jornada'}
@@ -442,14 +405,12 @@ function JourneyActions({
 function JourneyDetailRow({
   journey,
   onEdit,
-  onDeactivate,
   onDelete,
   onUnpublish,
   onVersionsChanged,
 }: {
   journey: Journey;
   onEdit: () => void;
-  onDeactivate: () => void;
   onDelete: () => void;
   onUnpublish: () => void;
   onVersionsChanged: () => void;
@@ -490,13 +451,7 @@ function JourneyDetailRow({
         <span className="text-[12px]" style={{ color: c.textSecondary }}>
           {formatDate(journey.updatedAt)}
         </span>
-        <JourneyActions
-          journey={journey}
-          onEdit={onEdit}
-          onDeactivate={onDeactivate}
-          onDelete={onDelete}
-          onUnpublish={onUnpublish}
-        />
+        <JourneyActions journey={journey} onEdit={onEdit} onDelete={onDelete} onUnpublish={onUnpublish} />
       </div>
       {open && <JourneyVersionsRows journeyId={journey.journeyId} onJourneyChanged={onVersionsChanged} />}
     </>

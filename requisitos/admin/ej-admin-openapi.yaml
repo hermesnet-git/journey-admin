@@ -657,7 +657,8 @@ paths:
                 $ref: '#/components/schemas/Journey'
     delete:
       tags: [Journeys]
-      summary: Delete a journey that has never been published
+      summary: Delete a journey — physically if never published, soft-deleted (INACTIVE) otherwise
+      description: Returns 409 if the journey is currently PUBLISHED or already INACTIVE.
       operationId: deleteJourney
       parameters:
         - $ref: '#/components/parameters/JourneyId'
@@ -678,36 +679,6 @@ paths:
           description: Journey deleted
         '409':
           $ref: '#/components/responses/Conflict'
-
-  /journeys/{journeyId}/deactivate:
-    post:
-      tags: [Journeys]
-      summary: Deactivate journey while preserving its publication record
-      description: Returns 409 while the journey publication is PUBLISHED. The journey must be unpublished first.
-      operationId: deactivateJourney
-      parameters:
-        - $ref: '#/components/parameters/JourneyId'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Journey deactivated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Journey'
 
   /journeys/{journeyId}/flow:
     get:

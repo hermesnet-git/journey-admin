@@ -51,10 +51,6 @@ export function updateJourney(journeyId: string, input: JourneyUpdateInput): Pro
   return apiPut<Journey>(`/journeys/${journeyId}`, input);
 }
 
-export function deactivateJourney(journeyId: string): Promise<void> {
-  return apiPost<void>(`/journeys/${journeyId}/deactivate`);
-}
-
 export function deleteJourney(journeyId: string): Promise<void> {
   return apiDelete<void>(`/journeys/${journeyId}`);
 }

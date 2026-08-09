@@ -1,7 +1,6 @@
 package com.jouney.admin.interfaces.journey;
 
 import com.jouney.admin.application.journey.CreateJourney;
-import com.jouney.admin.application.journey.DeactivateJourney;
 import com.jouney.admin.application.journey.DeleteJourney;
 import com.jouney.admin.application.journey.FindJourneys;
 import com.jouney.admin.application.journey.GetJourney;
@@ -36,20 +35,17 @@ public class JourneyController {
     private final UpdateJourney updateJourney;
     private final GetJourney getJourney;
     private final FindJourneys findJourneys;
-    private final DeactivateJourney deactivateJourney;
     private final DeleteJourney deleteJourney;
     private final PublishJourney publishJourney;
     private final UnpublishJourney unpublishJourney;
 
     public JourneyController(CreateJourney createJourney, UpdateJourney updateJourney, GetJourney getJourney,
-                              FindJourneys findJourneys, DeactivateJourney deactivateJourney,
-                              DeleteJourney deleteJourney, PublishJourney publishJourney,
+                              FindJourneys findJourneys, DeleteJourney deleteJourney, PublishJourney publishJourney,
                               UnpublishJourney unpublishJourney) {
         this.createJourney = createJourney;
         this.updateJourney = updateJourney;
         this.getJourney = getJourney;
         this.findJourneys = findJourneys;
-        this.deactivateJourney = deactivateJourney;
         this.deleteJourney = deleteJourney;
         this.publishJourney = publishJourney;
         this.unpublishJourney = unpublishJourney;
@@ -93,13 +89,6 @@ public class JourneyController {
     public ResponseEntity<Void> delete(@PathVariable UUID journeyId) {
         deleteJourney.execute(journeyId);
         return ResponseEntity.noContent().build();
-    }
-
-    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
-    @PostMapping("/{journeyId}/deactivate")
-    public ResponseEntity<Void> deactivate(@PathVariable UUID journeyId) {
-        deactivateJourney.execute(journeyId);
-        return ResponseEntity.ok().build();
     }
 
     @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")

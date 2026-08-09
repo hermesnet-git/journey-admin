@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from './client';
 
-export type VersionStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+export type VersionStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'UNPUBLISHED';
 
 export interface FlowNodeSnapshot {
   id: string;
@@ -65,4 +65,8 @@ export function createJourneyVersion(journeyId: string, description?: string): P
 
 export function publishJourneyVersion(journeyId: string, versionId: string): Promise<JourneyVersion> {
   return apiPost<JourneyVersion>(`/journeys/${journeyId}/versions/${versionId}/publish`);
+}
+
+export function unpublishJourneyVersion(journeyId: string, versionId: string): Promise<JourneyVersion> {
+  return apiPost<JourneyVersion>(`/journeys/${journeyId}/versions/${versionId}/unpublish`);
 }

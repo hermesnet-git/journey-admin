@@ -14,6 +14,7 @@ export interface Journey {
   status: JourneyStatus;
   publishedAt: string | null;
   publishedVersionId: string | null;
+  publishedVersionNumber: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -60,10 +61,6 @@ export function activateJourney(journeyId: string): Promise<void> {
 
 export function deleteJourney(journeyId: string): Promise<void> {
   return apiDelete<void>(`/journeys/${journeyId}`);
-}
-
-export function publishJourney(journeyId: string): Promise<Journey> {
-  return apiPost<Journey>(`/journeys/${journeyId}/publish`);
 }
 
 export function unpublishJourney(journeyId: string): Promise<Journey> {

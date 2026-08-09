@@ -16,8 +16,8 @@
 |---|---|
 | Total de Épicos (EP) | 10 |
 | Total de Features (FT) | 47 |
-| Total de Requisitos (REQ) | 235 |
-| Concluídos (`done`) | 218 |
+| Total de Requisitos (REQ) | 239 |
+| Concluídos (`done`) | 222 |
 | Em andamento (`in_progress`) | 0 |
 | Não iniciados (`todo`) | 15 |
 | Bloqueados (`blocked`) | 0 |
@@ -37,7 +37,7 @@
 | EP-03 | Modelagem Visual | 46 | 46 | 100% |
 | EP-04 | Formulários (SDUI) | 19 | 19 | 100% |
 | EP-05 | Simulação | 10 | 0 | 0% |
-| EP-06 | Versionamento de jornadas | 35 | 35 | 100% |
+| EP-06 | Versionamento de jornadas | 39 | 39 | 100% |
 | EP-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
 | EP-08 | Auditoria | 22 | 21 | 95% (1 n/a) |
 | EP-09 | Ajuda e Suporte | 5 | 5 | 100% |
@@ -366,33 +366,35 @@
 | [x] | REQ-06.01.002 | Cada versão deve possuir identificador único (`versionId`). | done | back: `journey_version.version_id UUID PRIMARY KEY` | |
 | [x] | REQ-06.01.003 | Cada versão deve possuir número sequencial iniciado em `1` dentro da jornada. | done | back: `CreateJourney`/`CreateJourneyVersion` incrementam `versionNumber` a partir de 1 por jornada | |
 | [x] | REQ-06.01.004 | Cada versão deve estar associada a exatamente uma jornada. | done | back: `journey_version.journey_id NOT NULL` + FK | |
-| [x] | REQ-06.01.005 | Cada versão deve possuir status `DRAFT`, `PUBLISHED` ou `ARCHIVED`. | done | back: `VersionStatus` enum + CHECK constraint | |
+| [x] | REQ-06.01.005 | Cada versão deve possuir status `DRAFT`, `PUBLISHED`, `ARCHIVED` ou `UNPUBLISHED`. | done | back: `VersionStatus` enum + CHECK constraint (`V11__add_unpublished_version_status.sql`) | |
 | [x] | REQ-06.01.006 | Uma jornada deve possuir no máximo uma versão `PUBLISHED`. | done | back: `PublishJourneyVersion` arquiva a versão `PUBLISHED` anterior antes de publicar a nova | |
 | [x] | REQ-06.01.007 | Cada versão deve registrar criação e publicação, quando aplicável. | done | back: `journey_version.created_at`/`published_at` | |
-| [x] | REQ-06.01.008 | Cada versão deve permitir observação opcional. | done | back: `journey_version.description` (nullable); front: campo "Descrição" em `VersionsPanel` | |
+| [x] | REQ-06.01.008 | Cada versão deve permitir observação opcional. | done | back: `journey_version.description` (nullable); front: exibida na linha da versão em `JourneysPage` | |
 
 ### FT-06.02 Criação e edição de versões
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
 | [x] | REQ-06.02.001 | Ao criar uma jornada, o sistema deve criar sua primeira versão em `DRAFT`. | done | back: `CreateJourney` cria a versão 1 `DRAFT` junto com a jornada | |
-| [x] | REQ-06.02.002 | O sistema deve permitir criar uma nova versão a partir da versão atual. | done | back: `POST /journeys/{id}/versions` + `CreateJourneyVersion`; front: botão "Nova versão" em `VersionsPanel` | |
+| [x] | REQ-06.02.002 | O sistema deve permitir criar uma nova versão a partir da versão atual. | done | back: `POST /journeys/{id}/versions` + `CreateJourneyVersion`; front: linha de versão expansível em `JourneysPage` | |
 | [x] | REQ-06.02.003 | O sistema deve criar a nova versão a partir da versão atualmente selecionada para edição. | done | back: `CreateJourneyVersion` parte do estado vivo do fluxo/formulários da jornada (superfície de edição atual) | |
 | [x] | REQ-06.02.004 | A nova versão deve possuir cópia independente do fluxo, conexões e referências aos formulários. | done | back: `JourneySnapshotFactory` gera snapshot JSONB independente por versão | |
 | [x] | REQ-06.02.005 | Alterações em uma versão `DRAFT` não devem modificar outras versões. | done | back: cada `journey_version` é uma linha isolada com seu próprio `version_snapshot` | |
 | [x] | REQ-06.02.006 | Uma versão `PUBLISHED` deve ser imutável. | done | back: nenhum endpoint de update para `journey_version`; `PublishJourneyVersion` só transiciona status | |
 | [x] | REQ-06.02.007 | O sistema deve indicar claramente qual versão está sendo editada. | done | front: badge "Editando vN (STATUS)" no designer de fluxo (`Toolbar`) | |
 | [x] | REQ-06.02.008 | O sistema deve impedir números de versão duplicados dentro da mesma jornada. | done | back: `UNIQUE (journey_id, version_number)` em `journey_version` | |
+| [x] | REQ-06.02.009 | Ao salvar o fluxo de uma jornada, o sistema deve manter a versão `DRAFT` atual sincronizada com o conteúdo salvo: se já existir uma `DRAFT`, seu conteúdo é substituído (mesmo id/versionNumber); caso não exista, uma nova `DRAFT` é criada. Outras versões nunca são alteradas. | done | back: `UpdateFlow` chama `CreateJourneyVersion.execute` incondicionalmente a cada salvamento; `CreateJourneyVersion` decide entre `JourneyVersion.replaceContent(...)` (DRAFT existente) e `JourneyVersion.createDraft(...)` (nenhuma DRAFT) | substitui a versão anterior deste requisito, que só sincronizava quando a jornada estava `PUBLISHED` — deixava a v1 (criada vazia com a jornada) sem nunca refletir o fluxo editado em jornadas ainda não publicadas |
+| [x] | REQ-06.02.010 | Antes de salvar a edição de uma jornada `PUBLISHED`, o sistema deve avisar o usuário de que a alteração será registrada em uma versão em rascunho separada da publicada. | done | front: `ConfirmDialog` em `JourneyDesignerPage.handleSave` quando `activeJourney.status === 'PUBLISHED'` | |
 
 ### FT-06.03 Histórico e consulta
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-06.03.001 | O sistema deve permitir listar todas as versões de uma jornada. | done | back: `GET /journeys/{id}/versions`; front: `VersionsPanel` | |
+| [x] | REQ-06.03.001 | O sistema deve permitir listar todas as versões de uma jornada. | done | back: `GET /journeys/{id}/versions`; front: linhas aninhadas ao expandir a jornada em `JourneysPage` | |
 | [x] | REQ-06.03.002 | O sistema deve permitir consultar o conteúdo completo de uma versão. | done | back: `GET /journeys/{id}/versions/{versionId}` retorna o `snapshot` completo | |
-| [x] | REQ-06.03.003 | O histórico deve exibir número, status, datas e autor da versão. | done | front: colunas número/status/data/autor em `VersionsPanel` | |
+| [x] | REQ-06.03.003 | O histórico deve exibir número, status, datas e autor da versão. | done | front: colunas número/status/data/autor nas linhas de versão de `JourneysPage` | |
 | [x] | REQ-06.03.004 | O sistema deve permitir ordenar versões por número ou data. | done | back: listagem ordenada por `version_number`; `created_at`/`published_at` disponíveis para ordenação no front | ordenação padrão por número; sem seletor de ordenação alternativa na UI |
-| [x] | REQ-06.03.005 | O sistema deve diferenciar versões em edição, publicadas e arquivadas. | done | front: badges de status coloridos (`DRAFT`/`PUBLISHED`/`ARCHIVED`) em `VersionsPanel` | |
+| [x] | REQ-06.03.005 | O sistema deve diferenciar versões em edição, publicadas, arquivadas e despublicadas. | done | front: badges de status coloridos (`DRAFT`/`PUBLISHED`/`ARCHIVED`/`UNPUBLISHED`) nas linhas de versão de `JourneysPage` | |
 | [x] | REQ-06.03.006 | O sistema deve permitir visualizar uma versão anterior sem editá-la diretamente. | done | front: clique em versão `PUBLISHED`/`ARCHIVED` abre visualização somente-leitura do snapshot JSON | sem carregar de volta no editor — ver limites do MVP (REQ-06.05.004) |
 
 ### FT-06.04 Publicação de versões
@@ -405,8 +407,10 @@
 | [x] | REQ-06.04.004 | Ao publicar uma nova versão, a versão anteriormente publicada deve ser marcada como `ARCHIVED`. | done | back: `PublishJourneyVersion` arquiva a versão `PUBLISHED` anterior antes de publicar a nova | |
 | [x] | REQ-06.04.005 | O sistema deve preservar o snapshot da versão anteriormente publicada. | done | back: versão arquivada mantém sua linha/`version_snapshot` intactos, apenas o status muda | |
 | [x] | REQ-06.04.006 | A publicação deve registrar qual versão foi enviada ao runtime. | done | back: `journey_publication.version_id` (FK), preenchido em cada publicação | |
-| [x] | REQ-06.04.007 | A jornada deve indicar sua versão atualmente publicada. | done | back: `JourneyResponse.publishedVersionId` | |
+| [x] | REQ-06.04.007 | A jornada deve indicar sua versão atualmente publicada. | done | back: `JourneyResponse.publishedVersionId`/`publishedVersionNumber`; front: "vN publicada" no grid de `JourneysPage` | |
 | [x] | REQ-06.04.008 | Alterações em `DRAFT` não devem modificar o snapshot publicado. | done | back: `DRAFT` e `PUBLISHED` são linhas de `journey_version` distintas | |
+| [x] | REQ-06.04.009 | Ao despublicar uma jornada, a versão `PUBLISHED` correspondente deve ser marcada como `UNPUBLISHED` (não `ARCHIVED`, reservado a quando a versão é substituída por uma nova publicação), preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada. | done | back: `UnpublishJourney` chama `JourneyVersion.unpublish()` na `journey_version` `PUBLISHED` da jornada antes de gravar `journey.unpublish()` | corrige bug: versão continuava `PUBLISHED` (e o grid continuava mostrando "vN publicada") após despublicar; status inicialmente usava `ARCHIVED` por engano, corrigido para `UNPUBLISHED` |
+| [x] | REQ-06.04.010 | O sistema deve permitir despublicar a versão atualmente `PUBLISHED` de uma jornada diretamente pela versão; a despublicação de uma versão deve refletir no status da jornada, que passa a `UNPUBLISHED`. | done | back: `POST /journeys/{id}/versions/{versionId}/unpublish` + `UnpublishJourneyVersion` (valida versão publicada, 409 caso contrário, e delega em `UnpublishJourney` para reaproveitar a mesma regra); front: botão "Despublicar" na linha da versão em `JourneysPage`, que recarrega jornada e versões | |
 
 ### FT-06.05 Compatibilidade e limites do MVP
 
@@ -610,6 +614,11 @@ appender.
 
 | Data | Alteração |
 |---|---|
+| 2026-08-09 | Migrations Flyway resetadas: as antigas `V1`...`V9`/`V11` foram substituídas por uma única `V1__baseline.sql` com o schema final resultante de todas elas (motivo: um arquivo de migration antigo — `V10__adjust_journey_versioning.sql`, nunca commitado — havia rodado contra o banco local e ficado órfão no `target/` após ser apagado, quebrando a inicialização do Flyway). Banco local `journey_admin` recriado do zero (`DROP SCHEMA public CASCADE` + `CREATE SCHEMA public`); histórico de `flyway_schema_history` reiniciado. Nenhuma mudança de comportamento da aplicação — é só reorganização das migrations. Evidências de requisitos que citam nomes de arquivo antigos (`V7__create_journey_version.sql` etc.) continuam corretas como registro histórico do que foi implementado quando, mesmo que o arquivo em si não exista mais isoladamente. |
+| 2026-08-09 | REQ-06.01.005/06.04.009 corrigidos: versão despublicada agora vira `UNPUBLISHED`, não `ARCHIVED`. Novo status `UNPUBLISHED` em `VersionStatus` (`ARCHIVED` continua reservado ao caso de a versão ser substituída por uma nova publicação); migration `V11__add_unpublished_version_status.sql` estende a CHECK constraint de `journey_version.version_status`; `JourneyVersion` ganhou `unpublish()` ao lado de `archive()`; `UnpublishJourney` passou a chamar `unpublish()` na versão `PUBLISHED` da jornada. Front: badge "Despublicada" para o novo status em `JourneysPage`. REQ-06.03.005 atualizado para citar o novo status. |
+| 2026-08-09 | REQ-06.02.009 redefinido: sincronização automática do DRAFT com o fluxo salvo, em vez de só criar uma versão nova quando a jornada estava `PUBLISHED`. `JourneyVersion` ganhou `replaceContent(...)` (permitido só em `DRAFT`, torna a maior parte dos campos da versão não mais `final`); `CreateJourneyVersion.execute` agora decide entre atualizar a `DRAFT` existente in place (mesmo id/versionNumber) ou criar uma nova quando não há nenhuma; `UpdateFlow` chama isso incondicionalmente a cada salvamento de fluxo (removida a checagem `journey.status == PUBLISHED` e a lógica de apagar/recriar a `DRAFT`); `PublishJourney` (atalho legado) simplificado pelo mesmo motivo. Corrige o caso relatado: jornada nunca publicada, com fluxo desenhado no designer, cuja v1 (criada vazia junto com a jornada) nunca refletia o fluxo editado — o botão "Publicar" da versão ficava desabilitado (snapshot vazio) mesmo com o fluxo pronto. REQ-06.02.010 reformulado para não prometer "nova versão" a cada salvamento (às vezes é só atualização da DRAFT existente). |
+| 2026-08-08 | REQ-06.04.010 novo: despublicação por versão. Endpoint `POST /journeys/{id}/versions/{versionId}/unpublish` + `UnpublishJourneyVersion` (valida que `versionId` é a versão `PUBLISHED` da jornada, senão 409 via nova `VersionNotPublishedException`; delega em `UnpublishJourney` para reaproveitar runtime-unpublish + arquivamento de versão + `journey.unpublish()`, em vez de duplicar a regra). Front: botão "Publicar" removido do nível de jornada no grid (`JourneysPage`) — publicação passa a existir só por versão; nova ação "Despublicar" na linha da versão `PUBLISHED`, que ao concluir recarrega tanto a lista de versões quanto a jornada (status e "vN publicada" ficam consistentes de imediato). EP-06 avança de 38/38 para 39/39 REQs; progresso geral de 93% (221/238) para 93% (222/239). |
+| 2026-08-08 | REQ-06.04.009 novo: ao despublicar uma jornada (`UnpublishJourney`), a `journey_version` `PUBLISHED` correspondente agora é arquivada (`ARCHIVED`) antes de gravar `journey.unpublish()`, preservando o snapshot. Corrige inconsistência em que a versão continuava reportada como `PUBLISHED` (e o grid de jornadas continuava exibindo "vN publicada") mesmo depois da jornada ser despublicada. EP-06 avança de 37/37 para 38/38 REQs; progresso geral de 93% (220/237) para 93% (221/238). |
 | 2026-08-08 | EP-10 (Observabilidade) novo e implementado por completo: 12/12 REQs. Log técnico de aplicação (distinto da auditoria de negócio do EP-08): `HttpRequestLoggingFilter` (entrada/saída de toda API, sem log de body, registrado no `SecurityConfig` antes do filtro de autenticação) e `TransactionLoggingAspect` (`@Around` sobre todo `@Service` de `application.*`, logando início/commit/rollback de cada transação de persistência). Correlação via `X-Correlation-Id` (reaproveitado do header ou gerado) propagada por `MDC` e incluída no pattern do novo `logback-spring.xml`, cobrindo tanto os logs de API quanto os de transação da mesma requisição/thread. Integração com ELK preparada mas desativada (sem ambiente ELK neste momento) — ver seção "HOW TO — habilitar integração com ELK" no EP-10 para o procedimento de ativação (dependência `logstash-logback-encoder` + appender TCP + variáveis de ambiente de destino). Build: no Spring Boot 4.1 o starter de AOP foi renomeado de `spring-boot-starter-aop` para `spring-boot-starter-aspectj` — usado o novo nome no `pom.xml`. Progresso geral de 95% (212/224) para 95% (224/236). |
 | 2026-08-08 | EP-09 (Ajuda e Suporte) novo e implementado por completo: 5/5 REQs. Tela de ajuda estática (`front/src/shell/HelpPage.tsx`) com FAQ agrupado por tema, busca textual e link `mailto:sustentacao@telefonica.com`; acessível pelo item "Ajuda e suporte" da sidebar (antes um placeholder genérico). Simplificação deliberada: sem ajuda contextual por tela, sem canal de suporte com registro/consulta de solicitações e sem tela de diagnóstico — cortados do escopo por decisão de produto antes da implementação, não fazem parte do backlog. Progresso geral de 95% (207/219) para 95% (212/224). |
 | 2026-08-08 | EP-06 (Versionamento de jornadas), EP-07 (Autenticação e autorização) e EP-08 (Auditoria) implementados, na ordem EP-07 → EP-06 → EP-08 (dependência: versão precisa de usuário autenticado; auditoria precisa de ambos). EP-06: tabela `journey_version` (`V7`) + backfill de jornadas existentes (`V8`), criação automática de versão `DRAFT` ao criar jornada, publicação de versão arquiva a anterior, snapshot imutável, painel de versões no designer de fluxo — 35/35 REQs. EP-07: token opaco em memória (`Authorization: Bearer`, expiração por inatividade configurável), usuário mockado `admin`/`admin`/`ADMIN`, papéis `ADMIN`/`EDITOR`/`VIEWER` aplicados via `@PreAuthorize` em todos os controllers, tela de login com aviso de autenticação mockada — 24/25 REQs (REQ-07.04.002 n/a, sem CRUD de usuário no MVP). EP-08: tabela `audit_event` (`V9`), gravação em login/logout/sessão, CRUD de produto/canal/jornada, versões, publicações e acessos negados, consulta com filtros e paginação restrita a `ADMIN` — 21/22 REQs (REQ-08.02.007 n/a, sem CRUD de papéis no MVP). De quebra, REQ-02.06.004 (que dependia do EP-06) passou de `todo` para `done`. Simplificações deliberadas: sem rollback/restauração de versão (REQ-06.05.004, fora de escopo); flow-designer continua editando o estado "vivo" da jornada, versionar tira um snapshot desse estado; ocultação de botões por papel na UI não foi replicada em todas as telas (enforcement real é no backend). Progresso geral de 57% para 95% (207/219; 2 n/a; restam apenas os 10 REQs do EP-05 Simulação). |

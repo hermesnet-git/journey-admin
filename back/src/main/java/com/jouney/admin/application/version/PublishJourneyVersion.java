@@ -20,6 +20,7 @@ import com.jouney.admin.domain.publication.PublicationRepository;
 import com.jouney.admin.domain.version.JourneyVersion;
 import com.jouney.admin.domain.version.JourneyVersionNotFoundException;
 import com.jouney.admin.domain.version.JourneyVersionRepository;
+import com.jouney.admin.domain.version.VersionHasNoFlowException;
 import com.jouney.admin.domain.version.VersionNotDraftException;
 import com.jouney.admin.domain.version.VersionStatus;
 import java.util.Map;
@@ -81,7 +82,7 @@ public class PublishJourneyVersion {
         }
 
         if (version.getFlowNodes().isEmpty()) {
-            throw new IllegalStateException("Journey version has no flow: " + versionId);
+            throw new VersionHasNoFlowException(versionId);
         }
 
         UUID existingPublicationId = publicationRepository.findByJourneyId(journeyId)

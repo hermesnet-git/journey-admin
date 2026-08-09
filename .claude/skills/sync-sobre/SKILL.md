@@ -12,6 +12,12 @@ A página `front/src/shell/SobrePage.tsx` (aba "Sobre", acessível pelo link no 
 - `requisitos/admin/progresso.md` — fonte de verdade do status de cada requisito (é o "registro
   vivo" do projeto).
 - `requisitos/admin/ej-admin-requisitos.md` — fonte da seção "Fora do Escopo do MVP" (§5).
+- O painel "Changelog de progresso" mescla **duas** fontes em ordem cronológica, cada uma com seu
+  próprio array em `sobreData.ts` (`CHANGELOG_GIT` e `CHANGELOG_PROGRESSO`), unidas no export
+  `CHANGELOG` com um campo `source: 'git' | 'progresso'` para a UI diferenciar:
+  - `CHANGELOG_GIT`: um resumo por commit do histórico da branch `main`.
+  - `CHANGELOG_PROGRESSO`: cópia verbatim da tabela em `## Changelog deste arquivo`, ao final de
+    `progresso.md`.
 
 ## Passo a passo
 
@@ -58,14 +64,38 @@ A página `front/src/shell/SobrePage.tsx` (aba "Sobre", acessível pelo link no 
    seções detalhadas (já aconteceu — ver histórico), corrija também os números do próprio
    `progresso.md` para os dois documentos ficarem coerentes entre si.
 
-6. **Valide**:
+6. **Atualize `CHANGELOG_PROGRESSO`**: compare a primeira linha da tabela em
+   `## Changelog deste arquivo` (final de `progresso.md`) com a primeira entrada de
+   `CHANGELOG_PROGRESSO` em `sobreData.ts`. Se houver linhas novas no topo da tabela, copie cada
+   uma **verbatim** — mesma data, mesmo texto de "Alteração" — para o topo do array, como
+   `{ date, source: 'progresso', summary }`. Não reescreva, resuma ou corrija o texto.
+
+7. **Atualize `CHANGELOG_GIT`**: compare o topo do array com o histórico de commits:
+
+   ```bash
+   git log --reverse --pretty=format:'%ad|%s' --date=short
+   ```
+
+   Localize o último commit já registrado e acrescente, no topo do array (mais recente primeiro),
+   uma entrada `{ date, source: 'git', summary, epics? }` para cada commit novo. `summary`:
+   reescreva a mensagem do commit em uma frase curta e legível (corrija capitalização/typos óbvios),
+   sem inventar conteúdo que não esteja na mensagem ou no diff. `epics`: códigos `EP-xx` citados na
+   mensagem ou claramente identificáveis pelo escopo do commit; omita se não for possível atribuir
+   com segurança.
+
+   Em ambos os arrays, não reordene nem edite entradas já existentes — são históricos append-only.
+   O export `CHANGELOG` (mesclagem cronológica dos dois, usada pela UI) é derivado automaticamente
+   por `.sort()` — não o edite diretamente.
+
+8. **Valide**:
    ```bash
    cd front && npx tsc --noEmit -p .
    ```
    Type-check limpo é o critério mínimo de sucesso.
 
-7. Ao final, resuma para o usuário: quantos requisitos mudaram de status, quais épicos tiveram o
-   percentual alterado, e se algum requisito mockado novo foi identificado.
+9. Ao final, resuma para o usuário: quantos requisitos mudaram de status, quais épicos tiveram o
+   percentual alterado, se algum requisito mockado novo foi identificado, e quantas entradas novas
+   entraram no changelog.
 
 ## Não fazer
 

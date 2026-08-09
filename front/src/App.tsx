@@ -14,6 +14,7 @@ import { LoginPage } from './auth/LoginPage';
 import { HelpPage } from './shell/HelpPage';
 import { SobrePage } from './shell/SobrePage';
 import { APP_VERSION } from './shell/appInfo';
+import { AppErrorBoundary } from './shell/AppErrorBoundary';
 
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: false };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
@@ -32,9 +33,11 @@ const skin = getBlauSkin();
 
 export function App() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <AppErrorBoundary>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </AppErrorBoundary>
   );
 }
 

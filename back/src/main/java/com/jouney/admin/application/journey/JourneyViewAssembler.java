@@ -39,10 +39,11 @@ class JourneyViewAssembler {
         var publishedAt = publicationRepository.findByJourneyId(journey.getId())
                 .map(Publication::getPublishedAt)
                 .orElse(null);
-        var publishedVersionId = journeyVersionRepository.findByJourneyIdAndStatus(journey.getId(), VersionStatus.PUBLISHED)
-                .map(JourneyVersion::getId)
+        var publishedVersion = journeyVersionRepository.findByJourneyIdAndStatus(journey.getId(), VersionStatus.PUBLISHED)
                 .orElse(null);
+        var publishedVersionId = publishedVersion != null ? publishedVersion.getId() : null;
+        var publishedVersionNumber = publishedVersion != null ? publishedVersion.getVersionNumber() : null;
         return new JourneyView(journey, product.getId(), product.getName(), channel.getName(), publishedAt,
-                publishedVersionId);
+                publishedVersionId, publishedVersionNumber);
     }
 }

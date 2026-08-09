@@ -17,6 +17,7 @@ import {
   type EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { ConfirmDialog } from '../products/ConfirmDialog';
 import { WorkflowActionsContext, type WorkflowActions } from './actions-context';
 import { FlowThemeContext, DARK_COLORS, LIGHT_COLORS } from './theme';
 import { useAppTheme } from '../shell/theme';
@@ -46,8 +47,6 @@ import {
 import { updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow } from '../api/flows';
 import { listForms, type Form } from '../api/forms';
-import { listJourneyVersions, type JourneyVersion } from '../api/versions';
-import { VersionsPanel } from './VersionsPanel';
 
 const nodeTypes = {
   start: WorkflowNode,
@@ -108,14 +107,13 @@ function DesignerInner({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [confirmingPublishedEdit, setConfirmingPublishedEdit] = useState(false);
   const [invalidNodeIds, setInvalidNodeIds] = useState<Set<string>>(new Set());
   const [, setHistoryTick] = useState(0);
   // The properties dock is always visible. It shows this node's properties
   // when set, and falls back to the journey's own properties when null (e.g.
   // after a blank-canvas click).
   const [propertiesNodeId, setPropertiesNodeId] = useState<string | null>(null);
-  const [editingVersion, setEditingVersion] = useState<JourneyVersion | null>(null);
-  const [showVersions, setShowVersions] = useState(false);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -150,19 +148,6 @@ function DesignerInner({
   useEffect(() => {
     refreshForms();
   }, [refreshForms]);
-
-  const refreshVersionBadge = useCallback(() => {
-    // The most recently created version (highest number) is the one this canvas edits — the
-    // live flow/form data behind it, per REQ-06.03.004 ("indicar claramente qual versão está
-    // sendo editada").
-    listJourneyVersions(journey.journeyId).then((versions) => {
-      setEditingVersion(versions[0] ?? null);
-    });
-  }, [journey.journeyId]);
-
-  useEffect(() => {
-    refreshVersionBadge();
-  }, [refreshVersionBadge]);
 
   useEffect(() => {
     getFlow(journey.journeyId).then((flow) => {
@@ -392,7 +377,7 @@ function DesignerInner({
     [edges, c],
   );
 
-  async function handleSave() {
+  function handleSave() {
     const { errors: validationErrors, invalidNodeIds: invalid } = validateFlow(nodes, edges);
     if (!name.trim()) validationErrors.push('Informe o nome da jornada.');
     if (validationErrors.length) {
@@ -401,6 +386,15 @@ function DesignerInner({
       return;
     }
 
+    if (activeJourney.status === 'PUBLISHED') {
+      setConfirmingPublishedEdit(true);
+      return;
+    }
+
+    doSave();
+  }
+
+  async function doSave() {
     setSaving(true);
     try {
       const journeyRecord = await updateJourney(activeJourney.journeyId, { name, description });
@@ -454,10 +448,6 @@ function DesignerInner({
             onSave={handleSave}
             saving={saving}
             onCancel={onClose}
-            versionLabel={
-              editingVersion ? `Editando v${editingVersion.versionNumber} (${editingVersion.status})` : undefined
-            }
-            onOpenVersions={() => setShowVersions(true)}
           />
           <div className="flex-1 flex min-h-0">
             <Palette onAdd={addNodeFromPalette} />
@@ -511,13 +501,16 @@ function DesignerInner({
           </div>
         </div>
         {errors.length > 0 && <ErrorModal errors={errors} onClose={() => setErrors([])} />}
-        {showVersions && (
-          <VersionsPanel
-            journeyId={journey.journeyId}
-            onClose={() => {
-              setShowVersions(false);
-              refreshVersionBadge();
+        {confirmingPublishedEdit && (
+          <ConfirmDialog
+            title="Editar jornada publicada?"
+            message="Esta jornada está publicada. Salvar agora grava essas alterações numa versão em rascunho separada — a versão publicada continua ativa até que o rascunho seja publicado."
+            confirmLabel="Salvar como rascunho"
+            onConfirm={() => {
+              setConfirmingPublishedEdit(false);
+              doSave();
             }}
+            onCancel={() => setConfirmingPublishedEdit(false)}
           />
         )}
       </WorkflowActionsContext.Provider>

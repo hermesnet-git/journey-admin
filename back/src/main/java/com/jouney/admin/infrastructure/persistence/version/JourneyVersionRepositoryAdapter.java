@@ -82,6 +82,11 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
         return jpaRepository.findMaxVersionNumber(journeyId);
     }
 
+    @Override
+    public void deleteById(UUID versionId) {
+        jpaRepository.deleteById(versionId);
+    }
+
     private JourneyVersion toDomain(JourneyVersionJpaEntity entity) {
         PublicationSnapshotRecord record = readJson(entity.getSnapshot());
 

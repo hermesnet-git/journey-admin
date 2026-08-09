@@ -13,14 +13,20 @@ import {
   Sparkles,
   Info,
   BookOpen,
+  History,
+  GitCommitHorizontal,
 } from 'lucide-react';
 import { useAppTheme } from './theme';
 import {
   EPICS,
   OUT_OF_SCOPE,
+  CHANGELOG,
+  type ChangelogSource,
   TOTAL_EPICS,
   TOTAL_FEATURES,
   TOTAL_REQS,
+  TOTAL_REQS_DONE,
+  TOTAL_REQS_NA,
   OVERALL_PERCENT,
   epicCounts,
   featureCounts,
@@ -214,6 +220,12 @@ function DonutSummary() {
     })
     .join(', ');
 
+  const reqsRemaining = TOTAL_REQS - TOTAL_REQS_NA - TOTAL_REQS_DONE;
+  const epicsOpen = EPICS.filter((e) => {
+    const { total, done, naCount } = epicCounts(e);
+    return done < total - naCount;
+  }).length;
+
   return (
     <div className="flex-1 min-w-[280px] rounded-xl p-4" style={{ border: `1px solid ${c.border}`, background: c.surface }}>
       <div className="flex items-center justify-center gap-[8px] mb-5">
@@ -243,14 +255,84 @@ function DonutSummary() {
           ))}
         </div>
       </div>
-      <div
-        className="flex items-center justify-center gap-[7px] mt-5 pt-4 text-[13px]"
-        style={{ borderTop: `1px solid ${c.border}` }}
-      >
-        <CircleCheck size={16} className="shrink-0" style={{ color: c.success }} />
-        <span style={{ color: c.textSecondary }}>
-          <strong style={{ color: c.success }}>{OVERALL_PERCENT}%</strong> do escopo funcional coberto para o MVP
-        </span>
+      <div className="mt-5 pt-4 flex flex-col gap-[8px] text-[13px]" style={{ borderTop: `1px solid ${c.border}` }}>
+        <div className="flex items-center justify-center gap-[7px]">
+          <CircleCheck size={16} className="shrink-0" style={{ color: c.success }} />
+          <span style={{ color: c.textSecondary }}>
+            <strong style={{ color: c.success }}>{OVERALL_PERCENT}%</strong> do escopo funcional coberto para o MVP
+          </span>
+        </div>
+        {reqsRemaining > 0 && (
+          <div className="flex items-center justify-center gap-[7px]">
+            <CircleDashed size={14} className="shrink-0" style={{ color: c.warning }} />
+            <span style={{ color: c.textSecondary }}>
+              Faltam <strong style={{ color: c.warning }}>{reqsRemaining}</strong> requisito{reqsRemaining === 1 ? '' : 's'} em{' '}
+              <strong style={{ color: c.warning }}>{epicsOpen}</strong> épico{epicsOpen === 1 ? '' : 's'} para o MVP fechar
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function sourceMeta(source: ChangelogSource, c: Colors) {
+  if (source === 'git') return { label: 'Git', Icon: GitCommitHorizontal, fg: c.textSecondary, bg: c.chipBg };
+  return { label: 'progresso.md', Icon: FileCheck2, fg: c.accent, bg: c.accentSoft };
+}
+
+function ChangelogPanel() {
+  const { colors: c } = useAppTheme();
+  return (
+    <div>
+      <h2 className="m-0 mb-1 flex items-center gap-[7px] text-[14px] font-semibold" style={{ color: c.textPrimary }}>
+        <History size={15} style={{ color: c.textMuted }} />
+        Changelog de progresso
+      </h2>
+      <p className="m-0 mb-4 text-[13px]" style={{ color: c.textSecondary }}>
+        Histórico de commits (branch main) mesclado com as entradas de "Changelog deste arquivo" em
+        requisitos/admin/progresso.md, em ordem cronológica.
+      </p>
+      <div className="rounded-xl p-4" style={{ border: `1px solid ${c.border}`, background: c.surface }}>
+        <div className="flex flex-col">
+          {CHANGELOG.map((entry, i) => {
+            const sm = sourceMeta(entry.source, c);
+            return (
+              <div key={i} className="flex gap-3 pb-4 last:pb-0">
+                <div className="flex flex-col items-center shrink-0 w-[14px]">
+                  <span className="w-[9px] h-[9px] rounded-full mt-[3px]" style={{ background: sm.fg }} />
+                  {i < CHANGELOG.length - 1 && <span className="flex-1 w-px mt-[3px]" style={{ background: c.border }} />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-[8px] flex-wrap">
+                    <span className="text-[11px] font-mono tabular-nums" style={{ color: c.textMuted }}>
+                      {entry.date}
+                    </span>
+                    <span
+                      className="inline-flex items-center gap-[4px] text-[10px] font-semibold px-[7px] py-[1px] rounded-full"
+                      style={{ background: sm.bg, color: sm.fg }}
+                    >
+                      <sm.Icon size={10} />
+                      {sm.label}
+                    </span>
+                    {entry.epics?.map((epic) => (
+                      <span
+                        key={epic}
+                        className="text-[10px] font-semibold px-[7px] py-[1px] rounded-full"
+                        style={{ background: c.chipBg, color: c.textMuted }}
+                      >
+                        {epic}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="m-0 mt-[2px] text-[12.5px] leading-[18px]" style={{ color: c.textPrimary }}>
+                    {entry.summary}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -288,8 +370,7 @@ export function SobrePage() {
             </span>
           </div>
           <p className="m-0 text-[13.5px] max-w-[640px]" style={{ color: c.textSecondary }}>
-            Visão executiva e estática do que está contemplado nesta versão do MVP do Elastic Journey Admin Portal — épicos,
-            funcionalidades e requisitos, com o que já foi entregue e o que ficou de fora.
+            Visão executiva e estática do que está contemplado nesta versão do MVP do Elastic Journey Admin Portal.
           </p>
         </div>
       </div>
@@ -415,6 +496,10 @@ export function SobrePage() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-8">
+        <ChangelogPanel />
       </div>
 
       <div className="flex items-center gap-[6px] mt-8 pt-4 text-[11.5px]" style={{ borderTop: `1px solid ${c.border}`, color: c.textMuted }}>

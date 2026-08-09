@@ -1,14 +1,10 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, LayoutGrid, List as ListIcon, Route, Trash2 } from 'lucide-react';
-import {
-  PrimaryButton,
-  LinkButton,
-  FilterDropdown,
-  type FilterOption,
-} from '../products/ui';
+import { Search, Plus, Route, Trash2, Pencil, CloudOff, Power, PowerOff, ChevronRight } from 'lucide-react';
+import { PrimaryButton, SecondaryButton, FilterDropdown, type FilterOption } from '../products/ui';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
 import { ConfirmDialog } from '../products/ConfirmDialog';
+import { Modal } from '../products/Modal';
 import { ApiClientError } from '../api/client';
 import { listProducts, listChannels, type Product, type Channel } from '../api/products';
 import {
@@ -16,12 +12,18 @@ import {
   deactivateJourney,
   activateJourney,
   deleteJourney,
-  publishJourney,
   unpublishJourney,
   type Journey,
   type JourneyStatus,
   type JourneySort,
 } from '../api/journeys';
+import {
+  listJourneyVersions,
+  publishJourneyVersion,
+  unpublishJourneyVersion,
+  type JourneyVersion,
+  type VersionStatus,
+} from '../api/versions';
 import { JourneyDesignerPage } from '../flow-designer/JourneyDesignerPage';
 import { NewJourneyModal } from './NewJourneyModal';
 
@@ -40,6 +42,8 @@ const SORT_OPTIONS: FilterOption[] = [
   { value: 'CREATED_AT', label: 'Criadas recentemente' },
 ];
 
+const GRID_COLS = 'minmax(0,2fr) 1.3fr 1fr 1fr 132px';
+
 function journeyStatusMeta(c: AppColors): Record<JourneyStatus, { label: string; bg: string; color: string }> {
   return {
     DRAFT: { label: 'Rascunho', bg: c.chipBg, color: c.textSecondary },
@@ -49,7 +53,8 @@ function journeyStatusMeta(c: AppColors): Record<JourneyStatus, { label: string;
   };
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string | null): string {
+  if (!iso) return '—';
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
@@ -79,12 +84,10 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
   const [productFilter, setProductFilter] = useState('');
   const [channelFilter, setChannelFilter] = useState('');
   const [sort, setSort] = useState<JourneySort>('UPDATED_AT');
-  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [editingJourney, setEditingJourney] = useState<Journey | null>(null);
   const [creatingJourney, setCreatingJourney] = useState(false);
   const [deactivatingJourney, setDeactivatingJourney] = useState<Journey | null>(null);
   const [deletingJourney, setDeletingJourney] = useState<Journey | null>(null);
-  const [publishingJourney, setPublishingJourney] = useState<Journey | null>(null);
   const [unpublishingJourney, setUnpublishingJourney] = useState<Journey | null>(null);
 
   const reload = useCallback(async () => {
@@ -129,16 +132,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
     [journeys, search, statusFilter],
   );
 
-  const kpis = useMemo(
-    () => ({
-      total: journeys.length,
-      draft: journeys.filter((j) => j.status === 'DRAFT').length,
-      published: journeys.filter((j) => j.status === 'PUBLISHED').length,
-      inactive: journeys.filter((j) => j.status === 'INACTIVE').length,
-    }),
-    [journeys],
-  );
-
   if (editingJourney) {
     return (
       <JourneyDesignerPage
@@ -174,25 +167,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
           : err instanceof Error
             ? err.message
             : 'Erro ao desativar jornada';
-      showToast(message, 'error');
-    }
-  }
-
-  async function confirmPublish() {
-    if (!publishingJourney) return;
-    const journey = publishingJourney;
-    setPublishingJourney(null);
-    try {
-      await publishJourney(journey.journeyId);
-      await reload();
-      showToast('Jornada publicada com sucesso.');
-    } catch (err) {
-      const message =
-        err instanceof ApiClientError && err.status === 422
-          ? 'Não é possível publicar: o produto ou o canal da jornada está inativo.'
-          : err instanceof Error
-            ? err.message
-            : 'Erro ao publicar jornada';
       showToast(message, 'error');
     }
   }
@@ -278,13 +252,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-[14px] mb-[22px]">
-        <StatCard label="Jornadas cadastradas" value={kpis.total} />
-        <StatCard label="Em rascunho" value={kpis.draft} />
-        <StatCard label="Publicadas" value={kpis.published} />
-        <StatCard label="Inativas" value={kpis.inactive} />
-      </div>
-
       <div className="flex items-center justify-between gap-3 mb-[18px] flex-wrap">
         <div className="flex gap-2 flex-wrap items-center">
           {STATUS_FILTERS.map((f) => {
@@ -318,78 +285,53 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
             onChange={(v) => setSort(v as JourneySort)}
           />
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex gap-1 p-[3px] rounded-lg" style={{ background: c.chipBg }}>
-            <button
-              onClick={() => setViewMode('cards')}
-              title="Cards"
-              className="flex items-center justify-center w-[30px] h-[26px] border-0 rounded-md cursor-pointer"
-              style={{ background: viewMode === 'cards' ? c.surface : 'transparent' }}
-            >
-              <LayoutGrid size={14} color={viewMode === 'cards' ? c.accent : c.textMuted} />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              title="Lista"
-              className="flex items-center justify-center w-[30px] h-[26px] border-0 rounded-md cursor-pointer"
-              style={{ background: viewMode === 'list' ? c.surface : 'transparent' }}
-            >
-              <ListIcon size={14} color={viewMode === 'list' ? c.accent : c.textMuted} />
-            </button>
-          </div>
-          <PrimaryButton onClick={() => setCreatingJourney(true)}>
-            <Plus size={14} /> Nova jornada
-          </PrimaryButton>
-        </div>
+        <PrimaryButton onClick={() => setCreatingJourney(true)}>
+          <Plus size={14} /> Nova jornada
+        </PrimaryButton>
       </div>
 
       {error && <p className="text-[13px]" style={{ color: c.danger }}>{error}</p>}
 
       {loading ? (
-        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))' }}>
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-[132px] rounded-2xl animate-pulse" style={{ background: c.skeletonBg }} />
+        <div className="flex flex-col gap-[6px]">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-[52px] rounded-xl animate-pulse" style={{ background: c.skeletonBg }} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState hasJourneys={journeys.length > 0} onCreate={() => setCreatingJourney(true)} />
-      ) : viewMode === 'cards' ? (
-        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))' }}>
-          {filtered.map((j) => (
-            <JourneyCard
-              key={j.journeyId}
-              journey={j}
-              onEdit={() => setEditingJourney(j)}
-              onDeactivate={() => setDeactivatingJourney(j)}
-              onActivate={() => handleActivate(j)}
-              onDelete={() => setDeletingJourney(j)}
-              onPublish={() => setPublishingJourney(j)}
-              onUnpublish={() => setUnpublishingJourney(j)}
-            />
-          ))}
-        </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+        <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${c.border}`, background: c.surface }}>
           <div
-            className="grid px-4 py-[10px] text-[11.5px] font-semibold border-b"
-            style={{ gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1.2fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
+            className="grid items-center px-4"
+            style={{ gridTemplateColumns: GRID_COLS, minHeight: 34, background: c.surface }}
           >
-            <span>Jornada</span>
-            <span>Produto / Canal</span>
-            <span>Status</span>
-            <span>Atualizada em</span>
-            <span>Ações</span>
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em] py-2" style={{ color: c.textMuted }}>
+              Jornada
+            </span>
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
+              Produto / Canal
+            </span>
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
+              Status
+            </span>
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
+              Atualizada em
+            </span>
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-right" style={{ color: c.textMuted }}>
+              Ações
+            </span>
           </div>
           {filtered.map((j) => (
-            <JourneyRow
+            <JourneyDetailRow
               key={j.journeyId}
               journey={j}
               onEdit={() => setEditingJourney(j)}
               onDeactivate={() => setDeactivatingJourney(j)}
               onActivate={() => handleActivate(j)}
               onDelete={() => setDeletingJourney(j)}
-              onPublish={() => setPublishingJourney(j)}
               onUnpublish={() => setUnpublishingJourney(j)}
+              onVersionsChanged={reload}
             />
           ))}
         </div>
@@ -426,20 +368,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
         />
       )}
 
-      {publishingJourney && (
-        <ConfirmDialog
-          title={publishingJourney.status === 'PUBLISHED' ? 'Republicar jornada' : 'Publicar jornada'}
-          message={
-            publishingJourney.status === 'PUBLISHED'
-              ? `Isso substitui integralmente a publicação atual de "${publishingJourney.name}" pela versão mais recente do fluxo e dos formulários.`
-              : `Isso publica "${publishingJourney.name}" com o fluxo e os formulários configurados atualmente.`
-          }
-          confirmLabel={publishingJourney.status === 'PUBLISHED' ? 'Republicar' : 'Publicar'}
-          onConfirm={confirmPublish}
-          onCancel={() => setPublishingJourney(null)}
-        />
-      )}
-
       {unpublishingJourney && (
         <ConfirmDialog
           title="Despublicar jornada"
@@ -453,26 +381,12 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  const { colors: c } = useAppTheme();
-  return (
-    <div className="rounded-2xl p-[14px_16px] box-border" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-      <div className="text-[11.5px] mb-[6px]" style={{ color: c.textSecondary }}>
-        {label}
-      </div>
-      <div className="text-[22px] font-semibold" style={{ color: c.textPrimary }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
 function JourneyStatusTag({ status }: { status: JourneyStatus }) {
   const { colors: c } = useAppTheme();
   const meta = journeyStatusMeta(c)[status];
   return (
     <span
-      className="shrink-0 inline-flex items-center rounded-full px-[10px] py-[3px] text-[11.5px] font-medium"
+      className="shrink-0 inline-flex items-center rounded-full px-[10px] py-[3px] text-[11.5px] font-medium w-fit"
       style={{ background: meta.bg, color: meta.color }}
     >
       {meta.label}
@@ -509,13 +423,46 @@ function EmptyState({ hasJourneys, onCreate }: { hasJourneys: boolean; onCreate:
   );
 }
 
+function IconAction({
+  icon: Icon,
+  label,
+  onClick,
+  hoverColor,
+}: {
+  icon: typeof Pencil;
+  label: string;
+  onClick: () => void;
+  hoverColor?: string;
+}) {
+  const { colors: c } = useAppTheme();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border-0 cursor-pointer"
+      style={{ color: c.textMuted }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = hoverColor ?? c.accent;
+        e.currentTarget.style.background = c.chipBg;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = c.textMuted;
+        e.currentTarget.style.background = 'transparent';
+      }}
+    >
+      <Icon size={14} />
+    </button>
+  );
+}
+
 function JourneyActions({
   journey,
   onEdit,
   onDeactivate,
   onActivate,
   onDelete,
-  onPublish,
   onUnpublish,
 }: {
   journey: Journey;
@@ -523,146 +470,280 @@ function JourneyActions({
   onDeactivate: () => void;
   onActivate: () => void;
   onDelete: () => void;
-  onPublish: () => void;
   onUnpublish: () => void;
 }) {
   const { colors: c } = useAppTheme();
   return (
-    <div className="flex items-center gap-4">
-      <LinkButton onClick={onEdit}>Editar</LinkButton>
-      {journey.status !== 'INACTIVE' && (
-        <LinkButton onClick={onPublish}>{journey.status === 'PUBLISHED' ? 'Republicar' : 'Publicar'}</LinkButton>
+    <div className="flex items-center justify-end gap-[2px]" onClick={(e) => e.stopPropagation()}>
+      <IconAction icon={Pencil} label="Editar jornada" onClick={onEdit} />
+      {journey.status === 'PUBLISHED' && (
+        <IconAction icon={CloudOff} label="Despublicar jornada" onClick={onUnpublish} hoverColor={c.warning} />
       )}
-      {journey.status === 'PUBLISHED' && <LinkButton onClick={onUnpublish}>Despublicar</LinkButton>}
-      {journey.status === 'DRAFT' && <LinkButton onClick={onDeactivate}>Desativar</LinkButton>}
-      {journey.status === 'INACTIVE' && <LinkButton onClick={onActivate}>Ativar</LinkButton>}
-      <button
-        type="button"
-        onClick={onDelete}
-        title="Excluir"
-        className="inline-flex items-center bg-transparent border-0 p-0 cursor-pointer"
-        style={{ color: c.textMuted }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = c.danger)}
-        onMouseLeave={(e) => (e.currentTarget.style.color = c.textMuted)}
-      >
-        <Trash2 size={14} />
-      </button>
+      {journey.status === 'DRAFT' && (
+        <IconAction icon={PowerOff} label="Desativar jornada" onClick={onDeactivate} hoverColor={c.warning} />
+      )}
+      {journey.status === 'INACTIVE' && (
+        <IconAction icon={Power} label="Ativar jornada" onClick={onActivate} hoverColor={c.success} />
+      )}
+      <IconAction icon={Trash2} label="Excluir jornada" onClick={onDelete} hoverColor={c.danger} />
     </div>
   );
 }
 
-function JourneyCard({
+function JourneyDetailRow({
   journey,
   onEdit,
   onDeactivate,
   onActivate,
   onDelete,
-  onPublish,
   onUnpublish,
+  onVersionsChanged,
 }: {
   journey: Journey;
   onEdit: () => void;
   onDeactivate: () => void;
   onActivate: () => void;
   onDelete: () => void;
-  onPublish: () => void;
   onUnpublish: () => void;
+  onVersionsChanged: () => void;
 }) {
   const { colors: c } = useAppTheme();
+  const [open, setOpen] = useState(false);
+
   return (
-    <div
-      className="rounded-2xl p-[18px] flex flex-col gap-3 box-border transition-shadow"
-      style={{ background: c.surface, border: `1px solid ${c.border}` }}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 text-[14.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
-          {journey.name}
+    <>
+      <div
+        className="grid items-center px-4 py-[10px] cursor-pointer border-t"
+        style={{ gridTemplateColumns: GRID_COLS, borderColor: c.border }}
+        onClick={() => setOpen((o) => !o)}
+        onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      >
+        <div className="flex items-center gap-[8px] min-w-0">
+          <ChevronRight
+            size={13}
+            className="shrink-0 transition-transform"
+            style={{ color: c.textMuted, transform: open ? 'rotate(90deg)' : 'none' }}
+          />
+          <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
+            {journey.name}
+          </div>
         </div>
-        <JourneyStatusTag status={journey.status} />
+        <span className="truncate text-[12.5px]" style={{ color: c.textSecondary }}>
+          {journey.productName} <span style={{ color: c.border }}>›</span> {journey.channelName}
+        </span>
+        <div className="flex items-center gap-[6px]">
+          <JourneyStatusTag status={journey.status} />
+          {journey.publishedVersionNumber !== null && (
+            <span className="text-[11px] font-medium" style={{ color: c.textMuted }}>
+              v{journey.publishedVersionNumber} publicada
+            </span>
+          )}
+        </div>
+        <span className="text-[12px]" style={{ color: c.textSecondary }}>
+          {formatDate(journey.updatedAt)}
+        </span>
+        <JourneyActions
+          journey={journey}
+          onEdit={onEdit}
+          onDeactivate={onDeactivate}
+          onActivate={onActivate}
+          onDelete={onDelete}
+          onUnpublish={onUnpublish}
+        />
       </div>
-      <div className="text-[12px] truncate" style={{ color: c.textSecondary }}>
-        {journey.productName} <span style={{ color: c.border }}>›</span> {journey.channelName}
-      </div>
-      {journey.description && (
-        <p className="m-0 text-[12.5px] line-clamp-2" style={{ color: c.textSecondary }}>
-          {journey.description}
+      {open && <JourneyVersionsRows journeyId={journey.journeyId} onJourneyChanged={onVersionsChanged} />}
+    </>
+  );
+}
+
+function versionStatusMeta(c: AppColors, status: VersionStatus) {
+  switch (status) {
+    case 'DRAFT':
+      return { label: 'Rascunho', bg: c.chipBg, color: c.textSecondary };
+    case 'PUBLISHED':
+      return { label: 'Publicada', bg: c.successSoft, color: c.success };
+    case 'ARCHIVED':
+      return { label: 'Arquivada', bg: c.warningSoft, color: c.warning };
+    case 'UNPUBLISHED':
+      return { label: 'Despublicada', bg: c.chipBg, color: c.textMuted };
+  }
+}
+
+function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: string; onJourneyChanged: () => void }) {
+  const { colors: c } = useAppTheme();
+  const { showToast } = useToast();
+  const [versions, setVersions] = useState<JourneyVersion[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busyVersionId, setBusyVersionId] = useState<string | null>(null);
+  const [inspecting, setInspecting] = useState<JourneyVersion | null>(null);
+  const [publishingVersion, setPublishingVersion] = useState<JourneyVersion | null>(null);
+  const [unpublishingVersion, setUnpublishingVersion] = useState<JourneyVersion | null>(null);
+
+  const reload = useCallback(() => {
+    listJourneyVersions(journeyId)
+      .then(setVersions)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar versões.'));
+  }, [journeyId]);
+
+  useEffect(reload, [reload]);
+
+  async function confirmPublish() {
+    if (!publishingVersion) return;
+    const versionId = publishingVersion.versionId;
+    setPublishingVersion(null);
+    setBusyVersionId(versionId);
+    setError(null);
+    try {
+      await publishJourneyVersion(journeyId, versionId);
+      reload();
+      onJourneyChanged();
+      showToast('Versão publicada com sucesso.');
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError && err.status === 422
+          ? 'Não é possível publicar: o produto ou o canal está inativo.'
+          : err instanceof Error
+            ? err.message
+            : 'Erro ao publicar versão.';
+      setError(message);
+    } finally {
+      setBusyVersionId(null);
+    }
+  }
+
+  async function confirmUnpublish() {
+    if (!unpublishingVersion) return;
+    const versionId = unpublishingVersion.versionId;
+    setUnpublishingVersion(null);
+    setBusyVersionId(versionId);
+    setError(null);
+    try {
+      await unpublishJourneyVersion(journeyId, versionId);
+      reload();
+      onJourneyChanged();
+      showToast('Versão despublicada com sucesso.');
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError && err.status === 409
+          ? 'Essa versão não está publicada.'
+          : err instanceof Error
+            ? err.message
+            : 'Erro ao despublicar versão.';
+      setError(message);
+    } finally {
+      setBusyVersionId(null);
+    }
+  }
+
+  return (
+    <div className="border-t" style={{ borderColor: c.border, background: c.bg }}>
+      {error && (
+        <p className="m-0 px-4 py-2 text-[12px]" style={{ color: c.danger }}>
+          {error}
         </p>
       )}
-      <div className="flex flex-col gap-[2px] pt-[10px] border-t text-[12px]" style={{ borderColor: c.border, color: c.textMuted }}>
-        <span>Atualizada em {formatDate(journey.updatedAt)}</span>
-        {journey.publishedAt && <span>Publicada em {formatDate(journey.publishedAt)}</span>}
-      </div>
-      <JourneyActions
-        journey={journey}
-        onEdit={onEdit}
-        onDeactivate={onDeactivate}
-        onActivate={onActivate}
-        onDelete={onDelete}
-        onPublish={onPublish}
-        onUnpublish={onUnpublish}
-      />
-    </div>
-  );
-}
+      {versions === null ? (
+        <p className="m-0 px-4 py-3 text-[12.5px]" style={{ color: c.textSecondary }}>
+          Carregando versões...
+        </p>
+      ) : versions.length === 0 ? (
+        <p className="m-0 px-4 py-3 text-[12.5px]" style={{ color: c.textSecondary }}>
+          Nenhuma versão criada ainda.
+        </p>
+      ) : (
+        versions.map((v) => {
+          const meta = versionStatusMeta(c, v.status);
+          return (
+            <div
+              key={v.versionId}
+              className="grid items-center pl-10 pr-4 py-[8px] border-t"
+              style={{ gridTemplateColumns: GRID_COLS, borderColor: c.border }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[12.5px] font-semibold" style={{ color: c.textPrimary }}>
+                  v{v.versionNumber}
+                </span>
+                {v.description && (
+                  <span className="truncate text-[12px]" style={{ color: c.textSecondary }}>
+                    {v.description}
+                  </span>
+                )}
+              </div>
+              <span className="text-[12px] truncate" style={{ color: c.textMuted }} title={v.createdBy}>
+                Por {v.createdBy.slice(0, 8)}
+              </span>
+              <span
+                className="inline-flex items-center rounded-full px-[9px] py-[2px] text-[11px] font-medium w-fit"
+                style={{ background: meta.bg, color: meta.color }}
+              >
+                {meta.label}
+              </span>
+              <span className="text-[12px]" style={{ color: c.textSecondary }}>
+                {formatDate(v.publishedAt ?? v.createdAt)}
+              </span>
+              <div className="flex items-center justify-end gap-2">
+                <SecondaryButton onClick={() => setInspecting(v)}>Ver</SecondaryButton>
+                {v.status === 'DRAFT' && (
+                  <span title={v.snapshot.flowNodes.length === 0 ? 'Esta versão ainda não tem um fluxo definido.' : undefined}>
+                    <PrimaryButton
+                      onClick={() => setPublishingVersion(v)}
+                      loading={busyVersionId === v.versionId}
+                      disabled={v.snapshot.flowNodes.length === 0}
+                    >
+                      Publicar
+                    </PrimaryButton>
+                  </span>
+                )}
+                {v.status === 'PUBLISHED' && (
+                  <SecondaryButton onClick={() => setUnpublishingVersion(v)} disabled={busyVersionId === v.versionId}>
+                    Despublicar
+                  </SecondaryButton>
+                )}
+              </div>
+            </div>
+          );
+        })
+      )}
 
-function JourneyRow({
-  journey,
-  onEdit,
-  onDeactivate,
-  onActivate,
-  onDelete,
-  onPublish,
-  onUnpublish,
-}: {
-  journey: Journey;
-  onEdit: () => void;
-  onDeactivate: () => void;
-  onActivate: () => void;
-  onDelete: () => void;
-  onPublish: () => void;
-  onUnpublish: () => void;
-}) {
-  const { colors: c } = useAppTheme();
-  return (
-    <div
-      className="grid items-center px-4 py-3 text-[13px] border-b box-border last:border-b-0"
-      style={{ gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1.2fr', borderColor: c.border }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-    >
-      <div className="min-w-0">
-        <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
-          {journey.name}
-        </div>
-        {journey.description && (
-          <div className="text-[11.5px] truncate" style={{ color: c.textMuted }}>
-            {journey.description}
-          </div>
-        )}
-      </div>
-      <span className="truncate" style={{ color: c.textSecondary }}>
-        {journey.productName} <span style={{ color: c.border }}>›</span> {journey.channelName}
-      </span>
-      <span className="w-fit">
-        <JourneyStatusTag status={journey.status} />
-      </span>
-      <span className="flex flex-col gap-[2px]" style={{ color: c.textSecondary }}>
-        <span>{formatDate(journey.updatedAt)}</span>
-        {journey.publishedAt && (
-          <span className="text-[11px]" style={{ color: c.textMuted }}>
-            Publicada em {formatDate(journey.publishedAt)}
-          </span>
-        )}
-      </span>
-      <JourneyActions
-        journey={journey}
-        onEdit={onEdit}
-        onDeactivate={onDeactivate}
-        onActivate={onActivate}
-        onDelete={onDelete}
-        onPublish={onPublish}
-        onUnpublish={onUnpublish}
-      />
+      {inspecting && (
+        <Modal
+          title={`Versão ${inspecting.versionNumber}`}
+          subtitle={versionStatusMeta(c, inspecting.status).label}
+          onClose={() => setInspecting(null)}
+          footer={<SecondaryButton onClick={() => setInspecting(null)}>Fechar</SecondaryButton>}
+        >
+          <p className="m-0 text-[12.5px]" style={{ color: c.textSecondary }}>
+            Snapshot somente leitura — visualizar uma versão não altera o fluxo em edição.
+          </p>
+          <pre
+            className="m-0 rounded-lg p-3 text-[11.5px] overflow-auto max-h-[360px]"
+            style={{ background: c.chipBg, color: c.textPrimary }}
+          >
+            {JSON.stringify(inspecting.snapshot, null, 2)}
+          </pre>
+        </Modal>
+      )}
+
+      {publishingVersion && (
+        <ConfirmDialog
+          title="Publicar versão?"
+          message={`Deseja publicar a v${publishingVersion.versionNumber}? Depois de publicada, essa versão não poderá mais ser editada.`}
+          confirmLabel="Publicar"
+          onConfirm={confirmPublish}
+          onCancel={() => setPublishingVersion(null)}
+        />
+      )}
+
+      {unpublishingVersion && (
+        <ConfirmDialog
+          title="Despublicar versão?"
+          message={`Deseja despublicar a v${unpublishingVersion.versionNumber}? A jornada deixa de estar publicada e a versão passa a arquivada; o snapshot é preservado.`}
+          confirmLabel="Despublicar"
+          onConfirm={confirmUnpublish}
+          onCancel={() => setUnpublishingVersion(null)}
+        />
+      )}
     </div>
   );
 }

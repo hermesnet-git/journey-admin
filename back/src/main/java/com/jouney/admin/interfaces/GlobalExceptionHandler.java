@@ -13,10 +13,14 @@ import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.product.ProductNotFoundException;
 import com.jouney.admin.domain.version.JourneyVersionNotFoundException;
+import com.jouney.admin.domain.version.VersionHasNoFlowException;
 import com.jouney.admin.domain.version.VersionNotDraftException;
+import com.jouney.admin.domain.version.VersionNotPublishedException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -26,6 +30,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler({ProductNotFoundException.class, ChannelNotFoundException.class,
             JourneyNotFoundException.class, FormNotFoundException.class, JourneyVersionNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException ex, HttpServletRequest request) {
@@ -33,12 +39,12 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({ActivePublicationExistsException.class, JourneyDeletionBlockedException.class,
-            JourneyNotPublishedException.class, VersionNotDraftException.class})
+            JourneyNotPublishedException.class, VersionNotDraftException.class, VersionNotPublishedException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }
 
-    @ExceptionHandler({ProductInactiveException.class, ChannelInactiveException.class})
+    @ExceptionHandler({ProductInactiveException.class, ChannelInactiveException.class, VersionHasNoFlowException.class})
     public ResponseEntity<ApiError> handleUnprocessable(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, null);
     }
@@ -63,6 +69,27 @@ public class GlobalExceptionHandler {
                         error.getDefaultMessage()))
                 .toList();
         return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request validation failed", request, details);
+    }
+
+    // Root exception handler: anything not mapped above (e.g. a data integrity violation) would
+    // otherwise escape this advice and fall through to Spring's default error dispatch, which is
+    // re-authenticated by the security filter chain and can surface to the client as a 401 instead
+    // of the real 500 — masking server errors as session/login problems.
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleUnexpected(Exception ex, HttpServletRequest request) {
+        log.error("Unhandled exception processing {} {}", request.getMethod(), request.getRequestURI(), ex);
+        Throwable root = rootCause(ex);
+        String message = String.format("%s: %s", root.getClass().getSimpleName(),
+                root.getMessage() != null ? root.getMessage() : ex.getClass().getSimpleName());
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", message, request, null);
+    }
+
+    private static Throwable rootCause(Throwable ex) {
+        Throwable current = ex;
+        while (current.getCause() != null && current.getCause() != current) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     private ResponseEntity<ApiError> build(HttpStatus status, String code, String message,

@@ -23,16 +23,16 @@ public class JourneyVersion {
     private final OffsetDateTime createdAt;
     private OffsetDateTime publishedAt;
 
-    private final String journeyName;
-    private final String journeyDescription;
-    private final UUID productId;
-    private final String productName;
-    private final UUID channelId;
-    private final String channelName;
-    private final ChannelType channelType;
-    private final List<FlowNode> flowNodes;
-    private final List<FlowConnection> flowConnections;
-    private final List<Form> forms;
+    private String journeyName;
+    private String journeyDescription;
+    private UUID productId;
+    private String productName;
+    private UUID channelId;
+    private String channelName;
+    private ChannelType channelType;
+    private List<FlowNode> flowNodes;
+    private List<FlowConnection> flowConnections;
+    private List<Form> forms;
 
     public JourneyVersion(UUID id, UUID journeyId, int versionNumber, VersionStatus status, String description,
                            UUID createdBy, OffsetDateTime createdAt, OffsetDateTime publishedAt, String journeyName,
@@ -69,13 +69,42 @@ public class JourneyVersion {
                 channelId, channelName, channelType, flowNodes, flowConnections, forms);
     }
 
+    // Keeps a DRAFT in sync with the journey's live flow as it's edited (REQ-06.02.009): unlike
+    // publish/archive, this doesn't change identity (id/versionNumber) — it's the same draft, just
+    // with fresher content. Only DRAFT may be replaced this way; PUBLISHED/ARCHIVED stay immutable.
+    public void replaceContent(String journeyName, String journeyDescription, UUID productId, String productName,
+                                UUID channelId, String channelName, ChannelType channelType,
+                                List<FlowNode> flowNodes, List<FlowConnection> flowConnections, List<Form> forms) {
+        if (status != VersionStatus.DRAFT) {
+            throw new IllegalStateException("Only a DRAFT version's content can be replaced: " + id);
+        }
+        this.journeyName = journeyName;
+        this.journeyDescription = journeyDescription;
+        this.productId = productId;
+        this.productName = productName;
+        this.channelId = channelId;
+        this.channelName = channelName;
+        this.channelType = channelType;
+        this.flowNodes = flowNodes;
+        this.flowConnections = flowConnections;
+        this.forms = forms;
+    }
+
     public void publish() {
         this.status = VersionStatus.PUBLISHED;
         this.publishedAt = OffsetDateTime.now();
     }
 
+    // A version is ARCHIVED when superseded by a newer publish — the journey stays live, just on
+    // different content. It's UNPUBLISHED when the journey itself is taken down (REQ-06.01.005):
+    // same "no longer the live version" outcome, different reason, so callers must pick the one
+    // that matches what actually happened instead of collapsing both into archive().
     public void archive() {
         this.status = VersionStatus.ARCHIVED;
+    }
+
+    public void unpublish() {
+        this.status = VersionStatus.UNPUBLISHED;
     }
 
     public UUID getId() {

@@ -421,7 +421,7 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-06.01.002 - Cada versão deve possuir identificador único (`versionId`).
 #### REQ-06.01.003 - Cada versão deve possuir número sequencial iniciado em `1` dentro da jornada.
 #### REQ-06.01.004 - Cada versão deve estar associada a exatamente uma jornada.
-#### REQ-06.01.005 - Cada versão deve possuir status `DRAFT`, `PUBLISHED` ou `ARCHIVED`.
+#### REQ-06.01.005 - Cada versão deve possuir status `DRAFT`, `PUBLISHED`, `ARCHIVED` ou `UNPUBLISHED`.
 #### REQ-06.01.006 - Uma jornada deve possuir no máximo uma versão `PUBLISHED`.
 #### REQ-06.01.007 - Cada versão deve registrar criação e publicação, quando aplicável.
 #### REQ-06.01.008 - Cada versão deve permitir observação opcional.
@@ -435,13 +435,15 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-06.02.006 - Uma versão `PUBLISHED` deve ser imutável.
 #### REQ-06.02.007 - O sistema deve indicar claramente qual versão está sendo editada.
 #### REQ-06.02.008 - O sistema deve impedir números de versão duplicados dentro da mesma jornada.
+#### REQ-06.02.009 - Ao salvar o fluxo de uma jornada, o sistema deve manter a versão `DRAFT` atual sincronizada com o conteúdo salvo: se já existir uma versão `DRAFT`, seu conteúdo deve ser substituído (mesmo identificador e número de versão); caso não exista nenhuma `DRAFT` (por exemplo, logo após a publicação da versão anterior), uma nova versão `DRAFT` deve ser criada automaticamente. Em nenhum caso outras versões (`PUBLISHED`/`ARCHIVED`) são alteradas.
+#### REQ-06.02.010 - Antes de salvar a edição de uma jornada `PUBLISHED`, o sistema deve avisar o usuário de que a alteração será registrada em uma versão em rascunho separada da publicada.
 
 ### FT-06.03 Histórico e consulta
 #### REQ-06.03.001 - O sistema deve permitir listar todas as versões de uma jornada.
 #### REQ-06.03.002 - O sistema deve permitir consultar o conteúdo completo de uma versão.
 #### REQ-06.03.003 - O histórico deve exibir número, status, datas e autor da versão.
 #### REQ-06.03.004 - O sistema deve permitir ordenar versões por número ou data.
-#### REQ-06.03.005 - O sistema deve diferenciar versões em edição, publicadas e arquivadas.
+#### REQ-06.03.005 - O sistema deve diferenciar versões em edição, publicadas, arquivadas e despublicadas.
 #### REQ-06.03.006 - O sistema deve permitir visualizar uma versão anterior sem editá-la diretamente.
 
 ### FT-06.04 Publicação de versões
@@ -453,6 +455,8 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-06.04.006 - A publicação deve registrar qual versão foi enviada ao runtime.
 #### REQ-06.04.007 - A jornada deve indicar sua versão atualmente publicada.
 #### REQ-06.04.008 - Alterações em `DRAFT` não devem modificar o snapshot publicado.
+#### REQ-06.04.009 - Ao despublicar uma jornada, a versão `PUBLISHED` correspondente deve ser marcada como `UNPUBLISHED` (não `ARCHIVED`, reservado a quando a versão é substituída por uma nova publicação), preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada.
+#### REQ-06.04.010 - O sistema deve permitir despublicar a versão atualmente `PUBLISHED` de uma jornada diretamente pela versão; a despublicação de uma versão deve refletir no status da jornada, que passa a `UNPUBLISHED`.
 
 ### FT-06.05 Compatibilidade e limites do MVP
 #### REQ-06.05.001 - O sistema deve preservar versões de jornadas desativadas.

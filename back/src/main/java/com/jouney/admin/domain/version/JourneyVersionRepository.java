@@ -15,4 +15,6 @@ public interface JourneyVersionRepository {
     Optional<JourneyVersion> findByJourneyIdAndStatus(UUID journeyId, VersionStatus status);
 
     int findMaxVersionNumber(UUID journeyId);
+
+    void deleteById(UUID versionId);
 }

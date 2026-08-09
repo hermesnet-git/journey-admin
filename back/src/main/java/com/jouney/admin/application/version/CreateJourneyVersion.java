@@ -15,13 +15,17 @@ import com.jouney.admin.domain.product.ProductNotFoundException;
 import com.jouney.admin.domain.product.ProductRepository;
 import com.jouney.admin.domain.version.JourneyVersion;
 import com.jouney.admin.domain.version.JourneyVersionRepository;
+import com.jouney.admin.domain.version.VersionStatus;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
- * Creates a new DRAFT version of a journey (REQ-06.02.002/003), snapshotting the journey's
- * current live flow/forms/product/channel state. Editing the resulting DRAFT never affects other
- * versions, since each version owns an independent copy of that content.
+ * Keeps the journey's current DRAFT version in sync with its live flow/forms/product/channel
+ * state (REQ-06.02.002/003/009): if a DRAFT already exists, its snapshot is replaced in place —
+ * same id/versionNumber, fresher content — since a DRAFT is "what's currently being edited", not
+ * a series of throwaway branches. Only when no DRAFT exists (typically right after a publish,
+ * since the previous DRAFT just became PUBLISHED) is a brand new version created. Either way, the
+ * result never affects other versions: PUBLISHED/ARCHIVED rows are untouched.
  */
 @Service
 public class CreateJourneyVersion {
@@ -56,12 +60,24 @@ public class CreateJourneyVersion {
                 .orElseThrow(() -> new ProductNotFoundException(channel.getProductId()));
         Flow flow = flowRepository.findByJourneyId(journeyId)
                 .orElseThrow(() -> new IllegalStateException("Journey has no flow: " + journeyId));
+        var forms = snapshotFactory.resolveForms(flow);
+
+        var existingDraft = journeyVersionRepository.findByJourneyIdAndStatus(journeyId, VersionStatus.DRAFT);
+        if (existingDraft.isPresent()) {
+            JourneyVersion draft = existingDraft.get();
+            draft.replaceContent(journey.getName(), journey.getDescription(), product.getId(), product.getName(),
+                    channel.getId(), channel.getName(), channel.getType(), flow.getNodes(), flow.getConnections(),
+                    forms);
+            JourneyVersion saved = journeyVersionRepository.save(draft);
+            recordAuditEvent.record("JOURNEY_VERSION_UPDATE", "JOURNEY_VERSION", saved.getId(), AuditResult.SUCCESS,
+                    createdBy);
+            return saved;
+        }
 
         int nextVersionNumber = journeyVersionRepository.findMaxVersionNumber(journeyId) + 1;
         JourneyVersion version = JourneyVersion.createDraft(journeyId, nextVersionNumber, description, createdBy,
                 journey.getName(), journey.getDescription(), product.getId(), product.getName(), channel.getId(),
-                channel.getName(), channel.getType(), flow.getNodes(), flow.getConnections(),
-                snapshotFactory.resolveForms(flow));
+                channel.getName(), channel.getType(), flow.getNodes(), flow.getConnections(), forms);
         JourneyVersion saved = journeyVersionRepository.save(version);
         recordAuditEvent.record("JOURNEY_VERSION_CREATE", "JOURNEY_VERSION", saved.getId(), AuditResult.SUCCESS,
                 createdBy);

@@ -22,6 +22,20 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler;
 }
 
+export interface ServerErrorInfo {
+  status: number;
+  code?: string;
+  message: string;
+  path?: string;
+}
+
+let onServerError: ((info: ServerErrorInfo) => void) | null = null;
+
+/** Registered by AppErrorBoundary so a 5xx response shows a full-screen application-error notice. */
+export function setServerErrorHandler(handler: ((info: ServerErrorInfo) => void) | null) {
+  onServerError = handler;
+}
+
 export function getStoredToken(): string | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
@@ -69,6 +83,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       onUnauthorized?.();
     }
     const body = await response.json().catch(() => null);
+    if (response.status >= 500) {
+      onServerError?.({
+        status: response.status,
+        code: body?.code,
+        message: body?.message ?? response.statusText,
+        path: body?.path ?? path,
+      });
+    }
     throw new ApiClientError(response.status, body?.message ?? response.statusText, body?.details ?? undefined);
   }
 

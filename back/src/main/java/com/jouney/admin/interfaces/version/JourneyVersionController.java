@@ -4,6 +4,7 @@ import com.jouney.admin.application.version.CreateJourneyVersion;
 import com.jouney.admin.application.version.GetJourneyVersion;
 import com.jouney.admin.application.version.ListJourneyVersions;
 import com.jouney.admin.application.version.PublishJourneyVersion;
+import com.jouney.admin.application.version.UnpublishJourneyVersion;
 import com.jouney.admin.domain.auth.AuthenticatedUser;
 import java.util.List;
 import java.util.UUID;
@@ -26,15 +27,18 @@ public class JourneyVersionController {
     private final CreateJourneyVersion createJourneyVersion;
     private final GetJourneyVersion getJourneyVersion;
     private final PublishJourneyVersion publishJourneyVersion;
+    private final UnpublishJourneyVersion unpublishJourneyVersion;
 
     public JourneyVersionController(ListJourneyVersions listJourneyVersions,
                                      CreateJourneyVersion createJourneyVersion,
                                      GetJourneyVersion getJourneyVersion,
-                                     PublishJourneyVersion publishJourneyVersion) {
+                                     PublishJourneyVersion publishJourneyVersion,
+                                     UnpublishJourneyVersion unpublishJourneyVersion) {
         this.listJourneyVersions = listJourneyVersions;
         this.createJourneyVersion = createJourneyVersion;
         this.getJourneyVersion = getJourneyVersion;
         this.publishJourneyVersion = publishJourneyVersion;
+        this.unpublishJourneyVersion = unpublishJourneyVersion;
     }
 
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
@@ -63,5 +67,11 @@ public class JourneyVersionController {
     @PostMapping("/{versionId}/publish")
     public JourneyVersionResponse publish(@PathVariable UUID journeyId, @PathVariable UUID versionId) {
         return JourneyVersionResponse.from(publishJourneyVersion.execute(journeyId, versionId));
+    }
+
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
+    @PostMapping("/{versionId}/unpublish")
+    public JourneyVersionResponse unpublish(@PathVariable UUID journeyId, @PathVariable UUID versionId) {
+        return JourneyVersionResponse.from(unpublishJourneyVersion.execute(journeyId, versionId));
     }
 }

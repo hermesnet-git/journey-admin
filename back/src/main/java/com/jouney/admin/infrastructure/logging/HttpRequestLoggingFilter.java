@@ -30,6 +30,7 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter {
     private static final String CORRELATION_HEADER = "X-Correlation-Id";
     private static final String MDC_KEY = "correlationId";
     private static final int MAX_PAYLOAD_LENGTH = 2000;
+    private static final long SLOW_REQUEST_THRESHOLD_MS = 1000;
     private static final Pattern SENSITIVE_FIELD = Pattern.compile(
             "(?i)(\"(?:password|token|secret|authorization)\"\\s*:\\s*)\"[^\"]*\"");
 
@@ -53,14 +54,19 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter {
                 cachePayloads ? new ContentCachingResponseWrapper(response) : null;
 
         long start = System.currentTimeMillis();
-        log.info("--> {} {}", request.getMethod(), request.getRequestURI());
+        log.debug("--> {} {}", request.getMethod(), request.getRequestURI());
         try {
             filterChain.doFilter(loggedRequest, loggedResponse != null ? loggedResponse : response);
         } finally {
             long durationMs = System.currentTimeMillis() - start;
             int status = loggedResponse != null ? loggedResponse.getStatus() : response.getStatus();
-            log.info("<-- {} {} status={} durationMs={}", request.getMethod(), request.getRequestURI(),
-                    status, durationMs);
+            if (status >= 400 || durationMs > SLOW_REQUEST_THRESHOLD_MS) {
+                log.info("<-- {} {} status={} durationMs={}", request.getMethod(), request.getRequestURI(),
+                        status, durationMs);
+            } else {
+                log.debug("<-- {} {} status={} durationMs={}", request.getMethod(), request.getRequestURI(),
+                        status, durationMs);
+            }
             if (cachePayloads) {
                 logPayload("request body", payloadOf((ContentCachingRequestWrapper) loggedRequest));
                 logPayload("response body", payloadOf(loggedResponse));
@@ -79,7 +85,7 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter {
         if (content.length() > MAX_PAYLOAD_LENGTH) {
             content = content.substring(0, MAX_PAYLOAD_LENGTH) + "...(truncated)";
         }
-        log.info("{}: {}", label, content);
+        log.debug("{}: {}", label, content);
     }
 
     private byte[] payloadOf(ContentCachingRequestWrapper wrapper) {

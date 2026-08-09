@@ -22,10 +22,10 @@ public class TransactionLoggingAspect {
     public Object logTransaction(ProceedingJoinPoint joinPoint) throws Throwable {
         String signature = joinPoint.getSignature().toShortString();
         long start = System.currentTimeMillis();
-        log.info("BEGIN {}", signature);
+        log.debug("BEGIN {}", signature);
         try {
             Object result = joinPoint.proceed();
-            log.info("COMMIT {} durationMs={}", signature, System.currentTimeMillis() - start);
+            log.debug("COMMIT {} durationMs={}", signature, System.currentTimeMillis() - start);
             return result;
         } catch (Throwable ex) {
             log.warn("ROLLBACK {} durationMs={} error={}", signature, System.currentTimeMillis() - start,

@@ -444,7 +444,6 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-06.03.003 - O histórico deve exibir número, status, datas e autor da versão.
 #### REQ-06.03.004 - O sistema deve permitir ordenar versões por número ou data.
 #### REQ-06.03.005 - O sistema deve diferenciar versões em edição, publicadas, arquivadas e despublicadas.
-#### REQ-06.03.006 - O sistema deve permitir visualizar uma versão anterior sem editá-la diretamente.
 
 ### FT-06.04 Publicação de versões
 #### REQ-06.04.001 - O sistema deve permitir publicar uma versão `DRAFT`.
@@ -457,6 +456,8 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-06.04.008 - Alterações em `DRAFT` não devem modificar o snapshot publicado.
 #### REQ-06.04.009 - Ao despublicar uma jornada, a versão `PUBLISHED` correspondente deve ser marcada como `UNPUBLISHED` (não `ARCHIVED`, reservado a quando a versão é substituída por uma nova publicação), preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada.
 #### REQ-06.04.010 - O sistema deve permitir despublicar a versão atualmente `PUBLISHED` de uma jornada diretamente pela versão; a despublicação de uma versão deve refletir no status da jornada, que passa a `UNPUBLISHED`.
+#### REQ-06.04.011 - O sistema deve permitir republicar a versão `UNPUBLISHED` mais recente de uma jornada, sem alterar seu conteúdo/snapshot, retornando-a ao estado `PUBLISHED` e refletindo no status da jornada, que volta a `PUBLISHED`. Se já existir uma versão `PUBLISHED` na jornada no momento da republicação, essa versão deve ser marcada como `ARCHIVED` antes (mesmo comportamento de REQ-06.04.004). Republicar não é restaurar uma versão anterior: só a versão `UNPUBLISHED` mais recente da jornada pode ser republicada; versões `ARCHIVED` permanecem fora de alcance (REQ-06.05.004).
+#### REQ-06.04.012 - Antes de republicar uma versão, se já existir uma versão `PUBLISHED` na jornada, o sistema deve informar ao usuário que a versão publicada atual será substituída e solicitar confirmação antes de prosseguir.
 
 ### FT-06.05 Compatibilidade e limites do MVP
 #### REQ-06.05.001 - O sistema deve preservar versões de jornadas desativadas.
@@ -586,6 +587,8 @@ por uma stack de observabilidade centralizada (ELK).
 ## Evolução de Plataforma
 ```text
 Workflow de Aprovação
+
+Comparação (diff) visual entre versões de uma jornada
 
 Publicação Agendada
 

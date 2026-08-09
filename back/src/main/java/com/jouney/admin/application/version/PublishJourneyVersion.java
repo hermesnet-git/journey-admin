@@ -31,7 +31,9 @@ import org.springframework.stereotype.Service;
  * Publishes a DRAFT journey version (REQ-06.04): validates channel/product/flow like the legacy
  * {@link com.jouney.admin.application.publication.PublishJourney}, sends the version's own
  * snapshot to the runtime, then archives whichever version was previously PUBLISHED — preserving
- * its snapshot (only its status changes).
+ * its snapshot (only its status changes). The core of this (everything past the DRAFT check) is
+ * reused by {@link RepublishJourneyVersion} (REQ-06.04.011) for UNPUBLISHED versions, since going
+ * live is otherwise identical regardless of which status a version is coming from.
  */
 @Service
 public class PublishJourneyVersion {
@@ -59,13 +61,20 @@ public class PublishJourneyVersion {
     }
 
     public JourneyVersion execute(UUID journeyId, UUID versionId) {
-        JourneyVersion version = journeyVersionRepository.findById(versionId)
-                .filter(v -> v.getJourneyId().equals(journeyId))
-                .orElseThrow(() -> new JourneyVersionNotFoundException(versionId));
+        JourneyVersion version = findVersion(journeyId, versionId);
         if (version.getStatus() != VersionStatus.DRAFT) {
             throw new VersionNotDraftException(versionId);
         }
+        return goLive(journeyId, version, "DRAFT", "JOURNEY_VERSION_PUBLISH");
+    }
 
+    JourneyVersion findVersion(UUID journeyId, UUID versionId) {
+        return journeyVersionRepository.findById(versionId)
+                .filter(v -> v.getJourneyId().equals(journeyId))
+                .orElseThrow(() -> new JourneyVersionNotFoundException(versionId));
+    }
+
+    JourneyVersion goLive(UUID journeyId, JourneyVersion version, String previousStatus, String auditAction) {
         Journey journey = journeyRepository.findById(journeyId)
                 .orElseThrow(() -> new JourneyNotFoundException(journeyId));
 
@@ -82,7 +91,7 @@ public class PublishJourneyVersion {
         }
 
         if (version.getFlowNodes().isEmpty()) {
-            throw new VersionHasNoFlowException(versionId);
+            throw new VersionHasNoFlowException(version.getId());
         }
 
         UUID existingPublicationId = publicationRepository.findByJourneyId(journeyId)
@@ -106,8 +115,8 @@ public class PublishJourneyVersion {
         journey.publish();
         journeyRepository.save(journey);
 
-        recordAuditEvent.record("JOURNEY_VERSION_PUBLISH", "JOURNEY_VERSION", versionId, AuditResult.SUCCESS,
-                Map.of("status", "DRAFT"), Map.of("status", "PUBLISHED"));
+        recordAuditEvent.record(auditAction, "JOURNEY_VERSION", version.getId(), AuditResult.SUCCESS,
+                Map.of("status", previousStatus), Map.of("status", "PUBLISHED"));
 
         return published;
     }

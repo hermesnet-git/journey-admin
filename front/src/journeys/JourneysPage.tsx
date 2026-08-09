@@ -4,7 +4,6 @@ import { PrimaryButton, SecondaryButton, FilterDropdown, type FilterOption } fro
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
 import { ConfirmDialog } from '../products/ConfirmDialog';
-import { Modal } from '../products/Modal';
 import { ApiClientError } from '../api/client';
 import { listProducts, listChannels, type Product, type Channel } from '../api/products';
 import {
@@ -21,6 +20,7 @@ import {
   listJourneyVersions,
   publishJourneyVersion,
   unpublishJourneyVersion,
+  republishJourneyVersion,
   type JourneyVersion,
   type VersionStatus,
 } from '../api/versions';
@@ -576,9 +576,9 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
   const [versions, setVersions] = useState<JourneyVersion[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyVersionId, setBusyVersionId] = useState<string | null>(null);
-  const [inspecting, setInspecting] = useState<JourneyVersion | null>(null);
   const [publishingVersion, setPublishingVersion] = useState<JourneyVersion | null>(null);
   const [unpublishingVersion, setUnpublishingVersion] = useState<JourneyVersion | null>(null);
+  const [republishingVersion, setRepublishingVersion] = useState<JourneyVersion | null>(null);
 
   const reload = useCallback(() => {
     listJourneyVersions(journeyId)
@@ -636,6 +636,33 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
     }
   }
 
+  async function confirmRepublish() {
+    if (!republishingVersion) return;
+    const versionId = republishingVersion.versionId;
+    setRepublishingVersion(null);
+    setBusyVersionId(versionId);
+    setError(null);
+    try {
+      await republishJourneyVersion(journeyId, versionId);
+      reload();
+      onJourneyChanged();
+      showToast('Versão republicada com sucesso.');
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError && err.status === 422
+          ? 'Não é possível republicar: o produto ou o canal está inativo.'
+          : err instanceof Error
+            ? err.message
+            : 'Erro ao republicar versão.';
+      setError(message);
+    } finally {
+      setBusyVersionId(null);
+    }
+  }
+
+  const latestUnpublishedId = versions?.find((v) => v.status === 'UNPUBLISHED')?.versionId ?? null;
+  const hasPublishedVersion = versions?.some((v) => v.status === 'PUBLISHED') ?? false;
+
   return (
     <div className="border-t" style={{ borderColor: c.border, background: c.bg }}>
       {error && (
@@ -683,7 +710,6 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
                 {formatDate(v.publishedAt ?? v.createdAt)}
               </span>
               <div className="flex items-center justify-end gap-2">
-                <SecondaryButton onClick={() => setInspecting(v)}>Ver</SecondaryButton>
                 {v.status === 'DRAFT' && (
                   <span title={v.snapshot.flowNodes.length === 0 ? 'Esta versão ainda não tem um fluxo definido.' : undefined}>
                     <PrimaryButton
@@ -700,29 +726,15 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
                     Despublicar
                   </SecondaryButton>
                 )}
+                {v.status === 'UNPUBLISHED' && v.versionId === latestUnpublishedId && (
+                  <PrimaryButton onClick={() => setRepublishingVersion(v)} loading={busyVersionId === v.versionId}>
+                    Republicar
+                  </PrimaryButton>
+                )}
               </div>
             </div>
           );
         })
-      )}
-
-      {inspecting && (
-        <Modal
-          title={`Versão ${inspecting.versionNumber}`}
-          subtitle={versionStatusMeta(c, inspecting.status).label}
-          onClose={() => setInspecting(null)}
-          footer={<SecondaryButton onClick={() => setInspecting(null)}>Fechar</SecondaryButton>}
-        >
-          <p className="m-0 text-[12.5px]" style={{ color: c.textSecondary }}>
-            Snapshot somente leitura — visualizar uma versão não altera o fluxo em edição.
-          </p>
-          <pre
-            className="m-0 rounded-lg p-3 text-[11.5px] overflow-auto max-h-[360px]"
-            style={{ background: c.chipBg, color: c.textPrimary }}
-          >
-            {JSON.stringify(inspecting.snapshot, null, 2)}
-          </pre>
-        </Modal>
       )}
 
       {publishingVersion && (
@@ -738,10 +750,24 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
       {unpublishingVersion && (
         <ConfirmDialog
           title="Despublicar versão?"
-          message={`Deseja despublicar a v${unpublishingVersion.versionNumber}? A jornada deixa de estar publicada e a versão passa a arquivada; o snapshot é preservado.`}
+          message={`Deseja despublicar a v${unpublishingVersion.versionNumber}? A jornada deixa de estar publicada e a versão passa a despublicada; o snapshot é preservado.`}
           confirmLabel="Despublicar"
           onConfirm={confirmUnpublish}
           onCancel={() => setUnpublishingVersion(null)}
+        />
+      )}
+
+      {republishingVersion && (
+        <ConfirmDialog
+          title="Republicar versão?"
+          message={
+            hasPublishedVersion
+              ? `Deseja republicar a v${republishingVersion.versionNumber}? A versão publicada atual será substituída por esta (fica arquivada, com o snapshot preservado).`
+              : `Deseja republicar a v${republishingVersion.versionNumber}? Ela volta a ficar publicada com o mesmo conteúdo de antes.`
+          }
+          confirmLabel="Republicar"
+          onConfirm={confirmRepublish}
+          onCancel={() => setRepublishingVersion(null)}
         />
       )}
     </div>

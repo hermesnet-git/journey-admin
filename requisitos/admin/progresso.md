@@ -16,8 +16,8 @@
 |---|---|
 | Total de Épicos (EP) | 10 |
 | Total de Features (FT) | 47 |
-| Total de Requisitos (REQ) | 239 |
-| Concluídos (`done`) | 222 |
+| Total de Requisitos (REQ) | 241 |
+| Concluídos (`done`) | 224 |
 | Em andamento (`in_progress`) | 0 |
 | Não iniciados (`todo`) | 15 |
 | Bloqueados (`blocked`) | 0 |
@@ -33,11 +33,11 @@
 | EP | Nome | REQs | Concluídos | % |
 |---|---|---:|---:|---:|
 | EP-01 | Gestão de Produtos e Canais | 24 | 24 | 100% |
-| EP-02 | Gestão de Jornadas | 37 | 35 | 95% |
+| EP-02 | Gestão de Jornadas | 38 | 36 | 95% |
 | EP-03 | Modelagem Visual | 46 | 46 | 100% |
 | EP-04 | Formulários (SDUI) | 19 | 19 | 100% |
 | EP-05 | Simulação | 10 | 0 | 0% |
-| EP-06 | Versionamento de jornadas | 39 | 39 | 100% |
+| EP-06 | Versionamento de jornadas | 40 | 40 | 100% |
 | EP-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
 | EP-08 | Auditoria | 22 | 21 | 95% (1 n/a) |
 | EP-09 | Ajuda e Suporte | 5 | 5 | 100% |
@@ -105,6 +105,7 @@
 | [x] | REQ-02.01.004 | O sistema deve permitir remover fisicamente somente jornadas que nunca tenham sido publicadas. | done | back: `DELETE /api/v1/journeys/{id}` + `DeleteJourney` + `HasEverBeenPublishedPort` (stub `NeverPublishedAdapter` retorna sempre `false`) | front: ação "Excluir" com confirmação |
 | [x] | REQ-02.01.005 | Uma jornada que possua ou tenha possuído publicação não deve poder ser removida fisicamente; o sistema deve permitir apenas sua desativação, preservando o registro de publicação. | done | back: `DeleteJourney` lança `JourneyDeletionBlockedException` (409) quando `HasEverBeenPublishedPort.hasEverBeenPublished` (real, via `journey_publication`) | testado via curl: 409 mesmo após despublicar (registro preservado) |
 | [x] | REQ-02.01.006 | O sistema deve impedir a desativação de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes da desativação. | done | back: `DeactivateJourney` + `ActivePublicationPort.existsForJourney` real | |
+| [x] | REQ-02.01.007 | O sistema deve permitir reativar uma jornada inativa, retornando-a ao status `DRAFT`. | done | back: `POST /api/v1/journeys/{id}/activate` + `ActivateJourney`; front: `JourneysPage` (ação "Ativar") | requisito não estava registrado neste arquivo, apesar de já implementado |
 
 ### FT-02.02 Identificação e metadados
 
@@ -395,7 +396,6 @@
 | [x] | REQ-06.03.003 | O histórico deve exibir número, status, datas e autor da versão. | done | front: colunas número/status/data/autor nas linhas de versão de `JourneysPage` | |
 | [x] | REQ-06.03.004 | O sistema deve permitir ordenar versões por número ou data. | done | back: listagem ordenada por `version_number`; `created_at`/`published_at` disponíveis para ordenação no front | ordenação padrão por número; sem seletor de ordenação alternativa na UI |
 | [x] | REQ-06.03.005 | O sistema deve diferenciar versões em edição, publicadas, arquivadas e despublicadas. | done | front: badges de status coloridos (`DRAFT`/`PUBLISHED`/`ARCHIVED`/`UNPUBLISHED`) nas linhas de versão de `JourneysPage` | |
-| [x] | REQ-06.03.006 | O sistema deve permitir visualizar uma versão anterior sem editá-la diretamente. | done | front: clique em versão `PUBLISHED`/`ARCHIVED` abre visualização somente-leitura do snapshot JSON | sem carregar de volta no editor — ver limites do MVP (REQ-06.05.004) |
 
 ### FT-06.04 Publicação de versões
 
@@ -411,6 +411,8 @@
 | [x] | REQ-06.04.008 | Alterações em `DRAFT` não devem modificar o snapshot publicado. | done | back: `DRAFT` e `PUBLISHED` são linhas de `journey_version` distintas | |
 | [x] | REQ-06.04.009 | Ao despublicar uma jornada, a versão `PUBLISHED` correspondente deve ser marcada como `UNPUBLISHED` (não `ARCHIVED`, reservado a quando a versão é substituída por uma nova publicação), preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada. | done | back: `UnpublishJourney` chama `JourneyVersion.unpublish()` na `journey_version` `PUBLISHED` da jornada antes de gravar `journey.unpublish()` | corrige bug: versão continuava `PUBLISHED` (e o grid continuava mostrando "vN publicada") após despublicar; status inicialmente usava `ARCHIVED` por engano, corrigido para `UNPUBLISHED` |
 | [x] | REQ-06.04.010 | O sistema deve permitir despublicar a versão atualmente `PUBLISHED` de uma jornada diretamente pela versão; a despublicação de uma versão deve refletir no status da jornada, que passa a `UNPUBLISHED`. | done | back: `POST /journeys/{id}/versions/{versionId}/unpublish` + `UnpublishJourneyVersion` (valida versão publicada, 409 caso contrário, e delega em `UnpublishJourney` para reaproveitar a mesma regra); front: botão "Despublicar" na linha da versão em `JourneysPage`, que recarrega jornada e versões | |
+| [x] | REQ-06.04.011 | O sistema deve permitir republicar a versão `UNPUBLISHED` mais recente de uma jornada, sem alterar seu conteúdo/snapshot, retornando-a a `PUBLISHED` e refletindo no status da jornada, que volta a `PUBLISHED`. Se já existir uma versão `PUBLISHED` na jornada no momento da republicação, essa versão deve ser marcada como `ARCHIVED` antes (mesmo comportamento de REQ-06.04.004). Não é restaurar uma versão anterior: só a `UNPUBLISHED` mais recente pode ser republicada; `ARCHIVED` continua fora de alcance (REQ-06.05.004). | done | back: `POST /journeys/{id}/versions/{versionId}/republish` + `RepublishJourneyVersion` (valida `UNPUBLISHED` e que é a mais recente entre as `UNPUBLISHED` da jornada, 409 caso contrário) reaproveita `PublishJourneyVersion.goLive(...)` — mesma lógica de validar canal/produto ativos, publicar no runtime e arquivar a `PUBLISHED` atual, extraída do antigo `execute()` — só muda o status de origem (`UNPUBLISHED` em vez de `DRAFT`) e o nome do evento de auditoria (`JOURNEY_VERSION_REPUBLISH`) | |
+| [x] | REQ-06.04.012 | Antes de republicar uma versão, se já existir uma versão `PUBLISHED` na jornada, o sistema deve informar ao usuário que a versão publicada atual será substituída e solicitar confirmação antes de prosseguir. | done | front: `ConfirmDialog` em `JourneyVersionsRows` com mensagem condicional (`hasPublishedVersion`) — avisa que a publicada atual será substituída/arquivada, ou mensagem simples se não houver nenhuma `PUBLISHED` | |
 
 ### FT-06.05 Compatibilidade e limites do MVP
 
@@ -614,6 +616,9 @@ appender.
 
 | Data | Alteração |
 |---|---|
+| 2026-08-09 | REQ-06.03.006 removido: a opção "Ver" (abria o snapshot JSON de uma versão em modal somente-leitura) foi tirada do grid de jornadas (`JourneysPage`) — decisão de produto, sem substituto no MVP. Registrada como fora de escopo, em nova seção "Evolução da Gestão de Jornadas" em `ej-admin-requisitos.md` §5, a comparação (diff) visual entre versões de uma jornada — não havia nada equivalente registrado até então. EP-06 vai de 41/41 para 40/40 REQs (ainda 100%); progresso geral de 93% (224/241) para 93% (223/240). |
+| 2026-08-09 | REQ-06.04.011/012 implementados: republicar a versão `UNPUBLISHED` mais recente de uma jornada. Backend: `PublishJourneyVersion` refatorado — extraído `goLive(journeyId, version, previousStatus, auditAction)` (validação de canal/produto ativos, checagem de flow, publicação no runtime, arquivamento da `PUBLISHED` atual) do antigo `execute()`, agora reaproveitado por `execute()` (DRAFT) e pelo novo `RepublishJourneyVersion` (UNPUBLISHED). `RepublishJourneyVersion` valida que a versão é `UNPUBLISHED` (`VersionNotUnpublishedException`, 409) e que é a mais recente entre as `UNPUBLISHED` da jornada (`VersionNotLatestUnpublishedException`, 409) antes de delegar. Endpoint `POST /journeys/{id}/versions/{versionId}/republish`. Front: botão "Republicar" só na versão `UNPUBLISHED` mais recente (`JourneysPage`), com `ConfirmDialog` cuja mensagem muda se já existe uma `PUBLISHED` que será substituída/arquivada. De quebra, corrigido texto desatualizado no diálogo de despublicar que ainda dizia "passa a arquivada" (era `UNPUBLISHED` desde a correção anterior). EP-06 fecha em 41/41 (100%); progresso geral de 92% (222/241) para 93% (224/241). |
+| 2026-08-09 | REQ-06.04.011/012 novos (ainda não implementados): republicar a versão `UNPUBLISHED` mais recente de uma jornada, voltando-a a `PUBLISHED` sem alterar seu snapshot. Se já houver uma versão `PUBLISHED` na jornada (possível: publicar um `DRAFT` novo depois de despublicar deixa a versão antiga `UNPUBLISHED` coexistindo com a nova `PUBLISHED`), essa versão deve ser arquivada e o usuário avisado/consultado antes de confirmar a substituição — mesmo padrão de REQ-06.02.009/010. Republicar não é rollback: só a `UNPUBLISHED` mais recente pode ser republicada, `ARCHIVED` continua fora de alcance (REQ-06.05.004). EP-06 vai de 40/40 para 41/39 REQs (2 novos `todo`); progresso geral de 93% (222/239) para 92% (222/241). |
 | 2026-08-09 | Migrations Flyway resetadas: as antigas `V1`...`V9`/`V11` foram substituídas por uma única `V1__baseline.sql` com o schema final resultante de todas elas (motivo: um arquivo de migration antigo — `V10__adjust_journey_versioning.sql`, nunca commitado — havia rodado contra o banco local e ficado órfão no `target/` após ser apagado, quebrando a inicialização do Flyway). Banco local `journey_admin` recriado do zero (`DROP SCHEMA public CASCADE` + `CREATE SCHEMA public`); histórico de `flyway_schema_history` reiniciado. Nenhuma mudança de comportamento da aplicação — é só reorganização das migrations. Evidências de requisitos que citam nomes de arquivo antigos (`V7__create_journey_version.sql` etc.) continuam corretas como registro histórico do que foi implementado quando, mesmo que o arquivo em si não exista mais isoladamente. |
 | 2026-08-09 | REQ-06.01.005/06.04.009 corrigidos: versão despublicada agora vira `UNPUBLISHED`, não `ARCHIVED`. Novo status `UNPUBLISHED` em `VersionStatus` (`ARCHIVED` continua reservado ao caso de a versão ser substituída por uma nova publicação); migration `V11__add_unpublished_version_status.sql` estende a CHECK constraint de `journey_version.version_status`; `JourneyVersion` ganhou `unpublish()` ao lado de `archive()`; `UnpublishJourney` passou a chamar `unpublish()` na versão `PUBLISHED` da jornada. Front: badge "Despublicada" para o novo status em `JourneysPage`. REQ-06.03.005 atualizado para citar o novo status. |
 | 2026-08-09 | REQ-06.02.009 redefinido: sincronização automática do DRAFT com o fluxo salvo, em vez de só criar uma versão nova quando a jornada estava `PUBLISHED`. `JourneyVersion` ganhou `replaceContent(...)` (permitido só em `DRAFT`, torna a maior parte dos campos da versão não mais `final`); `CreateJourneyVersion.execute` agora decide entre atualizar a `DRAFT` existente in place (mesmo id/versionNumber) ou criar uma nova quando não há nenhuma; `UpdateFlow` chama isso incondicionalmente a cada salvamento de fluxo (removida a checagem `journey.status == PUBLISHED` e a lógica de apagar/recriar a `DRAFT`); `PublishJourney` (atalho legado) simplificado pelo mesmo motivo. Corrige o caso relatado: jornada nunca publicada, com fluxo desenhado no designer, cuja v1 (criada vazia junto com a jornada) nunca refletia o fluxo editado — o botão "Publicar" da versão ficava desabilitado (snapshot vazio) mesmo com o fluxo pronto. REQ-06.02.010 reformulado para não prometer "nova versão" a cada salvamento (às vezes é só atualização da DRAFT existente). |

@@ -112,6 +112,7 @@ export const EPICS: Epic[] = [
             'REQ-02.01.006',
             'O sistema deve impedir a desativação de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes da desativação.',
           ),
+          d('REQ-02.01.007', 'O sistema deve permitir reativar uma jornada inativa, retornando-a ao status DRAFT.'),
         ],
       },
       {
@@ -478,7 +479,6 @@ export const EPICS: Epic[] = [
           d('REQ-06.03.003', 'O histórico deve exibir número, status, datas e autor da versão.'),
           d('REQ-06.03.004', 'O sistema deve permitir ordenar versões por número ou data.'),
           d('REQ-06.03.005', 'O sistema deve diferenciar versões em edição, publicadas, arquivadas e despublicadas.'),
-          d('REQ-06.03.006', 'O sistema deve permitir visualizar uma versão anterior sem editá-la diretamente.'),
         ],
       },
       {
@@ -500,6 +500,14 @@ export const EPICS: Epic[] = [
           d(
             'REQ-06.04.010',
             'O sistema deve permitir despublicar a versão atualmente PUBLISHED de uma jornada diretamente pela versão; a despublicação de uma versão deve refletir no status da jornada, que passa a UNPUBLISHED.',
+          ),
+          d(
+            'REQ-06.04.011',
+            'O sistema deve permitir republicar a versão UNPUBLISHED mais recente de uma jornada, sem alterar seu conteúdo/snapshot, retornando-a a PUBLISHED e refletindo no status da jornada, que volta a PUBLISHED. Se já existir uma versão PUBLISHED na jornada no momento da republicação, essa versão deve ser marcada como ARCHIVED antes. Não é restaurar uma versão anterior: só a UNPUBLISHED mais recente pode ser republicada; ARCHIVED continua fora de alcance.',
+          ),
+          d(
+            'REQ-06.04.012',
+            'Antes de republicar uma versão, se já existir uma versão PUBLISHED na jornada, o sistema deve informar ao usuário que a versão publicada atual será substituída e solicitar confirmação antes de prosseguir.',
           ),
         ],
       },
@@ -748,6 +756,10 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
     title: 'Formulários Avançados',
     items: ['Seções', 'Exibição condicional', 'Organização dinâmica de campos'],
   },
+  {
+    title: 'Evolução da Gestão de Jornadas',
+    items: ['Comparação (diff) visual entre versões de uma jornada'],
+  },
 ];
 
 export type ChangelogSource = 'git' | 'progresso';
@@ -763,6 +775,24 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      'REQ-06.03.006 removido: a opção "Ver" (abria o snapshot JSON de uma versão em modal somente-leitura) foi tirada do grid de jornadas — decisão de produto, sem substituto no MVP. Registrada como fora de escopo, em nova seção "Evolução da Gestão de Jornadas" em ej-admin-requisitos.md §5, a comparação (diff) visual entre versões de uma jornada — não havia nada equivalente registrado até então.',
+  },
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      'REQ-06.04.011/012 implementados: republicar a versão UNPUBLISHED mais recente de uma jornada. Backend: PublishJourneyVersion refatorado — extraído goLive(journeyId, version, previousStatus, auditAction) (validação de canal/produto ativos, checagem de flow, publicação no runtime, arquivamento da PUBLISHED atual) do antigo execute(), agora reaproveitado por execute() (DRAFT) e pelo novo RepublishJourneyVersion (UNPUBLISHED). RepublishJourneyVersion valida que a versão é UNPUBLISHED e que é a mais recente entre as UNPUBLISHED da jornada antes de delegar. Endpoint POST /journeys/{id}/versions/{versionId}/republish. Front: botão "Republicar" só na versão UNPUBLISHED mais recente, com ConfirmDialog cuja mensagem muda se já existe uma PUBLISHED que será substituída/arquivada. De quebra, corrigido texto desatualizado no diálogo de despublicar que ainda dizia "passa a arquivada".',
+  },
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      'REQ-06.04.011/012 novos (ainda não implementados): republicar a versão UNPUBLISHED mais recente de uma jornada, voltando-a a PUBLISHED sem alterar seu snapshot. Se já houver uma versão PUBLISHED na jornada (possível: publicar um DRAFT novo depois de despublicar deixa a versão antiga UNPUBLISHED coexistindo com a nova PUBLISHED), essa versão deve ser arquivada e o usuário avisado/consultado antes de confirmar a substituição — mesmo padrão de REQ-06.02.009/010. Republicar não é rollback: só a UNPUBLISHED mais recente pode ser republicada, ARCHIVED continua fora de alcance (REQ-06.05.004).',
+  },
   {
     date: '2026-08-09',
     source: 'progresso',
@@ -875,6 +905,7 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-08-09', source: 'git', summary: 'EP-06 (Versionamento de jornadas) refinado e reimplementado.', epics: ['EP-06'] },
   { date: '2026-08-08', source: 'git', summary: 'SKILL de sincronização e página estática "Sobre" com o progresso do MVP.' },
   {
     date: '2026-08-08',

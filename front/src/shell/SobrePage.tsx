@@ -171,7 +171,7 @@ function EpicRows({ epic }: { epic: Epic }) {
             {epic.name}
           </span>
           <span className="text-[11px] shrink-0" style={{ color: c.textMuted }}>
-            · {epic.features.length} features
+            · {epic.features.length} features · {total} requisitos
           </span>
         </div>
         <span className="text-[11.5px] font-mono font-semibold" style={{ color: c.accent }}>

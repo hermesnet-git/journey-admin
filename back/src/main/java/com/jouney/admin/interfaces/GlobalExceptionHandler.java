@@ -15,7 +15,9 @@ import com.jouney.admin.domain.product.ProductNotFoundException;
 import com.jouney.admin.domain.version.JourneyVersionNotFoundException;
 import com.jouney.admin.domain.version.VersionHasNoFlowException;
 import com.jouney.admin.domain.version.VersionNotDraftException;
+import com.jouney.admin.domain.version.VersionNotLatestUnpublishedException;
 import com.jouney.admin.domain.version.VersionNotPublishedException;
+import com.jouney.admin.domain.version.VersionNotUnpublishedException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -39,7 +41,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({ActivePublicationExistsException.class, JourneyDeletionBlockedException.class,
-            JourneyNotPublishedException.class, VersionNotDraftException.class, VersionNotPublishedException.class})
+            JourneyNotPublishedException.class, VersionNotDraftException.class, VersionNotPublishedException.class,
+            VersionNotUnpublishedException.class, VersionNotLatestUnpublishedException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }

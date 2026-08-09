@@ -70,3 +70,7 @@ export function publishJourneyVersion(journeyId: string, versionId: string): Pro
 export function unpublishJourneyVersion(journeyId: string, versionId: string): Promise<JourneyVersion> {
   return apiPost<JourneyVersion>(`/journeys/${journeyId}/versions/${versionId}/unpublish`);
 }
+
+export function republishJourneyVersion(journeyId: string, versionId: string): Promise<JourneyVersion> {
+  return apiPost<JourneyVersion>(`/journeys/${journeyId}/versions/${versionId}/republish`);
+}

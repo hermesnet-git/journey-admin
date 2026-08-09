@@ -30,8 +30,8 @@ import org.springframework.stereotype.Service;
 /**
  * Publishes a DRAFT journey version (REQ-06.04): validates channel/product/flow like the legacy
  * {@link com.jouney.admin.application.publication.PublishJourney}, sends the version's own
- * snapshot to the runtime, then archives whichever version was previously PUBLISHED — preserving
- * its snapshot (only its status changes). The core of this (everything past the DRAFT check) is
+ * snapshot to the runtime, then marks whichever version was previously PUBLISHED as UNPUBLISHED —
+ * preserving its snapshot (only its status changes). The core of this (everything past the DRAFT check) is
  * reused by {@link RepublishJourneyVersion} (REQ-06.04.011) for UNPUBLISHED versions, since going
  * live is otherwise identical regardless of which status a version is coming from.
  */
@@ -105,7 +105,7 @@ public class PublishJourneyVersion {
 
         journeyVersionRepository.findByJourneyIdAndStatus(journeyId, VersionStatus.PUBLISHED)
                 .ifPresent(previous -> {
-                    previous.archive();
+                    previous.unpublish();
                     journeyVersionRepository.save(previous);
                 });
 

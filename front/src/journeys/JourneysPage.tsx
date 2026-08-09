@@ -1,20 +1,17 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, Route, Trash2, Pencil, CloudOff, Power, PowerOff, ChevronRight } from 'lucide-react';
+import { Search, Plus, Route, Trash2, Pencil, CloudOff, PowerOff, ChevronRight } from 'lucide-react';
 import { PrimaryButton, SecondaryButton, FilterDropdown, type FilterOption } from '../products/ui';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
 import { ConfirmDialog } from '../products/ConfirmDialog';
 import { ApiClientError } from '../api/client';
-import { listProducts, listChannels, type Product, type Channel } from '../api/products';
 import {
   listJourneys,
   deactivateJourney,
-  activateJourney,
   deleteJourney,
   unpublishJourney,
   type Journey,
   type JourneyStatus,
-  type JourneySort,
 } from '../api/journeys';
 import {
   listJourneyVersions,
@@ -29,17 +26,12 @@ import { NewJourneyModal } from './NewJourneyModal';
 
 type StatusFilter = 'all' | JourneyStatus;
 
-const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
-  { key: 'all', label: 'Todas' },
-  { key: 'DRAFT', label: 'Rascunho' },
-  { key: 'PUBLISHED', label: 'Publicadas' },
-  { key: 'UNPUBLISHED', label: 'Despublicadas' },
-  { key: 'INACTIVE', label: 'Inativas' },
-];
-
-const SORT_OPTIONS: FilterOption[] = [
-  { value: 'UPDATED_AT', label: 'Alteradas recentemente' },
-  { value: 'CREATED_AT', label: 'Criadas recentemente' },
+const STATUS_FILTER_OPTIONS: FilterOption[] = [
+  { value: 'all', label: 'Todas' },
+  { value: 'DRAFT', label: 'Rascunho' },
+  { value: 'PUBLISHED', label: 'Publicadas' },
+  { value: 'UNPUBLISHED', label: 'Despublicadas' },
+  { value: 'INACTIVE', label: 'Inativas' },
 ];
 
 const GRID_COLS = 'minmax(0,2fr) 1.3fr 1fr 1fr 132px';
@@ -75,15 +67,10 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [journeys, setJourneys] = useState<Journey[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [productFilter, setProductFilter] = useState('');
-  const [channelFilter, setChannelFilter] = useState('');
-  const [sort, setSort] = useState<JourneySort>('UPDATED_AT');
   const [editingJourney, setEditingJourney] = useState<Journey | null>(null);
   const [creatingJourney, setCreatingJourney] = useState(false);
   const [deactivatingJourney, setDeactivatingJourney] = useState<Journey | null>(null);
@@ -94,35 +81,18 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
     setLoading(true);
     setError(null);
     try {
-      const [journeyList, productList] = await Promise.all([
-        listJourneys({
-          productId: productFilter || undefined,
-          channelId: channelFilter || undefined,
-          sort,
-        }),
-        listProducts(),
-      ]);
+      const journeyList = await listJourneys({});
       setJourneys(journeyList);
-      setProducts(productList);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar jornadas');
     } finally {
       setLoading(false);
     }
-  }, [productFilter, channelFilter, sort]);
+  }, []);
 
   useEffect(() => {
     reload();
   }, [reload]);
-
-  useEffect(() => {
-    if (!productFilter) {
-      setChannels([]);
-      setChannelFilter('');
-      return;
-    }
-    listChannels(productFilter).then(setChannels);
-  }, [productFilter]);
 
   const filtered = useMemo(
     () =>
@@ -190,16 +160,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
     }
   }
 
-  async function handleActivate(journey: Journey) {
-    try {
-      await activateJourney(journey.journeyId);
-      await reload();
-      showToast('Jornada ativada com sucesso.');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Erro ao ativar jornada', 'error');
-    }
-  }
-
   async function confirmDelete() {
     if (!deletingJourney) return;
     const journey = deletingJourney;
@@ -207,11 +167,11 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
     try {
       await deleteJourney(journey.journeyId);
       await reload();
-      showToast('Jornada excluída com sucesso.');
+      showToast(journey.publishedAt ? 'Jornada inativada com sucesso.' : 'Jornada excluída com sucesso.');
     } catch (err) {
       const message =
         err instanceof ApiClientError && err.status === 409
-          ? 'Não é possível excluir: a jornada já foi publicada em algum momento.'
+          ? 'Não é possível excluir: uma versão da jornada está publicada.'
           : err instanceof Error
             ? err.message
             : 'Erro ao excluir jornada';
@@ -219,70 +179,35 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
     }
   }
 
-  const productOptions: FilterOption[] = [
-    { value: '', label: 'Todos os produtos' },
-    ...products.map((p) => ({ value: p.productId, label: p.name })),
-  ];
-  const channelOptions: FilterOption[] = [
-    { value: '', label: 'Todos os canais' },
-    ...channels.map((c) => ({ value: c.channelId, label: c.name })),
-  ];
-
   return (
     <div className="flex-1 overflow-auto p-[32px_40px] box-border">
-      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-        <div>
-          <h1 className="m-0 mb-1 text-[22px] font-semibold tracking-[-0.02em]" style={{ color: c.textPrimary }}>
-            Jornadas
-          </h1>
-          <p className="m-0 text-[13.5px]" style={{ color: c.textSecondary }}>
-            Jornadas específicas por canal, dentro de cada produto
-          </p>
-        </div>
-        <div className="relative w-[220px]">
-          <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
-          <input
-            aria-label="Buscar jornada"
-            placeholder="Buscar jornada..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2 pl-[32px] pr-3 rounded-md text-[13px] outline-none box-border"
-            style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
-          />
-        </div>
+      <div className="mb-6">
+        <h1 className="m-0 mb-1 text-[22px] font-semibold tracking-[-0.02em]" style={{ color: c.textPrimary }}>
+          Jornadas
+        </h1>
+        <p className="m-0 text-[13.5px]" style={{ color: c.textSecondary }}>
+          Jornadas específicas por canal, dentro de cada produto
+        </p>
       </div>
 
       <div className="flex items-center justify-between gap-3 mb-[18px] flex-wrap">
-        <div className="flex gap-2 flex-wrap items-center">
-          {STATUS_FILTERS.map((f) => {
-            const isActive = statusFilter === f.key;
-            return (
-              <button
-                key={f.key}
-                onClick={() => setStatusFilter(f.key)}
-                className="px-[14px] py-[7px] rounded-full text-[12.5px] font-medium cursor-pointer border"
-                style={{
-                  borderColor: isActive ? c.accent : c.border,
-                  background: isActive ? c.accent : c.surface,
-                  color: isActive ? '#fff' : c.textPrimary,
-                }}
-              >
-                {f.label}
-              </button>
-            );
-          })}
-          <FilterDropdown label="Produto" options={productOptions} value={productFilter} onChange={setProductFilter} />
+        <div className="flex gap-2 items-center">
+          <div className="relative w-[220px]">
+            <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
+            <input
+              aria-label="Buscar jornada"
+              placeholder="Buscar jornada..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full py-2 pl-[32px] pr-3 rounded-md text-[13px] outline-none box-border"
+              style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
+            />
+          </div>
           <FilterDropdown
-            label="Canal"
-            options={channelOptions}
-            value={channelFilter}
-            onChange={setChannelFilter}
-          />
-          <FilterDropdown
-            label="Ordenar"
-            options={SORT_OPTIONS}
-            value={sort}
-            onChange={(v) => setSort(v as JourneySort)}
+            label="Status"
+            options={STATUS_FILTER_OPTIONS}
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v as StatusFilter)}
           />
         </div>
         <PrimaryButton onClick={() => setCreatingJourney(true)}>
@@ -328,7 +253,6 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
               journey={j}
               onEdit={() => setEditingJourney(j)}
               onDeactivate={() => setDeactivatingJourney(j)}
-              onActivate={() => handleActivate(j)}
               onDelete={() => setDeletingJourney(j)}
               onUnpublish={() => setUnpublishingJourney(j)}
               onVersionsChanged={reload}
@@ -361,7 +285,11 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
       {deletingJourney && (
         <ConfirmDialog
           title="Excluir jornada"
-          message={`Tem certeza que deseja excluir permanentemente "${deletingJourney.name}"? Essa ação não pode ser desfeita.`}
+          message={
+            deletingJourney.publishedAt
+              ? `Tem certeza que deseja excluir "${deletingJourney.name}"? Como ela já foi publicada, não será removida permanentemente — a jornada e suas versões serão apenas inativadas.`
+              : `Tem certeza que deseja excluir permanentemente "${deletingJourney.name}"? Essa ação não pode ser desfeita.`
+          }
           confirmLabel="Excluir"
           onConfirm={confirmDelete}
           onCancel={() => setDeletingJourney(null)}
@@ -428,13 +356,28 @@ function IconAction({
   label,
   onClick,
   hoverColor,
+  disabled,
 }: {
   icon: typeof Pencil;
   label: string;
   onClick: () => void;
   hoverColor?: string;
+  disabled?: boolean;
 }) {
   const { colors: c } = useAppTheme();
+  if (disabled) {
+    return (
+      <span
+        title={label}
+        aria-label={label}
+        aria-disabled="true"
+        className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md cursor-not-allowed"
+        style={{ color: c.textMuted, opacity: 0.4 }}
+      >
+        <Icon size={14} />
+      </span>
+    );
+  }
   return (
     <button
       type="button"
@@ -461,31 +404,37 @@ function JourneyActions({
   journey,
   onEdit,
   onDeactivate,
-  onActivate,
   onDelete,
   onUnpublish,
 }: {
   journey: Journey;
   onEdit: () => void;
   onDeactivate: () => void;
-  onActivate: () => void;
   onDelete: () => void;
   onUnpublish: () => void;
 }) {
   const { colors: c } = useAppTheme();
   return (
     <div className="flex items-center justify-end gap-[2px]" onClick={(e) => e.stopPropagation()}>
-      <IconAction icon={Pencil} label="Editar jornada" onClick={onEdit} />
+      <IconAction
+        icon={Pencil}
+        label={journey.status === 'INACTIVE' ? 'Jornada inativa não pode ser editada' : 'Editar jornada'}
+        onClick={onEdit}
+        disabled={journey.status === 'INACTIVE'}
+      />
       {journey.status === 'PUBLISHED' && (
         <IconAction icon={CloudOff} label="Despublicar jornada" onClick={onUnpublish} hoverColor={c.warning} />
       )}
       {journey.status === 'DRAFT' && (
         <IconAction icon={PowerOff} label="Desativar jornada" onClick={onDeactivate} hoverColor={c.warning} />
       )}
-      {journey.status === 'INACTIVE' && (
-        <IconAction icon={Power} label="Ativar jornada" onClick={onActivate} hoverColor={c.success} />
-      )}
-      <IconAction icon={Trash2} label="Excluir jornada" onClick={onDelete} hoverColor={c.danger} />
+      <IconAction
+        icon={Trash2}
+        label={journey.status === 'INACTIVE' ? 'Jornada já está inativa' : 'Excluir jornada'}
+        onClick={onDelete}
+        hoverColor={c.danger}
+        disabled={journey.status === 'INACTIVE'}
+      />
     </div>
   );
 }
@@ -494,7 +443,6 @@ function JourneyDetailRow({
   journey,
   onEdit,
   onDeactivate,
-  onActivate,
   onDelete,
   onUnpublish,
   onVersionsChanged,
@@ -502,7 +450,6 @@ function JourneyDetailRow({
   journey: Journey;
   onEdit: () => void;
   onDeactivate: () => void;
-  onActivate: () => void;
   onDelete: () => void;
   onUnpublish: () => void;
   onVersionsChanged: () => void;
@@ -547,7 +494,6 @@ function JourneyDetailRow({
           journey={journey}
           onEdit={onEdit}
           onDeactivate={onDeactivate}
-          onActivate={onActivate}
           onDelete={onDelete}
           onUnpublish={onUnpublish}
         />
@@ -563,10 +509,10 @@ function versionStatusMeta(c: AppColors, status: VersionStatus) {
       return { label: 'Rascunho', bg: c.chipBg, color: c.textSecondary };
     case 'PUBLISHED':
       return { label: 'Publicada', bg: c.successSoft, color: c.success };
-    case 'ARCHIVED':
-      return { label: 'Arquivada', bg: c.warningSoft, color: c.warning };
     case 'UNPUBLISHED':
       return { label: 'Despublicada', bg: c.chipBg, color: c.textMuted };
+    case 'INACTIVE':
+      return { label: 'Inativa', bg: c.chipBg, color: c.textMuted };
   }
 }
 
@@ -660,7 +606,6 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
     }
   }
 
-  const latestUnpublishedId = versions?.find((v) => v.status === 'UNPUBLISHED')?.versionId ?? null;
   const hasPublishedVersion = versions?.some((v) => v.status === 'PUBLISHED') ?? false;
 
   return (
@@ -726,7 +671,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
                     Despublicar
                   </SecondaryButton>
                 )}
-                {v.status === 'UNPUBLISHED' && v.versionId === latestUnpublishedId && (
+                {v.status === 'UNPUBLISHED' && (
                   <PrimaryButton onClick={() => setRepublishingVersion(v)} loading={busyVersionId === v.versionId}>
                     Republicar
                   </PrimaryButton>
@@ -762,7 +707,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
           title="Republicar versão?"
           message={
             hasPublishedVersion
-              ? `Deseja republicar a v${republishingVersion.versionNumber}? A versão publicada atual será substituída por esta (fica arquivada, com o snapshot preservado).`
+              ? `Deseja republicar a v${republishingVersion.versionNumber}? A versão publicada atual será despublicada e substituída por esta.`
               : `Deseja republicar a v${republishingVersion.versionNumber}? Ela volta a ficar publicada com o mesmo conteúdo de antes.`
           }
           confirmLabel="Republicar"

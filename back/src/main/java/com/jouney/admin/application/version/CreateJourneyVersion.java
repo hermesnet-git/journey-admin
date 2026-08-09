@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
  * same id/versionNumber, fresher content — since a DRAFT is "what's currently being edited", not
  * a series of throwaway branches. Only when no DRAFT exists (typically right after a publish,
  * since the previous DRAFT just became PUBLISHED) is a brand new version created. Either way, the
- * result never affects other versions: PUBLISHED/ARCHIVED rows are untouched.
+ * result never affects other versions: they're untouched.
  */
 @Service
 public class CreateJourneyVersion {

@@ -6,8 +6,11 @@ import com.jouney.admin.domain.flow.Flow;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowRepository;
+import com.jouney.admin.domain.journey.Journey;
+import com.jouney.admin.domain.journey.JourneyInactiveException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyRepository;
+import com.jouney.admin.domain.journey.JourneyStatus;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,8 +19,8 @@ import org.springframework.stereotype.Service;
 /**
  * Updates a journey's live flow, then keeps the current DRAFT version in sync with it
  * (REQ-06.02.009) via {@link CreateJourneyVersion}: updates that DRAFT's snapshot in place, or
- * creates one if none exists (typically right after a publish). PUBLISHED/ARCHIVED versions are
- * never touched here — only DRAFT is ever replaced (REQ-06.02.006).
+ * creates one if none exists (typically right after a publish). Other versions are never touched
+ * here — only DRAFT is ever replaced (REQ-06.02.006).
  */
 @Service
 public class UpdateFlow {
@@ -34,7 +37,11 @@ public class UpdateFlow {
     }
 
     public Flow execute(UUID journeyId, String name, List<FlowNode> nodes, List<FlowConnection> connections) {
-        journeyRepository.findById(journeyId).orElseThrow(() -> new JourneyNotFoundException(journeyId));
+        Journey journey = journeyRepository.findById(journeyId)
+                .orElseThrow(() -> new JourneyNotFoundException(journeyId));
+        if (journey.getStatus() == JourneyStatus.INACTIVE) {
+            throw new JourneyInactiveException(journeyId);
+        }
         // Every journey is born with a Flow row (Flow.initial(), see CreateJourney), so this is
         // normally an update; falling back to a fresh Flow here just makes that an upsert instead
         // of failing with a misleading "journey not found" if that row were ever missing.

@@ -341,7 +341,7 @@ CREATE TABLE journey_version (
     journey_id UUID NOT NULL,
     version_number INTEGER NOT NULL,
     version_status VARCHAR(20) NOT NULL CHECK (
-        version_status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')
+        version_status IN ('DRAFT', 'PUBLISHED', 'UNPUBLISHED', 'INACTIVE')
     ),
     version_snapshot JSONB NOT NULL,
     description TEXT,

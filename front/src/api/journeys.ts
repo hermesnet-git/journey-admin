@@ -55,10 +55,6 @@ export function deactivateJourney(journeyId: string): Promise<void> {
   return apiPost<void>(`/journeys/${journeyId}/deactivate`);
 }
 
-export function activateJourney(journeyId: string): Promise<void> {
-  return apiPost<void>(`/journeys/${journeyId}/activate`);
-}
-
 export function deleteJourney(journeyId: string): Promise<void> {
   return apiDelete<void>(`/journeys/${journeyId}`);
 }

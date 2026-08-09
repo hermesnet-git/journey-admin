@@ -200,9 +200,10 @@ canais de um produto.
 #### REQ-02.01.002 - O sistema deve permitir editar jornadas.
 #### REQ-02.01.003 - O sistema deve permitir consultar jornadas.
 #### REQ-02.01.004 - O sistema deve permitir remover fisicamente somente jornadas que nunca tenham sido publicadas.
-#### REQ-02.01.005 - Uma jornada que possua ou tenha possuído publicação não deve poder ser removida fisicamente; o sistema deve permitir apenas sua desativação, preservando o registro de publicação.
-#### REQ-02.01.006 - O sistema deve impedir a desativação de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes da desativação.
-#### REQ-02.01.007 - O sistema deve permitir reativar uma jornada inativa, retornando-a ao status `DRAFT`.
+#### REQ-02.01.005 - Uma jornada que possua ou tenha possuído publicação não deve poder ser removida fisicamente; ao ser excluída, o sistema deve desativá-la automaticamente (em vez de bloquear a operação), preservando o registro de publicação.
+#### REQ-02.01.006 - O sistema deve impedir a desativação ou a exclusão de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes.
+#### REQ-02.01.008 - Ao excluir uma jornada que já foi publicada (REQ-02.01.005), o sistema deve marcar todas as suas versões (`journey_version`) como `INACTIVE`, junto com a desativação da jornada.
+#### REQ-02.01.009 - Uma jornada `INACTIVE` não deve poder ser editada (nem seus dados nem seu fluxo) nem excluída novamente; as ações "Editar" e "Excluir" devem ficar desabilitadas para essas jornadas.
 
 
 ### FT-02.02 Identificação e metadados
@@ -421,7 +422,7 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-06.01.002 - Cada versão deve possuir identificador único (`versionId`).
 #### REQ-06.01.003 - Cada versão deve possuir número sequencial iniciado em `1` dentro da jornada.
 #### REQ-06.01.004 - Cada versão deve estar associada a exatamente uma jornada.
-#### REQ-06.01.005 - Cada versão deve possuir status `DRAFT`, `PUBLISHED`, `ARCHIVED` ou `UNPUBLISHED`.
+#### REQ-06.01.005 - Cada versão deve possuir status `DRAFT`, `PUBLISHED`, `UNPUBLISHED` ou `INACTIVE`.
 #### REQ-06.01.006 - Uma jornada deve possuir no máximo uma versão `PUBLISHED`.
 #### REQ-06.01.007 - Cada versão deve registrar criação e publicação, quando aplicável.
 #### REQ-06.01.008 - Cada versão deve permitir observação opcional.
@@ -435,7 +436,7 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-06.02.006 - Uma versão `PUBLISHED` deve ser imutável.
 #### REQ-06.02.007 - O sistema deve indicar claramente qual versão está sendo editada.
 #### REQ-06.02.008 - O sistema deve impedir números de versão duplicados dentro da mesma jornada.
-#### REQ-06.02.009 - Ao salvar o fluxo de uma jornada, o sistema deve manter a versão `DRAFT` atual sincronizada com o conteúdo salvo: se já existir uma versão `DRAFT`, seu conteúdo deve ser substituído (mesmo identificador e número de versão); caso não exista nenhuma `DRAFT` (por exemplo, logo após a publicação da versão anterior), uma nova versão `DRAFT` deve ser criada automaticamente. Em nenhum caso outras versões (`PUBLISHED`/`ARCHIVED`) são alteradas.
+#### REQ-06.02.009 - Ao salvar o fluxo de uma jornada, o sistema deve manter a versão `DRAFT` atual sincronizada com o conteúdo salvo: se já existir uma versão `DRAFT`, seu conteúdo deve ser substituído (mesmo identificador e número de versão); caso não exista nenhuma `DRAFT` (por exemplo, logo após a publicação da versão anterior), uma nova versão `DRAFT` deve ser criada automaticamente. Em nenhum caso outras versões são alteradas.
 #### REQ-06.02.010 - Antes de salvar a edição de uma jornada `PUBLISHED`, o sistema deve avisar o usuário de que a alteração será registrada em uma versão em rascunho separada da publicada.
 
 ### FT-06.03 Histórico e consulta
@@ -449,14 +450,14 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 #### REQ-06.04.001 - O sistema deve permitir publicar uma versão `DRAFT`.
 #### REQ-06.04.002 - Antes da publicação, o sistema deve validar a versão completa da jornada.
 #### REQ-06.04.003 - A publicação deve enviar ao runtime o snapshot completo da versão selecionada.
-#### REQ-06.04.004 - Ao publicar uma nova versão, a versão anteriormente publicada deve ser marcada como `ARCHIVED`.
+#### REQ-06.04.004 - Ao publicar uma nova versão, a versão anteriormente publicada deve ser marcada como `UNPUBLISHED`.
 #### REQ-06.04.005 - O sistema deve preservar o snapshot da versão anteriormente publicada.
 #### REQ-06.04.006 - A publicação deve registrar qual versão foi enviada ao runtime.
 #### REQ-06.04.007 - A jornada deve indicar sua versão atualmente publicada.
 #### REQ-06.04.008 - Alterações em `DRAFT` não devem modificar o snapshot publicado.
-#### REQ-06.04.009 - Ao despublicar uma jornada, a versão `PUBLISHED` correspondente deve ser marcada como `UNPUBLISHED` (não `ARCHIVED`, reservado a quando a versão é substituída por uma nova publicação), preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada.
+#### REQ-06.04.009 - Ao despublicar uma jornada, a versão `PUBLISHED` correspondente deve ser marcada como `UNPUBLISHED`, preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada.
 #### REQ-06.04.010 - O sistema deve permitir despublicar a versão atualmente `PUBLISHED` de uma jornada diretamente pela versão; a despublicação de uma versão deve refletir no status da jornada, que passa a `UNPUBLISHED`.
-#### REQ-06.04.011 - O sistema deve permitir republicar a versão `UNPUBLISHED` mais recente de uma jornada, sem alterar seu conteúdo/snapshot, retornando-a ao estado `PUBLISHED` e refletindo no status da jornada, que volta a `PUBLISHED`. Se já existir uma versão `PUBLISHED` na jornada no momento da republicação, essa versão deve ser marcada como `ARCHIVED` antes (mesmo comportamento de REQ-06.04.004). Republicar não é restaurar uma versão anterior: só a versão `UNPUBLISHED` mais recente da jornada pode ser republicada; versões `ARCHIVED` permanecem fora de alcance (REQ-06.05.004).
+#### REQ-06.04.011 - O sistema deve permitir republicar qualquer versão `UNPUBLISHED` de uma jornada (não apenas a mais recente), sem alterar seu conteúdo/snapshot, retornando-a ao estado `PUBLISHED` e refletindo no status da jornada, que volta a `PUBLISHED`. Se já existir uma versão `PUBLISHED` na jornada no momento da republicação, essa versão deve ser marcada como `UNPUBLISHED` antes (mesmo comportamento de REQ-06.04.004). Versões `INACTIVE` (jornada excluída) permanecem fora de alcance (REQ-06.05.004).
 #### REQ-06.04.012 - Antes de republicar uma versão, se já existir uma versão `PUBLISHED` na jornada, o sistema deve informar ao usuário que a versão publicada atual será substituída e solicitar confirmação antes de prosseguir.
 
 ### FT-06.05 Compatibilidade e limites do MVP

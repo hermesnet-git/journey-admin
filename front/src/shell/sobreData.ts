@@ -106,13 +106,20 @@ export const EPICS: Epic[] = [
           d('REQ-02.01.004', 'O sistema deve permitir remover fisicamente somente jornadas que nunca tenham sido publicadas.'),
           d(
             'REQ-02.01.005',
-            'Uma jornada que possua ou tenha possuído publicação não deve poder ser removida fisicamente; o sistema deve permitir apenas sua desativação, preservando o registro de publicação.',
+            'Uma jornada que possua ou tenha possuído publicação não deve poder ser removida fisicamente; ao ser excluída, o sistema deve desativá-la automaticamente (em vez de bloquear a operação), preservando o registro de publicação.',
           ),
           d(
             'REQ-02.01.006',
-            'O sistema deve impedir a desativação de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes da desativação.',
+            'O sistema deve impedir a desativação ou a exclusão de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes.',
           ),
-          d('REQ-02.01.007', 'O sistema deve permitir reativar uma jornada inativa, retornando-a ao status DRAFT.'),
+          d(
+            'REQ-02.01.008',
+            'Ao excluir uma jornada que já foi publicada (REQ-02.01.005), o sistema deve marcar todas as suas versões (journey_version) como INACTIVE, junto com a desativação da jornada.',
+          ),
+          d(
+            'REQ-02.01.009',
+            'Uma jornada INACTIVE não deve poder ser editada (nem seus dados nem seu fluxo) nem excluída novamente; as ações "Editar" e "Excluir" devem ficar desabilitadas para essas jornadas.',
+          ),
         ],
       },
       {
@@ -442,7 +449,7 @@ export const EPICS: Epic[] = [
           d('REQ-06.01.002', 'Cada versão deve possuir identificador único (versionId).'),
           d('REQ-06.01.003', 'Cada versão deve possuir número sequencial iniciado em 1 dentro da jornada.'),
           d('REQ-06.01.004', 'Cada versão deve estar associada a exatamente uma jornada.'),
-          d('REQ-06.01.005', 'Cada versão deve possuir status DRAFT, PUBLISHED, ARCHIVED ou UNPUBLISHED.'),
+          d('REQ-06.01.005', 'Cada versão deve possuir status DRAFT, PUBLISHED, UNPUBLISHED ou INACTIVE.'),
           d('REQ-06.01.006', 'Uma jornada deve possuir no máximo uma versão PUBLISHED.'),
           d('REQ-06.01.007', 'Cada versão deve registrar criação e publicação, quando aplicável.'),
           d('REQ-06.01.008', 'Cada versão deve permitir observação opcional.'),
@@ -488,14 +495,14 @@ export const EPICS: Epic[] = [
           d('REQ-06.04.001', 'O sistema deve permitir publicar uma versão DRAFT.'),
           d('REQ-06.04.002', 'Antes da publicação, o sistema deve validar a versão completa da jornada.'),
           d('REQ-06.04.003', 'A publicação deve enviar ao runtime o snapshot completo da versão selecionada.'),
-          d('REQ-06.04.004', 'Ao publicar uma nova versão, a versão anteriormente publicada deve ser marcada como ARCHIVED.'),
+          d('REQ-06.04.004', 'Ao publicar uma nova versão, a versão anteriormente publicada deve ser marcada como UNPUBLISHED.'),
           d('REQ-06.04.005', 'O sistema deve preservar o snapshot da versão anteriormente publicada.'),
           d('REQ-06.04.006', 'A publicação deve registrar qual versão foi enviada ao runtime.'),
           d('REQ-06.04.007', 'A jornada deve indicar sua versão atualmente publicada.'),
           d('REQ-06.04.008', 'Alterações em DRAFT não devem modificar o snapshot publicado.'),
           d(
             'REQ-06.04.009',
-            'Ao despublicar uma jornada, a versão PUBLISHED correspondente deve ser marcada como UNPUBLISHED (não ARCHIVED, reservado a quando a versão é substituída por uma nova publicação), preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada.',
+            'Ao despublicar uma jornada, a versão PUBLISHED correspondente deve ser marcada como UNPUBLISHED, preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada.',
           ),
           d(
             'REQ-06.04.010',
@@ -503,7 +510,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-06.04.011',
-            'O sistema deve permitir republicar a versão UNPUBLISHED mais recente de uma jornada, sem alterar seu conteúdo/snapshot, retornando-a a PUBLISHED e refletindo no status da jornada, que volta a PUBLISHED. Se já existir uma versão PUBLISHED na jornada no momento da republicação, essa versão deve ser marcada como ARCHIVED antes. Não é restaurar uma versão anterior: só a UNPUBLISHED mais recente pode ser republicada; ARCHIVED continua fora de alcance.',
+            'O sistema deve permitir republicar qualquer versão UNPUBLISHED de uma jornada (não apenas a mais recente), sem alterar seu conteúdo/snapshot, retornando-a a PUBLISHED e refletindo no status da jornada, que volta a PUBLISHED. Se já existir uma versão PUBLISHED na jornada no momento da republicação, essa versão deve ser marcada como UNPUBLISHED antes. Versões INACTIVE (jornada excluída) permanecem fora de alcance.',
           ),
           d(
             'REQ-06.04.012',
@@ -775,6 +782,36 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      'REQ-02.01.009 estendido: além de editar, uma jornada INACTIVE também não pode ser excluída de novo. DeleteJourney passou a checar journey.status == INACTIVE logo no início e lançar JourneyInactiveException (409), mesma exceção do bloqueio de edição — mensagem generalizada de "Cannot edit" para "Cannot modify an inactive journey" para cobrir os dois casos. Front: botão "Excluir" também desabilitado (cinza, sem clique) para jornadas INACTIVE em JourneysPage, ao lado do "Editar" já desabilitado.',
+  },
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      'REQ-02.01.007 removido: reativar uma jornada INACTIVE deixou de fazer sentido, já que INACTIVE agora significa "jornada excluída" (REQ-02.01.005/008), não mais um estado reversível de "pausada". Removidos ActivateJourney (back), POST /journeys/{id}/activate, Journey.activate(), activateJourney (front) e o botão "Ativar" do grid de jornadas. REQ-02.01.009 novo em seu lugar: jornada INACTIVE não pode mais ser editada — UpdateJourney e UpdateFlow passam a checar journey.status == INACTIVE e lançam a nova JourneyInactiveException (409); front desabilita visualmente o botão "Editar" (IconAction ganhou suporte a disabled) para essas jornadas.',
+  },
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      'REQ-02.01.005/006/008 revisados e VersionStatus.ARCHIVED aposentado, virando INACTIVE com significado novo. Antes, DeleteJourney bloqueava (409, JourneyDeletionBlockedException, removida) a exclusão de qualquer jornada que já tivesse sido publicada, mesmo há muito despublicada — bug relatado (jornada "Troca de titularidade 15", só com versões despublicadas/arquivadas, não podia ser excluída). Agora: se a jornada está PUBLISHED no momento, bloqueia (409, mesma guarda ActivePublicationPort.existsForJourney de DeactivateJourney); senão, se já foi publicada alguma vez, faz soft-delete — journey.deactivate() + JourneyVersion.deactivate() (novo status INACTIVE) em cada versão, tudo dentro de um @Transactional novo no método; senão (nunca publicada), exclusão física como antes. Migration V2__replace_archived_version_status_with_inactive.sql: converte as ARCHIVED existentes (só dado sintético de seed) para UNPUBLISHED, e a CHECK constraint passa a aceitar (DRAFT, PUBLISHED, UNPUBLISHED, INACTIVE). De quebra, corrigido bug latente: excluir fisicamente uma jornada nunca publicada falhava por violação de FK (suas journey_version/flow não eram apagadas antes) — DeleteJourney agora apaga essas dependências primeiro. Front: VersionStatus e o badge de status de versão trocam ARCHIVED/"Arquivada" por INACTIVE/"Inativa"; diálogo e toast de exclusão de jornada diferenciam exclusão física de soft-delete.',
+  },
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      'REQ-06.04.011 revisado: qualquer versão UNPUBLISHED de uma jornada pode ser republicada agora, não só a mais recente. RepublishJourneyVersion simplificado — removida a checagem isLatestUnpublished e a exceção VersionNotLatestUnpublishedException (409, também removida do GlobalExceptionHandler); passou a só validar que a versão é UNPUBLISHED antes de delegar em PublishJourneyVersion.goLive. Front: botão "Republicar" agora aparece em toda versão UNPUBLISHED da lista, não só na mais recente.',
+  },
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      'REQ-06.04.004/011 corrigidos: ao publicar uma nova versão (inclusive via republicação), a versão anteriormente PUBLISHED agora é marcada como UNPUBLISHED, não mais ARCHIVED — ARCHIVED fica reservado a versões legadas, sem uso em nenhum fluxo atual. PublishJourneyVersion.goLive passou a chamar previous.unpublish() em vez de previous.archive(); textos de requisito, comentários e o diálogo de confirmação de republicação (JourneysPage) atualizados de "arquivada" para "despublicada". Sem mudança de contagem de REQs (ambos continuam done), só de comportamento/redação.',
+  },
   {
     date: '2026-08-09',
     source: 'progresso',

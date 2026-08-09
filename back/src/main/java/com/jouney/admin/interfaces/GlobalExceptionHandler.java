@@ -8,14 +8,13 @@ import com.jouney.admin.domain.channel.ProductInactiveException;
 import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.domain.form.FormNotFoundException;
 import com.jouney.admin.domain.journey.ChannelInactiveException;
-import com.jouney.admin.domain.journey.JourneyDeletionBlockedException;
+import com.jouney.admin.domain.journey.JourneyInactiveException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.product.ProductNotFoundException;
 import com.jouney.admin.domain.version.JourneyVersionNotFoundException;
 import com.jouney.admin.domain.version.VersionHasNoFlowException;
 import com.jouney.admin.domain.version.VersionNotDraftException;
-import com.jouney.admin.domain.version.VersionNotLatestUnpublishedException;
 import com.jouney.admin.domain.version.VersionNotPublishedException;
 import com.jouney.admin.domain.version.VersionNotUnpublishedException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,9 +39,9 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
     }
 
-    @ExceptionHandler({ActivePublicationExistsException.class, JourneyDeletionBlockedException.class,
-            JourneyNotPublishedException.class, VersionNotDraftException.class, VersionNotPublishedException.class,
-            VersionNotUnpublishedException.class, VersionNotLatestUnpublishedException.class})
+    @ExceptionHandler({ActivePublicationExistsException.class, JourneyNotPublishedException.class,
+            JourneyInactiveException.class, VersionNotDraftException.class, VersionNotPublishedException.class,
+            VersionNotUnpublishedException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }

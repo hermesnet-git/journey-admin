@@ -40,11 +40,6 @@ public class Journey {
         this.updatedAt = OffsetDateTime.now();
     }
 
-    public void activate() {
-        this.status = JourneyStatus.DRAFT;
-        this.updatedAt = OffsetDateTime.now();
-    }
-
     public void publish() {
         this.status = JourneyStatus.PUBLISHED;
         this.updatedAt = OffsetDateTime.now();

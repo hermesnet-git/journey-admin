@@ -709,31 +709,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Journey'
 
-  /journeys/{journeyId}/activate:
-    post:
-      tags: [Journeys]
-      summary: Reactivate journey, returning it to DRAFT
-      operationId: activateJourney
-      parameters:
-        - $ref: '#/components/parameters/JourneyId'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Journey reactivated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Journey'
-
   /journeys/{journeyId}/flow:
     get:
       tags: [Flows]
@@ -1267,7 +1242,7 @@ components:
           type: integer
         status:
           type: string
-          enum: [DRAFT, PUBLISHED, ARCHIVED]
+          enum: [DRAFT, PUBLISHED, UNPUBLISHED, INACTIVE]
         description:
           type: string
         snapshot:

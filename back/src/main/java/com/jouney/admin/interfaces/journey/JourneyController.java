@@ -1,6 +1,5 @@
 package com.jouney.admin.interfaces.journey;
 
-import com.jouney.admin.application.journey.ActivateJourney;
 import com.jouney.admin.application.journey.CreateJourney;
 import com.jouney.admin.application.journey.DeactivateJourney;
 import com.jouney.admin.application.journey.DeleteJourney;
@@ -38,14 +37,12 @@ public class JourneyController {
     private final GetJourney getJourney;
     private final FindJourneys findJourneys;
     private final DeactivateJourney deactivateJourney;
-    private final ActivateJourney activateJourney;
     private final DeleteJourney deleteJourney;
     private final PublishJourney publishJourney;
     private final UnpublishJourney unpublishJourney;
 
     public JourneyController(CreateJourney createJourney, UpdateJourney updateJourney, GetJourney getJourney,
                               FindJourneys findJourneys, DeactivateJourney deactivateJourney,
-                              ActivateJourney activateJourney,
                               DeleteJourney deleteJourney, PublishJourney publishJourney,
                               UnpublishJourney unpublishJourney) {
         this.createJourney = createJourney;
@@ -53,7 +50,6 @@ public class JourneyController {
         this.getJourney = getJourney;
         this.findJourneys = findJourneys;
         this.deactivateJourney = deactivateJourney;
-        this.activateJourney = activateJourney;
         this.deleteJourney = deleteJourney;
         this.publishJourney = publishJourney;
         this.unpublishJourney = unpublishJourney;
@@ -103,13 +99,6 @@ public class JourneyController {
     @PostMapping("/{journeyId}/deactivate")
     public ResponseEntity<Void> deactivate(@PathVariable UUID journeyId) {
         deactivateJourney.execute(journeyId);
-        return ResponseEntity.ok().build();
-    }
-
-    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
-    @PostMapping("/{journeyId}/activate")
-    public ResponseEntity<Void> activate(@PathVariable UUID journeyId) {
-        activateJourney.execute(journeyId);
         return ResponseEntity.ok().build();
     }
 

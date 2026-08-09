@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from './client';
 
-export type VersionStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'UNPUBLISHED';
+export type VersionStatus = 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED' | 'INACTIVE';
 
 export interface FlowNodeSnapshot {
   id: string;

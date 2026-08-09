@@ -275,7 +275,7 @@ Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somen
 | VersionId | UUID | Sim | Identificador único da versão |
 | JourneyId | UUID | Sim | Jornada à qual a versão pertence |
 | VersionNumber | INTEGER | Sim | Número sequencial dentro da jornada |
-| Status | VARCHAR(20) | Sim | `DRAFT`, `PUBLISHED` ou `ARCHIVED` |
+| Status | VARCHAR(20) | Sim | `DRAFT`, `PUBLISHED`, `UNPUBLISHED` ou `INACTIVE` |
 | Snapshot | JSONB | Sim | Definição completa e independente da versão |
 | Description | TEXT | Não | Observação da versão |
 | CreatedBy | UUID | Sim | Usuário que criou a versão |

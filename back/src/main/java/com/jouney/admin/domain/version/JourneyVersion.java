@@ -10,7 +10,7 @@ import java.util.UUID;
 
 /**
  * A point-in-time snapshot of a journey's flow/forms/product/channel data (EP-06). Each journey
- * has one or more versions; exactly one may be PUBLISHED at a time, the rest are DRAFT/ARCHIVED.
+ * has one or more versions; exactly one may be PUBLISHED at a time.
  */
 public class JourneyVersion {
 
@@ -70,8 +70,8 @@ public class JourneyVersion {
     }
 
     // Keeps a DRAFT in sync with the journey's live flow as it's edited (REQ-06.02.009): unlike
-    // publish/archive, this doesn't change identity (id/versionNumber) — it's the same draft, just
-    // with fresher content. Only DRAFT may be replaced this way; PUBLISHED/ARCHIVED stay immutable.
+    // publish/deactivate, this doesn't change identity (id/versionNumber) — it's the same draft,
+    // just with fresher content. Only DRAFT may be replaced this way; other statuses stay immutable.
     public void replaceContent(String journeyName, String journeyDescription, UUID productId, String productName,
                                 UUID channelId, String channelName, ChannelType channelType,
                                 List<FlowNode> flowNodes, List<FlowConnection> flowConnections, List<Form> forms) {
@@ -95,12 +95,11 @@ public class JourneyVersion {
         this.publishedAt = OffsetDateTime.now();
     }
 
-    // A version is ARCHIVED when superseded by a newer publish — the journey stays live, just on
-    // different content. It's UNPUBLISHED when the journey itself is taken down (REQ-06.01.005):
-    // same "no longer the live version" outcome, different reason, so callers must pick the one
-    // that matches what actually happened instead of collapsing both into archive().
-    public void archive() {
-        this.status = VersionStatus.ARCHIVED;
+    // Companion to Journey.deactivate(): used when a journey that was once published can't be
+    // physically deleted (REQ-02.01.005) and gets soft-deleted instead — every one of its versions
+    // is marked INACTIVE alongside the journey itself (REQ-02.01.006).
+    public void deactivate() {
+        this.status = VersionStatus.INACTIVE;
     }
 
     public void unpublish() {

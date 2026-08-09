@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface FlowJpaRepository extends JpaRepository<FlowJpaEntity, String> {
 
     Optional<FlowJpaEntity> findByJourneyId(UUID journeyId);
+
+    void deleteByJourneyId(UUID journeyId);
 }

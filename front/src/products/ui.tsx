@@ -159,7 +159,7 @@ export function FilterDropdown({ label, options, value, onChange }: FilterDropdo
         }}
       >
         <Filter size={14} />
-        {isDefault ? label : current?.label}
+        {label}: {current?.label ?? label}
         <ChevronDown size={14} />
       </button>
       {open && (

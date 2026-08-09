@@ -42,8 +42,7 @@ public class UnpublishJourney {
         runtimePublicationPort.unpublish(journeyId);
 
         // No version stays PUBLISHED once the journey itself is UNPUBLISHED — mark it UNPUBLISHED
-        // too (not ARCHIVED, which means "superseded by a newer publish") so the journey no longer
-        // reports a currently-published version (REQ-06.04.007).
+        // too so the journey no longer reports a currently-published version (REQ-06.04.007).
         journeyVersionRepository.findByJourneyIdAndStatus(journeyId, VersionStatus.PUBLISHED)
                 .ifPresent(version -> {
                     version.unpublish();

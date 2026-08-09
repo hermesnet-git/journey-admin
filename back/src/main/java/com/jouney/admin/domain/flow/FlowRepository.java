@@ -8,4 +8,6 @@ public interface FlowRepository {
     Flow save(Flow flow);
 
     Optional<Flow> findByJourneyId(UUID journeyId);
+
+    void deleteByJourneyId(UUID journeyId);
 }

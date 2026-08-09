@@ -42,6 +42,11 @@ public class FlowRepositoryAdapter implements FlowRepository {
         return jpaRepository.findByJourneyId(journeyId).map(this::toDomain);
     }
 
+    @Override
+    public void deleteByJourneyId(UUID journeyId) {
+        jpaRepository.deleteByJourneyId(journeyId);
+    }
+
     private Flow toDomain(FlowJpaEntity entity) {
         List<FlowNodeRecord> nodeRecords = readJson(entity.getNodes(), new TypeReference<List<FlowNodeRecord>>() {
         });

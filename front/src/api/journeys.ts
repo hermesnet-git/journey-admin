@@ -58,3 +58,9 @@ export function deleteJourney(journeyId: string): Promise<void> {
 export function unpublishJourney(journeyId: string): Promise<Journey> {
   return apiPost<Journey>(`/journeys/${journeyId}/unpublish`);
 }
+
+// Raw JSON sent to the runtime's publication API (REQ-02.10.001) — shape mirrors the backend's
+// PublicationSnapshotRecord; kept loose here since this is a read-only inspection view.
+export function getJourneyPublication(journeyId: string): Promise<unknown> {
+  return apiGet<unknown>(`/journeys/${journeyId}/publication`);
+}

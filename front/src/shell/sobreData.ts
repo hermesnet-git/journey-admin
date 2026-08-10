@@ -204,6 +204,16 @@ export const EPICS: Epic[] = [
           ),
         ],
       },
+      {
+        code: 'FT-02.10',
+        name: 'Inspeção da publicação',
+        requirements: [
+          d(
+            'REQ-02.10.001',
+            'Para uma jornada com publicação ativa (PUBLISHED), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários, incluindo a árvore SDUI de cada formulário), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".',
+          ),
+        ],
+      },
     ],
   },
   {
@@ -817,6 +827,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-10',
+    source: 'progresso',
+    summary:
+      'REQ-02.10.001 novo e implementado (FT-02.10 Inspeção da publicação): para uma jornada PUBLISHED, visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários com a árvore SDUI), via ação na listagem de jornadas ao lado de "Editar"/"Excluir". Back: GET /api/v1/journeys/{id}/publication (GetPublicationSnapshot, 409 se não publicada) + PublicationSnapshotRecord.from(Publication) extraído como factory compartilhada entre esse endpoint e PublicationAdapter (mesma serialização, uma só fonte). Front: ícone "Ver publicação" em JourneyActions, PublicationSnapshotModal novo (JSON formatado + copiar). Escopo mais restrito que o REQ-06.03.006 removido anteriormente: só a publicação ativa da jornada, não qualquer versão histórica. Testado via curl (200 com JSON completo / 409 sem publicação). EP-02 fecha em 39/39 (100%).',
+  },
   {
     date: '2026-08-10',
     source: 'progresso',

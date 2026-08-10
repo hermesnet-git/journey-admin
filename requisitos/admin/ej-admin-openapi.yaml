@@ -740,6 +740,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/Flow'
 
+  /journeys/{journeyId}/publication:
+    get:
+      tags: [Journeys]
+      summary: Get the journey's active publication snapshot (REQ-02.10.001)
+      description: >
+        Returns the exact JSON sent to the runtime's publication API for the journey's
+        currently active (PUBLISHED) publication — product, channel, flow and forms,
+        including each form's generated SDUI tree. Only available while the journey is
+        PUBLISHED; the record itself is preserved after unpublishing, but not exposed here.
+      operationId: getJourneyPublication
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Journey does not currently have an active publication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Active publication snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicationSnapshot'
+
   /forms:
     get:
       tags: [Forms]
@@ -1631,6 +1665,70 @@ components:
           type: object
           additionalProperties: true
           description: Configuração adicional por tipo/subtipo — validação de formato (min/max para NUMBER, regex/máscara para TEXT) e regras de arquivo (extensões aceitas, tamanho máximo) para FILE_UPLOAD.
+
+    PublicationSnapshot:
+      type: object
+      description: >
+        Exact JSON sent to the runtime's publication API (REQ-02.09.002) and exposed
+        read-only for inspection (REQ-02.10.001). Same shape for both purposes — one
+        mapping, one source of truth.
+      required: [journeyId, journeyName, productId, productName, channelId, channelName,
+                 channelType, flowNodes, flowConnections, forms]
+      properties:
+        journeyId:
+          type: string
+          format: uuid
+        journeyName:
+          type: string
+        journeyDescription:
+          type: string
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        channelId:
+          type: string
+          format: uuid
+        channelName:
+          type: string
+        channelType:
+          $ref: '#/components/schemas/ChannelType'
+        flowNodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowNode'
+        flowConnections:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowConnection'
+        forms:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicationSnapshotForm'
+
+    PublicationSnapshotForm:
+      type: object
+      required: [id, name, fields, sdui]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormField'
+        sdui:
+          description: >
+            Hyperscript-style render tree [tag, props, children], generated from `fields`
+            at publish time (REQ-04.06.002). Heterogeneous tuple structure, not modeled
+            field-by-field here.
+          type: array
+          items: {}
 
     SimulationRequest:
       type: object

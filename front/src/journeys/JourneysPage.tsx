@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, Route, Trash2, Pencil, CloudOff, ChevronRight } from 'lucide-react';
+import { Search, Plus, Route, Trash2, Pencil, CloudOff, ChevronRight, FileJson } from 'lucide-react';
 import { PrimaryButton, SecondaryButton, FilterDropdown, type FilterOption } from '../products/ui';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
@@ -22,6 +22,7 @@ import {
 } from '../api/versions';
 import { JourneyDesignerPage } from '../flow-designer/JourneyDesignerPage';
 import { NewJourneyModal } from './NewJourneyModal';
+import { PublicationSnapshotModal } from './PublicationSnapshotModal';
 
 type StatusFilter = 'all' | JourneyStatus;
 
@@ -74,6 +75,7 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
   const [creatingJourney, setCreatingJourney] = useState(false);
   const [deletingJourney, setDeletingJourney] = useState<Journey | null>(null);
   const [unpublishingJourney, setUnpublishingJourney] = useState<Journey | null>(null);
+  const [viewingPublicationJourney, setViewingPublicationJourney] = useState<Journey | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -233,6 +235,7 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
               onEdit={() => setEditingJourney(j)}
               onDelete={() => setDeletingJourney(j)}
               onUnpublish={() => setUnpublishingJourney(j)}
+              onViewPublication={() => setViewingPublicationJourney(j)}
               onVersionsChanged={reload}
             />
           ))}
@@ -271,6 +274,14 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
           confirmLabel="Despublicar"
           onConfirm={confirmUnpublish}
           onCancel={() => setUnpublishingJourney(null)}
+        />
+      )}
+
+      {viewingPublicationJourney && (
+        <PublicationSnapshotModal
+          journeyId={viewingPublicationJourney.journeyId}
+          journeyName={viewingPublicationJourney.name}
+          onClose={() => setViewingPublicationJourney(null)}
         />
       )}
     </div>
@@ -373,11 +384,13 @@ function JourneyActions({
   onEdit,
   onDelete,
   onUnpublish,
+  onViewPublication,
 }: {
   journey: Journey;
   onEdit: () => void;
   onDelete: () => void;
   onUnpublish: () => void;
+  onViewPublication: () => void;
 }) {
   const { colors: c } = useAppTheme();
   return (
@@ -388,6 +401,9 @@ function JourneyActions({
         onClick={onEdit}
         disabled={journey.status === 'INACTIVE'}
       />
+      {journey.status === 'PUBLISHED' && (
+        <IconAction icon={FileJson} label="Ver publicação" onClick={onViewPublication} />
+      )}
       {journey.status === 'PUBLISHED' && (
         <IconAction icon={CloudOff} label="Despublicar jornada" onClick={onUnpublish} hoverColor={c.warning} />
       )}
@@ -407,12 +423,14 @@ function JourneyDetailRow({
   onEdit,
   onDelete,
   onUnpublish,
+  onViewPublication,
   onVersionsChanged,
 }: {
   journey: Journey;
   onEdit: () => void;
   onDelete: () => void;
   onUnpublish: () => void;
+  onViewPublication: () => void;
   onVersionsChanged: () => void;
 }) {
   const { colors: c } = useAppTheme();
@@ -451,7 +469,13 @@ function JourneyDetailRow({
         <span className="text-[12px]" style={{ color: c.textSecondary }}>
           {formatDate(journey.updatedAt)}
         </span>
-        <JourneyActions journey={journey} onEdit={onEdit} onDelete={onDelete} onUnpublish={onUnpublish} />
+        <JourneyActions
+          journey={journey}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onUnpublish={onUnpublish}
+          onViewPublication={onViewPublication}
+        />
       </div>
       {open && <JourneyVersionsRows journeyId={journey.journeyId} onJourneyChanged={onVersionsChanged} />}
     </>

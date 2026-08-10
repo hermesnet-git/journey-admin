@@ -261,6 +261,10 @@ futura e nÃ£o faz parte dos requisitos entregÃ¡veis desta versÃ£o.
 #### REQ-02.09.004 - Ao despublicar, o Admin Portal deve chamar a API de publicação do runtime para remover/desfazer a publicação. Apos o retorno de sucesso, a jornada e sua publicacao devem assumir o estado `UNPUBLISHED`; em caso de falha, os estados atuais devem ser preservados.
 ---
 
+### FT-02.10 Inspeção da publicação
+#### REQ-02.10.001 - Para uma jornada com publicação ativa (`PUBLISHED`), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários, incluindo a árvore SDUI de cada formulário), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".
+---
+
 <br/>
 
 # EP-03 Modelagem Visual

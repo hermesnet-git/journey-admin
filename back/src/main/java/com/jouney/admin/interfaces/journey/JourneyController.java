@@ -5,11 +5,13 @@ import com.jouney.admin.application.journey.DeleteJourney;
 import com.jouney.admin.application.journey.FindJourneys;
 import com.jouney.admin.application.journey.GetJourney;
 import com.jouney.admin.application.journey.UpdateJourney;
+import com.jouney.admin.application.publication.GetPublicationSnapshot;
 import com.jouney.admin.application.publication.PublishJourney;
 import com.jouney.admin.application.publication.UnpublishJourney;
 import com.jouney.admin.domain.auth.AuthenticatedUser;
 import com.jouney.admin.domain.journey.JourneySort;
 import com.jouney.admin.domain.journey.JourneyStatus;
+import com.jouney.admin.infrastructure.persistence.publication.PublicationSnapshotRecord;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -38,10 +40,11 @@ public class JourneyController {
     private final DeleteJourney deleteJourney;
     private final PublishJourney publishJourney;
     private final UnpublishJourney unpublishJourney;
+    private final GetPublicationSnapshot getPublicationSnapshot;
 
     public JourneyController(CreateJourney createJourney, UpdateJourney updateJourney, GetJourney getJourney,
                               FindJourneys findJourneys, DeleteJourney deleteJourney, PublishJourney publishJourney,
-                              UnpublishJourney unpublishJourney) {
+                              UnpublishJourney unpublishJourney, GetPublicationSnapshot getPublicationSnapshot) {
         this.createJourney = createJourney;
         this.updateJourney = updateJourney;
         this.getJourney = getJourney;
@@ -49,6 +52,7 @@ public class JourneyController {
         this.deleteJourney = deleteJourney;
         this.publishJourney = publishJourney;
         this.unpublishJourney = unpublishJourney;
+        this.getPublicationSnapshot = getPublicationSnapshot;
     }
 
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
@@ -103,5 +107,11 @@ public class JourneyController {
     public JourneyResponse unpublish(@PathVariable UUID journeyId) {
         unpublishJourney.execute(journeyId);
         return JourneyResponse.from(getJourney.execute(journeyId));
+    }
+
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
+    @GetMapping("/{journeyId}/publication")
+    public PublicationSnapshotRecord getPublication(@PathVariable UUID journeyId) {
+        return PublicationSnapshotRecord.from(getPublicationSnapshot.execute(journeyId));
     }
 }

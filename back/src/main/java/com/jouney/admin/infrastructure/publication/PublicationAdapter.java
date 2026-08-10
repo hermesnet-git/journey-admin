@@ -1,13 +1,8 @@
 package com.jouney.admin.infrastructure.publication;
 
 import com.jouney.admin.application.publication.RuntimePublicationPort;
-import com.jouney.admin.domain.form.FormSduiSerializer;
 import com.jouney.admin.domain.publication.Publication;
-import com.jouney.admin.infrastructure.persistence.flow.FlowConnectionRecord;
-import com.jouney.admin.infrastructure.persistence.flow.FlowNodeRecord;
-import com.jouney.admin.infrastructure.persistence.form.FormFieldRecord;
 import com.jouney.admin.infrastructure.persistence.publication.PublicationSnapshotRecord;
-import com.jouney.admin.infrastructure.persistence.publication.SnapshotFormRecord;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,30 +34,7 @@ public class PublicationAdapter implements RuntimePublicationPort {
 
     @Override
     public void publish(Publication snapshot) {
-        PublicationSnapshotRecord record = new PublicationSnapshotRecord(
-                snapshot.getJourneyId(), snapshot.getJourneyName(), snapshot.getJourneyDescription(),
-                snapshot.getProductId(), snapshot.getProductName(), snapshot.getChannelId(),
-                snapshot.getChannelName(), snapshot.getChannelType(),
-                snapshot.getFlowNodes().stream()
-                        .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
-                                n.getPositionX(), n.getPositionY(), n.getFormId(),
-                                FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig())))
-                        .toList(),
-                snapshot.getFlowConnections().stream()
-                        .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId()))
-                        .toList(),
-                snapshot.getForms().stream()
-                        .map(f -> new SnapshotFormRecord(f.getId(), f.getName(), f.getDescription(),
-                                f.getFields().stream()
-                                        .map(field -> new FormFieldRecord(field.getName(), field.getType(),
-                                                field.getInputSubtype(), field.getLabel(), field.isRequired(),
-                                                field.getDefaultValue(), field.getHelpText(), field.getOptions(),
-                                                field.getMinValue(), field.getMaxValue(),
-                                                field.getValidationPattern(), field.getAcceptedExtensions(),
-                                                field.getMaxFileSizeBytes()))
-                                        .toList(),
-                                FormSduiSerializer.serialize(f)))
-                        .toList());
+        PublicationSnapshotRecord record = PublicationSnapshotRecord.from(snapshot);
 
         try {
             restClient.post()

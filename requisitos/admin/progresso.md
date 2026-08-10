@@ -15,9 +15,9 @@
 | Métrica | Valor |
 |---|---|
 | Total de Épicos (EP) | 10 |
-| Total de Features (FT) | 48 |
-| Total de Requisitos (REQ) | 247 |
-| Concluídos (`done`) | 232 |
+| Total de Features (FT) | 49 |
+| Total de Requisitos (REQ) | 248 |
+| Concluídos (`done`) | 233 |
 | Em andamento (`in_progress`) | 0 |
 | Não iniciados (`todo`) | 13 |
 | Bloqueados (`blocked`) | 0 |
@@ -37,7 +37,7 @@
 | EP | Nome | REQs | Concluídos | % |
 |---|---|---:|---:|---:|
 | EP-01 | Gestão de Produtos e Canais | 24 | 24 | 100% |
-| EP-02 | Gestão de Jornadas | 38 | 38 | 100% |
+| EP-02 | Gestão de Jornadas | 39 | 39 | 100% |
 | EP-03 | Modelagem Visual | 46 | 46 | 100% |
 | EP-04 | Formulários (SDUI) | 25 | 25 | 100% |
 | EP-05 | Simulação | 10 | 0 | 0% |
@@ -372,6 +372,12 @@
 | [x] | REQ-02.09.003 | O Admin Portal deve realizar uma chamada de saída real (HTTP) para a API de publicação do runtime. Após sucesso, substitui o snapshot anterior e altera o estado da jornada para `PUBLISHED`; em caso de falha, o erro propaga e nenhum estado é alterado. | done | back: `PublicationAdapter.publish` faz `POST` real via `RestClient`; falhas de rede/HTTP lançam `RuntimePublicationException` (mapeada para 502 `RUNTIME_UNAVAILABLE`), e `PublishJourney` só persiste `Publication`/`journey.publish()` depois da chamada não lançar | Deixou de ser mock: testado via curl ponta a ponta publicando de fato no runtime configurado |
 | [x] | REQ-02.09.004 | Ao despublicar, o Admin Portal deve chamar a API de publicação do runtime para remover/desfazer a publicação. Após sucesso, jornada e publicação assumem `UNPUBLISHED`; em caso de falha, os estados atuais são preservados. | done | back: `PublicationAdapter.unpublish` faz `DELETE` real via `RestClient`; falha lança `RuntimePublicationException` (502); `UnpublishJourney` só chama `journey.unpublish()`/`save` após a chamada não lançar | Deixou de ser mock: testado via curl ponta a ponta despublicando de fato no runtime configurado; jornada assume `UNPUBLISHED` (registro preservado, ver REQ-02.06.004) |
 
+### FT-02.10 Inspeção da publicação
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-02.10.001 | Para uma jornada com publicação ativa (`PUBLISHED`), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários, incluindo a árvore SDUI de cada formulário), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir". | done | back: `GET /api/v1/journeys/{id}/publication` (`GetPublicationSnapshot` + `PublicationSnapshotRecord.from`, 409 se a jornada não estiver `PUBLISHED`); front: ícone "Ver publicação" (`FileJson`) em `JourneyActions`, abre `PublicationSnapshotModal` com o JSON completo e botão "Copiar JSON" | testado via curl: 200 com JSON completo em jornada `PUBLISHED`, 409 em jornada não publicada; escopo mais restrito que o `REQ-06.03.006` removido (só a publicação ativa da jornada, não qualquer versão histórica) |
+
 ---
 
 ## EP-06 Versionamento de jornadas
@@ -633,6 +639,7 @@ appender.
 
 | Data/Hora | Alteração |
 |---|---|
+| 2026-08-10 (não commitado) | REQ-02.10.001 novo e implementado (FT-02.10 Inspeção da publicação): para uma jornada `PUBLISHED`, visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários com a árvore SDUI), via ação na listagem de jornadas ao lado de "Editar"/"Excluir". Back: `GET /api/v1/journeys/{id}/publication` (`GetPublicationSnapshot`, 409 se não publicada) + `PublicationSnapshotRecord.from(Publication)` extraído como factory compartilhada entre esse endpoint e `PublicationAdapter` (mesma serialização, uma só fonte). Front: ícone "Ver publicação" em `JourneyActions`, `PublicationSnapshotModal` novo (JSON formatado + copiar). Escopo mais restrito que o `REQ-06.03.006` removido anteriormente: só a publicação ativa da jornada, não qualquer versão histórica. Testado via curl (200 com JSON completo / 409 sem publicação). EP-02 fecha em 39/39 (100%). |
 | 2026-08-10 (não commitado) | REQ-02.09.003/004 deixaram de ser mock: `MockRuntimePublicationAdapter` removido, substituído por `PublicationAdapter` (`infrastructure/publication`), que faz uma chamada HTTP real (`POST`/`DELETE` via `RestClient`) para a API de publicação do runtime — o Admin Portal não conhece nem depende de qual engine implementa essa API do outro lado. Endereço do serviço configurável por ambiente em `app.transform-publication.base-url` (perfil `dev`, com override via variável de ambiente `TRANSFORM_PUBLICATION_BASE_URL`; `qa`/`prod` ainda pendentes de valor próprio). Falhas de rede/HTTP agora propagam como `RuntimePublicationException`, mapeada para `502 RUNTIME_UNAVAILABLE` no `GlobalExceptionHandler`, em vez de sempre "suceder" como o mock fazia — `PublishJourney`/`UnpublishJourney` só persistem o novo estado se a chamada não lançar. Testado via curl ponta a ponta publicando e despublicando de fato contra o serviço configurado localmente. EP-02 fecha em 38/38 (100%). |
 | 2026-08-09 (não commitado) | EP-04 (Formulários/SDUI) implementado: `FormField.id`→`name` (chave técnica única, imutável após criada, validada em `Form.create` via `DuplicateFieldNameException`, 422); `options` migrado de `List<String>` para `FormFieldOption(label,value)`; `InputSubtype` (TEXT/NUMBER/EMAIL/DATE) com `minValue`/`maxValue`/`validationPattern`; `FILE_UPLOAD` com `acceptedExtensions`/`maxFileSizeBytes`; novo `FormSduiSerializer` gera a árvore `[tag,props,children]` (`ui.form`/`ui.text`/`ui.input`/`ui.select`/`ui.multiselect`/`ui.upload`), persistida no campo `sdui` de `SnapshotFormRecord` em `PublicationRepositoryAdapter`/`JourneyVersionRepositoryAdapter`. Sem migration — os campos do formulário já eram um blob JSON, não colunas relacionais. Compatibilidade retroativa: `FormFieldOption.LegacyDeserializer` aceita o formato antigo (string simples) e `FormFieldType.fromJson` mapeia o extinto `STATIC_CONTENT` para `TEXT`, para publicações/versões já existentes no banco continuarem legíveis (a validação de nome único também não roda na reidratação a partir de snapshot, só na criação/edição pelo usuário). Front (`FormBuilderPage.tsx`): campo "Nome técnico" (travado para campos pré-existentes), seletor de subtipo com min/max ou regex condicionais, editor de opções rótulo+valor, configuração de extensões/tamanho em upload. Testado via curl ponta a ponta (criação com os novos campos, rejeição de nome duplicado, publicação de jornada com inspeção direta do snapshot no Postgres confirmando a árvore SDUI) e build de produção do front (`tsc -b && vite build`). |
 | 2026-08-09 22:11 | EP-04 (Formulários/SDUI) refinado com foco em compatibilidade com o formato de renderização SDUI (`[tag, props, children]`) usado pelas ferramentas de renderização React/Flutter. `REQ-04.02.006` (`STATIC_CONTENT`) removido/colapsado em `TEXT` — mesmo modelo de dados, diferença só visual. Adicionados `REQ-04.01.007` (`name` técnico do campo, único e imutável, substituindo o `id` interno), `REQ-04.02.007`-`REQ-04.02.010` (subtipo/validação de `INPUT`, opções como pares rótulo/valor, regras de extensão/tamanho em `FILE_UPLOAD`) e a nova `FT-04.06` (`REQ-04.06.001`, já implementado pelo `PublicationRepositoryAdapter` — imutabilidade do formulário no snapshot de publicação; `REQ-04.06.002`, novo — serialização do formulário para árvore SDUI no momento da publicação). Nenhum código alterado nesta rodada, só documentação (`ej-admin-requisitos.md`, `progresso.md`, modelo conceitual/físico, dicionário de dados, arquitetura lógica, OpenAPI e nota de aviso na massa de dados de seed). Itens fora do MVP (fontes de dados dinâmicas para opções, `$dataSource`, prefetch, paginação de opções, formulários multi-etapas) registrados em `§5 Fora do Escopo do MVP → Formulários Avançados`. Nomenclatura dos documentos de modelo de dados alinhada de `FormComponent`/`component_id` para `FormField`/`name`, batendo com o domínio já implementado no back. |

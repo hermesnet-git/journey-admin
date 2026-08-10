@@ -16,6 +16,7 @@ import {
   History,
   GitCommitHorizontal,
   RefreshCw,
+  Search,
 } from 'lucide-react';
 import { useAppTheme } from './theme';
 import {
@@ -104,9 +105,9 @@ function RequirementRow({ requirement }: { requirement: Feature['requirements'][
   );
 }
 
-function FeatureRow({ feature }: { feature: Feature }) {
+function FeatureRow({ feature, defaultOpen }: { feature: Feature; defaultOpen?: boolean }) {
   const { colors: c } = useAppTheme();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen ?? false);
   const { total, done, naCount } = featureCounts(feature);
   const applicable = total - naCount || 1;
   const percent = Math.round((done / applicable) * 100);
@@ -146,9 +147,9 @@ function FeatureRow({ feature }: { feature: Feature }) {
   );
 }
 
-function EpicRows({ epic }: { epic: Epic }) {
+function EpicRows({ epic, defaultOpen }: { epic: Epic; defaultOpen?: boolean }) {
   const { colors: c } = useAppTheme();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen ?? false);
   const { total, done, naCount } = epicCounts(epic);
   const applicable = total - naCount || 1;
   const percent = Math.round((done / applicable) * 100);
@@ -186,7 +187,10 @@ function EpicRows({ epic }: { epic: Epic }) {
           </span>
         </div>
       </div>
-      {open && epic.features.map((f) => <FeatureRow key={f.code} feature={f} />)}
+      {open &&
+        epic.features.map((f) => (
+          <FeatureRow key={`${f.code}-${defaultOpen ? 'search' : 'browse'}`} feature={f} defaultOpen={defaultOpen} />
+        ))}
     </>
   );
 }
@@ -277,6 +281,48 @@ function DonutSummary() {
   );
 }
 
+function matchesQuery(haystack: string, query: string): boolean {
+  return haystack.toLowerCase().includes(query);
+}
+
+function filterEpicsByQuery(epics: Epic[], query: string): Epic[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return epics;
+  const filtered: Epic[] = [];
+  for (const epic of epics) {
+    const epicMatches = matchesQuery(epic.name, q) || matchesQuery(epic.code, q);
+    const features: Feature[] = [];
+    for (const feature of epic.features) {
+      const featureMatches = epicMatches || matchesQuery(feature.name, q) || matchesQuery(feature.code, q);
+      const requirements = featureMatches
+        ? feature.requirements
+        : feature.requirements.filter(
+            (r) => matchesQuery(r.code, q) || matchesQuery(r.description, q) || (r.notes ? matchesQuery(r.notes, q) : false),
+          );
+      if (requirements.length > 0) features.push({ ...feature, requirements });
+    }
+    if (features.length > 0) filtered.push({ ...epic, features });
+  }
+  return filtered;
+}
+
+function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  const { colors: c } = useAppTheme();
+  return (
+    <div className="relative w-[240px]">
+      <Search size={14} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="w-full py-[7px] pl-[30px] pr-3 rounded-md text-[12.5px] outline-none box-border"
+        style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
+      />
+    </div>
+  );
+}
+
 function sourceMeta(source: ChangelogSource, c: Colors) {
   if (source === 'git') return { label: 'Git', Icon: GitCommitHorizontal, fg: c.textSecondary, bg: c.chipBg };
   return { label: 'progresso.md', Icon: FileCheck2, fg: c.accent, bg: c.accentSoft };
@@ -284,56 +330,79 @@ function sourceMeta(source: ChangelogSource, c: Colors) {
 
 function ChangelogPanel() {
   const { colors: c } = useAppTheme();
+  const [search, setSearch] = useState('');
+
+  const visibleEntries = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return CHANGELOG;
+    return CHANGELOG.filter(
+      (entry) =>
+        matchesQuery(entry.summary, q) ||
+        matchesQuery(entry.date, q) ||
+        matchesQuery(sourceMeta(entry.source, c).label, q) ||
+        (entry.epics?.some((epic) => matchesQuery(epic, q)) ?? false),
+    );
+  }, [search, c]);
+
   return (
     <div>
-      <h2 className="m-0 mb-1 flex items-center gap-[7px] text-[14px] font-semibold" style={{ color: c.textPrimary }}>
-        <History size={15} style={{ color: c.textMuted }} />
-        Changelog de progresso
-      </h2>
+      <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <h2 className="m-0 flex items-center gap-[7px] text-[14px] font-semibold" style={{ color: c.textPrimary }}>
+          <History size={15} style={{ color: c.textMuted }} />
+          Changelog de progresso
+        </h2>
+        <SearchInput value={search} onChange={setSearch} placeholder="Buscar no changelog..." />
+      </div>
       <p className="m-0 mb-4 text-[13px]" style={{ color: c.textSecondary }}>
         Histórico de commits (branch main) mesclado com as entradas de "Changelog deste arquivo" em
         requisitos/admin/progresso.md, em ordem cronológica.
       </p>
       <div className="rounded-xl p-4" style={{ border: `1px solid ${c.border}`, background: c.surface }}>
-        <div className="flex flex-col">
-          {CHANGELOG.map((entry, i) => {
-            const sm = sourceMeta(entry.source, c);
-            return (
-              <div key={i} className="flex gap-3 pb-4 last:pb-0">
-                <div className="flex flex-col items-center shrink-0 w-[14px]">
-                  <span className="w-[9px] h-[9px] rounded-full mt-[3px]" style={{ background: sm.fg }} />
-                  {i < CHANGELOG.length - 1 && <span className="flex-1 w-px mt-[3px]" style={{ background: c.border }} />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-[8px] flex-wrap">
-                    <span className="text-[11px] font-mono tabular-nums" style={{ color: c.textMuted }}>
-                      {entry.date}
-                    </span>
-                    <span
-                      className="inline-flex items-center gap-[4px] text-[10px] font-semibold px-[7px] py-[1px] rounded-full"
-                      style={{ background: sm.bg, color: sm.fg }}
-                    >
-                      <sm.Icon size={10} />
-                      {sm.label}
-                    </span>
-                    {entry.epics?.map((epic) => (
-                      <span
-                        key={epic}
-                        className="text-[10px] font-semibold px-[7px] py-[1px] rounded-full"
-                        style={{ background: c.chipBg, color: c.textMuted }}
-                      >
-                        {epic}
-                      </span>
-                    ))}
+        {visibleEntries.length === 0 ? (
+          <p className="m-0 text-[12.5px]" style={{ color: c.textSecondary }}>
+            Nenhuma entrada encontrada para essa busca.
+          </p>
+        ) : (
+          <div className="flex flex-col">
+            {visibleEntries.map((entry, i) => {
+              const sm = sourceMeta(entry.source, c);
+              return (
+                <div key={i} className="flex gap-3 pb-4 last:pb-0">
+                  <div className="flex flex-col items-center shrink-0 w-[14px]">
+                    <span className="w-[9px] h-[9px] rounded-full mt-[3px]" style={{ background: sm.fg }} />
+                    {i < visibleEntries.length - 1 && <span className="flex-1 w-px mt-[3px]" style={{ background: c.border }} />}
                   </div>
-                  <p className="m-0 mt-[2px] text-[12.5px] leading-[18px]" style={{ color: c.textPrimary }}>
-                    {entry.summary}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-[8px] flex-wrap">
+                      <span className="text-[11px] font-mono tabular-nums" style={{ color: c.textMuted }}>
+                        {entry.date}
+                      </span>
+                      <span
+                        className="inline-flex items-center gap-[4px] text-[10px] font-semibold px-[7px] py-[1px] rounded-full"
+                        style={{ background: sm.bg, color: sm.fg }}
+                      >
+                        <sm.Icon size={10} />
+                        {sm.label}
+                      </span>
+                      {entry.epics?.map((epic) => (
+                        <span
+                          key={epic}
+                          className="text-[10px] font-semibold px-[7px] py-[1px] rounded-full"
+                          style={{ background: c.chipBg, color: c.textMuted }}
+                        >
+                          {epic}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="m-0 mt-[2px] text-[12.5px] leading-[18px]" style={{ color: c.textPrimary }}>
+                      {entry.summary}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -342,8 +411,9 @@ function ChangelogPanel() {
 export function SobrePage() {
   const { colors: c } = useAppTheme();
   const [filter, setFilter] = useState<'all' | 'done' | 'partial'>('all');
+  const [search, setSearch] = useState('');
 
-  const visibleEpics = useMemo(() => {
+  const statusFilteredEpics = useMemo(() => {
     if (filter === 'all') return EPICS;
     return EPICS.filter((e) => {
       const { total, done, naCount } = epicCounts(e);
@@ -351,6 +421,9 @@ export function SobrePage() {
       return filter === 'done' ? isDone : !isDone;
     });
   }, [filter]);
+
+  const visibleEpics = useMemo(() => filterEpicsByQuery(statusFilteredEpics, search), [statusFilteredEpics, search]);
+  const searchActive = search.trim().length > 0;
 
   return (
     <div className="flex-1 overflow-auto p-[32px_40px] box-border">
@@ -442,30 +515,33 @@ export function SobrePage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <h2 className="m-0 text-[14px] font-semibold" style={{ color: c.textPrimary }}>
           Épicos, features e requisitos
         </h2>
-        <div className="flex gap-[6px]">
-          {(
-            [
-              ['all', 'Todos'],
-              ['done', 'Concluídos'],
-              ['partial', 'Em aberto'],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className="px-[10px] py-[6px] rounded-md text-[12px] font-medium cursor-pointer border-0"
-              style={{
-                background: filter === key ? c.accentSoft : c.chipBg,
-                color: filter === key ? c.accent : c.textSecondary,
-              }}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          <SearchInput value={search} onChange={setSearch} placeholder="Buscar épico, feature ou requisito..." />
+          <div className="flex gap-[6px]">
+            {(
+              [
+                ['all', 'Todos'],
+                ['done', 'Concluídos'],
+                ['partial', 'Em aberto'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className="px-[10px] py-[6px] rounded-md text-[12px] font-medium cursor-pointer border-0"
+                style={{
+                  background: filter === key ? c.accentSoft : c.chipBg,
+                  color: filter === key ? c.accent : c.textSecondary,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -487,9 +563,15 @@ export function SobrePage() {
             Progresso
           </span>
         </div>
-        {visibleEpics.map((epic) => (
-          <EpicRows key={epic.code} epic={epic} />
-        ))}
+        {visibleEpics.length === 0 ? (
+          <p className="m-0 p-4 text-[12.5px]" style={{ color: c.textSecondary }}>
+            Nenhum épico, feature ou requisito encontrado para essa busca.
+          </p>
+        ) : (
+          visibleEpics.map((epic) => (
+            <EpicRows key={`${epic.code}-${searchActive ? 'search' : 'browse'}`} epic={epic} defaultOpen={searchActive} />
+          ))
+        )}
       </div>
 
       <div>

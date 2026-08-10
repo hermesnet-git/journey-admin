@@ -359,18 +359,31 @@ export const EPICS: Epic[] = [
             'REQ-04.01.006',
             'Ao associar formulário a uma User Task, o editor deve permitir criar um novo formulário sem sair do editor de fluxo e atualizar a lista de formulários disponíveis.',
           ),
+          todo(
+            'REQ-04.01.007',
+            'Cada campo de formulário deve possuir um name técnico, único no formulário e imutável após criado, substituindo o identificador interno atual como chave de referência do campo.',
+          ),
         ],
       },
       {
         code: 'FT-04.02',
         name: 'Componentes',
         requirements: [
-          d('REQ-04.02.001', 'O sistema deve suportar componente de texto.'),
+          d('REQ-04.02.001', 'O sistema deve suportar componente de texto (absorve o antigo tipo de conteúdo estático).'),
           d('REQ-04.02.002', 'O sistema deve suportar campo de entrada.'),
           d('REQ-04.02.003', 'O sistema deve suportar seleção simples.'),
           d('REQ-04.02.004', 'O sistema deve suportar seleção múltipla.'),
           d('REQ-04.02.005', 'O sistema deve suportar upload de arquivo.'),
-          d('REQ-04.02.006', 'O sistema deve suportar conteúdo estático.'),
+          todo('REQ-04.02.007', 'O campo INPUT deve suportar subtipos: texto, número, e-mail e data.'),
+          todo(
+            'REQ-04.02.008',
+            'O sistema deve permitir validação de formato por subtipo de INPUT (min/max para número; regex/máscara para texto).',
+          ),
+          todo(
+            'REQ-04.02.009',
+            'As opções de seleção simples/múltipla devem ser pares rótulo/valor, não apenas rótulo.',
+          ),
+          todo('REQ-04.02.010', 'O upload de arquivo deve permitir configurar extensões aceitas e tamanho máximo.'),
         ],
       },
       {
@@ -396,6 +409,20 @@ export const EPICS: Epic[] = [
         requirements: [
           d('REQ-04.05.001', 'O sistema deve permitir visualizar o formulário durante a edição.'),
           d('REQ-04.05.002', 'O preview deve refletir alterações em tempo real.'),
+        ],
+      },
+      {
+        code: 'FT-04.06',
+        name: 'Imutabilidade e serialização para publicação',
+        requirements: [
+          d(
+            'REQ-04.06.001',
+            'Ao publicar uma jornada, o conteúdo de cada formulário referenciado pelas User Tasks deve ser copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras no formulário original.',
+          ),
+          todo(
+            'REQ-04.06.002',
+            'O snapshot de publicação deve conter, para cada formulário, uma representação em árvore [tag, props, children] (SDUI), derivada do conteúdo congelado do formulário.',
+          ),
         ],
       },
     ],
@@ -761,7 +788,14 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
   },
   {
     title: 'Formulários Avançados',
-    items: ['Seções', 'Exibição condicional', 'Organização dinâmica de campos'],
+    items: [
+      'Seções',
+      'Exibição condicional',
+      'Organização dinâmica de campos',
+      'Formulários multi-etapas (wizard)',
+      'Fontes de dados dinâmicas para opções de campo (ex.: REST, com diretiva de vínculo tipo $dataSource e estratégia de prefetch no servidor ou no cliente)',
+      'Paginação de opções carregadas dinamicamente',
+    ],
   },
   {
     title: 'Evolução da Gestão de Jornadas',
@@ -782,6 +816,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-09',
+    source: 'progresso',
+    summary:
+      'EP-04 (Formulários/SDUI) refinado com foco em compatibilidade com o formato de renderização SDUI ([tag, props, children]) usado pelas ferramentas de renderização React/Flutter. REQ-04.02.006 (STATIC_CONTENT) removido/colapsado em TEXT — mesmo modelo de dados, diferença só visual. Adicionados REQ-04.01.007 (name técnico do campo, único e imutável, substituindo o id interno), REQ-04.02.007-REQ-04.02.010 (subtipo/validação de INPUT, opções como pares rótulo/valor, regras de extensão/tamanho em FILE_UPLOAD) e a nova FT-04.06 (REQ-04.06.001, já implementado pelo PublicationRepositoryAdapter — imutabilidade do formulário no snapshot de publicação; REQ-04.06.002, novo — serialização do formulário para árvore SDUI no momento da publicação). Nenhum código alterado nesta rodada, só documentação (ej-admin-requisitos.md, progresso.md, modelo conceitual/físico, dicionário de dados, arquitetura lógica, OpenAPI e nota de aviso na massa de dados de seed). Itens fora do MVP (fontes de dados dinâmicas para opções, $dataSource, prefetch, paginação de opções, formulários multi-etapas) registrados em §5 Fora do Escopo do MVP → Formulários Avançados. Nomenclatura dos documentos de modelo de dados alinhada de FormComponent/component_id para FormField/name, batendo com o domínio já implementado no back.',
+  },
   {
     date: '2026-08-09',
     source: 'progresso',

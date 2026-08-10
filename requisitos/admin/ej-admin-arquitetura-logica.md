@@ -313,16 +313,20 @@ Gerenciar formulários utilizados pelas User Tasks.
 ## Componentes MVP
 
 ```text
-Text, Input, Select, MultiSelect, Upload, Content
+Text, Input, SingleSelect, MultiSelect, FileUpload
 ```
+
+`Text` absorve o antigo tipo de conteúdo estático (mesmo modelo de dados, diferença apenas de apresentação). `Input` possui subtipo (texto, número, e-mail, data) com validação de formato associada.
 
 ## Entidades
 
 ```text
 Form
 
-Form Component
+Form Field
 ```
+
+Cada `Form Field` possui um `name` técnico (definido pelo usuário, único no formulário, imutável após criado) como chave de referência do campo.
 
 ## Estrutura de uma User Task
 
@@ -335,6 +339,12 @@ flowchart LR
 ```
 
 Uma User Task pode possuir um formulário associado. No MVP, essa associação é opcional.
+
+## Imutabilidade na publicação e serialização SDUI
+
+Ao publicar uma jornada, o conteúdo de cada `Form` referenciado por suas User Tasks é copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras no formulário original — o mesmo princípio de congelamento aplicado à versão da jornada (Domínio 06 — Journey Versioning). Editar um formulário depois de publicado não afeta jornadas já publicadas que o utilizam; a nova versão do formulário só passa a valer em publicações futuras.
+
+O snapshot de publicação também guarda, para cada formulário, uma projeção derivada em árvore de nós no formato `[tag, props, children]` (estilo SDUI/hyperscript), gerada a partir do conteúdo congelado do `Form Field`. Essa árvore é uma saída de leitura calculada no momento da publicação; o modelo de campos continua sendo a fonte de dados editável no form builder — o front nunca edita a árvore diretamente.
 
 ---
 
@@ -446,7 +456,9 @@ Cada jornada é isolada por canal. Os códigos de produto, canal e jornada perte
 
 # 16. Fronteira com o Runtime
 
-O Admin Portal conhece apenas a API de publicação fornecida pela camada de runtime. O ms-journey não conhece o Admin Portal e não acessa suas APIs ou seu modelo de dados. A transformação da jornada publicada para o formato executável permanece fora do domínio administrativo.
+O Admin Portal conhece apenas a API de publicação fornecida pela camada de runtime. O ms-journey não conhece o Admin Portal e não acessa suas APIs ou seu modelo de dados. A transformação da jornada publicada para o formato executável (motor de execução do fluxo) permanece fora do domínio administrativo.
+
+Exceção pontual: a árvore de renderização SDUI (`[tag, props, children]`) de cada formulário é gerada pelo próprio Admin Portal no momento da publicação (Domínio 04 — Forms Management), pois é uma projeção direta do modelo de campos que o Admin já possui — não uma transformação executada pelo runtime.
 
 ## Capacidades Esperadas
 

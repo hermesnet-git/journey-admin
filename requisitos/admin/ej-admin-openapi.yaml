@@ -1557,7 +1557,7 @@ components:
 
     FormInput:
       type: object
-      required: [code, name, components]
+      required: [code, name, fields]
       properties:
         code:
           type: string
@@ -1567,10 +1567,10 @@ components:
           maxLength: 200
         description:
           type: string
-        components:
+        fields:
           type: array
           items:
-            $ref: '#/components/schemas/FormComponent'
+            $ref: '#/components/schemas/FormField'
 
     Form:
       allOf:
@@ -1591,16 +1591,21 @@ components:
               type: string
               format: date-time
 
-    FormComponent:
+    FormField:
       type: object
-      required: [componentId, componentType, displayOrder]
+      required: [name, fieldType, displayOrder]
       properties:
-        componentId:
+        name:
           type: string
-          format: uuid
-        componentType:
+          maxLength: 80
+          description: Chave técnica do campo. Definida pelo usuário, única dentro do formulário e imutável após a criação.
+        fieldType:
           type: string
-          enum: [TEXT, INPUT, SELECT, MULTISELECT, UPLOAD, CONTENT]
+          enum: [TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD]
+        inputSubtype:
+          type: string
+          enum: [TEXT, NUMBER, EMAIL, DATE]
+          description: Aplicável apenas quando fieldType = INPUT.
         label:
           type: string
         helpText:
@@ -1611,9 +1616,21 @@ components:
           type: string
         displayOrder:
           type: integer
+        options:
+          type: array
+          description: Aplicável a SINGLE_SELECT/MULTI_SELECT.
+          items:
+            type: object
+            required: [label, value]
+            properties:
+              label:
+                type: string
+              value:
+                type: string
         configuration:
           type: object
           additionalProperties: true
+          description: Configuração adicional por tipo/subtipo — validação de formato (min/max para NUMBER, regex/máscara para TEXT) e regras de arquivo (extensões aceitas, tamanho máximo) para FILE_UPLOAD.
 
     SimulationRequest:
       type: object

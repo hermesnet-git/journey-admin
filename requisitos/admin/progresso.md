@@ -15,18 +15,20 @@
 | Métrica | Valor |
 |---|---|
 | Total de Épicos (EP) | 10 |
-| Total de Features (FT) | 47 |
-| Total de Requisitos (REQ) | 241 |
+| Total de Features (FT) | 48 |
+| Total de Requisitos (REQ) | 247 |
 | Concluídos (`done`) | 224 |
 | Em andamento (`in_progress`) | 0 |
-| Não iniciados (`todo`) | 15 |
+| Não iniciados (`todo`) | 21 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
-| % Concluído | 93% |
+| % Concluído | 91% |
 
 > 5 requisitos foram reclassificados de `done` para `todo` por serem atendidos apenas por mocks/simulações no MVP (sem integração real): REQ-02.09.003, REQ-02.09.004, REQ-07.01.002, REQ-07.01.005, REQ-07.04.001. Ver nota em cada requisito.
 >
 > Correção de contagem: o total de requisitos do EP-02 estava divergente entre este resumo (38) e a seção detalhada (37 linhas). Ajustado para 37, refletido no total geral.
+>
+> EP-04 refinado: REQ-04.02.006 (`STATIC_CONTENT`) foi removido/colapsado em `TEXT` (REQ-04.02.001); adicionados REQ-04.01.007 (`name` técnico do campo), REQ-04.02.007 a REQ-04.02.010 (subtipos/validação de `INPUT`, opções rótulo/valor, regras de arquivo) e a FT-04.06 (imutabilidade do formulário em snapshot de publicação + serialização SDUI). Ver `ej-admin-requisitos.md` para os itens de evolução futura registrados fora do MVP.
 
 ## Progresso por Épico
 
@@ -35,7 +37,7 @@
 | EP-01 | Gestão de Produtos e Canais | 24 | 24 | 100% |
 | EP-02 | Gestão de Jornadas | 38 | 36 | 95% |
 | EP-03 | Modelagem Visual | 46 | 46 | 100% |
-| EP-04 | Formulários (SDUI) | 19 | 19 | 100% |
+| EP-04 | Formulários (SDUI) | 25 | 19 | 76% |
 | EP-05 | Simulação | 10 | 0 | 0% |
 | EP-06 | Versionamento de jornadas | 40 | 40 | 100% |
 | EP-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
@@ -247,17 +249,22 @@
 | [x] | REQ-04.01.004 | O sistema deve permitir associar formulários a User Tasks. | done | back: `FlowNode.formId` (já existente); front: seletor "Formulário associado" em `PropertiesPanel` (só para nós `userTask`), `formId` persistido via `updateFlow` | |
 | [x] | REQ-04.01.005 | O sistema deve permitir manter uma User Task sem formulário associado. | done | front: opção "Nenhum" no seletor de formulário (`formId: null`) | |
 | [x] | REQ-04.01.006 | Ao associar formulário a uma User Task, o editor deve permitir criar um novo formulário sem sair do editor de fluxo e atualizar a lista de formulários disponíveis. | done | front: botões "Novo formulário" e "Atualizar" na seção "Formulário" do `PropertiesPanel.tsx`; `App.tsx` (`openNewFormScreen`) abre a aba Formulários já em modo de criação; `refreshForms` recarrega `listForms()` sem sair do designer | |
+| [ ] | REQ-04.01.007 | Cada campo de formulário deve possuir um `name` técnico, único no formulário e imutável após criado, substituindo o identificador interno atual como chave de referência do campo. | todo | | requisito novo (refino do EP-04); hoje `FormField` usa `id` interno, sem `name` técnico |
 
 ### FT-04.02 Componentes
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-04.02.001 | O sistema deve suportar componente de texto. | done | back: `FormFieldType.TEXT`; front: `FIELD_TYPE_META.TEXT`, renderizado como rótulo/parágrafo no preview | |
-| [x] | REQ-04.02.002 | O sistema deve suportar campo de entrada. | done | back: `FormFieldType.INPUT`; front: renderizado como `<input>` no preview | |
-| [x] | REQ-04.02.003 | O sistema deve suportar seleção simples. | done | back: `FormFieldType.SINGLE_SELECT`; front: editor de opções + preview `<select>` | |
-| [x] | REQ-04.02.004 | O sistema deve suportar seleção múltipla. | done | back: `FormFieldType.MULTI_SELECT`; front: editor de opções + preview checkboxes | |
-| [x] | REQ-04.02.005 | O sistema deve suportar upload de arquivo. | done | back: `FormFieldType.FILE_UPLOAD`; front: preview `<input type="file">` | |
-| [x] | REQ-04.02.006 | O sistema deve suportar conteúdo estático. | done | back: `FormFieldType.STATIC_CONTENT`; front: renderizado como bloco de conteúdo no preview | |
+| [x] | REQ-04.02.001 | O sistema deve suportar componente de texto. | done | back: `FormFieldType.TEXT`; front: `FIELD_TYPE_META.TEXT`, renderizado como rótulo/parágrafo no preview | absorve o antigo `STATIC_CONTENT` (ver REQ-04.02.006) |
+| [x] | REQ-04.02.002 | O sistema deve suportar campo de entrada. | done | back: `FormFieldType.INPUT`; front: renderizado como `<input>` no preview | subtipo ainda não suportado, ver REQ-04.02.007 |
+| [x] | REQ-04.02.003 | O sistema deve suportar seleção simples. | done | back: `FormFieldType.SINGLE_SELECT`; front: editor de opções + preview `<select>` | opções ainda são só rótulo, ver REQ-04.02.009 |
+| [x] | REQ-04.02.004 | O sistema deve suportar seleção múltipla. | done | back: `FormFieldType.MULTI_SELECT`; front: editor de opções + preview checkboxes | opções ainda são só rótulo, ver REQ-04.02.009 |
+| [x] | REQ-04.02.005 | O sistema deve suportar upload de arquivo. | done | back: `FormFieldType.FILE_UPLOAD`; front: preview `<input type="file">` | sem regra de extensão/tamanho, ver REQ-04.02.010 |
+| [~] | ~~REQ-04.02.006~~ | ~~O sistema deve suportar conteúdo estático.~~ | removido | | colapsado em `TEXT` (REQ-04.02.001); não conta mais no total de requisitos |
+| [ ] | REQ-04.02.007 | O campo `INPUT` deve suportar subtipos: texto, número, e-mail e data. | todo | | requisito novo (refino do EP-04) |
+| [ ] | REQ-04.02.008 | O sistema deve permitir validação de formato por subtipo de `INPUT` (min/max para número; regex/máscara para texto). | todo | | requisito novo (refino do EP-04) |
+| [ ] | REQ-04.02.009 | As opções de seleção simples/múltipla devem ser pares rótulo/valor, não apenas rótulo. | todo | | requisito novo (refino do EP-04); back hoje usa `List<String>` |
+| [ ] | REQ-04.02.010 | O upload de arquivo deve permitir configurar extensões aceitas e tamanho máximo. | todo | | requisito novo (refino do EP-04) |
 
 ### FT-04.03 Reutilização
 
@@ -280,6 +287,13 @@
 |---|---|---|---|---|---|
 | [x] | REQ-04.05.001 | O sistema deve permitir visualizar o formulário durante a edição. | done | front: painel "Preview" fixo em `FormBuilderPage` (`FormPreview`) | |
 | [x] | REQ-04.05.002 | O preview deve refletir alterações em tempo real. | done | front: `FormPreview` renderiza diretamente o state `fields` da própria página, sem etapa de sincronização | |
+
+### FT-04.06 Imutabilidade e serialização para publicação
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.06.001 | Ao publicar uma jornada, o conteúdo de cada formulário referenciado pelas User Tasks deve ser copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras no formulário original. | done | back: `PublicationRepositoryAdapter.save` copia `Form`/`FormField` para `SnapshotFormRecord`/`FormFieldRecord` e persiste como JSON da publicação, independente da linha mutável do formulário | requisito novo (refino do EP-04), documentando comportamento já existente no código |
+| [ ] | REQ-04.06.002 | O snapshot de publicação deve conter, para cada formulário, uma representação em árvore `[tag, props, children]` (SDUI), derivada do conteúdo congelado do formulário. | todo | | requisito novo (refino do EP-04); requer serializer form→árvore, ainda não implementado |
 
 ---
 
@@ -617,6 +631,7 @@ appender.
 
 | Data | Alteração |
 |---|---|
+| 2026-08-09 | EP-04 (Formulários/SDUI) refinado com foco em compatibilidade com o formato de renderização SDUI (`[tag, props, children]`) usado pelas ferramentas de renderização React/Flutter. `REQ-04.02.006` (`STATIC_CONTENT`) removido/colapsado em `TEXT` — mesmo modelo de dados, diferença só visual. Adicionados `REQ-04.01.007` (`name` técnico do campo, único e imutável, substituindo o `id` interno), `REQ-04.02.007`-`REQ-04.02.010` (subtipo/validação de `INPUT`, opções como pares rótulo/valor, regras de extensão/tamanho em `FILE_UPLOAD`) e a nova `FT-04.06` (`REQ-04.06.001`, já implementado pelo `PublicationRepositoryAdapter` — imutabilidade do formulário no snapshot de publicação; `REQ-04.06.002`, novo — serialização do formulário para árvore SDUI no momento da publicação). Nenhum código alterado nesta rodada, só documentação (`ej-admin-requisitos.md`, `progresso.md`, modelo conceitual/físico, dicionário de dados, arquitetura lógica, OpenAPI e nota de aviso na massa de dados de seed). Itens fora do MVP (fontes de dados dinâmicas para opções, `$dataSource`, prefetch, paginação de opções, formulários multi-etapas) registrados em `§5 Fora do Escopo do MVP → Formulários Avançados`. Nomenclatura dos documentos de modelo de dados alinhada de `FormComponent`/`component_id` para `FormField`/`name`, batendo com o domínio já implementado no back. |
 | 2026-08-09 | "Desativar jornada" removido: com "Excluir" já cobrindo o caso (soft-delete para `INACTIVE` quando a jornada já foi publicada, exclusão física quando não), manter um botão de desativação manual separado — que virava a jornada `INACTIVE` sem tocar nas versões, resultado diferente e inconsistente com o significado que `INACTIVE` passou a ter (jornada excluída) — não fazia mais sentido. Removidos `DeactivateJourney` (back), `POST /journeys/{id}/deactivate`, `deactivateJourney` (front), estado `deactivatingJourney`, seu `ConfirmDialog` e o botão (ícone `PowerOff`) do grid de jornadas. REQ-02.01.006 reformulado para falar só de bloqueio de exclusão (não mais "desativação ou exclusão"); REQ-06.05.001 com evidência atualizada para `DeleteJourney`. `Journey.deactivate()` (método de domínio) continua existindo — é o que `DeleteJourney` chama internamente no caminho de soft-delete. |
 | 2026-08-09 | REQ-02.01.009 estendido: além de editar, uma jornada `INACTIVE` também não pode ser excluída de novo (era possível reexecutar `DELETE` sem efeito colateral perigoso, mas sem sentido de produto). `DeleteJourney` passou a checar `journey.status == INACTIVE` logo no início e lançar `JourneyInactiveException` (409), mesma exceção do bloqueio de edição — mensagem generalizada de "Cannot edit" para "Cannot modify an inactive journey" para cobrir os dois casos. Front: botão "Excluir" também desabilitado (cinza, sem clique) para jornadas `INACTIVE` em `JourneysPage`, ao lado do "Editar" já desabilitado. Testado via curl: 409 em `DELETE /journeys/{id}` para jornada `INACTIVE`. |
 | 2026-08-09 | REQ-02.01.007 removido: reativar uma jornada `INACTIVE` deixou de fazer sentido, já que `INACTIVE` agora significa "jornada excluída" (REQ-02.01.005/008), não mais um estado reversível de "pausada". Removidos `ActivateJourney` (back), `POST /journeys/{id}/activate`, `Journey.activate()`, `activateJourney` (front) e o botão "Ativar" do grid de jornadas. REQ-02.01.009 novo em seu lugar: jornada `INACTIVE` não pode mais ser editada — `UpdateJourney` e `UpdateFlow` passam a checar `journey.status == INACTIVE` e lançam a nova `JourneyInactiveException` (409); front desabilita visualmente o botão "Editar" (`IconAction` ganhou suporte a `disabled`) para essas jornadas. Testado via curl: 409 em ambos os endpoints para jornada `INACTIVE`, endpoint de ativar removido (rota inexistente). |

@@ -168,29 +168,40 @@ Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVEN
 
 ---
 
-# 11. FormComponent
+# 11. FormField
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
-| ComponentId | UUID | Sim | Identificador do componente |
+| Name | VARCHAR(80) | Sim | Chave técnica do campo: definida pelo usuário, única dentro do formulário, imutável após criada. Substitui o antigo identificador interno gerado pelo sistema. |
 | FormId | UUID | Sim | Formulário ao qual pertence |
-| ComponentType | VARCHAR(50) | Sim | Tipo do componente |
+| FieldType | VARCHAR(50) | Sim | Tipo do campo |
+| InputSubtype | VARCHAR(20) | Não | Subtipo de entrada, aplicável apenas quando `FieldType = INPUT` |
 | Label | VARCHAR(200) | Não | Rótulo apresentado ao usuário |
 | HelpText | TEXT | Não | Texto de ajuda |
 | Required | BOOLEAN | Sim | Indica preenchimento obrigatório |
 | DefaultValue | TEXT | Não | Valor padrão |
 | DisplayOrder | INTEGER | Sim | Ordem de apresentação |
-| Configuration | JSONB | Não | Configuração específica do componente |
+| Configuration | JSONB | Não | Configuração específica do campo: opções `{label, value}` (`SINGLE_SELECT`/`MULTI_SELECT`), validação de formato (min/max para `NUMBER`, regex/máscara para `TEXT`) e regras de arquivo aceito — extensões e tamanho máximo — (`FILE_UPLOAD`) |
 
-## Valores de ComponentType
+## Valores de FieldType
 
 ```text
 TEXT
 INPUT
-SELECT
-MULTISELECT
-UPLOAD
-CONTENT
+SINGLE_SELECT
+MULTI_SELECT
+FILE_UPLOAD
+```
+
+> `STATIC_CONTENT` foi colapsado em `TEXT` (mesmo modelo de dados, diferença apenas de apresentação visual).
+
+## Valores de InputSubtype (quando FieldType = INPUT)
+
+```text
+TEXT
+NUMBER
+EMAIL
+DATE
 ```
 
 ---
@@ -333,7 +344,7 @@ Auditoria não deve armazenar senhas, tokens, secrets ou credenciais.
 | IntegrationTaskConfig | Configuração de integração e conector de uma Service Task, Receive Task ou Message Start Event |
 | ConnectorType | Tipo de conector habilitado ou catalogado como desabilitado |
 | UserTaskConfig | Associação entre User Task e Form |
-| Form / FormComponent | Formulário e componentes visuais |
+| Form / FormField | Formulário e campos que o compõem |
 | SimulationExecution / Step / Result | Execução simulada, etapas e resultado |
 | JourneyPublication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 

@@ -1,6 +1,13 @@
 -- Seed ~50 journeys with 2-5 versions each, reusing "Primeira jornada V2"'s
 -- channel/product/form and flow shape (only journey_id/name/status vary).
 --
+-- ATENÇÃO: o bloco v_forms abaixo usa o formato de FormField anterior ao
+-- refino do EP-04 (id em vez de name, options como string, tipo STATIC_CONTENT).
+-- Ele é válido apenas enquanto o schema/código do form ainda não foi migrado
+-- para o novo modelo (name técnico, options {label,value}, sem STATIC_CONTENT,
+-- ver ej-admin-requisitos.md FT-04.01/04.02/04.06). Atualizar este seed quando
+-- essa migração for implementada.
+--
 -- Não é uma stored procedure: é um script SQL avulso com um bloco anônimo PL/pgSQL
 -- (DO $$ ... $$), que executa uma vez e não fica salvo no banco como objeto (ao
 -- contrário de uma function/procedure, que precisaria de CREATE e ficaria disponível

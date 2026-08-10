@@ -361,15 +361,20 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 #### REQ-04.01.004 - O sistema deve permitir associar formulários a User Tasks.
 #### REQ-04.01.005 - O sistema deve permitir manter uma User Task sem formulário associado.
 #### REQ-04.01.006 - Ao associar um formulário a uma User Task no editor de fluxo, o sistema deve permitir criar um novo formulário sem sair do editor, sendo levado à tela de criação, e deve permitir atualizar a lista de formulários disponíveis para refletir formulários criados nesse meio-tempo.
+#### REQ-04.01.007 - Cada campo de formulário deve possuir um `name` técnico, definido pelo usuário, único dentro do formulário e imutável após a criação do campo; o `name` substitui o identificador interno anteriormente usado para referenciar o campo.
 ---
 
 ### FT-04.02 Componentes
-#### REQ-04.02.001 - O sistema deve suportar componente de texto.
-#### REQ-04.02.002 - O sistema deve suportar campo de entrada.
+#### REQ-04.02.001 - O sistema deve suportar componente de texto (`TEXT`), que também cobre o uso anteriormente coberto por um tipo de conteúdo estático separado.
+#### REQ-04.02.002 - O sistema deve suportar campo de entrada (`INPUT`).
 #### REQ-04.02.003 - O sistema deve suportar seleção simples.
 #### REQ-04.02.004 - O sistema deve suportar seleção múltipla.
 #### REQ-04.02.005 - O sistema deve suportar upload de arquivo.
-#### REQ-04.02.006 - O sistema deve suportar conteúdo estático.
+#### ~~REQ-04.02.006~~ - ~~O sistema deve suportar conteúdo estático.~~ **Removido**: o tipo `STATIC_CONTENT` foi colapsado em `TEXT` (REQ-04.02.001); os dois tipos tinham o mesmo modelo de dados e divergiam apenas no estilo visual de apresentação.
+#### REQ-04.02.007 - O campo `INPUT` deve suportar subtipos de entrada: texto livre, número, e-mail e data.
+#### REQ-04.02.008 - O sistema deve permitir configurar validação de formato por subtipo de `INPUT`: faixa mínima/máxima para o subtipo número; expressão regular/máscara para o subtipo texto.
+#### REQ-04.02.009 - As opções de campos de seleção simples e múltipla devem ser definidas como pares rótulo/valor (não apenas um rótulo), permitindo que o valor técnico persistido seja diferente do texto exibido ao usuário.
+#### REQ-04.02.010 - O campo de upload de arquivo deve permitir configurar as extensões de arquivo aceitas e o tamanho máximo do arquivo.
 ---
 
 ### FT-04.03 Reutilização
@@ -384,6 +389,13 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 ### FT-04.05 Preview
 #### REQ-04.05.001 - O sistema deve permitir visuali zar o formulário durante a edição.
 #### REQ-04.05.002 - O preview deve refletir alterações em tempo real.
+---
+
+### FT-04.06 Imutabilidade e serialização para publicação
+#### REQ-04.06.001 - Ao publicar uma jornada, o conteúdo de cada formulário referenciado pelas User Tasks da versão publicada deve ser copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras feitas no formulário original (mesmo princípio de congelamento aplicado à versão da jornada no EP-06).
+#### REQ-04.06.002 - O snapshot de publicação deve conter, para cada formulário, uma representação em árvore de nós no formato `[tag, props, children]` (estilo hyperscript/SDUI), derivada do conteúdo congelado do formulário no momento da publicação. Essa árvore é uma projeção de leitura gerada a partir do modelo de campos; o modelo de campos (não a árvore) continua sendo a fonte de dados editável no form builder.
+---
+
 ---
 
 <br/>
@@ -643,4 +655,10 @@ Seções
 Exibição condicional
 
 Organização dinâmica de campos
+
+Formulários multi-etapas (wizard)
+
+Fontes de dados dinâmicas para opções de campo (ex.: REST, com diretiva de vínculo tipo $dataSource e estratégia de prefetch no servidor ou no cliente)
+
+Paginação de opções carregadas dinamicamente
 ```

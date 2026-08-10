@@ -239,19 +239,27 @@ flowchart LR
 
 ---
 
-# 11. Form e Form Component
+# 11. Form e Form Field
 
 ## Form
 
 Formulário reutilizável associado a uma ou mais User Tasks.
 
-## Form Component — Tipos MVP
+## Form Field — Tipos MVP
 
 ```text
-TEXT, INPUT, SELECT, MULTISELECT, UPLOAD, CONTENT
+TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD
 ```
 
-Um formulário pode ser utilizado por User Tasks de jornadas diferentes. A publicação inclui uma cópia do formulário utilizado pela jornada.
+> Nomenclatura alinhada ao domínio implementado (`FormField`/`FormFieldType`). O tipo `STATIC_CONTENT`, que existia como tipo separado, foi colapsado em `TEXT` — os dois tinham o mesmo modelo de dados e divergiam apenas na apresentação visual.
+
+Cada campo (`Form Field`) possui um `name` técnico, único dentro do formulário e imutável após a criação, usado como chave de referência do campo (substitui o identificador interno usado antes do refino do EP-04).
+
+- `INPUT` possui um subtipo (texto, número, e-mail, data), com validação de formato associada (faixa mínima/máxima para número; regex/máscara para texto).
+- `SINGLE_SELECT`/`MULTI_SELECT` possuem opções como pares rótulo/valor (não apenas rótulo).
+- `FILE_UPLOAD` possui configuração de extensões aceitas e tamanho máximo do arquivo.
+
+Um formulário pode ser utilizado por User Tasks de jornadas diferentes. Ao publicar uma jornada, o conteúdo de cada formulário referenciado é copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras no formulário original (mesmo princípio de congelamento do versionamento de jornada). O snapshot de publicação também guarda, para cada formulário, uma representação derivada em árvore de nós no formato `[tag, props, children]` (estilo SDUI/hyperscript) — uma projeção de leitura gerada a partir do Form Field congelado, e não um formato de armazenamento do form em edição.
 
 ---
 

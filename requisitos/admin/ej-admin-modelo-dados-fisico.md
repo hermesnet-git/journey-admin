@@ -54,7 +54,7 @@ flow
 flow_node
 flow_connection
 form
-form_component
+form_field
 user_task_config
 simulation_execution
 simulation_step
@@ -215,14 +215,17 @@ CREATE TABLE form (
 
 ---
 
-# 12. Tabela FormComponent
+# 12. Tabela FormField
 
 ```sql
-CREATE TABLE form_component (
-    component_id UUID PRIMARY KEY,
+CREATE TABLE form_field (
+    name VARCHAR(80) NOT NULL,
     form_id UUID NOT NULL,
-    component_type VARCHAR(50) NOT NULL CHECK (
-        component_type IN ('TEXT', 'INPUT', 'SELECT', 'MULTISELECT', 'UPLOAD', 'CONTENT')
+    field_type VARCHAR(50) NOT NULL CHECK (
+        field_type IN ('TEXT', 'INPUT', 'SINGLE_SELECT', 'MULTI_SELECT', 'FILE_UPLOAD')
+    ),
+    input_subtype VARCHAR(20) CHECK (
+        input_subtype IN ('TEXT', 'NUMBER', 'EMAIL', 'DATE')
     ),
     label VARCHAR(200),
     help_text TEXT,
@@ -230,10 +233,13 @@ CREATE TABLE form_component (
     default_value TEXT,
     display_order INTEGER NOT NULL,
     configuration JSONB,
+    PRIMARY KEY (form_id, name),
     FOREIGN KEY (form_id) REFERENCES form(form_id),
     UNIQUE (form_id, display_order)
 );
 ```
+
+`name` é a chave técnica do campo (substitui o antigo `component_id` gerado pelo sistema): definida pelo usuário, única dentro do formulário e imutável após a criação. `input_subtype` só se aplica a `field_type = 'INPUT'`. `configuration` (JSONB) guarda, conforme o tipo/subtipo: opções como pares `{label, value}` (`SINGLE_SELECT`/`MULTI_SELECT`), validação de formato — faixa mínima/máxima para `NUMBER`, regex/máscara para `TEXT` — e regras de arquivo aceito — extensões e tamanho máximo — para `FILE_UPLOAD`.
 
 ---
 
@@ -391,7 +397,7 @@ Registros de auditoria são protegidos contra edição e remoção por operaçõ
 | flow_node | node_id |
 | flow_connection | connection_id |
 | form | form_id |
-| form_component | component_id |
+| form_field | (form_id, name) |
 | user_task_config | node_id |
 | simulation_execution | simulation_id |
 | simulation_step | step_id |
@@ -412,7 +418,7 @@ Registros de auditoria são protegidos contra edição e remoção por operaçõ
 | flow_node.flow_id | flow.flow_id |
 | flow_connection.(flow_id, source_node_id) | flow_node.(flow_id, node_id) |
 | flow_connection.(flow_id, target_node_id) | flow_node.(flow_id, node_id) |
-| form_component.form_id | form.form_id |
+| form_field.form_id | form.form_id |
 | user_task_config.node_id | flow_node.node_id |
 | user_task_config.form_id | form.form_id |
 | simulation_execution.journey_id | journey.journey_id |
@@ -445,7 +451,7 @@ CREATE INDEX idx_flow_node_type ON flow_node(node_type);
 CREATE INDEX idx_flow_connection_flow ON flow_connection(flow_id);
 
 CREATE INDEX idx_form_status ON form(status);
-CREATE INDEX idx_form_component_form ON form_component(form_id);
+CREATE INDEX idx_form_field_form ON form_field(form_id);
 CREATE INDEX idx_user_task_form ON user_task_config(form_id);
 
 CREATE INDEX idx_simulation_journey ON simulation_execution(journey_id);

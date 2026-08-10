@@ -4,6 +4,7 @@ import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.form.Form;
 import com.jouney.admin.domain.form.FormField;
+import com.jouney.admin.domain.form.FormSduiSerializer;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.domain.publication.PublicationRepository;
 import com.jouney.admin.infrastructure.persistence.flow.FlowConnectionRecord;
@@ -43,10 +44,14 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
                 publication.getForms().stream()
                         .map(f -> new SnapshotFormRecord(f.getId(), f.getName(), f.getDescription(),
                                 f.getFields().stream()
-                                        .map(field -> new FormFieldRecord(field.getId(), field.getType(),
-                                                field.getLabel(), field.isRequired(), field.getDefaultValue(),
-                                                field.getHelpText(), field.getOptions()))
-                                        .toList()))
+                                        .map(field -> new FormFieldRecord(field.getName(), field.getType(),
+                                                field.getInputSubtype(), field.getLabel(), field.isRequired(),
+                                                field.getDefaultValue(), field.getHelpText(), field.getOptions(),
+                                                field.getMinValue(), field.getMaxValue(),
+                                                field.getValidationPattern(), field.getAcceptedExtensions(),
+                                                field.getMaxFileSizeBytes()))
+                                        .toList(),
+                                FormSduiSerializer.serialize(f)))
                         .toList());
 
         PublicationJpaEntity entity = new PublicationJpaEntity(publication.getId(), publication.getJourneyId(),
@@ -73,8 +78,11 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
         List<Form> forms = record.forms().stream()
                 .map(f -> new Form(f.id(), f.name(), f.description(),
                         f.fields().stream()
-                                .map(field -> new FormField(field.id(), field.type(), field.label(), field.required(),
-                                        field.defaultValue(), field.helpText(), field.options()))
+                                .map(field -> new FormField(field.name(), field.type(), field.inputSubtype(),
+                                        field.label(), field.required(), field.defaultValue(), field.helpText(),
+                                        field.options(), field.minValue(), field.maxValue(),
+                                        field.validationPattern(), field.acceptedExtensions(),
+                                        field.maxFileSizeBytes()))
                                 .toList(),
                         entity.getCreatedAt(), entity.getUpdatedAt()))
                 .toList();

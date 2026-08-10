@@ -1,15 +1,27 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './client';
 
-export type FormFieldType = 'TEXT' | 'INPUT' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'FILE_UPLOAD' | 'STATIC_CONTENT';
+export type FormFieldType = 'TEXT' | 'INPUT' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'FILE_UPLOAD';
+export type InputSubtype = 'TEXT' | 'NUMBER' | 'EMAIL' | 'DATE';
+
+export interface FormFieldOption {
+  label: string;
+  value: string;
+}
 
 export interface FormField {
-  id: string;
+  name: string;
   type: FormFieldType;
+  inputSubtype: InputSubtype | null;
   label: string;
   required: boolean;
   defaultValue: string | null;
   helpText: string | null;
-  options: string[] | null;
+  options: FormFieldOption[] | null;
+  minValue: number | null;
+  maxValue: number | null;
+  validationPattern: string | null;
+  acceptedExtensions: string[] | null;
+  maxFileSizeBytes: number | null;
 }
 
 export interface Form {

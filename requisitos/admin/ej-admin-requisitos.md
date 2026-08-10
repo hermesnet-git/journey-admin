@@ -599,66 +599,48 @@ por uma stack de observabilidade centralizada (ELK).
 
 ## Evolução de Plataforma
 ```text
+Governança Corporativa
 Workflow de Aprovação
-
-Comparação (diff) visual entre versões de uma jornada
-
 Publicação Agendada
-
 Rollback
-
 Promotion Between Environments
-
 Analytics
-
 IA Assistida
-
 Gestão de Tenants
 
-Governança Corporativa
 ```
-## Produtividade Avançada
+## Modelagem Visual
 
 ```text
 Criação rápida de elementos
-
 Seleção múltipla
-
 Duplicação em massa
-
 Criação automática de próximos passos
 ```
 
-## Reutilização
+## Jornadas e Versionamento
 
 ```text
 Clonagem de jornadas entre canais
-
 Templates de jornadas
-
 Biblioteca de componentes de formulário
+Comparação (diff) visual entre versões de uma jornada
 ```
 
 ## Simulação Avançada
 
 ```text
 Debug completo por etapa
-
 Visualização dos dados de formulário por etapa
 ```
 
-## Formulários Avançados
+## Formulários Avançados (SDUI)
 
 ```text
 Seções
-
 Exibição condicional
-
 Organização dinâmica de campos
-
 Formulários multi-etapas (wizard)
-
-Fontes de dados dinâmicas para opções de campo (ex.: REST, com diretiva de vínculo tipo $dataSource e estratégia de prefetch no servidor ou no cliente)
-
+Fontes de dados dinâmicas - $dataSource e estratégia de prefetch no servidor ou no cliente
 Paginação de opções carregadas dinamicamente
 ```

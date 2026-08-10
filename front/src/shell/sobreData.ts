@@ -359,7 +359,7 @@ export const EPICS: Epic[] = [
             'REQ-04.01.006',
             'Ao associar formulário a uma User Task, o editor deve permitir criar um novo formulário sem sair do editor de fluxo e atualizar a lista de formulários disponíveis.',
           ),
-          todo(
+          d(
             'REQ-04.01.007',
             'Cada campo de formulário deve possuir um name técnico, único no formulário e imutável após criado, substituindo o identificador interno atual como chave de referência do campo.',
           ),
@@ -374,16 +374,16 @@ export const EPICS: Epic[] = [
           d('REQ-04.02.003', 'O sistema deve suportar seleção simples.'),
           d('REQ-04.02.004', 'O sistema deve suportar seleção múltipla.'),
           d('REQ-04.02.005', 'O sistema deve suportar upload de arquivo.'),
-          todo('REQ-04.02.007', 'O campo INPUT deve suportar subtipos: texto, número, e-mail e data.'),
-          todo(
+          d('REQ-04.02.007', 'O campo INPUT deve suportar subtipos: texto, número, e-mail e data.'),
+          d(
             'REQ-04.02.008',
             'O sistema deve permitir validação de formato por subtipo de INPUT (min/max para número; regex/máscara para texto).',
           ),
-          todo(
+          d(
             'REQ-04.02.009',
             'As opções de seleção simples/múltipla devem ser pares rótulo/valor, não apenas rótulo.',
           ),
-          todo('REQ-04.02.010', 'O upload de arquivo deve permitir configurar extensões aceitas e tamanho máximo.'),
+          d('REQ-04.02.010', 'O upload de arquivo deve permitir configurar extensões aceitas e tamanho máximo.'),
         ],
       },
       {
@@ -419,7 +419,7 @@ export const EPICS: Epic[] = [
             'REQ-04.06.001',
             'Ao publicar uma jornada, o conteúdo de cada formulário referenciado pelas User Tasks deve ser copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras no formulário original.',
           ),
-          todo(
+          d(
             'REQ-04.06.002',
             'O snapshot de publicação deve conter, para cada formulário, uma representação em árvore [tag, props, children] (SDUI), derivada do conteúdo congelado do formulário.',
           ),
@@ -770,7 +770,7 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
     ],
   },
   {
-    title: 'Produtividade Avançada',
+    title: 'Modelagem Visual',
     items: [
       'Criação rápida de elementos',
       'Seleção múltipla',
@@ -779,27 +779,28 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
     ],
   },
   {
-    title: 'Reutilização',
-    items: ['Clonagem de jornadas entre canais', 'Templates de jornadas', 'Biblioteca de componentes de formulário'],
+    title: 'Jornadas e Versionamento',
+    items: [
+      'Clonagem de jornadas entre canais',
+      'Templates de jornadas',
+      'Biblioteca de componentes de formulário',
+      'Comparação (diff) visual entre versões de uma jornada',
+    ],
   },
   {
     title: 'Simulação Avançada',
     items: ['Debug completo por etapa', 'Visualização dos dados de formulário por etapa'],
   },
   {
-    title: 'Formulários Avançados',
+    title: 'Formulários Avançados (SDUI)',
     items: [
       'Seções',
       'Exibição condicional',
       'Organização dinâmica de campos',
       'Formulários multi-etapas (wizard)',
-      'Fontes de dados dinâmicas para opções de campo (ex.: REST, com diretiva de vínculo tipo $dataSource e estratégia de prefetch no servidor ou no cliente)',
+      'Fontes de dados dinâmicas - $dataSource e estratégia de prefetch no servidor ou no cliente',
       'Paginação de opções carregadas dinamicamente',
     ],
-  },
-  {
-    title: 'Evolução da Gestão de Jornadas',
-    items: ['Comparação (diff) visual entre versões de uma jornada'],
   },
 ];
 
@@ -820,166 +821,172 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
     date: '2026-08-09',
     source: 'progresso',
     summary:
+      'EP-04 (Formulários/SDUI) implementado: FormField.id→name (chave técnica única, imutável após criada, validada em Form.create via DuplicateFieldNameException, 422); options migrado de List<String> para FormFieldOption(label,value); InputSubtype (TEXT/NUMBER/EMAIL/DATE) com minValue/maxValue/validationPattern; FILE_UPLOAD com acceptedExtensions/maxFileSizeBytes; novo FormSduiSerializer gera a árvore [tag,props,children] (ui.form/ui.text/ui.input/ui.select/ui.multiselect/ui.upload), persistida no campo sdui de SnapshotFormRecord em PublicationRepositoryAdapter/JourneyVersionRepositoryAdapter. Sem migration — os campos do formulário já eram um blob JSON, não colunas relacionais. Compatibilidade retroativa: FormFieldOption.LegacyDeserializer aceita o formato antigo (string simples) e FormFieldType.fromJson mapeia o extinto STATIC_CONTENT para TEXT, para publicações/versões já existentes no banco continuarem legíveis (a validação de nome único também não roda na reidratação a partir de snapshot, só na criação/edição pelo usuário). Front (FormBuilderPage.tsx): campo "Nome técnico" (travado para campos pré-existentes), seletor de subtipo com min/max ou regex condicionais, editor de opções rótulo+valor, configuração de extensões/tamanho em upload. Testado via curl ponta a ponta (criação com os novos campos, rejeição de nome duplicado, publicação de jornada com inspeção direta do snapshot no Postgres confirmando a árvore SDUI) e build de produção do front (tsc -b && vite build).',
+  },
+  {
+    date: '2026-08-09 22:11',
+    source: 'progresso',
+    summary:
       'EP-04 (Formulários/SDUI) refinado com foco em compatibilidade com o formato de renderização SDUI ([tag, props, children]) usado pelas ferramentas de renderização React/Flutter. REQ-04.02.006 (STATIC_CONTENT) removido/colapsado em TEXT — mesmo modelo de dados, diferença só visual. Adicionados REQ-04.01.007 (name técnico do campo, único e imutável, substituindo o id interno), REQ-04.02.007-REQ-04.02.010 (subtipo/validação de INPUT, opções como pares rótulo/valor, regras de extensão/tamanho em FILE_UPLOAD) e a nova FT-04.06 (REQ-04.06.001, já implementado pelo PublicationRepositoryAdapter — imutabilidade do formulário no snapshot de publicação; REQ-04.06.002, novo — serialização do formulário para árvore SDUI no momento da publicação). Nenhum código alterado nesta rodada, só documentação (ej-admin-requisitos.md, progresso.md, modelo conceitual/físico, dicionário de dados, arquitetura lógica, OpenAPI e nota de aviso na massa de dados de seed). Itens fora do MVP (fontes de dados dinâmicas para opções, $dataSource, prefetch, paginação de opções, formulários multi-etapas) registrados em §5 Fora do Escopo do MVP → Formulários Avançados. Nomenclatura dos documentos de modelo de dados alinhada de FormComponent/component_id para FormField/name, batendo com o domínio já implementado no back.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 03:13',
     source: 'progresso',
     summary:
       '"Desativar jornada" removido: com "Excluir" já cobrindo o caso (soft-delete para INACTIVE quando a jornada já foi publicada, exclusão física quando não), manter um botão de desativação manual separado — que virava a jornada INACTIVE sem tocar nas versões, resultado diferente e inconsistente com o significado que INACTIVE passou a ter (jornada excluída) — não fazia mais sentido. Removidos DeactivateJourney (back), POST /journeys/{id}/deactivate, deactivateJourney (front), estado deactivatingJourney, seu ConfirmDialog e o botão (ícone PowerOff) do grid de jornadas. REQ-02.01.006 reformulado para falar só de bloqueio de exclusão; REQ-06.05.001 com evidência atualizada para DeleteJourney. Journey.deactivate() (método de domínio) continua existindo — é o que DeleteJourney chama internamente no caminho de soft-delete.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 03:04',
     source: 'progresso',
     summary:
       'REQ-02.01.009 estendido: além de editar, uma jornada INACTIVE também não pode ser excluída de novo. DeleteJourney passou a checar journey.status == INACTIVE logo no início e lançar JourneyInactiveException (409), mesma exceção do bloqueio de edição — mensagem generalizada de "Cannot edit" para "Cannot modify an inactive journey" para cobrir os dois casos. Front: botão "Excluir" também desabilitado (cinza, sem clique) para jornadas INACTIVE em JourneysPage, ao lado do "Editar" já desabilitado.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 03:04',
     source: 'progresso',
     summary:
       'REQ-02.01.007 removido: reativar uma jornada INACTIVE deixou de fazer sentido, já que INACTIVE agora significa "jornada excluída" (REQ-02.01.005/008), não mais um estado reversível de "pausada". Removidos ActivateJourney (back), POST /journeys/{id}/activate, Journey.activate(), activateJourney (front) e o botão "Ativar" do grid de jornadas. REQ-02.01.009 novo em seu lugar: jornada INACTIVE não pode mais ser editada — UpdateJourney e UpdateFlow passam a checar journey.status == INACTIVE e lançam a nova JourneyInactiveException (409); front desabilita visualmente o botão "Editar" (IconAction ganhou suporte a disabled) para essas jornadas.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 03:04',
     source: 'progresso',
     summary:
       'REQ-02.01.005/006/008 revisados e VersionStatus.ARCHIVED aposentado, virando INACTIVE com significado novo. Antes, DeleteJourney bloqueava (409, JourneyDeletionBlockedException, removida) a exclusão de qualquer jornada que já tivesse sido publicada, mesmo há muito despublicada — bug relatado (jornada "Troca de titularidade 15", só com versões despublicadas/arquivadas, não podia ser excluída). Agora: se a jornada está PUBLISHED no momento, bloqueia (409, mesma guarda ActivePublicationPort.existsForJourney de DeactivateJourney); senão, se já foi publicada alguma vez, faz soft-delete — journey.deactivate() + JourneyVersion.deactivate() (novo status INACTIVE) em cada versão, tudo dentro de um @Transactional novo no método; senão (nunca publicada), exclusão física como antes. Migration V2__replace_archived_version_status_with_inactive.sql: converte as ARCHIVED existentes (só dado sintético de seed) para UNPUBLISHED, e a CHECK constraint passa a aceitar (DRAFT, PUBLISHED, UNPUBLISHED, INACTIVE). De quebra, corrigido bug latente: excluir fisicamente uma jornada nunca publicada falhava por violação de FK (suas journey_version/flow não eram apagadas antes) — DeleteJourney agora apaga essas dependências primeiro. Front: VersionStatus e o badge de status de versão trocam ARCHIVED/"Arquivada" por INACTIVE/"Inativa"; diálogo e toast de exclusão de jornada diferenciam exclusão física de soft-delete.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 03:04',
     source: 'progresso',
     summary:
       'REQ-06.04.011 revisado: qualquer versão UNPUBLISHED de uma jornada pode ser republicada agora, não só a mais recente. RepublishJourneyVersion simplificado — removida a checagem isLatestUnpublished e a exceção VersionNotLatestUnpublishedException (409, também removida do GlobalExceptionHandler); passou a só validar que a versão é UNPUBLISHED antes de delegar em PublishJourneyVersion.goLive. Front: botão "Republicar" agora aparece em toda versão UNPUBLISHED da lista, não só na mais recente.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 03:04',
     source: 'progresso',
     summary:
       'REQ-06.04.004/011 corrigidos: ao publicar uma nova versão (inclusive via republicação), a versão anteriormente PUBLISHED agora é marcada como UNPUBLISHED, não mais ARCHIVED — ARCHIVED fica reservado a versões legadas, sem uso em nenhum fluxo atual. PublishJourneyVersion.goLive passou a chamar previous.unpublish() em vez de previous.archive(); textos de requisito, comentários e o diálogo de confirmação de republicação (JourneysPage) atualizados de "arquivada" para "despublicada". Sem mudança de contagem de REQs (ambos continuam done), só de comportamento/redação.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 01:12',
     source: 'progresso',
     summary:
       'REQ-06.03.006 removido: a opção "Ver" (abria o snapshot JSON de uma versão em modal somente-leitura) foi tirada do grid de jornadas — decisão de produto, sem substituto no MVP. Registrada como fora de escopo, em nova seção "Evolução da Gestão de Jornadas" em ej-admin-requisitos.md §5, a comparação (diff) visual entre versões de uma jornada — não havia nada equivalente registrado até então.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 01:12',
     source: 'progresso',
     summary:
       'REQ-06.04.011/012 implementados: republicar a versão UNPUBLISHED mais recente de uma jornada. Backend: PublishJourneyVersion refatorado — extraído goLive(journeyId, version, previousStatus, auditAction) (validação de canal/produto ativos, checagem de flow, publicação no runtime, arquivamento da PUBLISHED atual) do antigo execute(), agora reaproveitado por execute() (DRAFT) e pelo novo RepublishJourneyVersion (UNPUBLISHED). RepublishJourneyVersion valida que a versão é UNPUBLISHED e que é a mais recente entre as UNPUBLISHED da jornada antes de delegar. Endpoint POST /journeys/{id}/versions/{versionId}/republish. Front: botão "Republicar" só na versão UNPUBLISHED mais recente, com ConfirmDialog cuja mensagem muda se já existe uma PUBLISHED que será substituída/arquivada. De quebra, corrigido texto desatualizado no diálogo de despublicar que ainda dizia "passa a arquivada".',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 01:12',
     source: 'progresso',
     summary:
       'REQ-06.04.011/012 novos (ainda não implementados): republicar a versão UNPUBLISHED mais recente de uma jornada, voltando-a a PUBLISHED sem alterar seu snapshot. Se já houver uma versão PUBLISHED na jornada (possível: publicar um DRAFT novo depois de despublicar deixa a versão antiga UNPUBLISHED coexistindo com a nova PUBLISHED), essa versão deve ser arquivada e o usuário avisado/consultado antes de confirmar a substituição — mesmo padrão de REQ-06.02.009/010. Republicar não é rollback: só a UNPUBLISHED mais recente pode ser republicada, ARCHIVED continua fora de alcance (REQ-06.05.004).',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 00:35',
     source: 'progresso',
     summary:
       'Migrations Flyway resetadas: as antigas V1...V9/V11 foram substituídas por uma única V1__baseline.sql com o schema final resultante de todas elas (motivo: um arquivo de migration antigo — V10__adjust_journey_versioning.sql, nunca commitado — havia rodado contra o banco local e ficado órfão no target/ após ser apagado, quebrando a inicialização do Flyway). Banco local journey_admin recriado do zero; histórico de flyway_schema_history reiniciado. Nenhuma mudança de comportamento da aplicação — é só reorganização das migrations.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 00:35',
     source: 'progresso',
     summary:
       'REQ-06.01.005/06.04.009 corrigidos: versão despublicada agora vira UNPUBLISHED, não ARCHIVED. Novo status UNPUBLISHED em VersionStatus (ARCHIVED continua reservado ao caso de a versão ser substituída por uma nova publicação); migration V11__add_unpublished_version_status.sql estende a CHECK constraint de journey_version.version_status; JourneyVersion ganhou unpublish() ao lado de archive(); UnpublishJourney passou a chamar unpublish() na versão PUBLISHED da jornada. Front: badge "Despublicada" para o novo status em JourneysPage. REQ-06.03.005 atualizado para citar o novo status.',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 00:35',
     source: 'progresso',
     summary:
       'REQ-06.02.009 redefinido: sincronização automática do DRAFT com o fluxo salvo, em vez de só criar uma versão nova quando a jornada estava PUBLISHED. JourneyVersion ganhou replaceContent(...) (permitido só em DRAFT); CreateJourneyVersion.execute agora decide entre atualizar a DRAFT existente in place (mesmo id/versionNumber) ou criar uma nova quando não há nenhuma; UpdateFlow chama isso incondicionalmente a cada salvamento de fluxo; PublishJourney (atalho legado) simplificado pelo mesmo motivo. Corrige o caso relatado: jornada nunca publicada, com fluxo desenhado no designer, cuja v1 (criada vazia junto com a jornada) nunca refletia o fluxo editado — o botão "Publicar" da versão ficava desabilitado (snapshot vazio) mesmo com o fluxo pronto.',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 00:35',
     source: 'progresso',
     summary:
       'REQ-06.04.010 novo: despublicação por versão. Endpoint POST /journeys/{id}/versions/{versionId}/unpublish + UnpublishJourneyVersion (valida que versionId é a versão PUBLISHED da jornada, senão 409 via nova VersionNotPublishedException; delega em UnpublishJourney para reaproveitar runtime-unpublish + arquivamento de versão + journey.unpublish(), em vez de duplicar a regra). Front: botão "Publicar" removido do nível de jornada no grid (JourneysPage) — publicação passa a existir só por versão; nova ação "Despublicar" na linha da versão PUBLISHED, que ao concluir recarrega tanto a lista de versões quanto a jornada (status e "vN publicada" ficam consistentes de imediato). EP-06 avança de 38/38 para 39/39 REQs; progresso geral de 93% (221/238) para 93% (222/239).',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 00:35',
     source: 'progresso',
     summary:
       'REQ-06.04.009 novo: ao despublicar uma jornada (UnpublishJourney), a journey_version PUBLISHED correspondente agora é arquivada (ARCHIVED) antes de gravar journey.unpublish(), preservando o snapshot. Corrige inconsistência em que a versão continuava reportada como PUBLISHED (e o grid de jornadas continuava exibindo "vN publicada") mesmo depois da jornada ser despublicada. EP-06 avança de 37/37 para 38/38 REQs; progresso geral de 93% (220/237) para 93% (221/238).',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 18:46',
     source: 'progresso',
     summary:
       'EP-10 (Observabilidade) novo e implementado por completo: 12/12 REQs. Log técnico de aplicação (distinto da auditoria de negócio do EP-08): HttpRequestLoggingFilter (entrada/saída de toda API, sem log de body, registrado no SecurityConfig antes do filtro de autenticação) e TransactionLoggingAspect (@Around sobre todo @Service de application.*, logando início/commit/rollback de cada transação de persistência). Correlação via X-Correlation-Id (reaproveitado do header ou gerado) propagada por MDC e incluída no pattern do novo logback-spring.xml, cobrindo tanto os logs de API quanto os de transação da mesma requisição/thread. Integração com ELK preparada mas desativada (sem ambiente ELK neste momento) — ver seção "HOW TO — habilitar integração com ELK" no EP-10 para o procedimento de ativação (dependência logstash-logback-encoder + appender TCP + variáveis de ambiente de destino). Build: no Spring Boot 4.1 o starter de AOP foi renomeado de spring-boot-starter-aop para spring-boot-starter-aspectj — usado o novo nome no pom.xml. Progresso geral de 95% (212/224) para 95% (224/236).',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 15:45',
     source: 'progresso',
     summary:
       'EP-09 (Ajuda e Suporte) novo e implementado por completo: 5/5 REQs. Tela de ajuda estática (front/src/shell/HelpPage.tsx) com FAQ agrupado por tema, busca textual e link mailto:sustentacao@telefonica.com; acessível pelo item "Ajuda e suporte" da sidebar (antes um placeholder genérico). Simplificação deliberada: sem ajuda contextual por tela, sem canal de suporte com registro/consulta de solicitações e sem tela de diagnóstico — cortados do escopo por decisão de produto antes da implementação, não fazem parte do backlog. Progresso geral de 95% (207/219) para 95% (212/224).',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 05:59',
     source: 'progresso',
     summary:
       'EP-06 (Versionamento de jornadas), EP-07 (Autenticação e autorização) e EP-08 (Auditoria) implementados, na ordem EP-07 → EP-06 → EP-08 (dependência: versão precisa de usuário autenticado; auditoria precisa de ambos). EP-06: tabela journey_version (V7) + backfill de jornadas existentes (V8), criação automática de versão DRAFT ao criar jornada, publicação de versão arquiva a anterior, snapshot imutável, painel de versões no designer de fluxo — 35/35 REQs. EP-07: token opaco em memória (Authorization: Bearer, expiração por inatividade configurável), usuário mockado admin/admin/ADMIN, papéis ADMIN/EDITOR/VIEWER aplicados via @PreAuthorize em todos os controllers, tela de login com aviso de autenticação mockada — 24/25 REQs (REQ-07.04.002 n/a, sem CRUD de usuário no MVP). EP-08: tabela audit_event (V9), gravação em login/logout/sessão, CRUD de produto/canal/jornada, versões, publicações e acessos negados, consulta com filtros e paginação restrita a ADMIN — 21/22 REQs (REQ-08.02.007 n/a, sem CRUD de papéis no MVP). De quebra, REQ-02.06.004 (que dependia do EP-06) passou de todo para done. Simplificações deliberadas: sem rollback/restauração de versão (REQ-06.05.004, fora de escopo); flow-designer continua editando o estado "vivo" da jornada, versionar tira um snapshot desse estado; ocultação de botões por papel na UI não foi replicada em todas as telas (enforcement real é no backend). Progresso geral de 57% para 95% (207/219; 2 n/a; restam apenas os 10 REQs do EP-05 Simulação).',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 02:37',
     source: 'progresso',
     summary:
       'Escopo do MVP evoluído com EP-06 Versionamento de jornadas, EP-07 Autenticação e autorização e EP-08 Auditoria. A autenticação será representada por provedor externo mockado, com tela de login e usuário admin/admin no perfil ADMIN; os papéis ADMIN, EDITOR e VIEWER foram incluídos. Versões publicadas são imutáveis; restauração/rollback permanece fora do MVP; auditoria não armazena dados sensíveis. Total: 8 EPs, 42 FTs e 220 REQs; 126 concluídos e 94 todo (57%).',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 01:50',
     source: 'progresso',
     summary:
       'REQ-04.01.006 novo: na seção "Formulário" do painel de propriedades (User Task), dois botões de ícone — "Novo formulário" (abre a aba Formulários já em modo de criação, via nova prop onOpenNewForm propagada de App.tsx → JourneysPage → JourneyDesignerPage → PropertiesDock → PropertiesPanel) e "Atualizar" (recarrega listForms() sem sair do editor de fluxo, via refreshForms). FormsPage.tsx ganhou suporte a abrir direto em modo \'new\' (props openNew/onOpenNewHandled), espelhando o padrão já existente de openFormId. Progresso geral de 93% para 93% (arredondamento; 127/137).',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 01:50',
     source: 'progresso',
     summary:
       'REQ-03.09.009 novo: headers (REST e Kafka) ganharam editor dedicado de lista nome/valor (HeadersEditor em PropertiesPanel.tsx) em vez de ficarem dentro do bloco JSON "Configuração adicional". Params/body/payload/mapeamentos de entrada/saída continuam como JSON declarativo — decisão deliberada, já que o formato desses campos (ex.: linguagem de mapeamento) ainda não foi definido em nenhum requisito, então estruturar UI em cima de um contrato não fechado seria prematuro; headers, ao contrário, são sempre par chave/valor simples e universal. Progresso geral de 93% para 93% (arredondamento; 126/136).',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 01:50',
     source: 'progresso',
     summary:
       'Refinamento de conectores após revisão de domínio, com 2 REQs novos (REQ-03.09.007/008): (1) REST deixou de ser oferecido para MESSAGE_START_EVENT — sua config representa uma chamada de saída (método+URL), o que não bate com "iniciar o fluxo a partir de uma mensagem recebida"; só KAFKA continua disponível para esse tipo. (2) A operação Kafka deixou de ser uma escolha livre: agora é implícita pelo tipo de nó (SERVICE_TASK → PRODUCE, RECEIVE_TASK/MESSAGE_START_EVENT → CONSUME), com o campo virando somente-leitura no front. (3) Removida a menção a "fila" na config Kafka (REQ-03.09.004) — Kafka só tem tópico. Implementado em model.ts (CONNECTOR_TYPES_BY_NODE, KAFKA_OPERATION_BY_NODE) e FlowValidator (rejeita REST em MESSAGE_START_EVENT e operação divergente do tipo, ambos 422). Também: painel de propriedades reorganizado em PropertiesDock.tsx (sempre visível, colapsável, redimensionável só na largura, sem botão de fechar), sincronizado com a seleção no canvas; multi-seleção não desenha mais a caixa de agrupamento; novos nós usam findFreeSpot para não empilhar. Progresso geral de 92% para 93%.',
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 01:50',
     source: 'progresso',
     summary:
       'EP-03 (Modelagem Visual) fechado a 100%: FT-03.07/08/09 (18 REQs, incluindo o REQ-03.02.007 que já estava implementado mas não rastreado aqui) implementados por completo. Backend: FlowNodeType ganhou SERVICE_TASK/RECEIVE_TASK/MESSAGE_START_EVENT; novos ConnectorType (REST/KAFKA habilitados, SOAP desabilitado como placeholder) e ConnectorConfig (tipo + config declarativa Map<String,Object> + credentialRef, sem secret) associáveis a esses 3 tipos; FlowValidator estendido (elemento inicial = START ou MESSAGE_START_EVENT, grau de entrada/saída dos novos tipos, conector desabilitado vira violação 422); persistência via JSONB já existente, sem migration nova; snapshot de publicação propaga connectorConfig automaticamente (reaproveita FlowNode/FlowNodeRecord). Frontend: novos tipos no canvas (paleta lateral, ícone, cor, quick-add) e formulário de conector no PropertiesPanel (campos dedicados de método/URL para REST e tópico/operação para Kafka, mais um bloco JSON para headers/params/body/payload/mapeamentos). Corrigido de quebra o REQ-03.01.005: Flow.initial criava START+END já conectados na criação da jornada; agora só cria o START, como o requisito manda. Progresso geral de 80% para 92% (só falta EP-05 Simulação).',
   },
   {
-    date: '2026-08-03',
+    date: '2026-08-03 03:05',
     source: 'progresso',
     summary:
       'EP-06 (Publicação) + EP-07 (Publicação no Runtime) implementados por completo: 16/16 REQs. Backend novo (domain/application/infrastructure/interfaces para publication, migration V6__create_journey_publication.sql, endpoints POST /journeys/{id}/publish|unpublish, filtro ?status= em GET /journeys) e mock do runtime (MockRuntimePublicationAdapter, sempre "sucede"). Isso também deu implementação real aos guard-rails que ficaram stubados até aqui (ActivePublicationPort/HasEverBeenPublishedPort, antes sempre false), fechando de quebra REQ-01.04.003/004/005 e REQ-02.01.006 (eram in_progress) e REQ-02.05.002/003 (eram blocked, já satisfeitos desde EP-03/EP-04). Sem menu novo: publicar/despublicar vive na listagem de Jornadas (JourneysPage), reaproveitando filtros de produto/canal/busca já existentes para o "catálogo de publicações" (basta filtrar por status "Publicadas"). Progresso geral de 69% para 88%, zerando os in_progress/blocked restantes.',
   },
   {
-    date: '2026-08-03',
+    date: '2026-08-03 02:06',
     source: 'progresso',
     summary:
       'EP-04 (Formulários/SDUI) implementado por completo: 18/18 REQs. Backend novo (domain/application/infrastructure/interfaces/form, migration V5__create_form.sql, CRUD /api/v1/forms) e frontend novo (front/src/forms/FormsPage.tsx + FormBuilderPage.tsx, api/forms.ts, item "Formulários" na sidebar). FlowNode.formId (já existente no backend) agora é editável de fato: PropertiesPanel ganhou o seletor "Formulário associado" para nós User Task e JourneyDesignerPage para de mandar formId: null fixo. EP-04 avança de 0% para 100%; progresso geral de 55% para 69%.',
   },
   {
-    date: '2026-08-02',
+    date: '2026-08-02 00:39',
     source: 'progresso',
     summary:
       'Implementados REQ-03.04.004 (copiar) e REQ-03.04.005 (duplicar) via atalhos Ctrl+C/Ctrl+V/Ctrl+D e botão "Duplicar nó" no NodePropertiesPanel, restritos a User Tasks (START/END mantêm regra de unicidade). REQ-03.06.001 (autosave) marcado como n/a: decisão de produto de não implementar no MVP, salvamento permanece manual. EP-03 avança para 25/26 (96%).',
   },
   {
-    date: '2026-08-02',
+    date: '2026-08-02 22:12',
     source: 'progresso',
     summary:
       'Atualização do EP-03 (Modelagem Visual) com base na implementação do Flow Designer: 23/26 REQs concluídos (nós START/END/USER_TASK, conexões, validação estrutural client+server com 422, navegação, drag-and-drop, zoom/pan/fit, undo/redo). Restam todo: copiar elementos, duplicar elementos e salvamento automático.',
   },
   {
-    date: '2026-08-02',
+    date: '2026-08-02 03:56',
     source: 'progresso',
     summary: 'Sincronização com ej-admin-requisitos.md: 122 REQs em 8 EPs / 28 FTs, todos como todo.',
   },

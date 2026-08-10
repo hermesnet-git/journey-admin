@@ -6,7 +6,6 @@ import {
   CircleDot,
   ListChecks,
   Upload,
-  AlignLeft,
   Plus,
   Trash2,
   ChevronUp,
@@ -14,7 +13,15 @@ import {
 } from 'lucide-react';
 import { Field, TextInput, TextArea, PrimaryButton, SecondaryButton, ErrorBanner } from '../products/ui';
 import { useAppTheme } from '../shell/theme';
-import { createForm, updateForm, type Form, type FormField, type FormFieldType, type FormInput } from '../api/forms';
+import {
+  createForm,
+  updateForm,
+  type Form,
+  type FormField,
+  type FormFieldType,
+  type InputSubtype,
+  type FormInput,
+} from '../api/forms';
 
 const FIELD_TYPE_META: Record<FormFieldType, { label: string; icon: typeof Type }> = {
   TEXT: { label: 'Texto', icon: Type },
@@ -22,21 +29,54 @@ const FIELD_TYPE_META: Record<FormFieldType, { label: string; icon: typeof Type 
   SINGLE_SELECT: { label: 'Seleção simples', icon: CircleDot },
   MULTI_SELECT: { label: 'Seleção múltipla', icon: ListChecks },
   FILE_UPLOAD: { label: 'Upload de arquivo', icon: Upload },
-  STATIC_CONTENT: { label: 'Conteúdo estático', icon: AlignLeft },
 };
 
 const FIELD_TYPES = Object.keys(FIELD_TYPE_META) as FormFieldType[];
 
-function makeField(type: FormFieldType): FormField {
+const INPUT_SUBTYPE_LABEL: Record<InputSubtype, string> = {
+  TEXT: 'Texto',
+  NUMBER: 'Número',
+  EMAIL: 'E-mail',
+  DATE: 'Data',
+};
+
+function slugify(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'campo';
+}
+
+function nextFieldName(existing: FormField[], type: FormFieldType): string {
+  const base = slugify(FIELD_TYPE_META[type].label);
+  const taken = new Set(existing.map((f) => f.name));
+  let candidate = base;
+  let i = 1;
+  while (taken.has(candidate)) {
+    candidate = `${base}_${i}`;
+    i += 1;
+  }
+  return candidate;
+}
+
+function makeField(type: FormFieldType, existing: FormField[]): FormField {
   const isSelect = type === 'SINGLE_SELECT' || type === 'MULTI_SELECT';
   return {
-    id: crypto.randomUUID(),
+    name: nextFieldName(existing, type),
     type,
+    inputSubtype: type === 'INPUT' ? 'TEXT' : null,
     label: FIELD_TYPE_META[type].label,
     required: false,
     defaultValue: null,
     helpText: null,
-    options: isSelect ? ['Opção 1'] : null,
+    options: isSelect ? [{ label: 'Opção 1', value: 'opcao_1' }] : null,
+    minValue: null,
+    maxValue: null,
+    validationPattern: null,
+    acceptedExtensions: null,
+    maxFileSizeBytes: null,
   };
 }
 
@@ -51,22 +91,24 @@ export function FormBuilderPage({ form, onBack, onSaved }: FormBuilderPageProps)
   const [name, setName] = useState(form?.name ?? '');
   const [description, setDescription] = useState(form?.description ?? '');
   const [fields, setFields] = useState<FormField[]>(form?.fields ?? []);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [lockedNames] = useState<Set<string>>(new Set((form?.fields ?? []).map((f) => f.name)));
+  const [expandedName, setExpandedName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function addField(type: FormFieldType) {
-    const field = makeField(type);
+    const field = makeField(type, fields);
     setFields((prev) => [...prev, field]);
-    setExpandedId(field.id);
+    setExpandedName(field.name);
   }
 
-  function updateField(id: string, patch: Partial<FormField>) {
-    setFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  function updateField(name: string, patch: Partial<FormField>) {
+    setFields((prev) => prev.map((f) => (f.name === name ? { ...f, ...patch } : f)));
+    if (patch.name && expandedName === name) setExpandedName(patch.name);
   }
 
-  function removeField(id: string) {
-    setFields((prev) => prev.filter((f) => f.id !== id));
+  function removeField(name: string) {
+    setFields((prev) => prev.filter((f) => f.name !== name));
   }
 
   function moveField(index: number, direction: -1 | 1) {
@@ -78,6 +120,10 @@ export function FormBuilderPage({ form, onBack, onSaved }: FormBuilderPageProps)
       return next;
     });
   }
+
+  const duplicateNames = new Set(
+    fields.map((f) => f.name).filter((n, i, arr) => arr.indexOf(n) !== i),
+  );
 
   async function handleSave() {
     setSaving(true);
@@ -96,7 +142,11 @@ export function FormBuilderPage({ form, onBack, onSaved }: FormBuilderPageProps)
     }
   }
 
-  const canSave = name.trim().length > 0 && fields.length > 0;
+  const canSave =
+    name.trim().length > 0 &&
+    fields.length > 0 &&
+    duplicateNames.size === 0 &&
+    fields.every((f) => f.name.trim().length > 0);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -156,14 +206,16 @@ export function FormBuilderPage({ form, onBack, onSaved }: FormBuilderPageProps)
             <div className="flex flex-col gap-2 max-w-[560px]">
               {fields.map((field, index) => (
                 <FieldCard
-                  key={field.id}
+                  key={field.name}
                   field={field}
                   index={index}
                   total={fields.length}
-                  expanded={expandedId === field.id}
-                  onToggle={() => setExpandedId((cur) => (cur === field.id ? null : field.id))}
-                  onUpdate={(patch) => updateField(field.id, patch)}
-                  onRemove={() => removeField(field.id)}
+                  expanded={expandedName === field.name}
+                  nameLocked={lockedNames.has(field.name)}
+                  nameDuplicate={duplicateNames.has(field.name)}
+                  onToggle={() => setExpandedName((cur) => (cur === field.name ? null : field.name))}
+                  onUpdate={(patch) => updateField(field.name, patch)}
+                  onRemove={() => removeField(field.name)}
                   onMove={(dir) => moveField(index, dir)}
                 />
               ))}
@@ -214,6 +266,8 @@ function FieldCard({
   index,
   total,
   expanded,
+  nameLocked,
+  nameDuplicate,
   onToggle,
   onUpdate,
   onRemove,
@@ -223,6 +277,8 @@ function FieldCard({
   index: number;
   total: number;
   expanded: boolean;
+  nameLocked: boolean;
+  nameDuplicate: boolean;
   onToggle: () => void;
   onUpdate: (patch: Partial<FormField>) => void;
   onRemove: () => void;
@@ -246,7 +302,7 @@ function FieldCard({
             {field.label || meta.label}
           </div>
           <div className="text-[11px]" style={{ color: c.textMuted }}>
-            {meta.label}
+            {meta.label} · <code>{field.name}</code>
             {field.required ? ' · obrigatório' : ''}
           </div>
         </div>
@@ -289,6 +345,19 @@ function FieldCard({
 
       {expanded && (
         <div className="px-3 pb-3 pt-1 flex flex-col gap-3" style={{ borderTop: `1px solid ${c.border}` }}>
+          <Field label="Nome técnico" helperText={nameLocked ? 'Imutável após criado' : undefined}>
+            <TextInput
+              value={field.name}
+              disabled={nameLocked}
+              onChange={(e) => onUpdate({ name: slugify(e.target.value) })}
+            />
+            {nameDuplicate && (
+              <div className="text-[11px] mt-1" style={{ color: c.danger }}>
+                Já existe um campo com este nome.
+              </div>
+            )}
+          </Field>
+
           <Field label="Rótulo">
             <TextInput value={field.label} onChange={(e) => onUpdate({ label: e.target.value })} />
           </Field>
@@ -302,16 +371,71 @@ function FieldCard({
             Campo obrigatório
           </label>
 
+          {field.type === 'INPUT' && (
+            <>
+              <Field label="Subtipo">
+                <select
+                  value={field.inputSubtype ?? 'TEXT'}
+                  onChange={(e) => onUpdate({ inputSubtype: e.target.value as InputSubtype })}
+                  className="w-full rounded-md border px-2 py-2 text-[13px]"
+                  style={{ borderColor: c.border, background: c.surface, color: c.textPrimary }}
+                >
+                  {(Object.keys(INPUT_SUBTYPE_LABEL) as InputSubtype[]).map((s) => (
+                    <option key={s} value={s}>
+                      {INPUT_SUBTYPE_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {field.inputSubtype === 'NUMBER' && (
+                <div className="flex gap-2">
+                  <Field label="Mínimo" optional>
+                    <TextInput
+                      type="number"
+                      value={field.minValue ?? ''}
+                      onChange={(e) => onUpdate({ minValue: e.target.value === '' ? null : Number(e.target.value) })}
+                    />
+                  </Field>
+                  <Field label="Máximo" optional>
+                    <TextInput
+                      type="number"
+                      value={field.maxValue ?? ''}
+                      onChange={(e) => onUpdate({ maxValue: e.target.value === '' ? null : Number(e.target.value) })}
+                    />
+                  </Field>
+                </div>
+              )}
+              {field.inputSubtype === 'TEXT' && (
+                <Field label="Expressão regular (regex)" optional>
+                  <TextInput
+                    value={field.validationPattern ?? ''}
+                    onChange={(e) => onUpdate({ validationPattern: e.target.value || null })}
+                  />
+                </Field>
+              )}
+            </>
+          )}
+
           {isSelect && (
             <Field label="Opções">
               <div className="flex flex-col gap-[6px]">
                 {options.map((opt, i) => (
                   <div key={i} className="flex items-center gap-[6px]">
                     <TextInput
-                      value={opt}
+                      value={opt.label}
+                      placeholder="Rótulo"
                       onChange={(e) => {
                         const next = [...options];
-                        next[i] = e.target.value;
+                        next[i] = { ...opt, label: e.target.value };
+                        onUpdate({ options: next });
+                      }}
+                    />
+                    <TextInput
+                      value={opt.value}
+                      placeholder="Valor"
+                      onChange={(e) => {
+                        const next = [...options];
+                        next[i] = { ...opt, value: e.target.value };
                         onUpdate({ options: next });
                       }}
                     />
@@ -327,7 +451,14 @@ function FieldCard({
                   </div>
                 ))}
                 <button
-                  onClick={() => onUpdate({ options: [...options, `Opção ${options.length + 1}`] })}
+                  onClick={() =>
+                    onUpdate({
+                      options: [
+                        ...options,
+                        { label: `Opção ${options.length + 1}`, value: `opcao_${options.length + 1}` },
+                      ],
+                    })
+                  }
                   className="self-start flex items-center gap-1 text-[12px] font-medium border-0 bg-transparent cursor-pointer p-0"
                   style={{ color: c.accent }}
                 >
@@ -337,7 +468,36 @@ function FieldCard({
             </Field>
           )}
 
-          {field.type !== 'TEXT' && field.type !== 'STATIC_CONTENT' && field.type !== 'FILE_UPLOAD' && (
+          {field.type === 'FILE_UPLOAD' && (
+            <>
+              <Field label="Extensões aceitas" optional helperText="separadas por vírgula, ex.: .pdf, .jpg">
+                <TextInput
+                  value={(field.acceptedExtensions ?? []).join(', ')}
+                  onChange={(e) => {
+                    const exts = e.target.value
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean)
+                      .map((s) => (s.startsWith('.') ? s : `.${s}`));
+                    onUpdate({ acceptedExtensions: exts.length ? exts : null });
+                  }}
+                />
+              </Field>
+              <Field label="Tamanho máximo (MB)" optional>
+                <TextInput
+                  type="number"
+                  value={field.maxFileSizeBytes ? field.maxFileSizeBytes / (1024 * 1024) : ''}
+                  onChange={(e) =>
+                    onUpdate({
+                      maxFileSizeBytes: e.target.value === '' ? null : Math.round(Number(e.target.value) * 1024 * 1024),
+                    })
+                  }
+                />
+              </Field>
+            </>
+          )}
+
+          {field.type !== 'TEXT' && field.type !== 'FILE_UPLOAD' && !isSelect && (
             <Field label="Valor padrão" optional>
               <TextInput
                 value={field.defaultValue ?? ''}
@@ -377,11 +537,18 @@ function FormPreview({ name, description, fields }: { name: string; description:
           Nenhum campo adicionado.
         </div>
       ) : (
-        fields.map((field) => <FieldPreview key={field.id} field={field} />)
+        fields.map((field) => <FieldPreview key={field.name} field={field} />)
       )}
     </div>
   );
 }
+
+const INPUT_HTML_TYPE: Record<InputSubtype, string> = {
+  TEXT: 'text',
+  NUMBER: 'number',
+  EMAIL: 'email',
+  DATE: 'date',
+};
 
 function FieldPreview({ field }: { field: FormField }) {
   const { colors: c } = useAppTheme();
@@ -415,38 +582,37 @@ function FieldPreview({ field }: { field: FormField }) {
       </div>
     );
   }
-  if (field.type === 'STATIC_CONTENT') {
-    return (
-      <div className="rounded-lg p-3 text-[12.5px]" style={{ background: c.chipBg, color: c.textSecondary }}>
-        {field.label}
-        {help}
-      </div>
-    );
-  }
   return (
     <div>
       {label}
       {field.type === 'INPUT' && (
-        <input disabled placeholder={field.defaultValue ?? ''} style={inputStyle} />
+        <input
+          disabled
+          type={INPUT_HTML_TYPE[field.inputSubtype ?? 'TEXT']}
+          placeholder={field.defaultValue ?? ''}
+          style={inputStyle}
+        />
       )}
       {field.type === 'SINGLE_SELECT' && (
         <select disabled style={{ ...inputStyle, cursor: 'not-allowed' }}>
           {(field.options ?? []).map((opt) => (
-            <option key={opt}>{opt}</option>
+            <option key={opt.value}>{opt.label}</option>
           ))}
         </select>
       )}
       {field.type === 'MULTI_SELECT' && (
         <div className="flex flex-col gap-1">
           {(field.options ?? []).map((opt) => (
-            <label key={opt} className="flex items-center gap-[6px] text-[12.5px]" style={{ color: c.textMuted }}>
+            <label key={opt.value} className="flex items-center gap-[6px] text-[12.5px]" style={{ color: c.textMuted }}>
               <input type="checkbox" disabled />
-              {opt}
+              {opt.label}
             </label>
           ))}
         </div>
       )}
-      {field.type === 'FILE_UPLOAD' && <input type="file" disabled style={inputStyle} />}
+      {field.type === 'FILE_UPLOAD' && (
+        <input type="file" disabled accept={(field.acceptedExtensions ?? []).join(',')} style={inputStyle} />
+      )}
       {help}
     </div>
   );

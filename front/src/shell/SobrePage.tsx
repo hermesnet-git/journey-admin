@@ -15,6 +15,7 @@ import {
   BookOpen,
   History,
   GitCommitHorizontal,
+  RefreshCw,
 } from 'lucide-react';
 import { useAppTheme } from './theme';
 import {
@@ -418,6 +419,25 @@ export function SobrePage() {
               <FileCheck2 size={13} style={{ color: c.textMuted }} />
               requisitos/admin/progresso.md
             </div>
+          </div>
+          <div className="mt-3 pt-3 text-[12px] leading-[17px]" style={{ color: c.textMuted, borderTop: `1px solid ${c.border}` }}>
+            <span className="inline-flex items-center gap-[6px] font-semibold mb-[6px]" style={{ color: c.textSecondary }}>
+              <RefreshCw size={12} style={{ color: c.accent }} />
+              Como atualizar
+            </span>
+            <p className="m-0 mb-[6px]">
+              Quando os documentos acima mudarem (requisito novo, status atualizado):
+            </p>
+            <ul className="m-0 pl-[16px] flex flex-col gap-[4px]" style={{ listStyle: 'disc' }}>
+              <li>
+                <strong style={{ color: c.textSecondary }}>Claude Code:</strong> rode a skill{' '}
+                <code>/sync-sobre</code> — ressincroniza esta página automaticamente.
+              </li>
+              <li>
+                <strong style={{ color: c.textSecondary }}>GitHub Copilot:</strong> siga o processo em{' '}
+                <code>.github/copilot-instructions.md</code> (seção "Atualizando a página Sobre").
+              </li>
+            </ul>
           </div>
         </div>
       </div>

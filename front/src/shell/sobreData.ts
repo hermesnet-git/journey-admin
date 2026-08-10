@@ -966,37 +966,37 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-08-10 02:54 (não commitado)',
+    date: '2026-08-10 03:06',
     source: 'progresso',
     summary:
       'EP-11 Testes e EP-12 Infraestrutura novos, aprovados pelo usuário. EP-11: 4 FTs / 12 REQs (todo) cobrindo testes unitários de domínio, testes de integração de API, testes de frontend e cenários end-to-end — hoje o projeto não tem nenhum teste automatizado. EP-12: 6 FTs / 16 REQs cobrindo identidade da solução, containerização (Docker), orquestração (Kubernetes), esteira CI/CD, configuração de ambientes e banco de dados; REQ-12.01.001 (sigla + ambiente Azure) já nasce in_progress — a sigla ELJY já foi criada, falta a disponibilização do ambiente. Nenhuma sugestão fora de escopo foi registrada para esses dois épicos, por pedido do usuário. Totais: de 10 EPs/49 FTs/248 REQs (94%) para 12 EPs/59 FTs/276 REQs (84% — a queda no percentual reflete só a base maior de requisitos, nada foi desfeito).',
   },
   {
-    date: '2026-08-10 02:21 (não commitado)',
+    date: '2026-08-10 02:34',
     source: 'progresso',
     summary:
       'REQ-10.04.001 reclassificado de done para in_progress: a preparação técnica (log centralizado, ponto de extensão reservado para appender Logstash) está pronta, mas falta a configuração/conexão de fato com um ambiente ELK real, ainda não disponível. EP-10 vai de 12/12 (100%) para 11/12 (92%, 1 in_progress); progresso geral de 94% (233/248) para 94% (232/248, 1 in_progress).',
   },
   {
-    date: '2026-08-10 02:21 (não commitado)',
+    date: '2026-08-10 02:34',
     source: 'progresso',
     summary:
       'Corrigida lacuna de auditoria (REQ-08.01.006/REQ-08.02.005): UnpublishJourney.execute e PublishJourneyVersion.goLive só registravam AuditResult.SUCCESS, nunca FAILURE — quando a chamada ao runtime (RuntimePublicationPort) falhava, a exceção interrompia o método antes da linha de auditoria, e a falha não deixava nenhum rastro. Agora a chamada ao runtime é envolvida em try/catch: em caso de exceção, grava AuditResult.FAILURE com a mensagem de erro antes de relançá-la (o response HTTP 502 RUNTIME_UNAVAILABLE continua igual). Testado via curl: derrubei o ms-transform-publication de propósito, tentei despublicar uma jornada (502 como esperado) e confirmei o evento FAILURE em GET /audit-events.',
   },
   {
-    date: '2026-08-10 02:21 (não commitado)',
+    date: '2026-08-10 01:38',
     source: 'progresso',
     summary:
       'REQ-02.10.001 novo e implementado (FT-02.10 Inspeção da publicação): para uma jornada PUBLISHED, visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários com a árvore SDUI), via ação na listagem de jornadas ao lado de "Editar"/"Excluir". Back: GET /api/v1/journeys/{id}/publication (GetPublicationSnapshot, 409 se não publicada) + PublicationSnapshotRecord.from(Publication) extraído como factory compartilhada entre esse endpoint e PublicationAdapter (mesma serialização, uma só fonte). Front: ícone "Ver publicação" em JourneyActions, PublicationSnapshotModal novo (JSON formatado + copiar). Escopo mais restrito que o REQ-06.03.006 removido anteriormente: só a publicação ativa da jornada, não qualquer versão histórica. Testado via curl (200 com JSON completo / 409 sem publicação). EP-02 fecha em 39/39 (100%).',
   },
   {
-    date: '2026-08-10 02:21 (não commitado)',
+    date: '2026-08-10 01:07',
     source: 'progresso',
     summary:
       'REQ-02.09.003/004 deixaram de ser mock: MockRuntimePublicationAdapter removido, substituído por PublicationAdapter (infrastructure/publication), que faz uma chamada HTTP real (POST/DELETE via RestClient) para a API de publicação do runtime — o Admin Portal não conhece nem depende de qual engine implementa essa API do outro lado. Endereço do serviço configurável por ambiente em app.transform-publication.base-url (perfil dev, com override via variável de ambiente TRANSFORM_PUBLICATION_BASE_URL; qa/prod ainda pendentes de valor próprio). Falhas de rede/HTTP agora propagam como RuntimePublicationException, mapeada para 502 RUNTIME_UNAVAILABLE no GlobalExceptionHandler, em vez de sempre "suceder" como o mock fazia — PublishJourney/UnpublishJourney só persistem o novo estado se a chamada não lançar. Testado via curl ponta a ponta publicando e despublicando de fato contra o serviço configurado localmente. EP-02 fecha em 38/38 (100%).',
   },
   {
-    date: '2026-08-09 23:50 (não commitado)',
+    date: '2026-08-09 23:00',
     source: 'progresso',
     summary:
       'EP-04 (Formulários/SDUI) implementado: FormField.id→name (chave técnica única, imutável após criada, validada em Form.create via DuplicateFieldNameException, 422); options migrado de List<String> para FormFieldOption(label,value); InputSubtype (TEXT/NUMBER/EMAIL/DATE) com minValue/maxValue/validationPattern; FILE_UPLOAD com acceptedExtensions/maxFileSizeBytes; novo FormSduiSerializer gera a árvore [tag,props,children] (ui.form/ui.text/ui.input/ui.select/ui.multiselect/ui.upload), persistida no campo sdui de SnapshotFormRecord em PublicationRepositoryAdapter/JourneyVersionRepositoryAdapter. Sem migration — os campos do formulário já eram um blob JSON, não colunas relacionais. Compatibilidade retroativa: FormFieldOption.LegacyDeserializer aceita o formato antigo (string simples) e FormFieldType.fromJson mapeia o extinto STATIC_CONTENT para TEXT, para publicações/versões já existentes no banco continuarem legíveis (a validação de nome único também não roda na reidratação a partir de snapshot, só na criação/edição pelo usuário). Front (FormBuilderPage.tsx): campo "Nome técnico" (travado para campos pré-existentes), seletor de subtipo com min/max ou regex condicionais, editor de opções rótulo+valor, configuração de extensões/tamanho em upload. Testado via curl ponta a ponta (criação com os novos campos, rejeição de nome duplicado, publicação de jornada com inspeção direta do snapshot no Postgres confirmando a árvore SDUI) e build de produção do front (tsc -b && vite build).',
@@ -1173,6 +1173,27 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-08-10 03:19',
+    source: 'git',
+    summary: 'Skill para o GitHub Copilot para atualização da página Sobre.',
+  },
+  { date: '2026-08-10 03:06', source: 'git', summary: 'Inclusão dos EP-11 (Testes) e EP-12 (Infraestrutura).', epics: ['EP-11', 'EP-12'] },
+  {
+    date: '2026-08-10 02:34',
+    source: 'git',
+    summary: 'Correção de auditoria ao falhar o serviço de publicação, e ajustes na skill da página Sobre.',
+    epics: ['EP-08'],
+  },
+  { date: '2026-08-10 01:38', source: 'git', summary: 'Visualizador de snapshots de jornadas publicadas.', epics: ['EP-02'] },
+  {
+    date: '2026-08-10 01:07',
+    source: 'git',
+    summary: 'Publicação e despublicação da jornada sem mock, através de serviço simulado de publicação.',
+    epics: ['EP-02'],
+  },
+  { date: '2026-08-09 23:00', source: 'git', summary: 'Implementação do EP-04 refinado (SDUI).', epics: ['EP-04'] },
+  { date: '2026-08-09 18:18', source: 'git', summary: 'Ajuste de configuração de logs e portas.' },
   { date: '2026-08-09 00:35', source: 'git', summary: 'EP-06 (Versionamento de jornadas) refinado e reimplementado.', epics: ['EP-06'] },
   { date: '2026-08-08 20:11', source: 'git', summary: 'SKILL de sincronização e página estática "Sobre" com o progresso do MVP.' },
   {

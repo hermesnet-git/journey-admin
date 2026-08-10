@@ -22,13 +22,6 @@ de observabilidade (API e transações de persistência).
 
 # 2. Escopo do MVP
 
-Escopo adicional do MVP: versionamento de jornadas, autenticação por provedor
-externo mockado, autorização pelos papéis `ADMIN`, `EDITOR` e `VIEWER`,
-auditoria de operações relevantes sem armazenamento de dados sensíveis, uma
-central de ajuda com FAQ e contato de sustentação, e observabilidade técnica
-(log de requisições de API e de transações de persistência, correlacionados
-por requisição, preparados para integração futura com ELK).
-
 O MVP do Elastic Journey Admin Portal permite cadastrar produtos e canais,
 construir jornadas independentes para cada canal, modelar fluxos e
 formulários, criar e consultar versões, simular jornadas, autenticar usuários

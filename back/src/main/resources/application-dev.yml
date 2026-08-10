@@ -4,4 +4,4 @@ app:
   transform-publication:
     # host/porta do serviço de publicação do runtime; sobrescrevível via env var
     # TRANSFORM_PUBLICATION_BASE_URL (ex.: em docker-compose, apontar para o hostname do serviço).
-    base-url: ${TRANSFORM_PUBLICATION_BASE_URL:http://ms-transform-publication:8082}
+    base-url: ${TRANSFORM_PUBLICATION_BASE_URL:http://localhost:8082}

@@ -39,7 +39,13 @@ public class UnpublishJourney {
 
         // The publication record (snapshot) is intentionally preserved — only the
         // journey's status changes. See REQ-06.01.004 / REQ-02.01.005.
-        runtimePublicationPort.unpublish(journeyId);
+        try {
+            runtimePublicationPort.unpublish(journeyId);
+        } catch (RuntimeException e) {
+            recordAuditEvent.record("JOURNEY_UNPUBLISH", "JOURNEY", journeyId, AuditResult.FAILURE,
+                    Map.of("error", errorMessage(e)), null);
+            throw e;
+        }
 
         // No version stays PUBLISHED once the journey itself is UNPUBLISHED — mark it UNPUBLISHED
         // too so the journey no longer reports a currently-published version (REQ-06.04.007).
@@ -53,5 +59,9 @@ public class UnpublishJourney {
         journeyRepository.save(journey);
         recordAuditEvent.record("JOURNEY_UNPUBLISH", "JOURNEY", journeyId, AuditResult.SUCCESS,
                 Map.of("status", "UNPUBLISHED"), null);
+    }
+
+    private static String errorMessage(Exception e) {
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 }

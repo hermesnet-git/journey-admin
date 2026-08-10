@@ -25,9 +25,12 @@ A página `front/src/shell/SobrePage.tsx` (aba "Sobre", acessível pelo link no 
    `^## EP-` e `^### FT-` para navegar). Para cada requisito, extraia:
    - código (`REQ-xx.xx.xxx`)
    - descrição
-   - status: checkbox `[x]` + coluna Status `done` → `done`; `todo`/`in_progress` → `todo`;
-     `blocked` → `todo` (não há status dedicado ainda); `n/a` → `na`.
-   - coluna **Notas**: se não vazia, vira o campo `notes` do requisito.
+   - status: checkbox `[x]` + coluna Status `done` → `done`; `in_progress` → **`partial`** (use o
+     helper `partial(code, description, notes)`, com a nota explicando exatamente o que falta —
+     essa é a mesma informação da coluna Notas do `progresso.md`); `todo` → `todo`; `blocked` →
+     `todo` (não há status dedicado ainda); `n/a` → `na`.
+   - coluna **Notas**: se não vazia, vira o campo `notes` do requisito (obrigatório para `partial`
+     e `mock`; opcional nos demais).
 
 2. **Requisitos mockados**: se a descrição ou a nota deixar claro que o comportamento é atendido
    apenas por um mock/simulação no MVP (ex.: "deve ser mockada", "API representada por um mock",
@@ -64,24 +67,54 @@ A página `front/src/shell/SobrePage.tsx` (aba "Sobre", acessível pelo link no 
    seções detalhadas (já aconteceu — ver histórico), corrija também os números do próprio
    `progresso.md` para os dois documentos ficarem coerentes entre si.
 
-6. **Atualize `CHANGELOG_PROGRESSO`**: compare a primeira linha da tabela em
+6. **Só crie uma linha nova em `## Changelog deste arquivo` (progresso.md) quando os requisitos em
+   si mudarem** — REQ novo, REQ removido, texto de um REQ reescrito, ou status de um REQ alterado
+   (`todo`→`done`, `done`→`in_progress`, etc.). Detalhe de implementação, refactor interno, ajuste
+   de configuração/log ou passo de depuração **não** justifica uma linha nova, mesmo que tenha sido
+   um trabalho grande — só entra no changelog se mudou o que está documentado sobre algum requisito
+   (o quê está pronto, o quê falta, ou a evidência/nota de um REQ específico).
+
+   **Atualize `CHANGELOG_PROGRESSO`**: compare a primeira linha da tabela em
    `## Changelog deste arquivo` (final de `progresso.md`) com a primeira entrada de
    `CHANGELOG_PROGRESSO` em `sobreData.ts`. Se houver linhas novas no topo da tabela, copie cada
-   uma **verbatim** — mesma data, mesmo texto de "Alteração" — para o topo do array, como
+   uma **verbatim** — mesma data/hora, mesmo texto de "Alteração" — para o topo do array, como
    `{ date, source: 'progresso', summary }`. Não reescreva, resuma ou corrija o texto.
 
-7. **Atualize `CHANGELOG_GIT`**: compare o topo do array com o histórico de commits:
+   **Data e hora de cada entrada nova** (coluna `Data/Hora` da tabela em `progresso.md`) — nunca só
+   a data:
+   - Se a mudança que gerou a entrada **já foi commitada**, use o horário real do commit:
+     ```bash
+     git log -1 --format='%ad' --date=format:'%Y-%m-%d %H:%M' -- requisitos/admin/progresso.md
+     ```
+     (ou `git log -1 --format='%ad' --date=format:'%Y-%m-%d %H:%M' <hash>` se souber o commit
+     exato). Não invente o horário — se não for possível correlacionar com segurança a um commit,
+     caia no caso abaixo.
+   - Se a mudança **ainda não foi commitada** (a maioria dos casos, já que normalmente se registra
+     o requisito antes de commitar), use a data/hora atual do sistema:
+     ```bash
+     date '+%Y-%m-%d %H:%M'
+     ```
+     e marque a entrada como `2026-08-10 14:32 (não commitado)` — mantendo o horário real, não
+     apenas a data. Quando o commit for feito depois, uma futura rodada da skill pode trocar esse
+     valor pelo horário real do commit (passo acima), removendo o sufixo "(não commitado)".
+   - Replique o mesmo valor de `date` (já formatado com hora) tanto na tabela de `progresso.md`
+     quanto no campo `date` do objeto em `CHANGELOG_PROGRESSO` — são a mesma informação em dois
+     formatos (Markdown e TS).
+
+7. **Atualize `CHANGELOG_GIT`**: compare o topo do array com o histórico de commits, sempre
+   incluindo data **e hora** (nunca só data — `--date=short` corta a hora, não usar):
 
    ```bash
-   git log --reverse --pretty=format:'%ad|%s' --date=short
+   git log --reverse --pretty=format:'%ad|%s' --date=format:'%Y-%m-%d %H:%M'
    ```
 
    Localize o último commit já registrado e acrescente, no topo do array (mais recente primeiro),
-   uma entrada `{ date, source: 'git', summary, epics? }` para cada commit novo. `summary`:
-   reescreva a mensagem do commit em uma frase curta e legível (corrija capitalização/typos óbvios),
-   sem inventar conteúdo que não esteja na mensagem ou no diff. `epics`: códigos `EP-xx` citados na
-   mensagem ou claramente identificáveis pelo escopo do commit; omita se não for possível atribuir
-   com segurança.
+   uma entrada `{ date, source: 'git', summary, epics? }` para cada commit novo, com `date` no
+   formato `'YYYY-MM-DD HH:MM'` (o horário real do commit, vindo do comando acima — nunca
+   aproximado). `summary`: reescreva a mensagem do commit em uma frase curta e legível (corrija
+   capitalização/typos óbvios), sem inventar conteúdo que não esteja na mensagem ou no diff.
+   `epics`: códigos `EP-xx` citados na mensagem ou claramente identificáveis pelo escopo do commit;
+   omita se não for possível atribuir com segurança.
 
    Em ambos os arrays, não reordene nem edite entradas já existentes — são históricos append-only.
    O export `CHANGELOG` (mesclagem cronológica dos dois, usada pela UI) é derivado automaticamente

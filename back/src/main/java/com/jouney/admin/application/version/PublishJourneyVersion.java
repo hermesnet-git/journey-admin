@@ -100,7 +100,13 @@ public class PublishJourneyVersion {
                 version.getJourneyDescription(), version.getProductId(), version.getProductName(),
                 version.getChannelId(), version.getChannelName(), version.getChannelType(), version.getFlowNodes(),
                 version.getFlowConnections(), version.getForms(), version.getId());
-        runtimePublicationPort.publish(publication);
+        try {
+            runtimePublicationPort.publish(publication);
+        } catch (RuntimeException e) {
+            recordAuditEvent.record(auditAction, "JOURNEY_VERSION", version.getId(), AuditResult.FAILURE,
+                    Map.of("status", previousStatus), Map.of("error", errorMessage(e)));
+            throw e;
+        }
         publicationRepository.save(publication);
 
         journeyVersionRepository.findByJourneyIdAndStatus(journeyId, VersionStatus.PUBLISHED)
@@ -119,5 +125,9 @@ public class PublishJourneyVersion {
                 Map.of("status", previousStatus), Map.of("status", "PUBLISHED"));
 
         return published;
+    }
+
+    private static String errorMessage(Exception e) {
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 }

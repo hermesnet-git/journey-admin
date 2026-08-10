@@ -36,6 +36,11 @@ function todo(code: string, description: string): Requirement {
 function mock(code: string, description: string): Requirement {
   return { code, description, status: 'todo', notes: 'Implementado, porém mockado — não é uma integração real.' };
 }
+// Requisito com uma parte concreta pendente (equivalente a `in_progress` em progresso.md) — a
+// nota deve dizer exatamente o que falta.
+function partial(code: string, description: string, notes: string): Requirement {
+  return { code, description, status: 'partial', notes };
+}
 
 export const EPICS: Epic[] = [
   {
@@ -749,9 +754,10 @@ export const EPICS: Epic[] = [
         code: 'FT-10.04',
         name: 'Preparação para integração com ELK',
         requirements: [
-          d(
+          partial(
             'REQ-10.04.001',
             'O sistema deve estar tecnicamente preparado para o envio dos logs de aplicação a uma stack ELK (Elasticsearch/Logstash/Kibana), permanecendo essa integração desativada no MVP por não haver ambiente ELK disponível.',
+            'Pendente apenas a configuração/conexão com um ambiente ELK real, ainda não disponível — o restante (log centralizado, ponto de extensão para appender Logstash) já está pronto.',
           ),
           d('REQ-10.04.002', 'O sistema deve documentar o procedimento (how-to) para habilitar a integração com o ELK quando um ambiente estiver disponível.'),
         ],
@@ -828,19 +834,31 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-08-10',
+    date: '2026-08-10 02:21 (não commitado)',
+    source: 'progresso',
+    summary:
+      'REQ-10.04.001 reclassificado de done para in_progress: a preparação técnica (log centralizado, ponto de extensão reservado para appender Logstash) está pronta, mas falta a configuração/conexão de fato com um ambiente ELK real, ainda não disponível. EP-10 vai de 12/12 (100%) para 11/12 (92%, 1 in_progress); progresso geral de 94% (233/248) para 94% (232/248, 1 in_progress).',
+  },
+  {
+    date: '2026-08-10 02:21 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Corrigida lacuna de auditoria (REQ-08.01.006/REQ-08.02.005): UnpublishJourney.execute e PublishJourneyVersion.goLive só registravam AuditResult.SUCCESS, nunca FAILURE — quando a chamada ao runtime (RuntimePublicationPort) falhava, a exceção interrompia o método antes da linha de auditoria, e a falha não deixava nenhum rastro. Agora a chamada ao runtime é envolvida em try/catch: em caso de exceção, grava AuditResult.FAILURE com a mensagem de erro antes de relançá-la (o response HTTP 502 RUNTIME_UNAVAILABLE continua igual). Testado via curl: derrubei o ms-transform-publication de propósito, tentei despublicar uma jornada (502 como esperado) e confirmei o evento FAILURE em GET /audit-events.',
+  },
+  {
+    date: '2026-08-10 02:21 (não commitado)',
     source: 'progresso',
     summary:
       'REQ-02.10.001 novo e implementado (FT-02.10 Inspeção da publicação): para uma jornada PUBLISHED, visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários com a árvore SDUI), via ação na listagem de jornadas ao lado de "Editar"/"Excluir". Back: GET /api/v1/journeys/{id}/publication (GetPublicationSnapshot, 409 se não publicada) + PublicationSnapshotRecord.from(Publication) extraído como factory compartilhada entre esse endpoint e PublicationAdapter (mesma serialização, uma só fonte). Front: ícone "Ver publicação" em JourneyActions, PublicationSnapshotModal novo (JSON formatado + copiar). Escopo mais restrito que o REQ-06.03.006 removido anteriormente: só a publicação ativa da jornada, não qualquer versão histórica. Testado via curl (200 com JSON completo / 409 sem publicação). EP-02 fecha em 39/39 (100%).',
   },
   {
-    date: '2026-08-10',
+    date: '2026-08-10 02:21 (não commitado)',
     source: 'progresso',
     summary:
       'REQ-02.09.003/004 deixaram de ser mock: MockRuntimePublicationAdapter removido, substituído por PublicationAdapter (infrastructure/publication), que faz uma chamada HTTP real (POST/DELETE via RestClient) para a API de publicação do runtime — o Admin Portal não conhece nem depende de qual engine implementa essa API do outro lado. Endereço do serviço configurável por ambiente em app.transform-publication.base-url (perfil dev, com override via variável de ambiente TRANSFORM_PUBLICATION_BASE_URL; qa/prod ainda pendentes de valor próprio). Falhas de rede/HTTP agora propagam como RuntimePublicationException, mapeada para 502 RUNTIME_UNAVAILABLE no GlobalExceptionHandler, em vez de sempre "suceder" como o mock fazia — PublishJourney/UnpublishJourney só persistem o novo estado se a chamada não lançar. Testado via curl ponta a ponta publicando e despublicando de fato contra o serviço configurado localmente. EP-02 fecha em 38/38 (100%).',
   },
   {
-    date: '2026-08-09',
+    date: '2026-08-09 23:50 (não commitado)',
     source: 'progresso',
     summary:
       'EP-04 (Formulários/SDUI) implementado: FormField.id→name (chave técnica única, imutável após criada, validada em Form.create via DuplicateFieldNameException, 422); options migrado de List<String> para FormFieldOption(label,value); InputSubtype (TEXT/NUMBER/EMAIL/DATE) com minValue/maxValue/validationPattern; FILE_UPLOAD com acceptedExtensions/maxFileSizeBytes; novo FormSduiSerializer gera a árvore [tag,props,children] (ui.form/ui.text/ui.input/ui.select/ui.multiselect/ui.upload), persistida no campo sdui de SnapshotFormRecord em PublicationRepositoryAdapter/JourneyVersionRepositoryAdapter. Sem migration — os campos do formulário já eram um blob JSON, não colunas relacionais. Compatibilidade retroativa: FormFieldOption.LegacyDeserializer aceita o formato antigo (string simples) e FormFieldType.fromJson mapeia o extinto STATIC_CONTENT para TEXT, para publicações/versões já existentes no banco continuarem legíveis (a validação de nome único também não roda na reidratação a partir de snapshot, só na criação/edição pelo usuário). Front (FormBuilderPage.tsx): campo "Nome técnico" (travado para campos pré-existentes), seletor de subtipo com min/max ou regex condicionais, editor de opções rótulo+valor, configuração de extensões/tamanho em upload. Testado via curl ponta a ponta (criação com os novos campos, rejeição de nome duplicado, publicação de jornada com inspeção direta do snapshot no Postgres confirmando a árvore SDUI) e build de produção do front (tsc -b && vite build).',
@@ -1017,69 +1035,69 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
-  { date: '2026-08-09', source: 'git', summary: 'EP-06 (Versionamento de jornadas) refinado e reimplementado.', epics: ['EP-06'] },
-  { date: '2026-08-08', source: 'git', summary: 'SKILL de sincronização e página estática "Sobre" com o progresso do MVP.' },
+  { date: '2026-08-09 00:35', source: 'git', summary: 'EP-06 (Versionamento de jornadas) refinado e reimplementado.', epics: ['EP-06'] },
+  { date: '2026-08-08 20:11', source: 'git', summary: 'SKILL de sincronização e página estática "Sobre" com o progresso do MVP.' },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 18:46',
     source: 'git',
     summary: 'Implementação do EP-10 Observabilidade (logs de requisição, transação e correlação).',
     epics: ['EP-10'],
   },
-  { date: '2026-08-08', source: 'git', summary: 'Implementação do EP-09 Ajuda e suporte.', epics: ['EP-09'] },
+  { date: '2026-08-08 15:45', source: 'git', summary: 'Implementação do EP-09 Ajuda e suporte.', epics: ['EP-09'] },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 05:59',
     source: 'git',
     summary: 'Remoção do evento de auditoria log_audit para operações de consulta e tratamento de restart de sessão.',
     epics: ['EP-08'],
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 03:42',
     source: 'git',
     summary: 'Implementação de Versionamento, autenticação, autorização e auditoria (EP-06/07/08).',
     epics: ['EP-06', 'EP-07', 'EP-08'],
   },
-  { date: '2026-08-08', source: 'git', summary: 'Inclusão de novos épicos no escopo do MVP.' },
-  { date: '2026-08-08', source: 'git', summary: 'Ajuste do formato dos requisitos.' },
+  { date: '2026-08-08 02:37', source: 'git', summary: 'Inclusão de novos épicos no escopo do MVP.' },
+  { date: '2026-08-08 02:01', source: 'git', summary: 'Ajuste do formato dos requisitos.' },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 01:50',
     source: 'git',
     summary: 'EP-03 Modelagem Visual: inclusão de conectores e novos tipos de componentes; enriquecimento de requisitos.',
     epics: ['EP-03'],
   },
   {
-    date: '2026-08-08',
+    date: '2026-08-08 00:01',
     source: 'git',
     summary: 'Inclusão do componente Service Task e refinamentos na modelagem visual.',
     epics: ['EP-03'],
   },
-  { date: '2026-08-03', source: 'git', summary: 'Melhorias na gestão de produtos e canais.', epics: ['EP-01'] },
-  { date: '2026-08-03', source: 'git', summary: 'Remoção do EP-08 do escopo (posteriormente reintroduzido).' },
+  { date: '2026-08-03 04:12', source: 'git', summary: 'Melhorias na gestão de produtos e canais.', epics: ['EP-01'] },
+  { date: '2026-08-03 03:13', source: 'git', summary: 'Remoção do EP-08 do escopo (posteriormente reintroduzido).' },
   {
-    date: '2026-08-03',
+    date: '2026-08-03 03:05',
     source: 'git',
     summary: 'Implementação inicial dos EP-06 e EP-07 (versionamento e autenticação/autorização).',
     epics: ['EP-06', 'EP-07'],
   },
-  { date: '2026-08-03', source: 'git', summary: 'Refinamentos do EP-04 Formulários (SDUI).', epics: ['EP-04'] },
+  { date: '2026-08-03 02:22', source: 'git', summary: 'Refinamentos do EP-04 Formulários (SDUI).', epics: ['EP-04'] },
   {
-    date: '2026-08-03',
+    date: '2026-08-03 02:06',
     source: 'git',
     summary: 'Implementação inicial do EP-04 Formulários (SDUI).',
     epics: ['EP-04'],
   },
-  { date: '2026-08-03', source: 'git', summary: 'Ajustes e refinamentos de requisitos do EP-03.', epics: ['EP-03'] },
-  { date: '2026-08-03', source: 'git', summary: 'Exclusão do requisito de auto-save do EP-03.', epics: ['EP-03'] },
-  { date: '2026-08-03', source: 'git', summary: 'Configuração da estruturação de skills para front e back.' },
+  { date: '2026-08-03 01:38', source: 'git', summary: 'Ajustes e refinamentos de requisitos do EP-03.', epics: ['EP-03'] },
+  { date: '2026-08-03 01:12', source: 'git', summary: 'Exclusão do requisito de auto-save do EP-03.', epics: ['EP-03'] },
+  { date: '2026-08-03 00:47', source: 'git', summary: 'Configuração da estruturação de skills para front e back.' },
   {
-    date: '2026-08-03',
+    date: '2026-08-03 00:39',
     source: 'git',
     summary: 'Ajustes de temas e layouts (light/dark) e refinamentos no EP-03.',
     epics: ['EP-03'],
   },
-  { date: '2026-08-02', source: 'git', summary: 'Refinamentos no EP-03 Modelagem Visual.', epics: ['EP-03'] },
-  { date: '2026-08-02', source: 'git', summary: 'Implementação inicial do EP-03 Modelagem Visual.', epics: ['EP-03'] },
+  { date: '2026-08-02 22:12', source: 'git', summary: 'Refinamentos no EP-03 Modelagem Visual.', epics: ['EP-03'] },
+  { date: '2026-08-02 14:33', source: 'git', summary: 'Implementação inicial do EP-03 Modelagem Visual.', epics: ['EP-03'] },
   {
-    date: '2026-08-02',
+    date: '2026-08-02 03:56',
     source: 'git',
     summary: 'Commit inicial: estrutura do Admin Portal (front, back) e implementação dos épicos iniciais.',
   },

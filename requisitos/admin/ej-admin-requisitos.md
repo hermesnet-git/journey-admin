@@ -257,8 +257,8 @@ futura e nÃ£o faz parte dos requisitos entregÃ¡veis desta versÃ£o.
 ### FT-02.09 Publicação no runtime
 #### REQ-02.09.001 - O Admin Portal deve iniciar a publicacao por meio de uma chamada de saida para a API de publicacao do runtime.
 #### REQ-02.09.002 - A chamada deve enviar a definicao completa da jornada, incluindo produto, canal, fluxo e formularios.
-#### REQ-02.09.003 - No MVP, a API de publicacao do runtime deve ser representada por um mock. Apos o retorno de sucesso do mock, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`.
-#### REQ-02.09.004 - Ao despublicar no MVP, o Admin Portal deve chamar a API mockada do runtime. Apos o retorno de sucesso, a jornada e sua publicacao devem assumir o estado `UNPUBLISHED`; em caso de falha, os estados atuais devem ser preservados.
+#### REQ-02.09.003 - O Admin Portal deve realizar uma chamada de saída real (HTTP) para a API de publicação do runtime. Após o retorno de sucesso, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`; em caso de falha na chamada, o erro deve propagar e nenhum estado deve ser alterado.
+#### REQ-02.09.004 - Ao despublicar, o Admin Portal deve chamar a API de publicação do runtime para remover/desfazer a publicação. Apos o retorno de sucesso, a jornada e sua publicacao devem assumir o estado `UNPUBLISHED`; em caso de falha, os estados atuais devem ser preservados.
 ---
 
 <br/>

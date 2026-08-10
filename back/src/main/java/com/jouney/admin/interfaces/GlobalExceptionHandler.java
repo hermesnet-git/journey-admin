@@ -18,6 +18,7 @@ import com.jouney.admin.domain.version.VersionHasNoFlowException;
 import com.jouney.admin.domain.version.VersionNotDraftException;
 import com.jouney.admin.domain.version.VersionNotPublishedException;
 import com.jouney.admin.domain.version.VersionNotUnpublishedException;
+import com.jouney.admin.infrastructure.publication.RuntimePublicationException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -56,6 +57,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({InvalidCredentialsException.class, InvalidSessionException.class})
     public ResponseEntity<ApiError> handleUnauthorized(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(RuntimePublicationException.class)
+    public ResponseEntity<ApiError> handleRuntimePublication(RuntimePublicationException ex, HttpServletRequest request) {
+        log.error("Runtime publication call failed", ex);
+        return build(HttpStatus.BAD_GATEWAY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(FlowValidationException.class)

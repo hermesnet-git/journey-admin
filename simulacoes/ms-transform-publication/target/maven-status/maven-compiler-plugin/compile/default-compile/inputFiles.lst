@@ -1,0 +1,12 @@
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\application\PublishJourneyToCamunda.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\application\UnpublishJourneyFromCamunda.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\bpmn\BpmnTransformationException.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\bpmn\BpmnTransformer.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\bpmn\ProcessIds.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\camunda\CamundaDeploymentException.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\camunda\CamundaProperties.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\camunda\CamundaRestClient.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\interfaces\GlobalExceptionHandler.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\interfaces\publication\PublicationController.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\interfaces\publication\PublicationSnapshotRequest.java
+D:\her\desenv\projetos\jouney\admin\simulacoes\ms-transform-publication\src\main\java\com\jouney\transformpublication\MsTransformPublicationApplication.java

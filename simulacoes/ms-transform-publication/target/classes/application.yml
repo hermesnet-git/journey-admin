@@ -1,0 +1,11 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: ms-transform-publication
+
+camunda:
+  rest:
+    # Ajuste para o path real da REST API do Camunda 7 instalado localmente, se diferente.
+    base-url: http://localhost:8080/engine-rest

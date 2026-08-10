@@ -14,15 +14,15 @@
 
 | Métrica | Valor |
 |---|---|
-| Total de Épicos (EP) | 10 |
-| Total de Features (FT) | 49 |
-| Total de Requisitos (REQ) | 248 |
+| Total de Épicos (EP) | 12 |
+| Total de Features (FT) | 59 |
+| Total de Requisitos (REQ) | 276 |
 | Concluídos (`done`) | 232 |
-| Em andamento (`in_progress`) | 1 |
-| Não iniciados (`todo`) | 13 |
+| Em andamento (`in_progress`) | 2 |
+| Não iniciados (`todo`) | 40 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
-| % Concluído | 94% |
+| % Concluído | 84% |
 
 > 3 requisitos permanecem reclassificados de `done` para `todo` por serem atendidos apenas por mocks/simulações no MVP (sem integração real): REQ-07.01.002, REQ-07.01.005, REQ-07.04.001. Ver nota em cada requisito.
 >
@@ -46,6 +46,8 @@
 | EP-08 | Auditoria | 22 | 21 | 95% (1 n/a) |
 | EP-09 | Ajuda e Suporte | 5 | 5 | 100% |
 | EP-10 | Observabilidade | 12 | 11 | 92% (1 in_progress) |
+| EP-11 | Testes | 12 | 0 | 0% |
+| EP-12 | Infraestrutura | 16 | 0 | 0% (1 in_progress) |
 
 ---
 
@@ -635,10 +637,97 @@ Nenhum código Java precisa mudar para habilitar isso — a instrumentação
 (filtro + aspecto + MDC) já está pronta; a integração é só configuração de
 appender.
 
+---
+
+## EP-11 Testes
+
+### FT-11.01 Testes unitários de domínio (back)
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-11.01.001 | O sistema deve possuir testes unitários para as regras estruturais do fluxo (`FlowValidator`): cardinalidade de START/END, caminho contínuo entre início e fim, elemento inicial único. | todo | | |
+| [ ] | REQ-11.01.002 | O sistema deve possuir testes unitários para as regras de versionamento de jornada: criação de DRAFT, publicação, despublicação, republicação, imutabilidade de versão `PUBLISHED`. | todo | | |
+| [ ] | REQ-11.01.003 | O sistema deve possuir testes unitários para as regras de formulário: nome de campo único, tipos/subtipos de campo, geração da árvore SDUI. | todo | | |
+| [ ] | REQ-11.01.004 | O sistema deve possuir testes unitários para as regras de integridade entre produto/canal/jornada (bloqueio de desativação com publicação ativa). | todo | | |
+
+### FT-11.02 Testes de integração de API (back)
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-11.02.001 | O sistema deve possuir testes de integração cobrindo o CRUD completo de produtos, canais e jornadas via API. | todo | | |
+| [ ] | REQ-11.02.002 | O sistema deve possuir testes de integração cobrindo o ciclo de publicação/despublicação/republicação de versões, incluindo o registro de auditoria de sucesso e falha. | todo | | |
+| [ ] | REQ-11.02.003 | O sistema deve possuir testes de integração cobrindo autenticação e autorização por papel (`ADMIN`/`EDITOR`/`VIEWER`) nos principais endpoints. | todo | | |
+| [ ] | REQ-11.02.004 | O sistema deve possuir testes de integração cobrindo o CRUD de formulários e a associação a User Tasks. | todo | | |
+
+### FT-11.03 Testes de frontend
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-11.03.001 | O sistema deve possuir testes automatizados para o form builder (adicionar/remover campo, validação de nome técnico único, subtipos de `INPUT`). | todo | | |
+| [ ] | REQ-11.03.002 | O sistema deve possuir testes automatizados para a validação estrutural do editor de fluxo (bloqueio de ações inválidas). | todo | | |
+
+### FT-11.04 Cenários end-to-end
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-11.04.001 | O sistema deve possuir um cenário end-to-end cobrindo o fluxo completo: criar produto → canal → jornada → formulário → fluxo → publicar → despublicar. | todo | | |
+| [ ] | REQ-11.04.002 | O sistema deve possuir um cenário end-to-end cobrindo criação, publicação e republicação de múltiplas versões de uma mesma jornada. | todo | | |
+
+---
+
+## EP-12 Infraestrutura
+
+### FT-12.01 Identidade da solução
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-12.01.001 | Definição da sigla sistêmica e disponibilização de ambiente na Azure. | in_progress | | sigla `ELJY` já criada; falta a disponibilização do ambiente na Azure |
+
+### FT-12.02 Containerização (Docker)
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-12.02.001 | Criar Dockerfile para o admin-back. | todo | | |
+| [ ] | REQ-12.02.002 | Criar Dockerfile para o admin-front (build estático servido por um servidor web). | todo | | |
+| [ ] | REQ-12.02.003 | Criar docker-compose para ambiente de desenvolvimento local (back + front + banco de dados). | todo | | |
+
+### FT-12.03 Orquestração (Kubernetes)
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-12.03.001 | Criar manifests/Helm chart para deploy do admin-back no cluster. | todo | | |
+| [ ] | REQ-12.03.002 | Criar manifests/Helm chart para deploy do admin-front no cluster. | todo | | |
+| [ ] | REQ-12.03.003 | Configurar ConfigMap/Secret para variáveis de ambiente e credenciais por ambiente. | todo | | |
+| [ ] | REQ-12.03.004 | Definir requests/limits de recursos e health checks (liveness/readiness) para os workloads. | todo | | |
+| [ ] | REQ-12.03.005 | Configurar ingress/roteamento externo para os serviços expostos. | todo | | |
+
+### FT-12.04 Esteira CI/CD
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-12.04.001 | Pipeline de build e testes automatizados a cada push/PR (integrado ao EP-11 Testes). | todo | | |
+| [ ] | REQ-12.04.002 | Pipeline de build e publicação de imagem Docker em um registry. | todo | | |
+| [ ] | REQ-12.04.003 | Pipeline de deploy automatizado por ambiente (dev/qa/prod), com aprovação manual obrigatória para produção. | todo | | |
+| [ ] | REQ-12.04.004 | Versionamento semântico e tagueamento de releases. | todo | | |
+
+### FT-12.05 Ambientes e configuração
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-12.05.001 | Formalizar a configuração dos perfis dev/qa/prod, com variáveis de ambiente próprias por ambiente. | todo | | |
+| [ ] | REQ-12.05.002 | Documentar o procedimento de subida de cada ambiente (how-to). | todo | | |
+
+### FT-12.06 Banco de dados
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-12.06.001 | Indicar a necessidade de criação da base de dados por ambiente. | todo | | |
+
 ## Changelog deste arquivo
 
 | Data/Hora | Alteração |
 |---|---|
+| 2026-08-10 02:54 (não commitado) | EP-11 Testes e EP-12 Infraestrutura novos, aprovados pelo usuário. EP-11: 4 FTs / 12 REQs (`todo`) cobrindo testes unitários de domínio, testes de integração de API, testes de frontend e cenários end-to-end — hoje o projeto não tem nenhum teste automatizado. EP-12: 6 FTs / 16 REQs cobrindo identidade da solução, containerização (Docker), orquestração (Kubernetes), esteira CI/CD, configuração de ambientes e banco de dados; `REQ-12.01.001` (sigla + ambiente Azure) já nasce `in_progress` — a sigla `ELJY` já foi criada, falta a disponibilização do ambiente. Nenhuma sugestão fora de escopo foi registrada para esses dois épicos, por pedido do usuário. Totais: de 10 EPs/49 FTs/248 REQs (94%) para 12 EPs/59 FTs/276 REQs (84% — a queda no percentual reflete só a base maior de requisitos, nada foi desfeito). |
 | 2026-08-10 02:21 (não commitado) | REQ-10.04.001 reclassificado de `done` para `in_progress`: a preparação técnica (log centralizado, ponto de extensão reservado para appender Logstash) está pronta, mas falta a configuração/conexão de fato com um ambiente ELK real, ainda não disponível. EP-10 vai de 12/12 (100%) para 11/12 (92%, 1 in_progress); progresso geral de 94% (233/248) para 94% (232/248, 1 in_progress). |
 | 2026-08-10 02:21 (não commitado) | Corrigida lacuna de auditoria (REQ-08.01.006/REQ-08.02.005): `UnpublishJourney.execute` e `PublishJourneyVersion.goLive` só registravam `AuditResult.SUCCESS`, nunca `FAILURE` — quando a chamada ao runtime (`RuntimePublicationPort`) falhava, a exceção interrompia o método antes da linha de auditoria, e a falha não deixava nenhum rastro. Agora a chamada ao runtime é envolvida em `try/catch`: em caso de exceção, grava `AuditResult.FAILURE` com a mensagem de erro antes de relançá-la (o response HTTP `502 RUNTIME_UNAVAILABLE` continua igual). Testado via curl: derrubei o `ms-transform-publication` de propósito, tentei despublicar uma jornada (502 como esperado) e confirmei o evento `FAILURE` em `GET /audit-events`. |
 | 2026-08-10 02:21 (não commitado) | REQ-02.10.001 novo e implementado (FT-02.10 Inspeção da publicação): para uma jornada `PUBLISHED`, visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários com a árvore SDUI), via ação na listagem de jornadas ao lado de "Editar"/"Excluir". Back: `GET /api/v1/journeys/{id}/publication` (`GetPublicationSnapshot`, 409 se não publicada) + `PublicationSnapshotRecord.from(Publication)` extraído como factory compartilhada entre esse endpoint e `PublicationAdapter` (mesma serialização, uma só fonte). Front: ícone "Ver publicação" em `JourneyActions`, `PublicationSnapshotModal` novo (JSON formatado + copiar). Escopo mais restrito que o `REQ-06.03.006` removido anteriormente: só a publicação ativa da jornada, não qualquer versão histórica. Testado via curl (200 com JSON completo / 409 sem publicação). EP-02 fecha em 39/39 (100%). |

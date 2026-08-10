@@ -764,6 +764,138 @@ export const EPICS: Epic[] = [
       },
     ],
   },
+  {
+    code: 'EP-11',
+    name: 'Testes',
+    features: [
+      {
+        code: 'FT-11.01',
+        name: 'Testes unitários de domínio (back)',
+        requirements: [
+          todo(
+            'REQ-11.01.001',
+            'O sistema deve possuir testes unitários para as regras estruturais do fluxo (FlowValidator): cardinalidade de START/END, caminho contínuo entre início e fim, elemento inicial único.',
+          ),
+          todo(
+            'REQ-11.01.002',
+            'O sistema deve possuir testes unitários para as regras de versionamento de jornada: criação de DRAFT, publicação, despublicação, republicação, imutabilidade de versão PUBLISHED.',
+          ),
+          todo(
+            'REQ-11.01.003',
+            'O sistema deve possuir testes unitários para as regras de formulário: nome de campo único, tipos/subtipos de campo, geração da árvore SDUI.',
+          ),
+          todo(
+            'REQ-11.01.004',
+            'O sistema deve possuir testes unitários para as regras de integridade entre produto/canal/jornada (bloqueio de desativação com publicação ativa).',
+          ),
+        ],
+      },
+      {
+        code: 'FT-11.02',
+        name: 'Testes de integração de API (back)',
+        requirements: [
+          todo('REQ-11.02.001', 'O sistema deve possuir testes de integração cobrindo o CRUD completo de produtos, canais e jornadas via API.'),
+          todo(
+            'REQ-11.02.002',
+            'O sistema deve possuir testes de integração cobrindo o ciclo de publicação/despublicação/republicação de versões, incluindo o registro de auditoria de sucesso e falha.',
+          ),
+          todo(
+            'REQ-11.02.003',
+            'O sistema deve possuir testes de integração cobrindo autenticação e autorização por papel (ADMIN/EDITOR/VIEWER) nos principais endpoints.',
+          ),
+          todo('REQ-11.02.004', 'O sistema deve possuir testes de integração cobrindo o CRUD de formulários e a associação a User Tasks.'),
+        ],
+      },
+      {
+        code: 'FT-11.03',
+        name: 'Testes de frontend',
+        requirements: [
+          todo(
+            'REQ-11.03.001',
+            'O sistema deve possuir testes automatizados para o form builder (adicionar/remover campo, validação de nome técnico único, subtipos de INPUT).',
+          ),
+          todo('REQ-11.03.002', 'O sistema deve possuir testes automatizados para a validação estrutural do editor de fluxo (bloqueio de ações inválidas).'),
+        ],
+      },
+      {
+        code: 'FT-11.04',
+        name: 'Cenários end-to-end',
+        requirements: [
+          todo(
+            'REQ-11.04.001',
+            'O sistema deve possuir um cenário end-to-end cobrindo o fluxo completo: criar produto → canal → jornada → formulário → fluxo → publicar → despublicar.',
+          ),
+          todo(
+            'REQ-11.04.002',
+            'O sistema deve possuir um cenário end-to-end cobrindo criação, publicação e republicação de múltiplas versões de uma mesma jornada.',
+          ),
+        ],
+      },
+    ],
+  },
+  {
+    code: 'EP-12',
+    name: 'Infraestrutura',
+    features: [
+      {
+        code: 'FT-12.01',
+        name: 'Identidade da solução',
+        requirements: [
+          partial(
+            'REQ-12.01.001',
+            'Definição da sigla sistêmica e disponibilização de ambiente na Azure.',
+            'Sigla ELJY já criada; falta a disponibilização do ambiente na Azure.',
+          ),
+        ],
+      },
+      {
+        code: 'FT-12.02',
+        name: 'Containerização (Docker)',
+        requirements: [
+          todo('REQ-12.02.001', 'Criar Dockerfile para o admin-back.'),
+          todo('REQ-12.02.002', 'Criar Dockerfile para o admin-front (build estático servido por um servidor web).'),
+          todo('REQ-12.02.003', 'Criar docker-compose para ambiente de desenvolvimento local (back + front + banco de dados).'),
+        ],
+      },
+      {
+        code: 'FT-12.03',
+        name: 'Orquestração (Kubernetes)',
+        requirements: [
+          todo('REQ-12.03.001', 'Criar manifests/Helm chart para deploy do admin-back no cluster.'),
+          todo('REQ-12.03.002', 'Criar manifests/Helm chart para deploy do admin-front no cluster.'),
+          todo('REQ-12.03.003', 'Configurar ConfigMap/Secret para variáveis de ambiente e credenciais por ambiente.'),
+          todo('REQ-12.03.004', 'Definir requests/limits de recursos e health checks (liveness/readiness) para os workloads.'),
+          todo('REQ-12.03.005', 'Configurar ingress/roteamento externo para os serviços expostos.'),
+        ],
+      },
+      {
+        code: 'FT-12.04',
+        name: 'Esteira CI/CD',
+        requirements: [
+          todo('REQ-12.04.001', 'Pipeline de build e testes automatizados a cada push/PR (integrado ao EP-11 Testes).'),
+          todo('REQ-12.04.002', 'Pipeline de build e publicação de imagem Docker em um registry.'),
+          todo(
+            'REQ-12.04.003',
+            'Pipeline de deploy automatizado por ambiente (dev/qa/prod), com aprovação manual obrigatória para produção.',
+          ),
+          todo('REQ-12.04.004', 'Versionamento semântico e tagueamento de releases.'),
+        ],
+      },
+      {
+        code: 'FT-12.05',
+        name: 'Ambientes e configuração',
+        requirements: [
+          todo('REQ-12.05.001', 'Formalizar a configuração dos perfis dev/qa/prod, com variáveis de ambiente próprias por ambiente.'),
+          todo('REQ-12.05.002', 'Documentar o procedimento de subida de cada ambiente (how-to).'),
+        ],
+      },
+      {
+        code: 'FT-12.06',
+        name: 'Banco de dados',
+        requirements: [todo('REQ-12.06.001', 'Indicar a necessidade de criação da base de dados por ambiente.')],
+      },
+    ],
+  },
 ];
 
 export interface OutOfScopeGroup {
@@ -833,6 +965,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-10 02:54 (não commitado)',
+    source: 'progresso',
+    summary:
+      'EP-11 Testes e EP-12 Infraestrutura novos, aprovados pelo usuário. EP-11: 4 FTs / 12 REQs (todo) cobrindo testes unitários de domínio, testes de integração de API, testes de frontend e cenários end-to-end — hoje o projeto não tem nenhum teste automatizado. EP-12: 6 FTs / 16 REQs cobrindo identidade da solução, containerização (Docker), orquestração (Kubernetes), esteira CI/CD, configuração de ambientes e banco de dados; REQ-12.01.001 (sigla + ambiente Azure) já nasce in_progress — a sigla ELJY já foi criada, falta a disponibilização do ambiente. Nenhuma sugestão fora de escopo foi registrada para esses dois épicos, por pedido do usuário. Totais: de 10 EPs/49 FTs/248 REQs (94%) para 12 EPs/59 FTs/276 REQs (84% — a queda no percentual reflete só a base maior de requisitos, nada foi desfeito).',
+  },
   {
     date: '2026-08-10 02:21 (não commitado)',
     source: 'progresso',

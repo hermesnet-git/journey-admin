@@ -590,6 +590,70 @@ por uma stack de observabilidade centralizada (ELK).
 #### REQ-10.04.001 - O sistema deve estar tecnicamente preparado para o envio dos logs de aplicação a uma stack ELK (Elasticsearch/Logstash/Kibana), permanecendo essa integração desativada no MVP por não haver ambiente ELK disponível.
 #### REQ-10.04.002 - O sistema deve documentar o procedimento (how-to) para habilitar a integração com o ELK quando um ambiente estiver disponível.
 
+<br/>
+
+# EP-11 Testes
+
+## Objetivo
+
+Garantir cobertura de teste automatizado nas camadas críticas do Admin Portal, permitindo detectar regressões antes de produção.
+
+### FT-11.01 Testes unitários de domínio (back)
+#### REQ-11.01.001 - O sistema deve possuir testes unitários para as regras estruturais do fluxo (`FlowValidator`): cardinalidade de START/END, caminho contínuo entre início e fim, elemento inicial único.
+#### REQ-11.01.002 - O sistema deve possuir testes unitários para as regras de versionamento de jornada: criação de DRAFT, publicação, despublicação, republicação, imutabilidade de versão `PUBLISHED`.
+#### REQ-11.01.003 - O sistema deve possuir testes unitários para as regras de formulário: nome de campo único, tipos/subtipos de campo, geração da árvore SDUI.
+#### REQ-11.01.004 - O sistema deve possuir testes unitários para as regras de integridade entre produto/canal/jornada (bloqueio de desativação com publicação ativa).
+
+### FT-11.02 Testes de integração de API (back)
+#### REQ-11.02.001 - O sistema deve possuir testes de integração cobrindo o CRUD completo de produtos, canais e jornadas via API.
+#### REQ-11.02.002 - O sistema deve possuir testes de integração cobrindo o ciclo de publicação/despublicação/republicação de versões, incluindo o registro de auditoria de sucesso e falha.
+#### REQ-11.02.003 - O sistema deve possuir testes de integração cobrindo autenticação e autorização por papel (`ADMIN`/`EDITOR`/`VIEWER`) nos principais endpoints.
+#### REQ-11.02.004 - O sistema deve possuir testes de integração cobrindo o CRUD de formulários e a associação a User Tasks.
+
+### FT-11.03 Testes de frontend
+#### REQ-11.03.001 - O sistema deve possuir testes automatizados para o form builder (adicionar/remover campo, validação de nome técnico único, subtipos de `INPUT`).
+#### REQ-11.03.002 - O sistema deve possuir testes automatizados para a validação estrutural do editor de fluxo (bloqueio de ações inválidas).
+
+### FT-11.04 Cenários end-to-end
+#### REQ-11.04.001 - O sistema deve possuir um cenário end-to-end cobrindo o fluxo completo: criar produto → canal → jornada → formulário → fluxo → publicar → despublicar.
+#### REQ-11.04.002 - O sistema deve possuir um cenário end-to-end cobrindo criação, publicação e republicação de múltiplas versões de uma mesma jornada.
+
+<br/>
+
+# EP-12 Infraestrutura
+
+## Objetivo
+
+Definir e implementar a infraestrutura de suporte à solução: identidade, containerização, orquestração, esteira de entrega e configuração de ambientes/banco de dados.
+
+### FT-12.01 Identidade da solução
+#### REQ-12.01.001 - Definição da sigla sistêmica e disponibilização de ambiente na Azure.
+
+### FT-12.02 Containerização (Docker)
+#### REQ-12.02.001 - Criar Dockerfile para o admin-back.
+#### REQ-12.02.002 - Criar Dockerfile para o admin-front (build estático servido por um servidor web).
+#### REQ-12.02.003 - Criar docker-compose para ambiente de desenvolvimento local (back + front + banco de dados).
+
+### FT-12.03 Orquestração (Kubernetes)
+#### REQ-12.03.001 - Criar manifests/Helm chart para deploy do admin-back no cluster.
+#### REQ-12.03.002 - Criar manifests/Helm chart para deploy do admin-front no cluster.
+#### REQ-12.03.003 - Configurar ConfigMap/Secret para variáveis de ambiente e credenciais por ambiente.
+#### REQ-12.03.004 - Definir requests/limits de recursos e health checks (liveness/readiness) para os workloads.
+#### REQ-12.03.005 - Configurar ingress/roteamento externo para os serviços expostos.
+
+### FT-12.04 Esteira CI/CD
+#### REQ-12.04.001 - Pipeline de build e testes automatizados a cada push/PR (integrado ao EP-11 Testes).
+#### REQ-12.04.002 - Pipeline de build e publicação de imagem Docker em um registry.
+#### REQ-12.04.003 - Pipeline de deploy automatizado por ambiente (dev/qa/prod), com aprovação manual obrigatória para produção.
+#### REQ-12.04.004 - Versionamento semântico e tagueamento de releases.
+
+### FT-12.05 Ambientes e configuração
+#### REQ-12.05.001 - Formalizar a configuração dos perfis dev/qa/prod, com variáveis de ambiente próprias por ambiente.
+#### REQ-12.05.002 - Documentar o procedimento de subida de cada ambiente (how-to).
+
+### FT-12.06 Banco de dados
+#### REQ-12.06.001 - Indicar a necessidade de criação da base de dados por ambiente.
+
 <br/><br/>
 
 # 5. Fora do Escopo do MVP 

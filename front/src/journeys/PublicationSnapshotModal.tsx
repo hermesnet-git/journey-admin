@@ -7,19 +7,30 @@ interface PublicationSnapshotModalProps {
   journeyId: string;
   journeyName: string;
   onClose: () => void;
+  title?: string;
+  subtitle?: string;
+  data?: unknown;
 }
 
-export function PublicationSnapshotModal({ journeyId, journeyName, onClose }: PublicationSnapshotModalProps) {
+export function PublicationSnapshotModal({
+  journeyId,
+  journeyName,
+  onClose,
+  title,
+  subtitle,
+  data,
+}: PublicationSnapshotModalProps) {
   const { colors: c } = useAppTheme();
-  const [json, setJson] = useState<string | null>(null);
+  const [json, setJson] = useState<string | null>(data !== undefined ? JSON.stringify(data, null, 2) : null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (data !== undefined) return;
     let cancelled = false;
     getJourneyPublication(journeyId)
-      .then((data) => {
-        if (!cancelled) setJson(JSON.stringify(data, null, 2));
+      .then((res) => {
+        if (!cancelled) setJson(JSON.stringify(res, null, 2));
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erro ao carregar a publicação.');
@@ -27,7 +38,7 @@ export function PublicationSnapshotModal({ journeyId, journeyName, onClose }: Pu
     return () => {
       cancelled = true;
     };
-  }, [journeyId]);
+  }, [journeyId, data]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -57,10 +68,10 @@ export function PublicationSnapshotModal({ journeyId, journeyName, onClose }: Pu
         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b" style={{ borderColor: c.border }}>
           <div className="min-w-0">
             <h2 className="m-0 text-[16px] font-semibold tracking-[-0.01em]" style={{ color: c.textPrimary }}>
-              Publicação: {journeyName}
+              {title ?? `Publicação: ${journeyName}`}
             </h2>
             <p className="m-0 mt-[3px] text-[12.5px]" style={{ color: c.textSecondary }}>
-              JSON enviado à API de publicação do runtime.
+              {subtitle ?? 'JSON enviado à API de publicação do runtime.'}
             </p>
           </div>
           <button

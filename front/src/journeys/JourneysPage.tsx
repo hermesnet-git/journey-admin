@@ -23,6 +23,7 @@ import {
 import { JourneyDesignerPage } from '../flow-designer/JourneyDesignerPage';
 import { NewJourneyModal } from './NewJourneyModal';
 import { PublicationSnapshotModal } from './PublicationSnapshotModal';
+import { VersionDetailPanel } from './VersionDetailPanel';
 
 type StatusFilter = 'all' | JourneyStatus;
 
@@ -504,6 +505,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
   const [publishingVersion, setPublishingVersion] = useState<JourneyVersion | null>(null);
   const [unpublishingVersion, setUnpublishingVersion] = useState<JourneyVersion | null>(null);
   const [republishingVersion, setRepublishingVersion] = useState<JourneyVersion | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<JourneyVersion | null>(null);
 
   const reload = useCallback(() => {
     listJourneyVersions(journeyId)
@@ -606,10 +608,13 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
         versions.map((v) => {
           const meta = versionStatusMeta(c, v.status);
           return (
+            <div key={v.versionId}>
             <div
-              key={v.versionId}
-              className="grid items-center pl-10 pr-4 py-[8px] border-t"
+              className="grid items-center pl-10 pr-4 py-[8px] border-t cursor-pointer"
               style={{ gridTemplateColumns: GRID_COLS, borderColor: c.border }}
+              onClick={() => setSelectedVersion((cur) => (cur?.versionId === v.versionId ? null : v))}
+              onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-[12.5px] font-semibold" style={{ color: c.textPrimary }}>
@@ -633,7 +638,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
               <span className="text-[12px]" style={{ color: c.textSecondary }}>
                 {formatDate(v.publishedAt ?? v.createdAt)}
               </span>
-              <div className="flex items-center justify-end gap-2">
+              <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                 {v.status === 'DRAFT' && (
                   <span title={v.snapshot.flowNodes.length === 0 ? 'Esta versão ainda não tem um fluxo definido.' : undefined}>
                     <PrimaryButton
@@ -656,6 +661,14 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
                   </PrimaryButton>
                 )}
               </div>
+            </div>
+              {selectedVersion?.versionId === v.versionId && (
+                <VersionDetailPanel
+                  journeyId={journeyId}
+                  version={selectedVersion}
+                  onClose={() => setSelectedVersion(null)}
+                />
+              )}
             </div>
           );
         })

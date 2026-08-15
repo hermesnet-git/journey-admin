@@ -33,6 +33,12 @@ import org.camunda.bpm.model.bpmn.instance.SequenceFlow;
 import org.camunda.bpm.model.bpmn.instance.ServiceTask;
 import org.camunda.bpm.model.bpmn.instance.StartEvent;
 import org.camunda.bpm.model.bpmn.instance.UserTask;
+import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnDiagram;
+import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnEdge;
+import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnPlane;
+import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnShape;
+import org.camunda.bpm.model.bpmn.instance.dc.Bounds;
+import org.camunda.bpm.model.bpmn.instance.di.Waypoint;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaConnector;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaConnectorId;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaEntry;
@@ -51,9 +57,11 @@ import org.springframework.stereotype.Component;
  * camunda-bpmn-model fluent chain builder, which is inherently linear/backtracking-based and has
  * no first-class support for the Connector extension element used by attachHttpConnector either.
  *
- * ponytail: no BPMNDI (diagram shapes/edges) is generated — the engine doesn't need it to execute,
- * but Cockpit's process diagram view has nothing to render for these processes. Add a layout pass
- * (e.g. porting the admin front-end's layered computeLayout) if that's ever needed.
+ * BPMNDI (diagram shapes/edges) is generated straight from the Admin Portal's own node
+ * positionX/positionY — the engine doesn't need it to execute, but Cockpit's process diagram view
+ * had nothing to render without it. No independent auto-layout: the admin canvas is already the
+ * source of truth for where each node sits, so the DI pass just reprojects those same coordinates
+ * as BPMN shapes/edges instead of recomputing a layout.
  */
 @Component
 public class BpmnTransformer {
@@ -92,6 +100,7 @@ public class BpmnTransformer {
             byId.put(node.id(), element);
         }
 
+        Map<String, SequenceFlow> flowsById = new HashMap<>();
         for (FlowConnectionRequest connection : request.flowConnections()) {
             FlowNode source = byId.get(connection.sourceNodeId());
             FlowNode target = byId.get(connection.targetNodeId());
@@ -109,6 +118,7 @@ public class BpmnTransformer {
             flow.setTarget(target);
             source.getOutgoing().add(flow);
             target.getIncoming().add(flow);
+            flowsById.put(connection.id(), flow);
 
             if (connection.condition() != null && !connection.condition().isBlank()) {
                 ConditionExpression conditionExpression = modelInstance.newInstance(ConditionExpression.class);
@@ -120,8 +130,88 @@ public class BpmnTransformer {
             }
         }
 
+        addDiagramInterchange(modelInstance, definitions, process, request, byId, flowsById);
+
         Bpmn.validateModel(modelInstance);
         return new Result(processId, toXmlBytes(modelInstance));
+    }
+
+    // Reprojects each node's own positionX/positionY (already tracked by the admin canvas) as a
+    // BPMNShape, and draws each sequence flow as a straight two-point edge between the source's
+    // right-center and the target's left-center — enough for Cockpit's diagram view to render the
+    // process instead of showing an empty canvas, without reimplementing a layout algorithm.
+    private void addDiagramInterchange(BpmnModelInstance modelInstance, Definitions definitions, Process process,
+                                        PublicationSnapshotRequest request, Map<String, FlowNode> byId,
+                                        Map<String, SequenceFlow> flowsById) {
+        BpmnDiagram diagram = modelInstance.newInstance(BpmnDiagram.class);
+        diagram.setId("BPMNDiagram_" + process.getId());
+        definitions.getBpmDiagrams().add(diagram);
+
+        BpmnPlane plane = modelInstance.newInstance(BpmnPlane.class);
+        plane.setId("BPMNPlane_" + process.getId());
+        plane.setBpmnElement(process);
+        diagram.setBpmnPlane(plane);
+
+        Map<String, Bounds> boundsById = new HashMap<>();
+        for (FlowNodeRequest node : request.flowNodes()) {
+            BpmnShape shape = modelInstance.newInstance(BpmnShape.class);
+            shape.setId("BPMNShape_" + node.id());
+            shape.setBpmnElement(byId.get(node.id()));
+
+            double width = shapeWidth(node.type());
+            double height = shapeHeight(node.type());
+            Bounds bounds = modelInstance.newInstance(Bounds.class);
+            bounds.setX(node.positionX() != null ? node.positionX() : 0);
+            // Center smaller shapes (events/gateways) on the same row as the 80px-tall tasks around them.
+            bounds.setY((node.positionY() != null ? node.positionY() : 0) + (80 - height) / 2.0);
+            bounds.setWidth(width);
+            bounds.setHeight(height);
+            shape.setBounds(bounds);
+
+            plane.getDiagramElements().add(shape);
+            boundsById.put(node.id(), bounds);
+        }
+
+        for (FlowConnectionRequest connection : request.flowConnections()) {
+            SequenceFlow flow = flowsById.get(connection.id());
+            Bounds sourceBounds = boundsById.get(connection.sourceNodeId());
+            Bounds targetBounds = boundsById.get(connection.targetNodeId());
+            if (flow == null || sourceBounds == null || targetBounds == null) {
+                continue;
+            }
+
+            BpmnEdge edge = modelInstance.newInstance(BpmnEdge.class);
+            edge.setId("BPMNEdge_" + connection.id());
+            edge.setBpmnElement(flow);
+            edge.getWaypoints().add(waypoint(modelInstance, sourceBounds.getX() + sourceBounds.getWidth(),
+                    sourceBounds.getY() + sourceBounds.getHeight() / 2.0));
+            edge.getWaypoints().add(waypoint(modelInstance, targetBounds.getX(),
+                    targetBounds.getY() + targetBounds.getHeight() / 2.0));
+            plane.getDiagramElements().add(edge);
+        }
+    }
+
+    private Waypoint waypoint(BpmnModelInstance modelInstance, double x, double y) {
+        Waypoint waypoint = modelInstance.newInstance(Waypoint.class);
+        waypoint.setX(x);
+        waypoint.setY(y);
+        return waypoint;
+    }
+
+    private double shapeWidth(String type) {
+        return switch (type) {
+            case "START", "MESSAGE_START_EVENT", "END" -> 36;
+            case "GATEWAY" -> 50;
+            default -> 100;
+        };
+    }
+
+    private double shapeHeight(String type) {
+        return switch (type) {
+            case "START", "MESSAGE_START_EVENT", "END" -> 36;
+            case "GATEWAY" -> 50;
+            default -> 80;
+        };
     }
 
     private FlowNode createNode(BpmnModelInstance modelInstance, Process process, Definitions definitions, FlowNodeRequest node) {

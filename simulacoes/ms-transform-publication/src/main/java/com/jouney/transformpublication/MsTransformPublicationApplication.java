@@ -11,5 +11,6 @@ public class MsTransformPublicationApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MsTransformPublicationApplication.class, args);
+        
     }
 }

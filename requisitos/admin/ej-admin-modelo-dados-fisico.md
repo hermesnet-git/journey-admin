@@ -157,7 +157,7 @@ CREATE TABLE flow_node (
 );
 ```
 
-As configurações de integração dos nós `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT` permanecem no documento JSONB do fluxo. A estrutura deve separar propriedades comuns (`connector_type`, `credential_ref`, `input_mapping`, `output_mapping`) das propriedades específicas de `REST` e `KAFKA`, permitindo a inclusão futura de novos conectores sem alteração da tabela `flow_node`.
+As configurações de integração dos nós `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT` permanecem no documento JSONB do fluxo. A estrutura deve separar propriedades comuns (`connector_type`, `credential_ref`, `input_mapping`, `output_mapping`) das propriedades específicas de `REST` e `KAFKA`, permitindo a inclusão futura de novos conectores sem alteração da tabela `flow_node`. `output_mapping` segue formato estruturado — lista de regras `name`/`jsonPath` — em vez de objeto livre (REQ-03.09.010); campos de texto de `connectorConfig` (`url`, `headers`, `body`) podem referenciar variáveis de passos anteriores via `{{nome}}` (REQ-03.09.012).
 
 ```json
 {
@@ -166,14 +166,16 @@ As configurações de integração dos nós `SERVICE_TASK`, `RECEIVE_TASK` e `ME
   "connectorEnabled": true,
   "connectorConfig": {
     "method": "POST",
-    "url": "https://example.test/resource",
+    "url": "https://brasilapi.com.br/api/cnpj/v1/{{cnpjInformado}}",
     "headers": {},
     "query": {},
     "body": {}
   },
   "credentialRef": "runtime-secret-ref",
   "inputMapping": {},
-  "outputMapping": {}
+  "outputMapping": [
+    { "name": "cnpjRazaoSocial", "jsonPath": "$.razao_social" }
+  ]
 }
 ```
 
@@ -195,7 +197,7 @@ CREATE TABLE flow_connection (
 );
 ```
 
-A restrição `UNIQUE (flow_id, source_node_id)` limita cada origem a uma saída. Antes de persistir o fluxo completo, o backend deve garantir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`), exatamente um `END`, as cardinalidades de entrada e saída de cada tipo e a existência de um caminho contínuo entre o elemento inicial e `END`.
+A restrição `UNIQUE (flow_id, source_node_id)` acima descreve o desenho relacional de referência, mas não reflete a persistência real: o `Flow` (nós e conexões, ver §8) é gravado como um único documento `jsonb`, então a cardinalidade de saída por tipo de nó — inclusive a exceção do `GATEWAY`, que tem exatamente duas (FT-03.11) — é garantida pelo backend (`FlowValidator`), não por uma constraint de banco. Antes de persistir o fluxo completo, o backend deve garantir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`), ao menos um `END`, as cardinalidades de entrada e saída de cada tipo e a existência de um caminho contínuo entre o elemento inicial e algum `END`.
 
 ---
 

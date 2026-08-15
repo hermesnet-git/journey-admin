@@ -18,6 +18,8 @@ import com.jouney.admin.domain.version.VersionHasNoFlowException;
 import com.jouney.admin.domain.version.VersionNotDraftException;
 import com.jouney.admin.domain.version.VersionNotPublishedException;
 import com.jouney.admin.domain.version.VersionNotUnpublishedException;
+import com.jouney.admin.infrastructure.connector.ConnectorTestException;
+import com.jouney.admin.infrastructure.connector.SsrfBlockedException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
@@ -51,6 +53,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ProductInactiveException.class, ChannelInactiveException.class, VersionHasNoFlowException.class,
             DuplicateFieldNameException.class})
     public ResponseEntity<ApiError> handleUnprocessable(RuntimeException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler({SsrfBlockedException.class, ConnectorTestException.class})
+    public ResponseEntity<ApiError> handleConnectorTest(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, null);
     }
 

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { PropertiesPanel } from './PropertiesPanel';
 import { JourneyPropertiesPanel } from './JourneyPropertiesPanel';
-import type { WFNode, WFNodeData } from './model';
+import type { WFNode, WFEdge, WFNodeData, WFEdgeData } from './model';
 import type { Form } from '../api/forms';
 
 const MIN_WIDTH = 280;
@@ -25,7 +25,11 @@ interface JourneyPanelProps {
 export function PropertiesDock({
   node,
   forms,
+  allNodes,
+  allEdges,
+  journeyId,
   onUpdateNode,
+  onUpdateEdge,
   onDeleteNode,
   onOpenNewForm,
   onRefreshForms,
@@ -33,7 +37,11 @@ export function PropertiesDock({
 }: {
   node: WFNode | null;
   forms: Form[];
+  allNodes: WFNode[];
+  allEdges: WFEdge[];
+  journeyId: string;
   onUpdateNode: (patch: Partial<WFNodeData>) => void;
+  onUpdateEdge: (edgeId: string, patch: Partial<WFEdgeData>) => void;
   onDeleteNode: () => void;
   onOpenNewForm: () => void;
   onRefreshForms: () => void;
@@ -125,7 +133,11 @@ export function PropertiesDock({
             <PropertiesPanel
               node={node}
               forms={forms}
+              allNodes={allNodes}
+              allEdges={allEdges}
+              journeyId={journeyId}
               onUpdate={onUpdateNode}
+              onUpdateEdge={onUpdateEdge}
               onDelete={onDeleteNode}
               onOpenNewForm={onOpenNewForm}
               onRefreshForms={onRefreshForms}

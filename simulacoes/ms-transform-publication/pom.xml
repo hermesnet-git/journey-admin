@@ -29,6 +29,10 @@
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.camunda.bpm.model</groupId>
 			<artifactId>camunda-bpmn-model</artifactId>
 			<version>${camunda-bpmn-model.version}</version>

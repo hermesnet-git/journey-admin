@@ -7,9 +7,11 @@ import jakarta.validation.constraints.Pattern;
 public record FlowConnectionInput(
         @NotBlank @Pattern(regexp = "^Flow_.+") String connectionId,
         @NotBlank @Pattern(regexp = "^Node_.+") String sourceNodeId,
-        @NotBlank @Pattern(regexp = "^Node_.+") String targetNodeId) {
+        @NotBlank @Pattern(regexp = "^Node_.+") String targetNodeId,
+        String condition,
+        boolean isDefault) {
 
     public FlowConnection toDomain() {
-        return new FlowConnection(connectionId, sourceNodeId, targetNodeId);
+        return new FlowConnection(connectionId, sourceNodeId, targetNodeId, condition, isDefault);
     }
 }

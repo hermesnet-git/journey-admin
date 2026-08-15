@@ -12,7 +12,9 @@ export function validateFlow(nodes: WFNode[], edges: WFEdge[]): FlowValidationRe
   const starts = nodes.filter((n) => n.type === 'start' || n.type === 'messageStartEvent');
   const ends = nodes.filter((n) => n.type === 'end');
   if (starts.length !== 1) errors.push('O fluxo deve ter exatamente um elemento inicial (Início ou Início por Mensagem).');
-  if (ends.length !== 1) errors.push('O fluxo deve ter exatamente um nó de Fim.');
+  // A GATEWAY's two branches may each run to their own Fim instead of reconverging first, so —
+  // unlike o elemento inicial — o fluxo pode ter mais de um nó de Fim; só precisa de pelo menos um.
+  if (ends.length === 0) errors.push('O fluxo deve ter ao menos um nó de Fim.');
 
   const indeg = new Map<string, number>();
   const outdeg = new Map<string, number>();
@@ -40,9 +42,26 @@ export function validateFlow(nodes: WFNode[], edges: WFEdge[]): FlowValidationRe
       errors.push(`O nó de Fim "${n.data.name}" deve ter ao menos uma entrada e nenhuma saída.`);
       invalidNodeIds.add(n.id);
     }
+    if (n.type === 'gateway') {
+      if (inCount < 1 || outCount !== 2) {
+        errors.push(`O gateway "${n.data.name}" deve ter ao menos uma entrada e exatamente duas saídas.`);
+        invalidNodeIds.add(n.id);
+      } else {
+        const outgoing = edges.filter((e) => e.source === n.id);
+        const defaultCount = outgoing.filter((e) => e.data?.isDefault).length;
+        if (defaultCount !== 1) {
+          errors.push(`O gateway "${n.data.name}" deve ter exatamente uma saída padrão.`);
+          invalidNodeIds.add(n.id);
+        }
+        if (outgoing.some((e) => !e.data?.isDefault && !e.data?.condition?.trim())) {
+          errors.push(`O gateway "${n.data.name}" tem uma saída não padrão sem condição.`);
+          invalidNodeIds.add(n.id);
+        }
+      }
+    }
   });
 
-  if (starts.length === 1 && ends.length === 1) {
+  if (starts.length === 1 && ends.length > 0) {
     const forward = new Map<string, string[]>();
     const backward = new Map<string, string[]>();
     nodes.forEach((n) => {
@@ -70,7 +89,10 @@ export function validateFlow(nodes: WFNode[], edges: WFEdge[]): FlowValidationRe
     };
 
     const fromStart = reachableFrom(starts[0].id, forward);
-    const toEnd = reachableFrom(ends[0].id, backward);
+    // A node only needs to reach *some* Fim, not a specific one — each GATEWAY branch may lead to
+    // its own.
+    const toEnd = new Set<string>();
+    ends.forEach((end) => reachableFrom(end.id, backward).forEach((id) => toEnd.add(id)));
     nodes.forEach((n) => {
       if (!fromStart.has(n.id) || !toEnd.has(n.id)) {
         errors.push(`O nó "${n.data.name}" não está em um caminho contínuo entre Início e Fim.`);

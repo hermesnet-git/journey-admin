@@ -6,5 +6,6 @@ public enum FlowNodeType {
     END,
     SERVICE_TASK,
     RECEIVE_TASK,
-    MESSAGE_START_EVENT
+    MESSAGE_START_EVENT,
+    GATEWAY
 }

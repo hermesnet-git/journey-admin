@@ -280,11 +280,13 @@ Conectores catalogados e desabilitados: GraphQL, SOAP, Database, Webhook
 Drag and Drop, Zoom, Pan, Undo, Redo
 ```
 
-Uma nova jornada inicia com `START → END`. O editor pode configurar o elemento inicial como `START` ou `MESSAGE_START_EVENT`, preservando exatamente um elemento inicial, exatamente um `END` e um caminho contínuo entre eles. Service Tasks executam integrações externas e Receive Tasks aguardam mensagens em instâncias já iniciadas. O runtime traduz esses elementos para BPMN e executa os conectores habilitados.
+Uma nova jornada inicia com `START → END`. O editor pode configurar o elemento inicial como `START` ou `MESSAGE_START_EVENT`, preservando exatamente um elemento inicial, ao menos um `END` e um caminho contínuo entre eles. Um `GATEWAY` (FT-03.11) ramifica o fluxo em dois caminhos condicionais que podem terminar em `END`s distintos, sem precisar reconvergir antes do fim. Service Tasks executam integrações externas e Receive Tasks aguardam mensagens em instâncias já iniciadas. O runtime traduz esses elementos para BPMN e executa os conectores habilitados.
 
 ## Conectores de Integração
 
 O framework de conectores é extensível. No MVP, `REST` e `KAFKA` são habilitados. Os demais conectores permanecem registrados no catálogo como desabilitados e não podem ser usados em fluxos publicados.
+
+O Admin Portal declara, no editor e no snapshot publicado, a estrutura de variáveis do fluxo: o mapeamento de saída de cada integração (`nome ← JSONPath`) e as referências `{{nome}}` usadas nos campos de entrada dos passos seguintes (REQ-03.09.010 a 014). Essa declaração é estática, validada em tempo de design. A **resolução** dessas variáveis durante a execução de uma instância de jornada — substituir `{{nome}}` pelo valor real e popular o contexto a partir da resposta — é responsabilidade do runtime, fora do domínio administrativo, na mesma fronteira já descrita para a transformação executável do fluxo.
 
 ```text
 SERVICE_TASK       → bpmn:serviceTask

@@ -52,7 +52,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
       footer={
         <>
           <SecondaryButton onClick={onClose}>Cancelar</SecondaryButton>
-          <PrimaryButton onClick={submit} loading={saving} disabled={!productId || !channelId || !name.trim()}>
+          <PrimaryButton onClick={submit} loading={saving} disabled={!productId || !channelId || !name.trim() || !description.trim()}>
             Criar jornada
           </PrimaryButton>
         </>
@@ -89,7 +89,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
         <Field label="Nome da jornada">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} maxLength={150} />
         </Field>
-        <Field label="Descrição" optional>
+        <Field label="Descrição">
           <TextArea value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
         {error && <ErrorBanner>{error}</ErrorBanner>}

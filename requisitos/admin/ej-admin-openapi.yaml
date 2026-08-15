@@ -740,6 +740,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/Flow'
 
+  /journeys/{journeyId}/flow/nodes/{nodeId}/connector-test:
+    post:
+      tags: [Flows]
+      summary: Test a REST connector configuration (REQ-03.10.001)
+      description: >
+        Executes a REST call server-side with the currently configured method/url/headers/body
+        (not the saved flow) and returns the raw response, so the editor can help write
+        outputMapping jsonPath rules. Never called directly from the browser (REQ-03.10.002).
+        The backend rejects URLs resolving to private, loopback or reserved addresses
+        (REQ-03.10.003) and applies a short timeout / response size limit (REQ-03.10.004).
+        Not recorded as a domain audit transaction.
+      operationId: testConnector
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectorTestRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: URL resolves to a private/loopback/reserved address, or the upstream call failed/timed out.
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '200':
+          description: Raw response from the tested call
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorTestResponse'
+
   /journeys/{journeyId}/publication:
     get:
       tags: [Journeys]
@@ -1531,9 +1574,20 @@ components:
         inputMapping:
           type: object
           additionalProperties: true
+          description: Declarative, free-form. Text fields (url, headers, body/payload) may reference prior-step variables via `{{name}}`.
         outputMapping:
-          type: object
-          additionalProperties: true
+          type: array
+          description: Rules extracting variables from the integration response, populating the execution context.
+          items:
+            type: object
+            required: [name, jsonPath]
+            properties:
+              name:
+                type: string
+                description: Technical variable name, unique within the journey (same rule as REQ-04.01.007).
+              jsonPath:
+                type: string
+                example: $.razao_social
 
     RestConnectorConfig:
       type: object
@@ -1574,6 +1628,41 @@ components:
           additionalProperties: true
         correlationKey:
           type: string
+
+    ConnectorTestRequest:
+      type: object
+      required: [method, url]
+      description: REST-only (REQ-03.10.001); values as currently configured in the editor, before saving the flow.
+      properties:
+        method:
+          type: string
+          enum: [GET, POST, PUT, PATCH, DELETE]
+        url:
+          type: string
+          format: uri
+        headers:
+          type: object
+          additionalProperties: true
+        body:
+          type: object
+          additionalProperties: true
+        sampleVariables:
+          type: object
+          additionalProperties:
+            type: string
+          description: Example values for `{{name}}` references present in method/url/headers/body, supplied manually for the test call (REQ-03.09.012, REQ-03.10.005).
+
+    ConnectorTestResponse:
+      type: object
+      required: [status, headers, body]
+      properties:
+        status:
+          type: integer
+        headers:
+          type: object
+          additionalProperties: true
+        body:
+          description: Raw response body, used to help write outputMapping jsonPath rules.
 
     FlowConnection:
       type: object

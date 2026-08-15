@@ -41,7 +41,8 @@ public record PublicationSnapshotRequest(
     public record ConnectorConfigRequest(String connectorType, Map<String, Object> config, String credentialRef) {
     }
 
+    // condition/isDefault only apply when sourceNodeId is a GATEWAY node (REQ-03.11.002/003).
     public record FlowConnectionRequest(@NotBlank String id, @NotBlank String sourceNodeId,
-                                         @NotBlank String targetNodeId) {
+                                         @NotBlank String targetNodeId, String condition, boolean isDefault) {
     }
 }

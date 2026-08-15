@@ -134,7 +134,7 @@ Cada jornada possui no máximo um fluxo.
 | TargetNodeId | UUID | Sim | Nó de destino do mesmo fluxo |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 
-Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e um `END`. O elemento inicial e cada `USER_TASK`, `SERVICE_TASK` ou `RECEIVE_TASK` possuem exatamente uma conexão de saída; o `END` não possui saída. Todos os nós devem integrar um caminho contínuo entre o elemento inicial e `END`.
+Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um `END`. O elemento inicial e cada `USER_TASK`, `SERVICE_TASK` ou `RECEIVE_TASK` possuem exatamente uma conexão de saída; um `GATEWAY` possui exatamente duas (FT-03.11); o `END` não possui saída. Todos os nós devem integrar um caminho contínuo entre o elemento inicial e algum `END` — um `GATEWAY` pode ramificar o fluxo em caminhos que terminam em `END`s distintos.
 
 ---
 
@@ -147,8 +147,8 @@ Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVEN
 | ConnectorEnabled | BOOLEAN | Sim | Indica se o conector está habilitado no catálogo |
 | ConnectorConfig | JSONB | Sim | Configuração específica do conector |
 | CredentialRef | VARCHAR(200) | Não | Referência de credencial resolvida pelo runtime |
-| InputMapping | JSONB | Não | Mapeamento do contexto para a integração |
-| OutputMapping | JSONB | Não | Mapeamento da resposta para o contexto |
+| InputMapping | JSONB | Não | Mapeamento do contexto para a integração (formato livre); campos de texto de `ConnectorConfig` (URL, headers, body/payload) podem referenciar variáveis via `{{nome}}` |
+| OutputMapping | JSONB | Não | Lista de regras `{ name, jsonPath }` aplicadas sobre a resposta (REST) ou payload (Kafka) recebido, populando o contexto de execução com a variável `name` — formato estruturado, não livre |
 
 `ConnectorConfig` deve suportar configuração REST e Kafka sem armazenar secrets. Conectores catalogados como desabilitados não podem ser associados a nós de fluxo.
 

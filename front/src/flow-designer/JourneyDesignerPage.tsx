@@ -39,9 +39,11 @@ import {
   SINGLE_OUTPUT_TYPES,
   FRONT_TO_BACKEND_TYPE,
   BACKEND_TO_FRONT_TYPE,
+  outgoingLimitFor,
   type NodeType,
   type WFNode,
   type WFEdge,
+  type WFEdgeData,
   type WFNodeData,
 } from './model';
 import { updateJourney, type Journey } from '../api/journeys';
@@ -55,6 +57,7 @@ const nodeTypes = {
   serviceTask: WorkflowNode,
   receiveTask: WorkflowNode,
   messageStartEvent: WorkflowNode,
+  gateway: WorkflowNode,
 };
 
 interface HistorySnapshot {
@@ -163,7 +166,14 @@ function DesignerInner({
         },
       }));
       setNodes(loadedNodes);
-      setEdges(flow.connections.map((c) => ({ id: c.connectionId, source: c.sourceNodeId, target: c.targetNodeId })));
+      setEdges(
+        flow.connections.map((c) => ({
+          id: c.connectionId,
+          source: c.sourceNodeId,
+          target: c.targetNodeId,
+          data: { condition: c.condition ?? undefined, isDefault: c.isDefault },
+        })),
+      );
       setLoading(false);
     });
   }, [journey]);
@@ -201,6 +211,10 @@ function DesignerInner({
     setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n)));
   }, []);
 
+  const updateEdgeData = useCallback((edgeId: string, patch: Partial<WFEdgeData>) => {
+    setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, data: { ...e.data, ...patch } } : e)));
+  }, []);
+
   const deleteNode = useCallback(
     (nodeId: string) => {
       pushHistory();
@@ -222,7 +236,10 @@ function DesignerInner({
   const onConnect = useCallback<OnConnect>(
     (params) => {
       const source = nodesRef.current.find((n) => n.id === params.source);
-      if (source?.type && SINGLE_OUTPUT_TYPES.includes(source.type) && edgesRef.current.some((e) => e.source === params.source)) return;
+      if (source?.type) {
+        const outCount = edgesRef.current.filter((e) => e.source === params.source).length;
+        if (outCount >= outgoingLimitFor(source.type)) return;
+      }
       pushHistory();
       setEdges((eds) => addEdge({ ...params, id: newConnectionId() }, eds));
     },
@@ -316,8 +333,9 @@ function DesignerInner({
   const onQuickAdd = useCallback(
     (nodeId: string, type: NodeType) => {
       const source = nodesRef.current.find((n) => n.id === nodeId);
-      if (!source) return;
-      if (source.type && SINGLE_OUTPUT_TYPES.includes(source.type) && edgesRef.current.some((e) => e.source === nodeId)) return;
+      if (!source || !source.type) return;
+      const outCount = edgesRef.current.filter((e) => e.source === nodeId).length;
+      if (outCount >= outgoingLimitFor(source.type)) return;
       pushHistory();
       const node = { ...makeNode(type, source.position.x + NODE_WIDTH + 140, source.position.y), selected: true };
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
@@ -357,7 +375,8 @@ function DesignerInner({
         data: {
           ...n.data,
           invalid: invalidNodeIds.has(n.id),
-          outgoingLimitReached: !!n.type && SINGLE_OUTPUT_TYPES.includes(n.type) && edges.some((e) => e.source === n.id),
+          outgoingLimitReached:
+            !!n.type && edges.filter((e) => e.source === n.id).length >= outgoingLimitFor(n.type),
         },
       })),
     [nodes, edges, invalidNodeIds],
@@ -410,7 +429,13 @@ function DesignerInner({
           userTaskConfig: n.data.formId ? { formId: n.data.formId } : null,
           connectorConfig: n.data.connectorConfig,
         })),
-        connections: edges.map((e) => ({ connectionId: e.id, sourceNodeId: e.source, targetNodeId: e.target })),
+        connections: edges.map((e) => ({
+          connectionId: e.id,
+          sourceNodeId: e.source,
+          targetNodeId: e.target,
+          condition: e.data?.condition ?? null,
+          isDefault: !!e.data?.isDefault,
+        })),
       });
       setActiveJourney(journeyRecord);
       onSaved();
@@ -485,7 +510,11 @@ function DesignerInner({
             <PropertiesDock
               node={propertiesNode}
               forms={forms}
+              allNodes={nodes}
+              allEdges={edges}
+              journeyId={activeJourney.journeyId}
               onUpdateNode={(patch) => propertiesNode && updateNodeData(propertiesNode.id, patch)}
+              onUpdateEdge={updateEdgeData}
               onDeleteNode={() => propertiesNode && deleteNode(propertiesNode.id)}
               onOpenNewForm={onOpenNewForm}
               onRefreshForms={refreshForms}

@@ -272,7 +272,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.01.001 - O sistema deve suportar eventos de início, incluindo `START` e `MESSAGE_START_EVENT`.
 #### REQ-03.01.002 - O sistema deve suportar eventos de término.
 #### REQ-03.01.003 - O sistema deve suportar User Tasks, Service Tasks e Receive Tasks.
-#### REQ-03.01.004 - Cada fluxo deve possuir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e exatamente um nó `END`.
+#### REQ-03.01.004 - Cada fluxo deve possuir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um nó `END`; um `GATEWAY` (FT-03.11) pode ramificar o fluxo em caminhos que terminam em nós `END` distintos, em vez de reconvergir num único fim.
 #### REQ-03.01.005 - Ao criar uma jornada, o sistema deve iniciar seu fluxo apenas com o elemento inicial `START`, cabendo ao usuário adicionar o nó `END` e os demais elementos antes de salvar.
 ---
 
@@ -331,14 +331,39 @@ Permitir a construção visual do fluxo específico de cada jornada.
 
 ### FT-03.09 Configuração REST e Kafka
 #### REQ-03.09.001 - O sistema deve permitir configurar `REST` em `SERVICE_TASK` e `RECEIVE_TASK`.
-#### REQ-03.09.002 - A configuração REST deve suportar método HTTP, URL, headers, parâmetros, body, mapeamento de entrada e mapeamento de saída.
+#### REQ-03.09.002 - A configuração REST deve suportar método HTTP, URL, headers, parâmetros, body, mapeamento de entrada e mapeamento de saída. O mapeamento de saída segue formato estruturado (REQ-03.09.010), não mais configuração livre.
 #### REQ-03.09.003 - O sistema deve permitir configurar `KAFKA` em `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT`.
-#### REQ-03.09.004 - A configuração Kafka deve suportar tópico, operação, headers, payload, mapeamento de entrada e mapeamento de saída. Kafka não possui o conceito de fila; a unidade de endereçamento é sempre o tópico.
+#### REQ-03.09.004 - A configuração Kafka deve suportar tópico, operação, headers, payload, mapeamento de entrada e mapeamento de saída. Kafka não possui o conceito de fila; a unidade de endereçamento é sempre o tópico. O mapeamento de saída segue formato estruturado (REQ-03.09.010), não mais configuração livre.
 #### REQ-03.09.005 - Configurações de integração devem suportar referência de credencial sem armazenar secrets diretamente no fluxo ou no snapshot.
 #### REQ-03.09.006 - O snapshot publicado deve incluir o tipo do elemento, o conector, a configuração declarativa e os mapeamentos necessários para execução pelo runtime.
 #### REQ-03.09.007 - `REST` não é um conector válido para `MESSAGE_START_EVENT`: a configuração REST representa uma chamada de saída (método e URL a serem chamados), e o elemento inicia o fluxo a partir de uma mensagem recebida, nunca chamando algo externamente. `MESSAGE_START_EVENT` deve suportar apenas `KAFKA`.
 #### REQ-03.09.008 - A operação Kafka é determinada pelo tipo de nó, não é uma escolha livre do usuário: `SERVICE_TASK` deve usar `PRODUCE` (publica um evento como efeito da tarefa); `RECEIVE_TASK` e `MESSAGE_START_EVENT` devem usar `CONSUME` (aguardam uma mensagem chegar).
-#### REQ-03.09.009 - Headers (REST e Kafka) devem ser editados como uma lista de pares nome/valor (com opção de adicionar e remover pares), e não como texto declarativo livre — diferente de parâmetros, body, payload e mapeamentos de entrada/saída, cujo formato ainda não é padronizado e por isso permanecem como configuração declarativa livre.
+#### REQ-03.09.009 - Headers (REST e Kafka) devem ser editados como uma lista de pares nome/valor (com opção de adicionar e remover pares), e não como texto declarativo livre — diferente de parâmetros, body e payload, cujo formato ainda não é padronizado e por isso permanecem como configuração declarativa livre. O mapeamento de saída não se enquadra mais nessa exceção (ver REQ-03.09.010).
+#### REQ-03.09.010 - O mapeamento de saída de uma integração (REST ou Kafka) deve ser declarado como uma lista de regras `nome da variável ← expressão JSONPath`, aplicada sobre o corpo da resposta (REST) ou o payload recebido (Kafka), em vez de configuração JSON livre.
+#### REQ-03.09.011 - O nome de cada variável de saída deve ser único no escopo da jornada e seguir a mesma regra de nome técnico dos campos de formulário (REQ-04.01.007).
+#### REQ-03.09.012 - O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis produzidas por passos anteriores do fluxo (respostas de formulário e saídas de integrações), usando a sintaxe `{{nomeDaVariavel}}`.
+#### REQ-03.09.013 - O editor deve exibir, para cada `SERVICE_TASK`/`RECEIVE_TASK`, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado.
+#### REQ-03.09.014 - O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie `{{variavel}}` inexistente no contexto do nó (nome não declarado por nenhum passo anterior alcançável).
+---
+
+### FT-03.10 Teste de conectores
+#### REQ-03.10.001 - O sistema deve permitir, durante a edição de um `SERVICE_TASK`/`RECEIVE_TASK` com conector `REST`, disparar uma chamada de teste com os valores atualmente configurados (URL, método, headers, body) e exibir a resposta bruta (status, headers, corpo).
+#### REQ-03.10.002 - A chamada de teste deve ser executada pelo backend, nunca diretamente do navegador, para evitar exposição de credenciais e problemas de CORS.
+#### REQ-03.10.003 - O backend deve recusar chamadas de teste para URLs que resolvam a endereços privados, de loopback ou reservados (proteção contra SSRF).
+#### REQ-03.10.004 - A chamada de teste deve ter timeout curto e limite de tamanho de resposta, e não deve ser registrada como transação de negócio (fora do escopo de auditoria de domínio, EP-08).
+#### REQ-03.10.005 - Campos `{{variavel}}` presentes na configuração testada devem ser substituídos por um valor de exemplo informado manualmente pelo usuário no momento do teste, sem depender de uma execução real de jornada.
+---
+
+### FT-03.11 Bifurcação condicional (Gateway)
+#### REQ-03.11.001 - O sistema deve suportar um nó de gateway de decisão (exclusivo) no fluxo, com exatamente duas saídas no MVP: caminho A e caminho B.
+#### REQ-03.11.002 - Uma das duas saídas do gateway deve ser marcada como saída padrão (sem condição própria), usada quando a condição da outra saída não for satisfeita — garantindo que o fluxo sempre tenha um caminho definido em tempo de execução.
+#### REQ-03.11.003 - A saída não padrão do gateway deve possuir uma condição composta por variável, operador de comparação (igual, diferente, maior que, menor que) e um valor de referência informado pelo usuário, editados como combos/campo tipado (não texto livre).
+#### REQ-03.11.004 - A condição deve poder referenciar tanto uma variável de saída de um Service Task/Receive Task (mapeamento de saída, REQ-03.09.010) quanto um campo de resposta de um User Task (nome técnico do campo, REQ-04.01.007), desde que alcançável a partir do gateway.
+#### REQ-03.11.005 - O editor deve exibir, ao configurar a condição da saída do gateway, a lista de variáveis disponíveis naquele ponto do fluxo — mesmo mecanismo do painel de variáveis do conector (REQ-03.09.013), estendido para incluir campos de formulário de User Tasks alcançáveis.
+#### REQ-03.11.006 - O gateway deve possuir ao menos uma entrada e exatamente duas saídas no MVP; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição.
+#### REQ-03.11.007 - Na publicação, o gateway deve ser traduzido para um `exclusiveGateway` BPMN nativo, com cada `sequenceFlow` de saída carregando a expressão de condição correspondente (ou marcado como fluxo padrão), avaliado pelo próprio motor do runtime — sem necessidade de implementação especializada (worker), no mesmo princípio do conector REST nativo (FT-03.09).
+#### REQ-03.11.008 - Cada variável de saída (REQ-03.09.010) deve possuir um tipo declarado — texto, número, booleano, data ou data e hora — inferido automaticamente ao gerar o mapeamento a partir de uma resposta real (REQ-03.10.001) ou escolhido manualmente pelo usuário. O editor da condição do gateway deve oferecer apenas os operadores compatíveis com o tipo da variável escolhida (texto/booleano: igual/diferente; número/data/data e hora: igual/diferente/maior que/menor que) e um campo de valor no formato correspondente (numérico, seletor verdadeiro/falso, ou seletor de data/data e hora).
+---
 
 
 <br/><br/>
@@ -677,6 +702,11 @@ Criação rápida de elementos
 Seleção múltipla
 Duplicação em massa
 Criação automática de próximos passos
+Gateway com mais de duas saídas (múltiplas condições em cascata/"senão se")
+Gateway inclusivo (múltiplos caminhos simultâneos)
+Gateway paralelo (fork/join)
+Combinação de condições com operadores lógicos (E/OU) numa mesma saída
+Edição visual de expressões compostas (grupos de condições aninhados)
 ```
 
 ## Jornadas e Versionamento

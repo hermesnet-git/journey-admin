@@ -232,7 +232,7 @@ export const EPICS: Epic[] = [
           d('REQ-03.01.001', 'O sistema deve suportar eventos de início.'),
           d('REQ-03.01.002', 'O sistema deve suportar eventos de término.'),
           d('REQ-03.01.003', 'O sistema deve suportar User Tasks.'),
-          d('REQ-03.01.004', 'Cada fluxo deve possuir exatamente um nó START e exatamente um nó END.'),
+          d('REQ-03.01.004', 'Cada fluxo deve possuir exatamente um elemento inicial (START ou MESSAGE_START_EVENT) e ao menos um nó END.'),
           d(
             'REQ-03.01.005',
             'Ao criar uma jornada, o sistema deve iniciar seu fluxo apenas com o nó START, cabendo ao usuário adicionar o nó END e os demais elementos antes de salvar.',
@@ -250,7 +250,7 @@ export const EPICS: Epic[] = [
             'REQ-03.02.004',
             'O nó START não deve possuir entrada e deve possuir exatamente uma saída; cada USER_TASK deve possuir ao menos uma entrada e exatamente uma saída; o nó END deve possuir ao menos uma entrada e nenhuma saída.',
           ),
-          d('REQ-03.02.005', 'Todos os nós devem pertencer a um caminho contínuo e alcançável entre START e END.'),
+          d('REQ-03.02.005', 'Todos os nós devem pertencer a um caminho contínuo e alcançável entre o elemento inicial e algum END.'),
           d(
             'REQ-03.02.006',
             'O editor deve impedir ações incompatíveis, e o backend deve rejeitar com 422 qualquer tentativa de persistir um fluxo que viole as restrições estruturais.',
@@ -351,7 +351,88 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.09.009',
-            'Headers devem ser editados como lista de pares nome/valor, não como texto declarativo livre; params/body/payload/mapeamentos permanecem declarativos.',
+            'Headers devem ser editados como lista de pares nome/valor, não como texto declarativo livre; params/body/payload permanecem declarativos; mapeamento de saída passou a ter formato estruturado.',
+          ),
+          d(
+            'REQ-03.09.010',
+            'O mapeamento de saída de uma integração (REST ou Kafka) deve ser declarado como uma lista de regras nome da variável ← expressão JSONPath, em vez de configuração JSON livre.',
+          ),
+          d(
+            'REQ-03.09.011',
+            'O nome de cada variável de saída deve ser único no escopo da jornada e seguir a mesma regra de nome técnico dos campos de formulário (REQ-04.01.007).',
+          ),
+          d(
+            'REQ-03.09.012',
+            'O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis de passos anteriores usando a sintaxe {{nomeDaVariavel}}.',
+          ),
+          d(
+            'REQ-03.09.013',
+            'O editor deve exibir, para cada SERVICE_TASK/RECEIVE_TASK, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado.',
+          ),
+          d(
+            'REQ-03.09.014',
+            'O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie {{variavel}} inexistente no contexto do nó.',
+          ),
+        ],
+      },
+      {
+        code: 'FT-03.10',
+        name: 'Teste de conectores',
+        requirements: [
+          d(
+            'REQ-03.10.001',
+            'O sistema deve permitir, durante a edição de um SERVICE_TASK/RECEIVE_TASK com conector REST, disparar uma chamada de teste com os valores atualmente configurados e exibir a resposta bruta.',
+          ),
+          d('REQ-03.10.002', 'A chamada de teste deve ser executada pelo backend, nunca diretamente do navegador.'),
+          d(
+            'REQ-03.10.003',
+            'O backend deve recusar chamadas de teste para URLs que resolvam a endereços privados, de loopback ou reservados (proteção contra SSRF).',
+          ),
+          d(
+            'REQ-03.10.004',
+            'A chamada de teste deve ter timeout curto e limite de tamanho de resposta, e não deve ser registrada como transação de negócio.',
+          ),
+          d(
+            'REQ-03.10.005',
+            'Campos {{variavel}} presentes na configuração testada devem ser substituídos por um valor de exemplo informado manualmente pelo usuário no momento do teste.',
+          ),
+        ],
+      },
+      {
+        code: 'FT-03.11',
+        name: 'Bifurcação condicional (Gateway)',
+        requirements: [
+          d(
+            'REQ-03.11.001',
+            'O sistema deve suportar um nó de gateway de decisão (exclusivo) no fluxo, com exatamente duas saídas no MVP: caminho A e caminho B.',
+          ),
+          d(
+            'REQ-03.11.002',
+            'Uma das duas saídas do gateway deve ser marcada como saída padrão (sem condição própria), usada quando a condição da outra saída não for satisfeita.',
+          ),
+          d(
+            'REQ-03.11.003',
+            'A saída não padrão do gateway deve possuir uma condição composta por variável, operador de comparação (igual, diferente, maior que, menor que) e um valor de referência informado pelo usuário, editados como combos/campo tipado.',
+          ),
+          d(
+            'REQ-03.11.004',
+            'A condição deve poder referenciar tanto uma variável de saída de um Service Task/Receive Task quanto um campo de resposta de um User Task, desde que alcançável a partir do gateway.',
+          ),
+          d(
+            'REQ-03.11.005',
+            'O editor deve exibir, ao configurar a condição da saída do gateway, a lista de variáveis disponíveis naquele ponto do fluxo.',
+          ),
+          d(
+            'REQ-03.11.006',
+            'O gateway deve possuir ao menos uma entrada e exatamente duas saídas no MVP; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição.',
+          ),
+          d(
+            'REQ-03.11.007',
+            'Na publicação, o gateway deve ser traduzido para um exclusiveGateway BPMN nativo, com cada sequenceFlow de saída carregando a expressão de condição correspondente (ou marcado como fluxo padrão), avaliado pelo próprio motor do runtime.',
+          ),
+          d(
+            'REQ-03.11.008',
+            'Cada variável de saída deve possuir um tipo declarado (texto, número, booleano, data ou data e hora), inferido automaticamente ao gerar o mapeamento a partir de uma resposta real ou escolhido manualmente. O editor da condição do gateway deve oferecer só os operadores compatíveis com o tipo e um campo de valor no formato correspondente.',
           ),
         ],
       },
@@ -924,6 +1005,11 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
       'Seleção múltipla',
       'Duplicação em massa',
       'Criação automática de próximos passos',
+      'Gateway com mais de duas saídas (múltiplas condições em cascata/"senão se")',
+      'Gateway inclusivo (múltiplos caminhos simultâneos)',
+      'Gateway paralelo (fork/join)',
+      'Combinação de condições com operadores lógicos (E/OU) numa mesma saída',
+      'Edição visual de expressões compostas (grupos de condições aninhados)',
     ],
   },
   {
@@ -965,6 +1051,36 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-15 02:47 (não commitado)',
+    source: 'progresso',
+    summary:
+      'REQ-03.11.003 corrigido (removidos os operadores "maior ou igual"/"menor ou igual" que nunca foram implementados; ficou igual/diferente/maior que/menor que) e passou de texto livre para 3 campos estruturados (combo de variável + combo de operador + valor). Novo REQ-03.11.008: cada variável de saída ganhou um tipo declarado (texto, número, booleano, data, data e hora) — inferido automaticamente ao gerar o mapeamento via "Testar API" (incluindo detecção de datas ISO 8601 por regex) ou escolhido manualmente; o editor da condição do gateway agora filtra os operadores pelo tipo da variável escolhida (texto/booleano: igual/diferente; número/data/data e hora: também maior/menor) e troca o campo de valor (numérico, seletor verdadeiro/falso, seletor de data ou data e hora). Chips de "variáveis disponíveis" removidos do painel Decisão — a própria combo de variável cumpre esse papel. Variáveis salvas antes dessa mudança (sem tipo) continuam funcionando como string. EP-03 vai de 63/63 para 64/64 (100%, 1 REQ novo). Progresso geral de 249/293 (85%) para 250/294 (85%).',
+  },
+  {
+    date: '2026-08-15 02:03 (não commitado)',
+    source: 'progresso',
+    summary:
+      'FT-03.11 Bifurcação condicional (Gateway) implementada por completo, REQ-03.11.001 a 007. Back: FlowNodeType.GATEWAY, FlowConnection.condition/isDefault, FlowValidator (gateway com 2 saídas, exatamente uma padrão, não padrão com condição, validação de {{variavel}} contra ancestrais). Front: tipo gateway no editor (ícone, paleta, canvas), GatewayFields (checkbox de saída padrão + condição de texto por saída, com painel de variáveis disponíveis), outgoingLimitFor generalizando o limite de saídas por tipo de nó, validation.ts espelhando a regra do back. ms-transform-publication: BpmnTransformer reescrito de uma caminhada linear para construção de grafo via API de baixo nível do camunda-bpmn-model (necessário para suportar ramificação), gerando exclusiveGateway/sequenceFlow com conditionExpression JUEL e fluxo padrão nativos do Camunda — sem worker. Testado ponta a ponta: publicação real + execução no Camunda confirmando os dois caminhos (condição verdadeira → Tarefa A; condição falsa → saída padrão → Tarefa B). Fora de escopo do MVP (já registrado em ej-admin-requisitos.md §5): gateway com mais de duas saídas, gateway inclusivo, gateway paralelo, combinação de condições com E/OU. EP-03 volta a 100% (63/63). Progresso geral de 242/293 (83%) para 249/293 (85%).',
+  },
+  {
+    date: '2026-08-15 01:43 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Nova feature FT-03.11 Bifurcação condicional (Gateway), REQ-03.11.001 a 007, todos todo: gateway de decisão exclusivo com exatamente duas saídas no MVP (caminho A/caminho B), uma marcada como padrão (sem condição); a condição da saída não padrão é variável + operador de comparação + valor de referência, podendo referenciar tanto uma variável de saída de Service Task/Receive Task (REQ-03.09.010) quanto um campo de resposta de User Task (REQ-04.01.007); painel de variáveis disponíveis reaproveita REQ-03.09.013, estendido a campos de formulário. Na publicação, vira exclusiveGateway BPMN nativo com sequenceFlow condicional, avaliado pelo motor do runtime, sem worker — mesmo princípio do conector REST nativo (FT-03.09). Gateway com mais de duas saídas, gateway inclusivo, gateway paralelo e combinação de condições com E/OU registrados fora de escopo do MVP em nova seção "Evolução do Gateway de Decisão" (ej-admin-requisitos.md §5). EP-03 vai de 56/56 (100%) para 56/63 (89%, 7 novos todo). Progresso geral de 242/286 (85%) para 242/293 (83%).',
+  },
+  {
+    date: '2026-08-15 02:17 (não commitado)',
+    source: 'progresso',
+    summary:
+      'REQ-03.01.004/03.02.005 ajustados: a cardinalidade de END passou de "exatamente um" para "ao menos um", já que um GATEWAY (FT-03.11) pode ramificar o fluxo em dois caminhos que terminam em ENDs distintos, sem precisar reconvergir antes do fim. Back: FlowValidator — checagem de ends.isEmpty() no lugar de ends.size() != 1, e a alcançabilidade reversa (BFS) agora une o alcance de todos os ENDs em vez de partir de um único. Front: validation.ts espelha a mesma mudança. ms-transform-publication não precisou de ajuste — o BpmnTransformer já constrói o grafo de forma genérica, sem assumir quantidade de END. Documentação sincronizada em ej-admin-modelo-dados-fisico.md, ej-admin-modelo-dados-conceitual.md, ej-admin-dicionario-dados.md e ej-admin-arquitetura-logica.md. Sem mudança de contagem de REQs (ambos continuam done), só de redação/comportamento.',
+  },
+  {
+    date: '2026-08-14 22:29 (não commitado)',
+    source: 'progresso',
+    summary:
+      'FT-03.09 evoluído e nova FT-03.10 (Teste de conectores) implementadas: mapeamento de saída de conectores REST/Kafka deixou de ser JSON livre e passou a lista estruturada nome ← JSONPath (REQ-03.09.010/011), com suporte a referenciar essas variáveis via {{nome}} nos campos de entrada de passos seguintes (REQ-03.09.012), painel de variáveis disponíveis por nó no editor (REQ-03.09.013) e validação 422 no backend para {{variavel}} não declarada ou nome de saída duplicado (REQ-03.09.014). REQ-03.09.002/004/009 tiveram a descrição/nota ajustada para refletir que mapeamento de saída não é mais livre. Nova FT-03.10 (REQ-03.10.001 a 005): botão "Testar chamada" no editor dispara, via backend (POST /journeys/{id}/flow/nodes/{id}/connector-test), uma chamada REST de teste com proteção contra SSRF (bloqueio de IP privado/loopback/reservado), timeout de 5s e limite de corpo de 1MB; valores de exemplo para variáveis coletados no momento do teste. EP-03 mantém 100% (56/56 REQs, 10 novos). Progresso geral de 232/276 (84%) para 242/286 (85%).',
+  },
   {
     date: '2026-08-10 03:06',
     source: 'progresso',
@@ -1173,6 +1289,22 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-08-14 20:26',
+    source: 'git',
+    summary: 'Gestão de Jornadas: painel de versão nas jornadas.',
+    epics: ['EP-06'],
+  },
+  {
+    date: '2026-08-10 04:00',
+    source: 'git',
+    summary: 'Inclusão de busca na página Sobre.',
+  },
+  {
+    date: '2026-08-10 03:24',
+    source: 'git',
+    summary: 'Refresh da página Sobre.',
+  },
   {
     date: '2026-08-10 03:19',
     source: 'git',

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Play, ClipboardList, CheckCircle2, Plus, X, FileText, Pencil, Server, Mail, Plug } from 'lucide-react';
+import { Play, ClipboardList, CheckCircle2, Plus, X, FileText, Pencil, Server, Mail, Plug, Diamond } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
 import { NODE_META, NODE_WIDTH, TYPE_COLOR, type NodeType, type WFNode } from './model';
@@ -12,8 +12,9 @@ const ICON: Record<NodeType, typeof Play> = {
   serviceTask: Server,
   receiveTask: Mail,
   messageStartEvent: Mail,
+  gateway: Diamond,
 };
-const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask', 'end'];
+const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask', 'gateway', 'end'];
 
 function QuickAdd({ nodeId }: { nodeId: string }) {
   const { c } = useFlowTheme();
@@ -34,7 +35,7 @@ function QuickAdd({ nodeId }: { nodeId: string }) {
     <div
       ref={ref}
       className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-      style={{ right: -29, zIndex: open ? 20 : 1 }}
+      style={{ right: -25, zIndex: open ? 20 : 1 }}
     >
       <button
         onClick={(e) => {
@@ -43,15 +44,15 @@ function QuickAdd({ nodeId }: { nodeId: string }) {
         }}
         onPointerDown={(e) => e.stopPropagation()}
         title="Adicionar próxima etapa"
-        className="w-5 h-5 rounded-full flex items-center justify-center cursor-pointer"
+        className="w-[17px] h-[17px] rounded-full flex items-center justify-center cursor-pointer"
         style={{ border: `1.5px solid ${c.handleColor}`, background: c.cardBg, color: c.handleColor }}
       >
-        <Plus size={13} />
+        <Plus size={11} />
       </button>
       {open && (
         <div
           onPointerDown={(e) => e.stopPropagation()}
-          className="absolute left-[26px] top-0 w-[210px] rounded-[10px] p-[6px]"
+          className="absolute left-[22px] top-0 w-[180px] rounded-[8px] p-[5px]"
           style={{ background: c.cardBg, border: `1px solid ${c.border}`, boxShadow: '0 10px 30px -8px rgba(0,0,0,.25)' }}
         >
           {QUICK_ADD_TYPES.map((t) => {
@@ -64,10 +65,10 @@ function QuickAdd({ nodeId }: { nodeId: string }) {
                   setOpen(false);
                   actions.onQuickAdd(nodeId, t);
                 }}
-                className="w-full flex items-center gap-[9px] text-left px-[10px] py-2 rounded-[7px] border-0 bg-transparent cursor-pointer text-[13px] hover:bg-[var(--flow-hover)]"
+                className="w-full flex items-center gap-[7px] text-left px-[8px] py-[6px] rounded-[6px] border-0 bg-transparent cursor-pointer text-[12px] hover:bg-[var(--flow-hover)]"
                 style={{ color: c.textPrimary, ['--flow-hover' as string]: c.hoverBg }}
               >
-                <Icon size={16} color={TYPE_COLOR[t]} strokeWidth={1.8} />
+                <Icon size={14} color={TYPE_COLOR[t]} strokeWidth={1.8} />
                 {NODE_META[t].title}
               </button>
             );
@@ -87,6 +88,9 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   const hasOutput = nodeType !== 'end';
   const outgoingLimitReached = !!data.outgoingLimitReached;
   const invalid = !!data.invalid;
+  // Início/Fim carry no description or badges — just a label — so they shrink to the text
+  // instead of matching the fixed width of task/integration nodes.
+  const isCompact = nodeType === 'start' || nodeType === 'end';
 
   const borderColor = invalid ? c.danger : selected ? c.accent : c.cardBorder;
   const ringColor = invalid ? c.dangerSoft : c.accentSoft;
@@ -98,12 +102,12 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
     <div
       onDoubleClick={() => actions.onEdit(id)}
       style={{
-        width: NODE_WIDTH,
+        width: isCompact ? 'fit-content' : NODE_WIDTH,
         background: c.cardBg,
         borderColor,
         boxShadow: selected || invalid ? `0 0 0 4px ${ringColor}` : 'none',
       }}
-      className="group relative rounded-xl border px-[14px] py-3 cursor-grab select-none"
+      className={`group relative rounded-lg border cursor-grab select-none ${isCompact ? 'px-[10px] py-[6px]' : 'px-[10px] py-[7px]'}`}
     >
       <button
         onClick={(e) => {
@@ -113,10 +117,10 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
         onPointerDown={(e) => e.stopPropagation()}
         onDoubleClick={(e) => e.stopPropagation()}
         title="Editar propriedades"
-        className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute -top-[7px] -left-[7px] w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ background: c.cardBg, border: `1.5px solid ${c.handleColor}`, color: c.handleColor, zIndex: 10 }}
       >
-        <Pencil size={11} strokeWidth={2.2} />
+        <Pencil size={10} strokeWidth={2.2} />
       </button>
       {deletable && (
         <button
@@ -126,10 +130,10 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           }}
           onPointerDown={(e) => e.stopPropagation()}
           title="Remover nó"
-          className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -top-[7px] -right-[7px] w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
           style={{ background: c.danger, color: '#fff', zIndex: 10 }}
         >
-          <X size={12} strokeWidth={2.5} />
+          <X size={11} strokeWidth={2.5} />
         </button>
       )}
       {hasInput && (
@@ -137,50 +141,56 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           type="target"
           position={Position.Left}
           style={{
-            width: 8.4,
-            height: 8.4,
+            width: 7.5,
+            height: 7.5,
             background: c.cardBg,
             border: `1.75px solid ${c.handleColor}`,
             zIndex: 5,
           }}
         />
       )}
-      <div className="flex items-center gap-[10px]">
+      <div className="flex items-center gap-[8px]">
         <div className="relative shrink-0">
           <div
-            className="w-[30px] h-[30px] rounded-lg flex items-center justify-center"
+            className={isCompact ? 'w-[18px] h-[18px] rounded flex items-center justify-center' : 'w-[24px] h-[24px] rounded-md flex items-center justify-center'}
             style={{ background: `${TYPE_COLOR[nodeType]}22` }}
           >
-            <Icon size={16} color={TYPE_COLOR[nodeType]} strokeWidth={1.8} />
+            <Icon size={isCompact ? 11 : 13} color={TYPE_COLOR[nodeType]} strokeWidth={1.8} />
           </div>
           {nodeType === 'userTask' && data.formId && (
             <div
               title="Formulário associado"
-              className="absolute -bottom-1 -right-1 w-[16px] h-[16px] rounded-full flex items-center justify-center"
+              className="absolute -bottom-1 -right-1 w-[13px] h-[13px] rounded-full flex items-center justify-center"
               style={{ background: c.accent, border: `1.5px solid ${c.cardBg}` }}
             >
-              <FileText size={9} color="#fff" strokeWidth={2.5} />
+              <FileText size={7.5} color="#fff" strokeWidth={2.5} />
             </div>
           )}
           {(nodeType === 'serviceTask' || nodeType === 'receiveTask' || nodeType === 'messageStartEvent') &&
             data.connectorConfig && (
               <div
                 title={`Conector ${data.connectorConfig.connectorType} associado`}
-                className="absolute -bottom-1 -right-1 w-[16px] h-[16px] rounded-full flex items-center justify-center"
+                className="absolute -bottom-1 -right-1 w-[13px] h-[13px] rounded-full flex items-center justify-center"
                 style={{ background: c.accent, border: `1.5px solid ${c.cardBg}` }}
               >
-                <Plug size={9} color="#fff" strokeWidth={2.5} />
+                <Plug size={7.5} color="#fff" strokeWidth={2.5} />
               </div>
             )}
         </div>
-        <div className="min-w-0">
-          <div className="text-[14px] font-bold truncate" style={{ color: c.textPrimary }}>
+        {isCompact ? (
+          <div className="text-[12px] font-bold whitespace-nowrap" style={{ color: c.textPrimary }}>
             {data.name}
           </div>
-          <div className="text-[11.5px] truncate" style={{ color: c.textSecondary }}>
-            {data.description}
+        ) : (
+          <div className="min-w-0">
+            <div className="text-[12.5px] font-bold truncate" style={{ color: c.textPrimary }}>
+              {data.name}
+            </div>
+            <div className="text-[10.5px] truncate" style={{ color: c.textSecondary }}>
+              {data.description}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       {nodeType === 'userTask' && data.formId && (
         <button
@@ -191,10 +201,10 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           onPointerDown={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
           title="Abrir formulário para edição"
-          className="flex items-center gap-[5px] mt-[9px] pt-[8px] w-full min-w-0 text-[10.5px] font-semibold border-0 bg-transparent cursor-pointer text-left"
+          className="flex items-center gap-[5px] mt-[6px] pt-[6px] w-full min-w-0 text-[9.5px] font-semibold border-0 bg-transparent cursor-pointer text-left"
           style={{ borderTop: `1px solid ${c.border}`, color: c.accent }}
         >
-          <FileText size={11} strokeWidth={2} className="shrink-0" />
+          <FileText size={10} strokeWidth={2} className="shrink-0" />
           <span className="truncate">{actions.getFormName(data.formId) ?? 'Formulário vinculado'}</span>
         </button>
       )}
@@ -205,8 +215,8 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
             position={Position.Right}
             isConnectable={!outgoingLimitReached}
             style={{
-              width: 8.4,
-              height: 8.4,
+              width: 7.5,
+              height: 7.5,
               background: c.cardBg,
               border: `1.75px solid ${c.handleColor}`,
               zIndex: 5,

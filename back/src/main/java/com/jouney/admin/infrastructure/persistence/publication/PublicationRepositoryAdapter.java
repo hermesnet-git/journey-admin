@@ -39,7 +39,8 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
                                 FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig())))
                         .toList(),
                 publication.getFlowConnections().stream()
-                        .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId()))
+                        .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
+                                c.isDefault()))
                         .toList(),
                 publication.getForms().stream()
                         .map(f -> new SnapshotFormRecord(f.getId(), f.getName(), f.getDescription(),
@@ -73,7 +74,7 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
                         n.formId(), n.connectorConfig() != null ? n.connectorConfig().toDomain() : null))
                 .toList();
         List<FlowConnection> flowConnections = record.flowConnections().stream()
-                .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId()))
+                .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
                 .toList();
         List<Form> forms = record.forms().stream()
                 .map(f -> new Form(f.id(), f.name(), f.description(),

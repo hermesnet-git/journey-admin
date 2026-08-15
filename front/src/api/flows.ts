@@ -1,6 +1,6 @@
-import { apiGet, apiPut } from './client';
+import { apiGet, apiPost, apiPut } from './client';
 
-export type FlowNodeType = 'START' | 'USER_TASK' | 'END' | 'SERVICE_TASK' | 'RECEIVE_TASK' | 'MESSAGE_START_EVENT';
+export type FlowNodeType = 'START' | 'USER_TASK' | 'END' | 'SERVICE_TASK' | 'RECEIVE_TASK' | 'MESSAGE_START_EVENT' | 'GATEWAY';
 export type ConnectorType = 'REST' | 'KAFKA';
 
 export interface ConnectorConfig {
@@ -24,6 +24,9 @@ export interface FlowConnection {
   connectionId: string;
   sourceNodeId: string;
   targetNodeId: string;
+  // REQ-03.11.002/003: only meaningful when sourceNodeId is a GATEWAY node.
+  condition: string | null;
+  isDefault: boolean;
 }
 
 export interface Flow {
@@ -46,4 +49,23 @@ export function getFlow(journeyId: string): Promise<Flow> {
 
 export function updateFlow(journeyId: string, input: FlowUpdateInput): Promise<Flow> {
   return apiPut<Flow>(`/journeys/${journeyId}/flow`, input);
+}
+
+// REQ-03.10.001: test call executed server-side, never directly from the browser (REQ-03.10.002).
+export interface ConnectorTestInput {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body: Record<string, unknown> | null;
+  sampleVariables: Record<string, string>;
+}
+
+export interface ConnectorTestResponse {
+  status: number;
+  headers: Record<string, string>;
+  body: string;
+}
+
+export function testConnector(journeyId: string, nodeId: string, input: ConnectorTestInput): Promise<ConnectorTestResponse> {
+  return apiPost<ConnectorTestResponse>(`/journeys/${journeyId}/flow/nodes/${nodeId}/connector-test`, input);
 }

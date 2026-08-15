@@ -30,7 +30,8 @@ public class FlowRepositoryAdapter implements FlowRepository {
                         FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig())))
                 .toList());
         String connectionsJson = writeJson(flow.getConnections().stream()
-                .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId()))
+                .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
+                        c.isDefault()))
                 .toList());
         FlowJpaEntity entity = new FlowJpaEntity(flow.getId(), flow.getJourneyId(), flow.getName(), nodesJson,
                 connectionsJson, flow.getCreatedAt(), flow.getUpdatedAt());
@@ -58,7 +59,7 @@ public class FlowRepositoryAdapter implements FlowRepository {
                         n.formId(), n.connectorConfig() != null ? n.connectorConfig().toDomain() : null))
                 .toList();
         List<FlowConnection> connections = connectionRecords.stream()
-                .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId()))
+                .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
                 .toList();
         return new Flow(entity.getId(), entity.getJourneyId(), entity.getName(), nodes, connections,
                 entity.getCreatedAt(), entity.getUpdatedAt());

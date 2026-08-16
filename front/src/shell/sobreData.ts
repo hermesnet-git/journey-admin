@@ -1261,61 +1261,61 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-08-16 05:14 (não commitado)',
+    date: '2026-08-16 05:33',
     source: 'progresso',
     summary:
       'Nova feature FT-13 Dashboard (9 user stories, 24 REQs, todos done), cobrindo o dashboard operacional implementado nesta sessão: indicadores em tempo real (US-13.01), tendência de execução com gráfico iniciadas/concluídas e granularidade ajustável — últimas 24h por hora (padrão), últimos 7 ou 30 dias por dia (US-13.02), processos por volume com indicação de incidentes (US-13.03), lista de incidentes ativos (US-13.04), instâncias pendentes com encerramento manual individual/em lote restrito a EDITOR/ADMIN e sempre com confirmação (US-13.05), execução recente (US-13.06), atualização manual/automática dos dados (US-13.07), acesso como primeira tela do portal com item de menu dedicado (US-13.08) e auditoria de encerramento de instância e início de simulação (US-13.09). Progresso geral de 278/314 (89%) para 302/338 (89%, 13 features).',
   },
   {
-    date: '2026-08-16 04:50 (não commitado)',
+    date: '2026-08-16 05:33',
     source: 'progresso',
     summary:
       'Renomeação de terminologia em todo o diretório requisitos/: "MVP" → "versão 1.0.0" (com concordância de gênero/contração revisada caso a caso — "do/no/o MVP" → "da/na/a versão 1.0.0"), "Épico" (nível EP-) → "Feature" (nível FT-), "Feature" (nível FT-xx.xx) → "User Story"/US (nível US-xx.xx). Aplicado a todos os arquivos de requisitos/admin/ (incluindo ej-admin-openapi.yaml e o comentário SQL de bd/massa_de_dados_journeys.sql) via script mecânico com verificação manual de concordância verbal/nominal; ej-admin-index.md §5 (Fora do Escopo) teve a entrada "Dashboard Administrativo de Jornadas" removida (item implementado nesta sessão, ver FT-13 acima). Corrigida também uma mojibake pré-existente (dupla codificação UTF-8) em um parágrafo de ej-admin-requisitos.md, sem relação com a renomeação. Nenhum REQ mudou de conteúdo ou status nesta rodada — apenas prefixos/rótulos.',
   },
   {
-    date: '2026-08-16 03:11 (não commitado)',
+    date: '2026-08-16 05:33',
     source: 'progresso',
     summary:
       'FT-02 Gestão de Jornadas ganhou 2 REQs novos em US-02.03 Pesquisa: REQ-02.03.006 (agrupar a listagem de jornadas por produto, por produto+canal, por canal, ou sem agrupamento) e REQ-02.03.007 (ordenar a listagem, crescente ou decrescente, pelos campos jornada/canal/status/data de atualização). Estado atual: REQ-02.03.006 in_progress — JourneysPage.tsx já agrupa por produto (pedido do usuário numa rodada anterior), mas ainda falta o seletor pra escolher o modo de agrupamento (produto+canal, só canal, sem agrupar); REQ-02.03.007 todo — não existe UI de ordenação por coluna hoje. De quebra, corrigida uma divergência de contagem pré-existente do FT-02: o resumo geral registrava 39/39, mas a seção detalhada sempre teve 40 linhas. FT-02 vai de 40/40 (100%) para 40/42 (95%, 1 in_progress). Progresso geral de 277/311 (89%) para 278/314 (89%).',
   },
   {
-    date: '2026-08-16 02:44 (não commitado)',
+    date: '2026-08-16 02:47',
     source: 'progresso',
     summary:
       'FT-05 Simulação ganhou uma nova user story, US-05.08 Tratamento de falhas de integração (REQ-05.08.001 a 004): quando um conector REST falha durante a simulação (ex.: ms-mock-api-rest fora do ar), o ms-espec-registry agora identifica corretamente qual nó de serviço causou a falha — antes, como a transação da engine dá rollback e não deixa rastro no histórico, o simulador acabava culpando a User Task anterior em vez do Service Task real (PublicationSnapshot.nextConnectorNodeAfter() segue as conexões do fluxo até o próximo nó com conector). O nó com erro é destacado no diagrama, a falha entra no log cronológico, e a mensagem completa fica disponível sob demanda por um ícone que abre um modal (copiar erro, fechar, tecla Esc) — sem mais o aviso de erro inline que existia na tela de execução. Dois REQs novos adicionais: REQ-05.03.003 (o diagrama não deve perder zoom/posição ao trocar de aba — corrigido mantendo o FlowDiagramViewer sempre montado) e REQ-05.06.005 (o log deve mostrar os dados submetidos em cada User Task respondida). REQ-05.07.001 revisado: a busca de jornada passou a listar todas por padrão e filtrar conforme o texto digitado (comportamento anterior era nunca listar todas de uma vez). FT-05 vai de 21/21 para 27/27 (100%, 6 REQs novos). Progresso geral de 271/305 (89%) para 277/311 (89%).',
   },
   {
-    date: '2026-08-15 23:15 (não commitado)',
+    date: '2026-08-16 02:47',
     source: 'progresso',
     summary:
       'FT-05 Simulação implementado por completo (0% → 100%, 21/21 REQs). Objetivo da feature ajustado: a simulação exige jornada publicada e roda contra o motor de runtime real (Camunda), não um simulador simplificado interno. Arquitetura: ms-espec-registry (wrapper fino da REST API do Camunda — iniciar/consultar/completar tarefas, fetchAndLock+complete de external task Kafka, correlação de mensagem para RECEIVE_TASK, leitura/escrita de variáveis do processo) e ms-mock-api-rest (10 endpoints estáticos emulando as integrações REST reais da massa de dados), ambos em simulacoes/. Front: aba "Simulações" do admin/front redesenhada em tela única — JourneySearch (combobox de busca instantânea, sem listar todas as jornadas) → SimulationWorkspace, que mostra em cima o passo atual (DevicePreview, com moldura de celular pra canal App via PhoneFrame ou card largo pra canal Web) e embaixo um painel de observabilidade com 4 abas: Workflow (FlowDiagramViewer, visualizador somente-leitura em @xyflow/react reaproveitando cores/ícones/metadados do designer de fluxo real, com o caminho percorrido destacado ao vivo), Variáveis (ver e alterar manualmente o valor de qualquer variável do processo em execução, pra forçar caminhos de decisão em teste), Integrações (resultado de cada Service/Receive Task já executada, derivado cruzando outputMapping com as variáveis atuais) e Log (histórico cronológico 100% client-side). Formulários agora renderizados com a stack Mística completa (Form/TextField/EmailField/DecimalField/DateField/Select/Checkbox/FileUpload), sem a restrição de "só botões/tags" que vale pro resto do portal — essa tela simula o que um cliente real veria via SDUI. De quebra, a aba "Execuções" do menu virou "Simulações", e o portal ganhou um seletor de skin da Mística (Blau/Movistar/Vivo/Vivo Evolution/O2/Telefónica/Esimflag) ao lado do toggle claro/escuro. O simulador-front standalone (protótipo anterior a este redesign) foi apagado — nunca chegou a ser commitado. Progresso geral de 250/294 (85%) para 271/305 (89%, 11 REQs novos no FT-05 além dos 10 originais).',
   },
   {
-    date: '2026-08-15 02:47 (não commitado)',
+    date: '2026-08-15 02:53',
     source: 'progresso',
     summary:
       'REQ-03.11.003 corrigido (removidos os operadores "maior ou igual"/"menor ou igual" que nunca foram implementados; ficou igual/diferente/maior que/menor que) e passou de texto livre para 3 campos estruturados (combo de variável + combo de operador + valor). Novo REQ-03.11.008: cada variável de saída ganhou um tipo declarado (texto, número, booleano, data, data e hora) — inferido automaticamente ao gerar o mapeamento via "Testar API" (incluindo detecção de datas ISO 8601 por regex) ou escolhido manualmente; o editor da condição do gateway agora filtra os operadores pelo tipo da variável escolhida (texto/booleano: igual/diferente; número/data/data e hora: também maior/menor) e troca o campo de valor (numérico, seletor verdadeiro/falso, seletor de data ou data e hora). Chips de "variáveis disponíveis" removidos do painel Decisão — a própria combo de variável cumpre esse papel. Variáveis salvas antes dessa mudança (sem tipo) continuam funcionando como string. FT-03 vai de 63/63 para 64/64 (100%, 1 REQ novo). Progresso geral de 249/293 (85%) para 250/294 (85%).',
   },
   {
-    date: '2026-08-15 02:03 (não commitado)',
+    date: '2026-08-15 02:53',
     source: 'progresso',
     summary:
       'US-03.11 Bifurcação condicional (Gateway) implementada por completo, REQ-03.11.001 a 007. Back: FlowNodeType.GATEWAY, FlowConnection.condition/isDefault, FlowValidator (gateway com 2 saídas, exatamente uma padrão, não padrão com condição, validação de {{variavel}} contra ancestrais). Front: tipo gateway no editor (ícone, paleta, canvas), GatewayFields (checkbox de saída padrão + condição de texto por saída, com painel de variáveis disponíveis), outgoingLimitFor generalizando o limite de saídas por tipo de nó, validation.ts espelhando a regra do back. ms-transform-publication: BpmnTransformer reescrito de uma caminhada linear para construção de grafo via API de baixo nível do camunda-bpmn-model (necessário para suportar ramificação), gerando exclusiveGateway/sequenceFlow com conditionExpression JUEL e fluxo padrão nativos do Camunda — sem worker. Testado ponta a ponta: publicação real + execução no Camunda confirmando os dois caminhos (condição verdadeira → Tarefa A; condição falsa → saída padrão → Tarefa B). Fora de escopo da versão 1.0.0 (já registrado em ej-admin-requisitos.md §5): gateway com mais de duas saídas, gateway inclusivo, gateway paralelo, combinação de condições com E/OU. FT-03 volta a 100% (63/63). Progresso geral de 242/293 (83%) para 249/293 (85%).',
   },
   {
-    date: '2026-08-15 01:43 (não commitado)',
+    date: '2026-08-15 02:53',
     source: 'progresso',
     summary:
       'Nova user story US-03.11 Bifurcação condicional (Gateway), REQ-03.11.001 a 007, todos todo: gateway de decisão exclusivo com exatamente duas saídas na versão 1.0.0 (caminho A/caminho B), uma marcada como padrão (sem condição); a condição da saída não padrão é variável + operador de comparação + valor de referência, podendo referenciar tanto uma variável de saída de Service Task/Receive Task (REQ-03.09.010) quanto um campo de resposta de User Task (REQ-04.01.007); painel de variáveis disponíveis reaproveita REQ-03.09.013, estendido a campos de formulário. Na publicação, vira exclusiveGateway BPMN nativo com sequenceFlow condicional, avaliado pelo motor do runtime, sem worker — mesmo princípio do conector REST nativo (US-03.09). Gateway com mais de duas saídas, gateway inclusivo, gateway paralelo e combinação de condições com E/OU registrados fora de escopo da versão 1.0.0 em nova seção "Evolução do Gateway de Decisão" (ej-admin-requisitos.md §5). FT-03 vai de 56/56 (100%) para 56/63 (89%, 7 novos todo). Progresso geral de 242/286 (85%) para 242/293 (83%).',
   },
   {
-    date: '2026-08-15 02:17 (não commitado)',
+    date: '2026-08-15 02:53',
     source: 'progresso',
     summary:
       'REQ-03.01.004/03.02.005 ajustados: a cardinalidade de END passou de "exatamente um" para "ao menos um", já que um GATEWAY (US-03.11) pode ramificar o fluxo em dois caminhos que terminam em ENDs distintos, sem precisar reconvergir antes do fim. Back: FlowValidator — checagem de ends.isEmpty() no lugar de ends.size() != 1, e a alcançabilidade reversa (BFS) agora une o alcance de todos os ENDs em vez de partir de um único. Front: validation.ts espelha a mesma mudança. ms-transform-publication não precisou de ajuste — o BpmnTransformer já constrói o grafo de forma genérica, sem assumir quantidade de END. Documentação sincronizada em ej-admin-modelo-dados-fisico.md, ej-admin-modelo-dados-conceitual.md, ej-admin-dicionario-dados.md e ej-admin-arquitetura-logica.md. Sem mudança de contagem de REQs (ambos continuam done), só de redação/comportamento.',
   },
   {
-    date: '2026-08-14 22:29 (não commitado)',
+    date: '2026-08-15 02:53',
     source: 'progresso',
     summary:
       'US-03.09 evoluído e nova US-03.10 (Teste de conectores) implementadas: mapeamento de saída de conectores REST/Kafka deixou de ser JSON livre e passou a lista estruturada nome ← JSONPath (REQ-03.09.010/011), com suporte a referenciar essas variáveis via {{nome}} nos campos de entrada de passos seguintes (REQ-03.09.012), painel de variáveis disponíveis por nó no editor (REQ-03.09.013) e validação 422 no backend para {{variavel}} não declarada ou nome de saída duplicado (REQ-03.09.014). REQ-03.09.002/004/009 tiveram a descrição/nota ajustada para refletir que mapeamento de saída não é mais livre. Nova US-03.10 (REQ-03.10.001 a 005): botão "Testar chamada" no editor dispara, via backend (POST /journeys/{id}/flow/nodes/{id}/connector-test), uma chamada REST de teste com proteção contra SSRF (bloqueio de IP privado/loopback/reservado), timeout de 5s e limite de corpo de 1MB; valores de exemplo para variáveis coletados no momento do teste. FT-03 mantém 100% (56/56 REQs, 10 novos). Progresso geral de 232/276 (84%) para 242/286 (85%).',
@@ -1528,6 +1528,19 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-08-16 05:33',
+    source: 'git',
+    summary:
+      'Dashboard (FT-13) incorporado aos requisitos e implementado; renumeração e renomeação de épicos para features e de features para user stories; ajustes em jornadas e simulações.',
+    epics: ['FT-13'],
+  },
+  {
+    date: '2026-08-16 02:47',
+    source: 'git',
+    summary: 'Implementação completa do FT-05 Simulação.',
+    epics: ['FT-05'],
+  },
   {
     date: '2026-08-15 19:40',
     source: 'git',

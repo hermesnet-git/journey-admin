@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { ThemeContextProvider, getBlauSkin } from '@telefonica/mistica';
+import { ThemeContextProvider, getSkinByName } from '@telefonica/mistica';
+import type { KnownSkinName } from '@telefonica/mistica';
 import { Sidebar } from './shell/Sidebar';
 import { TabBar } from './shell/TabBar';
 import { PlaceholderPanel } from './shell/PlaceholderPanel';
 import { ProductsPage } from './products/ProductsPage';
 import { JourneysPage } from './journeys/JourneysPage';
 import { FormsPage } from './forms/FormsPage';
+import { SimulationsPage } from './simulation/SimulationsPage';
 import { AuditPage } from './audit/AuditPage';
 import { AppThemeContext, LIGHT_APP_COLORS, DARK_APP_COLORS } from './shell/theme';
 import type { Tab } from './shell/types';
@@ -19,17 +21,15 @@ import { AppErrorBoundary } from './shell/AppErrorBoundary';
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: false };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
 const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
+const SIMULACOES_TAB: Tab = { key: 'simulacoes', title: 'Simulações', kind: 'simulation', closable: true };
 const AUDIT_TAB: Tab = { key: 'auditoria', title: 'Auditoria', kind: 'audit', closable: true };
 const HELP_TAB: Tab = { key: 'ajuda', title: 'Ajuda e suporte', kind: 'help', closable: true };
 const SOBRE_TAB: Tab = { key: 'sobre', title: `Sobre ${APP_VERSION}`, kind: 'sobre', closable: true };
 
 const NAV_LABELS: Record<string, string> = {
-  execucoes: 'Execuções',
   aprovacoes: 'Aprovações',
   configuracoes: 'Configurações',
 };
-
-const skin = getBlauSkin();
 
 export function App() {
   return (
@@ -45,6 +45,8 @@ function AppShell() {
   const { isAuthenticated } = useAuth();
   const [dark, setDark] = useState(false);
   const colors = dark ? DARK_APP_COLORS : LIGHT_APP_COLORS;
+  const [skinName, setSkinName] = useState<KnownSkinName>('Blau');
+  const skin = getSkinByName(skinName);
   const [tabs, setTabs] = useState<Tab[]>([JOURNEYS_TAB]);
   const [activeKey, setActiveKey] = useState('jornadas');
   const [openFormId, setOpenFormId] = useState<string | null>(null);
@@ -76,6 +78,10 @@ function AppShell() {
     }
     if (navKey === 'formularios') {
       openTab(FORMS_TAB);
+      return;
+    }
+    if (navKey === 'simulacoes') {
+      openTab(SIMULACOES_TAB);
       return;
     }
     if (navKey === 'auditoria') {
@@ -111,7 +117,9 @@ function AppShell() {
         ? 'produtos'
         : activeTab.kind === 'forms'
           ? 'formularios'
-          : activeTab.kind === 'audit'
+          : activeTab.kind === 'simulation'
+            ? 'simulacoes'
+            : activeTab.kind === 'audit'
             ? 'auditoria'
             : activeTab.kind === 'help'
               ? 'ajuda'
@@ -120,7 +128,7 @@ function AppShell() {
                 : 'jornadas';
 
   return (
-    <AppThemeContext.Provider value={{ dark, colors, toggle: () => setDark((d) => !d) }}>
+    <AppThemeContext.Provider value={{ dark, colors, toggle: () => setDark((d) => !d), skinName, setSkinName }}>
       <ThemeContextProvider
         theme={{ skin, colorScheme: dark ? 'dark' : 'light', i18n: { locale: 'pt-BR', phoneNumberFormattingRegionCode: 'BR' } }}
       >
@@ -148,6 +156,7 @@ function AppShell() {
                       onOpenNewHandled={() => setOpenNewForm(false)}
                     />
                   )}
+                  {tab.kind === 'simulation' && <SimulationsPage />}
                   {tab.kind === 'audit' && <AuditPage />}
                   {tab.kind === 'help' && <HelpPage />}
                   {tab.kind === 'sobre' && <SobrePage />}

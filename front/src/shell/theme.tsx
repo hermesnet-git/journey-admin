@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { KnownSkinName } from '@telefonica/mistica';
 
 export interface AppColors {
   bg: string;
@@ -79,12 +80,16 @@ export interface AppTheme {
   dark: boolean;
   colors: AppColors;
   toggle: () => void;
+  skinName: KnownSkinName;
+  setSkinName: (name: KnownSkinName) => void;
 }
 
 export const AppThemeContext = createContext<AppTheme>({
   dark: false,
   colors: LIGHT_APP_COLORS,
   toggle: () => {},
+  skinName: 'Blau',
+  setSkinName: () => {},
 });
 
 export function useAppTheme() {

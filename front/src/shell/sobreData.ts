@@ -531,31 +531,145 @@ export const EPICS: Epic[] = [
         code: 'FT-05.01',
         name: 'Execução',
         requirements: [
-          todo('REQ-05.01.001', 'O sistema deve permitir executar simulações.'),
-          todo('REQ-05.01.002', 'O sistema deve permitir informar dados de entrada para os formulários simulados.'),
-          todo('REQ-05.01.003', 'O sistema deve permitir reiniciar simulações.'),
-          todo(
-            'REQ-05.01.004',
-            'Antes de registrar um passo da simulação, o backend deve garantir que o nó executado pertença ao fluxo da mesma jornada associada à execução.',
-          ),
+          d('REQ-05.01.001', 'O sistema deve permitir executar simulações.'),
+          d('REQ-05.01.002', 'O sistema deve permitir informar dados de entrada para os formulários simulados.'),
+          d('REQ-05.01.003', 'O sistema deve permitir reiniciar simulações.'),
+          {
+            code: 'REQ-05.01.004',
+            description:
+              'Antes de registrar um passo da simulação, o backend deve garantir que o nó executado pertença ao fluxo da mesma jornada associada à execução.',
+            status: 'done',
+            notes:
+              'Satisfeito por arquitetura, não por checagem dedicada: o front nunca envia um nó/id arbitrário — o passo atual é sempre resolvido no servidor a partir do processo real do Camunda.',
+          },
         ],
       },
       {
         code: 'FT-05.02',
         name: 'Resultado',
         requirements: [
-          todo('REQ-05.02.001', 'O sistema deve apresentar o caminho percorrido.'),
-          todo('REQ-05.02.002', 'O sistema deve apresentar as User Tasks executadas.'),
-          todo('REQ-05.02.003', 'O sistema deve apresentar os formulários exibidos.'),
-          todo('REQ-05.02.004', 'O sistema deve apresentar o resultado final da simulação.'),
+          d('REQ-05.02.001', 'O sistema deve apresentar o caminho percorrido.'),
+          d('REQ-05.02.002', 'O sistema deve apresentar as User Tasks executadas.'),
+          d('REQ-05.02.003', 'O sistema deve apresentar os formulários exibidos.'),
+          d('REQ-05.02.004', 'O sistema deve apresentar o resultado final da simulação.'),
         ],
       },
       {
         code: 'FT-05.03',
         name: 'Visualização da execução',
         requirements: [
-          todo('REQ-05.03.001', 'O sistema deve destacar o caminho percorrido durante a simulação.'),
-          todo('REQ-05.03.002', 'O sistema deve destacar as User Tasks e os formulários executados.'),
+          d('REQ-05.03.001', 'O sistema deve destacar o caminho percorrido durante a simulação.'),
+          d('REQ-05.03.002', 'O sistema deve destacar as User Tasks e os formulários executados.'),
+          {
+            code: 'REQ-05.03.003',
+            description:
+              'O sistema não deve reposicionar ou reiniciar o zoom do diagrama do fluxo ao alternar entre as abas do painel de observabilidade.',
+            status: 'done',
+            notes:
+              'O visualizador do fluxo fica sempre montado (visibilidade alternada via CSS), preservando o zoom/posição entre trocas de aba — antes, desmontar/remontar a cada troca destruía esse estado.',
+          },
+        ],
+      },
+      {
+        code: 'FT-05.04',
+        name: 'Arquitetura de execução',
+        requirements: [
+          {
+            code: 'REQ-05.04.001',
+            description:
+              'A simulação deve executar a jornada publicada contra o motor de runtime real (Camunda), não um simulador simplificado interno ao Admin Portal.',
+            status: 'done',
+            notes: 'Exige jornada publicada — o objetivo original do épico ("sem publicá-la") foi ajustado.',
+          },
+          d(
+            'REQ-05.04.002',
+            'No MVP, as integrações REST externas referenciadas pelas jornadas devem ser emuladas por um serviço de mock dedicado, já que não há sistemas de terceiros reais disponíveis.',
+          ),
+        ],
+      },
+      {
+        code: 'FT-05.05',
+        name: 'Etapas de integração',
+        requirements: [
+          d(
+            'REQ-05.05.001',
+            'O sistema deve permitir avançar manualmente uma etapa de integração (Service Task ou Receive Task) que dependeria de um evento assíncrono externo, simulando sua conclusão.',
+          ),
+          d(
+            'REQ-05.05.002',
+            'O sistema deve indicar claramente quando a simulação está aguardando uma etapa de integração, distinguindo-a de uma User Task aguardando preenchimento.',
+          ),
+        ],
+      },
+      {
+        code: 'FT-05.06',
+        name: 'Observabilidade da execução',
+        requirements: [
+          {
+            code: 'REQ-05.06.001',
+            description: 'O sistema deve apresentar as variáveis do processo em execução, com seus valores atuais.',
+            status: 'done',
+            notes:
+              'Variáveis de escopo do processo e de etapa aparecem na mesma tabela — nossos fluxos nunca têm mais de uma execução viva ao mesmo tempo, então essa distinção não existe na prática.',
+          },
+          d(
+            'REQ-05.06.002',
+            'O sistema deve permitir alterar manualmente o valor de uma variável do processo em execução, para forçar caminhos alternativos de decisão durante o teste.',
+          ),
+          d(
+            'REQ-05.06.003',
+            'O sistema deve apresentar o resultado das integrações já executadas (dados retornados/mapeados por Service/Receive Tasks).',
+          ),
+          d('REQ-05.06.004', 'O sistema deve apresentar um log cronológico dos passos executados durante a simulação.'),
+          d(
+            'REQ-05.06.005',
+            'O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida.',
+          ),
+        ],
+      },
+      {
+        code: 'FT-05.07',
+        name: 'Seleção e apresentação',
+        requirements: [
+          {
+            code: 'REQ-05.07.001',
+            description:
+              'O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado.',
+            status: 'done',
+            notes:
+              'Comportamento revisado a pedido do usuário: a versão anterior deste requisito ("sem exigir listar todas de uma vez") foi trocada por listar tudo por padrão e filtrar ao digitar.',
+          },
+          d('REQ-05.07.002', 'A execução da simulação deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.'),
+          {
+            code: 'REQ-05.07.003',
+            description:
+              'A pré-visualização da execução deve se adaptar ao canal da jornada (Web ou App), incluindo uma representação visual compatível com o canal (ex.: layout de dispositivo móvel para jornadas de canal App).',
+            status: 'done',
+            notes: 'Mística não tem componente de moldura de dispositivo pronto; construído à mão.',
+          },
+        ],
+      },
+      {
+        code: 'FT-05.08',
+        name: 'Tratamento de falhas de integração',
+        requirements: [
+          {
+            code: 'REQ-05.08.001',
+            description:
+              'O sistema deve detectar quando uma etapa de integração (Service Task ou Receive Task) falha durante a simulação (ex.: conector REST inacessível) e identificar qual nó do fluxo causou a falha, mesmo quando o motor não expõe isso diretamente (a transação dá rollback antes de qualquer histórico ser gravado).',
+            status: 'done',
+            notes:
+              'A engine dá rollback na transação inteira quando um conector falha, então o nó que realmente falhou nunca aparece no histórico — o backend segue as conexões do fluxo a partir do passo atual até o próximo nó com conector pra identificá-lo corretamente.',
+          },
+          d(
+            'REQ-05.08.002',
+            'O sistema deve destacar visualmente, no diagrama do fluxo, o nó que causou a falha, de forma distinta dos demais estados (concluído, atual, pendente).',
+          ),
+          d('REQ-05.08.003', 'O sistema deve registrar a falha no log cronológico da simulação.'),
+          d(
+            'REQ-05.08.004',
+            'O sistema deve permitir consultar a mensagem de erro completa da falha sob demanda, sem exibi-la de forma intrusiva na tela principal de execução.',
+          ),
         ],
       },
     ],
@@ -1022,10 +1136,6 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
     ],
   },
   {
-    title: 'Simulação Avançada',
-    items: ['Debug completo por etapa', 'Visualização dos dados de formulário por etapa'],
-  },
-  {
     title: 'Formulários Avançados (SDUI)',
     items: [
       'Seções',
@@ -1051,6 +1161,18 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-16 02:44 (não commitado)',
+    source: 'progresso',
+    summary:
+      'EP-05 Simulação ganhou uma nova feature, FT-05.08 Tratamento de falhas de integração (REQ-05.08.001 a 004): quando um conector REST falha durante a simulação (ex.: ms-mock-api-rest fora do ar), o ms-espec-registry agora identifica corretamente qual nó de serviço causou a falha — antes, como a transação da engine dá rollback e não deixa rastro no histórico, o simulador acabava culpando a User Task anterior em vez do Service Task real (PublicationSnapshot.nextConnectorNodeAfter() segue as conexões do fluxo até o próximo nó com conector). O nó com erro é destacado no diagrama, a falha entra no log cronológico, e a mensagem completa fica disponível sob demanda por um ícone que abre um modal (copiar erro, fechar, tecla Esc) — sem mais o aviso de erro inline que existia na tela de execução. Dois REQs novos adicionais: REQ-05.03.003 (o diagrama não deve perder zoom/posição ao trocar de aba — corrigido mantendo o FlowDiagramViewer sempre montado) e REQ-05.06.005 (o log deve mostrar os dados submetidos em cada User Task respondida). REQ-05.07.001 revisado: a busca de jornada passou a listar todas por padrão e filtrar conforme o texto digitado (comportamento anterior era nunca listar todas de uma vez). EP-05 vai de 21/21 para 27/27 (100%, 6 REQs novos). Progresso geral de 271/305 (89%) para 277/311 (89%).',
+  },
+  {
+    date: '2026-08-15 23:15 (não commitado)',
+    source: 'progresso',
+    summary:
+      'EP-05 Simulação implementado por completo (0% → 100%, 21/21 REQs). Objetivo do épico ajustado: a simulação exige jornada publicada e roda contra o motor de runtime real (Camunda), não um simulador simplificado interno. Arquitetura: ms-espec-registry (wrapper fino da REST API do Camunda — iniciar/consultar/completar tarefas, fetchAndLock+complete de external task Kafka, correlação de mensagem para RECEIVE_TASK, leitura/escrita de variáveis do processo) e ms-mock-api-rest (10 endpoints estáticos emulando as integrações REST reais da massa de dados), ambos em simulacoes/. Front: aba "Simulações" do admin/front redesenhada em tela única — JourneySearch (combobox de busca instantânea, sem listar todas as jornadas) → SimulationWorkspace, que mostra em cima o passo atual (DevicePreview, com moldura de celular pra canal App via PhoneFrame ou card largo pra canal Web) e embaixo um painel de observabilidade com 4 abas: Workflow (FlowDiagramViewer, visualizador somente-leitura em @xyflow/react reaproveitando cores/ícones/metadados do designer de fluxo real, com o caminho percorrido destacado ao vivo), Variáveis (ver e alterar manualmente o valor de qualquer variável do processo em execução, pra forçar caminhos de decisão em teste), Integrações (resultado de cada Service/Receive Task já executada, derivado cruzando outputMapping com as variáveis atuais) e Log (histórico cronológico 100% client-side). Formulários agora renderizados com a stack Mística completa (Form/TextField/EmailField/DecimalField/DateField/Select/Checkbox/FileUpload), sem a restrição de "só botões/tags" que vale pro resto do portal — essa tela simula o que um cliente real veria via SDUI. De quebra, a aba "Execuções" do menu virou "Simulações", e o portal ganhou um seletor de skin da Mística (Blau/Movistar/Vivo/Vivo Evolution/O2/Telefónica/Esimflag) ao lado do toggle claro/escuro. O simulador-front standalone (protótipo anterior a este redesign) foi apagado — nunca chegou a ser commitado. Progresso geral de 250/294 (85%) para 271/305 (89%, 11 REQs novos no EP-05 além dos 10 originais).',
+  },
   {
     date: '2026-08-15 02:47 (não commitado)',
     source: 'progresso',
@@ -1289,6 +1411,16 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-08-15 19:40',
+    source: 'git',
+    summary: 'Ajustes no simulador (ms-espec-registry/ms-mock-api-rest e primeira versão da aba Simulações com componentes Mística).',
+  },
+  {
+    date: '2026-08-15 19:13',
+    source: 'git',
+    summary: 'Geração de massa de dados de teste (produtos, canais, formulários e jornadas de uma operadora de telecom fictícia).',
+  },
   {
     date: '2026-08-14 20:26',
     source: 'git',

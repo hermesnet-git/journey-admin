@@ -1,0 +1,42 @@
+# Arquivos de compilação e artefatos
+target/
+build/
+out/
+.gradle/
+bin/
+
+# Arquivos de log e relatórios
+*.log
+logs/
+
+# Configurações do IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Configurações do Eclipse
+.metadata/
+.classpath
+.project
+.settings/
+
+# Configurações do NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Arquivos de empacotamento (JAR/WAR/EAR)
+*.jar
+*.war
+*.ear
+
+# Arquivos do Sistema Operacional e chaves locais
+.DS_Store
+Thumbs.db
+*.env
+.env.local

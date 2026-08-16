@@ -20,6 +20,11 @@ html, body, #root {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes blink-current-outline {
+  0%, 100% { outline-color: var(--sim-outline-full, currentColor); }
+  50% { outline-color: var(--sim-outline-dim, transparent); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;

@@ -1,6 +1,18 @@
 import { X, Sun, Moon } from 'lucide-react';
+import type { KnownSkinName } from '@telefonica/mistica';
 import type { Tab } from './types';
 import { useAppTheme } from './theme';
+import { FilterDropdown } from '../products/ui';
+
+const SKIN_OPTIONS: { value: KnownSkinName; label: string }[] = [
+  { value: 'Blau', label: 'Blau' },
+  { value: 'Movistar', label: 'Movistar' },
+  { value: 'Vivo', label: 'Vivo' },
+  { value: 'Vivo-evolution', label: 'Vivo Evolution' },
+  { value: 'O2', label: 'O2' },
+  { value: 'Telefonica', label: 'Telefónica' },
+  { value: 'Esimflag', label: 'Esimflag' },
+];
 
 interface TabBarProps {
   tabs: Tab[];
@@ -10,7 +22,7 @@ interface TabBarProps {
 }
 
 export function TabBar({ tabs, activeKey, onSelect, onClose }: TabBarProps) {
-  const { dark, colors: c, toggle } = useAppTheme();
+  const { dark, colors: c, toggle, skinName, setSkinName } = useAppTheme();
   const themeBtnBase =
     'w-[30px] h-[30px] mb-2 rounded-md border-0 flex items-center justify-center cursor-pointer transition-colors';
 
@@ -52,7 +64,14 @@ export function TabBar({ tabs, activeKey, onSelect, onClose }: TabBarProps) {
         })}
       </div>
 
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 mb-2">
+        <FilterDropdown
+          label="Skin"
+          options={SKIN_OPTIONS}
+          value={skinName}
+          onChange={(value) => setSkinName(value as KnownSkinName)}
+        />
+        <div className="flex items-center gap-1">
         <button
           onClick={() => dark && toggle()}
           title="Tema claro"
@@ -69,6 +88,7 @@ export function TabBar({ tabs, activeKey, onSelect, onClose }: TabBarProps) {
         >
           <Moon size={16} />
         </button>
+        </div>
       </div>
     </div>
   );

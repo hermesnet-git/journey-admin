@@ -15,14 +15,14 @@
 | Métrica | Valor |
 |---|---|
 | Total de Épicos (EP) | 12 |
-| Total de Features (FT) | 61 |
-| Total de Requisitos (REQ) | 294 |
-| Concluídos (`done`) | 250 |
+| Total de Features (FT) | 66 |
+| Total de Requisitos (REQ) | 311 |
+| Concluídos (`done`) | 277 |
 | Em andamento (`in_progress`) | 2 |
-| Não iniciados (`todo`) | 40 |
+| Não iniciados (`todo`) | 30 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
-| % Concluído | 85% |
+| % Concluído | 89% |
 
 > 3 requisitos permanecem reclassificados de `done` para `todo` por serem atendidos apenas por mocks/simulações no MVP (sem integração real): REQ-07.01.002, REQ-07.01.005, REQ-07.04.001. Ver nota em cada requisito.
 >
@@ -35,6 +35,10 @@
 > EP-03 evoluído e implementado: o mapeamento de saída de conectores REST/Kafka deixou de ser configuração JSON livre e passou a ter formato estruturado (`nome ← JSONPath`), com suporte a referenciar essas variáveis via `{{nome}}` nos campos de entrada de passos seguintes e painel de variáveis disponíveis por nó (REQ-03.09.010 a 014, ajuste em REQ-03.09.002/004/009). Nova feature FT-03.10 adiciona teste rápido de conector REST direto no editor, com proteção contra SSRF no backend (REQ-03.10.001 a 005). Ver notas de cada requisito para limitações conhecidas (ex.: resolução real de variáveis em runtime permanece fora do domínio do Admin Portal).
 >
 > EP-03 evoluído com nova feature FT-03.11 Bifurcação condicional (Gateway): gateway de decisão exclusivo com exatamente duas saídas no MVP (caminho A / caminho B), uma delas marcada como padrão; a condição da saída não padrão pode referenciar tanto uma variável de saída de Service Task/Receive Task quanto um campo de resposta de User Task. Gateway com mais de duas saídas, gateway inclusivo, gateway paralelo e combinação de condições com E/OU foram registrados como fora de escopo do MVP, dentro da seção "Modelagem Visual" em `ej-admin-requisitos.md` §5 (não em seção própria).
+>
+> EP-05 Simulação ganhou 4 features novas (FT-05.04 a FT-05.07, 11 REQs) cobrindo capacidades além do texto original do épico: a simulação roda contra o motor de runtime real (Camunda), não um simulador simplificado — o que também exigiu ajustar o objetivo original ("sem publicá-la" → agora exige jornada publicada, ver nota em `ej-admin-requisitos.md`). Novo: avanço manual de etapas de integração (Service/Receive Task), observabilidade de variáveis do processo (visualização e alteração manual, para forçar caminhos de decisão em teste), resultado das integrações já executadas, log cronológico, busca de jornada sem listagem completa, execução em tela única e pré-visualização adaptada ao canal (Web/App). Total do EP-05: 10 → 21 REQs.
+>
+> EP-05 Simulação evoluiu mais uma rodada: nova feature FT-05.08 Tratamento de falhas de integração (4 REQs) — o simulador agora detecta e atribui corretamente uma falha de conector (ex.: mock fora do ar) ao nó de serviço que realmente falhou, mesmo a engine não expondo isso diretamente (rollback de transação), destaca esse nó no diagrama, registra a falha no log e permite consultar a mensagem completa sob demanda (ícone + modal, sem poluir a tela de execução). REQ-05.03.003 (novo) exige que o diagrama não perca zoom/posição ao trocar de aba. REQ-05.06.005 (novo) exige que o log mostre os dados submetidos em cada User Task. REQ-05.07.001 foi revisado: a busca de jornada passou a listar todas por padrão, filtrando conforme o usuário digita (antes: nunca listar todas de uma vez) — mudança de comportamento pedida explicitamente. Total do EP-05: 21 → 27 REQs.
 
 ## Progresso por Épico
 
@@ -44,7 +48,7 @@
 | EP-02 | Gestão de Jornadas | 39 | 39 | 100% |
 | EP-03 | Modelagem Visual | 64 | 64 | 100% |
 | EP-04 | Formulários (SDUI) | 25 | 25 | 100% |
-| EP-05 | Simulação | 10 | 0 | 0% |
+| EP-05 | Simulação | 27 | 27 | 100% |
 | EP-06 | Versionamento de jornadas | 40 | 40 | 100% |
 | EP-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
 | EP-08 | Auditoria | 22 | 21 | 95% (1 n/a) |
@@ -335,30 +339,76 @@
 
 ## EP-05 Simulação
 
+A simulação roda contra o motor de runtime real: `ms-espec-registry` (`simulacoes/ms-espec-registry`) é um wrapper fino da REST API do Camunda 7, chamado pela aba "Simulações" do `admin/front` (`front/src/simulation/`). Integrações REST das jornadas apontam para `ms-mock-api-rest` (`simulacoes/ms-mock-api-rest`), que emula as respostas reais.
+
 ### FT-05.01 Execução
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-05.01.001 | O sistema deve permitir executar simulações. | todo | | |
-| [ ] | REQ-05.01.002 | O sistema deve permitir informar dados de entrada para os formulários simulados. | todo | | |
-| [ ] | REQ-05.01.003 | O sistema deve permitir reiniciar simulações. | todo | | |
-| [ ] | REQ-05.01.004 | Antes de registrar um passo da simulação, o backend deve garantir que o nó executado pertença ao fluxo da mesma jornada associada à execução. | todo | | |
+| [x] | REQ-05.01.001 | O sistema deve permitir executar simulações. | done | `JourneySearch.tsx` (botão "Executar") → `POST /api/v1/journeys/{id}/instances` (`ms-espec-registry`) → `POST /process-definition/key/{key}/start` no Camunda | |
+| [x] | REQ-05.01.002 | O sistema deve permitir informar dados de entrada para os formulários simulados. | done | `SduiFormRenderer.tsx` (Mística `Form`/`TextField`/`Select`/`Checkbox`/`FileUpload`) → `POST /instances/{id}/tasks/{taskId}/complete` | |
+| [x] | REQ-05.01.003 | O sistema deve permitir reiniciar simulações. | done | Botão "Nova simulação" em `SimulationWorkspace.tsx` volta à busca; executar a mesma jornada de novo cria uma instância nova no Camunda | |
+| [x] | REQ-05.01.004 | Antes de registrar um passo da simulação, o backend deve garantir que o nó executado pertença ao fluxo da mesma jornada associada à execução. | done | Satisfeito por arquitetura, não por checagem dedicada: o front nunca envia um nó/id arbitrário — `completeTask` usa o `taskId` real emitido pelo Camunda para aquela instância, e `simulateStep`/`current-step` resolvem o nó atual no servidor (`StepResolver.java`), sem aceitar entrada do cliente para decidir "onde" a simulação está | Não há como injetar um nó de outra jornada nessa API |
 
 ### FT-05.02 Resultado
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-05.02.001 | O sistema deve apresentar o caminho percorrido. | todo | | |
-| [ ] | REQ-05.02.002 | O sistema deve apresentar as User Tasks executadas. | todo | | |
-| [ ] | REQ-05.02.003 | O sistema deve apresentar os formulários exibidos. | todo | | |
-| [ ] | REQ-05.02.004 | O sistema deve apresentar o resultado final da simulação. | todo | | |
+| [x] | REQ-05.02.001 | O sistema deve apresentar o caminho percorrido. | done | `FlowDiagramViewer.tsx` — nós concluídos coloridos por status, alimentado por `visitedPath` em `SimulationWorkspace.tsx` | |
+| [x] | REQ-05.02.002 | O sistema deve apresentar as User Tasks executadas. | done | Diagrama (nós concluídos) + aba Log (`InspectorPanel.tsx`) | |
+| [x] | REQ-05.02.003 | O sistema deve apresentar os formulários exibidos. | done | Aba Log registra `Formulário "X" respondido` a cada `complete-task` | |
+| [x] | REQ-05.02.004 | O sistema deve apresentar o resultado final da simulação. | done | Card de conclusão em `DevicePreview.tsx` quando `step.type === 'ENDED'` | |
 
 ### FT-05.03 Visualização da execução
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [ ] | REQ-05.03.001 | O sistema deve destacar o caminho percorrido durante a simulação. | todo | | |
-| [ ] | REQ-05.03.002 | O sistema deve destacar as User Tasks e os formulários executados. | todo | | |
+| [x] | REQ-05.03.001 | O sistema deve destacar o caminho percorrido durante a simulação. | done | `FlowDiagramViewer.tsx` — nó atual com destaque/pulso (respeitando `prefers-reduced-motion` via regra global de `index.css`), concluídos com selo de sucesso | |
+| [x] | REQ-05.03.002 | O sistema deve destacar as User Tasks e os formulários executados. | done | Mesmo mecanismo de FT-05.03.001 + aba Log | |
+| [x] | REQ-05.03.003 | O sistema não deve reposicionar ou reiniciar o zoom do diagrama do fluxo ao alternar entre as abas do painel de observabilidade. | done | `InspectorPanel.tsx` — `FlowDiagramViewer` fica sempre montado (visibilidade alternada via CSS), preservando o estado interno do React Flow (zoom/pan) entre trocas de aba | Antes, desmontar/remontar a cada troca de aba destruía esse estado e repunha o diagrama centralizado no passo atual |
+
+### FT-05.04 Arquitetura de execução
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-05.04.001 | A simulação deve executar a jornada publicada contra o motor de runtime real (Camunda), não um simulador simplificado interno ao Admin Portal. | done | `ms-espec-registry` (`CamundaClient.java`) chama a REST API real do Camunda 7 (`engine-rest`), a mesma que `ms-transform-publication` usa para implantar | Exige jornada publicada — ver ajuste no Objetivo do épico em `ej-admin-requisitos.md` |
+| [x] | REQ-05.04.002 | No MVP, as integrações REST externas referenciadas pelas jornadas devem ser emuladas por um serviço de mock dedicado, já que não há sistemas de terceiros reais disponíveis. | done | `ms-mock-api-rest` (`simulacoes/ms-mock-api-rest`) — 10 endpoints estáticos, um por chamada REST real usada na massa de dados de teste | |
+
+### FT-05.05 Etapas de integração
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-05.05.001 | O sistema deve permitir avançar manualmente uma etapa de integração (Service Task ou Receive Task) que dependeria de um evento assíncrono externo, simulando sua conclusão. | done | Botão "Simular conclusão" (`DevicePreview.tsx`) → `POST /instances/{id}/simulate-step` → fetchAndLock+complete (external task Kafka) ou correlação de mensagem (`RECEIVE_TASK`) | |
+| [x] | REQ-05.05.002 | O sistema deve indicar claramente quando a simulação está aguardando uma etapa de integração, distinguindo-a de uma User Task aguardando preenchimento. | done | Card `Callout` dedicado (`step.type === 'WAITING'`) com nome/tipo do nó, visualmente distinto do formulário de User Task | |
+
+### FT-05.06 Observabilidade da execução
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-05.06.001 | O sistema deve apresentar as variáveis do processo em execução, com seus valores atuais. | done | Aba Variáveis (`InspectorPanel.tsx`) → `GET /instances/{id}/variables` → `GET /process-instance/{id}/variables` no Camunda | Variáveis de escopo do processo e de etapa aparecem na mesma tabela — ver nota abaixo |
+| [x] | REQ-05.06.002 | O sistema deve permitir alterar manualmente o valor de uma variável do processo em execução, para forçar caminhos alternativos de decisão durante o teste. | done | Edição inline na aba Variáveis → `PUT /instances/{id}/variables/{name}` → `PUT /process-instance/{id}/variables/{name}` no Camunda | |
+| [x] | REQ-05.06.003 | O sistema deve apresentar o resultado das integrações já executadas (dados retornados/mapeados por Service/Receive Tasks). | done | Aba Integrações — cruza `outputMapping` de cada nó com conector já visitado contra a tabela de variáveis atual, sem chamada nova | |
+| [x] | REQ-05.06.004 | O sistema deve apresentar um log cronológico dos passos executados durante a simulação. | done | Aba Log — acumulado 100% no front a cada `start`/`complete-task`/`simulate-step`, sem endpoint dedicado | |
+| [x] | REQ-05.06.005 | O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida. | done | `SimulationWorkspace.tsx` passa `answers` para `appendLog`; `InspectorPanel.tsx` renderiza um bloco `<pre>` com o JSON da resposta abaixo da mensagem do log | |
+
+### FT-05.07 Seleção e apresentação
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-05.07.001 | O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado. | done | `JourneySearch.tsx` — dropdown lista todas as jornadas ao focar o campo, com rolagem (até 360px de altura), filtrando conforme o texto digitado; sem limite de resultados | Comportamento revisado: a versão anterior deste requisito (`sem exigir listar todas de uma vez`) foi trocada a pedido do usuário — ver changelog |
+| [x] | REQ-05.07.002 | A execução da simulação deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas. | done | `SimulationsPage.tsx` troca `JourneySearch` ↔ `SimulationWorkspace` por estado local, sem rota/navegação | |
+| [x] | REQ-05.07.003 | A pré-visualização da execução deve se adaptar ao canal da jornada (Web ou App), incluindo uma representação visual compatível com o canal (ex.: layout de dispositivo móvel para jornadas de canal App). | done | `DevicePreview.tsx` — canal `MOBILE` renderiza dentro de `PhoneFrame.tsx` (moldura de celular); `WEB` renderiza num card largo | Mística não tem componente de moldura de dispositivo pronto; construído à mão |
+
+### FT-05.08 Tratamento de falhas de integração
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-05.08.001 | O sistema deve detectar quando uma etapa de integração (Service Task ou Receive Task) falha durante a simulação (ex.: conector REST inacessível) e identificar qual nó do fluxo causou a falha, mesmo quando o motor não expõe isso diretamente (a transação dá rollback antes de qualquer histórico ser gravado). | done | `PublicationSnapshot.nextConnectorNodeAfter()` + `SimulationController.errorResponse()` (`ms-espec-registry`) — captura `RestClientException` de `completeTask`/`simulateStep` e segue as conexões do fluxo a partir do passo atual até o próximo nó com conector (único tipo capaz de falhar assim), devolvendo `errorNodeId`/`errorNodeName`/`errorMessage` numa resposta 200 estruturada em vez do 500 cru do Camunda | Validado ao vivo derrubando `ms-mock-api-rest` e completando uma task real: a resposta veio com o nó de serviço correto, não a User Task anterior |
+| [x] | REQ-05.08.002 | O sistema deve destacar visualmente, no diagrama do fluxo, o nó que causou a falha, de forma distinta dos demais estados (concluído, atual, pendente). | done | `FlowDiagramViewer.tsx` — status `error` no `SimNode` (fundo/borda na cor de erro da Mística, `errorLow`/`error`) | |
+| [x] | REQ-05.08.003 | O sistema deve registrar a falha no log cronológico da simulação. | done | `SimulationWorkspace.tsx` — `applyNewStep` registra `Falha ao executar "X": mensagem` no log quando `newStep.errorNodeId` vem preenchido | |
+| [x] | REQ-05.08.004 | O sistema deve permitir consultar a mensagem de erro completa da falha sob demanda, sem exibi-la de forma intrusiva na tela principal de execução. | done | `ErrorDetailsModal.tsx` — ícone no nó com erro abre modal (via `createPortal`) com a mensagem completa, botão copiar, fechar e tecla Esc; a tela de execução não exibe mais nenhum aviso de erro inline | |
+
+> Nota FT-05.06: nosso BPMN nunca tem mais de uma execução viva ao mesmo tempo (sem gateway paralelo, subprocesso ou multi-instância — ver `FlowValidator.java`), então "variável de escopo do processo" e "de etapa" são, na prática, o mesmo escopo — uma tabela única é mais honesta que fingir uma separação que os dados não têm. Se o modelo de fluxo ganhar concorrência real no futuro, o Camunda já suporta consultar variáveis por execução (`GET /execution/{id}/variables`) para diferenciar.
 
 ---
 
@@ -759,6 +809,8 @@ appender.
 
 | Data/Hora | Alteração |
 |---|---|
+| 2026-08-16 02:44 (não commitado) | EP-05 Simulação ganhou uma nova feature, FT-05.08 Tratamento de falhas de integração (REQ-05.08.001 a 004): quando um conector REST falha durante a simulação (ex.: `ms-mock-api-rest` fora do ar), o `ms-espec-registry` agora identifica corretamente qual nó de serviço causou a falha — antes, como a transação da engine dá rollback e não deixa rastro no histórico, o simulador acabava culpando a User Task anterior em vez do Service Task real (`PublicationSnapshot.nextConnectorNodeAfter()` segue as conexões do fluxo até o próximo nó com conector). O nó com erro é destacado no diagrama, a falha entra no log cronológico, e a mensagem completa fica disponível sob demanda por um ícone que abre um modal (copiar erro, fechar, tecla Esc) — sem mais o aviso de erro inline que existia na tela de execução. Dois REQs novos adicionais: REQ-05.03.003 (o diagrama não deve perder zoom/posição ao trocar de aba — corrigido mantendo o `FlowDiagramViewer` sempre montado) e REQ-05.06.005 (o log deve mostrar os dados submetidos em cada User Task respondida). REQ-05.07.001 revisado: a busca de jornada passou a listar todas por padrão e filtrar conforme o texto digitado (comportamento anterior era nunca listar todas de uma vez). EP-05 vai de 21/21 para 27/27 (100%, 6 REQs novos). Progresso geral de 271/305 (89%) para 277/311 (89%). |
+| 2026-08-15 23:15 (não commitado) | EP-05 Simulação implementado por completo (0% → 100%, 21/21 REQs). Objetivo do épico ajustado: a simulação exige jornada publicada e roda contra o motor de runtime real (Camunda), não um simulador simplificado interno. Arquitetura: `ms-espec-registry` (wrapper fino da REST API do Camunda — iniciar/consultar/completar tarefas, fetchAndLock+complete de external task Kafka, correlação de mensagem para RECEIVE_TASK, leitura/escrita de variáveis do processo) e `ms-mock-api-rest` (10 endpoints estáticos emulando as integrações REST reais da massa de dados), ambos em `simulacoes/`. Front: aba "Simulações" do admin/front redesenhada em tela única — `JourneySearch` (combobox de busca instantânea, sem listar todas as jornadas) → `SimulationWorkspace`, que mostra em cima o passo atual (`DevicePreview`, com moldura de celular pra canal App via `PhoneFrame` ou card largo pra canal Web) e embaixo um painel de observabilidade com 4 abas: Workflow (`FlowDiagramViewer`, visualizador somente-leitura em `@xyflow/react` reaproveitando cores/ícones/metadados do designer de fluxo real, com o caminho percorrido destacado ao vivo), Variáveis (ver e alterar manualmente o valor de qualquer variável do processo em execução, pra forçar caminhos de decisão em teste), Integrações (resultado de cada Service/Receive Task já executada, derivado cruzando `outputMapping` com as variáveis atuais) e Log (histórico cronológico 100% client-side). Formulários agora renderizados com a stack Mística completa (`Form`/`TextField`/`EmailField`/`DecimalField`/`DateField`/`Select`/`Checkbox`/`FileUpload`), sem a restrição de "só botões/tags" que vale pro resto do portal — essa tela simula o que um cliente real veria via SDUI. De quebra, a aba "Execuções" do menu virou "Simulações", e o portal ganhou um seletor de skin da Mística (Blau/Movistar/Vivo/Vivo Evolution/O2/Telefónica/Esimflag) ao lado do toggle claro/escuro. O `simulador-front` standalone (protótipo anterior a este redesign) foi apagado — nunca chegou a ser commitado. Progresso geral de 250/294 (85%) para 271/305 (89%, 11 REQs novos no EP-05 além dos 10 originais). |
 | 2026-08-15 02:47 (não commitado) | REQ-03.11.003 corrigido (removidos os operadores "maior ou igual"/"menor ou igual" que nunca foram implementados; ficou igual/diferente/maior que/menor que) e passou de texto livre para 3 campos estruturados (combo de variável + combo de operador + valor). Novo REQ-03.11.008: cada variável de saída ganhou um tipo declarado (texto, número, booleano, data, data e hora) — inferido automaticamente ao gerar o mapeamento via "Testar API" (incluindo detecção de datas ISO 8601 por regex) ou escolhido manualmente; o editor da condição do gateway agora filtra os operadores pelo tipo da variável escolhida (texto/booleano: igual/diferente; número/data/data e hora: também maior/menor) e troca o campo de valor (numérico, seletor verdadeiro/falso, seletor de data ou data e hora). Chips de "variáveis disponíveis" removidos do painel Decisão — a própria combo de variável cumpre esse papel. Variáveis salvas antes dessa mudança (sem tipo) continuam funcionando como `string`. EP-03 vai de 63/63 para 64/64 (100%, 1 REQ novo). Progresso geral de 249/293 (85%) para 250/294 (85%). |
 | 2026-08-15 02:17 (não commitado) | REQ-03.01.004/03.02.005 ajustados: a cardinalidade de `END` passou de "exatamente um" para "ao menos um", já que um `GATEWAY` (FT-03.11) pode ramificar o fluxo em dois caminhos que terminam em `END`s distintos, sem precisar reconvergir antes do fim. Back: `FlowValidator` — checagem de `ends.isEmpty()` no lugar de `ends.size() != 1`, e a alcançabilidade reversa (BFS) agora une o alcance de todos os `END`s em vez de partir de um único. Front: `validation.ts` espelha a mesma mudança. `ms-transform-publication` não precisou de ajuste — o `BpmnTransformer` já constrói o grafo de forma genérica, sem assumir quantidade de `END`. Documentação sincronizada em `ej-admin-modelo-dados-fisico.md`, `ej-admin-modelo-dados-conceitual.md`, `ej-admin-dicionario-dados.md` e `ej-admin-arquitetura-logica.md`. Sem mudança de contagem de REQs (ambos continuam `done`), só de redação/comportamento. |
 | 2026-08-15 02:03 (não commitado) | FT-03.11 Bifurcação condicional (Gateway) implementada por completo, REQ-03.11.001 a 007. Back: `FlowNodeType.GATEWAY`, `FlowConnection.condition`/`isDefault`, `FlowValidator` (gateway com 2 saídas, exatamente uma padrão, não padrão com condição, validação de `{{variavel}}` contra ancestrais). Front: tipo `gateway` no editor (ícone, paleta, canvas), `GatewayFields` (checkbox de saída padrão + condição de texto por saída, com painel de variáveis disponíveis), `outgoingLimitFor` generalizando o limite de saídas por tipo de nó, `validation.ts` espelhando a regra do back. `ms-transform-publication`: `BpmnTransformer` reescrito de uma caminhada linear para construção de grafo via API de baixo nível do `camunda-bpmn-model` (necessário para suportar ramificação), gerando `exclusiveGateway`/`sequenceFlow` com `conditionExpression` JUEL e fluxo padrão nativos do Camunda — sem worker. Testado ponta a ponta: publicação real + execução no Camunda confirmando os dois caminhos (condição verdadeira → Tarefa A; condição falsa → saída padrão → Tarefa B). Fora de escopo do MVP (já registrado em `ej-admin-requisitos.md` §5): gateway com mais de duas saídas, gateway inclusivo, gateway paralelo, combinação de condições com E/OU. EP-03 volta a 100% (63/63). Progresso geral de 242/293 (83%) para 249/293 (85%). |

@@ -1,0 +1,17 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ms-espec-registry
+
+app:
+  camunda:
+    base-url: http://localhost:8080/engine-rest
+  admin-back:
+    base-url: http://localhost:8081
+    service-username: admin
+    service-password: admin
+  cors:
+    # Chamado agora pela aba "Simulações" do admin/front, não mais pelo simulador-front standalone.
+    allowed-origins: http://localhost:5173

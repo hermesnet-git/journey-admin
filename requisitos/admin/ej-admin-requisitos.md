@@ -426,7 +426,9 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 
 ## Objetivo
 
-Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
+Permitir a verificação do caminho e das telas de uma jornada publicada, executando-a de fato no motor de runtime (não uma simulação simplificada à parte) — dando visibilidade total do que acontece a cada passo.
+
+> Ajuste em relação à versão original deste objetivo ("sem publicá-la"): a simulação roda contra o motor de runtime real (Camunda), o que exige que a jornada esteja publicada — não existe um simulador simplificado interno ao Admin Portal. Ver FT-05.04.
 
 ### FT-05.01 Execução
 #### REQ-05.01.001 - O sistema deve permitir executar simulações.
@@ -445,6 +447,38 @@ Permitir a verificação do caminho e das telas de uma jornada sem publicá-la.
 ### FT-05.03 Visualização da execução
 #### REQ-05.03.001 - O sistema deve destacar o caminho percorrido durante a simulação.
 #### REQ-05.03.002 - O sistema deve destacar as User Tasks e os formulários executados.
+#### REQ-05.03.003 - O sistema não deve reposicionar ou reiniciar o zoom do diagrama do fluxo ao alternar entre as abas do painel de observabilidade.
+---
+
+### FT-05.04 Arquitetura de execução
+#### REQ-05.04.001 - A simulação deve executar a jornada publicada contra o motor de runtime real (Camunda), não um simulador simplificado interno ao Admin Portal.
+#### REQ-05.04.002 - No MVP, as integrações REST externas referenciadas pelas jornadas devem ser emuladas por um serviço de mock dedicado, já que não há sistemas de terceiros reais disponíveis.
+---
+
+### FT-05.05 Etapas de integração
+#### REQ-05.05.001 - O sistema deve permitir avançar manualmente uma etapa de integração (Service Task ou Receive Task) que dependeria de um evento assíncrono externo, simulando sua conclusão.
+#### REQ-05.05.002 - O sistema deve indicar claramente quando a simulação está aguardando uma etapa de integração, distinguindo-a de uma User Task aguardando preenchimento.
+---
+
+### FT-05.06 Observabilidade da execução
+#### REQ-05.06.001 - O sistema deve apresentar as variáveis do processo em execução, com seus valores atuais.
+#### REQ-05.06.002 - O sistema deve permitir alterar manualmente o valor de uma variável do processo em execução, para forçar caminhos alternativos de decisão durante o teste.
+#### REQ-05.06.003 - O sistema deve apresentar o resultado das integrações já executadas (dados retornados/mapeados por Service/Receive Tasks).
+#### REQ-05.06.004 - O sistema deve apresentar um log cronológico dos passos executados durante a simulação.
+#### REQ-05.06.005 - O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida.
+---
+
+### FT-05.07 Seleção e apresentação
+#### REQ-05.07.001 - O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado.
+#### REQ-05.07.002 - A execução da simulação deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.
+#### REQ-05.07.003 - A pré-visualização da execução deve se adaptar ao canal da jornada (Web ou App), incluindo uma representação visual compatível com o canal (ex.: layout de dispositivo móvel para jornadas de canal App).
+---
+
+### FT-05.08 Tratamento de falhas de integração
+#### REQ-05.08.001 - O sistema deve detectar quando uma etapa de integração (Service Task ou Receive Task) falha durante a simulação (ex.: conector REST inacessível) e identificar qual nó do fluxo causou a falha, mesmo quando o motor não expõe isso diretamente (a transação dá rollback antes de qualquer histórico ser gravado).
+#### REQ-05.08.002 - O sistema deve destacar visualmente, no diagrama do fluxo, o nó que causou a falha, de forma distinta dos demais estados (concluído, atual, pendente).
+#### REQ-05.08.003 - O sistema deve registrar a falha no log cronológico da simulação.
+#### REQ-05.08.004 - O sistema deve permitir consultar a mensagem de erro completa da falha sob demanda, sem exibi-la de forma intrusiva na tela principal de execução.
 ---
 
 <br/><br/>
@@ -716,13 +750,6 @@ Clonagem de jornadas entre canais
 Templates de jornadas
 Biblioteca de componentes de formulário
 Comparação (diff) visual entre versões de uma jornada
-```
-
-## Simulação Avançada
-
-```text
-Debug completo por etapa
-Visualização dos dados de formulário por etapa
 ```
 
 ## Formulários Avançados (SDUI)

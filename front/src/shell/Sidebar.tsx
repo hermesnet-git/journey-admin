@@ -4,7 +4,7 @@ import {
   Boxes,
   Route,
   FileText,
-  Clock,
+  PlayCircle,
   CheckSquare,
   Settings,
   HelpCircle,
@@ -29,7 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'produtos', label: 'Produtos', icon: <Boxes size={16} /> },
   { key: 'jornadas', label: 'Jornadas', icon: <Route size={16} /> },
   { key: 'formularios', label: 'Formulários', icon: <FileText size={16} /> },
-  { key: 'execucoes', label: 'Execuções', icon: <Clock size={16} /> },
+  { key: 'simulacoes', label: 'Simulações', icon: <PlayCircle size={16} /> },
   { key: 'aprovacoes', label: 'Aprovações', icon: <CheckSquare size={16} /> },
   { key: 'configuracoes', label: 'Configurações', icon: <Settings size={16} /> },
 ];

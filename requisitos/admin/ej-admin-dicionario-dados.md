@@ -2,7 +2,7 @@
 ## Dicionário de Dados
 
 ### Versão
-1.0 (MVP)
+1.0.0
 
 ---
 
@@ -14,7 +14,7 @@ Referência semântica das entidades e campos do Elastic Journey Admin Portal.
 
 # 1.1 Fora do Escopo Deste Dicionário
 
-Os logs técnicos de observabilidade (requisições de API e transações de persistência, EP-10) não são persistidos em banco de dados e, portanto, não possuem entrada neste dicionário. Não confundir com o Audit Event (seção de auditoria), que é persistido.
+Os logs técnicos de observabilidade (requisições de API e transações de persistência, FT-10) não são persistidos em banco de dados e, portanto, não possuem entrada neste dicionário. Não confundir com o Audit Event (seção de auditoria), que é persistido.
 
 # 2. Convenções
 
@@ -134,7 +134,7 @@ Cada jornada possui no máximo um fluxo.
 | TargetNodeId | UUID | Sim | Nó de destino do mesmo fluxo |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 
-Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um `END`. O elemento inicial e cada `USER_TASK`, `SERVICE_TASK` ou `RECEIVE_TASK` possuem exatamente uma conexão de saída; um `GATEWAY` possui exatamente duas (FT-03.11); o `END` não possui saída. Todos os nós devem integrar um caminho contínuo entre o elemento inicial e algum `END` — um `GATEWAY` pode ramificar o fluxo em caminhos que terminam em `END`s distintos.
+Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um `END`. O elemento inicial e cada `USER_TASK`, `SERVICE_TASK` ou `RECEIVE_TASK` possuem exatamente uma conexão de saída; um `GATEWAY` possui exatamente duas (US-03.11); o `END` não possui saída. Todos os nós devem integrar um caminho contínuo entre o elemento inicial e algum `END` — um `GATEWAY` pode ramificar o fluxo em caminhos que terminam em `END`s distintos.
 
 ---
 
@@ -143,7 +143,7 @@ Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVEN
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | NodeId | UUID | Sim | Nó de integração configurado |
-| ConnectorType | VARCHAR(30) | Sim | `REST` ou `KAFKA` no MVP |
+| ConnectorType | VARCHAR(30) | Sim | `REST` ou `KAFKA` na versão 1.0.0 |
 | ConnectorEnabled | BOOLEAN | Sim | Indica se o conector está habilitado no catálogo |
 | ConnectorConfig | JSONB | Sim | Configuração específica do conector |
 | CredentialRef | VARCHAR(200) | Não | Referência de credencial resolvida pelo runtime |
@@ -259,7 +259,7 @@ O backend deve registrar o passo somente quando `NodeId` pertencer ao fluxo da m
 
 # 16. JourneyPublication
 
-No MVP, a publicação ativa deve referenciar uma `JourneyVersion`. Versões publicadas são imutáveis e versões anteriores devem ser preservadas.
+Na versão 1.0.0, a publicação ativa deve referenciar uma `JourneyVersion`. Versões publicadas são imutáveis e versões anteriores devem ser preservadas.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -293,7 +293,7 @@ Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somen
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | PublishedAt | TIMESTAMPTZ | Não | Data de publicação |
 
-Versões `PUBLISHED` são imutáveis. Restauração e rollback não fazem parte do MVP.
+Versões `PUBLISHED` são imutáveis. Restauração e rollback não fazem parte da versão 1.0.0.
 
 `JourneyPublication` deve manter referência à `VersionId` publicada. Uma nova publicação deve associar-se a uma nova versão e preservar os snapshots anteriores.
 
@@ -308,9 +308,9 @@ Versões `PUBLISHED` são imutáveis. Restauração e rollback não fazem parte 
 | Password | Não persistido | Sim | Credencial mockada; não deve ser armazenada na auditoria |
 | Role | VARCHAR(20) | Sim | `ADMIN`, `EDITOR` ou `VIEWER` |
 | Status | VARCHAR(20) | Sim | `ACTIVE`, `INACTIVE` ou `BLOCKED` |
-| AuthProvider | VARCHAR(50) | Sim | Provedor externo mockado no MVP |
+| AuthProvider | VARCHAR(50) | Sim | Provedor externo mockado na versão 1.0.0 |
 
-O MVP deve disponibilizar o usuário `admin`, senha `admin` e papel `ADMIN` por meio do provedor externo mockado.
+A versão 1.0.0 deve disponibilizar o usuário `admin`, senha `admin` e papel `ADMIN` por meio do provedor externo mockado.
 
 ---
 

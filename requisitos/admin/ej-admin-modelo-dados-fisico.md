@@ -2,7 +2,7 @@
 ## Modelo de Dados Físico
 
 ### Versão
-1.0 (MVP)
+1.0.0
 
 ---
 
@@ -40,7 +40,7 @@ Configurações visuais, dados de simulação e snapshots publicados utilizam `J
 
 Formulários são ativos reutilizáveis associados às User Tasks por `user_task_config`. A publicação armazena o snapshot da versão imutável enviada para a API de publicação do runtime e preserva versões anteriores.
 
-Os logs técnicos de observabilidade (EP-10) não são persistidos no PostgreSQL — trafegam por `logback` (console no MVP, com ponto de extensão preparado e desativado para ELK) e, por isso, não possuem tabela neste modelo.
+Os logs técnicos de observabilidade (FT-10) não são persistidos no PostgreSQL — trafegam por `logback` (console na versão 1.0.0, com ponto de extensão preparado e desativado para ELK) e, por isso, não possuem tabela neste modelo.
 
 ---
 
@@ -197,7 +197,7 @@ CREATE TABLE flow_connection (
 );
 ```
 
-A restrição `UNIQUE (flow_id, source_node_id)` acima descreve o desenho relacional de referência, mas não reflete a persistência real: o `Flow` (nós e conexões, ver §8) é gravado como um único documento `jsonb`, então a cardinalidade de saída por tipo de nó — inclusive a exceção do `GATEWAY`, que tem exatamente duas (FT-03.11) — é garantida pelo backend (`FlowValidator`), não por uma constraint de banco. Antes de persistir o fluxo completo, o backend deve garantir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`), ao menos um `END`, as cardinalidades de entrada e saída de cada tipo e a existência de um caminho contínuo entre o elemento inicial e algum `END`.
+A restrição `UNIQUE (flow_id, source_node_id)` acima descreve o desenho relacional de referência, mas não reflete a persistência real: o `Flow` (nós e conexões, ver §8) é gravado como um único documento `jsonb`, então a cardinalidade de saída por tipo de nó — inclusive a exceção do `GATEWAY`, que tem exatamente duas (US-03.11) — é garantida pelo backend (`FlowValidator`), não por uma constraint de banco. Antes de persistir o fluxo completo, o backend deve garantir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`), ao menos um `END`, as cardinalidades de entrada e saída de cada tipo e a existência de um caminho contínuo entre o elemento inicial e algum `END`.
 
 ---
 
@@ -361,13 +361,13 @@ CREATE TABLE journey_version (
 );
 ```
 
-Versões publicadas são imutáveis. O MVP não contempla restauração ou rollback. A publicação deve referenciar a versão publicada, preservando versões anteriores.
+Versões publicadas são imutáveis. A versão 1.0.0 não contempla restauração ou rollback. A publicação deve referenciar a versão publicada, preservando versões anteriores.
 
 ---
 
 # 19. Tabelas de Identidade e Auditoria
 
-O MVP utiliza provedor externo mockado. O usuário `admin`, com senha `admin` e papel `ADMIN`, pode ser representado por configuração mockada; a senha não deve ser persistida nem auditada.
+A versão 1.0.0 utiliza provedor externo mockado. O usuário `admin`, com senha `admin` e papel `ADMIN`, pode ser representado por configuração mockada; a senha não deve ser persistida nem auditada.
 
 ```sql
 CREATE TABLE audit_event (
@@ -514,7 +514,7 @@ Forms
 PUBLISHED, UNPUBLISHED
 ```
 
-No MVP, a publicação chama uma API mockada do runtime. Após o retorno de sucesso, o snapshot é persistido e `journey.status` passa a `PUBLISHED`. O contrato definitivo da API externa será definido posteriormente.
+Na versão 1.0.0, a publicação chama uma API mockada do runtime. Após o retorno de sucesso, o snapshot é persistido e `journey.status` passa a `PUBLISHED`. O contrato definitivo da API externa será definido posteriormente.
 
 A despublicação também chama a API mockada. Após o sucesso, `journey.status` e `journey_publication.publication_status` passam para `UNPUBLISHED`, e `unpublished_date` recebe a data da operação. Em caso de falha, o backend preserva os estados e o snapshot atuais.
 

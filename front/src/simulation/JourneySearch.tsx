@@ -3,6 +3,7 @@ import { Play, Search } from 'lucide-react';
 import { Callout, Stack, Text, TextFieldBase, skinVars } from '@telefonica/mistica';
 import { listJourneys, startInstance, type FlowBundle, type JourneySummary, type StepResponse } from './api';
 import { SimulationApiError, SimulationNetworkError } from './api';
+import { recordSimulationStart } from './auditApi';
 
 interface Props {
   onStarted: (processInstanceId: string, journey: JourneySummary, flow: FlowBundle, step: StepResponse) => void;
@@ -64,6 +65,9 @@ export function JourneySearch({ onStarted }: Props) {
     setStartError(null);
     try {
       const { processInstanceId, flow, step } = await startInstance(selected.journeyId);
+      recordSimulationStart(selected.journeyId, selected.name, processInstanceId).catch(() => {
+        /* falha ao registrar auditoria não deve impedir a simulação de continuar */
+      });
       onStarted(processInstanceId, selected, flow, step);
     } catch (e) {
       setStartError(errorMessage(e));

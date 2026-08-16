@@ -173,7 +173,7 @@ function EpicRows({ epic, defaultOpen }: { epic: Epic; defaultOpen?: boolean }) 
             {epic.name}
           </span>
           <span className="text-[11px] shrink-0" style={{ color: c.textMuted }}>
-            · {epic.features.length} features · {total} requisitos
+            · {epic.features.length} user stories · {total} requisitos
           </span>
         </div>
         <span className="text-[11.5px] font-mono font-semibold" style={{ color: c.accent }}>
@@ -210,8 +210,8 @@ function DonutSummary() {
   const { colors: c } = useAppTheme();
 
   const rows = [
-    { label: 'Épicos', value: TOTAL_EPICS, color: DONUT_COLORS[0] },
-    { label: 'Features', value: TOTAL_FEATURES, color: DONUT_COLORS[1] },
+    { label: 'Features', value: TOTAL_EPICS, color: DONUT_COLORS[0] },
+    { label: 'User Stories', value: TOTAL_FEATURES, color: DONUT_COLORS[1] },
     { label: 'Requisitos', value: TOTAL_REQS, color: DONUT_COLORS[2] },
   ];
   const sum = rows.reduce((s, r) => s + r.value, 0);
@@ -236,7 +236,7 @@ function DonutSummary() {
       <div className="flex items-center justify-center gap-[8px] mb-5">
         <Sparkles size={15} style={{ color: c.accent }} />
         <h3 className="m-0 text-[14px] font-bold" style={{ color: c.accent }}>
-          Resumo geral do MVP
+          Resumo geral da versão 1.0.0
         </h3>
       </div>
       <div className="flex items-center justify-center gap-6">
@@ -264,7 +264,7 @@ function DonutSummary() {
         <div className="flex items-center justify-center gap-[7px]">
           <CircleCheck size={16} className="shrink-0" style={{ color: c.success }} />
           <span style={{ color: c.textSecondary }}>
-            <strong style={{ color: c.success }}>{OVERALL_PERCENT}%</strong> do escopo funcional coberto para o MVP
+            <strong style={{ color: c.success }}>{OVERALL_PERCENT}%</strong> do escopo funcional coberto para a versão 1.0.0
           </span>
         </div>
         {reqsRemaining > 0 && (
@@ -272,7 +272,7 @@ function DonutSummary() {
             <CircleDashed size={14} className="shrink-0" style={{ color: c.warning }} />
             <span style={{ color: c.textSecondary }}>
               Faltam <strong style={{ color: c.warning }}>{reqsRemaining}</strong> requisito{reqsRemaining === 1 ? '' : 's'} em{' '}
-              <strong style={{ color: c.warning }}>{epicsOpen}</strong> épico{epicsOpen === 1 ? '' : 's'} para o MVP fechar
+              <strong style={{ color: c.warning }}>{epicsOpen}</strong> feature{epicsOpen === 1 ? '' : 's'} para a versão 1.0.0 fechar
             </span>
           </div>
         )}
@@ -444,7 +444,7 @@ export function SobrePage() {
             </span>
           </div>
           <p className="m-0 text-[13.5px] max-w-[640px]" style={{ color: c.textSecondary }}>
-            Visão executiva e estática do que está contemplado nesta versão do MVP do Elastic Journey Admin Portal.
+            Visão executiva e estática do que está contemplado na versão 1.0.0 do Elastic Journey Admin Portal.
           </p>
         </div>
       </div>
@@ -454,7 +454,7 @@ export function SobrePage() {
           <div className="flex items-center justify-center gap-[8px] mb-3">
             <CircleCheck size={15} style={{ color: c.success }} />
             <h3 className="m-0 text-[13px] font-semibold" style={{ color: c.textPrimary }}>
-              Capacidades entregues no MVP
+              Capacidades entregues na versão 1.0.0
             </h3>
           </div>
           <ul className="m-0 p-0 flex flex-col gap-[8px]" style={{ listStyle: 'none' }}>
@@ -480,7 +480,7 @@ export function SobrePage() {
             </h3>
           </div>
           <p className="m-0 mb-3 text-[12.5px] leading-[18px]" style={{ color: c.textSecondary }}>
-            Os números consideram exclusivamente os requisitos funcionais definidos para o MVP. O conteúdo é estático e não
+            Os números consideram exclusivamente os requisitos funcionais definidos para a versão 1.0.0. O conteúdo é estático e não
             reflete o progresso ao vivo do projeto.
           </p>
           <div className="flex flex-col gap-[8px] text-[12px]" style={{ color: c.textSecondary }}>
@@ -517,10 +517,10 @@ export function SobrePage() {
 
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <h2 className="m-0 text-[14px] font-semibold" style={{ color: c.textPrimary }}>
-          Épicos, features e requisitos
+          Features, user stories e requisitos
         </h2>
         <div className="flex items-center gap-2 flex-wrap">
-          <SearchInput value={search} onChange={setSearch} placeholder="Buscar épico, feature ou requisito..." />
+          <SearchInput value={search} onChange={setSearch} placeholder="Buscar feature, user story ou requisito..." />
           <div className="flex gap-[6px]">
             {(
               [
@@ -565,7 +565,7 @@ export function SobrePage() {
         </div>
         {visibleEpics.length === 0 ? (
           <p className="m-0 p-4 text-[12.5px]" style={{ color: c.textSecondary }}>
-            Nenhum épico, feature ou requisito encontrado para essa busca.
+            Nenhuma feature, user story ou requisito encontrado para essa busca.
           </p>
         ) : (
           visibleEpics.map((epic) => (
@@ -576,7 +576,7 @@ export function SobrePage() {
 
       <div>
         <h2 className="m-0 mb-1 text-[14px] font-semibold" style={{ color: c.textPrimary }}>
-          Fora do escopo do MVP
+          Fora do escopo da versão 1.0.0
         </h2>
         <p className="m-0 mb-4 text-[13px]" style={{ color: c.textSecondary }}>
           Capacidades planejadas para evoluções futuras da plataforma, não contempladas nesta versão.
@@ -606,7 +606,7 @@ export function SobrePage() {
 
       <div className="flex items-center gap-[6px] mt-8 pt-4 text-[11.5px]" style={{ borderTop: `1px solid ${c.border}`, color: c.textMuted }}>
         <Info size={12} />
-        Fonte: requisitos/admin/progresso.md — Elastic Journey Admin Portal, MVP v1.0
+        Fonte: requisitos/admin/progresso.md — Elastic Journey Admin Portal, versão 1.0.0
       </div>
     </div>
   );

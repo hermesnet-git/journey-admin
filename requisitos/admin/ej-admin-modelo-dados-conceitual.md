@@ -2,7 +2,7 @@
 ## Modelo de Dados Conceitual
 
 ### Versão
-1.0 (MVP)
+1.0.0
 
 ---
 
@@ -40,11 +40,11 @@ Nenhuma entidade possui dependência de BPMN, Camunda ou outro motor de execuç�
 
 ## 2.6 Simplicidade
 
-O MVP contempla versionamento de jornadas, autenticação mockada, autorização por papéis e auditoria. Rollback, governança e ownership permanecem fora do MVP.
+A versão 1.0.0 contempla versionamento de jornadas, autenticação mockada, autorização por papéis e auditoria. Rollback, governança e ownership permanecem fora da versão 1.0.0.
 
 ## 2.7 Observabilidade Não Persistida
 
-Os logs técnicos de observabilidade (requisições de API e transações de persistência, EP-10) não constituem entidade de domínio: não são armazenados em banco de dados, ao contrário do Audit Event. Por isso não aparecem nas seções seguintes deste documento.
+Os logs técnicos de observabilidade (requisições de API e transações de persistência, FT-10) não constituem entidade de domínio: não são armazenados em banco de dados, ao contrário do Audit Event. Por isso não aparecem nas seções seguintes deste documento.
 
 ---
 
@@ -191,7 +191,7 @@ START, END, USER_TASK, SERVICE_TASK, RECEIVE_TASK, MESSAGE_START_EVENT
 
 ## Flow Connection
 
-Liga dois nós do mesmo fluxo. Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um `END`. O elemento inicial não possui entrada e possui exatamente uma saída; cada `USER_TASK`, `SERVICE_TASK` e `RECEIVE_TASK` possui ao menos uma entrada e exatamente uma saída; um `GATEWAY` possui ao menos uma entrada e exatamente duas saídas (FT-03.11); o `END` possui ao menos uma entrada e nenhuma saída. Todos os nós integram um caminho contínuo e alcançável entre o elemento inicial e algum `END` — um `GATEWAY` pode ramificar o fluxo em caminhos que terminam em `END`s distintos, sem precisar reconvergir antes do fim.
+Liga dois nós do mesmo fluxo. Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um `END`. O elemento inicial não possui entrada e possui exatamente uma saída; cada `USER_TASK`, `SERVICE_TASK` e `RECEIVE_TASK` possui ao menos uma entrada e exatamente uma saída; um `GATEWAY` possui ao menos uma entrada e exatamente duas saídas (US-03.11); o `END` possui ao menos uma entrada e nenhuma saída. Todos os nós integram um caminho contínuo e alcançável entre o elemento inicial e algum `END` — um `GATEWAY` pode ramificar o fluxo em caminhos que terminam em `END`s distintos, sem precisar reconvergir antes do fim.
 
 ## Persistência e identificadores
 
@@ -213,7 +213,7 @@ Os demais identificadores do domínio (`productId`, `channelId`, `journeyId`, `f
 
 `SERVICE_TASK` executes an external integration. `RECEIVE_TASK` waits for a message in an already running journey instance. `MESSAGE_START_EVENT` creates a new journey instance from an external message.
 
-The connector framework is extensible. `REST` and `KAFKA` are enabled in the MVP; additional connectors may be cataloged as disabled without being available for use in flows.
+The connector framework is extensible. `REST` and `KAFKA` are enabled in version 1.0.0; additional connectors may be cataloged as disabled without being available for use in flows.
 
 ```text
 SERVICE_TASK        → bpmn:serviceTask
@@ -225,7 +225,7 @@ Connector configuration is declarative and stored with the flow snapshot. Creden
 
 # 10. User Task Configuration
 
-Associa um nó `USER_TASK` a um formulário. No MVP, a associação é opcional: cada User Task pode possuir zero ou uma configuração e, quando configurada, referencia exatamente um formulário.
+Associa um nó `USER_TASK` a um formulário. Na versão 1.0.0, a associação é opcional: cada User Task pode possuir zero ou uma configuração e, quando configurada, referencia exatamente um formulário.
 
 ```mermaid
 flowchart LR
@@ -245,7 +245,7 @@ flowchart LR
 
 Formulário reutilizável associado a uma ou mais User Tasks.
 
-## Form Field — Tipos MVP
+## Form Field — Tipos da Versão 1.0.0
 
 ```text
 TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD
@@ -253,7 +253,7 @@ TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD
 
 > Nomenclatura alinhada ao domínio implementado (`FormField`/`FormFieldType`). O tipo `STATIC_CONTENT`, que existia como tipo separado, foi colapsado em `TEXT` — os dois tinham o mesmo modelo de dados e divergiam apenas na apresentação visual.
 
-Cada campo (`Form Field`) possui um `name` técnico, único dentro do formulário e imutável após a criação, usado como chave de referência do campo (substitui o identificador interno usado antes do refino do EP-04).
+Cada campo (`Form Field`) possui um `name` técnico, único dentro do formulário e imutável após a criação, usado como chave de referência do campo (substitui o identificador interno usado antes do refino do FT-04).
 
 - `INPUT` possui um subtipo (texto, número, e-mail, data), com validação de formato associada (faixa mínima/máxima para número; regex/máscara para texto).
 - `SINGLE_SELECT`/`MULTI_SELECT` possuem opções como pares rótulo/valor (não apenas rótulo).
@@ -293,7 +293,7 @@ flowchart TD
 
 ## Descrição
 
-Representa o snapshot de uma versão imutável enviado para a API de publicação do runtime. A chamada é mockada no MVP e a publicação ativa referencia uma `Journey Version`.
+Representa o snapshot de uma versão imutável enviado para a API de publicação do runtime. A chamada é mockada na versão 1.0.0 e a publicação ativa referencia uma `Journey Version`.
 
 ## Conteúdo
 

@@ -5,7 +5,7 @@ info:
   description: >
     API do Elastic Journey Admin Portal para gestão de produtos, canais,
     jornadas específicas por canal, fluxos, formulários, simulações
-    e publicações. A publicação aciona uma API externa mockada no MVP;
+    e publicações. A publicação aciona uma API externa mockada na versão 1.0.0;
     este contrato descreve somente a API do Admin Portal.
   version: 1.0.0
 
@@ -15,13 +15,13 @@ servers:
   - url: https://admin-hml.elasticjourney.com/api/v1
     description: Homologation
 
-# No MVP, a autenticação utiliza um provedor externo mockado. O acesso inicial
+# Na versão 1.0.0, a autenticação utiliza um provedor externo mockado. O acesso inicial
 # usa o usuário admin, senha admin e papel ADMIN; as operações devem preservar
 # a identidade autenticada e aplicar os papéis ADMIN, EDITOR e VIEWER.
 security:
   - bearerAuth: []
 
-# Observabilidade (EP-10): toda requisição aceita o header opcional
+# Observabilidade (FT-10): toda requisição aceita o header opcional
 # X-Correlation-Id; quando ausente, o servidor gera um valor. O mesmo valor é
 # devolvido no header de resposta X-Correlation-Id e correlaciona, nos logs
 # técnicos do backend, a entrada/saída da requisição às transações de
@@ -1562,7 +1562,7 @@ components:
           enum: [REST, KAFKA]
         connectorEnabled:
           type: boolean
-          description: Must be true for connectors available in the MVP catalog.
+          description: Must be true for connectors available in the 1.0.0 catalog.
         connectorConfig:
           oneOf:
             - $ref: '#/components/schemas/RestConnectorConfig'

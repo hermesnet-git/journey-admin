@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, Route, Trash2, Pencil, CloudOff, ChevronRight, FileJson } from 'lucide-react';
+import { Search, Plus, Route, Trash2, Pencil, CloudOff, ChevronRight, FileJson, Waypoints, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { PrimaryButton, SecondaryButton, FilterDropdown, type FilterOption } from '../products/ui';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
@@ -24,6 +24,7 @@ import { JourneyDesignerPage } from '../flow-designer/JourneyDesignerPage';
 import { NewJourneyModal } from './NewJourneyModal';
 import { PublicationSnapshotModal } from './PublicationSnapshotModal';
 import { VersionDetailPanel } from './VersionDetailPanel';
+import { JourneyFlowPreviewModal } from './JourneyFlowPreviewModal';
 
 type StatusFilter = 'all' | JourneyStatus;
 
@@ -34,6 +35,45 @@ const STATUS_FILTER_OPTIONS: FilterOption[] = [
   { value: 'UNPUBLISHED', label: 'Despublicadas' },
   { value: 'INACTIVE', label: 'Inativas' },
 ];
+
+// REQ-02.03.006
+type GroupMode = 'product' | 'productChannel' | 'channel' | 'none';
+const GROUP_MODE_OPTIONS: FilterOption[] = [
+  { value: 'product', label: 'Produto' },
+  { value: 'productChannel', label: 'Produto + Canal' },
+  { value: 'channel', label: 'Canal' },
+  { value: 'none', label: 'Sem agrupamento' },
+];
+
+function groupKeyFor(j: Journey, mode: GroupMode): string {
+  switch (mode) {
+    case 'product':
+      return j.productName;
+    case 'productChannel':
+      return `${j.productName} · ${j.channelName}`;
+    case 'channel':
+      return j.channelName;
+    case 'none':
+      return '';
+  }
+}
+
+// REQ-02.03.007
+type SortField = 'name' | 'channelName' | 'status' | 'updatedAt';
+type SortDir = 'asc' | 'desc';
+
+function compareJourneys(a: Journey, b: Journey, field: SortField): number {
+  switch (field) {
+    case 'name':
+      return a.name.localeCompare(b.name, 'pt-BR');
+    case 'channelName':
+      return a.channelName.localeCompare(b.channelName, 'pt-BR');
+    case 'status':
+      return a.status.localeCompare(b.status, 'pt-BR');
+    case 'updatedAt':
+      return a.updatedAt.localeCompare(b.updatedAt);
+  }
+}
 
 const GRID_COLS = 'minmax(0,2fr) 1.3fr 1fr 1fr 132px';
 
@@ -72,11 +112,15 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [groupMode, setGroupMode] = useState<GroupMode>('product');
+  const [sortField, setSortField] = useState<SortField>('updatedAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [editingJourney, setEditingJourney] = useState<Journey | null>(null);
   const [creatingJourney, setCreatingJourney] = useState(false);
   const [deletingJourney, setDeletingJourney] = useState<Journey | null>(null);
   const [unpublishingJourney, setUnpublishingJourney] = useState<Journey | null>(null);
   const [viewingPublicationJourney, setViewingPublicationJourney] = useState<Journey | null>(null);
+  const [viewingFlowJourney, setViewingFlowJourney] = useState<Journey | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -102,6 +146,35 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
         .filter((j) => !search || j.name.toLowerCase().includes(search.toLowerCase())),
     [journeys, search, statusFilter],
   );
+
+  const sorted = useMemo(() => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => compareJourneys(a, b, sortField) * dir);
+  }, [filtered, sortField, sortDir]);
+
+  const groupedJourneys = useMemo(() => {
+    if (groupMode === 'none') return [['', sorted]] as [string, Journey[]][];
+    const groups = new Map<string, Journey[]>();
+    for (const j of sorted) {
+      const key = groupKeyFor(j, groupMode);
+      const list = groups.get(key);
+      if (list) {
+        list.push(j);
+      } else {
+        groups.set(key, [j]);
+      }
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b, 'pt-BR'));
+  }, [sorted, groupMode]);
+
+  function toggleSort(field: SortField) {
+    if (field === sortField) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  }
 
   if (editingJourney) {
     return (
@@ -191,6 +264,12 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
             value={statusFilter}
             onChange={(v) => setStatusFilter(v as StatusFilter)}
           />
+          <FilterDropdown
+            label="Agrupar"
+            options={GROUP_MODE_OPTIONS}
+            value={groupMode}
+            onChange={(v) => setGroupMode(v as GroupMode)}
+          />
         </div>
         <PrimaryButton onClick={() => setCreatingJourney(true)}>
           <Plus size={14} /> Nova jornada
@@ -213,32 +292,42 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
             className="grid items-center px-4"
             style={{ gridTemplateColumns: GRID_COLS, minHeight: 34, background: c.surface }}
           >
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em] py-2" style={{ color: c.textMuted }}>
-              Jornada
-            </span>
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
-              Produto / Canal
-            </span>
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
-              Status
-            </span>
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
-              Atualizada em
-            </span>
+            <SortHeader label="Jornada" field="name" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="Canal" field="channelName" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="Status" field="status" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+            <SortHeader label="Atualizada em" field="updatedAt" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
             <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em] text-right" style={{ color: c.textMuted }}>
               Ações
             </span>
           </div>
-          {filtered.map((j) => (
-            <JourneyDetailRow
-              key={j.journeyId}
-              journey={j}
-              onEdit={() => setEditingJourney(j)}
-              onDelete={() => setDeletingJourney(j)}
-              onUnpublish={() => setUnpublishingJourney(j)}
-              onViewPublication={() => setViewingPublicationJourney(j)}
-              onVersionsChanged={reload}
-            />
+          {groupedJourneys.map(([groupName, groupJourneys]) => (
+            <div key={groupName || '__all__'}>
+              {groupMode !== 'none' && (
+                <div
+                  className="flex items-center gap-2 px-4 py-[6px] border-t"
+                  style={{ background: c.bg, borderColor: c.border }}
+                >
+                  <span className="text-[11.5px] font-semibold" style={{ color: c.textPrimary }}>
+                    {groupName}
+                  </span>
+                  <span className="text-[11px]" style={{ color: c.textMuted }}>
+                    ({groupJourneys.length})
+                  </span>
+                </div>
+              )}
+              {groupJourneys.map((j) => (
+                <JourneyDetailRow
+                  key={j.journeyId}
+                  journey={j}
+                  onEdit={() => setEditingJourney(j)}
+                  onDelete={() => setDeletingJourney(j)}
+                  onUnpublish={() => setUnpublishingJourney(j)}
+                  onViewPublication={() => setViewingPublicationJourney(j)}
+                  onViewFlow={() => setViewingFlowJourney(j)}
+                  onVersionsChanged={reload}
+                />
+              ))}
+            </div>
           ))}
         </div>
       )}
@@ -285,7 +374,44 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
           onClose={() => setViewingPublicationJourney(null)}
         />
       )}
+
+      {viewingFlowJourney && (
+        <JourneyFlowPreviewModal
+          journeyId={viewingFlowJourney.journeyId}
+          journeyName={viewingFlowJourney.name}
+          onClose={() => setViewingFlowJourney(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function SortHeader({
+  label,
+  field,
+  sortField,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  field: SortField;
+  sortField: SortField;
+  sortDir: SortDir;
+  onSort: (field: SortField) => void;
+}) {
+  const { colors: c } = useAppTheme();
+  const active = field === sortField;
+  const Icon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className="flex items-center gap-1 border-0 bg-transparent cursor-pointer py-2 text-[10.5px] font-semibold uppercase tracking-[0.04em]"
+      style={{ color: active ? c.textPrimary : c.textMuted }}
+    >
+      {label}
+      <Icon size={11} strokeWidth={2.25} style={{ opacity: active ? 1 : 0.5 }} />
+    </button>
   );
 }
 
@@ -335,12 +461,14 @@ function IconAction({
   icon: Icon,
   label,
   onClick,
+  color,
   hoverColor,
   disabled,
 }: {
   icon: typeof Pencil;
   label: string;
   onClick: () => void;
+  color?: string;
   hoverColor?: string;
   disabled?: boolean;
 }) {
@@ -358,6 +486,7 @@ function IconAction({
       </span>
     );
   }
+  const restColor = color ?? c.textMuted;
   return (
     <button
       type="button"
@@ -365,13 +494,13 @@ function IconAction({
       title={label}
       aria-label={label}
       className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border-0 cursor-pointer"
-      style={{ color: c.textMuted }}
+      style={{ color: restColor }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.color = hoverColor ?? c.accent;
+        e.currentTarget.style.color = hoverColor ?? restColor;
         e.currentTarget.style.background = c.chipBg;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.color = c.textMuted;
+        e.currentTarget.style.color = restColor;
         e.currentTarget.style.background = 'transparent';
       }}
     >
@@ -386,33 +515,37 @@ function JourneyActions({
   onDelete,
   onUnpublish,
   onViewPublication,
+  onViewFlow,
 }: {
   journey: Journey;
   onEdit: () => void;
   onDelete: () => void;
   onUnpublish: () => void;
   onViewPublication: () => void;
+  onViewFlow: () => void;
 }) {
   const { colors: c } = useAppTheme();
   return (
     <div className="flex items-center justify-end gap-[2px]" onClick={(e) => e.stopPropagation()}>
+      <IconAction icon={Waypoints} label="Ver fluxo da jornada" onClick={onViewFlow} color={c.accent} />
       <IconAction
         icon={Pencil}
         label={journey.status === 'INACTIVE' ? 'Jornada inativa não pode ser editada' : 'Editar jornada'}
         onClick={onEdit}
+        color={c.accent}
         disabled={journey.status === 'INACTIVE'}
       />
       {journey.status === 'PUBLISHED' && (
-        <IconAction icon={FileJson} label="Ver publicação" onClick={onViewPublication} />
+        <IconAction icon={FileJson} label="Ver publicação" onClick={onViewPublication} color={c.accent} />
       )}
       {journey.status === 'PUBLISHED' && (
-        <IconAction icon={CloudOff} label="Despublicar jornada" onClick={onUnpublish} hoverColor={c.warning} />
+        <IconAction icon={CloudOff} label="Despublicar jornada" onClick={onUnpublish} color={c.warning} />
       )}
       <IconAction
         icon={Trash2}
         label={journey.status === 'INACTIVE' ? 'Jornada já está inativa' : 'Excluir jornada'}
         onClick={onDelete}
-        hoverColor={c.danger}
+        color={c.danger}
         disabled={journey.status === 'INACTIVE'}
       />
     </div>
@@ -425,6 +558,7 @@ function JourneyDetailRow({
   onDelete,
   onUnpublish,
   onViewPublication,
+  onViewFlow,
   onVersionsChanged,
 }: {
   journey: Journey;
@@ -432,6 +566,7 @@ function JourneyDetailRow({
   onDelete: () => void;
   onUnpublish: () => void;
   onViewPublication: () => void;
+  onViewFlow: () => void;
   onVersionsChanged: () => void;
 }) {
   const { colors: c } = useAppTheme();
@@ -457,7 +592,7 @@ function JourneyDetailRow({
           </div>
         </div>
         <span className="truncate text-[12.5px]" style={{ color: c.textSecondary }}>
-          {journey.productName} <span style={{ color: c.border }}>›</span> {journey.channelName}
+          {journey.channelName}
         </span>
         <div className="flex items-center gap-[6px]">
           <JourneyStatusTag status={journey.status} />
@@ -476,6 +611,7 @@ function JourneyDetailRow({
           onDelete={onDelete}
           onUnpublish={onUnpublish}
           onViewPublication={onViewPublication}
+          onViewFlow={onViewFlow}
         />
       </div>
       {open && <JourneyVersionsRows journeyId={journey.journeyId} onJourneyChanged={onVersionsChanged} />}
@@ -506,6 +642,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
   const [unpublishingVersion, setUnpublishingVersion] = useState<JourneyVersion | null>(null);
   const [republishingVersion, setRepublishingVersion] = useState<JourneyVersion | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<JourneyVersion | null>(null);
+  const [jsonVersion, setJsonVersion] = useState<JourneyVersion | null>(null);
 
   const reload = useCallback(() => {
     listJourneyVersions(journeyId)
@@ -639,6 +776,15 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
                 {formatDate(v.publishedAt ?? v.createdAt)}
               </span>
               <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => setJsonVersion(v)}
+                  title="Ver JSON do snapshot"
+                  className="flex items-center justify-center w-7 h-7 rounded-md border cursor-pointer shrink-0"
+                  style={{ borderColor: c.border, background: c.surface, color: c.accent }}
+                >
+                  <FileJson size={14} />
+                </button>
                 {v.status === 'DRAFT' && (
                   <span title={v.snapshot.flowNodes.length === 0 ? 'Esta versão ainda não tem um fluxo definido.' : undefined}>
                     <PrimaryButton
@@ -662,13 +808,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
                 )}
               </div>
             </div>
-              {selectedVersion?.versionId === v.versionId && (
-                <VersionDetailPanel
-                  journeyId={journeyId}
-                  version={selectedVersion}
-                  onClose={() => setSelectedVersion(null)}
-                />
-              )}
+              {selectedVersion?.versionId === v.versionId && <VersionDetailPanel version={selectedVersion} />}
             </div>
           );
         })
@@ -705,6 +845,17 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
           confirmLabel="Republicar"
           onConfirm={confirmRepublish}
           onCancel={() => setRepublishingVersion(null)}
+        />
+      )}
+
+      {jsonVersion && (
+        <PublicationSnapshotModal
+          journeyId={journeyId}
+          journeyName={`v${jsonVersion.versionNumber}`}
+          title={`Snapshot: v${jsonVersion.versionNumber}`}
+          subtitle="JSON armazenado para esta versão da jornada."
+          data={jsonVersion.snapshot}
+          onClose={() => setJsonVersion(null)}
         />
       )}
     </div>

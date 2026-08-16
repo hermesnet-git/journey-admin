@@ -2,7 +2,7 @@
 ## Índice da Documentação
 
 ### Versão
-1.0 (MVP)
+1.0.0
 
 ---
 
@@ -45,7 +45,7 @@ Observabilidade (log técnico de aplicação)
 ```text
 Elastic Journey Admin Portal
         ↓ chamada outbound
-API de Publicação do Runtime (mock no MVP)
+API de Publicação do Runtime (mock na versão 1.0.0)
 ```
 
 ## Elastic Journey Admin Portal
@@ -54,11 +54,11 @@ Responsável por cadastrar produtos e canais e por criar, modelar, versionar, si
 
 ## API de Publicação do Runtime
 
-Fronteira externa responsável por receber o snapshot enviado pelo Admin Portal. Seu contrato definitivo ainda será definido; no MVP, a chamada é atendida por um mock. O ms-journey não consulta nem conhece o domínio do Admin Portal.
+Fronteira externa responsável por receber o snapshot enviado pelo Admin Portal. Seu contrato definitivo ainda será definido; na versão 1.0.0, a chamada é atendida por um mock. O ms-journey não consulta nem conhece o domínio do Admin Portal.
 
 ---
 
-# 4. Escopo do MVP
+# 4. Escopo da Versão 1.0.0
 
 ```text
 Gestão de Produtos e Canais
@@ -92,8 +92,6 @@ Observabilidade: log de entrada/saída de API e de transações de persistência
 # 5. Fora do Escopo
 
 ```text
-Dashboard Administrativo de Jornadas
-
 Governança
 
 Rollback
@@ -145,7 +143,7 @@ Produto ou serviço digital que agrupa seus canais de atendimento. Exemplo: Vivo
 
 ## Channel
 
-Aplicação ou interface de atendimento pertencente a um produto. Tipos do MVP: Web, Mobile, WhatsApp, URA, Contact Center e Other.
+Aplicação ou interface de atendimento pertencente a um produto. Tipos da versão 1.0.0: Web, Mobile, WhatsApp, URA, Contact Center e Other.
 
 ## Journey
 
@@ -157,7 +155,7 @@ Estrutura visual da jornada: Start, Message Start Event, User Tasks, Service Tas
 
 ## Connectors
 
-Framework de integrações com REST e Kafka habilitados no MVP e conectores adicionais catalogados como desabilitados.
+Framework de integrações com REST e Kafka habilitados na versão 1.0.0 e conectores adicionais catalogados como desabilitados.
 
 ## Form
 
@@ -177,7 +175,7 @@ Snapshot de uma versão de jornada enviado para a API de publicação do runtime
 
 ## External Identity Provider (mock)
 
-Provedor externo representado por mock no MVP. O acesso inicial utiliza o usuário `admin`, senha `admin` e papel `ADMIN`.
+Provedor externo representado por mock na versão 1.0.0. O acesso inicial utiliza o usuário `admin`, senha `admin` e papel `ADMIN`.
 
 ## Audit Event
 
@@ -189,7 +187,7 @@ Conteúdo estático de perguntas frequentes sobre o uso do Admin Portal, acessí
 
 ## Correlation Id
 
-Identificador técnico (`X-Correlation-Id`) que amarra os logs de entrada/saída de uma requisição de API aos logs das transações de persistência disparadas por ela. Reaproveitado do header quando presente, gerado quando ausente, e devolvido ao cliente na resposta. Não deve ser confundido com o `correlationId` do Audit Event (EP-08), embora ambos usem o mesmo header como origem.
+Identificador técnico (`X-Correlation-Id`) que amarra os logs de entrada/saída de uma requisição de API aos logs das transações de persistência disparadas por ela. Reaproveitado do header quando presente, gerado quando ausente, e devolvido ao cliente na resposta. Não deve ser confundido com o `correlationId` do Audit Event (FT-08), embora ambos usem o mesmo header como origem.
 
 ---
 
@@ -229,7 +227,7 @@ Especificação OpenAPI
 
 ## Requisitos Funcionais
 
-**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo do MVP, organizado em dez épicos.
+**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo da versão 1.0.0, organizado em treze features.
 
 ## Arquitetura Lógica
 
@@ -249,7 +247,7 @@ Especificação OpenAPI
 
 ## Especificação OpenAPI
 
-**Arquivo:** `ej-admin-openapi.yaml` — Operações e schemas da API do Admin Portal. A API externa de publicação do runtime ainda não possui contrato definitivo e é mockada no MVP.
+**Arquivo:** `ej-admin-openapi.yaml` — Operações e schemas da API do Admin Portal. A API externa de publicação do runtime ainda não possui contrato definitivo e é mockada na versão 1.0.0.
 
 ---
 
@@ -275,7 +273,7 @@ Especificação OpenAPI
 | Simulation Result | Resultado consolidado da simulação |
 | Journey Version | Versão imutável de uma jornada |
 | Journey Publication | Snapshot de uma versão enviado para a API de publicação do runtime |
-| External Identity Provider | Provedor externo de autenticação, mockado no MVP |
+| External Identity Provider | Provedor externo de autenticação, mockado na versão 1.0.0 |
 | Audit Event | Evento de auditoria de uma operação do sistema |
 
 ---
@@ -300,4 +298,4 @@ Especificação OpenAPI
 
 # 12. Resumo Executivo
 
-O Elastic Journey Admin Portal MVP cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, simulação, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).
+O Elastic Journey Admin Portal versão 1.0.0 cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, simulação, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).

@@ -1,7 +1,7 @@
 -- Massa de dados de uma operadora de telecom fictícia: produtos, canais (somente
 -- WEB e MOBILE/app), formulários e jornadas (básicas e complexas), no formato
--- atual do schema (EP-04 refinado: FormField.name técnico, options {label,value},
--- sem STATIC_CONTENT; EP-03.07/03.08/03.09/03.11: SERVICE_TASK/RECEIVE_TASK/
+-- atual do schema (FT-04 refinado: FormField.name técnico, options {label,value},
+-- sem STATIC_CONTENT; US-03.07/03.08/03.09/03.11: SERVICE_TASK/RECEIVE_TASK/
 -- MESSAGE_START_EVENT/GATEWAY, conectores REST/KAFKA, outputMapping, condição de
 -- gateway).
 --

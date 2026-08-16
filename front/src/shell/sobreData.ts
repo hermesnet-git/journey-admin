@@ -1,5 +1,5 @@
 // Conteúdo estático gerado a partir de requisitos/admin/progresso.md e ej-admin-requisitos.md.
-// Painel temporário — não reflete progresso ao vivo do projeto, é um retrato do MVP.
+// Painel temporário — não reflete progresso ao vivo do projeto, é um retrato da versão 1.0.0.
 
 export type ReqStatus = 'done' | 'partial' | 'todo' | 'na';
 
@@ -31,7 +31,7 @@ function na(code: string, description: string): Requirement {
 function todo(code: string, description: string): Requirement {
   return { code, description, status: 'todo' };
 }
-// Requisito cujo comportamento é atendido apenas por um mock/simulação no MVP: não conta como
+// Requisito cujo comportamento é atendido apenas por um mock/simulação na versão 1.0.0: não conta como
 // entregue, mas o código de suporte existe — a nota deixa essa distinção explícita.
 function mock(code: string, description: string): Requirement {
   return { code, description, status: 'todo', notes: 'Implementado, porém mockado — não é uma integração real.' };
@@ -44,11 +44,11 @@ function partial(code: string, description: string, notes: string): Requirement 
 
 export const EPICS: Epic[] = [
   {
-    code: 'EP-01',
+    code: 'FT-01',
     name: 'Gestão de Produtos e Canais',
     features: [
       {
-        code: 'FT-01.01',
+        code: 'US-01.01',
         name: 'Gestão de produtos',
         requirements: [
           d('REQ-01.01.001', 'O sistema deve permitir cadastrar produtos.'),
@@ -59,7 +59,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-01.02',
+        code: 'US-01.02',
         name: 'Gestão de canais',
         requirements: [
           d('REQ-01.02.001', 'O sistema deve permitir cadastrar canais dentro de um produto.'),
@@ -72,7 +72,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-01.03',
+        code: 'US-01.03',
         name: 'Catálogo e descoberta',
         requirements: [
           d('REQ-01.03.001', 'O sistema deve permitir pesquisar produtos por nome.'),
@@ -85,7 +85,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-01.04',
+        code: 'US-01.04',
         name: 'Integridade e ciclo de vida',
         requirements: [
           d('REQ-01.04.001', 'A desativação de um produto não deve remover seus canais, jornadas ou publicações existentes.'),
@@ -98,11 +98,11 @@ export const EPICS: Epic[] = [
     ],
   },
   {
-    code: 'EP-02',
+    code: 'FT-02',
     name: 'Gestão de Jornadas',
     features: [
       {
-        code: 'FT-02.01',
+        code: 'US-02.01',
         name: 'Cadastro de jornadas',
         requirements: [
           d('REQ-02.01.001', 'O sistema deve permitir criar jornadas.'),
@@ -128,7 +128,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-02.02',
+        code: 'US-02.02',
         name: 'Identificação e metadados',
         requirements: [
           d('REQ-02.02.001', 'O sistema deve permitir definir nome para a jornada.'),
@@ -140,7 +140,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-02.03',
+        code: 'US-02.03',
         name: 'Pesquisa',
         requirements: [
           d('REQ-02.03.001', 'O sistema deve permitir pesquisar jornadas por nome.'),
@@ -148,10 +148,19 @@ export const EPICS: Epic[] = [
           d('REQ-02.03.003', 'O sistema deve permitir filtrar jornadas por canal.'),
           d('REQ-02.03.004', 'O sistema deve permitir ordenar jornadas por data de criação.'),
           d('REQ-02.03.005', 'O sistema deve permitir ordenar jornadas por data de alteração.'),
+          partial(
+            'REQ-02.03.006',
+            'O sistema deve permitir agrupar a listagem de jornadas por produto, por produto e canal, por canal, ou sem agrupamento algum.',
+            'Agrupamento por produto implementado (cabeçalho de grupo com contagem); falta o seletor de modo (produto+canal, só canal, sem agrupar).',
+          ),
+          todo(
+            'REQ-02.03.007',
+            'O sistema deve permitir ordenar a listagem de jornadas, em ordem crescente ou decrescente, pelos campos jornada (nome), canal, status ou data de atualização.',
+          ),
         ],
       },
       {
-        code: 'FT-02.05',
+        code: 'US-02.05',
         name: 'Jornadas específicas por canal',
         requirements: [
           d('REQ-02.05.001', 'O sistema deve permitir criar jornadas distintas para diferentes canais do mesmo produto.'),
@@ -161,7 +170,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-02.06',
+        code: 'US-02.06',
         name: 'Publicação de jornadas',
         requirements: [
           d('REQ-02.06.001', 'O sistema deve permitir publicar jornadas.'),
@@ -174,7 +183,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-02.07',
+        code: 'US-02.07',
         name: 'Estado da publicação',
         requirements: [
           d('REQ-02.07.001', 'O sistema deve indicar se uma jornada está publicada.'),
@@ -184,7 +193,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-02.08',
+        code: 'US-02.08',
         name: 'Catálogo de publicações',
         requirements: [
           d('REQ-02.08.001', 'O sistema deve permitir listar jornadas publicadas.'),
@@ -194,7 +203,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-02.09',
+        code: 'US-02.09',
         name: 'Publicação no runtime',
         requirements: [
           d('REQ-02.09.001', 'O Admin Portal deve iniciar a publicação por meio de uma chamada de saída para a API de publicação do runtime.'),
@@ -210,7 +219,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-02.10',
+        code: 'US-02.10',
         name: 'Inspeção da publicação',
         requirements: [
           d(
@@ -222,11 +231,11 @@ export const EPICS: Epic[] = [
     ],
   },
   {
-    code: 'EP-03',
+    code: 'FT-03',
     name: 'Modelagem Visual',
     features: [
       {
-        code: 'FT-03.01',
+        code: 'US-03.01',
         name: 'Flow designer',
         requirements: [
           d('REQ-03.01.001', 'O sistema deve suportar eventos de início.'),
@@ -240,7 +249,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-03.02',
+        code: 'US-03.02',
         name: 'Conexões',
         requirements: [
           d('REQ-03.02.001', 'O sistema deve permitir criar conexões entre elementos.'),
@@ -262,7 +271,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-03.03',
+        code: 'US-03.03',
         name: 'Navegação',
         requirements: [
           d('REQ-03.03.001', 'O usuário deve visualizar o fluxo completo da jornada.'),
@@ -271,7 +280,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-03.04',
+        code: 'US-03.04',
         name: 'Experiência de edição',
         requirements: [
           d('REQ-03.04.001', 'O sistema deve suportar drag-and-drop de elementos.'),
@@ -282,7 +291,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-03.05',
+        code: 'US-03.05',
         name: 'Canvas',
         requirements: [
           d('REQ-03.05.001', 'O sistema deve permitir zoom in.'),
@@ -292,7 +301,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-03.06',
+        code: 'US-03.06',
         name: 'Produtividade',
         requirements: [
           d('REQ-03.06.001', 'O sistema deve permitir desfazer ações.'),
@@ -300,7 +309,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-03.07',
+        code: 'US-03.07',
         name: 'Elementos de integração',
         requirements: [
           d('REQ-03.07.001', 'O sistema deve suportar nós de integração SERVICE_TASK, RECEIVE_TASK e MESSAGE_START_EVENT.'),
@@ -315,18 +324,18 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-03.08',
+        code: 'US-03.08',
         name: 'Framework de conectores',
         requirements: [
           d('REQ-03.08.001', 'O sistema deve representar a integração por meio de um framework conceitual de conectores.'),
           d('REQ-03.08.002', 'O framework deve permitir associar um conector a uma SERVICE_TASK, RECEIVE_TASK ou MESSAGE_START_EVENT.'),
-          d('REQ-03.08.003', 'O catálogo deve possuir os conectores REST e KAFKA habilitados para uso no MVP.'),
+          d('REQ-03.08.003', 'O catálogo deve possuir os conectores REST e KAFKA habilitados para uso na versão 1.0.0.'),
           d('REQ-03.08.004', 'O catálogo deve possuir conectores adicionais registrados como desabilitados, sem permitir seu uso em fluxos.'),
           d('REQ-03.08.005', 'O sistema deve persistir o tipo do conector e sua configuração específica de forma extensível.'),
         ],
       },
       {
-        code: 'FT-03.09',
+        code: 'US-03.09',
         name: 'Configuração REST e Kafka',
         requirements: [
           d('REQ-03.09.001', 'O sistema deve permitir configurar REST em SERVICE_TASK e RECEIVE_TASK.'),
@@ -376,7 +385,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-03.10',
+        code: 'US-03.10',
         name: 'Teste de conectores',
         requirements: [
           d(
@@ -399,12 +408,12 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-03.11',
+        code: 'US-03.11',
         name: 'Bifurcação condicional (Gateway)',
         requirements: [
           d(
             'REQ-03.11.001',
-            'O sistema deve suportar um nó de gateway de decisão (exclusivo) no fluxo, com exatamente duas saídas no MVP: caminho A e caminho B.',
+            'O sistema deve suportar um nó de gateway de decisão (exclusivo) no fluxo, com exatamente duas saídas na versão 1.0.0: caminho A e caminho B.',
           ),
           d(
             'REQ-03.11.002',
@@ -424,7 +433,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.11.006',
-            'O gateway deve possuir ao menos uma entrada e exatamente duas saídas no MVP; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição.',
+            'O gateway deve possuir ao menos uma entrada e exatamente duas saídas na versão 1.0.0; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição.',
           ),
           d(
             'REQ-03.11.007',
@@ -439,11 +448,11 @@ export const EPICS: Epic[] = [
     ],
   },
   {
-    code: 'EP-04',
+    code: 'FT-04',
     name: 'Formulários (SDUI)',
     features: [
       {
-        code: 'FT-04.01',
+        code: 'US-04.01',
         name: 'Form builder',
         requirements: [
           d('REQ-04.01.001', 'O sistema deve permitir criar formulários.'),
@@ -462,7 +471,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-04.02',
+        code: 'US-04.02',
         name: 'Componentes',
         requirements: [
           d('REQ-04.02.001', 'O sistema deve suportar componente de texto (absorve o antigo tipo de conteúdo estático).'),
@@ -483,7 +492,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-04.03',
+        code: 'US-04.03',
         name: 'Reutilização',
         requirements: [
           d('REQ-04.03.001', 'O sistema deve permitir reutilizar formulários em múltiplas jornadas.'),
@@ -491,7 +500,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-04.04',
+        code: 'US-04.04',
         name: 'Configuração',
         requirements: [
           d('REQ-04.04.001', 'O usuário deve poder definir campos obrigatórios.'),
@@ -500,7 +509,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-04.05',
+        code: 'US-04.05',
         name: 'Preview',
         requirements: [
           d('REQ-04.05.001', 'O sistema deve permitir visualizar o formulário durante a edição.'),
@@ -508,7 +517,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-04.06',
+        code: 'US-04.06',
         name: 'Imutabilidade e serialização para publicação',
         requirements: [
           d(
@@ -524,11 +533,11 @@ export const EPICS: Epic[] = [
     ],
   },
   {
-    code: 'EP-05',
+    code: 'FT-05',
     name: 'Simulação',
     features: [
       {
-        code: 'FT-05.01',
+        code: 'US-05.01',
         name: 'Execução',
         requirements: [
           d('REQ-05.01.001', 'O sistema deve permitir executar simulações.'),
@@ -545,7 +554,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-05.02',
+        code: 'US-05.02',
         name: 'Resultado',
         requirements: [
           d('REQ-05.02.001', 'O sistema deve apresentar o caminho percorrido.'),
@@ -555,7 +564,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-05.03',
+        code: 'US-05.03',
         name: 'Visualização da execução',
         requirements: [
           d('REQ-05.03.001', 'O sistema deve destacar o caminho percorrido durante a simulação.'),
@@ -571,7 +580,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-05.04',
+        code: 'US-05.04',
         name: 'Arquitetura de execução',
         requirements: [
           {
@@ -579,16 +588,16 @@ export const EPICS: Epic[] = [
             description:
               'A simulação deve executar a jornada publicada contra o motor de runtime real (Camunda), não um simulador simplificado interno ao Admin Portal.',
             status: 'done',
-            notes: 'Exige jornada publicada — o objetivo original do épico ("sem publicá-la") foi ajustado.',
+            notes: 'Exige jornada publicada — o objetivo original da feature ("sem publicá-la") foi ajustado.',
           },
           d(
             'REQ-05.04.002',
-            'No MVP, as integrações REST externas referenciadas pelas jornadas devem ser emuladas por um serviço de mock dedicado, já que não há sistemas de terceiros reais disponíveis.',
+            'Na versão 1.0.0, as integrações REST externas referenciadas pelas jornadas devem ser emuladas por um serviço de mock dedicado, já que não há sistemas de terceiros reais disponíveis.',
           ),
         ],
       },
       {
-        code: 'FT-05.05',
+        code: 'US-05.05',
         name: 'Etapas de integração',
         requirements: [
           d(
@@ -602,7 +611,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-05.06',
+        code: 'US-05.06',
         name: 'Observabilidade da execução',
         requirements: [
           {
@@ -628,7 +637,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-05.07',
+        code: 'US-05.07',
         name: 'Seleção e apresentação',
         requirements: [
           {
@@ -650,7 +659,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-05.08',
+        code: 'US-05.08',
         name: 'Tratamento de falhas de integração',
         requirements: [
           {
@@ -675,11 +684,11 @@ export const EPICS: Epic[] = [
     ],
   },
   {
-    code: 'EP-06',
+    code: 'FT-06',
     name: 'Versionamento de Jornadas',
     features: [
       {
-        code: 'FT-06.01',
+        code: 'US-06.01',
         name: 'Modelo de versões',
         requirements: [
           d('REQ-06.01.001', 'O sistema deve permitir que uma jornada possua múltiplas versões.'),
@@ -693,7 +702,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-06.02',
+        code: 'US-06.02',
         name: 'Criação e edição de versões',
         requirements: [
           d('REQ-06.02.001', 'Ao criar uma jornada, o sistema deve criar sua primeira versão em DRAFT.'),
@@ -715,7 +724,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-06.03',
+        code: 'US-06.03',
         name: 'Histórico e consulta',
         requirements: [
           d('REQ-06.03.001', 'O sistema deve permitir listar todas as versões de uma jornada.'),
@@ -726,7 +735,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-06.04',
+        code: 'US-06.04',
         name: 'Publicação de versões',
         requirements: [
           d('REQ-06.04.001', 'O sistema deve permitir publicar uma versão DRAFT.'),
@@ -756,40 +765,40 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-06.05',
-        name: 'Compatibilidade e limites do MVP',
+        code: 'US-06.05',
+        name: 'Compatibilidade e limites da versão 1.0.0',
         requirements: [
           d('REQ-06.05.001', 'O sistema deve preservar versões de jornadas desativadas.'),
           d('REQ-06.05.002', 'Jornadas existentes devem receber uma versão inicial durante a migração do modelo atual.'),
           d('REQ-06.05.003', 'O sistema deve preservar a compatibilidade das operações atuais de consulta e publicação.'),
-          d('REQ-06.05.004', 'O sistema não deve permitir restauração ou rollback de versão no MVP.'),
+          d('REQ-06.05.004', 'O sistema não deve permitir restauração ou rollback de versão na versão 1.0.0.'),
           d('REQ-06.05.005', 'O sistema deve registrar a versão associada a cada publicação.'),
         ],
       },
     ],
   },
   {
-    code: 'EP-07',
+    code: 'FT-07',
     name: 'Autenticação e Autorização',
     features: [
       {
-        code: 'FT-07.01',
+        code: 'US-07.01',
         name: 'Autenticação mockada por provedor externo',
         requirements: [
           d('REQ-07.01.001', 'O sistema deve representar a autenticação por meio de um provedor externo.'),
-          mock('REQ-07.01.002', 'No MVP, a integração com o provedor externo deve ser mockada.'),
+          mock('REQ-07.01.002', 'Na versão 1.0.0, a integração com o provedor externo deve ser mockada.'),
           d('REQ-07.01.003', 'O sistema deve disponibilizar uma tela de login padrão.'),
           d('REQ-07.01.004', 'A tela de login deve permitir informar usuário e senha.'),
-          mock('REQ-07.01.005', 'O MVP deve disponibilizar o usuário mockado admin, com senha admin e perfil ADMIN.'),
+          mock('REQ-07.01.005', 'A versão 1.0.0 deve disponibilizar o usuário mockado admin, com senha admin e perfil ADMIN.'),
           d('REQ-07.01.006', 'O sistema deve rejeitar credenciais diferentes das credenciais mockadas configuradas.'),
           d(
             'REQ-07.01.007',
-            'O sistema deve indicar que a autenticação utilizada no MVP é mockada e não representa integração real com um provedor.',
+            'O sistema deve indicar que a autenticação utilizada na versão 1.0.0 é mockada e não representa integração real com um provedor.',
           ),
         ],
       },
       {
-        code: 'FT-07.02',
+        code: 'US-07.02',
         name: 'Sessão e proteção de acesso',
         requirements: [
           d('REQ-07.02.001', 'O sistema deve criar uma sessão autenticada após login bem-sucedido.'),
@@ -801,7 +810,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-07.03',
+        code: 'US-07.03',
         name: 'Papéis e permissões',
         requirements: [
           d('REQ-07.03.001', 'O sistema deve suportar os papéis ADMIN, EDITOR e VIEWER.'),
@@ -815,23 +824,23 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-07.04',
+        code: 'US-07.04',
         name: 'Administração de usuários mockados',
         requirements: [
-          mock('REQ-07.04.001', 'O sistema deve representar no MVP o usuário admin como usuário administrativo mockado.'),
+          mock('REQ-07.04.001', 'O sistema deve representar na versão 1.0.0 o usuário admin como usuário administrativo mockado.'),
           na('REQ-07.04.002', 'O sistema deve impedir a remoção do último usuário com papel ADMIN.'),
           d('REQ-07.04.003', 'O sistema deve permitir consultar o usuário autenticado e seu papel.'),
-          d('REQ-07.04.004', 'O sistema deve deixar explícito que cadastro, alteração e persistência de usuários reais estão fora do MVP.'),
+          d('REQ-07.04.004', 'O sistema deve deixar explícito que cadastro, alteração e persistência de usuários reais estão fora da versão 1.0.0.'),
         ],
       },
     ],
   },
   {
-    code: 'EP-08',
+    code: 'FT-08',
     name: 'Auditoria',
     features: [
       {
-        code: 'FT-08.01',
+        code: 'US-08.01',
         name: 'Registro de eventos',
         requirements: [
           d('REQ-08.01.001', 'O sistema deve registrar eventos relevantes de autenticação, autorização e negócio.'),
@@ -843,7 +852,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-08.02',
+        code: 'US-08.02',
         name: 'Eventos auditáveis',
         requirements: [
           d('REQ-08.02.001', 'O sistema deve auditar login bem-sucedido e malsucedido.'),
@@ -856,7 +865,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-08.03',
+        code: 'US-08.03',
         name: 'Proteção dos registros',
         requirements: [
           d('REQ-08.03.001', 'Os registros de auditoria não devem ser editáveis por usuários comuns.'),
@@ -867,7 +876,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-08.04',
+        code: 'US-08.04',
         name: 'Consulta de auditoria',
         requirements: [
           d('REQ-08.04.001', 'Usuários autorizados devem poder consultar eventos de auditoria.'),
@@ -879,11 +888,11 @@ export const EPICS: Epic[] = [
     ],
   },
   {
-    code: 'EP-09',
+    code: 'FT-09',
     name: 'Ajuda e Suporte',
     features: [
       {
-        code: 'FT-09.01',
+        code: 'US-09.01',
         name: 'Central de ajuda',
         requirements: [
           d('REQ-09.01.001', 'O sistema deve disponibilizar uma tela de ajuda acessível a partir do menu do Admin Portal.'),
@@ -899,11 +908,11 @@ export const EPICS: Epic[] = [
     ],
   },
   {
-    code: 'EP-10',
+    code: 'FT-10',
     name: 'Observabilidade',
     features: [
       {
-        code: 'FT-10.01',
+        code: 'US-10.01',
         name: 'Log de requisições de API',
         requirements: [
           d('REQ-10.01.001', 'O sistema deve registrar em log a entrada de toda requisição HTTP recebida pela API, incluindo método e caminho.'),
@@ -915,7 +924,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-10.02',
+        code: 'US-10.02',
         name: 'Log de transações de persistência',
         requirements: [
           d(
@@ -930,7 +939,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-10.03',
+        code: 'US-10.03',
         name: 'Correlação de logs',
         requirements: [
           d('REQ-10.03.001', 'Toda requisição de API deve ser associada a um identificador de correlação.'),
@@ -946,12 +955,12 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-10.04',
+        code: 'US-10.04',
         name: 'Preparação para integração com ELK',
         requirements: [
           partial(
             'REQ-10.04.001',
-            'O sistema deve estar tecnicamente preparado para o envio dos logs de aplicação a uma stack ELK (Elasticsearch/Logstash/Kibana), permanecendo essa integração desativada no MVP por não haver ambiente ELK disponível.',
+            'O sistema deve estar tecnicamente preparado para o envio dos logs de aplicação a uma stack ELK (Elasticsearch/Logstash/Kibana), permanecendo essa integração desativada na versão 1.0.0 por não haver ambiente ELK disponível.',
             'Pendente apenas a configuração/conexão com um ambiente ELK real, ainda não disponível — o restante (log centralizado, ponto de extensão para appender Logstash) já está pronto.',
           ),
           d('REQ-10.04.002', 'O sistema deve documentar o procedimento (how-to) para habilitar a integração com o ELK quando um ambiente estiver disponível.'),
@@ -960,11 +969,11 @@ export const EPICS: Epic[] = [
     ],
   },
   {
-    code: 'EP-11',
+    code: 'FT-11',
     name: 'Testes',
     features: [
       {
-        code: 'FT-11.01',
+        code: 'US-11.01',
         name: 'Testes unitários de domínio (back)',
         requirements: [
           todo(
@@ -986,7 +995,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-11.02',
+        code: 'US-11.02',
         name: 'Testes de integração de API (back)',
         requirements: [
           todo('REQ-11.02.001', 'O sistema deve possuir testes de integração cobrindo o CRUD completo de produtos, canais e jornadas via API.'),
@@ -1002,7 +1011,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-11.03',
+        code: 'US-11.03',
         name: 'Testes de frontend',
         requirements: [
           todo(
@@ -1013,7 +1022,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-11.04',
+        code: 'US-11.04',
         name: 'Cenários end-to-end',
         requirements: [
           todo(
@@ -1029,11 +1038,11 @@ export const EPICS: Epic[] = [
     ],
   },
   {
-    code: 'EP-12',
+    code: 'FT-12',
     name: 'Infraestrutura',
     features: [
       {
-        code: 'FT-12.01',
+        code: 'US-12.01',
         name: 'Identidade da solução',
         requirements: [
           partial(
@@ -1044,7 +1053,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-12.02',
+        code: 'US-12.02',
         name: 'Containerização (Docker)',
         requirements: [
           todo('REQ-12.02.001', 'Criar Dockerfile para o admin-back.'),
@@ -1053,7 +1062,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-12.03',
+        code: 'US-12.03',
         name: 'Orquestração (Kubernetes)',
         requirements: [
           todo('REQ-12.03.001', 'Criar manifests/Helm chart para deploy do admin-back no cluster.'),
@@ -1064,10 +1073,10 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-12.04',
+        code: 'US-12.04',
         name: 'Esteira CI/CD',
         requirements: [
-          todo('REQ-12.04.001', 'Pipeline de build e testes automatizados a cada push/PR (integrado ao EP-11 Testes).'),
+          todo('REQ-12.04.001', 'Pipeline de build e testes automatizados a cada push/PR (integrado ao FT-11 Testes).'),
           todo('REQ-12.04.002', 'Pipeline de build e publicação de imagem Docker em um registry.'),
           todo(
             'REQ-12.04.003',
@@ -1077,7 +1086,7 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-12.05',
+        code: 'US-12.05',
         name: 'Ambientes e configuração',
         requirements: [
           todo('REQ-12.05.001', 'Formalizar a configuração dos perfis dev/qa/prod, com variáveis de ambiente próprias por ambiente.'),
@@ -1085,9 +1094,99 @@ export const EPICS: Epic[] = [
         ],
       },
       {
-        code: 'FT-12.06',
+        code: 'US-12.06',
         name: 'Banco de dados',
         requirements: [todo('REQ-12.06.001', 'Indicar a necessidade de criação da base de dados por ambiente.')],
+      },
+    ],
+  },
+  {
+    code: 'FT-13',
+    name: 'Dashboard',
+    features: [
+      {
+        code: 'US-13.01',
+        name: 'Indicadores em tempo real',
+        requirements: [
+          d('REQ-13.01.001', 'O sistema deve apresentar a quantidade de instâncias ativas no motor de runtime.'),
+          d('REQ-13.01.002', 'O sistema deve apresentar a quantidade de tarefas pendentes no motor de runtime.'),
+          d('REQ-13.01.003', 'O sistema deve apresentar a quantidade de incidentes abertos no motor de runtime.'),
+          d('REQ-13.01.004', 'O sistema deve apresentar a quantidade de jornadas distintas implantadas no motor de runtime.'),
+          d('REQ-13.01.005', 'O sistema deve apresentar a quantidade de instâncias concluídas no dia corrente.'),
+        ],
+      },
+      {
+        code: 'US-13.02',
+        name: 'Tendência de execução',
+        requirements: [
+          d('REQ-13.02.001', 'O sistema deve apresentar um gráfico de instâncias iniciadas versus concluídas ao longo do tempo.'),
+          {
+            code: 'REQ-13.02.002',
+            description:
+              'O gráfico deve permitir alternar a granularidade entre últimas 24 horas (por hora), últimos 7 dias (por dia) e últimos 30 dias (por dia), com últimas 24 horas como visão padrão.',
+            status: 'done',
+            notes: 'Verificado ao vivo via curl (endpoint) e checagem de tipos; sem verificação visual em navegador nesta sessão.',
+          },
+        ],
+      },
+      {
+        code: 'US-13.03',
+        name: 'Processos por volume',
+        requirements: [
+          d('REQ-13.03.001', 'O sistema deve apresentar um gráfico com a quantidade de instâncias por jornada, somando todas as versões implantadas.'),
+          d('REQ-13.03.002', 'O gráfico deve indicar quando uma jornada possui incidentes associados.'),
+        ],
+      },
+      {
+        code: 'US-13.04',
+        name: 'Incidentes ativos',
+        requirements: [
+          d('REQ-13.04.001', 'O sistema deve listar os incidentes ativos, com jornada, tipo e mensagem.'),
+          d('REQ-13.04.002', 'O sistema deve indicar visualmente quando não há incidentes ativos.'),
+        ],
+      },
+      {
+        code: 'US-13.05',
+        name: 'Instâncias pendentes e encerramento manual',
+        requirements: [
+          d('REQ-13.05.001', 'O sistema deve listar as instâncias ativas há mais tempo, como candidatas a abandonadas.'),
+          d('REQ-13.05.002', 'O sistema deve permitir encerrar manualmente uma instância.'),
+          d('REQ-13.05.003', 'O sistema deve permitir selecionar e encerrar múltiplas instâncias de uma vez.'),
+          d('REQ-13.05.004', 'O sistema deve exigir confirmação do usuário antes de encerrar uma ou mais instâncias.'),
+          d('REQ-13.05.005', 'O encerramento manual de instâncias deve ser restrito aos papéis EDITOR e ADMIN.'),
+        ],
+      },
+      {
+        code: 'US-13.06',
+        name: 'Execução recente',
+        requirements: [
+          d('REQ-13.06.001', 'O sistema deve listar as instâncias iniciadas mais recentemente, com jornada, identificador e tempo em execução.'),
+        ],
+      },
+      {
+        code: 'US-13.07',
+        name: 'Atualização dos dados',
+        requirements: [
+          d('REQ-13.07.001', 'O sistema deve permitir atualizar manualmente os dados do dashboard.'),
+          d('REQ-13.07.002', 'O sistema deve permitir ligar e desligar a atualização automática periódica.'),
+          d('REQ-13.07.003', 'O sistema deve indicar o horário da última atualização.'),
+        ],
+      },
+      {
+        code: 'US-13.08',
+        name: 'Acesso',
+        requirements: [
+          d('REQ-13.08.001', 'O dashboard deve ser a primeira tela apresentada ao acessar o portal.'),
+          d('REQ-13.08.002', 'O sistema deve disponibilizar um item de menu dedicado ao dashboard.'),
+        ],
+      },
+      {
+        code: 'US-13.09',
+        name: 'Auditoria de ações administrativas',
+        requirements: [
+          d('REQ-13.09.001', 'O encerramento manual de uma instância deve ser registrado na auditoria do portal.'),
+          d('REQ-13.09.002', 'O início de uma simulação deve ser registrado na auditoria do portal.'),
+        ],
       },
     ],
   },
@@ -1162,58 +1261,76 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-08-16 05:14 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Nova feature FT-13 Dashboard (9 user stories, 24 REQs, todos done), cobrindo o dashboard operacional implementado nesta sessão: indicadores em tempo real (US-13.01), tendência de execução com gráfico iniciadas/concluídas e granularidade ajustável — últimas 24h por hora (padrão), últimos 7 ou 30 dias por dia (US-13.02), processos por volume com indicação de incidentes (US-13.03), lista de incidentes ativos (US-13.04), instâncias pendentes com encerramento manual individual/em lote restrito a EDITOR/ADMIN e sempre com confirmação (US-13.05), execução recente (US-13.06), atualização manual/automática dos dados (US-13.07), acesso como primeira tela do portal com item de menu dedicado (US-13.08) e auditoria de encerramento de instância e início de simulação (US-13.09). Progresso geral de 278/314 (89%) para 302/338 (89%, 13 features).',
+  },
+  {
+    date: '2026-08-16 04:50 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Renomeação de terminologia em todo o diretório requisitos/: "MVP" → "versão 1.0.0" (com concordância de gênero/contração revisada caso a caso — "do/no/o MVP" → "da/na/a versão 1.0.0"), "Épico" (nível EP-) → "Feature" (nível FT-), "Feature" (nível FT-xx.xx) → "User Story"/US (nível US-xx.xx). Aplicado a todos os arquivos de requisitos/admin/ (incluindo ej-admin-openapi.yaml e o comentário SQL de bd/massa_de_dados_journeys.sql) via script mecânico com verificação manual de concordância verbal/nominal; ej-admin-index.md §5 (Fora do Escopo) teve a entrada "Dashboard Administrativo de Jornadas" removida (item implementado nesta sessão, ver FT-13 acima). Corrigida também uma mojibake pré-existente (dupla codificação UTF-8) em um parágrafo de ej-admin-requisitos.md, sem relação com a renomeação. Nenhum REQ mudou de conteúdo ou status nesta rodada — apenas prefixos/rótulos.',
+  },
+  {
+    date: '2026-08-16 03:11 (não commitado)',
+    source: 'progresso',
+    summary:
+      'FT-02 Gestão de Jornadas ganhou 2 REQs novos em US-02.03 Pesquisa: REQ-02.03.006 (agrupar a listagem de jornadas por produto, por produto+canal, por canal, ou sem agrupamento) e REQ-02.03.007 (ordenar a listagem, crescente ou decrescente, pelos campos jornada/canal/status/data de atualização). Estado atual: REQ-02.03.006 in_progress — JourneysPage.tsx já agrupa por produto (pedido do usuário numa rodada anterior), mas ainda falta o seletor pra escolher o modo de agrupamento (produto+canal, só canal, sem agrupar); REQ-02.03.007 todo — não existe UI de ordenação por coluna hoje. De quebra, corrigida uma divergência de contagem pré-existente do FT-02: o resumo geral registrava 39/39, mas a seção detalhada sempre teve 40 linhas. FT-02 vai de 40/40 (100%) para 40/42 (95%, 1 in_progress). Progresso geral de 277/311 (89%) para 278/314 (89%).',
+  },
+  {
     date: '2026-08-16 02:44 (não commitado)',
     source: 'progresso',
     summary:
-      'EP-05 Simulação ganhou uma nova feature, FT-05.08 Tratamento de falhas de integração (REQ-05.08.001 a 004): quando um conector REST falha durante a simulação (ex.: ms-mock-api-rest fora do ar), o ms-espec-registry agora identifica corretamente qual nó de serviço causou a falha — antes, como a transação da engine dá rollback e não deixa rastro no histórico, o simulador acabava culpando a User Task anterior em vez do Service Task real (PublicationSnapshot.nextConnectorNodeAfter() segue as conexões do fluxo até o próximo nó com conector). O nó com erro é destacado no diagrama, a falha entra no log cronológico, e a mensagem completa fica disponível sob demanda por um ícone que abre um modal (copiar erro, fechar, tecla Esc) — sem mais o aviso de erro inline que existia na tela de execução. Dois REQs novos adicionais: REQ-05.03.003 (o diagrama não deve perder zoom/posição ao trocar de aba — corrigido mantendo o FlowDiagramViewer sempre montado) e REQ-05.06.005 (o log deve mostrar os dados submetidos em cada User Task respondida). REQ-05.07.001 revisado: a busca de jornada passou a listar todas por padrão e filtrar conforme o texto digitado (comportamento anterior era nunca listar todas de uma vez). EP-05 vai de 21/21 para 27/27 (100%, 6 REQs novos). Progresso geral de 271/305 (89%) para 277/311 (89%).',
+      'FT-05 Simulação ganhou uma nova user story, US-05.08 Tratamento de falhas de integração (REQ-05.08.001 a 004): quando um conector REST falha durante a simulação (ex.: ms-mock-api-rest fora do ar), o ms-espec-registry agora identifica corretamente qual nó de serviço causou a falha — antes, como a transação da engine dá rollback e não deixa rastro no histórico, o simulador acabava culpando a User Task anterior em vez do Service Task real (PublicationSnapshot.nextConnectorNodeAfter() segue as conexões do fluxo até o próximo nó com conector). O nó com erro é destacado no diagrama, a falha entra no log cronológico, e a mensagem completa fica disponível sob demanda por um ícone que abre um modal (copiar erro, fechar, tecla Esc) — sem mais o aviso de erro inline que existia na tela de execução. Dois REQs novos adicionais: REQ-05.03.003 (o diagrama não deve perder zoom/posição ao trocar de aba — corrigido mantendo o FlowDiagramViewer sempre montado) e REQ-05.06.005 (o log deve mostrar os dados submetidos em cada User Task respondida). REQ-05.07.001 revisado: a busca de jornada passou a listar todas por padrão e filtrar conforme o texto digitado (comportamento anterior era nunca listar todas de uma vez). FT-05 vai de 21/21 para 27/27 (100%, 6 REQs novos). Progresso geral de 271/305 (89%) para 277/311 (89%).',
   },
   {
     date: '2026-08-15 23:15 (não commitado)',
     source: 'progresso',
     summary:
-      'EP-05 Simulação implementado por completo (0% → 100%, 21/21 REQs). Objetivo do épico ajustado: a simulação exige jornada publicada e roda contra o motor de runtime real (Camunda), não um simulador simplificado interno. Arquitetura: ms-espec-registry (wrapper fino da REST API do Camunda — iniciar/consultar/completar tarefas, fetchAndLock+complete de external task Kafka, correlação de mensagem para RECEIVE_TASK, leitura/escrita de variáveis do processo) e ms-mock-api-rest (10 endpoints estáticos emulando as integrações REST reais da massa de dados), ambos em simulacoes/. Front: aba "Simulações" do admin/front redesenhada em tela única — JourneySearch (combobox de busca instantânea, sem listar todas as jornadas) → SimulationWorkspace, que mostra em cima o passo atual (DevicePreview, com moldura de celular pra canal App via PhoneFrame ou card largo pra canal Web) e embaixo um painel de observabilidade com 4 abas: Workflow (FlowDiagramViewer, visualizador somente-leitura em @xyflow/react reaproveitando cores/ícones/metadados do designer de fluxo real, com o caminho percorrido destacado ao vivo), Variáveis (ver e alterar manualmente o valor de qualquer variável do processo em execução, pra forçar caminhos de decisão em teste), Integrações (resultado de cada Service/Receive Task já executada, derivado cruzando outputMapping com as variáveis atuais) e Log (histórico cronológico 100% client-side). Formulários agora renderizados com a stack Mística completa (Form/TextField/EmailField/DecimalField/DateField/Select/Checkbox/FileUpload), sem a restrição de "só botões/tags" que vale pro resto do portal — essa tela simula o que um cliente real veria via SDUI. De quebra, a aba "Execuções" do menu virou "Simulações", e o portal ganhou um seletor de skin da Mística (Blau/Movistar/Vivo/Vivo Evolution/O2/Telefónica/Esimflag) ao lado do toggle claro/escuro. O simulador-front standalone (protótipo anterior a este redesign) foi apagado — nunca chegou a ser commitado. Progresso geral de 250/294 (85%) para 271/305 (89%, 11 REQs novos no EP-05 além dos 10 originais).',
+      'FT-05 Simulação implementado por completo (0% → 100%, 21/21 REQs). Objetivo da feature ajustado: a simulação exige jornada publicada e roda contra o motor de runtime real (Camunda), não um simulador simplificado interno. Arquitetura: ms-espec-registry (wrapper fino da REST API do Camunda — iniciar/consultar/completar tarefas, fetchAndLock+complete de external task Kafka, correlação de mensagem para RECEIVE_TASK, leitura/escrita de variáveis do processo) e ms-mock-api-rest (10 endpoints estáticos emulando as integrações REST reais da massa de dados), ambos em simulacoes/. Front: aba "Simulações" do admin/front redesenhada em tela única — JourneySearch (combobox de busca instantânea, sem listar todas as jornadas) → SimulationWorkspace, que mostra em cima o passo atual (DevicePreview, com moldura de celular pra canal App via PhoneFrame ou card largo pra canal Web) e embaixo um painel de observabilidade com 4 abas: Workflow (FlowDiagramViewer, visualizador somente-leitura em @xyflow/react reaproveitando cores/ícones/metadados do designer de fluxo real, com o caminho percorrido destacado ao vivo), Variáveis (ver e alterar manualmente o valor de qualquer variável do processo em execução, pra forçar caminhos de decisão em teste), Integrações (resultado de cada Service/Receive Task já executada, derivado cruzando outputMapping com as variáveis atuais) e Log (histórico cronológico 100% client-side). Formulários agora renderizados com a stack Mística completa (Form/TextField/EmailField/DecimalField/DateField/Select/Checkbox/FileUpload), sem a restrição de "só botões/tags" que vale pro resto do portal — essa tela simula o que um cliente real veria via SDUI. De quebra, a aba "Execuções" do menu virou "Simulações", e o portal ganhou um seletor de skin da Mística (Blau/Movistar/Vivo/Vivo Evolution/O2/Telefónica/Esimflag) ao lado do toggle claro/escuro. O simulador-front standalone (protótipo anterior a este redesign) foi apagado — nunca chegou a ser commitado. Progresso geral de 250/294 (85%) para 271/305 (89%, 11 REQs novos no FT-05 além dos 10 originais).',
   },
   {
     date: '2026-08-15 02:47 (não commitado)',
     source: 'progresso',
     summary:
-      'REQ-03.11.003 corrigido (removidos os operadores "maior ou igual"/"menor ou igual" que nunca foram implementados; ficou igual/diferente/maior que/menor que) e passou de texto livre para 3 campos estruturados (combo de variável + combo de operador + valor). Novo REQ-03.11.008: cada variável de saída ganhou um tipo declarado (texto, número, booleano, data, data e hora) — inferido automaticamente ao gerar o mapeamento via "Testar API" (incluindo detecção de datas ISO 8601 por regex) ou escolhido manualmente; o editor da condição do gateway agora filtra os operadores pelo tipo da variável escolhida (texto/booleano: igual/diferente; número/data/data e hora: também maior/menor) e troca o campo de valor (numérico, seletor verdadeiro/falso, seletor de data ou data e hora). Chips de "variáveis disponíveis" removidos do painel Decisão — a própria combo de variável cumpre esse papel. Variáveis salvas antes dessa mudança (sem tipo) continuam funcionando como string. EP-03 vai de 63/63 para 64/64 (100%, 1 REQ novo). Progresso geral de 249/293 (85%) para 250/294 (85%).',
+      'REQ-03.11.003 corrigido (removidos os operadores "maior ou igual"/"menor ou igual" que nunca foram implementados; ficou igual/diferente/maior que/menor que) e passou de texto livre para 3 campos estruturados (combo de variável + combo de operador + valor). Novo REQ-03.11.008: cada variável de saída ganhou um tipo declarado (texto, número, booleano, data, data e hora) — inferido automaticamente ao gerar o mapeamento via "Testar API" (incluindo detecção de datas ISO 8601 por regex) ou escolhido manualmente; o editor da condição do gateway agora filtra os operadores pelo tipo da variável escolhida (texto/booleano: igual/diferente; número/data/data e hora: também maior/menor) e troca o campo de valor (numérico, seletor verdadeiro/falso, seletor de data ou data e hora). Chips de "variáveis disponíveis" removidos do painel Decisão — a própria combo de variável cumpre esse papel. Variáveis salvas antes dessa mudança (sem tipo) continuam funcionando como string. FT-03 vai de 63/63 para 64/64 (100%, 1 REQ novo). Progresso geral de 249/293 (85%) para 250/294 (85%).',
   },
   {
     date: '2026-08-15 02:03 (não commitado)',
     source: 'progresso',
     summary:
-      'FT-03.11 Bifurcação condicional (Gateway) implementada por completo, REQ-03.11.001 a 007. Back: FlowNodeType.GATEWAY, FlowConnection.condition/isDefault, FlowValidator (gateway com 2 saídas, exatamente uma padrão, não padrão com condição, validação de {{variavel}} contra ancestrais). Front: tipo gateway no editor (ícone, paleta, canvas), GatewayFields (checkbox de saída padrão + condição de texto por saída, com painel de variáveis disponíveis), outgoingLimitFor generalizando o limite de saídas por tipo de nó, validation.ts espelhando a regra do back. ms-transform-publication: BpmnTransformer reescrito de uma caminhada linear para construção de grafo via API de baixo nível do camunda-bpmn-model (necessário para suportar ramificação), gerando exclusiveGateway/sequenceFlow com conditionExpression JUEL e fluxo padrão nativos do Camunda — sem worker. Testado ponta a ponta: publicação real + execução no Camunda confirmando os dois caminhos (condição verdadeira → Tarefa A; condição falsa → saída padrão → Tarefa B). Fora de escopo do MVP (já registrado em ej-admin-requisitos.md §5): gateway com mais de duas saídas, gateway inclusivo, gateway paralelo, combinação de condições com E/OU. EP-03 volta a 100% (63/63). Progresso geral de 242/293 (83%) para 249/293 (85%).',
+      'US-03.11 Bifurcação condicional (Gateway) implementada por completo, REQ-03.11.001 a 007. Back: FlowNodeType.GATEWAY, FlowConnection.condition/isDefault, FlowValidator (gateway com 2 saídas, exatamente uma padrão, não padrão com condição, validação de {{variavel}} contra ancestrais). Front: tipo gateway no editor (ícone, paleta, canvas), GatewayFields (checkbox de saída padrão + condição de texto por saída, com painel de variáveis disponíveis), outgoingLimitFor generalizando o limite de saídas por tipo de nó, validation.ts espelhando a regra do back. ms-transform-publication: BpmnTransformer reescrito de uma caminhada linear para construção de grafo via API de baixo nível do camunda-bpmn-model (necessário para suportar ramificação), gerando exclusiveGateway/sequenceFlow com conditionExpression JUEL e fluxo padrão nativos do Camunda — sem worker. Testado ponta a ponta: publicação real + execução no Camunda confirmando os dois caminhos (condição verdadeira → Tarefa A; condição falsa → saída padrão → Tarefa B). Fora de escopo da versão 1.0.0 (já registrado em ej-admin-requisitos.md §5): gateway com mais de duas saídas, gateway inclusivo, gateway paralelo, combinação de condições com E/OU. FT-03 volta a 100% (63/63). Progresso geral de 242/293 (83%) para 249/293 (85%).',
   },
   {
     date: '2026-08-15 01:43 (não commitado)',
     source: 'progresso',
     summary:
-      'Nova feature FT-03.11 Bifurcação condicional (Gateway), REQ-03.11.001 a 007, todos todo: gateway de decisão exclusivo com exatamente duas saídas no MVP (caminho A/caminho B), uma marcada como padrão (sem condição); a condição da saída não padrão é variável + operador de comparação + valor de referência, podendo referenciar tanto uma variável de saída de Service Task/Receive Task (REQ-03.09.010) quanto um campo de resposta de User Task (REQ-04.01.007); painel de variáveis disponíveis reaproveita REQ-03.09.013, estendido a campos de formulário. Na publicação, vira exclusiveGateway BPMN nativo com sequenceFlow condicional, avaliado pelo motor do runtime, sem worker — mesmo princípio do conector REST nativo (FT-03.09). Gateway com mais de duas saídas, gateway inclusivo, gateway paralelo e combinação de condições com E/OU registrados fora de escopo do MVP em nova seção "Evolução do Gateway de Decisão" (ej-admin-requisitos.md §5). EP-03 vai de 56/56 (100%) para 56/63 (89%, 7 novos todo). Progresso geral de 242/286 (85%) para 242/293 (83%).',
+      'Nova user story US-03.11 Bifurcação condicional (Gateway), REQ-03.11.001 a 007, todos todo: gateway de decisão exclusivo com exatamente duas saídas na versão 1.0.0 (caminho A/caminho B), uma marcada como padrão (sem condição); a condição da saída não padrão é variável + operador de comparação + valor de referência, podendo referenciar tanto uma variável de saída de Service Task/Receive Task (REQ-03.09.010) quanto um campo de resposta de User Task (REQ-04.01.007); painel de variáveis disponíveis reaproveita REQ-03.09.013, estendido a campos de formulário. Na publicação, vira exclusiveGateway BPMN nativo com sequenceFlow condicional, avaliado pelo motor do runtime, sem worker — mesmo princípio do conector REST nativo (US-03.09). Gateway com mais de duas saídas, gateway inclusivo, gateway paralelo e combinação de condições com E/OU registrados fora de escopo da versão 1.0.0 em nova seção "Evolução do Gateway de Decisão" (ej-admin-requisitos.md §5). FT-03 vai de 56/56 (100%) para 56/63 (89%, 7 novos todo). Progresso geral de 242/286 (85%) para 242/293 (83%).',
   },
   {
     date: '2026-08-15 02:17 (não commitado)',
     source: 'progresso',
     summary:
-      'REQ-03.01.004/03.02.005 ajustados: a cardinalidade de END passou de "exatamente um" para "ao menos um", já que um GATEWAY (FT-03.11) pode ramificar o fluxo em dois caminhos que terminam em ENDs distintos, sem precisar reconvergir antes do fim. Back: FlowValidator — checagem de ends.isEmpty() no lugar de ends.size() != 1, e a alcançabilidade reversa (BFS) agora une o alcance de todos os ENDs em vez de partir de um único. Front: validation.ts espelha a mesma mudança. ms-transform-publication não precisou de ajuste — o BpmnTransformer já constrói o grafo de forma genérica, sem assumir quantidade de END. Documentação sincronizada em ej-admin-modelo-dados-fisico.md, ej-admin-modelo-dados-conceitual.md, ej-admin-dicionario-dados.md e ej-admin-arquitetura-logica.md. Sem mudança de contagem de REQs (ambos continuam done), só de redação/comportamento.',
+      'REQ-03.01.004/03.02.005 ajustados: a cardinalidade de END passou de "exatamente um" para "ao menos um", já que um GATEWAY (US-03.11) pode ramificar o fluxo em dois caminhos que terminam em ENDs distintos, sem precisar reconvergir antes do fim. Back: FlowValidator — checagem de ends.isEmpty() no lugar de ends.size() != 1, e a alcançabilidade reversa (BFS) agora une o alcance de todos os ENDs em vez de partir de um único. Front: validation.ts espelha a mesma mudança. ms-transform-publication não precisou de ajuste — o BpmnTransformer já constrói o grafo de forma genérica, sem assumir quantidade de END. Documentação sincronizada em ej-admin-modelo-dados-fisico.md, ej-admin-modelo-dados-conceitual.md, ej-admin-dicionario-dados.md e ej-admin-arquitetura-logica.md. Sem mudança de contagem de REQs (ambos continuam done), só de redação/comportamento.',
   },
   {
     date: '2026-08-14 22:29 (não commitado)',
     source: 'progresso',
     summary:
-      'FT-03.09 evoluído e nova FT-03.10 (Teste de conectores) implementadas: mapeamento de saída de conectores REST/Kafka deixou de ser JSON livre e passou a lista estruturada nome ← JSONPath (REQ-03.09.010/011), com suporte a referenciar essas variáveis via {{nome}} nos campos de entrada de passos seguintes (REQ-03.09.012), painel de variáveis disponíveis por nó no editor (REQ-03.09.013) e validação 422 no backend para {{variavel}} não declarada ou nome de saída duplicado (REQ-03.09.014). REQ-03.09.002/004/009 tiveram a descrição/nota ajustada para refletir que mapeamento de saída não é mais livre. Nova FT-03.10 (REQ-03.10.001 a 005): botão "Testar chamada" no editor dispara, via backend (POST /journeys/{id}/flow/nodes/{id}/connector-test), uma chamada REST de teste com proteção contra SSRF (bloqueio de IP privado/loopback/reservado), timeout de 5s e limite de corpo de 1MB; valores de exemplo para variáveis coletados no momento do teste. EP-03 mantém 100% (56/56 REQs, 10 novos). Progresso geral de 232/276 (84%) para 242/286 (85%).',
+      'US-03.09 evoluído e nova US-03.10 (Teste de conectores) implementadas: mapeamento de saída de conectores REST/Kafka deixou de ser JSON livre e passou a lista estruturada nome ← JSONPath (REQ-03.09.010/011), com suporte a referenciar essas variáveis via {{nome}} nos campos de entrada de passos seguintes (REQ-03.09.012), painel de variáveis disponíveis por nó no editor (REQ-03.09.013) e validação 422 no backend para {{variavel}} não declarada ou nome de saída duplicado (REQ-03.09.014). REQ-03.09.002/004/009 tiveram a descrição/nota ajustada para refletir que mapeamento de saída não é mais livre. Nova US-03.10 (REQ-03.10.001 a 005): botão "Testar chamada" no editor dispara, via backend (POST /journeys/{id}/flow/nodes/{id}/connector-test), uma chamada REST de teste com proteção contra SSRF (bloqueio de IP privado/loopback/reservado), timeout de 5s e limite de corpo de 1MB; valores de exemplo para variáveis coletados no momento do teste. FT-03 mantém 100% (56/56 REQs, 10 novos). Progresso geral de 232/276 (84%) para 242/286 (85%).',
   },
   {
     date: '2026-08-10 03:06',
     source: 'progresso',
     summary:
-      'EP-11 Testes e EP-12 Infraestrutura novos, aprovados pelo usuário. EP-11: 4 FTs / 12 REQs (todo) cobrindo testes unitários de domínio, testes de integração de API, testes de frontend e cenários end-to-end — hoje o projeto não tem nenhum teste automatizado. EP-12: 6 FTs / 16 REQs cobrindo identidade da solução, containerização (Docker), orquestração (Kubernetes), esteira CI/CD, configuração de ambientes e banco de dados; REQ-12.01.001 (sigla + ambiente Azure) já nasce in_progress — a sigla ELJY já foi criada, falta a disponibilização do ambiente. Nenhuma sugestão fora de escopo foi registrada para esses dois épicos, por pedido do usuário. Totais: de 10 EPs/49 FTs/248 REQs (94%) para 12 EPs/59 FTs/276 REQs (84% — a queda no percentual reflete só a base maior de requisitos, nada foi desfeito).',
+      'FT-11 Testes e FT-12 Infraestrutura novos, aprovados pelo usuário. FT-11: 4 USs / 12 REQs (todo) cobrindo testes unitários de domínio, testes de integração de API, testes de frontend e cenários end-to-end — hoje o projeto não tem nenhum teste automatizado. FT-12: 6 USs / 16 REQs cobrindo identidade da solução, containerização (Docker), orquestração (Kubernetes), esteira CI/CD, configuração de ambientes e banco de dados; REQ-12.01.001 (sigla + ambiente Azure) já nasce in_progress — a sigla ELJY já foi criada, falta a disponibilização do ambiente. Nenhuma sugestão fora de escopo foi registrada para essas duas features, por pedido do usuário. Totais: de 10 FTs/49 USs/248 REQs (94%) para 12 FTs/59 USs/276 REQs (84% — a queda no percentual reflete só a base maior de requisitos, nada foi desfeito).',
   },
   {
     date: '2026-08-10 02:34',
     source: 'progresso',
     summary:
-      'REQ-10.04.001 reclassificado de done para in_progress: a preparação técnica (log centralizado, ponto de extensão reservado para appender Logstash) está pronta, mas falta a configuração/conexão de fato com um ambiente ELK real, ainda não disponível. EP-10 vai de 12/12 (100%) para 11/12 (92%, 1 in_progress); progresso geral de 94% (233/248) para 94% (232/248, 1 in_progress).',
+      'REQ-10.04.001 reclassificado de done para in_progress: a preparação técnica (log centralizado, ponto de extensão reservado para appender Logstash) está pronta, mas falta a configuração/conexão de fato com um ambiente ELK real, ainda não disponível. FT-10 vai de 12/12 (100%) para 11/12 (92%, 1 in_progress); progresso geral de 94% (233/248) para 94% (232/248, 1 in_progress).',
   },
   {
     date: '2026-08-10 02:34',
@@ -1225,25 +1342,25 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
     date: '2026-08-10 01:38',
     source: 'progresso',
     summary:
-      'REQ-02.10.001 novo e implementado (FT-02.10 Inspeção da publicação): para uma jornada PUBLISHED, visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários com a árvore SDUI), via ação na listagem de jornadas ao lado de "Editar"/"Excluir". Back: GET /api/v1/journeys/{id}/publication (GetPublicationSnapshot, 409 se não publicada) + PublicationSnapshotRecord.from(Publication) extraído como factory compartilhada entre esse endpoint e PublicationAdapter (mesma serialização, uma só fonte). Front: ícone "Ver publicação" em JourneyActions, PublicationSnapshotModal novo (JSON formatado + copiar). Escopo mais restrito que o REQ-06.03.006 removido anteriormente: só a publicação ativa da jornada, não qualquer versão histórica. Testado via curl (200 com JSON completo / 409 sem publicação). EP-02 fecha em 39/39 (100%).',
+      'REQ-02.10.001 novo e implementado (US-02.10 Inspeção da publicação): para uma jornada PUBLISHED, visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários com a árvore SDUI), via ação na listagem de jornadas ao lado de "Editar"/"Excluir". Back: GET /api/v1/journeys/{id}/publication (GetPublicationSnapshot, 409 se não publicada) + PublicationSnapshotRecord.from(Publication) extraído como factory compartilhada entre esse endpoint e PublicationAdapter (mesma serialização, uma só fonte). Front: ícone "Ver publicação" em JourneyActions, PublicationSnapshotModal novo (JSON formatado + copiar). Escopo mais restrito que o REQ-06.03.006 removido anteriormente: só a publicação ativa da jornada, não qualquer versão histórica. Testado via curl (200 com JSON completo / 409 sem publicação). FT-02 fecha em 39/39 (100%).',
   },
   {
     date: '2026-08-10 01:07',
     source: 'progresso',
     summary:
-      'REQ-02.09.003/004 deixaram de ser mock: MockRuntimePublicationAdapter removido, substituído por PublicationAdapter (infrastructure/publication), que faz uma chamada HTTP real (POST/DELETE via RestClient) para a API de publicação do runtime — o Admin Portal não conhece nem depende de qual engine implementa essa API do outro lado. Endereço do serviço configurável por ambiente em app.transform-publication.base-url (perfil dev, com override via variável de ambiente TRANSFORM_PUBLICATION_BASE_URL; qa/prod ainda pendentes de valor próprio). Falhas de rede/HTTP agora propagam como RuntimePublicationException, mapeada para 502 RUNTIME_UNAVAILABLE no GlobalExceptionHandler, em vez de sempre "suceder" como o mock fazia — PublishJourney/UnpublishJourney só persistem o novo estado se a chamada não lançar. Testado via curl ponta a ponta publicando e despublicando de fato contra o serviço configurado localmente. EP-02 fecha em 38/38 (100%).',
+      'REQ-02.09.003/004 deixaram de ser mock: MockRuntimePublicationAdapter removido, substituído por PublicationAdapter (infrastructure/publication), que faz uma chamada HTTP real (POST/DELETE via RestClient) para a API de publicação do runtime — o Admin Portal não conhece nem depende de qual engine implementa essa API do outro lado. Endereço do serviço configurável por ambiente em app.transform-publication.base-url (perfil dev, com override via variável de ambiente TRANSFORM_PUBLICATION_BASE_URL; qa/prod ainda pendentes de valor próprio). Falhas de rede/HTTP agora propagam como RuntimePublicationException, mapeada para 502 RUNTIME_UNAVAILABLE no GlobalExceptionHandler, em vez de sempre "suceder" como o mock fazia — PublishJourney/UnpublishJourney só persistem o novo estado se a chamada não lançar. Testado via curl ponta a ponta publicando e despublicando de fato contra o serviço configurado localmente. FT-02 fecha em 38/38 (100%).',
   },
   {
     date: '2026-08-09 23:00',
     source: 'progresso',
     summary:
-      'EP-04 (Formulários/SDUI) implementado: FormField.id→name (chave técnica única, imutável após criada, validada em Form.create via DuplicateFieldNameException, 422); options migrado de List<String> para FormFieldOption(label,value); InputSubtype (TEXT/NUMBER/EMAIL/DATE) com minValue/maxValue/validationPattern; FILE_UPLOAD com acceptedExtensions/maxFileSizeBytes; novo FormSduiSerializer gera a árvore [tag,props,children] (ui.form/ui.text/ui.input/ui.select/ui.multiselect/ui.upload), persistida no campo sdui de SnapshotFormRecord em PublicationRepositoryAdapter/JourneyVersionRepositoryAdapter. Sem migration — os campos do formulário já eram um blob JSON, não colunas relacionais. Compatibilidade retroativa: FormFieldOption.LegacyDeserializer aceita o formato antigo (string simples) e FormFieldType.fromJson mapeia o extinto STATIC_CONTENT para TEXT, para publicações/versões já existentes no banco continuarem legíveis (a validação de nome único também não roda na reidratação a partir de snapshot, só na criação/edição pelo usuário). Front (FormBuilderPage.tsx): campo "Nome técnico" (travado para campos pré-existentes), seletor de subtipo com min/max ou regex condicionais, editor de opções rótulo+valor, configuração de extensões/tamanho em upload. Testado via curl ponta a ponta (criação com os novos campos, rejeição de nome duplicado, publicação de jornada com inspeção direta do snapshot no Postgres confirmando a árvore SDUI) e build de produção do front (tsc -b && vite build).',
+      'FT-04 (Formulários/SDUI) implementado: FormField.id→name (chave técnica única, imutável após criada, validada em Form.create via DuplicateFieldNameException, 422); options migrado de List<String> para FormFieldOption(label,value); InputSubtype (TEXT/NUMBER/EMAIL/DATE) com minValue/maxValue/validationPattern; FILE_UPLOAD com acceptedExtensions/maxFileSizeBytes; novo FormSduiSerializer gera a árvore [tag,props,children] (ui.form/ui.text/ui.input/ui.select/ui.multiselect/ui.upload), persistida no campo sdui de SnapshotFormRecord em PublicationRepositoryAdapter/JourneyVersionRepositoryAdapter. Sem migration — os campos do formulário já eram um blob JSON, não colunas relacionais. Compatibilidade retroativa: FormFieldOption.LegacyDeserializer aceita o formato antigo (string simples) e FormFieldType.fromJson mapeia o extinto STATIC_CONTENT para TEXT, para publicações/versões já existentes no banco continuarem legíveis (a validação de nome único também não roda na reidratação a partir de snapshot, só na criação/edição pelo usuário). Front (FormBuilderPage.tsx): campo "Nome técnico" (travado para campos pré-existentes), seletor de subtipo com min/max ou regex condicionais, editor de opções rótulo+valor, configuração de extensões/tamanho em upload. Testado via curl ponta a ponta (criação com os novos campos, rejeição de nome duplicado, publicação de jornada com inspeção direta do snapshot no Postgres confirmando a árvore SDUI) e build de produção do front (tsc -b && vite build).',
   },
   {
     date: '2026-08-09 22:11',
     source: 'progresso',
     summary:
-      'EP-04 (Formulários/SDUI) refinado com foco em compatibilidade com o formato de renderização SDUI ([tag, props, children]) usado pelas ferramentas de renderização React/Flutter. REQ-04.02.006 (STATIC_CONTENT) removido/colapsado em TEXT — mesmo modelo de dados, diferença só visual. Adicionados REQ-04.01.007 (name técnico do campo, único e imutável, substituindo o id interno), REQ-04.02.007-REQ-04.02.010 (subtipo/validação de INPUT, opções como pares rótulo/valor, regras de extensão/tamanho em FILE_UPLOAD) e a nova FT-04.06 (REQ-04.06.001, já implementado pelo PublicationRepositoryAdapter — imutabilidade do formulário no snapshot de publicação; REQ-04.06.002, novo — serialização do formulário para árvore SDUI no momento da publicação). Nenhum código alterado nesta rodada, só documentação (ej-admin-requisitos.md, progresso.md, modelo conceitual/físico, dicionário de dados, arquitetura lógica, OpenAPI e nota de aviso na massa de dados de seed). Itens fora do MVP (fontes de dados dinâmicas para opções, $dataSource, prefetch, paginação de opções, formulários multi-etapas) registrados em §5 Fora do Escopo do MVP → Formulários Avançados. Nomenclatura dos documentos de modelo de dados alinhada de FormComponent/component_id para FormField/name, batendo com o domínio já implementado no back.',
+      'FT-04 (Formulários/SDUI) refinado com foco em compatibilidade com o formato de renderização SDUI ([tag, props, children]) usado pelas ferramentas de renderização React/Flutter. REQ-04.02.006 (STATIC_CONTENT) removido/colapsado em TEXT — mesmo modelo de dados, diferença só visual. Adicionados REQ-04.01.007 (name técnico do campo, único e imutável, substituindo o id interno), REQ-04.02.007-REQ-04.02.010 (subtipo/validação de INPUT, opções como pares rótulo/valor, regras de extensão/tamanho em FILE_UPLOAD) e a nova US-04.06 (REQ-04.06.001, já implementado pelo PublicationRepositoryAdapter — imutabilidade do formulário no snapshot de publicação; REQ-04.06.002, novo — serialização do formulário para árvore SDUI no momento da publicação). Nenhum código alterado nesta rodada, só documentação (ej-admin-requisitos.md, progresso.md, modelo conceitual/físico, dicionário de dados, arquitetura lógica, OpenAPI e nota de aviso na massa de dados de seed). Itens fora da versão 1.0.0 (fontes de dados dinâmicas para opções, $dataSource, prefetch, paginação de opções, formulários multi-etapas) registrados em §5 Fora do Escopo da versão 1.0.0 → Formulários Avançados. Nomenclatura dos documentos de modelo de dados alinhada de FormComponent/component_id para FormField/name, batendo com o domínio já implementado no back.',
   },
   {
     date: '2026-08-09 03:13',
@@ -1285,7 +1402,7 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
     date: '2026-08-09 01:12',
     source: 'progresso',
     summary:
-      'REQ-06.03.006 removido: a opção "Ver" (abria o snapshot JSON de uma versão em modal somente-leitura) foi tirada do grid de jornadas — decisão de produto, sem substituto no MVP. Registrada como fora de escopo, em nova seção "Evolução da Gestão de Jornadas" em ej-admin-requisitos.md §5, a comparação (diff) visual entre versões de uma jornada — não havia nada equivalente registrado até então.',
+      'REQ-06.03.006 removido: a opção "Ver" (abria o snapshot JSON de uma versão em modal somente-leitura) foi tirada do grid de jornadas — decisão de produto, sem substituto na versão 1.0.0. Registrada como fora de escopo, em nova seção "Evolução da Gestão de Jornadas" em ej-admin-requisitos.md §5, a comparação (diff) visual entre versões de uma jornada — não havia nada equivalente registrado até então.',
   },
   {
     date: '2026-08-09 01:12',
@@ -1321,37 +1438,37 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
     date: '2026-08-08 00:35',
     source: 'progresso',
     summary:
-      'REQ-06.04.010 novo: despublicação por versão. Endpoint POST /journeys/{id}/versions/{versionId}/unpublish + UnpublishJourneyVersion (valida que versionId é a versão PUBLISHED da jornada, senão 409 via nova VersionNotPublishedException; delega em UnpublishJourney para reaproveitar runtime-unpublish + arquivamento de versão + journey.unpublish(), em vez de duplicar a regra). Front: botão "Publicar" removido do nível de jornada no grid (JourneysPage) — publicação passa a existir só por versão; nova ação "Despublicar" na linha da versão PUBLISHED, que ao concluir recarrega tanto a lista de versões quanto a jornada (status e "vN publicada" ficam consistentes de imediato). EP-06 avança de 38/38 para 39/39 REQs; progresso geral de 93% (221/238) para 93% (222/239).',
+      'REQ-06.04.010 novo: despublicação por versão. Endpoint POST /journeys/{id}/versions/{versionId}/unpublish + UnpublishJourneyVersion (valida que versionId é a versão PUBLISHED da jornada, senão 409 via nova VersionNotPublishedException; delega em UnpublishJourney para reaproveitar runtime-unpublish + arquivamento de versão + journey.unpublish(), em vez de duplicar a regra). Front: botão "Publicar" removido do nível de jornada no grid (JourneysPage) — publicação passa a existir só por versão; nova ação "Despublicar" na linha da versão PUBLISHED, que ao concluir recarrega tanto a lista de versões quanto a jornada (status e "vN publicada" ficam consistentes de imediato). FT-06 avança de 38/38 para 39/39 REQs; progresso geral de 93% (221/238) para 93% (222/239).',
   },
   {
     date: '2026-08-08 00:35',
     source: 'progresso',
     summary:
-      'REQ-06.04.009 novo: ao despublicar uma jornada (UnpublishJourney), a journey_version PUBLISHED correspondente agora é arquivada (ARCHIVED) antes de gravar journey.unpublish(), preservando o snapshot. Corrige inconsistência em que a versão continuava reportada como PUBLISHED (e o grid de jornadas continuava exibindo "vN publicada") mesmo depois da jornada ser despublicada. EP-06 avança de 37/37 para 38/38 REQs; progresso geral de 93% (220/237) para 93% (221/238).',
+      'REQ-06.04.009 novo: ao despublicar uma jornada (UnpublishJourney), a journey_version PUBLISHED correspondente agora é arquivada (ARCHIVED) antes de gravar journey.unpublish(), preservando o snapshot. Corrige inconsistência em que a versão continuava reportada como PUBLISHED (e o grid de jornadas continuava exibindo "vN publicada") mesmo depois da jornada ser despublicada. FT-06 avança de 37/37 para 38/38 REQs; progresso geral de 93% (220/237) para 93% (221/238).',
   },
   {
     date: '2026-08-08 18:46',
     source: 'progresso',
     summary:
-      'EP-10 (Observabilidade) novo e implementado por completo: 12/12 REQs. Log técnico de aplicação (distinto da auditoria de negócio do EP-08): HttpRequestLoggingFilter (entrada/saída de toda API, sem log de body, registrado no SecurityConfig antes do filtro de autenticação) e TransactionLoggingAspect (@Around sobre todo @Service de application.*, logando início/commit/rollback de cada transação de persistência). Correlação via X-Correlation-Id (reaproveitado do header ou gerado) propagada por MDC e incluída no pattern do novo logback-spring.xml, cobrindo tanto os logs de API quanto os de transação da mesma requisição/thread. Integração com ELK preparada mas desativada (sem ambiente ELK neste momento) — ver seção "HOW TO — habilitar integração com ELK" no EP-10 para o procedimento de ativação (dependência logstash-logback-encoder + appender TCP + variáveis de ambiente de destino). Build: no Spring Boot 4.1 o starter de AOP foi renomeado de spring-boot-starter-aop para spring-boot-starter-aspectj — usado o novo nome no pom.xml. Progresso geral de 95% (212/224) para 95% (224/236).',
+      'FT-10 (Observabilidade) novo e implementado por completo: 12/12 REQs. Log técnico de aplicação (distinto da auditoria de negócio do FT-08): HttpRequestLoggingFilter (entrada/saída de toda API, sem log de body, registrado no SecurityConfig antes do filtro de autenticação) e TransactionLoggingAspect (@Around sobre todo @Service de application.*, logando início/commit/rollback de cada transação de persistência). Correlação via X-Correlation-Id (reaproveitado do header ou gerado) propagada por MDC e incluída no pattern do novo logback-spring.xml, cobrindo tanto os logs de API quanto os de transação da mesma requisição/thread. Integração com ELK preparada mas desativada (sem ambiente ELK neste momento) — ver seção "HOW TO — habilitar integração com ELK" no FT-10 para o procedimento de ativação (dependência logstash-logback-encoder + appender TCP + variáveis de ambiente de destino). Build: no Spring Boot 4.1 o starter de AOP foi renomeado de spring-boot-starter-aop para spring-boot-starter-aspectj — usado o novo nome no pom.xml. Progresso geral de 95% (212/224) para 95% (224/236).',
   },
   {
     date: '2026-08-08 15:45',
     source: 'progresso',
     summary:
-      'EP-09 (Ajuda e Suporte) novo e implementado por completo: 5/5 REQs. Tela de ajuda estática (front/src/shell/HelpPage.tsx) com FAQ agrupado por tema, busca textual e link mailto:sustentacao@telefonica.com; acessível pelo item "Ajuda e suporte" da sidebar (antes um placeholder genérico). Simplificação deliberada: sem ajuda contextual por tela, sem canal de suporte com registro/consulta de solicitações e sem tela de diagnóstico — cortados do escopo por decisão de produto antes da implementação, não fazem parte do backlog. Progresso geral de 95% (207/219) para 95% (212/224).',
+      'FT-09 (Ajuda e Suporte) novo e implementado por completo: 5/5 REQs. Tela de ajuda estática (front/src/shell/HelpPage.tsx) com FAQ agrupado por tema, busca textual e link mailto:sustentacao@telefonica.com; acessível pelo item "Ajuda e suporte" da sidebar (antes um placeholder genérico). Simplificação deliberada: sem ajuda contextual por tela, sem canal de suporte com registro/consulta de solicitações e sem tela de diagnóstico — cortados do escopo por decisão de produto antes da implementação, não fazem parte do backlog. Progresso geral de 95% (207/219) para 95% (212/224).',
   },
   {
     date: '2026-08-08 05:59',
     source: 'progresso',
     summary:
-      'EP-06 (Versionamento de jornadas), EP-07 (Autenticação e autorização) e EP-08 (Auditoria) implementados, na ordem EP-07 → EP-06 → EP-08 (dependência: versão precisa de usuário autenticado; auditoria precisa de ambos). EP-06: tabela journey_version (V7) + backfill de jornadas existentes (V8), criação automática de versão DRAFT ao criar jornada, publicação de versão arquiva a anterior, snapshot imutável, painel de versões no designer de fluxo — 35/35 REQs. EP-07: token opaco em memória (Authorization: Bearer, expiração por inatividade configurável), usuário mockado admin/admin/ADMIN, papéis ADMIN/EDITOR/VIEWER aplicados via @PreAuthorize em todos os controllers, tela de login com aviso de autenticação mockada — 24/25 REQs (REQ-07.04.002 n/a, sem CRUD de usuário no MVP). EP-08: tabela audit_event (V9), gravação em login/logout/sessão, CRUD de produto/canal/jornada, versões, publicações e acessos negados, consulta com filtros e paginação restrita a ADMIN — 21/22 REQs (REQ-08.02.007 n/a, sem CRUD de papéis no MVP). De quebra, REQ-02.06.004 (que dependia do EP-06) passou de todo para done. Simplificações deliberadas: sem rollback/restauração de versão (REQ-06.05.004, fora de escopo); flow-designer continua editando o estado "vivo" da jornada, versionar tira um snapshot desse estado; ocultação de botões por papel na UI não foi replicada em todas as telas (enforcement real é no backend). Progresso geral de 57% para 95% (207/219; 2 n/a; restam apenas os 10 REQs do EP-05 Simulação).',
+      'FT-06 (Versionamento de jornadas), FT-07 (Autenticação e autorização) e FT-08 (Auditoria) implementados, na ordem FT-07 → FT-06 → FT-08 (dependência: versão precisa de usuário autenticado; auditoria precisa de ambos). FT-06: tabela journey_version (V7) + backfill de jornadas existentes (V8), criação automática de versão DRAFT ao criar jornada, publicação de versão arquiva a anterior, snapshot imutável, painel de versões no designer de fluxo — 35/35 REQs. FT-07: token opaco em memória (Authorization: Bearer, expiração por inatividade configurável), usuário mockado admin/admin/ADMIN, papéis ADMIN/EDITOR/VIEWER aplicados via @PreAuthorize em todos os controllers, tela de login com aviso de autenticação mockada — 24/25 REQs (REQ-07.04.002 n/a, sem CRUD de usuário na versão 1.0.0). FT-08: tabela audit_event (V9), gravação em login/logout/sessão, CRUD de produto/canal/jornada, versões, publicações e acessos negados, consulta com filtros e paginação restrita a ADMIN — 21/22 REQs (REQ-08.02.007 n/a, sem CRUD de papéis na versão 1.0.0). De quebra, REQ-02.06.004 (que dependia do FT-06) passou de todo para done. Simplificações deliberadas: sem rollback/restauração de versão (REQ-06.05.004, fora de escopo); flow-designer continua editando o estado "vivo" da jornada, versionar tira um snapshot desse estado; ocultação de botões por papel na UI não foi replicada em todas as telas (enforcement real é no backend). Progresso geral de 57% para 95% (207/219; 2 n/a; restam apenas os 10 REQs do FT-05 Simulação).',
   },
   {
     date: '2026-08-08 02:37',
     source: 'progresso',
     summary:
-      'Escopo do MVP evoluído com EP-06 Versionamento de jornadas, EP-07 Autenticação e autorização e EP-08 Auditoria. A autenticação será representada por provedor externo mockado, com tela de login e usuário admin/admin no perfil ADMIN; os papéis ADMIN, EDITOR e VIEWER foram incluídos. Versões publicadas são imutáveis; restauração/rollback permanece fora do MVP; auditoria não armazena dados sensíveis. Total: 8 EPs, 42 FTs e 220 REQs; 126 concluídos e 94 todo (57%).',
+      'Escopo da versão 1.0.0 evoluído com FT-06 Versionamento de jornadas, FT-07 Autenticação e autorização e FT-08 Auditoria. A autenticação será representada por provedor externo mockado, com tela de login e usuário admin/admin no perfil ADMIN; os papéis ADMIN, EDITOR e VIEWER foram incluídos. Versões publicadas são imutáveis; restauração/rollback permanece fora da versão 1.0.0; auditoria não armazena dados sensíveis. Total: 8 EPs, 42 FTs e 220 REQs; 126 concluídos e 94 todo (57%).',
   },
   {
     date: '2026-08-08 01:50',
@@ -1375,31 +1492,31 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
     date: '2026-08-08 01:50',
     source: 'progresso',
     summary:
-      'EP-03 (Modelagem Visual) fechado a 100%: FT-03.07/08/09 (18 REQs, incluindo o REQ-03.02.007 que já estava implementado mas não rastreado aqui) implementados por completo. Backend: FlowNodeType ganhou SERVICE_TASK/RECEIVE_TASK/MESSAGE_START_EVENT; novos ConnectorType (REST/KAFKA habilitados, SOAP desabilitado como placeholder) e ConnectorConfig (tipo + config declarativa Map<String,Object> + credentialRef, sem secret) associáveis a esses 3 tipos; FlowValidator estendido (elemento inicial = START ou MESSAGE_START_EVENT, grau de entrada/saída dos novos tipos, conector desabilitado vira violação 422); persistência via JSONB já existente, sem migration nova; snapshot de publicação propaga connectorConfig automaticamente (reaproveita FlowNode/FlowNodeRecord). Frontend: novos tipos no canvas (paleta lateral, ícone, cor, quick-add) e formulário de conector no PropertiesPanel (campos dedicados de método/URL para REST e tópico/operação para Kafka, mais um bloco JSON para headers/params/body/payload/mapeamentos). Corrigido de quebra o REQ-03.01.005: Flow.initial criava START+END já conectados na criação da jornada; agora só cria o START, como o requisito manda. Progresso geral de 80% para 92% (só falta EP-05 Simulação).',
+      'FT-03 (Modelagem Visual) fechado a 100%: US-03.07/08/09 (18 REQs, incluindo o REQ-03.02.007 que já estava implementado mas não rastreado aqui) implementados por completo. Backend: FlowNodeType ganhou SERVICE_TASK/RECEIVE_TASK/MESSAGE_START_EVENT; novos ConnectorType (REST/KAFKA habilitados, SOAP desabilitado como placeholder) e ConnectorConfig (tipo + config declarativa Map<String,Object> + credentialRef, sem secret) associáveis a esses 3 tipos; FlowValidator estendido (elemento inicial = START ou MESSAGE_START_EVENT, grau de entrada/saída dos novos tipos, conector desabilitado vira violação 422); persistência via JSONB já existente, sem migration nova; snapshot de publicação propaga connectorConfig automaticamente (reaproveita FlowNode/FlowNodeRecord). Frontend: novos tipos no canvas (paleta lateral, ícone, cor, quick-add) e formulário de conector no PropertiesPanel (campos dedicados de método/URL para REST e tópico/operação para Kafka, mais um bloco JSON para headers/params/body/payload/mapeamentos). Corrigido de quebra o REQ-03.01.005: Flow.initial criava START+END já conectados na criação da jornada; agora só cria o START, como o requisito manda. Progresso geral de 80% para 92% (só falta FT-05 Simulação).',
   },
   {
     date: '2026-08-03 03:05',
     source: 'progresso',
     summary:
-      'EP-06 (Publicação) + EP-07 (Publicação no Runtime) implementados por completo: 16/16 REQs. Backend novo (domain/application/infrastructure/interfaces para publication, migration V6__create_journey_publication.sql, endpoints POST /journeys/{id}/publish|unpublish, filtro ?status= em GET /journeys) e mock do runtime (MockRuntimePublicationAdapter, sempre "sucede"). Isso também deu implementação real aos guard-rails que ficaram stubados até aqui (ActivePublicationPort/HasEverBeenPublishedPort, antes sempre false), fechando de quebra REQ-01.04.003/004/005 e REQ-02.01.006 (eram in_progress) e REQ-02.05.002/003 (eram blocked, já satisfeitos desde EP-03/EP-04). Sem menu novo: publicar/despublicar vive na listagem de Jornadas (JourneysPage), reaproveitando filtros de produto/canal/busca já existentes para o "catálogo de publicações" (basta filtrar por status "Publicadas"). Progresso geral de 69% para 88%, zerando os in_progress/blocked restantes.',
+      'FT-06 (Publicação) + FT-07 (Publicação no Runtime) implementados por completo: 16/16 REQs. Backend novo (domain/application/infrastructure/interfaces para publication, migration V6__create_journey_publication.sql, endpoints POST /journeys/{id}/publish|unpublish, filtro ?status= em GET /journeys) e mock do runtime (MockRuntimePublicationAdapter, sempre "sucede"). Isso também deu implementação real aos guard-rails que ficaram stubados até aqui (ActivePublicationPort/HasEverBeenPublishedPort, antes sempre false), fechando de quebra REQ-01.04.003/004/005 e REQ-02.01.006 (eram in_progress) e REQ-02.05.002/003 (eram blocked, já satisfeitos desde FT-03/FT-04). Sem menu novo: publicar/despublicar vive na listagem de Jornadas (JourneysPage), reaproveitando filtros de produto/canal/busca já existentes para o "catálogo de publicações" (basta filtrar por status "Publicadas"). Progresso geral de 69% para 88%, zerando os in_progress/blocked restantes.',
   },
   {
     date: '2026-08-03 02:06',
     source: 'progresso',
     summary:
-      'EP-04 (Formulários/SDUI) implementado por completo: 18/18 REQs. Backend novo (domain/application/infrastructure/interfaces/form, migration V5__create_form.sql, CRUD /api/v1/forms) e frontend novo (front/src/forms/FormsPage.tsx + FormBuilderPage.tsx, api/forms.ts, item "Formulários" na sidebar). FlowNode.formId (já existente no backend) agora é editável de fato: PropertiesPanel ganhou o seletor "Formulário associado" para nós User Task e JourneyDesignerPage para de mandar formId: null fixo. EP-04 avança de 0% para 100%; progresso geral de 55% para 69%.',
+      'FT-04 (Formulários/SDUI) implementado por completo: 18/18 REQs. Backend novo (domain/application/infrastructure/interfaces/form, migration V5__create_form.sql, CRUD /api/v1/forms) e frontend novo (front/src/forms/FormsPage.tsx + FormBuilderPage.tsx, api/forms.ts, item "Formulários" na sidebar). FlowNode.formId (já existente no backend) agora é editável de fato: PropertiesPanel ganhou o seletor "Formulário associado" para nós User Task e JourneyDesignerPage para de mandar formId: null fixo. FT-04 avança de 0% para 100%; progresso geral de 55% para 69%.',
   },
   {
     date: '2026-08-02 00:39',
     source: 'progresso',
     summary:
-      'Implementados REQ-03.04.004 (copiar) e REQ-03.04.005 (duplicar) via atalhos Ctrl+C/Ctrl+V/Ctrl+D e botão "Duplicar nó" no NodePropertiesPanel, restritos a User Tasks (START/END mantêm regra de unicidade). REQ-03.06.001 (autosave) marcado como n/a: decisão de produto de não implementar no MVP, salvamento permanece manual. EP-03 avança para 25/26 (96%).',
+      'Implementados REQ-03.04.004 (copiar) e REQ-03.04.005 (duplicar) via atalhos Ctrl+C/Ctrl+V/Ctrl+D e botão "Duplicar nó" no NodePropertiesPanel, restritos a User Tasks (START/END mantêm regra de unicidade). REQ-03.06.001 (autosave) marcado como n/a: decisão de produto de não implementar na versão 1.0.0, salvamento permanece manual. FT-03 avança para 25/26 (96%).',
   },
   {
     date: '2026-08-02 22:12',
     source: 'progresso',
     summary:
-      'Atualização do EP-03 (Modelagem Visual) com base na implementação do Flow Designer: 23/26 REQs concluídos (nós START/END/USER_TASK, conexões, validação estrutural client+server com 422, navegação, drag-and-drop, zoom/pan/fit, undo/redo). Restam todo: copiar elementos, duplicar elementos e salvamento automático.',
+      'Atualização do FT-03 (Modelagem Visual) com base na implementação do Flow Designer: 23/26 REQs concluídos (nós START/END/USER_TASK, conexões, validação estrutural client+server com 422, navegação, drag-and-drop, zoom/pan/fit, undo/redo). Restam todo: copiar elementos, duplicar elementos e salvamento automático.',
   },
   {
     date: '2026-08-02 03:56',
@@ -1425,7 +1542,7 @@ const CHANGELOG_GIT: ChangelogEntry[] = [
     date: '2026-08-14 20:26',
     source: 'git',
     summary: 'Gestão de Jornadas: painel de versão nas jornadas.',
-    epics: ['EP-06'],
+    epics: ['FT-06'],
   },
   {
     date: '2026-08-10 04:00',
@@ -1442,87 +1559,87 @@ const CHANGELOG_GIT: ChangelogEntry[] = [
     source: 'git',
     summary: 'Skill para o GitHub Copilot para atualização da página Sobre.',
   },
-  { date: '2026-08-10 03:06', source: 'git', summary: 'Inclusão dos EP-11 (Testes) e EP-12 (Infraestrutura).', epics: ['EP-11', 'EP-12'] },
+  { date: '2026-08-10 03:06', source: 'git', summary: 'Inclusão dos FT-11 (Testes) e FT-12 (Infraestrutura).', epics: ['FT-11', 'FT-12'] },
   {
     date: '2026-08-10 02:34',
     source: 'git',
     summary: 'Correção de auditoria ao falhar o serviço de publicação, e ajustes na skill da página Sobre.',
-    epics: ['EP-08'],
+    epics: ['FT-08'],
   },
-  { date: '2026-08-10 01:38', source: 'git', summary: 'Visualizador de snapshots de jornadas publicadas.', epics: ['EP-02'] },
+  { date: '2026-08-10 01:38', source: 'git', summary: 'Visualizador de snapshots de jornadas publicadas.', epics: ['FT-02'] },
   {
     date: '2026-08-10 01:07',
     source: 'git',
     summary: 'Publicação e despublicação da jornada sem mock, através de serviço simulado de publicação.',
-    epics: ['EP-02'],
+    epics: ['FT-02'],
   },
-  { date: '2026-08-09 23:00', source: 'git', summary: 'Implementação do EP-04 refinado (SDUI).', epics: ['EP-04'] },
+  { date: '2026-08-09 23:00', source: 'git', summary: 'Implementação do FT-04 refinado (SDUI).', epics: ['FT-04'] },
   { date: '2026-08-09 18:18', source: 'git', summary: 'Ajuste de configuração de logs e portas.' },
-  { date: '2026-08-09 00:35', source: 'git', summary: 'EP-06 (Versionamento de jornadas) refinado e reimplementado.', epics: ['EP-06'] },
-  { date: '2026-08-08 20:11', source: 'git', summary: 'SKILL de sincronização e página estática "Sobre" com o progresso do MVP.' },
+  { date: '2026-08-09 00:35', source: 'git', summary: 'FT-06 (Versionamento de jornadas) refinado e reimplementado.', epics: ['FT-06'] },
+  { date: '2026-08-08 20:11', source: 'git', summary: 'SKILL de sincronização e página estática "Sobre" com o progresso da versão 1.0.0.' },
   {
     date: '2026-08-08 18:46',
     source: 'git',
-    summary: 'Implementação do EP-10 Observabilidade (logs de requisição, transação e correlação).',
-    epics: ['EP-10'],
+    summary: 'Implementação do FT-10 Observabilidade (logs de requisição, transação e correlação).',
+    epics: ['FT-10'],
   },
-  { date: '2026-08-08 15:45', source: 'git', summary: 'Implementação do EP-09 Ajuda e suporte.', epics: ['EP-09'] },
+  { date: '2026-08-08 15:45', source: 'git', summary: 'Implementação do FT-09 Ajuda e suporte.', epics: ['FT-09'] },
   {
     date: '2026-08-08 05:59',
     source: 'git',
     summary: 'Remoção do evento de auditoria log_audit para operações de consulta e tratamento de restart de sessão.',
-    epics: ['EP-08'],
+    epics: ['FT-08'],
   },
   {
     date: '2026-08-08 03:42',
     source: 'git',
-    summary: 'Implementação de Versionamento, autenticação, autorização e auditoria (EP-06/07/08).',
-    epics: ['EP-06', 'EP-07', 'EP-08'],
+    summary: 'Implementação de Versionamento, autenticação, autorização e auditoria (FT-06/07/08).',
+    epics: ['FT-06', 'FT-07', 'FT-08'],
   },
-  { date: '2026-08-08 02:37', source: 'git', summary: 'Inclusão de novos épicos no escopo do MVP.' },
+  { date: '2026-08-08 02:37', source: 'git', summary: 'Inclusão de novas features no escopo da versão 1.0.0.' },
   { date: '2026-08-08 02:01', source: 'git', summary: 'Ajuste do formato dos requisitos.' },
   {
     date: '2026-08-08 01:50',
     source: 'git',
-    summary: 'EP-03 Modelagem Visual: inclusão de conectores e novos tipos de componentes; enriquecimento de requisitos.',
-    epics: ['EP-03'],
+    summary: 'FT-03 Modelagem Visual: inclusão de conectores e novos tipos de componentes; enriquecimento de requisitos.',
+    epics: ['FT-03'],
   },
   {
     date: '2026-08-08 00:01',
     source: 'git',
     summary: 'Inclusão do componente Service Task e refinamentos na modelagem visual.',
-    epics: ['EP-03'],
+    epics: ['FT-03'],
   },
-  { date: '2026-08-03 04:12', source: 'git', summary: 'Melhorias na gestão de produtos e canais.', epics: ['EP-01'] },
-  { date: '2026-08-03 03:13', source: 'git', summary: 'Remoção do EP-08 do escopo (posteriormente reintroduzido).' },
+  { date: '2026-08-03 04:12', source: 'git', summary: 'Melhorias na gestão de produtos e canais.', epics: ['FT-01'] },
+  { date: '2026-08-03 03:13', source: 'git', summary: 'Remoção do FT-08 do escopo (posteriormente reintroduzido).' },
   {
     date: '2026-08-03 03:05',
     source: 'git',
-    summary: 'Implementação inicial dos EP-06 e EP-07 (versionamento e autenticação/autorização).',
-    epics: ['EP-06', 'EP-07'],
+    summary: 'Implementação inicial dos FT-06 e FT-07 (versionamento e autenticação/autorização).',
+    epics: ['FT-06', 'FT-07'],
   },
-  { date: '2026-08-03 02:22', source: 'git', summary: 'Refinamentos do EP-04 Formulários (SDUI).', epics: ['EP-04'] },
+  { date: '2026-08-03 02:22', source: 'git', summary: 'Refinamentos do FT-04 Formulários (SDUI).', epics: ['FT-04'] },
   {
     date: '2026-08-03 02:06',
     source: 'git',
-    summary: 'Implementação inicial do EP-04 Formulários (SDUI).',
-    epics: ['EP-04'],
+    summary: 'Implementação inicial do FT-04 Formulários (SDUI).',
+    epics: ['FT-04'],
   },
-  { date: '2026-08-03 01:38', source: 'git', summary: 'Ajustes e refinamentos de requisitos do EP-03.', epics: ['EP-03'] },
-  { date: '2026-08-03 01:12', source: 'git', summary: 'Exclusão do requisito de auto-save do EP-03.', epics: ['EP-03'] },
+  { date: '2026-08-03 01:38', source: 'git', summary: 'Ajustes e refinamentos de requisitos do FT-03.', epics: ['FT-03'] },
+  { date: '2026-08-03 01:12', source: 'git', summary: 'Exclusão do requisito de auto-save do FT-03.', epics: ['FT-03'] },
   { date: '2026-08-03 00:47', source: 'git', summary: 'Configuração da estruturação de skills para front e back.' },
   {
     date: '2026-08-03 00:39',
     source: 'git',
-    summary: 'Ajustes de temas e layouts (light/dark) e refinamentos no EP-03.',
-    epics: ['EP-03'],
+    summary: 'Ajustes de temas e layouts (light/dark) e refinamentos no FT-03.',
+    epics: ['FT-03'],
   },
-  { date: '2026-08-02 22:12', source: 'git', summary: 'Refinamentos no EP-03 Modelagem Visual.', epics: ['EP-03'] },
-  { date: '2026-08-02 14:33', source: 'git', summary: 'Implementação inicial do EP-03 Modelagem Visual.', epics: ['EP-03'] },
+  { date: '2026-08-02 22:12', source: 'git', summary: 'Refinamentos no FT-03 Modelagem Visual.', epics: ['FT-03'] },
+  { date: '2026-08-02 14:33', source: 'git', summary: 'Implementação inicial do FT-03 Modelagem Visual.', epics: ['FT-03'] },
   {
     date: '2026-08-02 03:56',
     source: 'git',
-    summary: 'Commit inicial: estrutura do Admin Portal (front, back) e implementação dos épicos iniciais.',
+    summary: 'Commit inicial: estrutura do Admin Portal (front, back) e implementação das features iniciais.',
   },
 ];
 

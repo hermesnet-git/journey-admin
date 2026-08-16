@@ -37,7 +37,10 @@ const PENDING_COLOR = skinVars.colors.neutralMedium;
 // têm por que aparecer como "bolinhas" nas bordas dos cards — ficam com opacidade zero.
 const HANDLE_STYLE = { width: 1, height: 1, opacity: 0, zIndex: 5 } as const;
 
-type NodeStatus = 'done' | 'current' | 'pending' | 'error';
+// 'type' é usado pela visualização estática (sem execução): cada nó fica colorido pela cor do seu
+// próprio tipo, em vez do cinza neutro de "pendente" (que só faz sentido quando há um caminho
+// percorrido de verdade pra contrastar contra).
+type NodeStatus = 'done' | 'current' | 'pending' | 'error' | 'type';
 
 interface SimNodeData extends Record<string, unknown> {
   frontType: NodeType;
@@ -54,6 +57,7 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
   const isDone = status === 'done';
   const isPending = status === 'pending';
   const isError = status === 'error';
+  const isTypeColored = status === 'type';
 
   // O ícone é sempre o do tipo de componente (nunca vira um "check") — só a cor do card muda por
   // status. `successLow`/`errorLow` são os tokens já prontos da Mística para preenchimento tintado
@@ -64,9 +68,27 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
       ? skinVars.colors.successLow
       : isError
         ? skinVars.colors.errorLow
-        : skinVars.colors.backgroundContainer;
-  const borderColor = isCurrent ? typeColor : isDone ? skinVars.colors.success : isError ? skinVars.colors.error : PENDING_COLOR;
-  const iconColor = isCurrent ? typeColor : isDone ? skinVars.colors.success : isError ? skinVars.colors.error : skinVars.colors.textSecondary;
+        : isTypeColored
+          ? `${typeColor}14`
+          : skinVars.colors.backgroundContainer;
+  const borderColor = isCurrent
+    ? typeColor
+    : isDone
+      ? skinVars.colors.success
+      : isError
+        ? skinVars.colors.error
+        : isTypeColored
+          ? typeColor
+          : PENDING_COLOR;
+  const iconColor = isCurrent
+    ? typeColor
+    : isDone
+      ? skinVars.colors.success
+      : isError
+        ? skinVars.colors.error
+        : isTypeColored
+          ? typeColor
+          : skinVars.colors.textSecondary;
   const textColor = isPending ? skinVars.colors.textSecondary : skinVars.colors.textPrimary;
 
   return (
@@ -131,6 +153,11 @@ interface Props {
   erroredNodeId?: string | null;
   erroredNodeName?: string | null;
   erroredMessage?: string | null;
+  // Visualização somente estrutural (sem execução em andamento) — usada pela pré-visualização de
+  // fluxo em Jornadas. Cada nó fica colorido pela cor do seu tipo (em vez do cinza "pendente"), e o
+  // enquadramento inicial usa o `fitView` nativo do React Flow (mais confiável nesse caso, já que não
+  // há uma etapa atual pra centralizar).
+  staticView?: boolean;
 }
 
 export function FlowDiagramViewer(props: Props) {
@@ -151,6 +178,7 @@ function FlowDiagramInner({
   erroredNodeId,
   erroredNodeName,
   erroredMessage,
+  staticView,
 }: Props) {
   const { zoomIn, zoomOut, fitView, setCenter } = useReactFlow();
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -161,8 +189,15 @@ function FlowDiagramInner({
   const nodes: Node<SimNodeData>[] = useMemo(
     () =>
       flowNodes.map((n) => {
-        const status: NodeStatus =
-          n.id === erroredNodeId ? 'error' : n.id === currentNodeId ? 'current' : visited.has(n.id) ? 'done' : 'pending';
+        const status: NodeStatus = staticView
+          ? 'type'
+          : n.id === erroredNodeId
+            ? 'error'
+            : n.id === currentNodeId
+              ? 'current'
+              : visited.has(n.id)
+                ? 'done'
+                : 'pending';
         return {
           id: n.id,
           type: 'simNode',
@@ -178,7 +213,7 @@ function FlowDiagramInner({
         };
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flowNodes, currentNodeId, visited, erroredNodeId, erroredNodeName, erroredMessage],
+    [flowNodes, currentNodeId, visited, erroredNodeId, erroredNodeName, erroredMessage, staticView],
   );
 
   const edges: Edge[] = useMemo(
@@ -204,7 +239,10 @@ function FlowDiagramInner({
   // Centraliza a etapa atual sempre que ela muda (inclusive no primeiro carregamento), num zoom
   // fixo que deixa cada card em tamanho legível — fluxos longos (como o survey de 15 perguntas)
   // não cabem inteiros na tela, então um `fitView` do grafo inteiro encolhe demais os componentes.
+  // Na visualização estática não há "etapa atual" — o `fitView` nativo do <ReactFlow> (mais abaixo)
+  // já cuida do enquadramento inicial, com timing mais confiável que chamar fitView() num efeito.
   useEffect(() => {
+    if (staticView) return;
     const current = flowNodes.find((n) => n.id === currentNodeId);
     if (!current) {
       fitView({ padding: 0.2, duration: 300 });
@@ -212,7 +250,7 @@ function FlowDiagramInner({
     }
     setCenter(current.positionX + NODE_WIDTH / 2, current.positionY + 30, { zoom: 1, duration: 300 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentNodeId]);
+  }, [currentNodeId, staticView]);
 
   const iconBtn =
     'w-[28px] h-[28px] rounded-md border-0 bg-transparent flex items-center justify-center cursor-pointer';
@@ -228,6 +266,8 @@ function FlowDiagramInner({
         elementsSelectable={false}
         panOnScroll
         zoomOnScroll
+        fitView={staticView}
+        fitViewOptions={{ padding: 0.2 }}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
       >

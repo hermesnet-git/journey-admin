@@ -12,10 +12,12 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 /**
  * Fala direto com a REST API do Camunda 7 (engine-rest): consultas de monitoramento e o comando de
@@ -38,13 +40,25 @@ class CamundaMonitoringAdapter implements RuntimeMonitoringPort, RuntimeInstance
         this.restClient = RestClient.create();
     }
 
+    // Todo acesso ao engine-rest passa por aqui: se o Camunda estiver fora do ar (ou inacessível),
+    // vira RuntimeMonitoringException em vez de deixar a exceção de rede crua propagar — o
+    // GlobalExceptionHandler traduz isso numa mensagem única e amigável pro Dashboard.
+    private <T> T call(Supplier<T> request) {
+        try {
+            return request.get();
+        } catch (RestClientException e) {
+            throw new RuntimeMonitoringException(
+                    "Motor de runtime não encontrado ou está fora do ar. Contate o administrador do sistema.", e);
+        }
+    }
+
     @Override
     public List<ProcessDefinitionUsage> processDefinitionUsage() {
-        List<StatisticsRaw> raw = restClient.get()
+        List<StatisticsRaw> raw = call(() -> restClient.get()
                 .uri(baseUrl + "/process-definition/statistics?includeIncidents=true")
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<StatisticsRaw>>() {
-                });
+                }));
         if (raw == null) return List.of();
         return raw.stream()
                 .filter(r -> r.definition() != null)
@@ -81,22 +95,22 @@ class CamundaMonitoringAdapter implements RuntimeMonitoringPort, RuntimeInstance
     }
 
     private int countFrom(String uriTemplate, Object... uriVariables) {
-        Map<String, Object> response = restClient.get()
+        Map<String, Object> response = call(() -> restClient.get()
                 .uri(uriTemplate, uriVariables)
                 .retrieve()
                 .body(new ParameterizedTypeReference<Map<String, Object>>() {
-                });
+                }));
         Object count = response != null ? response.get("count") : null;
         return count instanceof Number n ? n.intValue() : 0;
     }
 
     @Override
     public List<IncidentSummary> recentIncidents(int limit) {
-        List<IncidentRaw> raw = restClient.get()
+        List<IncidentRaw> raw = call(() -> restClient.get()
                 .uri(baseUrl + "/incident?maxResults={n}&sortBy=incidentTimestamp&sortOrder=desc", limit)
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<IncidentRaw>>() {
-                });
+                }));
         if (raw == null) return List.of();
         return raw.stream()
                 .map(i -> new IncidentSummary(i.id(), i.processInstanceId(), i.processDefinitionId(), null,
@@ -122,11 +136,11 @@ class CamundaMonitoringAdapter implements RuntimeMonitoringPort, RuntimeInstance
     }
 
     private List<HistoricInstanceSummary> fetchHistoricInstances(String uriTemplate, Object... uriVariables) {
-        List<HistoricProcessInstanceRaw> raw = restClient.get()
+        List<HistoricProcessInstanceRaw> raw = call(() -> restClient.get()
                 .uri(uriTemplate, uriVariables)
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<HistoricProcessInstanceRaw>>() {
-                });
+                }));
         if (raw == null) return List.of();
         return raw.stream()
                 .map(p -> new HistoricInstanceSummary(p.id(), displayName(p.processDefinitionName(), p.processDefinitionKey()),
@@ -139,10 +153,10 @@ class CamundaMonitoringAdapter implements RuntimeMonitoringPort, RuntimeInstance
         // skipCustomListeners/skipIoMappings: uma instância abandonada pode estar num estado
         // inconsistente pro fluxo normal de listeners/mapeamentos rodar de novo — encerrar deve
         // funcionar mesmo assim, é justamente o mecanismo de descarte de última instância.
-        restClient.delete()
+        call(() -> restClient.delete()
                 .uri(baseUrl + "/process-instance/{id}?skipCustomListeners=true&skipIoMappings=true", processInstanceId)
                 .retrieve()
-                .toBodilessEntity();
+                .toBodilessEntity());
     }
 
     private static String displayName(String name, String fallback) {

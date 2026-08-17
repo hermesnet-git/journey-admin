@@ -20,6 +20,7 @@ import com.jouney.admin.domain.version.VersionNotPublishedException;
 import com.jouney.admin.domain.version.VersionNotUnpublishedException;
 import com.jouney.admin.infrastructure.connector.ConnectorTestException;
 import com.jouney.admin.infrastructure.connector.SsrfBlockedException;
+import com.jouney.admin.infrastructure.dashboard.RuntimeMonitoringException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
@@ -70,6 +71,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleRuntimePublication(RuntimePublicationException ex, HttpServletRequest request) {
         log.error("Runtime publication call failed", ex);
         return build(HttpStatus.BAD_GATEWAY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
+    }
+
+    // Status < 500 de propósito: uma resposta 5xx dispara o modal genérico de "erro inesperado" no
+    // front (ver AppErrorBoundary/onServerError), com detalhes técnicos. Aqui é uma condição
+    // conhecida (engine fora do ar) — o Dashboard mostra só a mensagem amigável no seu próprio banner.
+    @ExceptionHandler(RuntimeMonitoringException.class)
+    public ResponseEntity<ApiError> handleRuntimeMonitoring(RuntimeMonitoringException ex, HttpServletRequest request) {
+        log.error("Runtime monitoring call failed", ex);
+        return build(HttpStatus.FAILED_DEPENDENCY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(FlowValidationException.class)

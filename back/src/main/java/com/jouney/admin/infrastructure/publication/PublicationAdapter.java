@@ -14,7 +14,7 @@ import org.springframework.web.client.RestClientException;
 
 /**
  * Real outbound call to the runtime's publication API. The Admin Portal has no knowledge of
- * what implements that API (Camunda, another engine, a queue, etc.) — it only knows the
+ * what implements that API (which runtime engine, a queue, etc.) — it only knows the
  * contract: send the journey snapshot, get success or failure back. Replaces the EP-02.09
  * mock: failures now propagate as {@link RuntimePublicationException} instead of always
  * "succeeding".

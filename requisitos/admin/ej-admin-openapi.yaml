@@ -4,7 +4,7 @@ info:
   title: Elastic Journey Admin Portal API
   description: >
     API do Elastic Journey Admin Portal para gestão de produtos, canais,
-    jornadas específicas por canal, fluxos, formulários, simulações
+    jornadas específicas por canal, fluxos, formulários, execuções
     e publicações. A publicação aciona uma API externa mockada na versão 1.0.0;
     este contrato descreve somente a API do Admin Portal.
   version: 1.0.0
@@ -35,7 +35,7 @@ tags:
   - name: Journeys
   - name: Flows
   - name: Forms
-  - name: Simulations
+  - name: Execution
   - name: Publications
   - name: Authentication
   - name: Versions
@@ -960,11 +960,11 @@ paths:
         '204':
           description: Form deleted
 
-  /journeys/{journeyId}/simulations:
+  /journeys/{journeyId}/executions:
     post:
-      tags: [Simulations]
-      summary: Start journey simulation
-      operationId: executeSimulation
+      tags: [Execution]
+      summary: Start journey execution
+      operationId: startExecution
       parameters:
         - $ref: '#/components/parameters/JourneyId'
       requestBody:
@@ -972,7 +972,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SimulationRequest'
+              $ref: '#/components/schemas/ExecutionRequest'
       responses:
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -989,19 +989,19 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
         '201':
-          description: Simulation started
+          description: Execution started
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SimulationExecution'
+                $ref: '#/components/schemas/ExecutionRun'
 
-  /simulations/{simulationId}:
+  /executions/{executionId}:
     get:
-      tags: [Simulations]
-      summary: Get simulation
-      operationId: getSimulation
+      tags: [Execution]
+      summary: Get execution
+      operationId: getExecution
       parameters:
-        - $ref: '#/components/parameters/SimulationId'
+        - $ref: '#/components/parameters/ExecutionId'
       responses:
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1012,11 +1012,11 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
         '200':
-          description: Simulation details
+          description: Execution details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SimulationDetails'
+                $ref: '#/components/schemas/ExecutionDetails'
 
   /publications:
     get:
@@ -1231,8 +1231,8 @@ components:
         type: string
         format: uuid
 
-    SimulationId:
-      name: simulationId
+    ExecutionId:
+      name: executionId
       in: path
       required: true
       schema:
@@ -1496,7 +1496,7 @@ components:
         name, nodes, connections). flowId, FlowNode.nodeId and
         FlowConnection.connectionId are the identifiers later embedded
         verbatim as BPMN element ids by the runtime when the flow is
-        translated to a Camunda process definition; XML ID/NCName forbids an
+        translated to a runtime engine process definition; XML ID/NCName forbids an
         identifier starting with a digit, which a raw UUID cannot guarantee.
         These three identifiers are therefore generated as a fixed prefix
         + UUID (Process_<uuid>, Node_<uuid>, Flow_<uuid> respectively), never
@@ -1819,18 +1819,18 @@ components:
           type: array
           items: {}
 
-    SimulationRequest:
+    ExecutionRequest:
       type: object
       properties:
         inputData:
           type: object
           additionalProperties: true
 
-    SimulationExecution:
+    ExecutionRun:
       type: object
-      required: [simulationId, journeyId, status, executedAt]
+      required: [executionId, journeyId, status, executedAt]
       properties:
-        simulationId:
+        executionId:
           type: string
           format: uuid
         journeyId:
@@ -1843,7 +1843,7 @@ components:
           type: string
           format: date-time
 
-    SimulationStep:
+    ExecutionStep:
       type: object
       required: [stepId, nodeId, stepOrder]
       properties:
@@ -1862,7 +1862,7 @@ components:
           type: object
           additionalProperties: true
 
-    SimulationResult:
+    ExecutionResult:
       type: object
       properties:
         executedPath:
@@ -1874,18 +1874,18 @@ components:
           type: object
           additionalProperties: true
 
-    SimulationDetails:
+    ExecutionDetails:
       type: object
       required: [execution, steps]
       properties:
         execution:
-          $ref: '#/components/schemas/SimulationExecution'
+          $ref: '#/components/schemas/ExecutionRun'
         steps:
           type: array
           items:
-            $ref: '#/components/schemas/SimulationStep'
+            $ref: '#/components/schemas/ExecutionStep'
         result:
-          $ref: '#/components/schemas/SimulationResult'
+          $ref: '#/components/schemas/ExecutionResult'
 
     JourneySnapshot:
       type: object

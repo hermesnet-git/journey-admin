@@ -3,8 +3,8 @@ import { X } from 'lucide-react';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { getFlow, type Flow } from '../api/flows';
 import { NODE_META, TYPE_COLOR, type NodeType } from '../flow-designer/model';
-import { FlowDiagramViewer } from '../simulation/FlowDiagramViewer';
-import type { FlowConnectionInfo, FlowNodeInfo } from '../simulation/api';
+import { FlowDiagramViewer } from '../execution/FlowDiagramViewer';
+import type { FlowConnectionInfo, FlowNodeInfo } from '../execution/api';
 
 // Só os tipos que realmente aparecem nos fluxos gerados — messageStartEvent usa a mesma cor de
 // "start" (ambos são início do fluxo) e ficaria redundante numa legenda.
@@ -16,7 +16,7 @@ interface Props {
   onClose: () => void;
 }
 
-// Reaproveita o mesmo visualizador somente-leitura da aba "Fluxo da Jornada" das Simulações — mesma
+// Reaproveita o mesmo visualizador somente-leitura da aba "Fluxo da Jornada" das Execuções — mesma
 // linguagem visual (cores por tipo, ícones, fundo pontilhado, zoom), sem o comportamento de execução
 // (não há passo atual/concluído/erro aqui, é só a estrutura do fluxo).
 export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Props) {

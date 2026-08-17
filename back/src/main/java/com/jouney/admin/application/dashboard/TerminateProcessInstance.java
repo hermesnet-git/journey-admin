@@ -32,8 +32,8 @@ public class TerminateProcessInstance {
         recordAuditEvent.record(ACTION, RESOURCE_TYPE, parseId(processInstanceId), AuditResult.SUCCESS);
     }
 
-    // Ids do Camunda vêm no formato UUID, mas o registro de auditoria não deve quebrar a ação
-    // principal caso um dia isso mude — degrada pra null em vez de propagar.
+    // Ids do motor de runtime vêm no formato UUID, mas o registro de auditoria não deve quebrar a
+    // ação principal caso um dia isso mude — degrada pra null em vez de propagar.
     private static UUID parseId(String processInstanceId) {
         try {
             return UUID.fromString(processInstanceId);

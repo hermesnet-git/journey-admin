@@ -8,7 +8,7 @@
 
 # 1. Objetivo
 
-Este documento descreve o modelo físico de dados do Elastic Journey Admin Portal para produtos, canais, jornadas, fluxos, formulários, simulação e publicação.
+Este documento descreve o modelo físico de dados do Elastic Journey Admin Portal para produtos, canais, jornadas, fluxos, formulários, execução e publicação.
 
 ---
 
@@ -30,7 +30,7 @@ Datas operacionais utilizam `TIMESTAMPTZ` em UTC.
 
 ## Estruturas Dinâmicas
 
-Configurações visuais, dados de simulação e snapshots publicados utilizam `JSONB`.
+Configurações visuais, dados de execução e snapshots publicados utilizam `JSONB`.
 
 ---
 
@@ -56,9 +56,9 @@ flow_connection
 form
 form_field
 user_task_config
-simulation_execution
-simulation_step
-simulation_result
+execution_run
+execution_step
+execution_result
 journey_publication
 journey_version
 audit_event
@@ -260,11 +260,11 @@ CREATE TABLE user_task_config (
 
 ---
 
-# 14. Tabela SimulationExecution
+# 14. Tabela ExecutionRun
 
 ```sql
-CREATE TABLE simulation_execution (
-    simulation_id UUID PRIMARY KEY,
+CREATE TABLE execution_run (
+    execution_id UUID PRIMARY KEY,
     journey_id UUID NOT NULL,
     input_data JSONB,
     executed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -277,37 +277,37 @@ CREATE TABLE simulation_execution (
 
 ---
 
-# 15. Tabela SimulationStep
+# 15. Tabela ExecutionStep
 
 ```sql
-CREATE TABLE simulation_step (
+CREATE TABLE execution_step (
     step_id UUID PRIMARY KEY,
-    simulation_id UUID NOT NULL,
+    execution_id UUID NOT NULL,
     node_id UUID NOT NULL,
     step_order INTEGER NOT NULL,
     started_at TIMESTAMPTZ,
     finished_at TIMESTAMPTZ,
     result VARCHAR(20) CHECK (result IN ('SUCCESS', 'FAILED', 'SKIPPED')),
     form_data JSONB,
-    FOREIGN KEY (simulation_id) REFERENCES simulation_execution(simulation_id),
+    FOREIGN KEY (execution_id) REFERENCES execution_run(execution_id),
     FOREIGN KEY (node_id) REFERENCES flow_node(node_id),
-    UNIQUE (simulation_id, step_order)
+    UNIQUE (execution_id, step_order)
 );
 ```
 
-As chaves estrangeiras garantem a existência da execução e do nó, mas não comparam suas jornadas. Antes da persistência, o serviço de simulação deve confirmar que `flow_node.flow_id → flow.journey_id` corresponde a `simulation_execution.journey_id`.
+As chaves estrangeiras garantem a existência da execução e do nó, mas não comparam suas jornadas. Antes da persistência, o serviço de execução deve confirmar que `flow_node.flow_id → flow.journey_id` corresponde a `execution_run.journey_id`.
 
 ---
 
-# 16. Tabela SimulationResult
+# 16. Tabela ExecutionResult
 
 ```sql
-CREATE TABLE simulation_result (
+CREATE TABLE execution_result (
     result_id UUID PRIMARY KEY,
-    simulation_id UUID NOT NULL UNIQUE,
+    execution_id UUID NOT NULL UNIQUE,
     executed_path JSONB,
     execution_summary JSONB,
-    FOREIGN KEY (simulation_id) REFERENCES simulation_execution(simulation_id)
+    FOREIGN KEY (execution_id) REFERENCES execution_run(execution_id)
 );
 ```
 
@@ -401,9 +401,9 @@ Registros de auditoria são protegidos contra edição e remoção por operaçõ
 | form | form_id |
 | form_field | (form_id, name) |
 | user_task_config | node_id |
-| simulation_execution | simulation_id |
-| simulation_step | step_id |
-| simulation_result | result_id |
+| execution_run | execution_id |
+| execution_step | step_id |
+| execution_result | result_id |
 | journey_publication | publication_id |
 | journey_version | version_id |
 | audit_event | audit_event_id |
@@ -423,10 +423,10 @@ Registros de auditoria são protegidos contra edição e remoção por operaçõ
 | form_field.form_id | form.form_id |
 | user_task_config.node_id | flow_node.node_id |
 | user_task_config.form_id | form.form_id |
-| simulation_execution.journey_id | journey.journey_id |
-| simulation_step.simulation_id | simulation_execution.simulation_id |
-| simulation_step.node_id | flow_node.node_id |
-| simulation_result.simulation_id | simulation_execution.simulation_id |
+| execution_run.journey_id | journey.journey_id |
+| execution_step.execution_id | execution_run.execution_id |
+| execution_step.node_id | flow_node.node_id |
+| execution_result.execution_id | execution_run.execution_id |
 | journey_publication.journey_id | journey.journey_id |
 | journey_version.journey_id | journey.journey_id |
 | journey_publication.version_id | journey_version.version_id |
@@ -456,8 +456,8 @@ CREATE INDEX idx_form_status ON form(status);
 CREATE INDEX idx_form_field_form ON form_field(form_id);
 CREATE INDEX idx_user_task_form ON user_task_config(form_id);
 
-CREATE INDEX idx_simulation_journey ON simulation_execution(journey_id);
-CREATE INDEX idx_simulation_step_execution ON simulation_step(simulation_id);
+CREATE INDEX idx_execution_journey ON execution_run(journey_id);
+CREATE INDEX idx_execution_step_run ON execution_step(execution_id);
 
 CREATE INDEX idx_publication_status ON journey_publication(publication_status);
 CREATE INDEX idx_publication_snapshot ON journey_publication USING GIN (journey_snapshot);
@@ -479,7 +479,7 @@ Pesquisar jornadas por produto e canal
 
 Carregar fluxo e formulários completos
 
-Executar simulações
+Executar jornadas
 
 Consultar publicações por produto e canal no Admin Portal
 
@@ -537,9 +537,9 @@ erDiagram
     FORM ||--o{ USER_TASK_CONFIG : serves
     FORM ||--o{ FORM_COMPONENT : contains
 
-    JOURNEY ||--o{ SIMULATION_EXECUTION : executes
-    SIMULATION_EXECUTION ||--o{ SIMULATION_STEP : contains
-    SIMULATION_EXECUTION ||--o| SIMULATION_RESULT : generates
+    JOURNEY ||--o{ EXECUTION_RUN : executes
+    EXECUTION_RUN ||--o{ EXECUTION_STEP : contains
+    EXECUTION_RUN ||--o| EXECUTION_RESULT : generates
 
     JOURNEY ||--o| JOURNEY_PUBLICATION : publishes
     JOURNEY ||--o{ JOURNEY_VERSION : versions
@@ -565,4 +565,4 @@ Promotion Between Environments
 
 # 27. Resumo Técnico
 
-O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, registra simulações, possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado e eventos de auditoria sem dados sensíveis.
+O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, registra execuções, possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado e eventos de auditoria sem dados sensíveis.

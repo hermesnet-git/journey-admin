@@ -1,22 +1,24 @@
 import { useState } from 'react';
 import { JourneySearch } from './JourneySearch';
-import { SimulationWorkspace } from './SimulationWorkspace';
+import { ExecutionWorkspace } from './ExecutionWorkspace';
 import type { FlowBundle, JourneySummary, StepResponse } from './api';
 
-interface RunningSimulation {
+interface RunningExecution {
   processInstanceId: string;
+  businessKey: string;
   journey: JourneySummary;
   flow: FlowBundle;
   step: StepResponse;
 }
 
-export function SimulationsPage() {
-  const [running, setRunning] = useState<RunningSimulation | null>(null);
+export function ExecutionsPage() {
+  const [running, setRunning] = useState<RunningExecution | null>(null);
 
   if (running) {
     return (
-      <SimulationWorkspace
+      <ExecutionWorkspace
         processInstanceId={running.processInstanceId}
+        businessKey={running.businessKey}
         journey={running.journey}
         flow={running.flow}
         initialStep={running.step}
@@ -27,7 +29,9 @@ export function SimulationsPage() {
 
   return (
     <JourneySearch
-      onStarted={(processInstanceId, journey, flow, step) => setRunning({ processInstanceId, journey, flow, step })}
+      onStarted={(processInstanceId, businessKey, journey, flow, step) =>
+        setRunning({ processInstanceId, businessKey, journey, flow, step })
+      }
     />
   );
 }

@@ -20,27 +20,27 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 /**
- * Fala direto com a REST API do Camunda 7 (engine-rest): consultas de monitoramento e o comando de
- * encerrar uma instância abandonada. Serviço à parte do {@code ms-espec-registry}: aquele é
- * específico da funcionalidade de Simulação (iniciar/completar tarefas de uma instância); este é o
- * monitoramento geral do runtime que alimenta o Dashboard do portal.
+ * Fala direto com a REST API do motor de runtime (engine-rest): consultas de monitoramento e o
+ * comando de encerrar uma instância abandonada. Serviço à parte do {@code ms-espec-registry}:
+ * aquele é específico da funcionalidade de Execução (iniciar/completar tarefas de uma instância);
+ * este é o monitoramento geral do runtime que alimenta o Dashboard do portal.
  */
 @Component
-class CamundaMonitoringAdapter implements RuntimeMonitoringPort, RuntimeInstanceControlPort {
+class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeInstanceControlPort {
 
-    // Camunda espera o formato RFC 822 ("+0000"), não o "Z" que Instant#toString produz.
+    // O motor espera o formato RFC 822 ("+0000"), não o "Z" que Instant#toString produz.
     private static final DateTimeFormatter QUERY_DATE_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ").withZone(ZoneOffset.UTC);
 
     private final RestClient restClient;
     private final String baseUrl;
 
-    CamundaMonitoringAdapter(@Value("${app.camunda.base-url}") String baseUrl) {
+    RuntimeEngineMonitoringAdapter(@Value("${app.runtime-engine.base-url}") String baseUrl) {
         this.baseUrl = baseUrl;
         this.restClient = RestClient.create();
     }
 
-    // Todo acesso ao engine-rest passa por aqui: se o Camunda estiver fora do ar (ou inacessível),
+    // Todo acesso ao engine-rest passa por aqui: se o motor de runtime estiver fora do ar (ou inacessível),
     // vira RuntimeMonitoringException em vez de deixar a exceção de rede crua propagar — o
     // GlobalExceptionHandler traduz isso numa mensagem única e amigável pro Dashboard.
     private <T> T call(Supplier<T> request) {
@@ -163,11 +163,11 @@ class CamundaMonitoringAdapter implements RuntimeMonitoringPort, RuntimeInstance
         return name != null && !name.isBlank() ? name : fallback;
     }
 
-    private static Instant parseInstant(String camundaTimestamp) {
-        // Camunda devolve "2026-08-16T02:39:13.925-0300" (offset sem ":"), que OffsetDateTime só
+    private static Instant parseInstant(String engineTimestamp) {
+        // O motor devolve "2026-08-16T02:39:13.925-0300" (offset sem ":"), que OffsetDateTime só
         // aceita com o padrão explícito abaixo (o formato ISO padrão exige "-03:00").
-        if (camundaTimestamp == null) return null;
-        return OffsetDateTime.parse(camundaTimestamp, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")).toInstant();
+        if (engineTimestamp == null) return null;
+        return OffsetDateTime.parse(engineTimestamp, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")).toInstant();
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

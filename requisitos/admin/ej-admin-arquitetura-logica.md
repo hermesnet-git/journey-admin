@@ -8,7 +8,7 @@
 
 # 1. Objetivo
 
-Este documento descreve a arquitetura lógica do Elastic Journey Admin Portal, incluindo cadastro de produtos e canais, autoria de jornadas específicas por canal, simulação e publicação.
+Este documento descreve a arquitetura lógica do Elastic Journey Admin Portal, incluindo cadastro de produtos e canais, autoria de jornadas específicas por canal, execução e publicação.
 
 ---
 
@@ -37,7 +37,7 @@ Modelagem Visual de Fluxos
 
 Gestão de Formulários
 
-Simulação
+Execução
 
 Versionamento de Jornadas
 
@@ -105,7 +105,7 @@ Grupo Autoria
   02. Journey Management
   03. Journey Modeler
   04. Forms Management
-  05. Simulation
+  05. Execution
 
 Grupo Publicação
   06. Publication Management
@@ -131,7 +131,7 @@ Grupo Observabilidade Técnica
 | Journey Management | Autoria | Ciclo de vida das jornadas específicas por canal |
 | Journey Modeler | Autoria | Construção visual dos fluxos |
 | Forms Management | Autoria | Gestão de formulários SDUI |
-| Simulation | Autoria | Simulação das jornadas |
+| Execution | Autoria | Execução das jornadas |
 | Publication Management | Publicação | Manutenção do snapshot da versão publicada e chamada outbound para a API do runtime |
 | Authentication & Authorization | Governança de Acesso | Autenticação mockada por provedor externo e autorização por papéis |
 | Version Management | Governança Operacional | Criação, consulta e imutabilidade das versões de jornadas |
@@ -148,23 +148,22 @@ flowchart TD
     JOURNEY[Journey Management]
     MODELER[Journey Modeler]
     FORMS[Forms Management]
-    SIMULATION[Simulation]
+    EXECUTION[Execution]
     PUBLICATION[Publication Management]
     RUNTIME_API[API de Publicação do Runtime<br/>mock na versão 1.0.0]
 
     CATALOG --> JOURNEY
     JOURNEY --> MODELER
     MODELER --> FORMS
-    MODELER --> SIMULATION
-    FORMS --> SIMULATION
-    SIMULATION --> PUBLICATION
+    FORMS --> PUBLICATION
+    PUBLICATION --> EXECUTION
     PUBLICATION --> RUNTIME_API
 
 ```
 
 ## Interpretação
 
-O usuário cadastra um produto e seus canais, cria uma jornada para um canal específico, modela o fluxo e os formulários, simula a jornada e então publica seu snapshot por meio da API do runtime mockada na versão 1.0.0.
+O usuário cadastra um produto e seus canais, cria uma jornada para um canal específico, modela o fluxo e os formulários, publica seu snapshot por meio da API do runtime mockada na versão 1.0.0 e então executa a jornada contra o motor de runtime.
 
 Observability (domínio 10) é transversal a todos os domínios acima — instrumenta toda requisição de API e toda transação de persistência independentemente do domínio de negócio envolvido — e por isso não aparece como um nó no fluxo.
 
@@ -350,36 +349,36 @@ O snapshot de publicação também guarda, para cada formulário, uma projeção
 
 ---
 
-# 13. Domínio 05 — Simulation
+# 13. Domínio 05 — Execution
 
 ## Objetivo
 
-Permitir a verificação simulada do caminho e das telas da jornada antes da publicação.
+Permitir a verificação do caminho e das telas de uma jornada publicada, executando-a de fato contra o motor de runtime real.
 
 ## Entidades
 
 ```text
-Simulation Execution
+Execution Run
 
-Simulation Step
+Execution Step
 
-Simulation Result
+Execution Result
 ```
 
-Antes de persistir cada `Simulation Step`, o backend deve percorrer `Flow Node → Flow → Journey` e confirmar que o nó pertence à mesma jornada da `Simulation Execution`. Passos de outra jornada não devem ser persistidos.
+Antes de persistir cada `Execution Step`, o backend deve percorrer `Flow Node → Flow → Journey` e confirmar que o nó pertence à mesma jornada da `Execution Run`. Passos de outra jornada não devem ser persistidos.
 
-## Fluxo de Simulação e Publicação
+## Fluxo de Publicação e Execução
 
 ```mermaid
 flowchart TD
     JOURNEY[Journey]
-    SIMULATION[Simulation]
-    RESULT[Simulation Result]
     PUBLICATION[Publication]
+    EXECUTION[Execution]
+    RESULT[Execution Result]
 
-    JOURNEY --> SIMULATION
-    SIMULATION --> RESULT
-    SIMULATION --> PUBLICATION
+    JOURNEY --> PUBLICATION
+    PUBLICATION --> EXECUTION
+    EXECUTION --> RESULT
 ```
 
 ---
@@ -441,15 +440,15 @@ flowchart TD
     JOURNEY[Criar Jornada para o Canal]
     FLOW[Modelar Fluxo]
     FORMS[Configurar Formulários]
-    SIMULATE[Simular]
     PUBLISH[Publicar]
+    EXECUTE[Executar]
 
     PRODUCT --> CHANNEL
     CHANNEL --> JOURNEY
     JOURNEY --> FLOW
     FLOW --> FORMS
-    FORMS --> SIMULATE
-    SIMULATE --> PUBLISH
+    FORMS --> PUBLISH
+    PUBLISH --> EXECUTE
 ```
 
 Cada jornada é isolada por canal. Os códigos de produto, canal e jornada pertencem ao domínio administrativo e são incluídos no snapshot, mas não formam um contrato de consulta pelo runtime.
@@ -484,15 +483,14 @@ flowchart TD
     JOURNEY[Journey Management]
     MODELER[Journey Modeler]
     FORMS[Forms Management]
-    SIMULATION[Simulation]
     PUBLICATION[Publication Management]
+    EXECUTION[Execution]
 
     CATALOG --> JOURNEY
     JOURNEY --> MODELER
     MODELER --> FORMS
-    MODELER --> SIMULATION
-    FORMS --> SIMULATION
-    SIMULATION --> PUBLICATION
+    FORMS --> PUBLICATION
+    PUBLICATION --> EXECUTION
 ```
 
 Observability não possui dependência de fluxo com os demais domínios — atua de forma transversal, instrumentando a execução de qualquer um deles.
@@ -569,9 +567,9 @@ Não há entidade de domínio persistida por este domínio — os logs técnicos
 | User Task Configuration | Associação entre uma User Task e seu formulário |
 | Form | Formulário utilizado por User Tasks |
 | Form Component | Componente visual de um formulário |
-| Simulation Execution | Execução simulada da jornada |
-| Simulation Step | Etapa registrada durante a simulação |
-| Simulation Result | Resultado consolidado da simulação |
+| Execution Run | Execução da jornada |
+| Execution Step | Etapa registrada durante a execução |
+| Execution Result | Resultado consolidado da execução |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 
 ---

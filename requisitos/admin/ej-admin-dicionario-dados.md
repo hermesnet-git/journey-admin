@@ -217,24 +217,24 @@ Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, 
 
 ---
 
-# 13. SimulationExecution
+# 13. ExecutionRun
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
-| SimulationId | UUID | Sim | Identificador da simulação |
-| JourneyId | UUID | Sim | Jornada simulada |
-| InputData | JSONB | Não | Dados informados para os formulários simulados |
+| ExecutionId | UUID | Sim | Identificador da execução |
+| JourneyId | UUID | Sim | Jornada executada |
+| InputData | JSONB | Não | Dados informados para os formulários durante a execução |
 | ExecutedAt | TIMESTAMPTZ | Sim | Data da execução |
 | Status | VARCHAR(20) | Sim | `RUNNING`, `COMPLETED`, `FAILED` ou `CANCELLED` |
 
 ---
 
-# 14. SimulationStep
+# 14. ExecutionStep
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | StepId | UUID | Sim | Identificador da etapa |
-| SimulationId | UUID | Sim | Simulação proprietária |
+| ExecutionId | UUID | Sim | Execução proprietária |
 | NodeId | UUID | Sim | Nó executado |
 | StepOrder | INTEGER | Sim | Ordem da etapa |
 | StartedAt | TIMESTAMPTZ | Não | Início da etapa |
@@ -242,16 +242,16 @@ Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, 
 | Result | VARCHAR(20) | Não | `SUCCESS`, `FAILED` ou `SKIPPED` |
 | FormData | JSONB | Não | Dados do formulário apresentado na etapa |
 
-O backend deve registrar o passo somente quando `NodeId` pertencer ao fluxo da mesma jornada indicada pela `SimulationExecution`.
+O backend deve registrar o passo somente quando `NodeId` pertencer ao fluxo da mesma jornada indicada pela `ExecutionRun`.
 
 ---
 
-# 15. SimulationResult
+# 15. ExecutionResult
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | ResultId | UUID | Sim | Identificador do resultado |
-| SimulationId | UUID | Sim | Simulação relacionada |
+| ExecutionId | UUID | Sim | Execução relacionada |
 | ExecutedPath | JSONB | Não | Caminho percorrido |
 | ExecutionSummary | JSONB | Não | Resumo consolidado |
 
@@ -345,11 +345,11 @@ Auditoria não deve armazenar senhas, tokens, secrets ou credenciais.
 | ConnectorType | Tipo de conector habilitado ou catalogado como desabilitado |
 | UserTaskConfig | Associação entre User Task e Form |
 | Form / FormField | Formulário e campos que o compõem |
-| SimulationExecution / Step / Result | Execução simulada, etapas e resultado |
+| ExecutionRun / Step / Result | Execução, etapas e resultado |
 | JourneyPublication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 
 ---
 
 # 21. Resumo
 
-O dicionário descreve a hierarquia Product → Channel → Journey, o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual, formulários, simulação e publicação de jornadas específicas por canal.
+O dicionário descreve a hierarquia Product → Channel → Journey, o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual, formulários, execução e publicação de jornadas específicas por canal.

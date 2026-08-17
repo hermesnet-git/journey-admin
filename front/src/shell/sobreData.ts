@@ -534,22 +534,22 @@ export const EPICS: Epic[] = [
   },
   {
     code: 'FT-05',
-    name: 'Simulação',
+    name: 'Execução',
     features: [
       {
         code: 'US-05.01',
         name: 'Execução',
         requirements: [
-          d('REQ-05.01.001', 'O sistema deve permitir executar simulações.'),
-          d('REQ-05.01.002', 'O sistema deve permitir informar dados de entrada para os formulários simulados.'),
-          d('REQ-05.01.003', 'O sistema deve permitir reiniciar simulações.'),
+          d('REQ-05.01.001', 'O sistema deve permitir executar jornadas.'),
+          d('REQ-05.01.002', 'O sistema deve permitir informar dados de entrada para os formulários durante a execução.'),
+          d('REQ-05.01.003', 'O sistema deve permitir reiniciar a execução.'),
           {
             code: 'REQ-05.01.004',
             description:
-              'Antes de registrar um passo da simulação, o backend deve garantir que o nó executado pertença ao fluxo da mesma jornada associada à execução.',
+              'Antes de registrar um passo da execução, o backend deve garantir que o nó executado pertença ao fluxo da mesma jornada associada à execução.',
             status: 'done',
             notes:
-              'Satisfeito por arquitetura, não por checagem dedicada: o front nunca envia um nó/id arbitrário — o passo atual é sempre resolvido no servidor a partir do processo real do Camunda.',
+              'Satisfeito por arquitetura, não por checagem dedicada: o front nunca envia um nó/id arbitrário — o passo atual é sempre resolvido no servidor a partir do processo real do motor de runtime.',
           },
         ],
       },
@@ -560,14 +560,14 @@ export const EPICS: Epic[] = [
           d('REQ-05.02.001', 'O sistema deve apresentar o caminho percorrido.'),
           d('REQ-05.02.002', 'O sistema deve apresentar as User Tasks executadas.'),
           d('REQ-05.02.003', 'O sistema deve apresentar os formulários exibidos.'),
-          d('REQ-05.02.004', 'O sistema deve apresentar o resultado final da simulação.'),
+          d('REQ-05.02.004', 'O sistema deve apresentar o resultado final da execução.'),
         ],
       },
       {
         code: 'US-05.03',
         name: 'Visualização da execução',
         requirements: [
-          d('REQ-05.03.001', 'O sistema deve destacar o caminho percorrido durante a simulação.'),
+          d('REQ-05.03.001', 'O sistema deve destacar o caminho percorrido durante a execução.'),
           d('REQ-05.03.002', 'O sistema deve destacar as User Tasks e os formulários executados.'),
           {
             code: 'REQ-05.03.003',
@@ -586,13 +586,17 @@ export const EPICS: Epic[] = [
           {
             code: 'REQ-05.04.001',
             description:
-              'A simulação deve executar a jornada publicada contra o motor de runtime real (Camunda), não um simulador simplificado interno ao Admin Portal.',
+              'O sistema deve executar a jornada publicada contra o motor de runtime real, não um motor simplificado interno ao Admin Portal.',
             status: 'done',
             notes: 'Exige jornada publicada — o objetivo original da feature ("sem publicá-la") foi ajustado.',
           },
           d(
             'REQ-05.04.002',
             'Na versão 1.0.0, as integrações REST externas referenciadas pelas jornadas devem ser emuladas por um serviço de mock dedicado, já que não há sistemas de terceiros reais disponíveis.',
+          ),
+          d(
+            'REQ-05.04.003',
+            'As integrações Kafka referenciadas pelas jornadas devem executar contra um broker Kafka real, com publicação e consumo de mensagens efetivos.',
           ),
         ],
       },
@@ -602,11 +606,11 @@ export const EPICS: Epic[] = [
         requirements: [
           d(
             'REQ-05.05.001',
-            'O sistema deve permitir avançar manualmente uma etapa de integração (Service Task ou Receive Task) que dependeria de um evento assíncrono externo, simulando sua conclusão.',
+            'O sistema deve permitir avançar manualmente uma etapa de integração (Service Task ou Receive Task) que dependeria de um evento assíncrono externo, pulando sua conclusão.',
           ),
           d(
             'REQ-05.05.002',
-            'O sistema deve indicar claramente quando a simulação está aguardando uma etapa de integração, distinguindo-a de uma User Task aguardando preenchimento.',
+            'O sistema deve indicar claramente quando a execução está aguardando uma etapa de integração, distinguindo-a de uma User Task aguardando preenchimento.',
           ),
         ],
       },
@@ -629,7 +633,7 @@ export const EPICS: Epic[] = [
             'REQ-05.06.003',
             'O sistema deve apresentar o resultado das integrações já executadas (dados retornados/mapeados por Service/Receive Tasks).',
           ),
-          d('REQ-05.06.004', 'O sistema deve apresentar um log cronológico dos passos executados durante a simulação.'),
+          d('REQ-05.06.004', 'O sistema deve apresentar um log cronológico dos passos executados durante a execução.'),
           d(
             'REQ-05.06.005',
             'O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida.',
@@ -648,7 +652,7 @@ export const EPICS: Epic[] = [
             notes:
               'Comportamento revisado a pedido do usuário: a versão anterior deste requisito ("sem exigir listar todas de uma vez") foi trocada por listar tudo por padrão e filtrar ao digitar.',
           },
-          d('REQ-05.07.002', 'A execução da simulação deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.'),
+          d('REQ-05.07.002', 'A execução deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.'),
           {
             code: 'REQ-05.07.003',
             description:
@@ -665,7 +669,7 @@ export const EPICS: Epic[] = [
           {
             code: 'REQ-05.08.001',
             description:
-              'O sistema deve detectar quando uma etapa de integração (Service Task ou Receive Task) falha durante a simulação (ex.: conector REST inacessível) e identificar qual nó do fluxo causou a falha, mesmo quando o motor não expõe isso diretamente (a transação dá rollback antes de qualquer histórico ser gravado).',
+              'O sistema deve detectar quando uma etapa de integração (Service Task ou Receive Task) falha durante a execução (ex.: conector REST inacessível) e identificar qual nó do fluxo causou a falha, mesmo quando o motor não expõe isso diretamente (a transação dá rollback antes de qualquer histórico ser gravado).',
             status: 'done',
             notes:
               'A engine dá rollback na transação inteira quando um conector falha, então o nó que realmente falhou nunca aparece no histórico — o backend segue as conexões do fluxo a partir do passo atual até o próximo nó com conector pra identificá-lo corretamente.',
@@ -674,11 +678,57 @@ export const EPICS: Epic[] = [
             'REQ-05.08.002',
             'O sistema deve destacar visualmente, no diagrama do fluxo, o nó que causou a falha, de forma distinta dos demais estados (concluído, atual, pendente).',
           ),
-          d('REQ-05.08.003', 'O sistema deve registrar a falha no log cronológico da simulação.'),
+          d('REQ-05.08.003', 'O sistema deve registrar a falha no log cronológico da execução.'),
           d(
             'REQ-05.08.004',
             'O sistema deve permitir consultar a mensagem de erro completa da falha sob demanda, sem exibi-la de forma intrusiva na tela principal de execução.',
           ),
+        ],
+      },
+      {
+        code: 'US-05.09',
+        name: 'Mensageria Kafka real',
+        requirements: [
+          d(
+            'REQ-05.09.001',
+            'Cada execução deve possuir um identificador de correlação (business key) próprio, gerado automaticamente ao iniciar a instância.',
+          ),
+          d(
+            'REQ-05.09.002',
+            'Uma Service Task com conector Kafka deve publicar a mensagem de verdade num broker Kafka real, automaticamente, sem exigir ação manual.',
+          ),
+          d(
+            'REQ-05.09.003',
+            'O sistema deve indicar visualmente que uma Service Task Kafka está aguardando a publicação automática, sem oferecer um botão de ação como principal.',
+          ),
+          d(
+            'REQ-05.09.004',
+            'O sistema deve detectar e processar automaticamente uma mensagem Kafka publicada no tópico de uma Receive Task ou de um início por mensagem (Message Start Event) em execução, avançando a instância correspondente sem exigir ação do usuário — inclusive quando a mensagem é publicada por um produtor externo ao Admin Portal, não só pelo painel de teste.',
+          ),
+          d(
+            'REQ-05.09.005',
+            'O sistema deve permitir publicar uma mensagem de teste real, com tópico (somente leitura) e payload editável em JSON, diretamente na tela de execução, para uma Receive Task que dependa de mensagem Kafka.',
+          ),
+          d(
+            'REQ-05.09.006',
+            'O payload da mensagem de teste de uma Receive Task deve vir pré-preenchido com o identificador de correlação (business key) da instância em execução.',
+          ),
+          d(
+            'REQ-05.09.007',
+            'Uma jornada cujo início é por mensagem (Message Start Event) deve oferecer, na tela de busca de jornada, o painel de envio de mensagem de teste para iniciar uma instância nova, sem pré-preencher a business key.',
+          ),
+          d(
+            'REQ-05.09.008',
+            'Depois de enviar a mensagem de teste que inicia uma jornada por mensagem, o sistema deve aguardar automaticamente até a instância nova aparecer e prosseguir para a tela de execução, sem ação adicional do usuário.',
+          ),
+          {
+            code: 'REQ-05.09.009',
+            description:
+              'O sistema deve permitir, como alternativa manual secundária à publicação ou ao consumo Kafka real, pular qualquer etapa Kafka em espera (Service Task, Receive Task ou início por mensagem), fabricando o resultado a partir do mapeamento de saída configurado.',
+            status: 'done',
+            notes:
+              'Reexpõe, como link discreto ("Pular etapa"/"Iniciar sem mensagem"), o mecanismo de fabricar resultado que existia desde antes do broker Kafka real — nunca foi removido do backend, só deixou de ter botão na tela para nós Kafka.',
+          },
         ],
       },
     ],
@@ -1185,7 +1235,7 @@ export const EPICS: Epic[] = [
         name: 'Auditoria de ações administrativas',
         requirements: [
           d('REQ-13.09.001', 'O encerramento manual de uma instância deve ser registrado na auditoria do portal.'),
-          d('REQ-13.09.002', 'O início de uma simulação deve ser registrado na auditoria do portal.'),
+          d('REQ-13.09.002', 'O início de uma execução deve ser registrado na auditoria do portal.'),
         ],
       },
     ],
@@ -1260,6 +1310,18 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-17 01:22',
+    source: 'progresso',
+    summary:
+      'FT-05 renomeada de "Simulação" para "Execução" (feature, user stories, requisitos, evidências) — a feature deixou de ser uma simulação simplificada desde que passou a rodar contra o motor de runtime real e, mais recentemente, mensageria Kafka real também de verdade; "Simulação" não descrevia mais o que a tela faz. Junto, todo texto de requisito/arquitetura que citava "Camunda" explicitamente foi generalizado para "motor de runtime"/"Runtime Engine" — o Admin Portal deve se apresentar como agnóstico à engine, mesmo princípio já usado nos nomes dos ports (RuntimeMonitoringPort, RuntimePublicationPort). Código: front/src/simulation/ → front/src/execution/ (SimulationWorkspace→ExecutionWorkspace, SimulationsPage→ExecutionsPage, simulateStep()→skipStep(), aba "Simulações"→"Execuções", botão "Simular conclusão"→"Pular etapa"); admin/back: pacote simulationaudit→executionaudit (SIMULATION_START→EXECUTION_START, rota /simulation-audit→/execution-audit), CamundaMonitoringAdapter→RuntimeEngineMonitoringAdapter, config app.camunda.base-url/CAMUNDA_BASE_URL→app.runtime-engine.base-url/RUNTIME_ENGINE_BASE_URL. Fora de escopo por pedido explícito: nada dentro de admin/simulacoes/ foi tocado (ms-espec-registry continua com SimulationController, CamundaClient e o endpoint /simulate-step exatamente como estavam — são detalhes internos de um serviço que já existe, não a apresentação do portal). Nenhum REQ novo ou removido nesta rodada, só renomeação — FT-05 continua 37/37 (100%).',
+  },
+  {
+    date: '2026-08-17 00:34',
+    source: 'progresso',
+    summary:
+      'FT-05 Simulação ganhou mais uma rodada: REQ-05.04.003 (novo) registra que integrações Kafka agora rodam contra um broker real, ao contrário das REST (que continuam mockadas). Nova user story US-05.09 Mensageria Kafka real (REQ-05.09.001 a 009): identificador de correlação (business key) próprio por instância, publicação automática de Service Task Kafka sem ação manual (KafkaBridgeScheduler), indicador visual distinto para essa espera, consumo/correlação automática de mensagem real para Receive Task e início por mensagem — inclusive vinda de um produtor externo ao Admin Portal (kafka-console-producer, testado ao vivo) —, painel de envio de mensagem de teste com tópico somente-leitura e business key pré-preenchida, início de jornada por mensagem direto na tela de busca com espera automática pela instância nova, e um "bypass" manual (REQ-05.09.009) que reexpõe o mecanismo de fabricar resultado (idêntico ao antigo "Simular conclusão", nunca removido do backend) como alternativa secundária discreta, tanto para etapas Kafka em espera (DevicePreview.tsx, link "Pular etapa") quanto para o início por mensagem (JourneySearch.tsx, link "Iniciar sem mensagem"). REQ-05.05.001 não precisou de ajuste de texto: com o bypass valendo também para Kafka, o texto original continua verdadeiro. FT-05 vai de 27/27 para 37/37 (100%, 10 REQs novos). Progresso geral de 302/338 (89%) para 312/348 (90%).',
+  },
   {
     date: '2026-08-16 05:33',
     source: 'progresso',

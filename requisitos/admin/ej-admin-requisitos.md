@@ -13,7 +13,7 @@ Admin Portal.
 
 O Admin Portal permite cadastrar produtos e seus canais de atendimento, criar,
 modelar e versionar jornadas específicas para cada canal, configurar
-formulários, simular jornadas, controlar o acesso por autenticação e
+formulários, executar jornadas, controlar o acesso por autenticação e
 autorização mockadas, registrar auditoria, publicar versões por meio de uma
 API do runtime, disponibilizar uma central de ajuda e registrar log técnico
 de observabilidade (API e transações de persistência).
@@ -24,7 +24,7 @@ de observabilidade (API e transações de persistência).
 
 A versão 1.0.0 do Elastic Journey Admin Portal permite cadastrar produtos e canais,
 construir jornadas independentes para cada canal, modelar fluxos e
-formulários, criar e consultar versões, simular jornadas, autenticar usuários
+formulários, criar e consultar versões, executar jornadas, autenticar usuários
 por provedor externo mockado, aplicar papéis, registrar auditoria, publicar
 versões por meio de uma chamada mockada para a futura API de publicação do
 runtime, consultar uma central de ajuda e observar a aplicação por meio de
@@ -39,7 +39,7 @@ Modelar fluxos visualmente
 
 Criar formulários
 
-Simular jornadas
+Executar jornadas
 
 Versionar jornadas
 
@@ -424,63 +424,76 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 
 <br/>
 
-# FT-05 Simulação
+# FT-05 Execução
 
 ## Objetivo
 
-Permitir a verificação do caminho e das telas de uma jornada publicada, executando-a de fato no motor de runtime (não uma simulação simplificada à parte) — dando visibilidade total do que acontece a cada passo.
+Permitir a verificação do caminho e das telas de uma jornada publicada, executando-a de fato no motor de runtime (não um motor simplificado à parte) — dando visibilidade total do que acontece a cada passo.
 
-> Ajuste em relação à versão original deste objetivo ("sem publicá-la"): a simulação roda contra o motor de runtime real (Camunda), o que exige que a jornada esteja publicada — não existe um simulador simplificado interno ao Admin Portal. Ver US-05.04.
+> Ajuste em relação à versão original deste objetivo ("sem publicá-la"): a execução roda contra o motor de runtime real, o que exige que a jornada esteja publicada — não existe um motor simplificado interno ao Admin Portal. Ver US-05.04.
 
 ### US-05.01 Execução
-#### REQ-05.01.001 - O sistema deve permitir executar simulações.
-#### REQ-05.01.002 - O sistema deve permitir informar dados de entrada para os formulários simulados.
-#### REQ-05.01.003 - O sistema deve permitir reiniciar simulações.
-#### REQ-05.01.004 - Antes de registrar um passo da simulação, o backend deve garantir que o nó executado pertença ao fluxo da mesma jornada associada à execução.
+#### REQ-05.01.001 - O sistema deve permitir executar jornadas.
+#### REQ-05.01.002 - O sistema deve permitir informar dados de entrada para os formulários durante a execução.
+#### REQ-05.01.003 - O sistema deve permitir reiniciar a execução.
+#### REQ-05.01.004 - Antes de registrar um passo da execução, o backend deve garantir que o nó executado pertença ao fluxo da mesma jornada associada à execução.
 ---
 
 ### US-05.02 Resultado
 #### REQ-05.02.001 - O sistema deve apresentar o caminho percorrido.
 #### REQ-05.02.002 - O sistema deve apresentar as User Tasks executadas.
 #### REQ-05.02.003 - O sistema deve apresentar os formulários exibidos.
-#### REQ-05.02.004 - O sistema deve apresentar o resultado final da simulação.
+#### REQ-05.02.004 - O sistema deve apresentar o resultado final da execução.
 ---
 
 ### US-05.03 Visualização da execução
-#### REQ-05.03.001 - O sistema deve destacar o caminho percorrido durante a simulação.
+#### REQ-05.03.001 - O sistema deve destacar o caminho percorrido durante a execução.
 #### REQ-05.03.002 - O sistema deve destacar as User Tasks e os formulários executados.
 #### REQ-05.03.003 - O sistema não deve reposicionar ou reiniciar o zoom do diagrama do fluxo ao alternar entre as abas do painel de observabilidade.
 ---
 
 ### US-05.04 Arquitetura de execução
-#### REQ-05.04.001 - A simulação deve executar a jornada publicada contra o motor de runtime real (Camunda), não um simulador simplificado interno ao Admin Portal.
+#### REQ-05.04.001 - O sistema deve executar a jornada publicada contra o motor de runtime real, não um motor simplificado interno ao Admin Portal.
 #### REQ-05.04.002 - Na versão 1.0.0, as integrações REST externas referenciadas pelas jornadas devem ser emuladas por um serviço de mock dedicado, já que não há sistemas de terceiros reais disponíveis.
+#### REQ-05.04.003 - As integrações Kafka referenciadas pelas jornadas devem executar contra um broker Kafka real, com publicação e consumo de mensagens efetivos.
 ---
 
 ### US-05.05 Etapas de integração
-#### REQ-05.05.001 - O sistema deve permitir avançar manualmente uma etapa de integração (Service Task ou Receive Task) que dependeria de um evento assíncrono externo, simulando sua conclusão.
-#### REQ-05.05.002 - O sistema deve indicar claramente quando a simulação está aguardando uma etapa de integração, distinguindo-a de uma User Task aguardando preenchimento.
+#### REQ-05.05.001 - O sistema deve permitir avançar manualmente uma etapa de integração (Service Task ou Receive Task) que dependeria de um evento assíncrono externo, pulando sua conclusão.
+#### REQ-05.05.002 - O sistema deve indicar claramente quando a execução está aguardando uma etapa de integração, distinguindo-a de uma User Task aguardando preenchimento.
 ---
 
 ### US-05.06 Observabilidade da execução
 #### REQ-05.06.001 - O sistema deve apresentar as variáveis do processo em execução, com seus valores atuais.
 #### REQ-05.06.002 - O sistema deve permitir alterar manualmente o valor de uma variável do processo em execução, para forçar caminhos alternativos de decisão durante o teste.
 #### REQ-05.06.003 - O sistema deve apresentar o resultado das integrações já executadas (dados retornados/mapeados por Service/Receive Tasks).
-#### REQ-05.06.004 - O sistema deve apresentar um log cronológico dos passos executados durante a simulação.
+#### REQ-05.06.004 - O sistema deve apresentar um log cronológico dos passos executados durante a execução.
 #### REQ-05.06.005 - O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida.
 ---
 
 ### US-05.07 Seleção e apresentação
 #### REQ-05.07.001 - O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado.
-#### REQ-05.07.002 - A execução da simulação deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.
+#### REQ-05.07.002 - A execução deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.
 #### REQ-05.07.003 - A pré-visualização da execução deve se adaptar ao canal da jornada (Web ou App), incluindo uma representação visual compatível com o canal (ex.: layout de dispositivo móvel para jornadas de canal App).
 ---
 
 ### US-05.08 Tratamento de falhas de integração
-#### REQ-05.08.001 - O sistema deve detectar quando uma etapa de integração (Service Task ou Receive Task) falha durante a simulação (ex.: conector REST inacessível) e identificar qual nó do fluxo causou a falha, mesmo quando o motor não expõe isso diretamente (a transação dá rollback antes de qualquer histórico ser gravado).
+#### REQ-05.08.001 - O sistema deve detectar quando uma etapa de integração (Service Task ou Receive Task) falha durante a execução (ex.: conector REST inacessível) e identificar qual nó do fluxo causou a falha, mesmo quando o motor não expõe isso diretamente (a transação dá rollback antes de qualquer histórico ser gravado).
 #### REQ-05.08.002 - O sistema deve destacar visualmente, no diagrama do fluxo, o nó que causou a falha, de forma distinta dos demais estados (concluído, atual, pendente).
-#### REQ-05.08.003 - O sistema deve registrar a falha no log cronológico da simulação.
+#### REQ-05.08.003 - O sistema deve registrar a falha no log cronológico da execução.
 #### REQ-05.08.004 - O sistema deve permitir consultar a mensagem de erro completa da falha sob demanda, sem exibi-la de forma intrusiva na tela principal de execução.
+---
+
+### US-05.09 Mensageria Kafka real
+#### REQ-05.09.001 - Cada execução deve possuir um identificador de correlação (business key) próprio, gerado automaticamente ao iniciar a instância.
+#### REQ-05.09.002 - Uma Service Task com conector Kafka deve publicar a mensagem de verdade num broker Kafka real, automaticamente, sem exigir ação manual.
+#### REQ-05.09.003 - O sistema deve indicar visualmente que uma Service Task Kafka está aguardando a publicação automática, sem oferecer um botão de ação como principal.
+#### REQ-05.09.004 - O sistema deve detectar e processar automaticamente uma mensagem Kafka publicada no tópico de uma Receive Task ou de um início por mensagem (Message Start Event) em execução, avançando a instância correspondente sem exigir ação do usuário — inclusive quando a mensagem é publicada por um produtor externo ao Admin Portal, não só pelo painel de teste.
+#### REQ-05.09.005 - O sistema deve permitir publicar uma mensagem de teste real, com tópico (somente leitura) e payload editável em JSON, diretamente na tela de execução, para uma Receive Task que dependa de mensagem Kafka.
+#### REQ-05.09.006 - O payload da mensagem de teste de uma Receive Task deve vir pré-preenchido com o identificador de correlação (business key, REQ-05.09.001) da instância em execução.
+#### REQ-05.09.007 - Uma jornada cujo início é por mensagem (Message Start Event) deve oferecer, na tela de busca de jornada, o painel de envio de mensagem de teste (REQ-05.09.005) para iniciar uma instância nova, sem pré-preencher a business key (a instância ainda não existe).
+#### REQ-05.09.008 - Depois de enviar a mensagem de teste que inicia uma jornada por mensagem, o sistema deve aguardar automaticamente até a instância nova aparecer e prosseguir para a tela de execução, sem ação adicional do usuário.
+#### REQ-05.09.009 - O sistema deve permitir, como alternativa manual secundária à publicação ou ao consumo Kafka real, pular qualquer etapa Kafka em espera (Service Task, Receive Task ou início por mensagem), fabricando o resultado a partir do mapeamento de saída configurado — útil quando o broker está indisponível ou para avançar rapidamente durante um teste.
 ---
 
 <br/><br/>
@@ -721,7 +734,7 @@ Definir e implementar a infraestrutura de suporte à solução: identidade, cont
 
 ## Objetivo
 
-Dar visibilidade operacional em tempo real sobre os processos em execução no motor de runtime (Camunda) — instâncias ativas, tarefas pendentes, incidentes, tendências e processos por volume — a partir de uma única tela, sem precisar acessar o motor diretamente. É a primeira tela apresentada ao entrar no Admin Portal.
+Dar visibilidade operacional em tempo real sobre os processos em execução no motor de runtime — instâncias ativas, tarefas pendentes, incidentes, tendências e processos por volume — a partir de uma única tela, sem precisar acessar o motor diretamente. É a primeira tela apresentada ao entrar no Admin Portal.
 
 ### US-13.01 Indicadores em tempo real
 #### REQ-13.01.001 - O sistema deve apresentar a quantidade de instâncias ativas no motor de runtime.
@@ -763,7 +776,7 @@ Dar visibilidade operacional em tempo real sobre os processos em execução no m
 
 ### US-13.09 Auditoria de ações administrativas
 #### REQ-13.09.001 - O encerramento manual de uma instância deve ser registrado na auditoria do portal.
-#### REQ-13.09.002 - O início de uma simulação deve ser registrado na auditoria do portal.
+#### REQ-13.09.002 - O início de uma execução deve ser registrado na auditoria do portal.
 
 <br/><br/>
 

@@ -1,4 +1,4 @@
-// Dashboard é uma funcionalidade do admin/back (não da Simulação) — usa o mesmo cliente autenticado
+// Dashboard é uma funcionalidade do admin/back (não da Execução) — usa o mesmo cliente autenticado
 // do resto do portal, não o cliente à parte do ms-espec-registry.
 import { apiDelete, apiGet } from '../api/client';
 

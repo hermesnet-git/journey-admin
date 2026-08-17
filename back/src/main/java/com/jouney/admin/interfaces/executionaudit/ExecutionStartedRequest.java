@@ -1,9 +1,9 @@
-package com.jouney.admin.interfaces.simulationaudit;
+package com.jouney.admin.interfaces.executionaudit;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
-public record SimulationStartedRequest(@NotNull UUID journeyId, @NotBlank String journeyName,
-                                        @NotBlank String processInstanceId) {
+public record ExecutionStartedRequest(@NotNull UUID journeyId, @NotBlank String journeyName,
+                                       @NotBlank String processInstanceId) {
 }

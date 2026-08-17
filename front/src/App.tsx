@@ -8,7 +8,7 @@ import { DashboardPage } from './dashboard/DashboardPage';
 import { ProductsPage } from './products/ProductsPage';
 import { JourneysPage } from './journeys/JourneysPage';
 import { FormsPage } from './forms/FormsPage';
-import { SimulationsPage } from './simulation/SimulationsPage';
+import { ExecutionsPage } from './execution/ExecutionsPage';
 import { AuditPage } from './audit/AuditPage';
 import { AppThemeContext, LIGHT_APP_COLORS, DARK_APP_COLORS } from './shell/theme';
 import type { Tab } from './shell/types';
@@ -23,7 +23,7 @@ const DASHBOARD_TAB: Tab = { key: 'dashboard', title: 'Dashboard', kind: 'dashbo
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: true };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
 const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
-const SIMULACOES_TAB: Tab = { key: 'simulacoes', title: 'Simulações', kind: 'simulation', closable: true };
+const EXECUCOES_TAB: Tab = { key: 'execucoes', title: 'Execuções', kind: 'execution', closable: true };
 const AUDIT_TAB: Tab = { key: 'auditoria', title: 'Auditoria', kind: 'audit', closable: true };
 const HELP_TAB: Tab = { key: 'ajuda', title: 'Ajuda e suporte', kind: 'help', closable: true };
 const SOBRE_TAB: Tab = { key: 'sobre', title: `Sobre ${APP_VERSION}`, kind: 'sobre', closable: true };
@@ -86,8 +86,8 @@ function AppShell() {
       openTab(FORMS_TAB);
       return;
     }
-    if (navKey === 'simulacoes') {
-      openTab(SIMULACOES_TAB);
+    if (navKey === 'execucoes') {
+      openTab(EXECUCOES_TAB);
       return;
     }
     if (navKey === 'auditoria') {
@@ -125,8 +125,8 @@ function AppShell() {
           ? 'produtos'
           : activeTab.kind === 'forms'
             ? 'formularios'
-            : activeTab.kind === 'simulation'
-              ? 'simulacoes'
+            : activeTab.kind === 'execution'
+              ? 'execucoes'
               : activeTab.kind === 'audit'
               ? 'auditoria'
               : activeTab.kind === 'help'
@@ -165,7 +165,7 @@ function AppShell() {
                       onOpenNewHandled={() => setOpenNewForm(false)}
                     />
                   )}
-                  {tab.kind === 'simulation' && <SimulationsPage />}
+                  {tab.kind === 'execution' && <ExecutionsPage />}
                   {tab.kind === 'audit' && <AuditPage />}
                   {tab.kind === 'help' && <HelpPage />}
                   {tab.kind === 'sobre' && <SobrePage />}

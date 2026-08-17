@@ -8,7 +8,7 @@
 
 # 1. Objetivo
 
-Este documento descreve o modelo de dados conceitual do Elastic Journey Admin Portal, abrangendo produtos, canais, jornadas, fluxos, formulários, simulação e publicação.
+Este documento descreve o modelo de dados conceitual do Elastic Journey Admin Portal, abrangendo produtos, canais, jornadas, fluxos, formulários, execução e publicação.
 
 ---
 
@@ -36,7 +36,7 @@ A publicação preserva a definição da versão da jornada no momento da public
 
 ## 2.5 Desacoplamento do Motor BPM
 
-Nenhuma entidade possui dependência de BPMN, Camunda ou outro motor de execução.
+Nenhuma entidade possui dependência de BPMN ou de qualquer motor de execução específico.
 
 ## 2.6 Simplicidade
 
@@ -57,7 +57,7 @@ flowchart TD
     JOURNEY[Journey]
     FLOW[Flow]
     FORMS[Forms]
-    SIMULATION[Simulation Execution]
+    EXECUTION[Execution Run]
     VERSION[Journey Version]
     PUBLICATION[Journey Publication]
     USER[User / Role]
@@ -66,7 +66,7 @@ flowchart TD
     PRODUCT --> CHANNEL
     CHANNEL --> JOURNEY
     JOURNEY --> FLOW
-    JOURNEY --> SIMULATION
+    JOURNEY --> EXECUTION
     JOURNEY --> VERSION
     JOURNEY --> PUBLICATION
     USER --> AUDIT
@@ -89,9 +89,9 @@ flowchart TD
 | User Task Configuration | Associação entre uma User Task e um formulário |
 | Form | Formulário reutilizável utilizado por User Tasks |
 | Form Component | Elemento visual pertencente a um formulário |
-| Simulation Execution | Execução simulada da jornada |
-| Simulation Step | Etapa registrada durante a simulação |
-| Simulation Result | Resultado consolidado da simulação |
+| Execution Run | Execução da jornada |
+| Execution Step | Etapa registrada durante a execução |
+| Execution Result | Resultado consolidado da execução |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Journey Version | Versão imutável de uma jornada |
 | User / Role | Identidade autenticada e papel de autorização |
@@ -161,7 +161,7 @@ Canal, Código, Nome, Descrição, Status
 
 ## Responsabilidades
 
-Agrupar o fluxo e registrar simulações e a publicação atual.
+Agrupar o fluxo e registrar execuções e a publicação atual.
 
 ## Cardinalidade
 
@@ -197,7 +197,7 @@ Liga dois nós do mesmo fluxo. Cada fluxo possui exatamente um elemento inicial 
 
 O `Flow` (nós e conexões) é persistido como um único documento `jsonb` associado à jornada — não há necessidade de consultar nós/conexões individualmente hoje, então não são normalizados em tabelas próprias.
 
-Na publicação, a runtime traduz este `Flow` para uma definição de processo BPMN (Camunda). Elementos BPMN em XML exigem identificadores no formato `NCName` (não podem iniciar com dígito), o que um UUID puro não garante. Por isso, os identificadores que a runtime embute diretamente como `id` de elemento BPMN nascem com um prefixo fixo, nunca como UUID puro:
+Na publicação, a runtime traduz este `Flow` para uma definição de processo BPMN. Elementos BPMN em XML exigem identificadores no formato `NCName` (não podem iniciar com dígito), o que um UUID puro não garante. Por isso, os identificadores que a runtime embute diretamente como `id` de elemento BPMN nascem com um prefixo fixo, nunca como UUID puro:
 
 | Identificador | Formato | Vira, na runtime |
 |---|---|---|
@@ -263,28 +263,30 @@ Um formulário pode ser utilizado por User Tasks de jornadas diferentes. Ao publ
 
 ---
 
-# 12. Simulation Execution, Simulation Step e Simulation Result
+# 12. Execution Run, Execution Step e Execution Result
 
-## Simulation Execution
+## Execution Run
 
-Execução simulada da jornada, permitindo verificar seu caminho e suas telas sem publicação.
+Execução da jornada publicada, permitindo verificar seu caminho e suas telas contra o motor de runtime real.
 
-## Simulation Step
+## Execution Step
 
-Etapa percorrida durante a simulação, associada a um nó do fluxo.
+Etapa percorrida durante a execução, associada a um nó do fluxo.
 
-## Simulation Result
+## Execution Result
 
 Resultado consolidado contendo o caminho executado e o resumo da execução.
 
 ```mermaid
 flowchart TD
     JOURNEY[Journey]
-    SIMULATION[Simulation]
-    RESULT[Simulation Result]
+    PUBLICATION[Journey Publication]
+    EXECUTION[Execution Run]
+    RESULT[Execution Result]
 
-    JOURNEY --> SIMULATION
-    SIMULATION --> RESULT
+    JOURNEY --> PUBLICATION
+    PUBLICATION --> EXECUTION
+    EXECUTION --> RESULT
 ```
 
 ---
@@ -333,9 +335,9 @@ Ao despublicar, o Admin Portal chama a API mockada do runtime. Somente após o r
 | Flow Node | User Task Configuration | 1:0..1 |
 | Form | User Task Configuration | 1:N |
 | Form | Form Component | 1:N |
-| Journey | Simulation Execution | 1:N |
-| Simulation Execution | Simulation Step | 1:N |
-| Simulation Execution | Simulation Result | 1:0..1 |
+| Journey | Execution Run | 1:N |
+| Execution Run | Execution Step | 1:N |
+| Execution Run | Execution Result | 1:0..1 |
 | Journey | Journey Publication | 1:0..1 |
 | Journey | Journey Version | 1:N |
 | Journey Version | Journey Publication | 1:0..1 |
@@ -358,9 +360,9 @@ erDiagram
     FORM ||--o{ USER_TASK_CONFIG : serves
     FORM ||--o{ FORM_COMPONENT : contains
 
-    JOURNEY ||--o{ SIMULATION_EXECUTION : executes
-    SIMULATION_EXECUTION ||--o{ SIMULATION_STEP : contains
-    SIMULATION_EXECUTION ||--o| SIMULATION_RESULT : generates
+    JOURNEY ||--o{ EXECUTION_RUN : executes
+    EXECUTION_RUN ||--o{ EXECUTION_STEP : contains
+    EXECUTION_RUN ||--o| EXECUTION_RESULT : generates
 
     JOURNEY ||--o| JOURNEY_PUBLICATION : publishes
     JOURNEY ||--o{ JOURNEY_VERSION : versions
@@ -380,11 +382,11 @@ erDiagram
 | Flow / Flow Node / Flow Connection | Estrutura visual da jornada e seus elementos |
 | User Task Configuration | Associação entre User Task e Form |
 | Form / Form Component | Formulário e seus componentes visuais |
-| Simulation Execution / Step / Result | Execução simulada, etapas e resultado |
+| Execution Run / Step / Result | Execução, etapas e resultado |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 
 ---
 
 # 17. Resumo Conceitual
 
-O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo, simulações e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, e eventos de auditoria registram operações relevantes sem dados sensíveis.
+O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo, execuções e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, e eventos de auditoria registram operações relevantes sem dados sensíveis.

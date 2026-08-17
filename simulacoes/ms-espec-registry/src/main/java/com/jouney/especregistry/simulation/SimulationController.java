@@ -1,6 +1,7 @@
 package com.jouney.especregistry.simulation;
 
 import com.jouney.especregistry.adminback.AdminBackClient;
+import com.jouney.especregistry.adminback.ConnectorConfig;
 import com.jouney.especregistry.adminback.FlowNode;
 import com.jouney.especregistry.adminback.JourneySummary;
 import com.jouney.especregistry.adminback.PublicationSnapshot;
@@ -13,17 +14,22 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
+import tools.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -32,16 +38,28 @@ public class SimulationController {
     private final AdminBackClient adminBackClient;
     private final CamundaClient camundaClient;
     private final StepResolver stepResolver;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public SimulationController(AdminBackClient adminBackClient, CamundaClient camundaClient, StepResolver stepResolver) {
+    public SimulationController(AdminBackClient adminBackClient, CamundaClient camundaClient, StepResolver stepResolver,
+                                 KafkaTemplate<String, String> kafkaTemplate) {
         this.adminBackClient = adminBackClient;
         this.camundaClient = camundaClient;
         this.stepResolver = stepResolver;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @GetMapping("/journeys")
     public List<JourneySummary> journeys() {
         return adminBackClient.listPublishedJourneys();
+    }
+
+    /** Diagrama da jornada sem iniciar instância nenhuma — usado pelo front pra descobrir, ao
+     * selecionar uma jornada, se o início é por MESSAGE_START_EVENT (troca o botão "Executar" por
+     * um painel de envio de mensagem) antes de decidir como começar a simulação. */
+    @GetMapping("/journeys/{journeyId}/flow")
+    public FlowBundle flow(@PathVariable UUID journeyId) {
+        return FlowBundle.from(adminBackClient.getPublicationSnapshot(journeyId));
     }
 
     @PostMapping("/journeys/{journeyId}/instances")
@@ -56,8 +74,52 @@ public class SimulationController {
                 .map(node -> VariableConversion.fabricateFromOutputMapping(node.connectorConfig()))
                 .orElse(Map.of());
 
-        String processInstanceId = camundaClient.startProcessInstance(ProcessIds.keyForJourney(journeyId), startVariables);
-        return new InstanceResponse(processInstanceId, FlowBundle.from(snapshot), stepResolver.resolve(processInstanceId));
+        // Toda instância ganha um businessKey, mesmo iniciada manualmente por aqui — é o que permite
+        // uma RECEIVE_TASK dela ser correlacionada depois via mensagem Kafka de verdade (ver
+        // KafkaBridgeScheduler/CamundaClient.findProcessInstanceByBusinessKey).
+        String businessKey = UUID.randomUUID().toString();
+        String processInstanceId = camundaClient.startProcessInstance(ProcessIds.keyForJourney(journeyId), startVariables, businessKey);
+        return new InstanceResponse(processInstanceId, businessKey, FlowBundle.from(snapshot), stepResolver.resolve(processInstanceId));
+    }
+
+    /** Publica de verdade no tópico Kafka configurado no nó — usado pelo painel "Enviar mensagem"
+     * do simulador pra testar o lado de consumo (RECEIVE_TASK/MESSAGE_START_EVENT) sem precisar de
+     * um produtor externo real. Mesmo tópico que o bridge (KafkaBridgeScheduler) já descobre e
+     * escuta sozinho — não precisa de nenhuma correlação aqui, é só publicar; o consumo acontece
+     * pelo mesmo caminho automático de sempre. */
+    @PostMapping("/journeys/{journeyId}/nodes/{nodeId}/test-message")
+    public void sendTestMessage(@PathVariable UUID journeyId, @PathVariable String nodeId,
+                                 @RequestBody Map<String, Object> payload) {
+        PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        FlowNode node = snapshot.findNode(nodeId)
+                .orElseThrow(() -> new IllegalStateException("Nó " + nodeId + " não encontrado no snapshot da jornada"));
+        ConnectorConfig connectorConfig = node.connectorConfig();
+        if (connectorConfig == null || !"KAFKA".equalsIgnoreCase(connectorConfig.connectorType())) {
+            throw new IllegalStateException("Nó " + nodeId + " não tem conector Kafka configurado");
+        }
+        Object topic = connectorConfig.config() != null ? connectorConfig.config().get("topic") : null;
+        if (!(topic instanceof String topicName) || topicName.isBlank()) {
+            throw new IllegalStateException("Nó " + nodeId + " não tem tópico Kafka configurado");
+        }
+        kafkaTemplate.send(topicName, objectMapper.writeValueAsString(payload));
+    }
+
+    /** Instância mais nova de uma jornada iniciada depois de {@code since} — usado pelo front pra
+     * saber quando uma mensagem de teste enviada pra um MESSAGE_START_EVENT efetivamente iniciou
+     * uma instância nova (não existe processInstanceId nenhum antes disso pra fazer polling em
+     * cima). 204 enquanto nada apareceu ainda. */
+    @GetMapping("/journeys/{journeyId}/latest-instance")
+    public ResponseEntity<InstanceResponse> latestInstance(@PathVariable UUID journeyId, @RequestParam String since) {
+        String processDefinitionKey = ProcessIds.keyForJourney(journeyId);
+        Optional<String> processInstanceId = camundaClient.findMostRecentInstanceStartedAfter(processDefinitionKey, Instant.parse(since));
+        if (processInstanceId.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        ProcessInstanceInfo instance = camundaClient.getProcessInstance(processInstanceId.get())
+                .orElseThrow(() -> new IllegalStateException("Instância " + processInstanceId.get() + " não encontrada"));
+        PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        return ResponseEntity.ok(new InstanceResponse(instance.id(), instance.businessKey(), FlowBundle.from(snapshot),
+                stepResolver.resolve(instance.id())));
     }
 
     @GetMapping("/instances/{processInstanceId}/current-step")

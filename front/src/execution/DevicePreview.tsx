@@ -1,15 +1,19 @@
-import { CheckCircle2, Clock } from 'lucide-react';
-import { Box, Boxed, ButtonLayout, ButtonPrimary, Callout, Stack, Text, skinVars } from '@telefonica/mistica';
-import type { StepResponse } from './api';
+import { CheckCircle2, Clock, Radio } from 'lucide-react';
+import { Box, Boxed, ButtonLayout, ButtonPrimary, Callout, Stack, Text, TextLink, skinVars } from '@telefonica/mistica';
+import type { ConnectorConfigInfo, StepResponse } from './api';
 import { SduiFormRenderer } from './SduiFormRenderer';
 import { PhoneFrame } from './PhoneFrame';
+import { SendTestMessagePanel } from './SendTestMessagePanel';
 
 interface Props {
   channelType: string;
   step: StepResponse;
   busy: boolean;
+  connectorConfig: ConnectorConfigInfo | null;
+  businessKey: string;
   onCompleteTask: (answers: Record<string, unknown>) => void;
-  onSimulateStep: () => void;
+  onSkipStep: () => void;
+  onSendTestMessage: (nodeId: string, payload: Record<string, unknown>) => Promise<void>;
 }
 
 const NODE_TYPE_LABEL: Record<string, string> = {
@@ -17,7 +21,21 @@ const NODE_TYPE_LABEL: Record<string, string> = {
   RECEIVE_TASK: 'Tarefa de recebimento (aguardando mensagem)',
 };
 
-export function DevicePreview({ channelType, step, busy, onCompleteTask, onSimulateStep }: Props) {
+export function DevicePreview({
+  channelType,
+  step,
+  busy,
+  connectorConfig,
+  businessKey,
+  onCompleteTask,
+  onSkipStep,
+  onSendTestMessage,
+}: Props) {
+  // Só Kafka tem worker automático (produtor) ou faz sentido testar via mensagem real (consumidor)
+  // — REST e "sem conector" continuam exatamente como antes, com o botão "Pular etapa".
+  const isKafka = connectorConfig?.connectorType === 'KAFKA';
+  const kafkaTopic = isKafka && typeof connectorConfig.config?.topic === 'string' ? connectorConfig.config.topic : null;
+
   const content = (
     <Box padding={24}>
       <Stack space={16}>
@@ -35,7 +53,31 @@ export function DevicePreview({ channelType, step, busy, onCompleteTask, onSimul
           </Stack>
         )}
 
-        {step.type === 'WAITING' && (
+        {step.type === 'WAITING' && isKafka && kafkaTopic && step.nodeType === 'SERVICE_TASK' && (
+          <Stack space={12}>
+            <Callout
+              variant="brand"
+              asset={<Radio size={26} color={skinVars.colors.textPrimaryBrand} />}
+              title={step.nodeName ?? 'Publicando no Kafka'}
+              description={`Aguardando o worker publicar de verdade no tópico "${kafkaTopic}" e concluir — nenhuma ação necessária aqui, a tela avança sozinha.`}
+            />
+            <BypassLink onPress={onSkipStep} disabled={busy} />
+          </Stack>
+        )}
+
+        {step.type === 'WAITING' && isKafka && kafkaTopic && step.nodeType === 'RECEIVE_TASK' && step.nodeId && (
+          <Stack space={12}>
+            <SendTestMessagePanel
+              topic={kafkaTopic}
+              initialPayload={{ businessKey }}
+              description={`${step.nodeName ?? 'Esta etapa'} espera uma mensagem real nesse tópico para seguir — edite o payload e envie um teste.`}
+              onSend={(payload) => onSendTestMessage(step.nodeId!, payload)}
+            />
+            <BypassLink onPress={onSkipStep} disabled={busy} />
+          </Stack>
+        )}
+
+        {step.type === 'WAITING' && (!isKafka || !kafkaTopic) && (
           <Stack space={16}>
             <Callout
               variant="brand"
@@ -43,14 +85,14 @@ export function DevicePreview({ channelType, step, busy, onCompleteTask, onSimul
               title={step.nodeName ?? 'Aguardando etapa automática'}
               description={
                 (step.nodeType ? (NODE_TYPE_LABEL[step.nodeType] ?? step.nodeType) : '') +
-                ' — esta etapa normalmente seria concluída por uma integração externa. Simule a conclusão para seguir.'
+                ' — esta etapa normalmente seria concluída por uma integração externa. Pule a etapa para seguir.'
               }
             />
             <ButtonLayout
               align="right"
               primaryButton={
-                <ButtonPrimary onPress={onSimulateStep} showSpinner={busy}>
-                  Simular conclusão
+                <ButtonPrimary onPress={onSkipStep} showSpinner={busy}>
+                  Pular etapa
                 </ButtonPrimary>
               }
             />
@@ -81,6 +123,21 @@ export function DevicePreview({ channelType, step, busy, onCompleteTask, onSimul
   return (
     <div className="max-w-[640px] mx-auto w-full">
       <Boxed>{content}</Boxed>
+    </div>
+  );
+}
+
+// Alternativa manual secundária à publicação/consumo Kafka real (REQ-05.09.009) — fabrica o
+// resultado a partir do outputMapping, mesmo mecanismo do botão "Pular etapa" do caso sem conector,
+// só que discreta: o caminho real é o principal, isto é o escape hatch (broker fora do ar, pressa em demo).
+function BypassLink({ onPress, disabled }: { onPress: () => void; disabled: boolean }) {
+  return (
+    <div className="flex justify-center">
+      <TextLink onPress={onPress} disabled={disabled} underline="always">
+        <Text size={12.5} color={skinVars.colors.textSecondary}>
+          Pular etapa
+        </Text>
+      </TextLink>
     </div>
   );
 }

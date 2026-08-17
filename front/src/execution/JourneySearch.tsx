@@ -1,12 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
 import { Play, Search } from 'lucide-react';
-import { Callout, Stack, Text, TextFieldBase, skinVars } from '@telefonica/mistica';
-import { listJourneys, startInstance, type FlowBundle, type JourneySummary, type StepResponse } from './api';
-import { SimulationApiError, SimulationNetworkError } from './api';
-import { recordSimulationStart } from './auditApi';
+import { Callout, Stack, Text, TextFieldBase, TextLink, skinVars } from '@telefonica/mistica';
+import {
+  getJourneyFlow,
+  getLatestInstance,
+  sendTestMessage,
+  startInstance,
+  type FlowBundle,
+  type FlowNodeInfo,
+  type InstanceResponse,
+  type JourneySummary,
+  type StepResponse,
+} from './api';
+import { recordExecutionStart } from './auditApi';
+import { SendTestMessagePanel } from './SendTestMessagePanel';
+// Listagem de jornadas publicadas vem direto do admin/back (autenticado, já é a fonte da
+// verdade) — o ms-espec-registry só entra em cena ao executar de fato (getJourneyFlow/
+// startInstance/sendTestMessage), quando é preciso falar com o motor de runtime.
+import { listJourneys as listPublishedJourneys } from '../api/journeys';
 
 interface Props {
-  onStarted: (processInstanceId: string, journey: JourneySummary, flow: FlowBundle, step: StepResponse) => void;
+  onStarted: (processInstanceId: string, businessKey: string, journey: JourneySummary, flow: FlowBundle, step: StepResponse) => void;
+}
+
+const LATEST_INSTANCE_POLL_MS = 2000;
+const LATEST_INSTANCE_MAX_ATTEMPTS = 20; // ~40s
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function JourneySearch({ onStarted }: Props) {
@@ -15,12 +36,13 @@ export function JourneySearch({ onStarted }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<JourneySummary | null>(null);
+  const [startNode, setStartNode] = useState<FlowNodeInfo | null>(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    listJourneys()
+    listPublishedJourneys({ status: 'PUBLISHED' })
       .then(setJourneys)
       .catch((e) => setLoadError(errorMessage(e)));
   }, []);
@@ -49,6 +71,13 @@ export function JourneySearch({ onStarted }: Props) {
     setSelected(journey);
     setQuery(journey.name);
     setOpen(false);
+    setStartNode(null);
+    setStartError(null);
+    // Precisa saber o tipo do nó de início antes de decidir entre "Executar" e o painel de envio
+    // de mensagem — MESSAGE_START_EVENT não tem início manual, só uma mensagem Kafka real inicia.
+    getJourneyFlow(journey.journeyId)
+      .then((flow) => setStartNode(flow.flowNodes.find((n) => n.type === 'START' || n.type === 'MESSAGE_START_EVENT') ?? null))
+      .catch(() => setStartNode(null));
   }
 
   function handleQueryChange(value: string) {
@@ -56,6 +85,7 @@ export function JourneySearch({ onStarted }: Props) {
     setOpen(true);
     if (selected && value !== selected.name) {
       setSelected(null);
+      setStartNode(null);
     }
   }
 
@@ -64,11 +94,11 @@ export function JourneySearch({ onStarted }: Props) {
     setStarting(true);
     setStartError(null);
     try {
-      const { processInstanceId, flow, step } = await startInstance(selected.journeyId);
-      recordSimulationStart(selected.journeyId, selected.name, processInstanceId).catch(() => {
-        /* falha ao registrar auditoria não deve impedir a simulação de continuar */
+      const { processInstanceId, businessKey, flow, step } = await startInstance(selected.journeyId);
+      recordExecutionStart(selected.journeyId, selected.name, processInstanceId).catch(() => {
+        /* falha ao registrar auditoria não deve impedir a execução de continuar */
       });
-      onStarted(processInstanceId, selected, flow, step);
+      onStarted(processInstanceId, businessKey, selected, flow, step);
     } catch (e) {
       setStartError(errorMessage(e));
     } finally {
@@ -76,13 +106,29 @@ export function JourneySearch({ onStarted }: Props) {
     }
   }
 
+  async function handleSendStartMessage(payload: Record<string, unknown>) {
+    if (!selected || !startNode) return;
+    const since = new Date().toISOString();
+    await sendTestMessage(selected.journeyId, startNode.id, payload);
+    const instance = await pollForNewInstance(selected.journeyId, since);
+    recordExecutionStart(selected.journeyId, selected.name, instance.processInstanceId).catch(() => {
+      /* falha ao registrar auditoria não deve impedir a execução de continuar */
+    });
+    onStarted(instance.processInstanceId, instance.businessKey, selected, instance.flow, instance.step);
+  }
+
+  const isMessageStart = startNode?.type === 'MESSAGE_START_EVENT';
+  const messageStartTopic = isMessageStart && typeof startNode.connectorConfig?.config?.topic === 'string'
+    ? startNode.connectorConfig.config.topic
+    : null;
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: skinVars.colors.background }}>
       <div className="w-full max-w-[560px] px-6">
         <Stack space={24}>
           <Stack space={4}>
             <Text size={24} weight="bold" color={skinVars.colors.textPrimary} textAlign="center">
-              Simulações
+              Execuções
             </Text>
             <Text size={14} color={skinVars.colors.textSecondary} textAlign="center">
               Busque uma jornada publicada para executá-la de ponta a ponta
@@ -121,7 +167,9 @@ export function JourneySearch({ onStarted }: Props) {
                 ) : results.length === 0 ? (
                   <div className="px-4 py-3">
                     <Text size={13} color={skinVars.colors.textSecondary}>
-                      Nenhuma jornada publicada encontrada para &quot;{query}&quot;.
+                      {q.length === 0
+                        ? 'Nenhuma jornada publicada disponível.'
+                        : `Nenhuma jornada publicada encontrada para "${query}".`}
                     </Text>
                   </div>
                 ) : (
@@ -152,29 +200,55 @@ export function JourneySearch({ onStarted }: Props) {
 
           {startError && <Callout variant="default" title="Não foi possível iniciar" description={startError} />}
 
-          <button
-            type="button"
-            disabled={!selected || starting}
-            onClick={handleExecute}
-            className="flex items-center justify-center gap-2 rounded-lg py-3 w-full border-0 font-semibold cursor-pointer transition-opacity"
-            style={{
-              background: skinVars.colors.buttonPrimaryBackground,
-              color: skinVars.colors.textButtonPrimary,
-              opacity: !selected || starting ? 0.5 : 1,
-              cursor: !selected || starting ? 'default' : 'pointer',
-            }}
-          >
-            <Play size={16} />
-            {starting ? 'Iniciando...' : 'Executar'}
-          </button>
+          {isMessageStart && messageStartTopic ? (
+            <Stack space={12}>
+              <SendTestMessagePanel
+                topic={messageStartTopic}
+                initialPayload={{}}
+                description="Esta jornada só começa a partir de uma mensagem Kafka real — edite o payload e envie um teste para iniciar uma instância."
+                onSend={handleSendStartMessage}
+              />
+              <div className="flex justify-center">
+                <TextLink onPress={handleExecute} disabled={starting} underline="always">
+                  <Text size={12.5} color={skinVars.colors.textSecondary}>
+                    Iniciar sem mensagem
+                  </Text>
+                </TextLink>
+              </div>
+            </Stack>
+          ) : (
+            <button
+              type="button"
+              disabled={!selected || starting}
+              onClick={handleExecute}
+              className="flex items-center justify-center gap-2 rounded-lg py-3 w-full border-0 font-semibold cursor-pointer transition-opacity"
+              style={{
+                background: skinVars.colors.buttonPrimaryBackground,
+                color: skinVars.colors.textButtonPrimary,
+                opacity: !selected || starting ? 0.5 : 1,
+                cursor: !selected || starting ? 'default' : 'pointer',
+              }}
+            >
+              <Play size={16} />
+              {starting ? 'Iniciando...' : 'Executar'}
+            </button>
+          )}
         </Stack>
       </div>
     </div>
   );
 }
 
+async function pollForNewInstance(journeyId: string, since: string): Promise<InstanceResponse> {
+  for (let attempt = 0; attempt < LATEST_INSTANCE_MAX_ATTEMPTS; attempt++) {
+    const instance = await getLatestInstance(journeyId, since);
+    if (instance) return instance;
+    await delay(LATEST_INSTANCE_POLL_MS);
+  }
+  throw new Error('Nenhuma instância nova apareceu depois da mensagem — confira se o Kafka e o worker de execução estão no ar.');
+}
+
 function errorMessage(e: unknown): string {
-  if (e instanceof SimulationNetworkError) return e.message;
-  if (e instanceof SimulationApiError) return e.message;
+  if (e instanceof Error) return e.message;
   return 'Erro inesperado.';
 }

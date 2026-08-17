@@ -9,7 +9,7 @@
 -- journey_version/journey_publication). Todas as jornadas nascem em DRAFT.
 -- Publicar de verdade (para que o motor de runtime gere as versões/publicações
 -- corretas) é feito depois, chamando a API real (POST /api/v1/journeys/{id}/publish)
--- para cada jornada — é isso que aciona o ms-transform-publication/Camunda.
+-- para cada jornada — é isso que aciona o ms-transform-publication/motor de runtime.
 --
 -- Como rodar: script SQL avulso (BEGIN/COMMIT + um bloco anônimo DO $$...$$ para
 -- as jornadas/fluxos), não uma stored procedure — não fica salvo no banco como
@@ -375,7 +375,7 @@ BEGIN
 
       INSERT INTO journey (journey_id, channel_id, name, description, status, created_at, updated_at)
       VALUES (v_journey_id, rec.channel_id, v_name,
-              'Jornada gerada para simulação (' || shape_rec.label || ') — canal ' || rec.channel_name,
+              'Jornada gerada para execução (' || shape_rec.label || ') — canal ' || rec.channel_name,
               'DRAFT', v_created, v_created);
 
       INSERT INTO flow (flow_id, journey_id, name, nodes, connections, created_at, updated_at)
@@ -385,10 +385,20 @@ BEGIN
 END $$;
 
 -- ============================================================================
--- Produto "Elastic Journey" (canal só Web) + jornada "Survey (Questionário) —
--- Elastic Journey": 15 telas sequenciais de pesquisa de satisfação, uma
--- pergunta por tela/formulário, sem gateway e sem conector — só
--- START -> USER_TASK x15 -> END.
+-- Produto "Elastic Journey" (canal só Web) + três jornadas:
+-- 1) "Survey (Questionário) — Elastic Journey": 15 telas sequenciais de pesquisa
+--    de satisfação, uma pergunta por tela/formulário, sem gateway e sem conector
+--    — só START -> USER_TASK x15 -> END.
+-- 2) "Jornada de Referência — Conectores REST": 33 nós, 32 conexões, 4 gateways,
+--    exercitando os 10 endpoints reais do ms-mock-api-rest (porta 8084) numa
+--    única execução ramificada. Copiada do canal Web de
+--    requisitos/admin/bd/massa_jornadas_templates.sql.
+-- 3) "Jornada de Referência — Conectores Kafka": 22 nós, 21 conexões, 3
+--    gateways, cobrindo início por mensagem, produção (PRODUCE) e consumo
+--    (CONSUME) reais. Também copiada do canal Web de massa_jornadas_templates.sql
+--    — como só existe UMA instância dela aqui (não duas por canal, como no
+--    arquivo de origem), o id do nó MESSAGE_START_EVENT não precisa do sufixo
+--    de unicidade por jornada que o shape 6 (mais abaixo) usa.
 -- ============================================================================
 INSERT INTO product (product_id, name, description, status, created_at, updated_at)
 VALUES (gen_random_uuid(), 'Elastic Journey', 'Marca institucional da plataforma, usada para pesquisas e comunicações internas.', 'ACTIVE', now(), now());
@@ -413,6 +423,100 @@ INSERT INTO form (form_id, name, description, fields, created_at, updated_at) VA
 ('00000000-0000-4000-9000-00000000000d', 'Survey — Pergunta 13', 'Funcionalidades desejadas', '[{"name":"funcionalidadesDesejadas","type":"MULTI_SELECT","inputSubtype":null,"label":"Quais funcionalidades você gostaria de ver no futuro?","required":false,"defaultValue":null,"helpText":null,"options":[{"label":"Mais planos","value":"MAIS_PLANOS"},{"label":"Suporte 24h","value":"SUPORTE_24H"},{"label":"Chat ao vivo","value":"CHAT_AO_VIVO"},{"label":"Autoatendimento","value":"AUTOATENDIMENTO"},{"label":"Outro","value":"OUTRO"}],"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}]'::jsonb, now(), now()),
 ('00000000-0000-4000-9000-00000000000e', 'Survey — Pergunta 14', 'Última interação', '[{"name":"ultimaInteracao","type":"INPUT","inputSubtype":"DATE","label":"Qual a data aproximada da sua última interação conosco?","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}]'::jsonb, now(), now()),
 ('00000000-0000-4000-9000-00000000000f', 'Survey — Pergunta 15', 'Comentário final', '[{"name":"comentarioFinal","type":"INPUT","inputSubtype":"TEXT","label":"Deixe um comentário final sobre sua experiência com a Elastic Journey.","required":false,"defaultValue":null,"helpText":"Opcional","options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}]'::jsonb, now(), now());
+
+-- Formulários — Conectores REST (13)
+INSERT INTO form (form_id, name, description, fields, created_at, updated_at) VALUES
+('00000000-0000-4000-9100-000000000001', 'Dados do Solicitante', 'Coleta de dados básicos do cliente', '[
+  {"name":"nomeCompleto","type":"INPUT","inputSubtype":"TEXT","label":"Nome completo","required":true,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"cpf","type":"INPUT","inputSubtype":"TEXT","label":"CPF","required":true,"defaultValue":null,"helpText":"Somente números","options":null,"minValue":null,"maxValue":null,"validationPattern":"^\\d{11}$","acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"email","type":"INPUT","inputSubtype":"EMAIL","label":"E-mail","required":true,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"dataNascimento","type":"INPUT","inputSubtype":"DATE","label":"Data de nascimento","required":true,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-000000000002', 'Pendência de Elegibilidade', 'Motivo de pendência quando a elegibilidade é negada', '[
+  {"name":"infoProtocolo","type":"TEXT","inputSubtype":null,"label":"A consulta de elegibilidade (variável \"elegivel\") retornou negativa. O protocolo gerado foi salvo na variável \"protocolo\" — confira o valor desta execução na aba Variáveis do painel de observabilidade.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"motivoPendencia","type":"SINGLE_SELECT","inputSubtype":null,"label":"Motivo da pendência","required":true,"defaultValue":null,"helpText":null,"options":[{"label":"Documentação pendente","value":"DOCUMENTACAO_PENDENTE"},{"label":"Restrição cadastral","value":"RESTRICAO_CADASTRAL"},{"label":"Análise manual necessária","value":"ANALISE_MANUAL"},{"label":"Outro","value":"OUTRO"}],"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-000000000003', 'Resultado da Elegibilidade', 'Confirma o resultado antes de prosseguir', '[
+  {"name":"resultadoElegibilidade","type":"TEXT","inputSubtype":null,"label":"A etapa anterior (\"Validar elegibilidade\") publicou as variáveis \"elegivel\" e \"protocolo\". Consulte os valores desta execução na aba Variáveis do painel de observabilidade antes de continuar.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-000000000004', 'Selecionar Novo Plano', 'Escolha do plano desejado', '[
+  {"name":"novoPlano","type":"SINGLE_SELECT","inputSubtype":null,"label":"Novo plano desejado","required":true,"defaultValue":null,"helpText":null,"options":[{"label":"Básico","value":"BASICO"},{"label":"Intermediário","value":"INTERMEDIARIO"},{"label":"Premium","value":"PREMIUM"},{"label":"Ilimitado","value":"ILIMITADO"}],"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-000000000005', 'Confirmação de Troca de Plano', 'Confirma a troca aplicada no billing', '[
+  {"name":"confirmacaoTroca","type":"TEXT","inputSubtype":null,"label":"A verificação de elegibilidade de upgrade (variável \"elegivelUpgrade\") permitiu a troca de plano, já aplicada no sistema de billing.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-000000000006', 'Dados da Linha', 'Dados para ativação de uma nova linha', '[
+  {"name":"iccid","type":"INPUT","inputSubtype":"TEXT","label":"ICCID do chip","required":true,"defaultValue":null,"helpText":"Número impresso no chip","options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"tipoChip","type":"SINGLE_SELECT","inputSubtype":null,"label":"Tipo de chip","required":true,"defaultValue":null,"helpText":null,"options":[{"label":"Físico","value":"FISICO"},{"label":"eSIM","value":"ESIM"}],"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"dddPreferencial","type":"INPUT","inputSubtype":"NUMBER","label":"DDD preferencial","required":true,"defaultValue":null,"helpText":null,"options":null,"minValue":11,"maxValue":99,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-000000000007', 'Confirmação de Ativação', 'Confirma a ativação imediata da linha', '[
+  {"name":"confirmacaoAtivacao","type":"TEXT","inputSubtype":null,"label":"A etapa \"Ativar linha\" publicou a variável \"statusAtivacao\". Veja o valor retornado nesta execução na aba Variáveis do painel de observabilidade.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-000000000008', 'Detalhar Necessidade de Suporte', 'Abertura de chamado técnico', '[
+  {"name":"categoriaProblema","type":"SINGLE_SELECT","inputSubtype":null,"label":"Categoria do problema","required":true,"defaultValue":null,"helpText":null,"options":[{"label":"Sem sinal","value":"SEM_SINAL"},{"label":"Lentidão na internet","value":"LENTIDAO"},{"label":"Queda de chamadas","value":"QUEDA_CHAMADAS"},{"label":"Outro","value":"OUTRO"}],"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"descricaoProblema","type":"INPUT","inputSubtype":"TEXT","label":"Descrição do problema","required":true,"defaultValue":null,"helpText":"Descreva com o máximo de detalhes","options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-000000000009', 'Confirmação de Chamado Aberto', 'Confirma a abertura do chamado técnico', '[
+  {"name":"confirmacaoChamado","type":"TEXT","inputSubtype":null,"label":"O chamado técnico foi aberto (variável \"numeroChamado\"), já que o prazo estimado de portabilidade (variável \"prazoDias\") é maior que o limite para atendimento imediato. Confira os valores na aba Variáveis.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-00000000000a', 'Pendência de Upgrade', 'Motivo de pendência quando o upgrade não é elegível', '[
+  {"name":"motivoPendenciaUpgrade","type":"SINGLE_SELECT","inputSubtype":null,"label":"Motivo da pendência de upgrade","required":true,"defaultValue":null,"helpText":null,"options":[{"label":"Sem histórico suficiente","value":"SEM_HISTORICO"},{"label":"Restrição financeira","value":"RESTRICAO_FINANCEIRA"},{"label":"Plano não disponível na região","value":"PLANO_INDISPONIVEL"},{"label":"Outro","value":"OUTRO"}],"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-00000000000b', 'Confirmação Final — Retenção', 'Confirma a oferta de retenção aplicada', '[
+  {"name":"confirmacaoRetencao","type":"TEXT","inputSubtype":null,"label":"O score de retenção calculado (variável \"scoreRetencao\") foi alto o suficiente para aplicar a oferta de retenção automaticamente.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-00000000000c', 'Confirmação de Provisionamento Bônus', 'Confirma o dispositivo IoT bônus provisionado', '[
+  {"name":"confirmacaoBonus","type":"TEXT","inputSubtype":null,"label":"Como bônus de retenção, um dispositivo IoT foi provisionado automaticamente (variável \"qtdProvisionada\"). Confira o valor retornado na aba Variáveis.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9100-00000000000d', 'Confirmação de Cancelamento', 'Confirma o cancelamento processado', '[
+  {"name":"confirmacaoCancelamento","type":"TEXT","inputSubtype":null,"label":"O score de retenção calculado (variável \"scoreRetencao\") não atingiu o mínimo para oferta de retenção, e o cancelamento foi processado automaticamente.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now());
+
+-- Formulários — Conectores Kafka (7)
+INSERT INTO form (form_id, name, description, fields, created_at, updated_at) VALUES
+('00000000-0000-4000-9200-000000000001', 'Revisão da Solicitação Recebida', 'Confere os dados recebidos via mensagem Kafka', '[
+  {"name":"revisaoSolicitacao","type":"TEXT","inputSubtype":null,"label":"A mensagem Kafka recebida no início do fluxo publicou as variáveis \"quantidadeSolicitada\" e \"tipoDispositivoSolicitado\". Confira os valores desta execução na aba Variáveis do painel de observabilidade.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9200-000000000002', 'Resultado do Provisionamento', 'Confirma o resultado recebido via Kafka', '[
+  {"name":"resultadoProvisionamento","type":"TEXT","inputSubtype":null,"label":"A confirmação recebida via Kafka publicou as variáveis \"statusProvisionamento\" e \"quantidadeProvisionada\". Consulte os valores desta execução na aba Variáveis.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9200-000000000003', 'Falha no Provisionamento', 'Registra a ação desejada após falha inicial', '[
+  {"name":"infoFalha","type":"TEXT","inputSubtype":null,"label":"A confirmação recebida via Kafka (variável \"statusProvisionamento\") indicou falha no provisionamento inicial.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"acaoFalha","type":"SINGLE_SELECT","inputSubtype":null,"label":"Ação desejada","required":true,"defaultValue":null,"helpText":null,"options":[{"label":"Solicitar reprocessamento automático","value":"REPROCESSAR"},{"label":"Cancelar solicitação","value":"CANCELAR"}],"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9200-000000000004', 'Confirmação Final — Monitoramento Ativo', 'Confirma a conclusão bem-sucedida', '[
+  {"name":"confirmacaoMonitoramento","type":"TEXT","inputSubtype":null,"label":"A confirmação de monitoramento (variável \"monitoramentoAtivo\") retornou positiva. O provisionamento foi concluído com sucesso.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9200-000000000005', 'Registrar Falha de Monitoramento', 'Coleta a prioridade do alerta enviado à equipe de suporte', '[
+  {"name":"infoMonitoramento","type":"TEXT","inputSubtype":null,"label":"A confirmação de monitoramento (variável \"monitoramentoAtivo\") retornou negativa.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"prioridadeAlerta","type":"SINGLE_SELECT","inputSubtype":null,"label":"Prioridade do alerta","required":true,"defaultValue":null,"helpText":null,"options":[{"label":"Alta","value":"ALTA"},{"label":"Média","value":"MEDIA"},{"label":"Baixa","value":"BAIXA"}],"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9200-000000000006', 'Confirmação Após Reprocessamento', 'Confirma o sucesso do reprocessamento', '[
+  {"name":"confirmacaoReprocessamento","type":"TEXT","inputSubtype":null,"label":"O reprocessamento foi concluído (variável \"statusReprocessamento\") com sucesso.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now()),
+
+('00000000-0000-4000-9200-000000000007', 'Escalonamento Manual', 'Coleta o motivo do escalonamento para atendimento manual', '[
+  {"name":"infoEscalonamento","type":"TEXT","inputSubtype":null,"label":"O reprocessamento (variável \"statusReprocessamento\") não teve sucesso. A solicitação será escalonada para atendimento manual.","required":false,"defaultValue":null,"helpText":null,"options":null,"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null},
+  {"name":"motivoEscalonamento","type":"SINGLE_SELECT","inputSubtype":null,"label":"Motivo do escalonamento","required":true,"defaultValue":null,"helpText":null,"options":[{"label":"Falha persistente no provisionamento","value":"FALHA_PERSISTENTE"},{"label":"Indisponibilidade de dispositivos","value":"INDISPONIBILIDADE"},{"label":"Outro","value":"OUTRO"}],"minValue":null,"maxValue":null,"validationPattern":null,"acceptedExtensions":null,"maxFileSizeBytes":null}
+]'::jsonb, now(), now());
 
 WITH new_journey AS (
   INSERT INTO journey (journey_id, channel_id, name, description, status, created_at, updated_at)
@@ -461,6 +565,150 @@ SELECT 'Process_' || gen_random_uuid(), journey_id, 'Fluxo principal',
   {"id":"Flow_survey_14","sourceNodeId":"Node_survey_q13","targetNodeId":"Node_survey_q14","condition":null,"isDefault":false},
   {"id":"Flow_survey_15","sourceNodeId":"Node_survey_q14","targetNodeId":"Node_survey_q15","condition":null,"isDefault":false},
   {"id":"Flow_survey_16","sourceNodeId":"Node_survey_q15","targetNodeId":"Node_survey_end","condition":null,"isDefault":false}
+]'::jsonb,
+now(), now()
+FROM new_journey;
+
+WITH new_journey AS (
+  INSERT INTO journey (journey_id, channel_id, name, description, status, created_at, updated_at)
+  SELECT gen_random_uuid(), c.channel_id, 'Jornada de Referência — Conectores REST',
+         'Jornada de referência que exercita, numa única execução ramificada, todos os 10 endpoints reais do ms-mock-api-rest (conector REST) — útil como template para testar a integração REST ponta a ponta.',
+         'DRAFT', now(), now()
+  FROM channel c JOIN product p ON p.product_id = c.product_id
+  WHERE p.name = 'Elastic Journey' AND c.type = 'WEB'
+  RETURNING journey_id
+)
+INSERT INTO flow (flow_id, journey_id, name, nodes, connections, created_at, updated_at)
+SELECT 'Process_' || gen_random_uuid(), journey_id, 'Fluxo principal',
+'[
+  {"id":"Node_rest_start","type":"START","name":"Início","description":"Inicia o fluxo","positionX":80,"positionY":480,"formId":null,"connectorConfig":null},
+  {"id":"Node_rest_ut1","type":"USER_TASK","name":"Coletar dados do solicitante","description":"Dados cadastrais iniciais","positionX":400,"positionY":480,"formId":"00000000-0000-4000-9100-000000000001","connectorConfig":null},
+  {"id":"Node_rest_st1","type":"SERVICE_TASK","name":"Validar elegibilidade","description":"Consulta o serviço de elegibilidade","positionX":720,"positionY":480,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/elegibilidade","headers":{"Content-Type":"application/json"},"params":null,"body":{"origem":"admin-portal"},"outputMapping":[{"name":"elegivel","jsonPath":"$.elegivel","type":"boolean"},{"name":"protocolo","jsonPath":"$.protocolo","type":"string"}]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_gw1","type":"GATEWAY","name":"Decisão: elegível?","description":"Encaminha conforme o resultado da validação","positionX":1040,"positionY":480,"formId":null,"connectorConfig":null},
+  {"id":"Node_rest_ut2","type":"USER_TASK","name":"Registrar pendência de elegibilidade","description":"Coleta de motivo para análise manual","positionX":1360,"positionY":920,"formId":"00000000-0000-4000-9100-000000000002","connectorConfig":null},
+  {"id":"Node_rest_end1","type":"END","name":"Fim (não elegível)","description":"Encerra o fluxo","positionX":1680,"positionY":920,"formId":null,"connectorConfig":null},
+  {"id":"Node_rest_ut3","type":"USER_TASK","name":"Conferir resultado da elegibilidade","description":"Revisão do resultado antes de prosseguir","positionX":1360,"positionY":260,"formId":"00000000-0000-4000-9100-000000000003","connectorConfig":null},
+  {"id":"Node_rest_ut4","type":"USER_TASK","name":"Selecionar novo plano","description":"Cliente escolhe o plano desejado","positionX":1680,"positionY":260,"formId":"00000000-0000-4000-9100-000000000004","connectorConfig":null},
+  {"id":"Node_rest_st2","type":"SERVICE_TASK","name":"Verificar elegibilidade de upgrade","description":"Consulta se o cliente pode migrar de plano","positionX":2000,"positionY":260,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"GET","url":"http://localhost:8084/v1/planos/elegibilidade-upgrade","headers":{"Content-Type":"application/json"},"params":null,"body":null,"outputMapping":[{"name":"elegivelUpgrade","jsonPath":"$.elegivel","type":"boolean"}]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_gw2","type":"GATEWAY","name":"Decisão: elegível para upgrade?","description":"Encaminha conforme o resultado da verificação","positionX":2320,"positionY":260,"formId":null,"connectorConfig":null},
+  {"id":"Node_rest_st3","type":"SERVICE_TASK","name":"Aplicar troca de plano","description":"Efetiva a troca no sistema de billing","positionX":2640,"positionY":40,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/planos/trocar","headers":{"Content-Type":"application/json"},"params":null,"body":null,"outputMapping":[]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_ut5","type":"USER_TASK","name":"Confirmar troca de plano","description":"Confirmação da troca aplicada","positionX":2960,"positionY":40,"formId":"00000000-0000-4000-9100-000000000005","connectorConfig":null},
+  {"id":"Node_rest_st4","type":"SERVICE_TASK","name":"Consultar prazo de portabilidade","description":"Consulta prazo estimado de portabilidade","positionX":3280,"positionY":40,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"GET","url":"http://localhost:8084/v1/portabilidade/consulta","headers":{"Content-Type":"application/json"},"params":null,"body":null,"outputMapping":[{"name":"prazoDias","jsonPath":"$.prazoEstimadoDias","type":"number"}]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_gw3","type":"GATEWAY","name":"Decisão: portabilidade imediata?","description":"Encaminha conforme o prazo estimado","positionX":3600,"positionY":40,"formId":null,"connectorConfig":null},
+  {"id":"Node_rest_ut6","type":"USER_TASK","name":"Coletar dados da linha","description":"Dados do chip e DDD desejado","positionX":3920,"positionY":-180,"formId":"00000000-0000-4000-9100-000000000006","connectorConfig":null},
+  {"id":"Node_rest_st5","type":"SERVICE_TASK","name":"Ativar linha","description":"Envia comando de ativação ao HLR","positionX":4240,"positionY":-180,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/linhas/ativar","headers":{"Content-Type":"application/json"},"params":null,"body":null,"outputMapping":[{"name":"statusAtivacao","jsonPath":"$.status","type":"string"}]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_ut7","type":"USER_TASK","name":"Confirmar ativação","description":"Confirmação final da ativação","positionX":4560,"positionY":-180,"formId":"00000000-0000-4000-9100-000000000007","connectorConfig":null},
+  {"id":"Node_rest_end2","type":"END","name":"Fim (upgrade e ativação imediata)","description":"Encerra o fluxo","positionX":4880,"positionY":-180,"formId":null,"connectorConfig":null},
+  {"id":"Node_rest_ut8","type":"USER_TASK","name":"Detalhar necessidade de suporte","description":"Coleta detalhes para abertura de chamado","positionX":3920,"positionY":260,"formId":"00000000-0000-4000-9100-000000000008","connectorConfig":null},
+  {"id":"Node_rest_st6","type":"SERVICE_TASK","name":"Abrir chamado técnico","description":"Registra o chamado no sistema de field service","positionX":4240,"positionY":260,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/suporte/chamados","headers":{"Content-Type":"application/json"},"params":null,"body":{"protocolo":"{{protocolo}}","motivo":"prazo-estendido-portabilidade"},"outputMapping":[{"name":"numeroChamado","jsonPath":"$.numeroChamado","type":"string"}]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_ut9","type":"USER_TASK","name":"Confirmação de chamado aberto","description":"Confirmação final ao cliente","positionX":4560,"positionY":260,"formId":"00000000-0000-4000-9100-000000000009","connectorConfig":null},
+  {"id":"Node_rest_end3","type":"END","name":"Fim (upgrade com prazo estendido e chamado aberto)","description":"Encerra o fluxo","positionX":4880,"positionY":260,"formId":null,"connectorConfig":null},
+  {"id":"Node_rest_ut10","type":"USER_TASK","name":"Registrar pendência de upgrade","description":"Coleta de motivo para análise manual","positionX":2640,"positionY":700,"formId":"00000000-0000-4000-9100-00000000000a","connectorConfig":null},
+  {"id":"Node_rest_st7","type":"SERVICE_TASK","name":"Consultar score de retenção","description":"Calcula a propensão de retenção do cliente","positionX":2960,"positionY":700,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"GET","url":"http://localhost:8084/v1/retencao/score","headers":{"Content-Type":"application/json"},"params":null,"body":null,"outputMapping":[{"name":"scoreRetencao","jsonPath":"$.score","type":"number"}]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_gw4","type":"GATEWAY","name":"Decisão: oferecer retenção?","description":"Encaminha conforme o score calculado","positionX":3280,"positionY":700,"formId":null,"connectorConfig":null},
+  {"id":"Node_rest_st8","type":"SERVICE_TASK","name":"Aplicar oferta de retenção","description":"Aplica desconto/benefício de retenção","positionX":3600,"positionY":480,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/retencao/oferta","headers":{"Content-Type":"application/json"},"params":null,"body":{"score":"{{scoreRetencao}}"},"outputMapping":[]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_ut11","type":"USER_TASK","name":"Confirmação final — retenção","description":"Confirmação da oferta aplicada","positionX":3920,"positionY":480,"formId":"00000000-0000-4000-9100-00000000000b","connectorConfig":null},
+  {"id":"Node_rest_st9","type":"SERVICE_TASK","name":"Provisionar dispositivo IoT bônus","description":"Provisiona um dispositivo IoT como bônus de retenção","positionX":4240,"positionY":480,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/iot/provisionar","headers":{"Content-Type":"application/json"},"params":null,"body":{"score":"{{scoreRetencao}}","motivo":"bonus-retencao"},"outputMapping":[{"name":"qtdProvisionada","jsonPath":"$.quantidadeProvisionada","type":"number"}]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_ut12","type":"USER_TASK","name":"Confirmação de provisionamento bônus","description":"Confirmação final ao cliente","positionX":4560,"positionY":480,"formId":"00000000-0000-4000-9100-00000000000c","connectorConfig":null},
+  {"id":"Node_rest_end4","type":"END","name":"Fim (retido com bônus IoT)","description":"Encerra o fluxo","positionX":4880,"positionY":480,"formId":null,"connectorConfig":null},
+  {"id":"Node_rest_st10","type":"SERVICE_TASK","name":"Processar cancelamento","description":"Efetiva o cancelamento do serviço","positionX":3600,"positionY":920,"formId":null,"connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/cancelamento","headers":{"Content-Type":"application/json"},"params":null,"body":null,"outputMapping":[]},"credentialRef":"cred-telecom-core-api"}},
+  {"id":"Node_rest_ut13","type":"USER_TASK","name":"Confirmação de cancelamento","description":"Confirmação final ao cliente","positionX":3920,"positionY":920,"formId":"00000000-0000-4000-9100-00000000000d","connectorConfig":null},
+  {"id":"Node_rest_end5","type":"END","name":"Fim (cancelado)","description":"Encerra o fluxo","positionX":4240,"positionY":920,"formId":null,"connectorConfig":null}
+]'::jsonb,
+'[
+  {"id":"Flow_rest_1","sourceNodeId":"Node_rest_start","targetNodeId":"Node_rest_ut1","condition":null,"isDefault":false},
+  {"id":"Flow_rest_2","sourceNodeId":"Node_rest_ut1","targetNodeId":"Node_rest_st1","condition":null,"isDefault":false},
+  {"id":"Flow_rest_3","sourceNodeId":"Node_rest_st1","targetNodeId":"Node_rest_gw1","condition":null,"isDefault":false},
+  {"id":"Flow_rest_4","sourceNodeId":"Node_rest_gw1","targetNodeId":"Node_rest_ut3","condition":"{{elegivel}} == true","isDefault":false},
+  {"id":"Flow_rest_5","sourceNodeId":"Node_rest_gw1","targetNodeId":"Node_rest_ut2","condition":null,"isDefault":true},
+  {"id":"Flow_rest_6","sourceNodeId":"Node_rest_ut2","targetNodeId":"Node_rest_end1","condition":null,"isDefault":false},
+  {"id":"Flow_rest_7","sourceNodeId":"Node_rest_ut3","targetNodeId":"Node_rest_ut4","condition":null,"isDefault":false},
+  {"id":"Flow_rest_8","sourceNodeId":"Node_rest_ut4","targetNodeId":"Node_rest_st2","condition":null,"isDefault":false},
+  {"id":"Flow_rest_9","sourceNodeId":"Node_rest_st2","targetNodeId":"Node_rest_gw2","condition":null,"isDefault":false},
+  {"id":"Flow_rest_10","sourceNodeId":"Node_rest_gw2","targetNodeId":"Node_rest_st3","condition":"{{elegivelUpgrade}} == true","isDefault":false},
+  {"id":"Flow_rest_11","sourceNodeId":"Node_rest_gw2","targetNodeId":"Node_rest_ut10","condition":null,"isDefault":true},
+  {"id":"Flow_rest_12","sourceNodeId":"Node_rest_st3","targetNodeId":"Node_rest_ut5","condition":null,"isDefault":false},
+  {"id":"Flow_rest_13","sourceNodeId":"Node_rest_ut5","targetNodeId":"Node_rest_st4","condition":null,"isDefault":false},
+  {"id":"Flow_rest_14","sourceNodeId":"Node_rest_st4","targetNodeId":"Node_rest_gw3","condition":null,"isDefault":false},
+  {"id":"Flow_rest_15","sourceNodeId":"Node_rest_gw3","targetNodeId":"Node_rest_ut6","condition":"{{prazoDias}} < 3","isDefault":false},
+  {"id":"Flow_rest_16","sourceNodeId":"Node_rest_gw3","targetNodeId":"Node_rest_ut8","condition":null,"isDefault":true},
+  {"id":"Flow_rest_17","sourceNodeId":"Node_rest_ut6","targetNodeId":"Node_rest_st5","condition":null,"isDefault":false},
+  {"id":"Flow_rest_18","sourceNodeId":"Node_rest_st5","targetNodeId":"Node_rest_ut7","condition":null,"isDefault":false},
+  {"id":"Flow_rest_19","sourceNodeId":"Node_rest_ut7","targetNodeId":"Node_rest_end2","condition":null,"isDefault":false},
+  {"id":"Flow_rest_20","sourceNodeId":"Node_rest_ut8","targetNodeId":"Node_rest_st6","condition":null,"isDefault":false},
+  {"id":"Flow_rest_21","sourceNodeId":"Node_rest_st6","targetNodeId":"Node_rest_ut9","condition":null,"isDefault":false},
+  {"id":"Flow_rest_22","sourceNodeId":"Node_rest_ut9","targetNodeId":"Node_rest_end3","condition":null,"isDefault":false},
+  {"id":"Flow_rest_23","sourceNodeId":"Node_rest_ut10","targetNodeId":"Node_rest_st7","condition":null,"isDefault":false},
+  {"id":"Flow_rest_24","sourceNodeId":"Node_rest_st7","targetNodeId":"Node_rest_gw4","condition":null,"isDefault":false},
+  {"id":"Flow_rest_25","sourceNodeId":"Node_rest_gw4","targetNodeId":"Node_rest_st8","condition":"{{scoreRetencao}} > 70","isDefault":false},
+  {"id":"Flow_rest_26","sourceNodeId":"Node_rest_gw4","targetNodeId":"Node_rest_st10","condition":null,"isDefault":true},
+  {"id":"Flow_rest_27","sourceNodeId":"Node_rest_st8","targetNodeId":"Node_rest_ut11","condition":null,"isDefault":false},
+  {"id":"Flow_rest_28","sourceNodeId":"Node_rest_ut11","targetNodeId":"Node_rest_st9","condition":null,"isDefault":false},
+  {"id":"Flow_rest_29","sourceNodeId":"Node_rest_st9","targetNodeId":"Node_rest_ut12","condition":null,"isDefault":false},
+  {"id":"Flow_rest_30","sourceNodeId":"Node_rest_ut12","targetNodeId":"Node_rest_end4","condition":null,"isDefault":false},
+  {"id":"Flow_rest_31","sourceNodeId":"Node_rest_st10","targetNodeId":"Node_rest_ut13","condition":null,"isDefault":false},
+  {"id":"Flow_rest_32","sourceNodeId":"Node_rest_ut13","targetNodeId":"Node_rest_end5","condition":null,"isDefault":false}
+]'::jsonb,
+now(), now()
+FROM new_journey;
+
+WITH new_journey AS (
+  INSERT INTO journey (journey_id, channel_id, name, description, status, created_at, updated_at)
+  SELECT gen_random_uuid(), c.channel_id, 'Jornada de Referência — Conectores Kafka',
+         'Jornada de referência que exercita o conector Kafka real em todas as suas formas — início por mensagem, publicação (produce) e consumo (receive/correlação) — com múltiplos ciclos de confirmação e reprocessamento.',
+         'DRAFT', now(), now()
+  FROM channel c JOIN product p ON p.product_id = c.product_id
+  WHERE p.name = 'Elastic Journey' AND c.type = 'WEB'
+  RETURNING journey_id
+)
+INSERT INTO flow (flow_id, journey_id, name, nodes, connections, created_at, updated_at)
+SELECT 'Process_' || gen_random_uuid(), journey_id, 'Fluxo principal',
+'[
+  {"id":"Node_kafka_mse","type":"MESSAGE_START_EVENT","name":"Solicitação recebida via Kafka","description":"Inicia a partir de uma solicitação de provisionamento publicada no tópico","positionX":80,"positionY":480,"formId":null,"connectorConfig":{"connectorType":"KAFKA","config":{"topic":"telecom.provisionamento.solicitacao","operation":"CONSUME","headers":{},"payload":null,"outputMapping":[{"name":"quantidadeSolicitada","jsonPath":"$.quantidade","type":"number"},{"name":"tipoDispositivoSolicitado","jsonPath":"$.tipoDispositivo","type":"string"}]},"credentialRef":"cred-telecom-kafka-cluster"}},
+  {"id":"Node_kafka_ut1","type":"USER_TASK","name":"Revisar solicitação recebida","description":"Confere os dados recebidos via mensagem","positionX":400,"positionY":480,"formId":"00000000-0000-4000-9200-000000000001","connectorConfig":null},
+  {"id":"Node_kafka_st1","type":"SERVICE_TASK","name":"Publicar pedido de provisionamento","description":"Publica o pedido para o sistema de provisionamento","positionX":720,"positionY":480,"formId":null,"connectorConfig":{"connectorType":"KAFKA","config":{"topic":"telecom.provisionamento.pedido","operation":"PRODUCE","headers":{},"payload":{"quantidade":"{{quantidadeSolicitada}}","tipoDispositivo":"{{tipoDispositivoSolicitado}}"}},"credentialRef":"cred-telecom-kafka-cluster"}},
+  {"id":"Node_kafka_rt1","type":"RECEIVE_TASK","name":"Aguardar confirmação de provisionamento","description":"Espera a confirmação do provisionamento","positionX":1040,"positionY":480,"formId":null,"connectorConfig":{"connectorType":"KAFKA","config":{"topic":"telecom.provisionamento.confirmacao","operation":"CONSUME","headers":{},"payload":null,"outputMapping":[{"name":"statusProvisionamento","jsonPath":"$.status","type":"string"},{"name":"quantidadeProvisionada","jsonPath":"$.quantidadeProvisionada","type":"number"}]},"credentialRef":"cred-telecom-kafka-cluster"}},
+  {"id":"Node_kafka_gw1","type":"GATEWAY","name":"Decisão: provisionamento confirmado?","description":"Encaminha conforme o status recebido","positionX":1360,"positionY":480,"formId":null,"connectorConfig":null},
+  {"id":"Node_kafka_ut2","type":"USER_TASK","name":"Ver resultado do provisionamento","description":"Confirma o resultado recebido","positionX":1680,"positionY":260,"formId":"00000000-0000-4000-9200-000000000002","connectorConfig":null},
+  {"id":"Node_kafka_st2","type":"SERVICE_TASK","name":"Publicar ativação de monitoramento","description":"Solicita a ativação do monitoramento dos dispositivos","positionX":2000,"positionY":260,"formId":null,"connectorConfig":{"connectorType":"KAFKA","config":{"topic":"telecom.provisionamento.monitoramento.ativar","operation":"PRODUCE","headers":{},"payload":{"quantidadeProvisionada":"{{quantidadeProvisionada}}"}},"credentialRef":"cred-telecom-kafka-cluster"}},
+  {"id":"Node_kafka_rt2","type":"RECEIVE_TASK","name":"Aguardar confirmação de monitoramento","description":"Espera a confirmação de que o monitoramento está ativo","positionX":2320,"positionY":260,"formId":null,"connectorConfig":{"connectorType":"KAFKA","config":{"topic":"telecom.provisionamento.monitoramento.confirmacao","operation":"CONSUME","headers":{},"payload":null,"outputMapping":[{"name":"monitoramentoAtivo","jsonPath":"$.ativo","type":"boolean"}]},"credentialRef":"cred-telecom-kafka-cluster"}},
+  {"id":"Node_kafka_gw2","type":"GATEWAY","name":"Decisão: monitoramento ativo?","description":"Encaminha conforme o status do monitoramento","positionX":2640,"positionY":260,"formId":null,"connectorConfig":null},
+  {"id":"Node_kafka_ut3","type":"USER_TASK","name":"Confirmação final","description":"Confirmação final ao cliente","positionX":2960,"positionY":40,"formId":"00000000-0000-4000-9200-000000000004","connectorConfig":null},
+  {"id":"Node_kafka_end1","type":"END","name":"Fim (provisionado e monitorado)","description":"Encerra o fluxo","positionX":3280,"positionY":40,"formId":null,"connectorConfig":null},
+  {"id":"Node_kafka_ut4","type":"USER_TASK","name":"Registrar falha de monitoramento","description":"Coleta a prioridade do alerta","positionX":2960,"positionY":480,"formId":"00000000-0000-4000-9200-000000000005","connectorConfig":null},
+  {"id":"Node_kafka_st3","type":"SERVICE_TASK","name":"Notificar equipe de suporte","description":"Publica alerta de monitoramento inativo","positionX":3280,"positionY":480,"formId":null,"connectorConfig":{"connectorType":"KAFKA","config":{"topic":"telecom.provisionamento.alerta.suporte","operation":"PRODUCE","headers":{},"payload":{"quantidadeProvisionada":"{{quantidadeProvisionada}}","motivo":"monitoramento-inativo"}},"credentialRef":"cred-telecom-kafka-cluster"}},
+  {"id":"Node_kafka_end2","type":"END","name":"Fim (monitoramento pendente)","description":"Encerra o fluxo","positionX":3600,"positionY":480,"formId":null,"connectorConfig":null},
+  {"id":"Node_kafka_ut5","type":"USER_TASK","name":"Registrar falha de provisionamento","description":"Coleta a ação desejada","positionX":1680,"positionY":700,"formId":"00000000-0000-4000-9200-000000000003","connectorConfig":null},
+  {"id":"Node_kafka_st4","type":"SERVICE_TASK","name":"Solicitar reprocessamento","description":"Publica novo pedido de provisionamento","positionX":2000,"positionY":700,"formId":null,"connectorConfig":{"connectorType":"KAFKA","config":{"topic":"telecom.provisionamento.reprocessar","operation":"PRODUCE","headers":{},"payload":{"quantidade":"{{quantidadeSolicitada}}","tipoDispositivo":"{{tipoDispositivoSolicitado}}"}},"credentialRef":"cred-telecom-kafka-cluster"}},
+  {"id":"Node_kafka_rt3","type":"RECEIVE_TASK","name":"Aguardar novo resultado de provisionamento","description":"Espera o resultado do reprocessamento","positionX":2320,"positionY":700,"formId":null,"connectorConfig":{"connectorType":"KAFKA","config":{"topic":"telecom.provisionamento.reprocessamento.resultado","operation":"CONSUME","headers":{},"payload":null,"outputMapping":[{"name":"statusReprocessamento","jsonPath":"$.status","type":"string"}]},"credentialRef":"cred-telecom-kafka-cluster"}},
+  {"id":"Node_kafka_gw3","type":"GATEWAY","name":"Decisão: reprocessamento OK?","description":"Encaminha conforme o resultado do reprocessamento","positionX":2640,"positionY":700,"formId":null,"connectorConfig":null},
+  {"id":"Node_kafka_ut6","type":"USER_TASK","name":"Confirmação após reprocessamento","description":"Confirmação final ao cliente","positionX":2960,"positionY":920,"formId":"00000000-0000-4000-9200-000000000006","connectorConfig":null},
+  {"id":"Node_kafka_end3","type":"END","name":"Fim (provisionado após reprocessamento)","description":"Encerra o fluxo","positionX":3280,"positionY":920,"formId":null,"connectorConfig":null},
+  {"id":"Node_kafka_ut7","type":"USER_TASK","name":"Escalonar para atendimento manual","description":"Coleta o motivo do escalonamento","positionX":2960,"positionY":1140,"formId":"00000000-0000-4000-9200-000000000007","connectorConfig":null},
+  {"id":"Node_kafka_end4","type":"END","name":"Fim (escalonado para atendimento manual)","description":"Encerra o fluxo","positionX":3280,"positionY":1140,"formId":null,"connectorConfig":null}
+]'::jsonb,
+'[
+  {"id":"Flow_kafka_1","sourceNodeId":"Node_kafka_mse","targetNodeId":"Node_kafka_ut1","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_2","sourceNodeId":"Node_kafka_ut1","targetNodeId":"Node_kafka_st1","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_3","sourceNodeId":"Node_kafka_st1","targetNodeId":"Node_kafka_rt1","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_4","sourceNodeId":"Node_kafka_rt1","targetNodeId":"Node_kafka_gw1","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_5","sourceNodeId":"Node_kafka_gw1","targetNodeId":"Node_kafka_ut2","condition":"{{statusProvisionamento}} == ''CONFIRMADO''","isDefault":false},
+  {"id":"Flow_kafka_6","sourceNodeId":"Node_kafka_gw1","targetNodeId":"Node_kafka_ut5","condition":null,"isDefault":true},
+  {"id":"Flow_kafka_7","sourceNodeId":"Node_kafka_ut2","targetNodeId":"Node_kafka_st2","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_8","sourceNodeId":"Node_kafka_st2","targetNodeId":"Node_kafka_rt2","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_9","sourceNodeId":"Node_kafka_rt2","targetNodeId":"Node_kafka_gw2","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_10","sourceNodeId":"Node_kafka_gw2","targetNodeId":"Node_kafka_ut3","condition":"{{monitoramentoAtivo}} == true","isDefault":false},
+  {"id":"Flow_kafka_11","sourceNodeId":"Node_kafka_gw2","targetNodeId":"Node_kafka_ut4","condition":null,"isDefault":true},
+  {"id":"Flow_kafka_12","sourceNodeId":"Node_kafka_ut3","targetNodeId":"Node_kafka_end1","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_13","sourceNodeId":"Node_kafka_ut4","targetNodeId":"Node_kafka_st3","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_14","sourceNodeId":"Node_kafka_st3","targetNodeId":"Node_kafka_end2","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_15","sourceNodeId":"Node_kafka_ut5","targetNodeId":"Node_kafka_st4","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_16","sourceNodeId":"Node_kafka_st4","targetNodeId":"Node_kafka_rt3","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_17","sourceNodeId":"Node_kafka_rt3","targetNodeId":"Node_kafka_gw3","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_18","sourceNodeId":"Node_kafka_gw3","targetNodeId":"Node_kafka_ut6","condition":"{{statusReprocessamento}} == ''OK''","isDefault":false},
+  {"id":"Flow_kafka_19","sourceNodeId":"Node_kafka_gw3","targetNodeId":"Node_kafka_ut7","condition":null,"isDefault":true},
+  {"id":"Flow_kafka_20","sourceNodeId":"Node_kafka_ut6","targetNodeId":"Node_kafka_end3","condition":null,"isDefault":false},
+  {"id":"Flow_kafka_21","sourceNodeId":"Node_kafka_ut7","targetNodeId":"Node_kafka_end4","condition":null,"isDefault":false}
 ]'::jsonb,
 now(), now()
 FROM new_journey;

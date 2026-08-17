@@ -1,9 +1,11 @@
 package com.jouney.mockapirest;
 
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
-import org.springframework.web.bind.annotation.PostMapping;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -12,61 +14,76 @@ import org.springframework.web.bind.annotation.RestController;
  * conectores REST de SERVICE_TASK — o Camunda HTTP Connector chama estas rotas de verdade e de
  * forma síncrona ao completar a User Task anterior, então cada uma aqui devolve exatamente os
  * campos que o outputMapping do nó correspondente espera (ver massa_de_dados_journeys.sql).
- * Valores que alimentam uma condição de gateway são sorteados a cada chamada, para que os dois
- * caminhos apareçam naturalmente ao longo de várias simulações.
+ * Cada resposta vem do H2 ({@link MockEndpointConfig}), editável via /h2-console para simular
+ * cenários específicos nas jornadas (ex.: forçar o caminho de reprovação de um gateway).
  */
 @RestController
+@CrossOrigin(origins = "*")
 public class MockApiController {
+
+    private final MockEndpointConfigRepository configs;
+    private final ObjectMapper mapper;
+
+    public MockApiController(MockEndpointConfigRepository configs, ObjectMapper mapper) {
+        this.configs = configs;
+        this.mapper = mapper;
+    }
 
     @PostMapping("/v1/elegibilidade")
     public Map<String, Object> elegibilidade(@RequestBody(required = false) Map<String, Object> body) {
-        return Map.of(
-                "elegivel", ThreadLocalRandom.current().nextBoolean(),
-                "protocolo", "PROTO-" + ThreadLocalRandom.current().nextInt(100000, 999999));
+        return respond("/v1/elegibilidade");
     }
 
     @GetMapping("/v1/portabilidade/consulta")
     public Map<String, Object> portabilidadeConsulta() {
-        return Map.of("prazoEstimadoDias", ThreadLocalRandom.current().nextInt(1, 11));
+        return respond("/v1/portabilidade/consulta");
     }
 
     @GetMapping("/v1/retencao/score")
     public Map<String, Object> retencaoScore() {
-        return Map.of("score", ThreadLocalRandom.current().nextInt(0, 101));
+        return respond("/v1/retencao/score");
     }
 
     @PostMapping("/v1/retencao/oferta")
     public Map<String, Object> retencaoOferta(@RequestBody(required = false) Map<String, Object> body) {
-        return Map.of("status", "aplicado");
+        return respond("/v1/retencao/oferta");
     }
 
     @PostMapping("/v1/cancelamento")
     public Map<String, Object> cancelamento(@RequestBody(required = false) Map<String, Object> body) {
-        return Map.of("status", "cancelado");
+        return respond("/v1/cancelamento");
     }
 
     @PostMapping("/v1/suporte/chamados")
     public Map<String, Object> suporteChamados(@RequestBody(required = false) Map<String, Object> body) {
-        return Map.of("numeroChamado", "CHAMADO-" + ThreadLocalRandom.current().nextInt(100000, 999999));
+        return respond("/v1/suporte/chamados");
     }
 
     @GetMapping("/v1/planos/elegibilidade-upgrade")
     public Map<String, Object> planosElegibilidadeUpgrade() {
-        return Map.of("elegivel", ThreadLocalRandom.current().nextBoolean());
+        return respond("/v1/planos/elegibilidade-upgrade");
     }
 
     @PostMapping("/v1/planos/trocar")
     public Map<String, Object> planosTrocar(@RequestBody(required = false) Map<String, Object> body) {
-        return Map.of("status", "trocado");
+        return respond("/v1/planos/trocar");
     }
 
     @PostMapping("/v1/linhas/ativar")
     public Map<String, Object> linhasAtivar(@RequestBody(required = false) Map<String, Object> body) {
-        return Map.of("status", "ATIVA");
+        return respond("/v1/linhas/ativar");
     }
 
     @PostMapping("/v1/iot/provisionar")
     public Map<String, Object> iotProvisionar(@RequestBody(required = false) Map<String, Object> body) {
-        return Map.of("quantidadeProvisionada", ThreadLocalRandom.current().nextInt(0, 51));
+        return respond("/v1/iot/provisionar");
+    }
+
+    private Map<String, Object> respond(String endpoint) {
+        String json = configs.findById(endpoint)
+                .orElseThrow(() -> new IllegalStateException("Sem mock configurado para " + endpoint))
+                .getResponseJson();
+        return mapper.readValue(json, new TypeReference<Map<String, Object>>() {
+        });
     }
 }

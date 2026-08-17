@@ -40,3 +40,6 @@ nbdist/
 Thumbs.db
 *.env
 .env.local
+
+# Banco H2 local (respostas mockadas configuráveis)
+data/

@@ -8,7 +8,7 @@
 
 # 1. Introdução
 
-O Elastic Journey Admin Portal é uma aplicação composta por frontend e backend para cadastro de produtos e canais, criação visual de jornadas específicas por canal, configuração de formulários, simulação e publicação por meio de uma API do runtime.
+O Elastic Journey Admin Portal é uma aplicação composta por frontend e backend para cadastro de produtos e canais, criação visual de jornadas específicas por canal, configuração de formulários, execução e publicação por meio de uma API do runtime.
 
 ---
 
@@ -27,7 +27,7 @@ Service Tasks, Receive Tasks e Message Start Events com conectores REST e Kafka
 
 Formulários
 
-Simulação
+Execução
 
 Publicação de Jornadas
 
@@ -50,7 +50,7 @@ API de Publicação do Runtime (mock na versão 1.0.0)
 
 ## Elastic Journey Admin Portal
 
-Responsável por cadastrar produtos e canais e por criar, modelar, versionar, simular e publicar jornadas específicas para cada canal. Controla o acesso por autenticação mockada de provedor externo e registra eventos de auditoria. Produz uma **Journey Publication** associada a uma versão e inicia sua publicação por uma chamada outbound.
+Responsável por cadastrar produtos e canais e por criar, modelar, versionar, executar e publicar jornadas específicas para cada canal. Controla o acesso por autenticação mockada de provedor externo e registra eventos de auditoria. Produz uma **Journey Publication** associada a uma versão e inicia sua publicação por uma chamada outbound.
 
 ## API de Publicação do Runtime
 
@@ -75,7 +75,7 @@ Autenticação e Autorização mockadas
 
 Auditoria
 
-Simulação
+Execução
 
 Publicação de Jornadas
 
@@ -161,9 +161,9 @@ Framework de integrações com REST e Kafka habilitados na versão 1.0.0 e conec
 
 Formulário utilizado por uma User Task.
 
-## Simulation
+## Execution
 
-Execução simulada do caminho e das telas da jornada.
+Execução real do caminho e das telas de uma jornada publicada, contra o motor de runtime.
 
 ## Journey Version
 
@@ -268,9 +268,9 @@ Especificação OpenAPI
 | User Task Configuration | Associação entre uma User Task e seu formulário |
 | Form | Formulário utilizado por User Tasks |
 | Form Component | Componente visual pertencente a um formulário |
-| Simulation Execution | Execução simulada da jornada |
-| Simulation Step | Etapa executada durante a simulação |
-| Simulation Result | Resultado consolidado da simulação |
+| Execution Run | Execução da jornada |
+| Execution Step | Etapa executada durante a execução |
+| Execution Result | Resultado consolidado da execução |
 | Journey Version | Versão imutável de uma jornada |
 | Journey Publication | Snapshot de uma versão enviado para a API de publicação do runtime |
 | External Identity Provider | Provedor externo de autenticação, mockado na versão 1.0.0 |
@@ -288,7 +288,7 @@ Especificação OpenAPI
 | Flow | Fluxo visual |
 | User Task | Interação humana realizada durante a jornada |
 | Form | Formulário exibido em uma User Task |
-| Simulation | Execução simulada |
+| Execution | Execução real da jornada publicada, contra o motor de runtime |
 | Publication | Envio do snapshot de uma versão imutável para a API de publicação do runtime |
 | Runtime | Camada responsável pela execução das jornadas |
 | ms-journey | Motor de execução que não conhece nem consulta o Admin Portal |
@@ -298,4 +298,4 @@ Especificação OpenAPI
 
 # 12. Resumo Executivo
 
-O Elastic Journey Admin Portal versão 1.0.0 cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, simulação, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).
+O Elastic Journey Admin Portal versão 1.0.0 cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, execução, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).

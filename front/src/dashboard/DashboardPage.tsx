@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ShieldAlert,
   Trash2,
+  Unplug,
 } from 'lucide-react';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ConfirmDialog } from '../products/ConfirmDialog';
@@ -134,13 +135,9 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-5 rounded-lg px-4 py-3 text-[13px]" style={{ background: c.dangerSoft, color: c.danger, border: `1px solid ${c.dangerBorder}` }}>
-          {error}
-        </div>
-      )}
-
-      {!overview && !error ? (
+      {error ? (
+        <EngineOfflinePanel message={error} onRetry={load} retrying={refreshing} autoRefresh={autoRefresh} c={c} />
+      ) : !overview ? (
         <DashboardSkeleton c={c} />
       ) : overview ? (
         <div className="flex flex-col gap-6">
@@ -493,6 +490,80 @@ function EmptyHint({ c, children }: { c: AppColors; children: React.ReactNode })
     <p className="m-0 py-3 text-[12.5px]" style={{ color: c.textSecondary }}>
       {children}
     </p>
+  );
+}
+
+// Estado vazio de página inteira para quando o motor de runtime está inacessível (sem dado nenhum
+// pra mostrar) — o diagrama ilustra um fluxo de estados cuja transição central foi rompida: os
+// dois primeiros estados seguem "vivos" (o pulso de sinal ainda percorre o primeiro trecho), mas
+// nada passa do ponto de ruptura, e os estados seguintes ficam apagados.
+function EngineOfflinePanel({
+  message,
+  onRetry,
+  retrying,
+  autoRefresh,
+  c,
+}: {
+  message: string;
+  onRetry: () => void;
+  retrying: boolean;
+  autoRefresh: boolean;
+  c: AppColors;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-6 py-10 min-h-[60vh]">
+      <svg width={320} height={110} viewBox="0 0 320 110" fill="none" aria-hidden="true">
+        <path d="M205,68 Q248,58 290,45" stroke={c.border} strokeWidth={2} strokeDasharray="4 5" opacity={0.6} />
+        <path d="M30,55 Q72,30 115,38" stroke={c.textMuted} strokeWidth={2} />
+        <path d="M115,38 Q138,44 148,50" stroke={c.textMuted} strokeWidth={2} strokeDasharray="3 4" opacity={0.55} />
+        <path d="M172,56 Q190,62 205,68" stroke={c.textMuted} strokeWidth={2} strokeDasharray="3 4" opacity={0.35} />
+
+        <circle cx={30} cy={55} r={7} fill={c.surface} stroke={c.textMuted} strokeWidth={2} />
+        <circle cx={115} cy={38} r={7} fill={c.surface} stroke={c.textMuted} strokeWidth={2} />
+        <g opacity={0.45}>
+          <circle cx={205} cy={68} r={7} fill={c.surface} stroke={c.border} strokeWidth={2} />
+          <circle cx={290} cy={45} r={7} fill={c.surface} stroke={c.border} strokeWidth={2} />
+        </g>
+
+        <circle r={3.5} fill={c.accent} style={{ offsetPath: "path('M30,55 Q72,30 115,38')", animation: 'engine-offline-travel 2.6s ease-in-out infinite' }} />
+
+        <g transform="translate(160,53)">
+          <circle r={15} fill="none" stroke={c.danger} style={{ opacity: 0.35, animation: 'engine-offline-ring 2.4s ease-out infinite' }} />
+          <circle r={15} fill="none" stroke={c.danger} style={{ opacity: 0.35, animation: 'engine-offline-ring 2.4s ease-out infinite 1.2s' }} />
+          <circle r={15} fill={c.dangerSoft} stroke={c.dangerBorder} strokeWidth={1.5} />
+          <foreignObject x={-11} y={-11} width={22} height={22}>
+            <div className="w-full h-full flex items-center justify-center" style={{ animation: 'engine-offline-badge-pulse 2.4s ease-in-out infinite' }}>
+              <Unplug size={13} color={c.danger} />
+            </div>
+          </foreignObject>
+        </g>
+      </svg>
+
+      <div className="flex flex-col items-center gap-2 max-w-[440px] text-center">
+        <h2 className="m-0 text-[16px] font-semibold" style={{ color: c.textPrimary }}>
+          Motor de runtime desconectado
+        </h2>
+        <p className="m-0 text-[13px] leading-[19px]" style={{ color: c.textSecondary }}>
+          {message}
+        </p>
+        {autoRefresh && (
+          <p className="m-0 text-[11.5px]" style={{ color: c.textMuted }}>
+            Nova tentativa automática a cada {AUTO_REFRESH_MS / 1000}s
+          </p>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={onRetry}
+        disabled={retrying}
+        className="flex items-center gap-[6px] rounded-md px-4 py-[8px] text-[12.5px] font-medium cursor-pointer border disabled:opacity-60"
+        style={{ borderColor: c.border, background: c.surface, color: c.textPrimary }}
+      >
+        <RefreshCw size={13} style={{ animation: retrying ? 'dashboard-spin 0.8s linear infinite' : 'none' }} />
+        Tentar novamente
+      </button>
+    </div>
   );
 }
 

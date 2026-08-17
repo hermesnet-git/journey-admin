@@ -4,6 +4,7 @@ import com.jouney.especregistry.config.CamundaProperties;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,6 +24,7 @@ import org.springframework.web.client.RestClient;
 public class CamundaClient {
 
     private static final String WORKER_ID = "simulador-elastic-journey";
+    private static final String KAFKA_BRIDGE_WORKER_ID = "kafka-bridge-scheduler";
 
     // Camunda espera o formato RFC 822 ("+0000"), não o "Z" que Instant#toString produz — testado
     // ao vivo: "startedAfter=...Z" é rejeitado com InvalidRequestException, "...+0000" funciona.
@@ -37,11 +39,14 @@ public class CamundaClient {
         this.restClient = RestClient.create();
     }
 
-    public String startProcessInstance(String processDefinitionKey, Map<String, CamundaVariable> variables) {
+    // businessKey é obrigatório (não Optional): toda instância precisa de um, mesmo que iniciada
+    // manualmente — é o único jeito de uma RECEIVE_TASK futura ser correlacionada de volta a ela via
+    // Kafka (ver findProcessInstanceByBusinessKey).
+    public String startProcessInstance(String processDefinitionKey, Map<String, CamundaVariable> variables, String businessKey) {
         Map<String, Object> response = restClient.post()
                 .uri(baseUrl + "/process-definition/key/{key}/start", processDefinitionKey)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("variables", variables))
+                .body(Map.of("variables", variables, "businessKey", businessKey))
                 .retrieve()
                 .body(new ParameterizedTypeReference<Map<String, Object>>() {
                 });
@@ -57,6 +62,21 @@ public class CamundaClient {
         } catch (HttpClientErrorException.NotFound e) {
             return Optional.empty();
         }
+    }
+
+    /** Resolve um businessKey pra um processInstanceId exato, já restrito à definição de processo
+     * certa — usado pelo bridge Kafka pra correlacionar uma RECEIVE_TASK sem depender do nome da
+     * mensagem ser único entre jornadas (não é: jornadas geradas do mesmo template reaproveitam os
+     * mesmos ids de nó, então "Message_&lt;nodeId&gt;" pode colidir entre definições de processo
+     * diferentes — restringir por processDefinitionKey aqui é o que evita correlacionar/iniciar a
+     * jornada errada). */
+    public Optional<ProcessInstanceInfo> findProcessInstanceByBusinessKey(String businessKey, String processDefinitionKey) {
+        List<ProcessInstanceInfo> found = restClient.get()
+                .uri(baseUrl + "/process-instance?businessKey={businessKey}&processDefinitionKey={key}", businessKey, processDefinitionKey)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<ProcessInstanceInfo>>() {
+                });
+        return found == null || found.isEmpty() ? Optional.empty() : Optional.of(found.get(0));
     }
 
     public List<TaskInfo> findActiveUserTasks(String processInstanceId) {
@@ -148,13 +168,60 @@ public class CamundaClient {
             throw new IllegalStateException("Não foi possível travar o external task da atividade " + activityId);
         }
         String externalTaskId = String.valueOf(locked.get(0).get("id"));
+        completeExternalTaskById(externalTaskId, WORKER_ID, variables);
+    }
 
+    /** Completa um external task já travado, dado só o seu id — usado tanto pelo
+     * {@link #completeExternalTask} (botão "Simular conclusão", trava e completa em um passo) quanto
+     * pelo {@link #fetchAndLockAll} (worker do bridge Kafka, que trava vários de uma vez). */
+    public void completeExternalTaskById(String externalTaskId, Map<String, CamundaVariable> variables) {
+        completeExternalTaskById(externalTaskId, KAFKA_BRIDGE_WORKER_ID, variables);
+    }
+
+    private void completeExternalTaskById(String externalTaskId, String workerId, Map<String, CamundaVariable> variables) {
         restClient.post()
                 .uri(baseUrl + "/external-task/{id}/complete", externalTaskId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("workerId", WORKER_ID, "variables", variables))
+                .body(Map.of("workerId", workerId, "variables", variables))
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    /** Trava em lote, num único fetchAndLock, todos os external tasks pendentes nos tópicos dados —
+     * usado pelo worker do bridge Kafka (que não sabe de antemão quais instâncias/atividades tem
+     * tarefa pendente, ao contrário de {@link #completeExternalTask}, que já sabe exatamente qual). */
+    public List<LockedExternalTask> fetchAndLockAll(Collection<String> topicNames) {
+        if (topicNames.isEmpty()) {
+            return List.of();
+        }
+        List<Map<String, Object>> topics = topicNames.stream()
+                .map(topic -> Map.<String, Object>of("topicName", topic, "lockDuration", 30000))
+                .toList();
+        Map<String, Object> lockBody = Map.of("workerId", KAFKA_BRIDGE_WORKER_ID, "maxTasks", 50, "topics", topics);
+        List<LockedExternalTask> locked = restClient.post()
+                .uri(baseUrl + "/external-task/fetchAndLock")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(lockBody)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<LockedExternalTask>>() {
+                });
+        return locked != null ? locked : List.of();
+    }
+
+    /** Instância mais recente de uma definição de processo iniciada depois de {@code since} — usado
+     * pelo polling do front depois de enviar uma mensagem de teste pra um MESSAGE_START_EVENT
+     * (não existe processInstanceId nenhum antes disso pra consultar diretamente). */
+    public Optional<String> findMostRecentInstanceStartedAfter(String processDefinitionKey, Instant since) {
+        List<Map<String, Object>> found = restClient.get()
+                .uri(baseUrl + "/history/process-instance?processDefinitionKey={key}&startedAfter={since}&sortBy=startTime&sortOrder=desc&maxResults=1",
+                        processDefinitionKey, HISTORY_DATE_FORMAT.format(since))
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                });
+        if (found == null || found.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(found.get(0).get("id")).map(String::valueOf);
     }
 
     /** Todas as variáveis visíveis no escopo do processo agora — inclui tudo que outputMapping de

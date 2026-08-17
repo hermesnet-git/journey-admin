@@ -5,8 +5,8 @@ app:
     # host/porta do serviço de publicação do runtime; sobrescrevível via env var
     # TRANSFORM_PUBLICATION_BASE_URL (ex.: em docker-compose, apontar para o hostname do serviço).
     base-url: ${TRANSFORM_PUBLICATION_BASE_URL:http://localhost:8082}
-  camunda:
-    # engine-rest do motor de runtime (Camunda 7), usado pelo Dashboard pra ler o estado ao vivo de
+  runtime-engine:
+    # engine-rest do motor de runtime, usado pelo Dashboard pra ler o estado ao vivo de
     # processos/instâncias/tarefas/incidentes — leitura direta, sem passar pelo ms-espec-registry
-    # (que é específico da funcionalidade de Simulação).
-    base-url: ${CAMUNDA_BASE_URL:http://localhost:8080/engine-rest}
+    # (que é específico da funcionalidade de Execução).
+    base-url: ${RUNTIME_ENGINE_BASE_URL:http://localhost:8080/engine-rest}

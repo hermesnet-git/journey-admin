@@ -35,6 +35,27 @@ html, body, #root {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Motor de runtime offline (DashboardPage): um pulso de sinal percorre o primeiro trecho do
+   diagrama de estados e desaparece antes de alcançar a conexão rompida — ilustra o motor tentando
+   avançar e falhando, em vez de um ícone estático de erro. */
+@keyframes engine-offline-travel {
+  0% { offset-distance: 0%; opacity: 0; }
+  15% { opacity: 1; }
+  55% { opacity: 1; }
+  70% { offset-distance: 100%; opacity: 0; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+@keyframes engine-offline-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+@keyframes engine-offline-ring {
+  0% { transform: scale(0.9); opacity: 0.5; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;

@@ -58,7 +58,7 @@ public class GetDashboardOverview {
                 processDefinitions.size(),
                 monitoring.countInstancesFinishedSince(startOfToday));
 
-        // Um único fetch de 30 dias alimenta as três granularidades — evita 3 idas ao Camunda.
+        // Um único fetch de 30 dias alimenta as três granularidades — evita 3 idas ao motor de runtime.
         List<HistoricInstanceSummary> trendSource = monitoring.historicInstancesStartedSince(trendSince, 5000);
         DashboardTrend trend = new DashboardTrend(
                 buildHourlyTrend(trendSource, zone),

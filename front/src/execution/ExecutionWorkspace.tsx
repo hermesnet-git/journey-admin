@@ -3,11 +3,13 @@ import { ArrowLeft } from 'lucide-react';
 import { Stack, Text, skinVars } from '@telefonica/mistica';
 import {
   completeTask,
+  ExecutionApiError,
+  ExecutionNetworkError,
+  getCurrentStep,
   getVariables,
+  sendTestMessage,
   setVariable,
-  simulateStep,
-  SimulationApiError,
-  SimulationNetworkError,
+  skipStep,
   type FlowBundle,
   type JourneySummary,
   type StepResponse,
@@ -17,8 +19,11 @@ import {
 import { DevicePreview } from './DevicePreview';
 import { InspectorPanel, type LogEntry } from './InspectorPanel';
 
+const WAITING_POLL_MS = 2000;
+
 interface Props {
   processInstanceId: string;
+  businessKey: string;
   journey: JourneySummary;
   flow: FlowBundle;
   initialStep: StepResponse;
@@ -64,7 +69,7 @@ function describeTrailEntry(entry: TrailEntry): string {
   return describe ? describe(entry.nodeName) : `Etapa "${entry.nodeName}" concluída.`;
 }
 
-export function SimulationWorkspace({ processInstanceId, journey, flow, initialStep, onRestart }: Props) {
+export function ExecutionWorkspace({ processInstanceId, businessKey, journey, flow, initialStep, onRestart }: Props) {
   const startNodeId = flow.flowNodes.find((n) => n.type === 'START')?.id;
 
   const [step, setStep] = useState(initialStep);
@@ -90,7 +95,7 @@ export function SimulationWorkspace({ processInstanceId, journey, flow, initialS
     getVariables(processInstanceId)
       .then(setVariables)
       .catch(() => {
-        /* aba Variáveis só deixa de atualizar; não interrompe a simulação */
+        /* aba Variáveis só deixa de atualizar; não interrompe a execução */
       });
   }, [processInstanceId]);
 
@@ -148,12 +153,12 @@ export function SimulationWorkspace({ processInstanceId, journey, flow, initialS
     }
   }
 
-  async function handleSimulateStep() {
+  async function handleSkipStep() {
     setBusy(true);
     try {
-      const newStep = await simulateStep(processInstanceId);
+      const newStep = await skipStep(processInstanceId);
       if (!newStep.errorNodeId) {
-        appendLog(`Conclusão simulada para a ${taskLabel(step.nodeType)} "${step.nodeName}".`);
+        appendLog(`Etapa "${step.nodeName}" (${taskLabel(step.nodeType)}) pulada manualmente.`);
       }
       applyNewStep(newStep);
     } catch (e) {
@@ -166,6 +171,33 @@ export function SimulationWorkspace({ processInstanceId, journey, flow, initialS
       setBusy(false);
     }
   }
+
+  async function handleSendTestMessage(nodeId: string, payload: Record<string, unknown>) {
+    await sendTestMessage(journey.journeyId, nodeId, payload);
+    appendLog(`Mensagem de teste publicada no Kafka para "${step.nodeName}".`, payload);
+  }
+
+  // Nó Kafka em espera não tem botão: o produtor completa sozinho (worker em background) e o
+  // consumidor só avança quando uma mensagem real chega (painel "Enviar mensagem" ou um produtor
+  // externo de verdade) — em ambos os casos, só o polling aqui detecta que o passo mudou.
+  const waitingConnectorConfig = step.nodeId ? (flow.flowNodes.find((n) => n.id === step.nodeId)?.connectorConfig ?? null) : null;
+  const isWaitingOnKafka = step.type === 'WAITING' && waitingConnectorConfig?.connectorType === 'KAFKA';
+
+  useEffect(() => {
+    if (!isWaitingOnKafka) return;
+    const id = setInterval(async () => {
+      try {
+        const latest = await getCurrentStep(processInstanceId);
+        if (latest.type !== step.type || latest.nodeId !== step.nodeId) {
+          applyNewStep(latest);
+        }
+      } catch {
+        // silencioso — a próxima rodada do intervalo tenta de novo
+      }
+    }, WAITING_POLL_MS);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isWaitingOnKafka, processInstanceId, step.type, step.nodeId]);
 
   async function handleEditVariable(name: string, rawValue: string, type: string) {
     try {
@@ -199,7 +231,7 @@ export function SimulationWorkspace({ processInstanceId, journey, flow, initialS
                 style={{ background: 'transparent', border: `1px solid ${skinVars.colors.border}`, color: skinVars.colors.textSecondary }}
               >
                 <ArrowLeft size={14} />
-                Nova simulação
+                Nova execução
               </button>
             </div>
 
@@ -207,8 +239,11 @@ export function SimulationWorkspace({ processInstanceId, journey, flow, initialS
               channelType={flow.channelType}
               step={step}
               busy={busy}
+              connectorConfig={waitingConnectorConfig}
+              businessKey={businessKey}
               onCompleteTask={handleCompleteTask}
-              onSimulateStep={handleSimulateStep}
+              onSkipStep={handleSkipStep}
+              onSendTestMessage={handleSendTestMessage}
             />
           </Stack>
         </div>
@@ -235,7 +270,7 @@ function capitalize(s: string): string {
 }
 
 function errorMessage(e: unknown): string {
-  if (e instanceof SimulationNetworkError) return e.message;
-  if (e instanceof SimulationApiError) return e.message;
+  if (e instanceof ExecutionNetworkError) return e.message;
+  if (e instanceof ExecutionApiError) return e.message;
   return 'Erro inesperado.';
 }

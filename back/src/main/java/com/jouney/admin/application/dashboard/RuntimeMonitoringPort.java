@@ -6,8 +6,8 @@ import com.jouney.admin.domain.dashboard.ProcessDefinitionUsage;
 import java.time.Instant;
 import java.util.List;
 
-/** Leitura somente-consulta do estado ao vivo do motor de runtime. O Admin Portal não sabe o que
- * implementa isso (Camunda, outro motor) — só o vocabulário de monitoramento, no mesmo espírito de
+/** Leitura somente-consulta do estado ao vivo do motor de runtime. O Admin Portal não sabe qual
+ * motor implementa isso — só o vocabulário de monitoramento, no mesmo espírito de
  * {@link com.jouney.admin.application.publication.RuntimePublicationPort} para a publicação. */
 public interface RuntimeMonitoringPort {
 

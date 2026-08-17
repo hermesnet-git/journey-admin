@@ -105,7 +105,7 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
         outline: isCurrent ? `2.5px solid ${typeColor}` : isError ? `2px solid ${skinVars.colors.error}` : 'none',
         outlineOffset: isCurrent || isError ? 1.5 : 0,
         // A etapa atual "pisca" o contorno lentamente pra deixar óbvio que o fluxo está parado ali
-        // aguardando (resposta de usuário ou "Simular conclusão").
+        // aguardando (resposta de usuário ou "Pular etapa").
         ['--sim-outline-full' as string]: typeColor,
         ['--sim-outline-dim' as string]: `${typeColor}30`,
         animation: isCurrent ? 'blink-current-outline 2.2s ease-in-out infinite' : 'none',

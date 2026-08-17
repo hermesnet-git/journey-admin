@@ -1,10 +1,10 @@
 // Cliente dedicado ao ms-espec-registry (simulacoes/ms-espec-registry, porta 8083) — um serviço
-// à parte do admin/back, sem sessão/token: só um wrapper fino da API do Camunda, por isso não usa
-// o cliente autenticado de ../api/client.
+// à parte do admin/back, sem sessão/token: só um wrapper fino da API do motor de runtime, por isso
+// não usa o cliente autenticado de ../api/client.
 
 const BASE_URL = 'http://localhost:8083/api/v1';
 
-export class SimulationApiError extends Error {
+export class ExecutionApiError extends Error {
   status: number;
 
   constructor(status: number, message: string) {
@@ -13,7 +13,7 @@ export class SimulationApiError extends Error {
   }
 }
 
-export class SimulationNetworkError extends Error {}
+export class ExecutionNetworkError extends Error {}
 
 const NETWORK_RETRY_ATTEMPTS = 3;
 const NETWORK_RETRY_DELAY_MS = 800;
@@ -35,7 +35,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       break;
     } catch {
       if (attempt === NETWORK_RETRY_ATTEMPTS) {
-        throw new SimulationNetworkError(
+        throw new ExecutionNetworkError(
           'Não foi possível conectar ao ms-espec-registry (localhost:8083). Verifique se o serviço está rodando.',
         );
       }
@@ -46,7 +46,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new SimulationApiError(response.status, body?.message ?? response.statusText);
+    throw new ExecutionApiError(response.status, body?.message ?? response.statusText);
   }
   if (response.status === 204 || response.headers.get('content-length') === '0') {
     return undefined as T;
@@ -144,6 +144,7 @@ export interface FlowBundle {
 
 export interface InstanceResponse {
   processInstanceId: string;
+  businessKey: string;
   flow: FlowBundle;
   step: StepResponse;
 }
@@ -154,12 +155,18 @@ export interface VariableEntry {
   type: string;
 }
 
-export function listJourneys(): Promise<JourneySummary[]> {
-  return apiGet('/journeys');
-}
-
 export function startInstance(journeyId: string): Promise<InstanceResponse> {
   return apiPost(`/journeys/${journeyId}/instances`);
+}
+
+/** Diagrama da jornada sem iniciar instância — usado só pra descobrir o tipo do nó de início antes
+ * de decidir entre o botão "Executar" e o painel de envio de mensagem (MESSAGE_START_EVENT). */
+export function getJourneyFlow(journeyId: string): Promise<FlowBundle> {
+  return apiGet(`/journeys/${journeyId}/flow`);
+}
+
+export function getCurrentStep(processInstanceId: string): Promise<StepResponse> {
+  return apiGet(`/instances/${processInstanceId}/current-step`);
 }
 
 export function completeTask(
@@ -170,7 +177,10 @@ export function completeTask(
   return apiPost(`/instances/${processInstanceId}/tasks/${taskId}/complete`, { answers });
 }
 
-export function simulateStep(processInstanceId: string): Promise<StepResponse> {
+// Chamada continua batendo em /simulate-step do ms-espec-registry (fora de escopo, não muda) —
+// só o nome local reflete o que a UI oferece hoje: pular a etapa manualmente, fabricando o
+// resultado, como alternativa à execução real (produção/consumo Kafka de verdade).
+export function skipStep(processInstanceId: string): Promise<StepResponse> {
   return apiPost(`/instances/${processInstanceId}/simulate-step`);
 }
 
@@ -185,4 +195,17 @@ export function setVariable(
   type: string,
 ): Promise<VariableEntry[]> {
   return apiPut(`/instances/${processInstanceId}/variables/${encodeURIComponent(name)}`, { value, type });
+}
+
+/** Publica de verdade no tópico Kafka do nó — usado pelo painel "Enviar mensagem" pra testar o
+ * lado de consumo (RECEIVE_TASK/MESSAGE_START_EVENT) sem precisar de um produtor externo real. */
+export function sendTestMessage(journeyId: string, nodeId: string, payload: Record<string, unknown>): Promise<void> {
+  return apiPost(`/journeys/${journeyId}/nodes/${nodeId}/test-message`, payload);
+}
+
+/** Instância mais nova da jornada iniciada depois de `since` (ISO 8601) — undefined enquanto nada
+ * apareceu ainda (204). Usado só depois de enviar uma mensagem de teste pra um MESSAGE_START_EVENT,
+ * quando ainda não existe processInstanceId nenhum pra fazer polling em cima. */
+export function getLatestInstance(journeyId: string, since: string): Promise<InstanceResponse | undefined> {
+  return apiGet(`/journeys/${journeyId}/latest-instance?since=${encodeURIComponent(since)}`);
 }

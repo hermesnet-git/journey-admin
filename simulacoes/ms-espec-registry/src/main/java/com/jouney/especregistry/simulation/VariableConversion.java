@@ -1,5 +1,7 @@
 package com.jouney.especregistry.simulation;
 
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import com.jouney.especregistry.adminback.ConnectorConfig;
 import com.jouney.especregistry.camunda.CamundaVariable;
 import java.time.LocalDate;
@@ -9,10 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Converte as respostas do formulário (submissão real do tester) e o outputMapping de um
  * conector (valores fabricados para "Simular conclusão") para o formato de variável do Camunda. */
 public final class VariableConversion {
+
+    private static final Logger log = LoggerFactory.getLogger(VariableConversion.class);
 
     private VariableConversion() {
     }
@@ -54,6 +60,43 @@ public final class VariableConversion {
             variables.put(name, fabricate(type));
         }
         return variables;
+    }
+
+    /** Mesma extração de {name, jsonPath, type} do outputMapping que fabricateFromOutputMapping usa
+     * pro "Simular conclusão", mas aplicada a um payload Kafka real — usada pelo bridge quando uma
+     * mensagem de verdade chega pra uma RECEIVE_TASK/MESSAGE_START_EVENT. Uma regra cujo jsonPath
+     * não existe no payload é ignorada (log, não quebra a correlação inteira por causa de um campo
+     * opcional ausente). */
+    public static Map<String, CamundaVariable> resolveOutputMapping(String jsonBody, ConnectorConfig connectorConfig) {
+        Map<String, CamundaVariable> variables = new HashMap<>();
+        if (connectorConfig == null) {
+            return variables;
+        }
+        for (Map<String, Object> rule : connectorConfig.outputMapping()) {
+            if (!(rule.get("name") instanceof String name) || name.isBlank()
+                    || !(rule.get("jsonPath") instanceof String jsonPath)) {
+                continue;
+            }
+            String type = rule.get("type") instanceof String t ? t : "string";
+            try {
+                Object raw = JsonPath.read(jsonBody, jsonPath);
+                variables.put(name, coerce(raw, type));
+            } catch (PathNotFoundException e) {
+                log.warn("Payload Kafka não tem o campo '{}' (regra de mapeamento '{}') — ignorando", jsonPath, name);
+            }
+        }
+        return variables;
+    }
+
+    private static CamundaVariable coerce(Object raw, String type) {
+        if (raw == null) {
+            return new CamundaVariable(null, "Null");
+        }
+        return switch (type) {
+            case "boolean" -> new CamundaVariable(raw instanceof Boolean b ? b : Boolean.parseBoolean(raw.toString()), "Boolean");
+            case "number" -> new CamundaVariable(raw instanceof Number n ? n.doubleValue() : Double.parseDouble(raw.toString()), "Double");
+            default -> new CamundaVariable(raw.toString(), "String");
+        };
     }
 
     private static CamundaVariable fabricate(String type) {

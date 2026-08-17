@@ -1591,6 +1591,29 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
   {
+    date: '2026-08-17 05:30',
+    source: 'git',
+    summary: 'Inicialização do front-mock-integracoes (React + Vite), app para listar e testar as rotas do ms-mock-api-rest.',
+  },
+  {
+    date: '2026-08-17 05:30',
+    source: 'git',
+    summary:
+      'Renomeação de "Simulação" para "Execução" em todo o portal; ajustes na massa de dados de jornadas e nos conectores REST/Kafka.',
+    epics: ['FT-05'],
+  },
+  {
+    date: '2026-08-16 21:20',
+    source: 'git',
+    summary: 'Tratamento de erro quando o motor de runtime está fora do ar, na tela do Dashboard.',
+    epics: ['FT-13'],
+  },
+  {
+    date: '2026-08-16 05:56',
+    source: 'git',
+    summary: 'Correção da página Sobre e de progresso.md.',
+  },
+  {
     date: '2026-08-16 05:33',
     source: 'git',
     summary:

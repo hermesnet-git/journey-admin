@@ -11,7 +11,11 @@ interface RunningExecution {
   step: StepResponse;
 }
 
-export function ExecutionsPage() {
+interface Props {
+  active: boolean;
+}
+
+export function ExecutionsPage({ active }: Props) {
   const [running, setRunning] = useState<RunningExecution | null>(null);
 
   if (running) {
@@ -29,6 +33,7 @@ export function ExecutionsPage() {
 
   return (
     <JourneySearch
+      active={active}
       onStarted={(processInstanceId, businessKey, journey, flow, step) =>
         setRunning({ processInstanceId, businessKey, journey, flow, step })
       }

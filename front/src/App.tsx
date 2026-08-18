@@ -165,7 +165,7 @@ function AppShell() {
                       onOpenNewHandled={() => setOpenNewForm(false)}
                     />
                   )}
-                  {tab.kind === 'execution' && <ExecutionsPage />}
+                  {tab.kind === 'execution' && <ExecutionsPage active={tab.key === activeKey} />}
                   {tab.kind === 'audit' && <AuditPage />}
                   {tab.kind === 'help' && <HelpPage />}
                   {tab.kind === 'sobre' && <SobrePage />}

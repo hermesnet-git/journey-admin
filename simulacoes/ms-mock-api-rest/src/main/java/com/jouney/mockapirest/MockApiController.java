@@ -79,6 +79,21 @@ public class MockApiController {
         return respond("/v1/iot/provisionar");
     }
 
+    @PostMapping("/v1/consultarbd")
+    public Map<String, Object> consultarBd(@RequestBody(required = false) Map<String, Object> body) {
+        return respond("/v1/consultarbd");
+    }
+
+    @PostMapping("/v1/consultarpendencia")
+    public Map<String, Object> consultarPendencia(@RequestBody(required = false) Map<String, Object> body) {
+        return respond("/v1/consultarpendencia");
+    }
+
+    @PostMapping("/v1/consultarmassiva")
+    public Map<String, Object> consultarMassiva(@RequestBody(required = false) Map<String, Object> body) {
+        return respond("/v1/consultarmassiva");
+    }
+
     private Map<String, Object> respond(String endpoint) {
         String json = configs.findById(endpoint)
                 .orElseThrow(() -> new IllegalStateException("Sem mock configurado para " + endpoint))

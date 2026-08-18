@@ -20,6 +20,7 @@ import { SendTestMessagePanel } from './SendTestMessagePanel';
 import { listJourneys as listPublishedJourneys } from '../api/journeys';
 
 interface Props {
+  active: boolean;
   onStarted: (processInstanceId: string, businessKey: string, journey: JourneySummary, flow: FlowBundle, step: StepResponse) => void;
 }
 
@@ -30,7 +31,7 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function JourneySearch({ onStarted }: Props) {
+export function JourneySearch({ active, onStarted }: Props) {
   const [journeys, setJourneys] = useState<JourneySummary[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -42,10 +43,14 @@ export function JourneySearch({ onStarted }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // A aba de Execuções fica montada mesmo quando não está visível (ver App.tsx), então
+    // precisa refazer a busca toda vez que volta a ficar ativa — senão jornada recém
+    // incluída/alterada/publicada em outra aba não aparece sem dar refresh na página.
+    if (!active) return;
     listPublishedJourneys({ status: 'PUBLISHED' })
       .then(setJourneys)
       .catch((e) => setLoadError(errorMessage(e)));
-  }, []);
+  }, [active]);
 
   useEffect(() => {
     if (!open) return;

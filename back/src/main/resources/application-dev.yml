@@ -1,6 +1,11 @@
 app:
   logging:
     include-payload: true
+  connector-test:
+    # Os conectores testados localmente (ms-mock-api-rest, ms-transform-publication etc.) rodam em
+    # localhost — a proteção SSRF (REQ-03.10.003) bloquearia todo teste aqui, então fica desligada
+    # só neste profile. Em qa/prod continua ligada (default true).
+    block-private-networks: false
   transform-publication:
     # host/porta do serviço de publicação do runtime; sobrescrevível via env var
     # TRANSFORM_PUBLICATION_BASE_URL (ex.: em docker-compose, apontar para o hostname do serviço).

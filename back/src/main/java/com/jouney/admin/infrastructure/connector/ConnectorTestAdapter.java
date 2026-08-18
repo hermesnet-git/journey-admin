@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -22,7 +23,9 @@ import org.springframework.web.client.RestClientException;
 /**
  * Executes REST connector test calls server-side (REQ-03.10.002), so credentials never reach the
  * browser and CORS never comes into play. Blocks requests to private/loopback/reserved addresses
- * (REQ-03.10.003) and applies a short timeout / response size cap (REQ-03.10.004). {@code {{name}}}
+ * (REQ-03.10.003, toggle: {@code app.connector-test.block-private-networks} — off in the {@code dev}
+ * profile, where the connectors under test are the local simulação services) and applies a short
+ * timeout / response size cap (REQ-03.10.004). {@code {{name}}}
  * references in method/url/headers/body are resolved from {@code sampleVariables} before the call
  * (REQ-03.10.005) — there is no real journey execution here to resolve them from.
  */
@@ -34,12 +37,14 @@ public class ConnectorTestAdapter implements ConnectorTestPort {
     private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
 
     private final RestClient restClient;
+    private final boolean blockPrivateNetworks;
 
-    public ConnectorTestAdapter() {
+    public ConnectorTestAdapter(@Value("${app.connector-test.block-private-networks:true}") boolean blockPrivateNetworks) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(TIMEOUT_MS);
         factory.setReadTimeout(TIMEOUT_MS);
         this.restClient = RestClient.builder().requestFactory(factory).build();
+        this.blockPrivateNetworks = blockPrivateNetworks;
     }
 
     @Override
@@ -80,6 +85,9 @@ public class ConnectorTestAdapter implements ConnectorTestPort {
     // ponytail: DNS-resolution-time check only, no re-check on redirect targets — fine for a
     // manual design-time test call, would need per-request-hop enforcement for anything automated.
     private void assertNotPrivateNetwork(String url) {
+        if (!blockPrivateNetworks) {
+            return;
+        }
         URI uri = URI.create(url);
         String scheme = uri.getScheme();
         if (!"http".equals(scheme) && !"https".equals(scheme)) {

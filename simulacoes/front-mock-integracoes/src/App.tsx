@@ -128,6 +128,27 @@ const ENDPOINTS: Endpoint[] = [
       'sucesso).',
     bodyExemplo: {},
   },
+  {
+    metodo: 'POST',
+    path: '/v1/consultarbd',
+    descricao: 'Consulta em base',
+    nota: 'Recebe um CPF e devolve um resultado de consulta. O mock devolve value=false por padrão.',
+    bodyExemplo: { cpf: '12345678900' },
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/consultarpendencia',
+    descricao: 'Consulta pendência',
+    nota: 'Recebe um CPF e devolve se há pendência associada. O mock devolve value=false por padrão.',
+    bodyExemplo: { cpf: '12345678900' },
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/consultarmassiva',
+    descricao: 'Consulta massiva',
+    nota: 'Recebe um CPF e devolve um resultado de consulta massiva. O mock devolve value=false por padrão.',
+    bodyExemplo: { cpf: '12345678900' },
+  },
 ]
 
 type Resultado =

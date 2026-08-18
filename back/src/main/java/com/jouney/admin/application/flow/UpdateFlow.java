@@ -3,6 +3,7 @@ package com.jouney.admin.application.flow;
 import com.jouney.admin.application.version.CreateJourneyVersion;
 import com.jouney.admin.domain.auth.AuthenticatedUser;
 import com.jouney.admin.domain.flow.Flow;
+import com.jouney.admin.domain.flow.FlowAnnotation;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowRepository;
@@ -36,7 +37,8 @@ public class UpdateFlow {
         this.createJourneyVersion = createJourneyVersion;
     }
 
-    public Flow execute(UUID journeyId, String name, List<FlowNode> nodes, List<FlowConnection> connections) {
+    public Flow execute(UUID journeyId, String name, List<FlowNode> nodes, List<FlowConnection> connections,
+                         List<FlowAnnotation> annotations) {
         Journey journey = journeyRepository.findById(journeyId)
                 .orElseThrow(() -> new JourneyNotFoundException(journeyId));
         if (journey.getStatus() == JourneyStatus.INACTIVE) {
@@ -46,7 +48,7 @@ public class UpdateFlow {
         // normally an update; falling back to a fresh Flow here just makes that an upsert instead
         // of failing with a misleading "journey not found" if that row were ever missing.
         Flow flow = flowRepository.findByJourneyId(journeyId).orElseGet(() -> Flow.initial(journeyId));
-        flow.replace(name, nodes, connections);
+        flow.replace(name, nodes, connections, annotations);
         Flow saved = flowRepository.save(flow);
 
         createJourneyVersion.execute(journeyId, null, currentUserId());

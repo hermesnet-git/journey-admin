@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Pencil, Route, Sliders, Plug, ScrollText } from 'lucide-react';
+import { Check, Pencil, Route, Sliders, ScrollText } from 'lucide-react';
 import { Stack, Text, TextFieldBase, skinVars } from '@telefonica/mistica';
-import type { FlowConnectionInfo, FlowNodeInfo, VariableEntry } from './api';
+import { isInternalVariableName, type FlowConnectionInfo, type FlowNodeInfo, type VariableEntry } from './api';
 import { FlowDiagramViewer } from './FlowDiagramViewer';
 
 export interface LogEntry {
@@ -24,12 +24,11 @@ interface Props {
   log: LogEntry[];
 }
 
-type TabKey = 'workflow' | 'variaveis' | 'integracoes' | 'log';
+type TabKey = 'workflow' | 'variaveis' | 'log';
 
 const TABS: { key: TabKey; label: string; icon: typeof Route }[] = [
   { key: 'workflow', label: 'Fluxo da Jornada', icon: Route },
   { key: 'variaveis', label: 'Variáveis', icon: Sliders },
-  { key: 'integracoes', label: 'Integrações', icon: Plug },
   { key: 'log', label: 'Log', icon: ScrollText },
 ];
 
@@ -152,12 +151,6 @@ export function InspectorPanel({
           </div>
         )}
 
-        {tab === 'integracoes' && (
-          <div className="h-full overflow-auto p-4">
-            <IntegrationsView flowNodes={flowNodes} visitedNodeIds={visitedNodeIds} variables={variables} />
-          </div>
-        )}
-
         {tab === 'log' && (
           <div className="h-full overflow-auto p-4">
             <LogView log={log} endRef={logEndRef} />
@@ -171,8 +164,11 @@ export function InspectorPanel({
 function VariablesTable({ variables, onEdit }: { variables: VariableEntry[]; onEdit: (name: string, rawValue: string, type: string) => void }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  // __httpUrl__/__httpResponse__ are technical, captured per node for the "Integrações" tab — not
+  // meant to read as a regular process variable here.
+  const visibleVariables = variables.filter((v) => !isInternalVariableName(v.name));
 
-  if (variables.length === 0) {
+  if (visibleVariables.length === 0) {
     return (
       <Text size={13} color={skinVars.colors.textSecondary}>
         Nenhuma variável definida ainda neste processo.
@@ -192,7 +188,7 @@ function VariablesTable({ variables, onEdit }: { variables: VariableEntry[]; onE
         </tr>
       </thead>
       <tbody>
-        {variables.map((v) => {
+        {visibleVariables.map((v) => {
           const isEditing = editing === v.name;
           return (
             <tr key={v.name} style={{ borderTop: `1px solid ${skinVars.colors.border}` }}>
@@ -244,69 +240,6 @@ function VariablesTable({ variables, onEdit }: { variables: VariableEntry[]; onE
   );
 }
 
-function IntegrationsView({
-  flowNodes,
-  visitedNodeIds,
-  variables,
-}: {
-  flowNodes: FlowNodeInfo[];
-  visitedNodeIds: string[];
-  variables: VariableEntry[];
-}) {
-  const visited = new Set(visitedNodeIds);
-  const variableMap = new Map(variables.map((v) => [v.name, v.value]));
-
-  const connectorNodes = flowNodes.filter((n) => n.connectorConfig != null && visited.has(n.id));
-
-  if (connectorNodes.length === 0) {
-    return (
-      <Text size={13} color={skinVars.colors.textSecondary}>
-        Nenhuma integração executada ainda.
-      </Text>
-    );
-  }
-
-  return (
-    <Stack space={12}>
-      {connectorNodes.map((node) => {
-        const config = node.connectorConfig!;
-        const outputMapping = Array.isArray(config.config?.outputMapping) ? (config.config!.outputMapping as { name: string; jsonPath: string }[]) : [];
-        return (
-          <div key={node.id} className="rounded-xl p-3" style={{ border: `1px solid ${skinVars.colors.border}` }}>
-            <Stack space={8}>
-              <div className="flex items-center justify-between">
-                <Text size={13.5} weight="medium" color={skinVars.colors.textPrimary}>
-                  {node.name}
-                </Text>
-                <span
-                  className="text-[10.5px] font-semibold px-2 py-[2px] rounded-full"
-                  style={{ background: skinVars.colors.backgroundAlternative, color: skinVars.colors.textSecondary }}
-                >
-                  {config.connectorType}
-                </span>
-              </div>
-              {outputMapping.length === 0 ? (
-                <Text size={12} color={skinVars.colors.textSecondary}>
-                  Sem variáveis de saída mapeadas.
-                </Text>
-              ) : (
-                <Stack space={4}>
-                  {outputMapping.map((rule) => (
-                    <div key={rule.name} className="flex items-center justify-between text-[12.5px]">
-                      <span style={{ color: skinVars.colors.textSecondary, fontFamily: 'monospace' }}>{rule.name}</span>
-                      <span style={{ color: skinVars.colors.textPrimary }}>{String(variableMap.get(rule.name) ?? '—')}</span>
-                    </div>
-                  ))}
-                </Stack>
-              )}
-            </Stack>
-          </div>
-        );
-      })}
-    </Stack>
-  );
-}
-
 function LogView({ log, endRef }: { log: LogEntry[]; endRef: React.RefObject<HTMLDivElement | null> }) {
   if (log.length === 0) {
     return (
@@ -317,20 +250,25 @@ function LogView({ log, endRef }: { log: LogEntry[]; endRef: React.RefObject<HTM
   }
 
   return (
-    <Stack space={12}>
+    <Stack space={4}>
       {log.map((entry) => (
-        <div key={entry.id} className="flex items-start gap-3">
-          <Text size={11.5} color={skinVars.colors.textSecondary}>
+        <div key={entry.id} className="flex items-start gap-2">
+          <Text size={10.5} color={skinVars.colors.textSecondary}>
             {entry.time}
           </Text>
-          <div className="min-w-0">
-            <Text size={13} color={skinVars.colors.textPrimary}>
+          <div className="min-w-0 flex-1">
+            <Text size={12.5} color={skinVars.colors.textPrimary}>
               {entry.message}
             </Text>
             {entry.data && Object.keys(entry.data).length > 0 && (
               <pre
-                className="mt-1 rounded-md px-2 py-[6px] text-[11.5px] overflow-x-auto"
-                style={{ background: skinVars.colors.backgroundAlternative, color: skinVars.colors.textSecondary, fontFamily: 'monospace' }}
+                className="mt-1 rounded-md px-2 py-1 text-[11px] overflow-auto"
+                style={{
+                  background: skinVars.colors.backgroundAlternative,
+                  color: skinVars.colors.textSecondary,
+                  fontFamily: 'monospace',
+                  maxHeight: 160,
+                }}
               >
                 {JSON.stringify(entry.data, null, 2)}
               </pre>

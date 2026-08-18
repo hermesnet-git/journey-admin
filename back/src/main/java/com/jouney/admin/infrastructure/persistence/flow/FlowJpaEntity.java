@@ -31,6 +31,10 @@ public class FlowJpaEntity {
     @Column(nullable = false)
     private String connections;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false)
+    private String annotations;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -40,13 +44,14 @@ public class FlowJpaEntity {
     protected FlowJpaEntity() {
     }
 
-    public FlowJpaEntity(String id, UUID journeyId, String name, String nodes, String connections,
+    public FlowJpaEntity(String id, UUID journeyId, String name, String nodes, String connections, String annotations,
                           OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.journeyId = journeyId;
         this.name = name;
         this.nodes = nodes;
         this.connections = connections;
+        this.annotations = annotations;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -69,6 +74,10 @@ public class FlowJpaEntity {
 
     public String getConnections() {
         return connections;
+    }
+
+    public String getAnnotations() {
+        return annotations;
     }
 
     public OffsetDateTime getCreatedAt() {

@@ -58,6 +58,12 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
   const isPending = status === 'pending';
   const isError = status === 'error';
   const isTypeColored = status === 'type';
+  // Mirrors WorkflowNode.tsx (flow-designer): start/end carry no description/badges, so they
+  // shrink to fit their label instead of the fixed width every other node uses. Without this, a
+  // start/end placed close to its neighbor (common — it's a small node) visually overlaps it here
+  // even though the designer, which already renders it compact, shows no overlap for that same
+  // saved position.
+  const isCompact = frontType === 'start' || frontType === 'end';
 
   // O ícone é sempre o do tipo de componente (nunca vira um "check") — só a cor do card muda por
   // status. `successLow`/`errorLow` são os tokens já prontos da Mística para preenchimento tintado
@@ -95,7 +101,7 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
     <div
       className="relative rounded-xl px-3 py-[10px] flex items-center gap-[10px]"
       style={{
-        width: NODE_WIDTH,
+        width: isCompact ? 'fit-content' : NODE_WIDTH,
         background,
         // Largura da borda sempre igual em todo status — variar `borderWidth` muda a altura "auto"
         // do card (border soma fora do conteúdo mesmo com box-sizing:border-box), o que desalinha o

@@ -53,6 +53,7 @@ journey
 flow
 flow_node
 flow_connection
+flow_annotation
 form
 form_field
 user_task_config
@@ -144,7 +145,7 @@ CREATE TABLE flow_node (
     node_id UUID PRIMARY KEY,
     flow_id UUID NOT NULL,
     node_type VARCHAR(30) NOT NULL CHECK (
-        node_type IN ('START', 'END', 'USER_TASK', 'SERVICE_TASK', 'RECEIVE_TASK', 'MESSAGE_START_EVENT')
+        node_type IN ('START', 'END', 'USER_TASK', 'SERVICE_TASK', 'RECEIVE_TASK', 'MESSAGE_START_EVENT', 'GATEWAY')
     ),
     name VARCHAR(200) NOT NULL,
     description TEXT,
@@ -179,6 +180,8 @@ As configurações de integração dos nós `SERVICE_TASK`, `RECEIVE_TASK` e `ME
 }
 ```
 
+Dois outros atributos do documento `flow_node`, fora do bloco de conector acima: `startVariables` (REQ-03.12.001) — lista `{ name, type }`, só preenchida no nó `START`, declarando as variáveis que o canal digital/BFF deve fornecer ao iniciar uma instância; e `messageText` (REQ-04.01.005) — texto livre, só relevante numa `USER_TASK` sem `formId`, podendo referenciar `{{nome}}` do mesmo jeito que `connectorConfig`, resolvido pelo simulador de execução em tempo real (não na publicação).
+
 ---
 
 # 10. Tabela FlowConnection
@@ -198,6 +201,24 @@ CREATE TABLE flow_connection (
 ```
 
 A restrição `UNIQUE (flow_id, source_node_id)` acima descreve o desenho relacional de referência, mas não reflete a persistência real: o `Flow` (nós e conexões, ver §8) é gravado como um único documento `jsonb`, então a cardinalidade de saída por tipo de nó — inclusive a exceção do `GATEWAY`, que tem exatamente duas (US-03.11) — é garantida pelo backend (`FlowValidator`), não por uma constraint de banco. Antes de persistir o fluxo completo, o backend deve garantir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`), ao menos um `END`, as cardinalidades de entrada e saída de cada tipo e a existência de um caminho contínuo entre o elemento inicial e algum `END`.
+
+O `FlowValidator` também rejeita (422) um `END` alcançável apenas por `SERVICE_TASK`s com conector REST — sem nenhum checkpoint (`USER_TASK`, `RECEIVE_TASK` ou `SERVICE_TASK` Kafka) entre o elemento inicial e esse `END`. O conector HTTP nativo usado pelo motor de runtime para REST executa de forma síncrona, dentro da mesma transação de quem disparou a execução; várias dessas execuções concluindo a instância na mesma transação (sem nenhum ponto de parada) rompem o motor com um erro interno (`NullValueException: execution ... doesn't exist`, reproduzido em ambiente real). O `ms-espec-registry` replica essa mesma checagem antes de chamar o motor, cobrindo jornadas publicadas antes dessa regra existir.
+
+## Tabela FlowAnnotation
+
+```sql
+CREATE TABLE flow_annotation (
+    annotation_id UUID PRIMARY KEY,
+    flow_id UUID NOT NULL,
+    text TEXT,
+    position_x INTEGER,
+    position_y INTEGER,
+    linked_node_ids UUID[],
+    FOREIGN KEY (flow_id) REFERENCES flow(flow_id)
+);
+```
+
+Mesmo caso de `flow_node`/`flow_connection`: o desenho acima é a referência relacional, mas a persistência real é mais um documento dentro do mesmo `jsonb` do `Flow` (ver §8), sem tabela própria. Uma `FlowAnnotation` nunca é lida pelo `FlowValidator` nem enviada ao `ms-transform-publication` — não participa da validação estrutural do fluxo nem da tradução para BPMN. `linked_node_ids` é só informativo (desenha uma linha pontilhada no editor); não há integridade referencial exigida contra `flow_node` — se um nó vinculado for excluído, o próprio editor remove o vínculo da anotação.
 
 ---
 
@@ -250,13 +271,14 @@ CREATE TABLE form_field (
 ```sql
 CREATE TABLE user_task_config (
     node_id UUID PRIMARY KEY,
-    form_id UUID NOT NULL,
+    form_id UUID,
+    message_text TEXT,
     FOREIGN KEY (node_id) REFERENCES flow_node(node_id),
     FOREIGN KEY (form_id) REFERENCES form(form_id)
 );
 ```
 
-`user_task_config` só pode referenciar nós cujo `node_type` seja `USER_TASK`. Essa restrição deve ser garantida por regra de domínio ou trigger.
+`user_task_config` só pode referenciar nós cujo `node_type` seja `USER_TASK`. Essa restrição deve ser garantida por regra de domínio ou trigger. `form_id` é opcional (REQ-04.01.005: uma User Task pode não ter formulário associado); quando ausente, `message_text` guarda a mensagem exibida ao usuário nessa etapa em vez de um formulário — os dois nunca coexistem com sentido (se `form_id` estiver preenchido, `message_text` é ignorado). Na persistência real (documento `jsonb` de `flow_node`, ver §9), isso é o objeto `userTaskConfig` do nó, não uma tabela própria.
 
 ---
 

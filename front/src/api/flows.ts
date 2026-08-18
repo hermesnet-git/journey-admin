@@ -16,7 +16,9 @@ export interface FlowNode {
   description: string | null;
   positionX: number;
   positionY: number;
-  userTaskConfig: { formId: string } | null;
+  // REQ-04.01.005: formId may be absent (a display-only step) — messageText then holds what to
+  // show instead, resolved by the simulator at execution time (may reference {{name}} tokens).
+  userTaskConfig: { formId: string | null; messageText: string | null } | null;
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: {name, type} declarations, meaningful only on the START node.
   startVariables: { name: string; type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' }[] | null;
@@ -31,18 +33,31 @@ export interface FlowConnection {
   isDefault: boolean;
 }
 
+// A free-floating note on the designer canvas — never part of the executable flow (never reaches
+// FlowValidator, publication, or Camunda), purely a design-time aid. linkedNodeIds is the (possibly
+// empty) set of FlowNode ids it's tied to, drawn as a faint dashed line in the designer.
+export interface FlowAnnotation {
+  id: string;
+  text: string;
+  positionX: number;
+  positionY: number;
+  linkedNodeIds: string[];
+}
+
 export interface Flow {
   flowId: string;
   journeyId: string;
   name: string;
   nodes: FlowNode[];
   connections: FlowConnection[];
+  annotations: FlowAnnotation[];
 }
 
 export interface FlowUpdateInput {
   name: string;
   nodes: FlowNode[];
   connections: FlowConnection[];
+  annotations: FlowAnnotation[];
 }
 
 export function getFlow(journeyId: string): Promise<Flow> {

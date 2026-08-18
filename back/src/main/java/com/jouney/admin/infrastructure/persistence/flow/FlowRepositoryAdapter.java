@@ -1,6 +1,7 @@
 package com.jouney.admin.infrastructure.persistence.flow;
 
 import com.jouney.admin.domain.flow.Flow;
+import com.jouney.admin.domain.flow.FlowAnnotation;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowRepository;
@@ -27,14 +28,16 @@ public class FlowRepositoryAdapter implements FlowRepository {
         String nodesJson = writeJson(flow.getNodes().stream()
                 .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
                         n.getPositionX(), n.getPositionY(), n.getFormId(),
-                        FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()), n.getStartVariables()))
+                        FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()), n.getStartVariables(),
+                        n.getMessageText()))
                 .toList());
         String connectionsJson = writeJson(flow.getConnections().stream()
                 .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
                         c.isDefault()))
                 .toList());
+        String annotationsJson = writeJson(flow.getAnnotations().stream().map(FlowAnnotationRecord::from).toList());
         FlowJpaEntity entity = new FlowJpaEntity(flow.getId(), flow.getJourneyId(), flow.getName(), nodesJson,
-                connectionsJson, flow.getCreatedAt(), flow.getUpdatedAt());
+                connectionsJson, annotationsJson, flow.getCreatedAt(), flow.getUpdatedAt());
         return toDomain(jpaRepository.save(entity));
     }
 
@@ -57,12 +60,16 @@ public class FlowRepositoryAdapter implements FlowRepository {
         List<FlowNode> nodes = nodeRecords.stream()
                 .map(n -> new FlowNode(n.id(), n.type(), n.name(), n.description(), n.positionX(), n.positionY(),
                         n.formId(), n.connectorConfig() != null ? n.connectorConfig().toDomain() : null,
-                        n.startVariables()))
+                        n.startVariables(), n.messageText()))
                 .toList();
         List<FlowConnection> connections = connectionRecords.stream()
                 .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
                 .toList();
-        return new Flow(entity.getId(), entity.getJourneyId(), entity.getName(), nodes, connections,
+        List<FlowAnnotation> annotations = entity.getAnnotations() == null
+                ? List.of()
+                : readJson(entity.getAnnotations(), new TypeReference<List<FlowAnnotationRecord>>() {
+                }).stream().map(FlowAnnotationRecord::toDomain).toList();
+        return new Flow(entity.getId(), entity.getJourneyId(), entity.getName(), nodes, connections, annotations,
                 entity.getCreatedAt(), entity.getUpdatedAt());
     }
 

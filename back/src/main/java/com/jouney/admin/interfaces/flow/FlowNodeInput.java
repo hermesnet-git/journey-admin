@@ -25,7 +25,8 @@ public record FlowNodeInput(
 
     public FlowNode toDomain() {
         UUID formId = userTaskConfig != null ? userTaskConfig.formId() : null;
+        String messageText = userTaskConfig != null ? userTaskConfig.messageText() : null;
         return new FlowNode(nodeId, nodeType, name, description, positionX, positionY, formId,
-                connectorConfig != null ? connectorConfig.toDomain() : null, startVariables);
+                connectorConfig != null ? connectorConfig.toDomain() : null, startVariables, messageText);
     }
 }

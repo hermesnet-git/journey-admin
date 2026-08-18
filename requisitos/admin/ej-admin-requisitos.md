@@ -286,6 +286,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.02.005 - Todos os nós devem pertencer a um caminho contínuo e alcançável entre o elemento inicial e `END`.
 #### REQ-03.02.006 - O editor deve impedir ações que produ zam uma estrutura incompatível, e o backend deve rejeitar com `422` qualquer tentativa de persistir um fluxo que não cumpra as restrições estruturais.
 #### REQ-03.02.007 - Uma `USER_TASK` deve possuir no máximo um caminho de saída; o editor não deve permitir a criação de uma segunda conexão partindo de uma `USER_TASK` que já possua saída.
+#### REQ-03.02.008 - O backend deve rejeitar (422), ao salvar o fluxo, um caminho que parta do elemento inicial e alcance um nó `END` sem passar por nenhum "checkpoint" (`USER_TASK`, `RECEIVE_TASK` ou `SERVICE_TASK` com conector diferente de `REST`) — evita uma jornada que resolveria inteiramente dentro de uma única transação síncrona do motor de runtime, cenário em que o motor não expõe histórico algum da execução (sofre rollback antes de qualquer consulta conseguir lê-lo).
 ---
 
 ### US-03.03 Navegação
@@ -391,6 +392,14 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.14.005 - A etapa "Testar e Mapear" deve executar a chamada de teste de verdade diretamente na tela do assistente (sem depender do modal "Testar API" do painel inline, que continua existindo separadamente), exibindo status e corpo da resposta. Em caso de sucesso, o mapeamento de saída deve ser gerado automaticamente a partir da resposta; a edição manual do mapeamento deve permanecer disponível independentemente do resultado do teste.
 ---
 
+### US-03.15 Anotações
+#### REQ-03.15.001 - O sistema deve permitir adicionar anotações — notas livres em formato de post-it — ao canvas do editor de fluxo, para fins de documentação, sem que façam parte do fluxo executável.
+#### REQ-03.15.002 - Uma anotação deve possuir texto editável e posição livre no canvas; anotações não devem ser incluídas nas regras de validação estrutural do fluxo (US-03.02) nem traduzidas para BPMN na publicação.
+#### REQ-03.15.003 - O sistema deve permitir vincular uma anotação a um ou mais nós do fluxo, exibindo uma linha tracejada entre a anotação e cada nó vinculado.
+#### REQ-03.15.004 - O sistema deve permitir desvincular uma anotação de um nó e excluir uma anotação, sem afetar o fluxo executável.
+#### REQ-03.15.005 - As anotações devem ser persistidas junto com o fluxo da jornada e restauradas ao reabrir o editor.
+---
+
 
 <br/><br/>
 
@@ -407,7 +416,7 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 #### REQ-04.01.002 - O sistema deve permitir editar formulários.
 #### REQ-04.01.003 - O sistema deve permitir remover formulários.
 #### REQ-04.01.004 - O sistema deve permitir associar formulários a User Tasks.
-#### REQ-04.01.005 - O sistema deve permitir manter uma User Task sem formulário associado.
+#### REQ-04.01.005 - O sistema deve permitir manter uma User Task sem formulário associado; nesse caso, o sistema deve permitir configurar uma mensagem exibida ao usuário, com suporte a interpolação de variáveis do fluxo pela sintaxe `{{nome}}`, resolvida com os valores reais da execução no momento em que a tarefa é apresentada.
 #### REQ-04.01.006 - Ao associar um formulário a uma User Task no editor de fluxo, o sistema deve permitir criar um novo formulário sem sair do editor, sendo levado à tela de criação, e deve permitir atualizar a lista de formulários disponíveis para refletir formulários criados nesse meio-tempo.
 #### REQ-04.01.007 - Cada campo de formulário deve possuir um `name` técnico, definido pelo usuário, único dentro do formulário e imutável após a criação do campo; o `name` substitui o identificador interno anteriormente usado para referenciar o campo.
 ---
@@ -468,6 +477,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.02.002 - O sistema deve apresentar as User Tasks executadas.
 #### REQ-05.02.003 - O sistema deve apresentar os formulários exibidos.
 #### REQ-05.02.004 - O sistema deve apresentar o resultado final da execução.
+#### REQ-05.02.005 - Para uma User Task sem formulário associado (REQ-04.01.005), o sistema deve apresentar a mensagem configurada com as referências `{{nome}}` já substituídas pelos valores atuais das variáveis do processo.
 ---
 
 ### US-05.03 Visualização da execução
@@ -506,6 +516,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.08.002 - O sistema deve destacar visualmente, no diagrama do fluxo, o nó que causou a falha, de forma distinta dos demais estados (concluído, atual, pendente).
 #### REQ-05.08.003 - O sistema deve registrar a falha no log cronológico da execução.
 #### REQ-05.08.004 - O sistema deve permitir consultar a mensagem de erro completa da falha sob demanda, sem exibi-la de forma intrusiva na tela principal de execução.
+#### REQ-05.08.005 - Antes de iniciar uma instância, completar uma tarefa ou pular uma etapa, o sistema deve detectar quando o trecho seguinte do fluxo executaria integralmente dentro de uma única transação síncrona do motor de runtime até um nó `END`, sem passar por nenhum checkpoint (mesma regra estrutural de REQ-03.02.008), e recusar a operação com uma mensagem explicativa — proteção em tempo de execução para fluxos persistidos antes da validação estrutural existir, complementando a prevenção em tempo de edição.
 ---
 
 ### US-05.09 Mensageria Kafka real

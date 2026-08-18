@@ -143,7 +143,7 @@ export function JourneySearch({ active, onStarted }: Props) {
         <Stack space={24}>
           <Stack space={4}>
             <Text size={24} weight="bold" color={skinVars.colors.textPrimary} textAlign="center">
-              Execuções
+              Executar
             </Text>
             <Text size={14} color={skinVars.colors.textSecondary} textAlign="center">
               Busque uma jornada publicada para executá-la de ponta a ponta

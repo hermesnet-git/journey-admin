@@ -5,6 +5,7 @@ import {
   Background,
   BackgroundVariant,
   MarkerType,
+  MiniMap,
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
@@ -22,6 +23,7 @@ import { WorkflowActionsContext, type WorkflowActions } from './actions-context'
 import { FlowThemeContext, DARK_COLORS, LIGHT_COLORS } from './theme';
 import { useAppTheme } from '../shell/theme';
 import { WorkflowNode } from './WorkflowNode';
+import { AnnotationNode } from './AnnotationNode';
 import { Palette } from './Palette';
 import { PropertiesDock } from './PropertiesDock';
 import { ErrorModal } from './ErrorModal';
@@ -29,6 +31,7 @@ import { Toolbar } from './Toolbar';
 import { validateFlow } from './validation';
 import {
   NODE_WIDTH,
+  TYPE_COLOR,
   initialFlowNodes,
   initialFlowEdges,
   makeNode,
@@ -40,11 +43,16 @@ import {
   FRONT_TO_BACKEND_TYPE,
   BACKEND_TO_FRONT_TYPE,
   outgoingLimitFor,
+  makeAnnotation,
+  isAnnotationId,
   type NodeType,
   type WFNode,
   type WFEdge,
   type WFEdgeData,
   type WFNodeData,
+  type WFAnnotation,
+  type EdgeShape,
+  type CanvasBackground,
 } from './model';
 import { updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow } from '../api/flows';
@@ -58,11 +66,13 @@ const nodeTypes = {
   receiveTask: WorkflowNode,
   messageStartEvent: WorkflowNode,
   gateway: WorkflowNode,
+  annotation: AnnotationNode,
 };
 
 interface HistorySnapshot {
   nodes: WFNode[];
   edges: WFEdge[];
+  annotations: WFAnnotation[];
 }
 
 export function JourneyDesignerPage({
@@ -107,6 +117,9 @@ function DesignerInner({
   const [forms, setForms] = useState<Form[]>([]);
   const [nodes, setNodes] = useState<WFNode[]>(() => initialFlowNodes());
   const [edges, setEdges] = useState<WFEdge[]>(() => initialFlowEdges(nodes));
+  // Separate from `nodes`: never touched by validateFlow/computeLayout/save-as-FlowNode mapping, so
+  // nothing that walks the executable flow graph needs to know annotations exist.
+  const [annotations, setAnnotations] = useState<WFAnnotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -117,15 +130,37 @@ function DesignerInner({
   // when set, and falls back to the journey's own properties when null (e.g.
   // after a blank-canvas click).
   const [propertiesNodeId, setPropertiesNodeId] = useState<string | null>(null);
+  // Client-only, purely visual: highlights the path through the flow connected to whichever node
+  // is hovered or selected, dimming the rest so a busy diagram stays readable.
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  // Client-only display preference (which @xyflow/react edge renderer to use), remembered across
+  // sessions but never sent to the backend — it isn't part of the flow's saved data.
+  const [edgeShape, setEdgeShape] = useState<EdgeShape>(
+    () => (localStorage.getItem('flow-designer:edge-shape') as EdgeShape | null) ?? 'smoothstep',
+  );
+  useEffect(() => {
+    localStorage.setItem('flow-designer:edge-shape', edgeShape);
+  }, [edgeShape]);
+  // Same idea for the canvas background style.
+  const [canvasBackground, setCanvasBackground] = useState<CanvasBackground>(
+    () => (localStorage.getItem('flow-designer:canvas-bg') as CanvasBackground | null) ?? 'dots',
+  );
+  useEffect(() => {
+    localStorage.setItem('flow-designer:canvas-bg', canvasBackground);
+  }, [canvasBackground]);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
+  const annotationsRef = useRef(annotations);
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
   useEffect(() => {
     edgesRef.current = edges;
   }, [edges]);
+  useEffect(() => {
+    annotationsRef.current = annotations;
+  }, [annotations]);
   useEffect(() => {
     setInvalidNodeIds(new Set());
   }, [nodes, edges]);
@@ -162,6 +197,7 @@ function DesignerInner({
           name: n.name,
           description: n.description ?? '',
           formId: n.userTaskConfig?.formId ?? null,
+          messageText: n.userTaskConfig?.messageText ?? null,
           connectorConfig: n.connectorConfig,
           startVariables: n.startVariables ?? undefined,
         },
@@ -175,31 +211,41 @@ function DesignerInner({
           data: { condition: c.condition ?? undefined, isDefault: c.isDefault },
         })),
       );
+      setAnnotations(
+        flow.annotations.map((a) => ({
+          id: a.id,
+          type: 'annotation' as const,
+          position: { x: a.positionX, y: a.positionY },
+          data: { text: a.text, linkedNodeIds: a.linkedNodeIds },
+        })),
+      );
       setLoading(false);
     });
   }, [journey]);
 
   const pushHistory = useCallback(() => {
-    undoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current });
+    undoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current, annotations: annotationsRef.current });
     redoStack.current = [];
     setHistoryTick((t) => t + 1);
   }, []);
 
   const undo = useCallback(() => {
     if (!undoStack.current.length) return;
-    redoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current });
+    redoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current, annotations: annotationsRef.current });
     const prev = undoStack.current.pop()!;
     setNodes(prev.nodes);
     setEdges(prev.edges);
+    setAnnotations(prev.annotations);
     setHistoryTick((t) => t + 1);
   }, []);
 
   const redo = useCallback(() => {
     if (!redoStack.current.length) return;
-    undoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current });
+    undoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current, annotations: annotationsRef.current });
     const next = redoStack.current.pop()!;
     setNodes(next.nodes);
     setEdges(next.edges);
+    setAnnotations(next.annotations);
     setHistoryTick((t) => t + 1);
   }, []);
 
@@ -221,13 +267,28 @@ function DesignerInner({
       pushHistory();
       setNodes((nds) => nds.filter((n) => n.id !== nodeId));
       setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+      setAnnotations((anns) =>
+        anns.map((a) =>
+          a.data.linkedNodeIds.includes(nodeId)
+            ? { ...a, data: { ...a.data, linkedNodeIds: a.data.linkedNodeIds.filter((id) => id !== nodeId) } }
+            : a,
+        ),
+      );
       setPropertiesNodeId((cur) => (cur === nodeId ? null : cur));
     },
     [pushHistory],
   );
 
-  const onNodesChange = useCallback<OnNodesChange<WFNode>>(
-    (changes: NodeChange<WFNode>[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+  // The canvas renders `nodes` and `annotations` concatenated into one array (there's only one
+  // <ReactFlow>), so a single onNodesChange batch can mix changes for both — split by id prefix and
+  // route each half back to its own state.
+  const onNodesChange = useCallback<OnNodesChange<WFNode | WFAnnotation>>(
+    (changes) => {
+      const nodeChanges = changes.filter((c) => !('id' in c) || !isAnnotationId(c.id)) as NodeChange<WFNode>[];
+      const annotationChanges = changes.filter((c) => 'id' in c && isAnnotationId(c.id)) as NodeChange<WFAnnotation>[];
+      if (nodeChanges.length) setNodes((nds) => applyNodeChanges(nodeChanges, nds));
+      if (annotationChanges.length) setAnnotations((anns) => applyNodeChanges(annotationChanges, anns));
+    },
     [],
   );
   const onEdgesChange = useCallback<OnEdgesChange>(
@@ -236,6 +297,21 @@ function DesignerInner({
   );
   const onConnect = useCallback<OnConnect>(
     (params) => {
+      // Dragging from an annotation's handle to a flow node links them (a faint dashed line, see
+      // annotationLinkEdges) instead of creating a real FlowConnection — annotations aren't part of
+      // the executable flow, so this never touches the BPMN-bound `edges` state.
+      if (params.source && isAnnotationId(params.source) && params.target) {
+        const targetId = params.target;
+        pushHistory();
+        setAnnotations((anns) =>
+          anns.map((a) =>
+            a.id === params.source && !a.data.linkedNodeIds.includes(targetId)
+              ? { ...a, data: { ...a.data, linkedNodeIds: [...a.data.linkedNodeIds, targetId] } }
+              : a,
+          ),
+        );
+        return;
+      }
       const source = nodesRef.current.find((n) => n.id === params.source);
       if (source?.type) {
         const outCount = edgesRef.current.filter((e) => e.source === params.source).length;
@@ -273,6 +349,15 @@ function DesignerInner({
     },
     [addNodeAt, screenToFlowPosition],
   );
+
+  const addAnnotationFromPalette = useCallback(() => {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    const center = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : { x: 400, y: 300 };
+    const pos = screenToFlowPosition(center);
+    pushHistory();
+    const annotation = { ...makeAnnotation(pos.x - 95, pos.y - 30), selected: true };
+    setAnnotations((anns) => [...anns.map((a) => ({ ...a, selected: false })), annotation]);
+  }, [pushHistory, screenToFlowPosition]);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -355,6 +440,32 @@ function DesignerInner({
     requestAnimationFrame(() => fitView({ padding: 0.2, duration: 200 }));
   }, [pushHistory, fitView]);
 
+  const onUpdateAnnotationText = useCallback((annotationId: string, text: string) => {
+    setAnnotations((anns) => anns.map((a) => (a.id === annotationId ? { ...a, data: { ...a.data, text } } : a)));
+  }, []);
+
+  const onDeleteAnnotation = useCallback(
+    (annotationId: string) => {
+      pushHistory();
+      setAnnotations((anns) => anns.filter((a) => a.id !== annotationId));
+    },
+    [pushHistory],
+  );
+
+  const onUnlinkAnnotation = useCallback(
+    (annotationId: string, nodeId: string) => {
+      pushHistory();
+      setAnnotations((anns) =>
+        anns.map((a) =>
+          a.id === annotationId
+            ? { ...a, data: { ...a.data, linkedNodeIds: a.data.linkedNodeIds.filter((id) => id !== nodeId) } }
+            : a,
+        ),
+      );
+    },
+    [pushHistory],
+  );
+
   const actions = useMemo<WorkflowActions>(
     () => ({
       onEdit: (nodeId) => {
@@ -365,8 +476,12 @@ function DesignerInner({
       onDelete: deleteNode,
       onOpenForm,
       getFormName: (formId) => forms.find((f) => f.formId === formId)?.name,
+      onUpdateAnnotationText,
+      onDeleteAnnotation,
+      onUnlinkAnnotation,
+      getNodeName: (nodeId) => nodesRef.current.find((n) => n.id === nodeId)?.data.name,
     }),
-    [onQuickAdd, selectOnlyNode, deleteNode, onOpenForm, forms],
+    [onQuickAdd, selectOnlyNode, deleteNode, onOpenForm, forms, onUpdateAnnotationText, onDeleteAnnotation, onUnlinkAnnotation],
   );
 
   const displayNodes = useMemo(
@@ -378,23 +493,66 @@ function DesignerInner({
           invalid: invalidNodeIds.has(n.id),
           outgoingLimitReached:
             !!n.type && edges.filter((e) => e.source === n.id).length >= outgoingLimitFor(n.type),
+          zoom,
         },
       })),
-    [nodes, edges, invalidNodeIds],
+    [nodes, edges, invalidNodeIds, zoom],
   );
+
+  const displayAnnotations = useMemo(() => annotations.map((a) => ({ ...a, data: { ...a.data, zoom } })), [annotations, zoom]);
+
+  // Derived, not stored: a faint dashed line per (annotation, linkedNodeId) pair, straight from the
+  // annotation's own linkedNodeIds — there's no separate "link" state to keep in sync.
+  const annotationLinkEdges = useMemo(
+    () =>
+      annotations.flatMap((a) =>
+        a.data.linkedNodeIds.map((nodeId) => ({
+          id: `AnnotationLink_${a.id}_${nodeId}`,
+          source: a.id,
+          target: nodeId,
+          type: 'straight' as const,
+          selectable: false,
+          style: {
+            stroke: dark ? 'rgba(202,138,4,0.55)' : 'rgba(180,130,10,0.5)',
+            strokeWidth: 1,
+            strokeDasharray: '3 4',
+            vectorEffect: 'non-scaling-stroke' as const,
+          },
+        })),
+      ),
+    [annotations, dark],
+  );
+
+  const selectedNodeId = useMemo(() => nodes.find((n) => n.selected)?.id ?? null, [nodes]);
+  const focusNodeId = hoveredNodeId ?? selectedNodeId;
 
   const displayEdges = useMemo(
     () =>
       edges.map((e) => {
-        const color = e.selected ? c.accent : c.edgeColor;
+        const onFocusedPath = !!focusNodeId && (e.source === focusNodeId || e.target === focusNodeId);
+        const dimmed = !!focusNodeId && !onFocusedPath;
+        const color = e.selected || onFocusedPath ? c.accent : c.edgeColor;
         return {
           ...e,
-          type: 'smoothstep',
-          style: { stroke: color, strokeWidth: e.selected ? 2.5 : 1.5 },
+          type: edgeShape,
+          // Same label the read-only "Fluxo da Jornada" viewer already shows (FlowDiagramViewer) —
+          // a gateway's outgoing path is otherwise invisible on canvas until you open its
+          // properties, and the two views ended up inconsistent with each other.
+          label: e.data?.isDefault ? 'padrão' : (e.data?.condition ?? undefined),
+          labelStyle: { fill: c.textSecondary, fontSize: 11 },
+          labelBgStyle: { fill: 'transparent' },
+          labelBgPadding: [0, 0] as [number, number],
+          style: {
+            stroke: color,
+            strokeWidth: e.selected || onFocusedPath ? 2.5 : 1.5,
+            opacity: dimmed ? 0.25 : 1,
+            vectorEffect: 'non-scaling-stroke' as const,
+            transition: 'opacity 150ms ease-out, stroke 150ms ease-out',
+          },
           markerEnd: { type: MarkerType.ArrowClosed, color },
         };
       }),
-    [edges, c],
+    [edges, c, focusNodeId, edgeShape],
   );
 
   function handleSave() {
@@ -427,7 +585,10 @@ function DesignerInner({
           description: n.data.description || null,
           positionX: Math.round(n.position.x),
           positionY: Math.round(n.position.y),
-          userTaskConfig: n.data.formId ? { formId: n.data.formId } : null,
+          userTaskConfig:
+            n.data.formId || n.data.messageText
+              ? { formId: n.data.formId || null, messageText: n.data.messageText || null }
+              : null,
           connectorConfig: n.data.connectorConfig,
           startVariables: n.data.startVariables ?? null,
         })),
@@ -437,6 +598,13 @@ function DesignerInner({
           targetNodeId: e.target,
           condition: e.data?.condition ?? null,
           isDefault: !!e.data?.isDefault,
+        })),
+        annotations: annotations.map((a) => ({
+          id: a.id,
+          text: a.data.text,
+          positionX: Math.round(a.position.x),
+          positionY: Math.round(a.position.y),
+          linkedNodeIds: a.data.linkedNodeIds,
         })),
       });
       setActiveJourney(journeyRecord);
@@ -458,6 +626,24 @@ function DesignerInner({
     );
   }
 
+  // Dedicated, softer tones for grid/line patterns — reusing `c.dotColor`/`c.border` (tuned for UI
+  // chrome, not a canvas-wide repeating pattern) read as a heavy, mechanical grid, especially in
+  // light mode where a continuous line reads much heavier than a dot at the same opacity.
+  const patternSoft = dark ? 'rgba(255,255,255,0.05)' : 'rgba(20,20,30,0.055)';
+  const patternStrong = dark ? 'rgba(255,255,255,0.11)' : 'rgba(20,20,30,0.11)';
+  // 'glow'/'aurora'/'vignette' swap the flat canvas fill for a tint instead of drawing a grid;
+  // 'aurora' reuses the app's own accent + the userTask blue (TYPE_COLOR) at low alpha rather than
+  // inventing new brand colors. Every other option (including 'plain') keeps the flat color, with
+  // or without a pattern drawn on top of it.
+  const canvasFill =
+    canvasBackground === 'glow'
+      ? `radial-gradient(ellipse 70% 55% at 50% -10%, ${c.accentSoft}, ${c.canvasBg} 65%)`
+      : canvasBackground === 'aurora'
+        ? `radial-gradient(ellipse 60% 50% at 10% 0%, ${c.accentSoft}, transparent 60%), radial-gradient(ellipse 60% 50% at 90% 100%, rgba(1,157,244,0.08), transparent 60%), ${c.canvasBg}`
+        : canvasBackground === 'vignette'
+          ? `radial-gradient(ellipse 85% 75% at 50% 45%, ${c.canvasBg}, ${dark ? 'rgba(0,0,0,0.45)' : 'rgba(15,15,25,0.075)'} 100%)`
+          : c.canvasBg;
+
   return (
     <FlowThemeContext.Provider value={{ dark, c }}>
       <WorkflowActionsContext.Provider value={actions}>
@@ -468,6 +654,10 @@ function DesignerInner({
             onUndo={undo}
             onRedo={redo}
             onOrganize={organize}
+            edgeShape={edgeShape}
+            onEdgeShapeChange={setEdgeShape}
+            canvasBackground={canvasBackground}
+            onCanvasBackgroundChange={setCanvasBackground}
             zoomPct={Math.round(zoom * 100)}
             onZoomIn={() => zoomIn({ duration: 150 })}
             onZoomOut={() => zoomOut({ duration: 150 })}
@@ -477,7 +667,7 @@ function DesignerInner({
             onCancel={onClose}
           />
           <div className="flex-1 flex min-h-0">
-            <Palette onAdd={addNodeFromPalette} />
+            <Palette onAdd={addNodeFromPalette} onAddAnnotation={addAnnotationFromPalette} />
             <div
               ref={wrapperRef}
               className="flex-1 relative min-w-0"
@@ -485,28 +675,57 @@ function DesignerInner({
               onDrop={onDrop}
             >
               <ReactFlow
-                nodes={displayNodes}
-                edges={displayEdges}
+                nodes={[...displayNodes, ...displayAnnotations]}
+                edges={[...displayEdges, ...annotationLinkEdges]}
                 nodeTypes={nodeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
                 onPaneClick={onPaneClick}
                 onNodeDragStart={onNodeDragStart}
+                onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)}
+                onNodeMouseLeave={() => setHoveredNodeId(null)}
                 onBeforeDelete={onBeforeDelete}
                 deleteKeyCode={['Delete', 'Backspace']}
                 multiSelectionKeyCode={['Control', 'Meta']}
                 selectionKeyCode={['Control', 'Meta']}
                 minZoom={0.4}
                 maxZoom={1.6}
+                connectionRadius={30}
                 snapToGrid
                 snapGrid={[16, 16]}
-                defaultEdgeOptions={{ type: 'smoothstep' }}
+                defaultEdgeOptions={{ type: edgeShape }}
                 colorMode={dark ? 'dark' : 'light'}
-                style={{ background: c.canvasBg }}
+                style={{ background: canvasFill }}
                 proOptions={{ hideAttribution: true }}
               >
-                <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={20} size={1.4} />
+                {canvasBackground === 'dots' && (
+                  <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={20} size={1.2} />
+                )}
+                {canvasBackground === 'dotsLarge' && (
+                  <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={36} size={1.8} />
+                )}
+                {canvasBackground === 'lines' && (
+                  <Background variant={BackgroundVariant.Lines} color={patternSoft} gap={32} lineWidth={0.75} />
+                )}
+                {canvasBackground === 'cross' && (
+                  <Background variant={BackgroundVariant.Cross} color={patternSoft} gap={36} size={7} lineWidth={0.75} />
+                )}
+                {canvasBackground === 'grid' && (
+                  <>
+                    <Background id="bg-minor" variant={BackgroundVariant.Lines} color={patternSoft} gap={28} lineWidth={0.6} />
+                    <Background id="bg-major" variant={BackgroundVariant.Lines} color={patternStrong} gap={140} lineWidth={0.75} />
+                  </>
+                )}
+                <MiniMap
+                  pannable
+                  zoomable
+                  nodeColor={(n) => TYPE_COLOR[n.type as NodeType] ?? c.textSecondary}
+                  nodeStrokeWidth={0}
+                  nodeBorderRadius={4}
+                  maskColor={dark ? 'rgba(14,15,19,0.65)' : 'rgba(244,244,247,0.7)'}
+                  style={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: 8 }}
+                />
               </ReactFlow>
             </div>
             <PropertiesDock

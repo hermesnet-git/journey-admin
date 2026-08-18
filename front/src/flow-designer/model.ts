@@ -1,4 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
+import dagre from '@dagrejs/dagre';
 import type { FlowNodeType } from '../api/flows';
 
 export type NodeType = 'start' | 'userTask' | 'end' | 'serviceTask' | 'receiveTask' | 'messageStartEvent' | 'gateway';
@@ -63,6 +64,10 @@ export interface WFNodeData extends Record<string, unknown> {
   name: string;
   description: string;
   formId: string | null;
+  // Only meaningful on a userTask with no formId (REQ-04.01.005): a display-only step shows this
+  // message instead of a form — may reference {{name}} tokens (REQ-03.09.012 syntax), resolved by
+  // the simulator at execution time.
+  messageText?: string | null;
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: only meaningful on the START node.
   startVariables?: StartVariable[];
@@ -70,6 +75,9 @@ export interface WFNodeData extends Record<string, unknown> {
   invalid?: boolean;
   // Client-only flag: these node types may have at most one outgoing path (REQ-03.02.007/03.02.004).
   outgoingLimitReached?: boolean;
+  // Client-only: current canvas zoom, passed down so the node can hide secondary detail (description,
+  // linked-form row) when zoomed out far enough that they'd render as illegible clutter.
+  zoom?: number;
 }
 
 export type WFNode = Node<WFNodeData, NodeType>;
@@ -80,6 +88,42 @@ export interface WFEdgeData extends Record<string, unknown> {
   isDefault?: boolean;
 }
 export type WFEdge = Edge<WFEdgeData>;
+
+// A free-floating note on the canvas — not part of the executable flow (never validated, never
+// published to BPMN), kept in its own React state in the designer (not mixed into `nodes`) so
+// nothing that walks the flow graph for BPMN/validation purposes needs to know it exists. Only
+// concatenated into the single <ReactFlow> nodes/edges arrays at render time, since there's only
+// one canvas. `linkedNodeIds` renders as a faint dashed line to each linked flow node.
+export interface AnnotationData extends Record<string, unknown> {
+  text: string;
+  linkedNodeIds: string[];
+  // Client-only, same purpose as WFNodeData.zoom.
+  zoom?: number;
+}
+export type WFAnnotation = Node<AnnotationData, 'annotation'>;
+
+// Ids get this prefix instead of Node_/Flow_ (see newNodeId/newConnectionId below) both for
+// readability and so the designer can tell an annotation id from a flow node id at a glance (used to
+// route onNodesChange/onConnect to the right piece of state) — annotations never reach the BPMN
+// transformer, so the "valid XML NCName" constraint that shapes those other prefixes doesn't apply.
+const ANNOTATION_ID_PREFIX = 'Annotation_';
+
+export function newAnnotationId() {
+  return `${ANNOTATION_ID_PREFIX}${crypto.randomUUID()}`;
+}
+
+export function isAnnotationId(id: string): boolean {
+  return id.startsWith(ANNOTATION_ID_PREFIX);
+}
+
+export function makeAnnotation(x: number, y: number): WFAnnotation {
+  return {
+    id: newAnnotationId(),
+    type: 'annotation',
+    position: { x, y },
+    data: { text: '', linkedNodeIds: [] },
+  };
+}
 
 // Node types that may have at most one outgoing connection (REQ-03.02.004/03.02.007). GATEWAY has
 // its own rule (exactly two outputs, REQ-03.11.001) enforced separately in validation.ts.
@@ -115,14 +159,45 @@ export const KAFKA_OPERATION_BY_NODE: Partial<Record<NodeType, 'PRODUCE' | 'CONS
   messageStartEvent: 'CONSUME',
 };
 
-export const NODE_META: Record<NodeType, { title: string; subtitle: string }> = {
-  start: { title: 'Início', subtitle: 'Inicia o fluxo' },
-  userTask: { title: 'Tarefa de Usuário', subtitle: 'Coleta dados do usuário' },
-  end: { title: 'Fim', subtitle: 'Encerra o fluxo' },
-  serviceTask: { title: 'Tarefa de Serviço', subtitle: 'Executa uma integração externa' },
-  receiveTask: { title: 'Tarefa de Recebimento', subtitle: 'Aguarda uma mensagem externa' },
-  messageStartEvent: { title: 'Início por Mensagem', subtitle: 'Inicia o fluxo a partir de uma mensagem externa' },
-  gateway: { title: 'Decisão', subtitle: 'Segue por um de dois caminhos, conforme uma condição' },
+// `subtitle` is short — it seeds the node's own `description` field on creation (see `makeNode`
+// below), so it has to stay editable-card-sized. `help` is the long-form explanation shown only in
+// the palette's hover hint; it never touches saved node data.
+export const NODE_META: Record<NodeType, { title: string; subtitle: string; help: string }> = {
+  start: {
+    title: 'Início',
+    subtitle: 'Inicia o fluxo',
+    help: 'Elemento inicial do fluxo. Toda jornada precisa de exatamente um elemento inicial — este ou o "Início por Mensagem", nunca os dois. Não tem entrada, e sua única saída dispara assim que uma instância da jornada é criada pela aplicação cliente.',
+  },
+  userTask: {
+    title: 'Tarefa de Usuário',
+    subtitle: 'Coleta dados do usuário',
+    help: 'Etapa que coleta dados do usuário através de um formulário — pode ter um formulário associado, ou nenhum, se for só um ponto de confirmação. Permite apenas um caminho de saída; para ramificar a jornada depois dela, use uma Decisão.',
+  },
+  end: {
+    title: 'Fim',
+    subtitle: 'Encerra o fluxo',
+    help: 'Encerra um caminho do fluxo. Toda jornada precisa de ao menos um nó de Fim; se houver uma Decisão, cada ramo pode terminar num Fim diferente, sem precisar reconvergir num único ponto final.',
+  },
+  serviceTask: {
+    title: 'Tarefa de Serviço',
+    subtitle: 'Executa uma integração externa',
+    help: 'Executa uma integração externa (REST ou Kafka) automaticamente, sem esperar nenhuma ação do usuário — por exemplo, consultar um sistema, publicar um evento ou disparar um provisionamento. O conector configurado nela define exatamente o que é chamado.',
+  },
+  receiveTask: {
+    title: 'Tarefa de Recebimento',
+    subtitle: 'Aguarda uma mensagem externa',
+    help: 'Aguarda uma mensagem externa chegar antes de prosseguir, numa instância de jornada que já está em andamento — por exemplo, esperar a confirmação assíncrona de um sistema terceiro. Diferente do "Início por Mensagem", não cria uma instância nova: só destrava uma que já existe.',
+  },
+  messageStartEvent: {
+    title: 'Início por Mensagem',
+    subtitle: 'Inicia o fluxo a partir de uma mensagem externa',
+    help: 'Inicia uma nova instância da jornada a partir de uma mensagem Kafka recebida, em vez de uma chamada direta. Substitui o "Início" tradicional quando o disparo do fluxo depende de um evento externo, como outro sistema publicando um evento.',
+  },
+  gateway: {
+    title: 'Decisão',
+    subtitle: 'Segue por um de dois caminhos, conforme uma condição',
+    help: 'Ramifica o fluxo em dois caminhos (A e B) conforme uma condição sobre uma variável já disponível naquele ponto da jornada. Um dos caminhos precisa ser marcado como padrão, usado quando a condição do outro não é satisfeita — garantindo que sempre haja um caminho definido em tempo de execução.',
+  },
 };
 
 export const TYPE_COLOR: Record<NodeType, string> = {
@@ -136,6 +211,35 @@ export const TYPE_COLOR: Record<NodeType, string> = {
 };
 
 export const NODE_WIDTH = 190;
+
+// Client-only display preference (not persisted with the flow) — lets the user try out the
+// built-in @xyflow/react edge renderers directly in the designer.
+export type EdgeShape = 'smoothstep' | 'default' | 'step' | 'straight';
+
+export const EDGE_SHAPE_OPTIONS: { value: EdgeShape; label: string }[] = [
+  { value: 'default', label: 'Curva (bezier)' },
+  { value: 'smoothstep', label: 'Ortogonal suave' },
+  { value: 'step', label: 'Ortogonal reta' },
+  { value: 'straight', label: 'Reta direta' },
+];
+
+// Same idea as EdgeShape: a client-only, remembered-but-not-persisted display preference for the
+// canvas surface. 'grid' stacks two Background layers (fine + coarse) for a Figma-style ruled
+// grid. 'glow', 'aurora', 'vignette' and 'plain' render no <Background> pattern at all — each just
+// swaps the flat canvas fill for a different tint (or, for 'plain', no tint).
+export type CanvasBackground = 'dots' | 'dotsLarge' | 'lines' | 'grid' | 'cross' | 'glow' | 'aurora' | 'vignette' | 'plain';
+
+export const CANVAS_BG_OPTIONS: { value: CanvasBackground; label: string }[] = [
+  { value: 'dots', label: 'Pontilhado' },
+  { value: 'dotsLarge', label: 'Pontilhado amplo' },
+  { value: 'lines', label: 'Grade fina' },
+  { value: 'grid', label: 'Grade dupla' },
+  { value: 'cross', label: 'Cruzes' },
+  { value: 'glow', label: 'Brilho radial' },
+  { value: 'aurora', label: 'Aurora' },
+  { value: 'vignette', label: 'Vinheta' },
+  { value: 'plain', label: 'Liso' },
+];
 
 // REQ-03.09.013: variables available at a given node — the outputMapping names declared by every
 // ancestor reachable backwards from it (same BFS shape as validation.ts's reachableFrom), plus
@@ -306,104 +410,30 @@ export function initialFlowEdges(_nodes: WFNode[]): WFEdge[] {
   return [];
 }
 
-const LAYER_GAP_X = 270;
 const NODE_HEIGHT = 56;
-const GAP_Y = 28;
+// Gap between nodes of adjacent layers / within the same layer. dagre's ranker already handles
+// crossing minimization and rank assignment properly, so layout tuning is just these two numbers.
+const RANK_SEP = 90;
+const NODE_SEP = 32;
 
-// Layered auto-layout (topological layering + barycenter sweep), ported from
-// the wf-designer reference project. All node types share a fixed height here
-// (no branch rows like the reference's decision nodes), so spacing is constant.
+// Layered auto-layout via dagre (replaces a hand-rolled barycenter-sweep layout that was ported
+// from the wf-designer reference project — dagre does real crossing minimization and holds up
+// better on larger, denser flows). All node types share a fixed size here (no branch rows like
+// the reference's decision nodes), so spacing is constant regardless of node type.
 export function computeLayout(nodes: WFNode[], edges: WFEdge[]): WFNode[] {
-  const incoming: Record<string, string[]> = {};
-  const outgoing: Record<string, string[]> = {};
-  nodes.forEach((n) => {
-    incoming[n.id] = [];
-    outgoing[n.id] = [];
-  });
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({ rankdir: 'LR', nodesep: NODE_SEP, ranksep: RANK_SEP, marginx: 80, marginy: 80 });
+
+  nodes.forEach((n) => g.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
   edges.forEach((e) => {
-    if (outgoing[e.source] && incoming[e.target] !== undefined) {
-      outgoing[e.source].push(e.target);
-      incoming[e.target].push(e.source);
-    }
+    if (g.hasNode(e.source) && g.hasNode(e.target)) g.setEdge(e.source, e.target);
   });
 
-  const layer: Record<string, number> = {};
-  const indeg: Record<string, number> = {};
-  nodes.forEach((n) => {
-    indeg[n.id] = incoming[n.id].length;
-  });
-  const queue = nodes.filter((n) => indeg[n.id] === 0).map((n) => n.id);
-  queue.forEach((id) => {
-    layer[id] = 0;
-  });
-  const seen = new Set(queue);
-  let i = 0;
-  while (i < queue.length) {
-    const id = queue[i++];
-    (outgoing[id] || []).forEach((t) => {
-      const candidate = (layer[id] || 0) + 1;
-      if (layer[t] === undefined || candidate > layer[t]) layer[t] = candidate;
-      if (!seen.has(t)) {
-        seen.add(t);
-        queue.push(t);
-      }
-    });
-  }
-  nodes.forEach((n) => {
-    if (layer[n.id] === undefined) layer[n.id] = 0;
-  });
+  dagre.layout(g);
 
-  const maxLayer = Math.max(0, ...nodes.map((n) => layer[n.id]));
-  const byLayer: WFNode[][] = [];
-  for (let l = 0; l <= maxLayer; l++) byLayer.push(nodes.filter((n) => layer[n.id] === l));
-
-  const orderIndex: Record<string, number> = {};
-  byLayer.forEach((group) => group.forEach((n, idx) => {
-    orderIndex[n.id] = idx;
-  }));
-
-  const sweepDown = () => {
-    for (let l = 1; l <= maxLayer; l++) {
-      const scored = byLayer[l].map((n) => {
-        const parents = incoming[n.id].filter((pid) => layer[pid] === l - 1);
-        const avg = parents.length ? parents.reduce((s, pid) => s + orderIndex[pid], 0) / parents.length : orderIndex[n.id];
-        return { n, avg };
-      });
-      scored.sort((a, b) => a.avg - b.avg);
-      byLayer[l] = scored.map((s) => s.n);
-      byLayer[l].forEach((n, idx) => {
-        orderIndex[n.id] = idx;
-      });
-    }
-  };
-  const sweepUp = () => {
-    for (let l = maxLayer - 1; l >= 0; l--) {
-      const scored = byLayer[l].map((n) => {
-        const children = outgoing[n.id].filter((cid) => layer[cid] === l + 1);
-        const avg = children.length ? children.reduce((s, cid) => s + orderIndex[cid], 0) / children.length : orderIndex[n.id];
-        return { n, avg };
-      });
-      scored.sort((a, b) => a.avg - b.avg);
-      byLayer[l] = scored.map((s) => s.n);
-      byLayer[l].forEach((n, idx) => {
-        orderIndex[n.id] = idx;
-      });
-    }
-  };
-  sweepDown();
-  sweepUp();
-  sweepDown();
-  sweepUp();
-
-  const newNodes = nodes.map((n) => ({ ...n, position: { ...n.position } }));
-  byLayer.forEach((group, l) => {
-    let y = 80;
-    group.forEach((n) => {
-      const target = newNodes.find((x) => x.id === n.id)!;
-      target.position.x = 80 + l * LAYER_GAP_X;
-      target.position.y = y;
-      y += NODE_HEIGHT + GAP_Y;
-    });
+  return nodes.map((n) => {
+    const pos = g.node(n.id);
+    return { ...n, position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 } };
   });
-  return newNodes;
 }

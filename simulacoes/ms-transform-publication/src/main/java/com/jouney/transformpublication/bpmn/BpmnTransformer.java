@@ -11,6 +11,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -75,6 +76,14 @@ public class BpmnTransformer {
     // ${name} (Camunda's own JUEL variable syntax) — the process variables set by an earlier
     // connector's output parameters, or a gateway condition, read directly off process scope.
     private static final Pattern ADMIN_VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
+
+    // Reserved process variable names capturing, per REST-connector node, the URL actually called and
+    // the raw response body — the connector's own "response" local variable gets overwritten by every
+    // node that reuses it, so it can't answer "what did node X get back" once later nodes have also
+    // run. ms-espec-registry (SimulationController.trailSince) reads these same two prefixes back —
+    // keep both in sync if either changes; there's no shared module between the two services.
+    private static final String HTTP_URL_VAR_PREFIX = "__httpUrl__";
+    private static final String HTTP_RESPONSE_VAR_PREFIX = "__httpResponse__";
 
     public record Result(String processId, byte[] bpmnXml) {
     }
@@ -291,7 +300,7 @@ public class BpmnTransformer {
     private void attachServiceTask(BpmnModelInstance modelInstance, ServiceTask element, FlowNodeRequest node) {
         ConnectorConfigRequest connectorConfig = node.connectorConfig();
         if (connectorConfig != null && "REST".equalsIgnoreCase(connectorConfig.connectorType())) {
-            attachHttpConnector(modelInstance, element, connectorConfig);
+            attachHttpConnector(modelInstance, element, connectorConfig, node.id());
             return;
         }
         element.setCamundaType("external");
@@ -326,7 +335,8 @@ public class BpmnTransformer {
         return "${" + result + "}";
     }
 
-    private void attachHttpConnector(BpmnModelInstance modelInstance, ServiceTask element, ConnectorConfigRequest connectorConfig) {
+    private void attachHttpConnector(BpmnModelInstance modelInstance, ServiceTask element, ConnectorConfigRequest connectorConfig,
+                                      String nodeId) {
         Map<String, Object> config = connectorConfig.config() != null ? connectorConfig.config() : Map.of();
 
         ExtensionElements extensionElements = modelInstance.newInstance(ExtensionElements.class);
@@ -343,13 +353,27 @@ public class BpmnTransformer {
         inputOutput.getCamundaInputParameters().add(newInputParameter(modelInstance, "url", url));
         inputOutput.getCamundaInputParameters().add(newInputParameter(modelInstance, "method", asString(config.get("method"), "GET")));
 
-        if (config.get("headers") instanceof Map<?, ?> headers && !headers.isEmpty()) {
+        // Unlike the RestClient used by the "Testar chamada" feature (REQ-03.10), which infers
+        // Content-Type automatically for a structured body, Camunda's native http-connector sends
+        // the payload as-is with no Content-Type unless one is explicitly provided — most APIs
+        // (including ms-mock-api-rest) then reject a JSON body with 415, and the output mapping's
+        // jsonPath fails against that error body instead of the real response. Default to
+        // application/json whenever there's a body, unless the admin already set their own.
+        Map<String, Object> headers = new LinkedHashMap<>();
+        if (config.get("headers") instanceof Map<?, ?> configuredHeaders) {
+            configuredHeaders.forEach((key, value) -> headers.put(String.valueOf(key), value));
+        }
+        boolean hasContentType = headers.keySet().stream().anyMatch(key -> key.equalsIgnoreCase("Content-Type"));
+        if (config.get("body") != null && !hasContentType) {
+            headers.put("Content-Type", "application/json");
+        }
+        if (!headers.isEmpty()) {
             CamundaInputParameter headersParam = modelInstance.newInstance(CamundaInputParameter.class);
             headersParam.setCamundaName("headers");
             CamundaMap map = modelInstance.newInstance(CamundaMap.class);
             headers.forEach((key, value) -> {
                 CamundaEntry entry = modelInstance.newInstance(CamundaEntry.class);
-                entry.setCamundaKey(String.valueOf(key));
+                entry.setCamundaKey(key);
                 entry.setTextContent(resolveVariables(String.valueOf(value)));
                 map.getCamundaEntries().add(entry);
             });
@@ -379,6 +403,22 @@ public class BpmnTransformer {
                 inputOutput.getCamundaOutputParameters().add(outputParameter);
             }
         }
+
+        // Always captured (regardless of outputMapping), so the admin UI can show "what URL was
+        // called / what came back" per node even when no output variable was mapped from it — `url`
+        // already carries the same ${...} expressions the input parameter above uses, so it
+        // re-resolves to the exact same value that was actually called. Confirmed independently of
+        // the "execution doesn't exist" issue (see SimulationController/ms-espec-registry notes): that
+        // reproduces identically even with these two lines removed entirely.
+        inputOutput.getCamundaOutputParameters().add(rawOutputParameter(modelInstance, HTTP_URL_VAR_PREFIX + nodeId, url));
+        inputOutput.getCamundaOutputParameters().add(rawOutputParameter(modelInstance, HTTP_RESPONSE_VAR_PREFIX + nodeId, "${response}"));
+    }
+
+    private CamundaOutputParameter rawOutputParameter(BpmnModelInstance modelInstance, String name, String expression) {
+        CamundaOutputParameter parameter = modelInstance.newInstance(CamundaOutputParameter.class);
+        parameter.setCamundaName(name);
+        parameter.setTextContent(expression);
+        return parameter;
     }
 
     private CamundaInputParameter newInputParameter(BpmnModelInstance modelInstance, String name, String value) {

@@ -87,6 +87,9 @@ export interface TrailEntry {
   nodeId: string;
   nodeName: string;
   nodeType: string;
+  // Only set for a SERVICE_TASK with a REST connector: the URL actually called and the raw response.
+  url: string | null;
+  response: string | null;
 }
 
 export interface StepResponse {
@@ -156,6 +159,16 @@ export interface VariableEntry {
   name: string;
   value: unknown;
   type: string;
+}
+
+// Same two prefixes BpmnTransformer (ms-transform-publication) writes into process variables for
+// every REST-connector SERVICE_TASK (URL called / raw response, keyed per node) — technical, not
+// meant to show up as a regular process variable in the "Variáveis" tab.
+export const HTTP_URL_VAR_PREFIX = '__httpUrl__';
+export const HTTP_RESPONSE_VAR_PREFIX = '__httpResponse__';
+
+export function isInternalVariableName(name: string): boolean {
+  return name.startsWith(HTTP_URL_VAR_PREFIX) || name.startsWith(HTTP_RESPONSE_VAR_PREFIX);
 }
 
 export function startInstance(journeyId: string, variables?: Record<string, unknown>): Promise<InstanceResponse> {

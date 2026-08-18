@@ -69,6 +69,22 @@ function describeTrailEntry(entry: TrailEntry): string {
   return describe ? describe(entry.nodeName) : `Etapa "${entry.nodeName}" concluída.`;
 }
 
+// Only a REST-connector SERVICE_TASK carries url/response (see TrailEntry) — shown inline in the
+// log entry via the same JSON block LogView already renders for any entry.data.
+function trailLogData(entry: TrailEntry): Record<string, unknown> | undefined {
+  if (!entry.url && !entry.response) return undefined;
+  return { url: entry.url, resposta: parseMaybeJson(entry.response) };
+}
+
+function parseMaybeJson(value: string | null): unknown {
+  if (!value) return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
 export function ExecutionWorkspace({ processInstanceId, businessKey, journey, flow, initialStep, onRestart }: Props) {
   const startNodeId = flow.flowNodes.find((n) => n.type === 'START')?.id;
 
@@ -77,13 +93,27 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
   const [erroredNodeId, setErroredNodeId] = useState<string | null>(null);
   const [erroredNodeName, setErroredNodeName] = useState<string | null>(null);
   const [erroredMessage, setErroredMessage] = useState<string | null>(null);
+  // The engine may run several steps synchronously as part of starting the instance itself (e.g. a
+  // SERVICE_TASK chain right after START, before the first wait state) — initialStep.trail already
+  // carries them (same shape applyNewStep consumes below), so the very first render needs to fold
+  // it in too, not just subsequent step updates.
   const [visitedPath, setVisitedPath] = useState<string[]>(() => {
-    const base = startNodeId ? [startNodeId] : [];
-    return initialStep.nodeId ? [...base, initialStep.nodeId] : base;
+    const ids = startNodeId ? [startNodeId] : [];
+    for (const entry of initialStep.trail) {
+      if (!ids.includes(entry.nodeId)) ids.push(entry.nodeId);
+    }
+    if (initialStep.nodeId && ids[ids.length - 1] !== initialStep.nodeId) ids.push(initialStep.nodeId);
+    return ids;
   });
   const [variables, setVariables] = useState<VariableEntry[]>([]);
-  const [log, setLog] = useState<LogEntry[]>([
+  const [log, setLog] = useState<LogEntry[]>(() => [
     { id: 'start', time: now(), message: 'Jornada iniciada.' },
+    ...initialStep.trail.map((entry, i) => ({
+      id: `start-trail-${i}`,
+      time: now(),
+      message: describeTrailEntry(entry),
+      data: trailLogData(entry),
+    })),
     { id: 'start-step', time: now(), message: describeStep(initialStep) },
   ]);
 
@@ -122,7 +152,7 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
     }
     for (const entry of newStep.trail) {
       setVisitedPath((prev) => (prev.includes(entry.nodeId) ? prev : [...prev, entry.nodeId]));
-      appendLog(describeTrailEntry(entry));
+      appendLog(describeTrailEntry(entry), trailLogData(entry));
     }
     if (newStep.nodeId) {
       setVisitedPath((prev) => (prev[prev.length - 1] === newStep.nodeId ? prev : [...prev, newStep.nodeId!]));

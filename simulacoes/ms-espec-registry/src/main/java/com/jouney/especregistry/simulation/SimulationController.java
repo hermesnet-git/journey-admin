@@ -72,6 +72,9 @@ public class SimulationController {
         // Já para um START comum (REQ-03.12.003), as variáveis vêm de verdade do chamador
         // (canal digital/BFF) — validadas e coercionadas contra o que o nó START declarou.
         PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        // Catches a journey published before FlowValidator (admin/back) started rejecting this shape
+        // at save time — fails clearly here instead of crashing the engine (SynchronousChainCheck).
+        SynchronousChainCheck.verify(snapshot);
         Map<String, CamundaVariable> startVariables = snapshot.findStartNode()
                 .map(node -> "MESSAGE_START_EVENT".equals(node.type())
                         ? VariableConversion.fabricateFromOutputMapping(node.connectorConfig())
@@ -82,8 +85,14 @@ public class SimulationController {
         // uma RECEIVE_TASK dela ser correlacionada depois via mensagem Kafka de verdade (ver
         // KafkaBridgeScheduler/CamundaClient.findProcessInstanceByBusinessKey).
         String businessKey = UUID.randomUUID().toString();
+        // Same trail computation completeTask/simulateStep already do: the engine can run several
+        // SERVICE_TASK/GATEWAY steps synchronously, in the same transaction as the start call itself
+        // (e.g. one or more REST connectors right after START, before the first wait state) — without
+        // this, those nodes never show as visited on the diagram even though they genuinely ran.
+        Instant before = Instant.now();
         String processInstanceId = camundaClient.startProcessInstance(ProcessIds.keyForJourney(journeyId), startVariables, businessKey);
-        return new InstanceResponse(processInstanceId, businessKey, FlowBundle.from(snapshot), stepResolver.resolve(processInstanceId));
+        StepResponse step = stepResolver.resolve(processInstanceId).withTrail(trailSince(processInstanceId, snapshot, before));
+        return new InstanceResponse(processInstanceId, businessKey, FlowBundle.from(snapshot), step);
     }
 
     /** Publica de verdade no tópico Kafka configurado no nó — usado pelo painel "Enviar mensagem"
@@ -143,6 +152,7 @@ public class SimulationController {
                 .orElseThrow(() -> new IllegalStateException("Instância de processo não encontrada: " + processInstanceId));
         UUID journeyId = ProcessIds.journeyIdFromKey(instance.definitionKey());
         PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        SynchronousChainCheck.verify(snapshot);
 
         Map<String, Object> answers = request != null && request.answers() != null ? request.answers() : Map.of();
         Map<String, CamundaVariable> variables = VariableConversion.fromAnswers(current.form().sdui(), answers);
@@ -168,6 +178,7 @@ public class SimulationController {
                 .orElseThrow(() -> new IllegalStateException("Instância de processo não encontrada: " + processInstanceId));
         UUID journeyId = ProcessIds.journeyIdFromKey(instance.definitionKey());
         PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        SynchronousChainCheck.verify(snapshot);
         FlowNode node = snapshot.findNode(current.nodeId())
                 .orElseThrow(() -> new IllegalStateException("Nó " + current.nodeId() + " não encontrado no snapshot da jornada"));
 
@@ -211,16 +222,39 @@ public class SimulationController {
     // endTime nesse ponto, e já é reportada separadamente como o passo atual.
     private static final Set<String> BOUNDARY_ACTIVITY_TYPES = Set.of("startEvent");
 
+    // Same two prefixes BpmnTransformer (ms-transform-publication) writes into process variables for
+    // every REST-connector SERVICE_TASK — keep in sync if either changes, no shared module between
+    // the two services.
+    private static final String HTTP_URL_VAR_PREFIX = "__httpUrl__";
+    private static final String HTTP_RESPONSE_VAR_PREFIX = "__httpResponse__";
+
     private List<TrailEntry> trailSince(String processInstanceId, PublicationSnapshot snapshot, Instant since) {
         List<TrailEntry> trail = new ArrayList<>();
+        Map<String, CamundaVariable> variables = null;
         for (HistoricActivityInstance activity : camundaClient.getActivityHistorySince(processInstanceId, since)) {
             if (activity.endTime() == null || BOUNDARY_ACTIVITY_TYPES.contains(activity.activityType())) {
                 continue;
             }
-            snapshot.findNode(activity.activityId())
-                    .ifPresent(n -> trail.add(new TrailEntry(n.id(), n.name(), n.type())));
+            Optional<FlowNode> node = snapshot.findNode(activity.activityId());
+            if (node.isEmpty()) {
+                continue;
+            }
+            String url = null;
+            String response = null;
+            if ("SERVICE_TASK".equals(node.get().type())) {
+                if (variables == null) {
+                    variables = camundaClient.getProcessVariables(processInstanceId);
+                }
+                url = stringValue(variables.get(HTTP_URL_VAR_PREFIX + node.get().id()));
+                response = stringValue(variables.get(HTTP_RESPONSE_VAR_PREFIX + node.get().id()));
+            }
+            trail.add(new TrailEntry(node.get().id(), node.get().name(), node.get().type(), url, response));
         }
         return trail;
+    }
+
+    private String stringValue(CamundaVariable variable) {
+        return variable != null && variable.value() != null ? String.valueOf(variable.value()) : null;
     }
 
     @GetMapping("/instances/{processInstanceId}/variables")

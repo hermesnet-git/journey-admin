@@ -1,5 +1,7 @@
-import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard, ChevronDown } from 'lucide-react';
 import { useFlowTheme } from './theme';
+import { EDGE_SHAPE_OPTIONS, type EdgeShape, CANVAS_BG_OPTIONS, type CanvasBackground } from './model';
 
 const SHORTCUTS_HINT = [
   'Ctrl+Z — Desfazer',
@@ -9,12 +11,85 @@ const SHORTCUTS_HINT = [
   'Duplo clique no nó — Editar propriedades',
 ].join('\n');
 
+// Miniature preview of each edge renderer's path shape — a native <select> can't render icons
+// inside its options, so the shape picker below is a small custom dropdown instead.
+const EDGE_SHAPE_PATH: Record<EdgeShape, string> = {
+  default: 'M3 11 C9 11 11 3 17 3',
+  smoothstep: 'M3 11 H8 Q10 11 10 8 Q10 3 12 3 H17',
+  step: 'M3 11 H10 V3 H17',
+  straight: 'M3 11 L17 3',
+};
+
+function EdgeShapeIcon({ shape }: { shape: EdgeShape }) {
+  return (
+    <svg width={18} height={13} viewBox="0 0 20 14" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <circle cx={3} cy={11} r={1.6} fill="currentColor" stroke="none" />
+      <path d={EDGE_SHAPE_PATH[shape]} />
+      <circle cx={17} cy={3} r={1.6} fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function EdgeShapePicker({ value, onChange }: { value: EdgeShape; onChange: (shape: EdgeShape) => void }) {
+  const { c } = useFlowTheme();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title="Formato das linhas de conexão"
+        className="h-[28px] px-[7px] rounded-lg flex items-center gap-[4px] cursor-pointer"
+        style={{ border: `1px solid ${c.border}`, color: c.textPrimary, background: c.cardBg }}
+      >
+        <EdgeShapeIcon shape={value} />
+        <ChevronDown size={11} style={{ color: c.textSecondary }} />
+      </button>
+      {open && (
+        <div
+          className="absolute left-0 top-[32px] w-[172px] rounded-[8px] p-[5px] z-30"
+          style={{ background: c.cardBg, border: `1px solid ${c.border}`, boxShadow: '0 10px 30px -8px rgba(0,0,0,.25)' }}
+        >
+          {EDGE_SHAPE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                onChange(opt.value);
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-[8px] text-left px-[8px] py-[6px] rounded-[6px] border-0 bg-transparent cursor-pointer text-[12px]"
+              style={{ color: opt.value === value ? c.accent : c.textPrimary, background: opt.value === value ? c.hoverBg : 'transparent' }}
+            >
+              <EdgeShapeIcon shape={opt.value} />
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Toolbar({
   canUndo,
   canRedo,
   onUndo,
   onRedo,
   onOrganize,
+  edgeShape,
+  onEdgeShapeChange,
+  canvasBackground,
+  onCanvasBackgroundChange,
   zoomPct,
   onZoomIn,
   onZoomOut,
@@ -28,6 +103,10 @@ export function Toolbar({
   onUndo: () => void;
   onRedo: () => void;
   onOrganize: () => void;
+  edgeShape: EdgeShape;
+  onEdgeShapeChange: (shape: EdgeShape) => void;
+  canvasBackground: CanvasBackground;
+  onCanvasBackgroundChange: (bg: CanvasBackground) => void;
   zoomPct: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -38,47 +117,63 @@ export function Toolbar({
 }) {
   const { c } = useFlowTheme();
   const iconBtn =
-    'w-[30px] h-[30px] rounded-lg border-0 bg-transparent flex items-center justify-center cursor-pointer disabled:opacity-35';
+    'w-[27px] h-[27px] rounded-lg border-0 bg-transparent flex items-center justify-center cursor-pointer disabled:opacity-35';
+  const selectCls = 'h-[27px] pl-[7px] pr-[4px] rounded-lg text-[12px] font-medium cursor-pointer max-w-[122px]';
+  const divider = <div className="w-px h-[18px] mx-[3px]" style={{ background: c.border }} />;
 
   return (
-    <div className="shrink-0 border-b px-4 py-[9px] flex items-center justify-between gap-4" style={{ background: c.headerBg, borderColor: c.border }}>
-      <div className="flex items-center gap-1 shrink-0 ml-auto">
+    <div className="shrink-0 border-b px-3 py-[6px] flex items-center justify-between gap-3" style={{ background: c.headerBg, borderColor: c.border }}>
+      <div className="flex items-center gap-[3px] shrink-0 ml-auto">
         <button
           onClick={onOrganize}
           title="Organizar objetos no canvas"
-          className="h-[30px] px-[9px] rounded-lg flex items-center gap-[6px] text-[12.5px] font-semibold cursor-pointer"
+          className="h-[27px] px-[8px] rounded-lg flex items-center gap-[5px] text-[12px] font-semibold cursor-pointer"
           style={{ border: `1px solid ${c.border}`, color: c.textPrimary }}
         >
-          <LayoutGrid size={15} /> Organizar
+          <LayoutGrid size={14} /> Organizar
         </button>
-        <div className="w-px h-[20px] mx-1" style={{ background: c.border }} />
+        <EdgeShapePicker value={edgeShape} onChange={onEdgeShapeChange} />
+        <select
+          value={canvasBackground}
+          onChange={(e) => onCanvasBackgroundChange(e.target.value as CanvasBackground)}
+          title="Aspecto do fundo do canvas"
+          className={selectCls}
+          style={{ border: `1px solid ${c.border}`, color: c.textPrimary, background: c.cardBg }}
+        >
+          {CANVAS_BG_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {divider}
         <button onClick={onUndo} disabled={!canUndo} className={iconBtn} style={{ color: c.textSecondary }} title="Desfazer (Ctrl+Z)">
-          <Undo2 size={17} />
+          <Undo2 size={16} />
         </button>
         <button onClick={onRedo} disabled={!canRedo} className={iconBtn} style={{ color: c.textSecondary }} title="Refazer (Ctrl+Y)">
-          <Redo2 size={17} />
+          <Redo2 size={16} />
         </button>
-        <div className="w-px h-[20px] mx-1" style={{ background: c.border }} />
+        {divider}
         <button onClick={onZoomOut} className={iconBtn} style={{ color: c.textSecondary }} title="Diminuir zoom">
-          <ZoomOut size={17} />
+          <ZoomOut size={16} />
         </button>
-        <div className="w-8 text-center text-[11.5px] font-medium" style={{ color: c.textSecondary }}>
+        <div className="w-7 text-center text-[11px] font-medium" style={{ color: c.textSecondary }}>
           {zoomPct}%
         </div>
         <button onClick={onZoomIn} className={iconBtn} style={{ color: c.textSecondary }} title="Aumentar zoom">
-          <ZoomIn size={17} />
+          <ZoomIn size={16} />
         </button>
         <button onClick={onFitToScreen} className={iconBtn} style={{ color: c.textSecondary }} title="Ajustar à tela">
-          <Maximize size={17} />
+          <Maximize size={16} />
         </button>
-        <div className="w-px h-[20px] mx-1" style={{ background: c.border }} />
+        {divider}
         <button className={iconBtn} style={{ color: c.textSecondary }} title={SHORTCUTS_HINT}>
-          <Keyboard size={17} />
+          <Keyboard size={16} />
         </button>
-        <div className="w-px h-[20px] mx-1" style={{ background: c.border }} />
+        {divider}
         <button
           onClick={onCancel}
-          className="h-[32px] px-4 rounded-md text-[13px] font-medium cursor-pointer"
+          className="h-[29px] px-3 rounded-md text-[12.5px] font-medium cursor-pointer"
           style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}
         >
           Cancelar
@@ -86,10 +181,10 @@ export function Toolbar({
         <button
           onClick={onSave}
           disabled={saving}
-          className="inline-flex items-center gap-[6px] rounded-md px-4 py-[7px] text-[13px] font-medium text-white border-0 cursor-pointer disabled:opacity-50"
+          className="inline-flex items-center gap-[5px] h-[29px] rounded-md px-3 text-[12.5px] font-medium text-white border-0 cursor-pointer disabled:opacity-50"
           style={{ background: c.accent }}
         >
-          <Save size={14} /> {saving ? 'Salvando...' : 'Salvar'}
+          <Save size={13} /> {saving ? 'Salvando...' : 'Salvar'}
         </button>
       </div>
     </div>

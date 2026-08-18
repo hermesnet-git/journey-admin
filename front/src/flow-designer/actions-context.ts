@@ -7,6 +7,10 @@ export interface WorkflowActions {
   onDelete: (nodeId: string) => void;
   onOpenForm: (formId: string) => void;
   getFormName: (formId: string) => string | undefined;
+  onUpdateAnnotationText: (annotationId: string, text: string) => void;
+  onDeleteAnnotation: (annotationId: string) => void;
+  onUnlinkAnnotation: (annotationId: string, nodeId: string) => void;
+  getNodeName: (nodeId: string) => string | undefined;
 }
 
 export const WorkflowActionsContext = createContext<WorkflowActions | null>(null);

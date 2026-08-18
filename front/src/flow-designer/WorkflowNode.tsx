@@ -82,7 +82,7 @@ function QuickAdd({ nodeId }: { nodeId: string }) {
 export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   const nodeType = type as NodeType;
   const actions = useWorkflowActions();
-  const { c } = useFlowTheme();
+  const { c, dark } = useFlowTheme();
   const Icon = ICON[nodeType];
   const hasInput = nodeType !== 'start' && nodeType !== 'messageStartEvent';
   const hasOutput = nodeType !== 'end';
@@ -91,9 +91,16 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   // Início/Fim carry no description or badges — just a label — so they shrink to the text
   // instead of matching the fixed width of task/integration nodes.
   const isCompact = nodeType === 'start' || nodeType === 'end';
+  // Semantic zoom: description and the linked-form/connector row are the first things that turn
+  // to illegible noise once a wide flow is zoomed out to fit — drop them below a threshold instead
+  // of rendering unreadable 4px text.
+  const showDetails = (data.zoom ?? 1) >= 0.65;
 
   const borderColor = invalid ? c.danger : selected ? c.accent : c.cardBorder;
   const ringColor = invalid ? c.dangerSoft : c.accentSoft;
+  // Resting elevation so cards read as raised, tappable surfaces against the dotted canvas
+  // instead of flat rectangles — same shadow family the selection ring stacks on top of.
+  const elevation = dark ? '0 1px 3px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.25)' : '0 1px 2px rgba(15,15,20,.07), 0 1px 1px rgba(15,15,20,.04)';
   // Both start-type elements are deletable so a MESSAGE_START_EVENT can replace the
   // default START (REQ-03.07.005 allows exactly one, of either type).
   const deletable = true;
@@ -105,9 +112,9 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
         width: isCompact ? 'fit-content' : NODE_WIDTH,
         background: c.cardBg,
         borderColor,
-        boxShadow: selected || invalid ? `0 0 0 4px ${ringColor}` : 'none',
+        boxShadow: selected || invalid ? `0 0 0 4px ${ringColor}, ${elevation}` : elevation,
       }}
-      className={`group relative rounded-lg border cursor-grab select-none ${isCompact ? 'px-[10px] py-[6px]' : 'px-[10px] py-[7px]'}`}
+      className={`group relative rounded-xl border cursor-grab select-none ${isCompact ? 'px-[11px] py-[7px]' : 'px-[12px] py-[9px]'}`}
     >
       <button
         onClick={(e) => {
@@ -140,12 +147,14 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
         <Handle
           type="target"
           position={Position.Left}
+          className="transition-transform duration-150 hover:scale-[1.8] [&.valid]:scale-[1.8] [&.valid]:!shadow-[0_0_0_4px_var(--handle-ring)]"
           style={{
             width: 7.5,
             height: 7.5,
             background: c.cardBg,
             border: `1.75px solid ${c.handleColor}`,
             zIndex: 5,
+            ['--handle-ring' as string]: c.accentSoft,
           }}
         />
       )}
@@ -178,21 +187,23 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
             )}
         </div>
         {isCompact ? (
-          <div className="text-[12px] font-bold whitespace-nowrap" style={{ color: c.textPrimary }}>
+          <div className="text-[12.5px] font-bold whitespace-nowrap" style={{ color: c.textPrimary }}>
             {data.name}
           </div>
         ) : (
           <div className="min-w-0">
-            <div className="text-[12.5px] font-bold truncate" style={{ color: c.textPrimary }}>
+            <div className="text-[13px] font-bold truncate" style={{ color: c.textPrimary }}>
               {data.name}
             </div>
-            <div className="text-[10.5px] truncate" style={{ color: c.textSecondary }}>
-              {data.description}
-            </div>
+            {showDetails && (
+              <div className="text-[11px] truncate mt-px" style={{ color: c.textSecondary }}>
+                {data.description}
+              </div>
+            )}
           </div>
         )}
       </div>
-      {nodeType === 'userTask' && data.formId && (
+      {showDetails && nodeType === 'userTask' && data.formId && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -214,6 +225,7 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
             type="source"
             position={Position.Right}
             isConnectable={!outgoingLimitReached}
+            className="transition-transform duration-150 hover:scale-[1.8] [&.connectingfrom]:scale-[1.8] [&.connectingfrom]:!shadow-[0_0_0_4px_var(--handle-ring)]"
             style={{
               width: 7.5,
               height: 7.5,
@@ -221,6 +233,7 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
               border: `1.75px solid ${c.handleColor}`,
               zIndex: 5,
               opacity: outgoingLimitReached ? 0.4 : 1,
+              ['--handle-ring' as string]: c.accentSoft,
             }}
           />
           {!outgoingLimitReached && <QuickAdd nodeId={id} />}

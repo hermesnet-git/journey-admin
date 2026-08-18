@@ -1,0 +1,1 @@
+ALTER TABLE flow ADD COLUMN annotations JSONB NOT NULL DEFAULT '[]';

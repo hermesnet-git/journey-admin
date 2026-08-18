@@ -84,8 +84,9 @@ flowchart TD
 | Channel | Aplicação ou interface de atendimento de um produto |
 | Journey | Jornada específica de um canal |
 | Flow | Estrutura visual da jornada |
-| Flow Node | Elemento posicionado no canvas: Start, End ou User Task |
+| Flow Node | Elemento posicionado no canvas: Start, Message Start Event, User Task, Service Task, Receive Task, Gateway ou End |
 | Flow Connection | Conexão entre nós do fluxo |
+| Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
 | User Task Configuration | Associação entre uma User Task e um formulário |
 | Form | Formulário reutilizável utilizado por User Tasks |
 | Form Component | Elemento visual pertencente a um formulário |
@@ -177,7 +178,7 @@ Uma Journey somente pode ser removida fisicamente quando nunca tiver possuído u
 
 ---
 
-# 8. Flow, Flow Node e Flow Connection
+# 8. Flow, Flow Node, Flow Connection e Flow Annotation
 
 ## Flow
 
@@ -186,16 +187,24 @@ Estrutura principal da jornada; define a sequência das telas e etapas.
 ## Flow Node — Tipos
 
 ```text
-START, END, USER_TASK, SERVICE_TASK, RECEIVE_TASK, MESSAGE_START_EVENT
+START, END, USER_TASK, SERVICE_TASK, RECEIVE_TASK, MESSAGE_START_EVENT, GATEWAY
 ```
+
+Uma `USER_TASK` sem formulário associado (REQ-04.01.005) pode declarar uma mensagem de texto exibida ao usuário nessa etapa (`messageText`), podendo referenciar variáveis disponíveis naquele ponto do fluxo com a mesma sintaxe `{{nome}}` (REQ-03.09.012) — resolvida contra as variáveis reais da instância no momento da execução, não na publicação.
 
 ## Flow Connection
 
 Liga dois nós do mesmo fluxo. Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um `END`. O elemento inicial não possui entrada e possui exatamente uma saída; cada `USER_TASK`, `SERVICE_TASK` e `RECEIVE_TASK` possui ao menos uma entrada e exatamente uma saída; um `GATEWAY` possui ao menos uma entrada e exatamente duas saídas (US-03.11); o `END` possui ao menos uma entrada e nenhuma saída. Todos os nós integram um caminho contínuo e alcançável entre o elemento inicial e algum `END` — um `GATEWAY` pode ramificar o fluxo em caminhos que terminam em `END`s distintos, sem precisar reconvergir antes do fim.
 
+Um `END` alcançável apenas por tarefas automáticas via conector REST — sem nenhum checkpoint (`USER_TASK`, `RECEIVE_TASK` ou uma `SERVICE_TASK` Kafka) desde o elemento inicial — é uma estrutura inválida: o conector HTTP nativo do motor de runtime executa de forma síncrona, e várias execuções concluindo a instância na mesma transação que a iniciou rompem o motor. O backend rejeita esse desenho ao salvar o fluxo.
+
+## Flow Annotation
+
+Nota livre posicionada no canvas do editor de fluxo, usada apenas como documentação visual — nunca participa da validação estrutural do `Flow` nem é traduzida para BPMN na publicação (nunca é enviada ao `ms-transform-publication`). Pode ser vinculada a um ou mais `Flow Node` do mesmo fluxo, exibida como uma linha pontilhada no editor; o vínculo é apenas informativo, sem efeito na execução.
+
 ## Persistência e identificadores
 
-O `Flow` (nós e conexões) é persistido como um único documento `jsonb` associado à jornada — não há necessidade de consultar nós/conexões individualmente hoje, então não são normalizados em tabelas próprias.
+O `Flow` (nós, conexões e anotações) é persistido como um único documento `jsonb` associado à jornada — não há necessidade de consultar nós/conexões/anotações individualmente hoje, então não são normalizados em tabelas próprias.
 
 Na publicação, a runtime traduz este `Flow` para uma definição de processo BPMN. Elementos BPMN em XML exigem identificadores no formato `NCName` (não podem iniciar com dígito), o que um UUID puro não garante. Por isso, os identificadores que a runtime embute diretamente como `id` de elemento BPMN nascem com um prefixo fixo, nunca como UUID puro:
 
@@ -205,7 +214,7 @@ Na publicação, a runtime traduz este `Flow` para uma definição de processo B
 | `FlowNode.nodeId` | `Node_<uuid>` | `id` de elementos BPMN de início, tarefa, espera ou término |
 | `FlowConnection.connectionId` | `Flow_<uuid>` | `id` de `<bpmn:sequenceFlow>` |
 
-Os demais identificadores do domínio (`productId`, `channelId`, `journeyId`, `formId`, etc.) nunca aparecem no XML BPMN gerado e permanecem UUID puro — o prefixo é aplicado apenas onde a restrição do XML exige.
+Os demais identificadores do domínio (`productId`, `channelId`, `journeyId`, `formId`, etc.) nunca aparecem no XML BPMN gerado e permanecem UUID puro — o prefixo é aplicado apenas onde a restrição do XML exige. `FlowAnnotation.id` também recebe um prefixo fixo (`Annotation_<uuid>`) por convenção de legibilidade, mas nunca por exigência do XML — uma anotação nunca é enviada ao `ms-transform-publication` nem vira elemento BPMN.
 
 ---
 
@@ -332,6 +341,8 @@ Ao despublicar, o Admin Portal chama a API mockada do runtime. Somente após o r
 | Journey | Flow | 1:1 |
 | Flow | Flow Node | 1:N |
 | Flow | Flow Connection | 1:N |
+| Flow | Flow Annotation | 1:N |
+| Flow Annotation | Flow Node | N:M |
 | Flow Node | User Task Configuration | 1:0..1 |
 | Form | User Task Configuration | 1:N |
 | Form | Form Component | 1:N |
@@ -355,6 +366,8 @@ erDiagram
     JOURNEY ||--|| FLOW : owns
     FLOW ||--o{ FLOW_NODE : contains
     FLOW ||--o{ FLOW_CONNECTION : contains
+    FLOW ||--o{ FLOW_ANNOTATION : annotates
+    FLOW_ANNOTATION }o--o{ FLOW_NODE : links_to
 
     FLOW_NODE ||--o| USER_TASK_CONFIG : configures
     FORM ||--o{ USER_TASK_CONFIG : serves
@@ -380,6 +393,7 @@ erDiagram
 | Channel | Aplicação ou interface de atendimento de um produto |
 | Journey | Jornada específica de um canal |
 | Flow / Flow Node / Flow Connection | Estrutura visual da jornada e seus elementos |
+| Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
 | User Task Configuration | Associação entre User Task e Form |
 | Form / Form Component | Formulário e seus componentes visuais |
 | Execution Run / Step / Result | Execução, etapas e resultado |

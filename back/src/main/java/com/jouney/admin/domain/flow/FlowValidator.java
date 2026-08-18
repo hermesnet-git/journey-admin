@@ -186,25 +186,28 @@ public final class FlowValidator {
                 Set<String> usedTokens = new HashSet<>();
                 collectVariableTokens(connectorConfig.getConfig(), usedTokens);
                 if (!usedTokens.isEmpty()) {
-                    Set<String> ancestorIds = bfs(node.getId(), backward);
-                    Set<String> availableVars = new HashSet<>(startVariableNames);
-                    for (FlowNode other : nodes) {
-                        if (other.getId().equals(node.getId()) || !ancestorIds.contains(other.getId())) {
-                            continue;
-                        }
-                        if (other.getConnectorConfig() != null) {
-                            for (Map<String, Object> rule : outputMappingOf(other.getConnectorConfig())) {
-                                Object name = rule.get("name");
-                                if (name instanceof String s && !s.isBlank()) {
-                                    availableVars.add(s);
-                                }
-                            }
-                        }
-                    }
+                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                     for (String token : usedTokens) {
                         if (!availableVars.contains(token)) {
                             violations.add("Node '" + node.getName() + "' references undeclared variable '{{" + token
                                     + "}}'");
+                        }
+                    }
+                }
+            }
+
+            // Mirrors REQ-03.09.014 for the display-only message of a formless USER_TASK: any
+            // {{name}} it references must also be declared by some reachable ancestor, same rule as
+            // a connector field — otherwise the channel would show a literal "{{...}}" at runtime.
+            if (node.getType() == FlowNodeType.USER_TASK && node.getMessageText() != null) {
+                Set<String> usedTokens = new HashSet<>();
+                collectVariableTokens(node.getMessageText(), usedTokens);
+                if (!usedTokens.isEmpty()) {
+                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
+                    for (String token : usedTokens) {
+                        if (!availableVars.contains(token)) {
+                            violations.add("Node '" + node.getName() + "' message references undeclared variable '{{"
+                                    + token + "}}'");
                         }
                     }
                 }
@@ -226,20 +229,7 @@ public final class FlowValidator {
                 if (usedTokens.isEmpty()) {
                     continue;
                 }
-                Set<String> ancestorIds = bfs(node.getId(), backward);
-                Set<String> availableVars = new HashSet<>(startVariableNames);
-                for (FlowNode other : nodes) {
-                    if (other.getId().equals(node.getId()) || !ancestorIds.contains(other.getId())) {
-                        continue;
-                    }
-                    if (other.getConnectorConfig() != null) {
-                        for (Map<String, Object> rule : outputMappingOf(other.getConnectorConfig())) {
-                            if (rule.get("name") instanceof String s && !s.isBlank()) {
-                                availableVars.add(s);
-                            }
-                        }
-                    }
-                }
+                Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                 for (String token : usedTokens) {
                     if (!availableVars.contains(token)) {
                         violations.add("GATEWAY node '" + node.getName() + "' condition references undeclared variable '{{"
@@ -278,9 +268,71 @@ public final class FlowValidator {
             }
         }
 
+        // A chain of REST SERVICE_TASKs (Camunda's native http-connector, running synchronously
+        // inside the engine — see attachHttpConnector in ms-transform-publication) running straight to
+        // END with no checkpoint since START crashes the runtime engine: several connector executions
+        // completing the process instance in the very transaction that started it trips a Camunda
+        // engine bug ("execution ... doesn't exist", reproduced live against FT-05 execution).
+        // USER_TASK, RECEIVE_TASK and a non-REST SERVICE_TASK (Kafka, or no connector — always the
+        // external-task pattern, camunda:type="external") all pause the engine waiting on something
+        // external, same effect as a USER_TASK for this purpose; only a REST SERVICE_TASK runs inline.
+        // Requiring one of those checkpoints before such an END — a formless USER_TASK is enough,
+        // REQ-04.01.005 — avoids the crash structurally, at design time instead of at runtime.
+        Map<String, FlowNode> byId = new HashMap<>();
+        nodes.forEach(n -> byId.put(n.getId(), n));
+        for (FlowNode end : ends) {
+            if (reachesEndWithoutCheckpoint(end, backward, byId)) {
+                violations.add("Fim '" + end.getName()
+                        + "' é alcançado por um trecho do fluxo só com tarefas automáticas via conector REST, sem "
+                        + "nenhum checkpoint (User Task, Receive Task ou tarefa Kafka) antes — adicione uma User Task "
+                        + "(pode ser sem formulário) antes desse Fim");
+            }
+        }
+
         if (!violations.isEmpty()) {
             throw new FlowValidationException(violations);
         }
+    }
+
+    private static boolean reachesEndWithoutCheckpoint(FlowNode end, Map<String, List<String>> backward,
+                                                         Map<String, FlowNode> byId) {
+        Set<String> seen = new HashSet<>();
+        Queue<String> queue = new ArrayDeque<>();
+        seen.add(end.getId());
+        queue.add(end.getId());
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            FlowNode node = byId.get(current);
+            if (node == null) {
+                continue;
+            }
+            if (isSynchronousRestTask(node)) {
+                return true;
+            }
+            if (isCheckpoint(node)) {
+                continue; // engine pauses here (User Task, or an external-task node awaiting a worker) — don't look further back through it
+            }
+            for (String prev : backward.getOrDefault(current, List.of())) {
+                if (seen.add(prev)) {
+                    queue.add(prev);
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isSynchronousRestTask(FlowNode node) {
+        return node.getType() == FlowNodeType.SERVICE_TASK && node.getConnectorConfig() != null
+                && node.getConnectorConfig().getConnectorType() == ConnectorType.REST;
+    }
+
+    private static boolean isCheckpoint(FlowNode node) {
+        if (node.getType() == FlowNodeType.USER_TASK || node.getType() == FlowNodeType.RECEIVE_TASK) {
+            return true;
+        }
+        // A SERVICE_TASK not using the native REST connector goes through the external-task pattern
+        // (Kafka, or no connector at all) — Camunda pauses there waiting for a worker, same as RECEIVE_TASK.
+        return node.getType() == FlowNodeType.SERVICE_TASK && !isSynchronousRestTask(node);
     }
 
     @SuppressWarnings("unchecked")
@@ -299,6 +351,29 @@ public final class FlowValidator {
             }
         }
         return result;
+    }
+
+    // Shared by every {{name}} check (connector config, gateway condition, USER_TASK message):
+    // the variables visible at `node` are the journey's startVariables plus every output-mapping
+    // name declared by an ancestor reachable backwards from it (REQ-03.09.013).
+    private static Set<String> availableVarsFor(FlowNode node, List<FlowNode> nodes,
+                                                 Map<String, List<String>> backward, Set<String> startVariableNames) {
+        Set<String> ancestorIds = bfs(node.getId(), backward);
+        Set<String> availableVars = new HashSet<>(startVariableNames);
+        for (FlowNode other : nodes) {
+            if (other.getId().equals(node.getId()) || !ancestorIds.contains(other.getId())) {
+                continue;
+            }
+            if (other.getConnectorConfig() != null) {
+                for (Map<String, Object> rule : outputMappingOf(other.getConnectorConfig())) {
+                    Object name = rule.get("name");
+                    if (name instanceof String s && !s.isBlank()) {
+                        availableVars.add(s);
+                    }
+                }
+            }
+        }
+        return availableVars;
     }
 
     private static void collectVariableTokens(Object value, Set<String> tokens) {

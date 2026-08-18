@@ -11,16 +11,18 @@ public class Flow {
     private String name;
     private List<FlowNode> nodes;
     private List<FlowConnection> connections;
+    private List<FlowAnnotation> annotations;
     private final OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
     public Flow(String id, UUID journeyId, String name, List<FlowNode> nodes, List<FlowConnection> connections,
-                OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                List<FlowAnnotation> annotations, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.journeyId = journeyId;
         this.name = name;
         this.nodes = nodes;
         this.connections = connections;
+        this.annotations = annotations;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -30,14 +32,16 @@ public class Flow {
     // everything else before saving.
     public static Flow initial(UUID journeyId) {
         OffsetDateTime now = OffsetDateTime.now();
-        return new Flow(FlowIds.newFlowId(), journeyId, "Fluxo principal", List.of(), List.of(), now, now);
+        return new Flow(FlowIds.newFlowId(), journeyId, "Fluxo principal", List.of(), List.of(), List.of(), now, now);
     }
 
-    public void replace(String name, List<FlowNode> nodes, List<FlowConnection> connections) {
+    public void replace(String name, List<FlowNode> nodes, List<FlowConnection> connections,
+                         List<FlowAnnotation> annotations) {
         FlowValidator.validate(nodes, connections);
         this.name = name;
         this.nodes = nodes;
         this.connections = connections;
+        this.annotations = annotations;
         this.updatedAt = OffsetDateTime.now();
     }
 
@@ -59,6 +63,10 @@ public class Flow {
 
     public List<FlowConnection> getConnections() {
         return connections;
+    }
+
+    public List<FlowAnnotation> getAnnotations() {
+        return annotations;
     }
 
     public OffsetDateTime getCreatedAt() {

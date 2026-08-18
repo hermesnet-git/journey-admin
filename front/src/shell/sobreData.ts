@@ -268,6 +268,14 @@ export const EPICS: Epic[] = [
             'REQ-03.02.007',
             'Uma USER_TASK deve possuir no máximo um caminho de saída; o editor não deve permitir a criação de uma segunda conexão partindo de uma USER_TASK que já possua saída.',
           ),
+          {
+            code: 'REQ-03.02.008',
+            description:
+              'O backend deve rejeitar (422), ao salvar o fluxo, um caminho que alcance um END via SERVICE_TASK REST síncrona sem passar por nenhum checkpoint (USER_TASK, RECEIVE_TASK ou SERVICE_TASK não-REST).',
+            status: 'done',
+            notes:
+              'Achado ao vivo: uma jornada nesse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha ao tentar ler o histórico depois (a transação sofre rollback antes de qualquer consulta conseguir lê-lo). Ver REQ-05.08.005 para a checagem equivalente em tempo de execução.',
+          },
         ],
       },
       {
@@ -533,6 +541,26 @@ export const EPICS: Epic[] = [
           ),
         ],
       },
+      {
+        code: 'US-03.15',
+        name: 'Anotações',
+        requirements: [
+          d(
+            'REQ-03.15.001',
+            'O sistema deve permitir adicionar anotações (notas livres em formato de post-it) ao canvas do editor de fluxo, sem que façam parte do fluxo executável.',
+          ),
+          d(
+            'REQ-03.15.002',
+            'Uma anotação deve possuir texto editável e posição livre no canvas; anotações não devem ser incluídas nas regras de validação estrutural do fluxo nem traduzidas para BPMN na publicação.',
+          ),
+          d(
+            'REQ-03.15.003',
+            'O sistema deve permitir vincular uma anotação a um ou mais nós do fluxo, exibindo uma linha tracejada entre a anotação e cada nó vinculado.',
+          ),
+          d('REQ-03.15.004', 'O sistema deve permitir desvincular uma anotação de um nó e excluir uma anotação, sem afetar o fluxo executável.'),
+          d('REQ-03.15.005', 'As anotações devem ser persistidas junto com o fluxo da jornada e restauradas ao reabrir o editor.'),
+        ],
+      },
     ],
   },
   {
@@ -547,7 +575,13 @@ export const EPICS: Epic[] = [
           d('REQ-04.01.002', 'O sistema deve permitir editar formulários.'),
           d('REQ-04.01.003', 'O sistema deve permitir remover formulários.'),
           d('REQ-04.01.004', 'O sistema deve permitir associar formulários a User Tasks.'),
-          d('REQ-04.01.005', 'O sistema deve permitir manter uma User Task sem formulário associado.'),
+          {
+            code: 'REQ-04.01.005',
+            description:
+              'O sistema deve permitir manter uma User Task sem formulário associado; nesse caso, o sistema deve permitir configurar uma mensagem exibida ao usuário, com suporte a {{nome}} resolvido pelos valores reais da execução.',
+            status: 'done',
+            notes: 'Ver REQ-05.02.005 para a resolução dessas variáveis na tela de execução.',
+          },
           d(
             'REQ-04.01.006',
             'Ao associar formulário a uma User Task, o editor deve permitir criar um novo formulário sem sair do editor de fluxo e atualizar a lista de formulários disponíveis.',
@@ -649,6 +683,10 @@ export const EPICS: Epic[] = [
           d('REQ-05.02.002', 'O sistema deve apresentar as User Tasks executadas.'),
           d('REQ-05.02.003', 'O sistema deve apresentar os formulários exibidos.'),
           d('REQ-05.02.004', 'O sistema deve apresentar o resultado final da execução.'),
+          d(
+            'REQ-05.02.005',
+            'Para uma User Task sem formulário associado, o sistema deve apresentar a mensagem configurada com {{nome}} já substituído pelos valores atuais das variáveis do processo.',
+          ),
         ],
       },
       {
@@ -717,11 +755,19 @@ export const EPICS: Epic[] = [
             'REQ-05.06.002',
             'O sistema deve permitir alterar manualmente o valor de uma variável do processo em execução, para forçar caminhos alternativos de decisão durante o teste.',
           ),
-          d(
-            'REQ-05.06.003',
-            'O sistema deve apresentar o resultado das integrações já executadas (dados retornados/mapeados por Service/Receive Tasks).',
-          ),
-          d('REQ-05.06.004', 'O sistema deve apresentar um log cronológico dos passos executados durante a execução.'),
+          {
+            code: 'REQ-05.06.003',
+            description: 'O sistema deve apresentar o resultado das integrações já executadas (dados retornados/mapeados por Service/Receive Tasks).',
+            status: 'done',
+            notes: 'A aba "Integrações" dedicada que existia até então foi removida por redundância — o mesmo dado (URL/resposta) passou a ser exibido na aba Log, anexado a cada entrada do trail.',
+          },
+          {
+            code: 'REQ-05.06.004',
+            description: 'O sistema deve apresentar um log cronológico dos passos executados durante a execução.',
+            status: 'done',
+            notes:
+              'Corrigido bug em que o backend não populava o trail no início da instância e o front o ignorava — o log ficava vazio quando a jornada rodava inteira numa única chamada síncrona (sem User Task no meio).',
+          },
           d(
             'REQ-05.06.005',
             'O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida.',
@@ -771,6 +817,14 @@ export const EPICS: Epic[] = [
             'REQ-05.08.004',
             'O sistema deve permitir consultar a mensagem de erro completa da falha sob demanda, sem exibi-la de forma intrusiva na tela principal de execução.',
           ),
+          {
+            code: 'REQ-05.08.005',
+            description:
+              'Antes de iniciar uma instância, completar uma tarefa ou pular uma etapa, o sistema deve detectar quando o trecho seguinte do fluxo executaria integralmente de forma síncrona até um END sem passar por checkpoint, e recusar a operação com mensagem explicativa.',
+            status: 'done',
+            notes:
+              'Achado ao vivo depois que uma edição de condição de gateway tornou um caminho já existente 100% síncrono, reproduzindo o erro do motor de runtime; REQ-03.02.008 já bloqueia isso ao salvar fluxos novos, esta camada cobre fluxos persistidos antes da regra existir.',
+          },
         ],
       },
       {
@@ -1399,6 +1453,12 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-08-18 05:30 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Requisitos atualizados para refletir o que foi construído nesta sessão além de US-03.13/03.14 (já registradas). Novo REQ-03.02.008: o backend passa a rejeitar (422), ao salvar o fluxo, qualquer caminho que alcance um END via SERVICE_TASK REST síncrona sem antes passar por um checkpoint (USER_TASK, RECEIVE_TASK ou SERVICE_TASK não-REST) — motivado por um bug real: uma jornada nesse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha com NullValueException: execution ... doesn\'t exist ao tentar ler o histórico depois (a transação sofre rollback antes de qualquer consulta conseguir lê-lo). Nova US-03.15 Anotações (REQ-03.15.001 a 005): notas livres em formato de post-it no canvas do editor de fluxo (AnnotationNode.tsx), com texto editável, posição livre, vínculo opcional a um ou mais nós (linha tracejada, reaproveitando os handles target já existentes), fora da validação estrutural e nunca traduzidas para BPMN — persistidas em flow.annotations (V3__add_flow_annotations.sql). REQ-04.01.005 expandido: uma User Task sem formulário associado agora suporta uma mensagem configurável com {{nome}} resolvido pelos valores reais das variáveis do processo no momento da execução (FlowNode.messageText, sintetizado como SDUI por StepResolver em ms-espec-registry); FT-05 ganhou REQ-05.02.005 documentando esse reflexo na tela de execução. Nova REQ-05.08.005: a mesma regra de checkpoint de REQ-03.02.008 passou a ser checada também em tempo de execução (SynchronousChainCheck, ms-espec-registry), antes de start()/completeTask()/simulateStep() — proteção para fluxos que já estavam persistidos antes da validação estrutural existir; achada ao vivo quando o mesmo erro do motor reapareceu depois de uma edição de condição de gateway tornar um caminho existente 100% síncrono. REQ-05.06.003 revisado: a aba "Integrações" da tela de execução foi removida por redundância (decisão do usuário) — o mesmo dado (URL/resposta de cada integração) passou a ser exibido na aba Log, anexado a cada entrada do trail. REQ-05.06.004 com evidência ampliada: corrigido bug em que SimulationController.start() não populava trail e o front ignorava initialStep.trail, deixando o log vazio quando a jornada rodava inteira numa única chamada síncrona. FT-03 vai de 79/79 para 85/85 (100%, 6 REQs novos); FT-05 de 37/37 para 39/39 (100%, 2 REQs novos). Progresso geral de 327/363 (90%) para 335/371 (90%).',
+  },
+  {
     date: '2026-08-18 01:04',
     source: 'progresso',
     summary:
@@ -1690,6 +1750,12 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-08-18 01:09',
+    source: 'git',
+    summary: 'FlowNode ganhou startVariables; SimulationController passou a lidar com variáveis de entrada da jornada.',
+    epics: ['FT-03'],
+  },
   {
     date: '2026-08-17 22:11',
     source: 'git',

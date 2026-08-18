@@ -114,11 +114,13 @@ Cada jornada possui no máximo um fluxo.
 |-------|------|-------------|-----------|
 | NodeId | UUID | Sim | Identificador do nó |
 | FlowId | UUID | Sim | Fluxo ao qual o nó pertence |
-| NodeType | VARCHAR(30) | Sim | `START`, `END`, `USER_TASK`, `SERVICE_TASK`, `RECEIVE_TASK` ou `MESSAGE_START_EVENT` |
+| NodeType | VARCHAR(30) | Sim | `START`, `END`, `USER_TASK`, `SERVICE_TASK`, `RECEIVE_TASK`, `MESSAGE_START_EVENT` ou `GATEWAY` |
 | Name | VARCHAR(200) | Sim | Nome do nó |
 | Description | TEXT | Não | Descrição do nó |
 | PositionX | INTEGER | Não | Coordenada horizontal no canvas |
 | PositionY | INTEGER | Não | Coordenada vertical no canvas |
+| StartVariables | JSONB | Não | Lista `{ name, type }` — só em nós `START`; variáveis que o canal digital/BFF deve fornecer ao iniciar uma instância (REQ-03.12.001) |
+| MessageText | TEXT | Não | Só em `USER_TASK` sem `FormId` (via `UserTaskConfig`) — mensagem exibida ao usuário nessa etapa, podendo referenciar `{{nome}}`, resolvida em tempo de execução (REQ-04.01.005) |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
@@ -135,6 +137,21 @@ Cada jornada possui no máximo um fluxo.
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 
 Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um `END`. O elemento inicial e cada `USER_TASK`, `SERVICE_TASK` ou `RECEIVE_TASK` possuem exatamente uma conexão de saída; um `GATEWAY` possui exatamente duas (US-03.11); o `END` não possui saída. Todos os nós devem integrar um caminho contínuo entre o elemento inicial e algum `END` — um `GATEWAY` pode ramificar o fluxo em caminhos que terminam em `END`s distintos.
+
+Um `END` alcançável apenas por `SERVICE_TASK`s com conector REST, sem nenhum checkpoint (`USER_TASK`, `RECEIVE_TASK` ou `SERVICE_TASK` Kafka) desde o elemento inicial, é rejeitado ao salvar (422) — o conector REST nativo do motor de runtime roda de forma síncrona, e várias execuções concluindo a instância na mesma transação que a iniciou rompem o motor.
+
+## FlowAnnotation
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| AnnotationId | UUID | Sim | Identificador da anotação |
+| FlowId | UUID | Sim | Fluxo ao qual a anotação pertence |
+| Text | TEXT | Não | Conteúdo livre da nota |
+| PositionX | INTEGER | Não | Coordenada horizontal no canvas |
+| PositionY | INTEGER | Não | Coordenada vertical no canvas |
+| LinkedNodeIds | UUID[] | Não | Nós do mesmo fluxo aos quais a anotação está vinculada, exibidos como linha pontilhada no editor |
+
+Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da validação estrutural do `Flow` (`FlowValidator`) nem é enviada ao `ms-transform-publication` na publicação — não existe no BPMN gerado.
 
 ---
 
@@ -211,9 +228,10 @@ DATE
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | NodeId | UUID | Sim | Nó `USER_TASK` configurado |
-| FormId | UUID | Sim | Formulário exibido pela User Task |
+| FormId | UUID | Não | Formulário exibido pela User Task |
+| MessageText | TEXT | Não | Mensagem exibida ao usuário quando não há `FormId` (REQ-04.01.005) |
 
-Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, a configuração associa a User Task a exatamente um formulário.
+Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, a configuração associa a User Task a exatamente um formulário **ou** declara uma mensagem de etapa sem formulário — os dois nunca coexistem com sentido (se `FormId` estiver preenchido, `MessageText` é ignorado).
 
 ---
 

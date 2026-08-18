@@ -169,7 +169,7 @@ function MiniIconButton({
 // when there's no live selection, e.g. the field was never focused) — native selectionStart/End +
 // setSelectionRange, no extra dependency needed for this.
 export function insertTokenAtCursor(
-  inputEl: HTMLInputElement | null,
+  inputEl: HTMLInputElement | HTMLTextAreaElement | null,
   currentValue: string,
   token: string,
   onChange: (next: string) => void,
@@ -389,8 +389,11 @@ export function PropertiesPanel({
   const data = node.data;
   const isConnectorNode = !!node.type && CONNECTOR_NODE_TYPES.has(node.type);
   // Computed once, shared by the "Variáveis" reference panel below and ConnectorFields (URL/
-  // headers/body pickers) — same data, two presentations.
-  const connectorVariableOrigins = isConnectorNode ? availableVariableOriginsAt(node.id, allNodes, allEdges) : [];
+  // headers/body pickers) — same data, two presentations. userTask also needs it for the
+  // formless-step message's variable picker (REQ-04.01.005).
+  const connectorVariableOrigins =
+    isConnectorNode || node.type === 'userTask' ? availableVariableOriginsAt(node.id, allNodes, allEdges) : [];
+  const messageTextRef = useRef<HTMLTextAreaElement>(null);
 
   return (
     <div>
@@ -447,6 +450,27 @@ export function PropertiesPanel({
                 </MiniIconButton>
               </div>
             </PropertyRow>
+            {!data.formId && (
+              <PropertyRow label="Mensagem exibida ao usuário">
+                <div style={{ display: 'flex', gap: 4, width: '100%', alignItems: 'flex-start' }}>
+                  <textarea
+                    ref={messageTextRef}
+                    style={{ ...gridInputStyle(c), flex: 1, minHeight: 64, resize: 'vertical', fontFamily: 'inherit' }}
+                    value={data.messageText ?? ''}
+                    onChange={(e) => onUpdate({ messageText: e.target.value || null })}
+                    placeholder="Mensagem que o canal digital (app/site) deve apresentar ao usuário nessa etapa. Ex.: Sua solicitação foi registrada sob o protocolo {{numeroProtocolo}}."
+                  />
+                  <VariablePickerButton
+                    variables={connectorVariableOrigins}
+                    onInsert={(token) =>
+                      insertTokenAtCursor(messageTextRef.current, data.messageText ?? '', token, (next) =>
+                        onUpdate({ messageText: next || null }),
+                      )
+                    }
+                  />
+                </div>
+              </PropertyRow>
+            )}
           </PropertyGrid>
         </Section>
       )}

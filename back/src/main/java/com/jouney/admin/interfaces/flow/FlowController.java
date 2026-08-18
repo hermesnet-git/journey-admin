@@ -39,7 +39,8 @@ public class FlowController {
     public FlowResponse update(@PathVariable UUID journeyId, @Valid @RequestBody FlowInput input) {
         var nodes = input.nodes().stream().map(FlowNodeInput::toDomain).toList();
         var connections = input.connections().stream().map(FlowConnectionInput::toDomain).toList();
-        return FlowResponse.from(updateFlow.execute(journeyId, input.name(), nodes, connections));
+        var annotations = input.annotations().stream().map(FlowAnnotationInput::toDomain).toList();
+        return FlowResponse.from(updateFlow.execute(journeyId, input.name(), nodes, connections, annotations));
     }
 
     // journeyId/nodeId scope the resource in the URL (REQ-03.10.001) but aren't needed by the

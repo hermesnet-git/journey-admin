@@ -7,7 +7,8 @@ import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record FlowNode(String id, String type, String name, int positionX, int positionY, UUID formId,
-                        ConnectorConfig connectorConfig, List<Map<String, Object>> startVariables) {
+                        ConnectorConfig connectorConfig, List<Map<String, Object>> startVariables,
+                        String messageText) {
 
     /** REQ-03.12.001: {name, type} declarações no nó START — nunca null no uso, mesmo que o JSON não traga o campo. */
     public List<Map<String, Object>> startVariables() {

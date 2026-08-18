@@ -24,7 +24,8 @@ public record PublicationSnapshotRecord(UUID journeyId, String journeyName, Stri
                 publication.getFlowNodes().stream()
                         .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
                                 n.getPositionX(), n.getPositionY(), n.getFormId(),
-                                FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig())))
+                                FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
+                                n.getStartVariables()))
                         .toList(),
                 publication.getFlowConnections().stream()
                         .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),

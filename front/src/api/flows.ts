@@ -18,6 +18,8 @@ export interface FlowNode {
   positionY: number;
   userTaskConfig: { formId: string } | null;
   connectorConfig: ConnectorConfig | null;
+  // REQ-03.12.001: {name, type} declarations, meaningful only on the START node.
+  startVariables: { name: string; type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' }[] | null;
 }
 
 export interface FlowConnection {

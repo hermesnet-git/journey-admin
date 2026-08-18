@@ -1,17 +1,19 @@
-import { useState } from 'react';
-import { Plus, X, RefreshCw, Play, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Plus, X, RefreshCw, Play, Loader2, Braces } from 'lucide-react';
 import { useFlowTheme, type FlowColors } from './theme';
 import {
   NODE_META,
   CONNECTOR_TYPES_BY_NODE,
   KAFKA_OPERATION_BY_NODE,
-  availableVariablesAt,
   availableVariableRulesAt,
+  availableVariableOriginsAt,
   flattenJsonToOutputMappingRules,
   type ConnectorConfig,
   type ConnectorType,
   type NodeType,
   type OutputMappingRule,
+  type StartVariable,
+  type VariableOrigin,
   type VariableType,
   type WFNode,
   type WFEdge,
@@ -19,6 +21,7 @@ import {
   type WFNodeData,
 } from './model';
 import { Section } from './PropertiesSection';
+import { ConnectorWizard } from './ConnectorWizard';
 import type { Form } from '../api/forms';
 import { testConnector, type ConnectorTestResponse } from '../api/flows';
 import { PropertyGrid, PropertyRow, PropertyGroupHeader, Modal, gridInputStyle } from './PropertyGrid';
@@ -162,6 +165,195 @@ function MiniIconButton({
   );
 }
 
+// Inserts `token` at the caret position of the given input (falls back to appending at the end
+// when there's no live selection, e.g. the field was never focused) — native selectionStart/End +
+// setSelectionRange, no extra dependency needed for this.
+export function insertTokenAtCursor(
+  inputEl: HTMLInputElement | null,
+  currentValue: string,
+  token: string,
+  onChange: (next: string) => void,
+) {
+  if (!inputEl) {
+    onChange(currentValue + token);
+    return;
+  }
+  const start = inputEl.selectionStart ?? currentValue.length;
+  const end = inputEl.selectionEnd ?? start;
+  const next = currentValue.slice(0, start) + token + currentValue.slice(end);
+  onChange(next);
+  requestAnimationFrame(() => {
+    inputEl.focus();
+    const pos = start + token.length;
+    inputEl.setSelectionRange(pos, pos);
+  });
+}
+
+function groupByOrigin(variables: VariableOrigin[]): [string, VariableOrigin[]][] {
+  const map = new Map<string, VariableOrigin[]>();
+  variables.forEach((v) => {
+    const list = map.get(v.sourceLabel) ?? [];
+    list.push(v);
+    map.set(v.sourceLabel, list);
+  });
+  return [...map.entries()];
+}
+
+// Small "🔗" button placed next to any free-text field that may reference a variable (URL, header
+// value, body/params row value) — opens a popover of variables in scope, grouped by origin
+// (availableVariableOriginsAt), and inserts `{{nome}}` at the field's caret on selection. Reused
+// identically everywhere instead of one global "click a chip, insert wherever was last focused"
+// mechanism, which would need fragile cross-component focus tracking.
+export function VariablePickerButton({ variables, onInsert }: { variables: VariableOrigin[]; onInsert: (token: string) => void }) {
+  const { c } = useFlowTheme();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    window.addEventListener('mousedown', handleClick);
+    return () => window.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  const groups = groupByOrigin(variables);
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', flex: '0 0 auto' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        title={variables.length === 0 ? 'Nenhuma variável disponível ainda' : 'Inserir variável'}
+        disabled={variables.length === 0}
+        style={{
+          width: 24,
+          height: 24,
+          border: `1px solid ${c.accent}`,
+          borderRadius: 4,
+          background: c.accentSoft,
+          color: c.accent,
+          cursor: variables.length === 0 ? 'default' : 'pointer',
+          opacity: variables.length === 0 ? 0.5 : 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Braces size={12} />
+      </button>
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 'calc(100% + 4px)',
+            zIndex: 30,
+            minWidth: 200,
+            maxHeight: 260,
+            overflowY: 'auto',
+            background: c.cardBg,
+            border: `1px solid ${c.border}`,
+            borderRadius: 8,
+            boxShadow: '0 12px 32px -10px rgba(0,0,0,.25)',
+            padding: 6,
+          }}
+        >
+          {groups.map(([label, vars]) => (
+            <div key={label} style={{ marginBottom: 6 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: c.textSecondary, padding: '2px 6px' }}>{label}</div>
+              {vars.map((v) => (
+                <button
+                  key={v.name}
+                  type="button"
+                  onClick={() => {
+                    onInsert(`{{${v.name}}}`);
+                    setOpen(false);
+                  }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '4px 6px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: c.textPrimary,
+                    fontSize: 12.5,
+                    fontFamily: 'monospace',
+                    cursor: 'pointer',
+                    borderRadius: 4,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = c.canvasBg)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  {v.name}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Read-only reference for "what's in scope here and where does it come from" — grouped by origin
+// (VariableOrigin.sourceLabel), click a chip to copy `{{nome}}`. Insertion into a specific field
+// is a separate concern, handled by VariablePickerButton next to that field.
+function VariableOriginsPanel({ variables }: { variables: VariableOrigin[] }) {
+  const { c } = useFlowTheme();
+  const [copied, setCopied] = useState<string | null>(null);
+
+  function copy(name: string) {
+    navigator.clipboard.writeText(`{{${name}}}`);
+    setCopied(name);
+    setTimeout(() => setCopied((cur) => (cur === name ? null : cur)), 1500);
+  }
+
+  if (variables.length === 0) {
+    return (
+      <div style={{ fontSize: 12.5, color: c.textSecondary, padding: '2px 0' }}>
+        Nenhuma variável disponível ainda neste ponto do fluxo.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {groupByOrigin(variables).map(([label, vars]) => (
+        <div key={label} style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: c.textSecondary, marginBottom: 4 }}>{label}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {vars.map((v) => (
+              <button
+                key={v.name}
+                type="button"
+                onClick={() => copy(v.name)}
+                title="Clique para copiar {{nome}}"
+                style={{
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  padding: '2px 8px',
+                  borderRadius: 999,
+                  border: `1px solid ${c.border}`,
+                  background: c.cardBg,
+                  color: c.textSecondary,
+                  cursor: 'pointer',
+                }}
+              >
+                {copied === v.name ? 'copiado!' : `{{${v.name}}}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Content only — PropertiesDock owns the panel chrome (width, collapse,
 // resize, header).
 export function PropertiesPanel({
@@ -189,11 +381,16 @@ export function PropertiesPanel({
 }) {
   const { c } = useFlowTheme();
   const [generalOpen, setGeneralOpen] = useState(true);
+  const [startVariablesOpen, setStartVariablesOpen] = useState(true);
   const [formOpen, setFormOpen] = useState(true);
+  const [variablesOpen, setVariablesOpen] = useState(true);
   const [connectorOpen, setConnectorOpen] = useState(true);
   const [decisionOpen, setDecisionOpen] = useState(true);
   const data = node.data;
   const isConnectorNode = !!node.type && CONNECTOR_NODE_TYPES.has(node.type);
+  // Computed once, shared by the "Variáveis" reference panel below and ConnectorFields (URL/
+  // headers/body pickers) — same data, two presentations.
+  const connectorVariableOrigins = isConnectorNode ? availableVariableOriginsAt(node.id, allNodes, allEdges) : [];
 
   return (
     <div>
@@ -215,6 +412,15 @@ export function PropertiesPanel({
           </PropertyRow>
         </PropertyGrid>
       </Section>
+
+      {node.type === 'start' && (
+        <Section title="Variáveis de Entrada" open={startVariablesOpen} onToggle={() => setStartVariablesOpen((o) => !o)}>
+          <StartVariablesEditor
+            variables={data.startVariables ?? []}
+            onChange={(startVariables) => onUpdate({ startVariables })}
+          />
+        </Section>
+      )}
 
       {node.type === 'userTask' && (
         <Section title="Formulário" open={formOpen} onToggle={() => setFormOpen((o) => !o)}>
@@ -246,12 +452,18 @@ export function PropertiesPanel({
       )}
 
       {isConnectorNode && (
+        <Section title="Variáveis" open={variablesOpen} onToggle={() => setVariablesOpen((o) => !o)}>
+          <VariableOriginsPanel variables={connectorVariableOrigins} />
+        </Section>
+      )}
+
+      {isConnectorNode && (
         <Section title="Conector" open={connectorOpen} onToggle={() => setConnectorOpen((o) => !o)}>
           <ConnectorFields
             key={node.id}
             nodeType={node.type as NodeType}
             connectorConfig={data.connectorConfig}
-            availableVariables={availableVariablesAt(node.id, allNodes, allEdges)}
+            availableVariables={connectorVariableOrigins}
             journeyId={journeyId}
             nodeId={node.id}
             onUpdate={onUpdate}
@@ -454,12 +666,12 @@ function GatewayFields({
   );
 }
 
-const REST_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+export const REST_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 // Methods whose semantics include a request body — GET/DELETE requests are query-driven, so the
 // Body editor stays hidden for them instead of inviting a field that has no effect on the call.
-const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH']);
+export const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH']);
 // outputMapping (REQ-03.09.010) gets a dedicated editor, same reasoning as headers.
-const OUTPUT_MAPPING_FIELD = 'outputMapping';
+export const OUTPUT_MAPPING_FIELD = 'outputMapping';
 
 function ConnectorFields({
   nodeType,
@@ -471,7 +683,7 @@ function ConnectorFields({
 }: {
   nodeType: NodeType;
   connectorConfig: ConnectorConfig | null;
-  availableVariables: string[];
+  availableVariables: VariableOrigin[];
   journeyId: string;
   nodeId: string;
   onUpdate: (patch: Partial<WFNodeData>) => void;
@@ -479,6 +691,7 @@ function ConnectorFields({
   const { c } = useFlowTheme();
   const availableConnectors = CONNECTOR_TYPES_BY_NODE[nodeType] ?? [];
   const kafkaOperation = KAFKA_OPERATION_BY_NODE[nodeType];
+  const urlInputRef = useRef<HTMLInputElement>(null);
 
   function update(patch: Partial<ConnectorConfig>) {
     const current: ConnectorConfig = connectorConfig ?? { connectorType: 'REST', config: {}, credentialRef: null };
@@ -500,6 +713,7 @@ function ConnectorFields({
   // Last "Testar API" response, kept around so the Mapeamento de saída dialog can show it as a
   // reference alongside the rules — the whole reason to test is to see the shape to map from.
   const [lastTestResponse, setLastTestResponse] = useState<ConnectorTestResponse | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   return (
     <div>
@@ -532,6 +746,38 @@ function ConnectorFields({
 
         {connectorConfig && (
           <>
+            <PropertyRow label="Assistente">
+              <button
+                type="button"
+                onClick={() => setWizardOpen(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  border: `1px solid ${c.accent}`,
+                  background: c.accentSoft,
+                  color: c.accent,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                ✨ Configurar com assistente
+              </button>
+            </PropertyRow>
+            {wizardOpen && (
+              <ConnectorWizard
+                connectorConfig={connectorConfig}
+                variables={availableVariables}
+                journeyId={journeyId}
+                nodeId={nodeId}
+                onConfigUpdate={update}
+                onClose={() => setWizardOpen(false)}
+              />
+            )}
+
             <PropertyRow label="Credencial">
               <input
                 style={gridInputStyle(c)}
@@ -559,12 +805,23 @@ function ConnectorFields({
                   </select>
                 </PropertyRow>
                 <PropertyRow label="URL">
-                  <input
-                    style={gridInputStyle(c)}
-                    value={(connectorConfig.config?.url as string) ?? ''}
-                    onChange={(e) => updateConfigField('url', e.target.value)}
-                    placeholder="https://..."
-                  />
+                  <div style={{ display: 'flex', gap: 4, width: '100%' }}>
+                    <input
+                      ref={urlInputRef}
+                      style={{ ...gridInputStyle(c), flex: 1 }}
+                      value={(connectorConfig.config?.url as string) ?? ''}
+                      onChange={(e) => updateConfigField('url', e.target.value)}
+                      placeholder="https://..."
+                    />
+                    <VariablePickerButton
+                      variables={availableVariables}
+                      onInsert={(token) =>
+                        insertTokenAtCursor(urlInputRef.current, (connectorConfig.config?.url as string) ?? '', token, (next) =>
+                          updateConfigField('url', next),
+                        )
+                      }
+                    />
+                  </div>
                 </PropertyRow>
               </>
             ) : (
@@ -593,17 +850,26 @@ function ConnectorFields({
               <HeadersEditor
                 headers={(connectorConfig.config?.headers as Record<string, string>) ?? {}}
                 onChange={(headers) => update({ config: { ...(connectorConfig.config ?? {}), headers } })}
+                variables={availableVariables}
               />
             </ComplexPropertyRow>
 
             {connectorConfig.connectorType === 'REST' && (
               <ComplexPropertyRow label="Params" summary={jsonFieldSummary(connectorConfig.config?.params)} dialogTitle="Parâmetros de URL (query params)">
-                <JsonFieldEditor value={connectorConfig.config?.params} onChange={(v) => updateConfigJsonField('params', v)} />
+                <StructuredJsonEditor
+                  value={connectorConfig.config?.params}
+                  onChange={(v) => updateConfigJsonField('params', v)}
+                  variables={availableVariables}
+                />
               </ComplexPropertyRow>
             )}
             {connectorConfig.connectorType === 'REST' && showBody && (
               <ComplexPropertyRow label="Body" summary={jsonFieldSummary(connectorConfig.config?.body)} dialogTitle="Body">
-                <JsonFieldEditor value={connectorConfig.config?.body} onChange={(v) => updateConfigJsonField('body', v)} />
+                <StructuredJsonEditor
+                  value={connectorConfig.config?.body}
+                  onChange={(v) => updateConfigJsonField('body', v)}
+                  variables={availableVariables}
+                />
               </ComplexPropertyRow>
             )}
             {connectorConfig.connectorType === 'KAFKA' && (
@@ -613,13 +879,6 @@ function ConnectorFields({
             )}
 
             <PropertyGroupHeader label="Mapeamento" />
-            <ComplexPropertyRow
-              label="Entrada"
-              summary={jsonFieldSummary(connectorConfig.config?.inputMapping)}
-              dialogTitle="Mapeamento de entrada"
-            >
-              <JsonFieldEditor value={connectorConfig.config?.inputMapping} onChange={(v) => updateConfigJsonField('inputMapping', v)} />
-            </ComplexPropertyRow>
             <ComplexPropertyRow label="Saída" summary={outputMappingSummary(outputMappingRules)} dialogTitle="Mapeamento de saída (variável ← JSONPath)">
               <OutputMappingEditor
                 rules={outputMappingRules}
@@ -627,30 +886,6 @@ function ConnectorFields({
                 sourceResponse={lastTestResponse}
               />
             </ComplexPropertyRow>
-
-            {(availableVariables.length > 0 || connectorConfig.connectorType === 'REST') && <PropertyGroupHeader label="Teste" />}
-            {availableVariables.length > 0 && (
-              <PropertyRow label="Variáveis">
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }} title={`Use {{nome}} nos campos acima`}>
-                  {availableVariables.map((v) => (
-                    <span
-                      key={v}
-                      style={{
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                        padding: '1px 6px',
-                        borderRadius: 999,
-                        border: `1px solid ${c.border}`,
-                        color: c.textSecondary,
-                      }}
-                    >
-                      {`{{${v}}}`}
-                    </span>
-                  ))}
-                </div>
-              </PropertyRow>
-            )}
-
             {connectorConfig.connectorType === 'REST' && (
               <PropertyRow label="Testar">
                 <TestConnectorButton
@@ -674,15 +909,18 @@ function ConnectorFields({
   );
 }
 
-function HeadersEditor({
+export function HeadersEditor({
   headers,
   onChange,
+  variables,
 }: {
   headers: Record<string, string>;
   onChange: (headers: Record<string, string>) => void;
+  variables: VariableOrigin[];
 }) {
   const { c } = useFlowTheme();
   const [rows, setRows] = useState<[string, string][]>(() => Object.entries(headers));
+  const valueRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   function commit(next: [string, string][]) {
     setRows(next);
@@ -704,10 +942,21 @@ function HeadersEditor({
             onChange={(e) => commit(rows.map((row, ri) => (ri === i ? [e.target.value, row[1]] : row)))}
           />
           <input
+            ref={(el) => {
+              valueRefs.current[i] = el;
+            }}
             style={inputStyle(c)}
             placeholder="Valor"
             value={value}
             onChange={(e) => commit(rows.map((row, ri) => (ri === i ? [row[0], e.target.value] : row)))}
+          />
+          <VariablePickerButton
+            variables={variables}
+            onInsert={(token) =>
+              insertTokenAtCursor(valueRefs.current[i] ?? null, value, token, (next) =>
+                commit(rows.map((row, ri) => (ri === i ? [row[0], next] : row))),
+              )
+            }
           />
           <button
             onClick={() => commit(rows.filter((_, ri) => ri !== i))}
@@ -750,14 +999,135 @@ function HeadersEditor({
   );
 }
 
-function OutputMappingEditor({
+// REQ-03.12.001: {name, type} declarations on the START node — same list-of-rules shape as
+// OutputMappingEditor below, minus the jsonPath column (the value arrives direct, isn't extracted).
+function StartVariablesEditor({
+  variables,
+  onChange,
+}: {
+  variables: StartVariable[];
+  onChange: (variables: StartVariable[]) => void;
+}) {
+  const { c } = useFlowTheme();
+
+  function commit(next: StartVariable[]) {
+    onChange(next);
+  }
+
+  return (
+    <div style={{ width: '100%' }}>
+      <div style={{ fontSize: 12, color: c.textSecondary, marginBottom: 10 }}>
+        Todas as variáveis abaixo são obrigatórias: a aplicação cliente (canal digital/BFF) precisa
+        informar um valor para cada uma ao iniciar uma instância dessa jornada — o início é
+        recusado se faltar alguma.
+      </div>
+      {variables.map((v, i) => (
+        <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+          <input
+            style={inputStyle(c)}
+            placeholder="nome"
+            value={v.name}
+            onChange={(e) => commit(variables.map((r, ri) => (ri === i ? { ...r, name: e.target.value } : r)))}
+          />
+          <select
+            style={{ ...inputStyle(c), cursor: 'pointer', flex: '0 0 110px' }}
+            title="Tipo da variável"
+            value={v.type}
+            onChange={(e) => commit(variables.map((r, ri) => (ri === i ? { ...r, type: e.target.value as VariableType } : r)))}
+          >
+            <option value="string">Texto</option>
+            <option value="number">Número</option>
+            <option value="boolean">Booleano</option>
+            <option value="date">Data</option>
+            <option value="datetime">Data e hora</option>
+          </select>
+          <button
+            onClick={() => commit(variables.filter((_, ri) => ri !== i))}
+            title="Remover variável"
+            style={{
+              flex: '0 0 auto',
+              width: 34,
+              border: `1px solid ${c.border}`,
+              borderRadius: 8,
+              background: c.cardBg,
+              color: c.textSecondary,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={() => commit([...variables, { name: '', type: 'string' }])}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          border: 'none',
+          background: 'none',
+          padding: '4px 0',
+          color: c.accent,
+          fontSize: 12.5,
+          fontWeight: 600,
+          cursor: 'pointer',
+        }}
+      >
+        <Plus size={14} /> Adicionar variável de entrada
+      </button>
+    </div>
+  );
+}
+
+// The "what did the API actually return" reference block — shared by OutputMappingEditor's own
+// trailing section (inline panel) and ConnectorWizard, which renders it standalone, positioned
+// before the rules instead of after (REQ: no duplicate payload display, Origem first).
+export function ResponsePreview({ response }: { response: ConnectorTestResponse | null | undefined }) {
+  const { c } = useFlowTheme();
+  return (
+    <div>
+      <div style={labelStyle(c)}>Origem (resposta da API)</div>
+      {response ? (
+        <pre
+          style={{
+            fontSize: 11.5,
+            fontFamily: 'monospace',
+            background: c.canvasBg,
+            border: `1px solid ${c.border}`,
+            borderRadius: 8,
+            padding: 10,
+            margin: 0,
+            maxHeight: 260,
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+        >
+          {formatBody(response.body)}
+        </pre>
+      ) : (
+        <div style={{ fontSize: 12, color: c.textSecondary }}>
+          Execute "Testar API" para ver aqui a resposta de referência e localizar os caminhos JSONPath.
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function OutputMappingEditor({
   rules,
   onChange,
   sourceResponse,
+  hideSourcePreview,
 }: {
   rules: OutputMappingRule[];
   onChange: (rules: OutputMappingRule[]) => void;
   sourceResponse?: ConnectorTestResponse | null;
+  // ConnectorWizard shows its own ResponsePreview before the rules instead of this trailing one.
+  hideSourcePreview?: boolean;
 }) {
   const { c } = useFlowTheme();
 
@@ -843,32 +1213,11 @@ function OutputMappingEditor({
         <Plus size={14} /> Adicionar variável de saída
       </button>
 
-      <div style={{ marginTop: 12 }}>
-        <div style={labelStyle(c)}>Origem (resposta da API)</div>
-        {sourceResponse ? (
-          <pre
-            style={{
-              fontSize: 11.5,
-              fontFamily: 'monospace',
-              background: c.canvasBg,
-              border: `1px solid ${c.border}`,
-              borderRadius: 8,
-              padding: 10,
-              margin: 0,
-              maxHeight: 260,
-              overflow: 'auto',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-            }}
-          >
-            {formatBody(sourceResponse.body)}
-          </pre>
-        ) : (
-          <div style={{ fontSize: 12, color: c.textSecondary }}>
-            Execute "Testar API" para ver aqui a resposta de referência e localizar os caminhos JSONPath.
-          </div>
-        )}
-      </div>
+      {!hideSourcePreview && (
+        <div style={{ marginTop: 12 }}>
+          <ResponsePreview response={sourceResponse} />
+        </div>
+      )}
     </div>
   );
 }
@@ -884,7 +1233,7 @@ function tokensIn(config: Record<string, unknown> | null | undefined): string[] 
   return [...found];
 }
 
-function TestConnectorButton({
+export function TestConnectorButton({
   journeyId,
   nodeId,
   connectorConfig,
@@ -1094,6 +1443,139 @@ function formatBody(body: string): string {
   } catch {
     return body;
   }
+}
+
+function isFlatObject(value: unknown): value is Record<string, string | number | boolean | null> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.values(value as Record<string, unknown>).every(
+    (v) => v === null || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean',
+  );
+}
+
+const linkButtonStyle = (c: FlowColors): React.CSSProperties => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  border: 'none',
+  background: 'none',
+  padding: '4px 0',
+  color: c.accent,
+  fontSize: 12.5,
+  fontWeight: 600,
+  cursor: 'pointer',
+});
+
+// Default editor for Body/Params (REST): a flat name→value row list (like HeadersEditor) with a
+// VariablePickerButton per value, instead of making the user hand-type `{{nome}}` inside raw JSON.
+// Falls back to the original JsonFieldEditor ("modo avançado") for a body that's already nested —
+// never force-flattens a config authored before this editor existed — or when the user opts in,
+// e.g. because the real API needs a nested/array body this row list can't represent.
+export function StructuredJsonEditor({
+  value,
+  onChange,
+  variables,
+}: {
+  value: unknown;
+  onChange: (value: unknown) => void;
+  variables: VariableOrigin[];
+}) {
+  const { c } = useFlowTheme();
+  const [advanced, setAdvanced] = useState(() => value != null && !isFlatObject(value));
+  const [rows, setRows] = useState<[string, string][]>(() =>
+    isFlatObject(value) ? Object.entries(value).map(([k, v]) => [k, v === null ? '' : String(v)]) : [],
+  );
+  const valueRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  function commitRows(next: [string, string][]) {
+    setRows(next);
+    const result: Record<string, string> = {};
+    next.forEach(([key, val]) => {
+      if (key.trim()) result[key] = val;
+    });
+    onChange(result);
+  }
+
+  function switchToSimple() {
+    setRows(isFlatObject(value) ? Object.entries(value).map(([k, v]) => [k, v === null ? '' : String(v)]) : []);
+    setAdvanced(false);
+  }
+
+  if (advanced) {
+    return (
+      <div>
+        <JsonFieldEditor value={value} onChange={onChange} />
+        <button
+          type="button"
+          onClick={switchToSimple}
+          style={{ border: 'none', background: 'none', padding: '6px 0 0', color: c.textSecondary, fontSize: 11.5, cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          Modo simples
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: '100%' }}>
+      {rows.map(([key, val], i) => (
+        <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+          <input
+            style={inputStyle(c)}
+            placeholder="Nome"
+            value={key}
+            onChange={(e) => commitRows(rows.map((row, ri) => (ri === i ? [e.target.value, row[1]] : row)))}
+          />
+          <input
+            ref={(el) => {
+              valueRefs.current[i] = el;
+            }}
+            style={inputStyle(c)}
+            placeholder="Valor"
+            value={val}
+            onChange={(e) => commitRows(rows.map((row, ri) => (ri === i ? [row[0], e.target.value] : row)))}
+          />
+          <VariablePickerButton
+            variables={variables}
+            onInsert={(token) =>
+              insertTokenAtCursor(valueRefs.current[i] ?? null, val, token, (next) =>
+                commitRows(rows.map((row, ri) => (ri === i ? [row[0], next] : row))),
+              )
+            }
+          />
+          <button
+            onClick={() => commitRows(rows.filter((_, ri) => ri !== i))}
+            title="Remover campo"
+            style={{
+              flex: '0 0 auto',
+              width: 34,
+              border: `1px solid ${c.border}`,
+              borderRadius: 8,
+              background: c.cardBg,
+              color: c.textSecondary,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ))}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <button onClick={() => commitRows([...rows, ['', '']])} style={linkButtonStyle(c)}>
+          <Plus size={14} /> Adicionar campo
+        </button>
+        <button
+          type="button"
+          onClick={() => setAdvanced(true)}
+          style={{ border: 'none', background: 'none', color: c.textSecondary, fontSize: 11.5, cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          Modo avançado (JSON)
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // One JSON box per declarative field (params/body/payload/inputMapping) instead of a single

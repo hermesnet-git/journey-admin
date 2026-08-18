@@ -163,6 +163,7 @@ function DesignerInner({
           description: n.description ?? '',
           formId: n.userTaskConfig?.formId ?? null,
           connectorConfig: n.connectorConfig,
+          startVariables: n.startVariables ?? undefined,
         },
       }));
       setNodes(loadedNodes);
@@ -428,6 +429,7 @@ function DesignerInner({
           positionY: Math.round(n.position.y),
           userTaskConfig: n.data.formId ? { formId: n.data.formId } : null,
           connectorConfig: n.data.connectorConfig,
+          startVariables: n.data.startVariables ?? null,
         })),
         connections: edges.map((e) => ({
           connectionId: e.id,

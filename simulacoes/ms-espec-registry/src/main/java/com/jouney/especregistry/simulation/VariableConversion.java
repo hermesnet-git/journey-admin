@@ -6,9 +6,11 @@ import com.jouney.especregistry.adminback.ConnectorConfig;
 import com.jouney.especregistry.camunda.CamundaVariable;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -86,6 +88,54 @@ public final class VariableConversion {
             }
         }
         return variables;
+    }
+
+    /** REQ-03.12.003: variáveis que o chamador (canal digital/BFF) informou de verdade no
+     * {@code POST .../instances}, coercionadas pelo {@code type} declarado no nó START. Toda
+     * declaração precisa ter valor correspondente em {@code raw} — nomes faltantes acumulam e
+     * lançam {@link IllegalStateException} (mesmo padrão de erro das outras validações deste
+     * controller, mapeado pra 409 pelo GlobalExceptionHandler). Chaves de {@code raw} que não
+     * batem com nenhuma declaração são aceitas e incluídas também (REQ-03.12.005), tipadas por
+     * inferência simples do tipo Java recebido do Jackson. */
+    public static Map<String, CamundaVariable> fromDeclaredVariables(Map<String, Object> raw,
+                                                                      List<Map<String, Object>> declarations) {
+        Map<String, Object> source = raw != null ? raw : Map.of();
+        Map<String, CamundaVariable> variables = new HashMap<>();
+        List<String> missing = new ArrayList<>();
+        for (Map<String, Object> declaration : declarations) {
+            if (!(declaration.get("name") instanceof String name) || name.isBlank()) {
+                continue;
+            }
+            if (!source.containsKey(name)) {
+                missing.add(name);
+                continue;
+            }
+            String type = declaration.get("type") instanceof String t ? t : "string";
+            variables.put(name, coerce(source.get(name), type));
+        }
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException("Variáveis de entrada obrigatórias não informadas: " + missing);
+        }
+        Set<String> declaredNames = variables.keySet();
+        source.forEach((name, value) -> {
+            if (!declaredNames.contains(name)) {
+                variables.put(name, inferType(value));
+            }
+        });
+        return variables;
+    }
+
+    private static CamundaVariable inferType(Object value) {
+        if (value == null) {
+            return new CamundaVariable(null, "Null");
+        }
+        if (value instanceof Boolean b) {
+            return new CamundaVariable(b, "Boolean");
+        }
+        if (value instanceof Number n) {
+            return new CamundaVariable(n.doubleValue(), "Double");
+        }
+        return new CamundaVariable(value.toString(), "String");
     }
 
     private static CamundaVariable coerce(Object raw, String type) {

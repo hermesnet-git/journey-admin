@@ -42,11 +42,30 @@ export interface OutputMappingRule {
   type?: VariableType;
 }
 
+// REQ-03.12.001: {name, type} declared on the START node — the variables the caller (canal
+// digital/BFF) must supply when starting an instance. No jsonPath: the value arrives direct, it
+// isn't extracted from a response.
+export interface StartVariable {
+  name: string;
+  type: VariableType;
+}
+
+// Same variable as OutputMappingRule/StartVariable, but carrying where it comes from — used by the
+// "Variáveis" reference panel and the variable picker to group by origin instead of a flat list.
+export interface VariableOrigin {
+  name: string;
+  type: VariableType;
+  sourceNodeId: string;
+  sourceLabel: string;
+}
+
 export interface WFNodeData extends Record<string, unknown> {
   name: string;
   description: string;
   formId: string | null;
   connectorConfig: ConnectorConfig | null;
+  // REQ-03.12.001: only meaningful on the START node.
+  startVariables?: StartVariable[];
   // Client-only highlight set by validation; never sent to the backend.
   invalid?: boolean;
   // Client-only flag: these node types may have at most one outgoing path (REQ-03.02.007/03.02.004).
@@ -118,40 +137,12 @@ export const TYPE_COLOR: Record<NodeType, string> = {
 
 export const NODE_WIDTH = 190;
 
-// REQ-03.09.013: variables available at a given node are the outputMapping names declared by
-// every ancestor reachable backwards from it (same BFS shape as validation.ts's reachableFrom).
-export function availableVariablesAt(nodeId: string, nodes: WFNode[], edges: WFEdge[]): string[] {
-  const backward = new Map<string, string[]>();
-  nodes.forEach((n) => backward.set(n.id, []));
-  edges.forEach((e) => backward.get(e.target)?.push(e.source));
-
-  const ancestors = new Set<string>();
-  const queue = [...(backward.get(nodeId) ?? [])];
-  while (queue.length) {
-    const id = queue.shift()!;
-    if (ancestors.has(id)) continue;
-    ancestors.add(id);
-    queue.push(...(backward.get(id) ?? []));
-  }
-
-  const names: string[] = [];
-  nodes.forEach((n) => {
-    if (!ancestors.has(n.id)) return;
-    const rules = n.data.connectorConfig?.config?.outputMapping;
-    if (Array.isArray(rules)) {
-      rules.forEach((r) => {
-        if (r && typeof r === 'object' && typeof (r as { name?: unknown }).name === 'string' && (r as { name: string }).name) {
-          names.push((r as { name: string }).name);
-        }
-      });
-    }
-  });
-  return names;
-}
-
-// Same ancestor set as availableVariablesAt, but keeping each rule's declared type (REQ-03.11.003)
-// instead of just the name — used by the gateway condition picker to offer the right operators and
-// value input per variable.
+// REQ-03.09.013: variables available at a given node — the outputMapping names declared by every
+// ancestor reachable backwards from it (same BFS shape as validation.ts's reachableFrom), plus
+// START's declared startVariables (REQ-03.12.001, always available — START is trivially an
+// ancestor of every node) — keeping each rule's declared type (REQ-03.11.003) instead of just the
+// name, used by the gateway condition picker to offer the right operators and value input per
+// variable.
 export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges: WFEdge[]): OutputMappingRule[] {
   const backward = new Map<string, string[]>();
   nodes.forEach((n) => backward.set(n.id, []));
@@ -168,6 +159,11 @@ export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges:
 
   const rules: OutputMappingRule[] = [];
   nodes.forEach((n) => {
+    if (n.type === 'start') {
+      (n.data.startVariables ?? []).forEach((v) => v.name && rules.push({ name: v.name, jsonPath: '', type: v.type }));
+    }
+  });
+  nodes.forEach((n) => {
     if (!ancestors.has(n.id)) return;
     const nodeRules = n.data.connectorConfig?.config?.outputMapping;
     if (Array.isArray(nodeRules)) {
@@ -179,6 +175,57 @@ export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges:
     }
   });
   return rules;
+}
+
+// A node/connector-type combination that a future node type doesn't know about yet still gets a
+// sane label for free, since this reads NODE_META/connectorType generically instead of switching
+// on specific combinations.
+function originLabelFor(node: WFNode): string {
+  if (node.type === 'start') return 'Variável de entrada da jornada';
+  const meta = NODE_META[node.type as NodeType];
+  const connectorType = node.data.connectorConfig?.connectorType;
+  const name = node.data.name || meta.title;
+  return connectorType ? `${name} (${meta.title} · ${connectorType})` : `${name} (${meta.title})`;
+}
+
+// Same ancestor set as availableVariablesAt/availableVariableRulesAt, but carrying where each
+// variable comes from — used by the "Variáveis" reference panel and the field-level variable
+// picker (VariablePickerButton) to group instead of showing one flat list.
+export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edges: WFEdge[]): VariableOrigin[] {
+  const backward = new Map<string, string[]>();
+  nodes.forEach((n) => backward.set(n.id, []));
+  edges.forEach((e) => backward.get(e.target)?.push(e.source));
+
+  const ancestors = new Set<string>();
+  const queue = [...(backward.get(nodeId) ?? [])];
+  while (queue.length) {
+    const id = queue.shift()!;
+    if (ancestors.has(id)) continue;
+    ancestors.add(id);
+    queue.push(...(backward.get(id) ?? []));
+  }
+
+  const origins: VariableOrigin[] = [];
+  nodes.forEach((n) => {
+    if (n.type === 'start') {
+      (n.data.startVariables ?? []).forEach((v) => {
+        if (v.name) origins.push({ name: v.name, type: v.type, sourceNodeId: n.id, sourceLabel: originLabelFor(n) });
+      });
+    }
+  });
+  nodes.forEach((n) => {
+    if (!ancestors.has(n.id)) return;
+    const rules = n.data.connectorConfig?.config?.outputMapping;
+    if (Array.isArray(rules)) {
+      rules.forEach((r) => {
+        if (r && typeof r === 'object' && typeof (r as { name?: unknown }).name === 'string' && (r as { name: string }).name) {
+          const rule = r as OutputMappingRule;
+          origins.push({ name: rule.name, type: rule.type ?? 'string', sourceNodeId: n.id, sourceLabel: originLabelFor(n) });
+        }
+      });
+    }
+  });
+  return origins;
 }
 
 // REQ-03.10.001: after a successful connector test, generate one outputMapping rule per leaf

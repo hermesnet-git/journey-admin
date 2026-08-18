@@ -63,15 +63,19 @@ public class SimulationController {
     }
 
     @PostMapping("/journeys/{journeyId}/instances")
-    public InstanceResponse start(@PathVariable UUID journeyId) {
+    public InstanceResponse start(@PathVariable UUID journeyId,
+                                   @RequestBody(required = false) Map<String, Object> variables) {
         // Iniciar por chave funciona igual para START e MESSAGE_START_EVENT (sem correlação de
         // mensagem — testado ao vivo), mas isso pula o payload da mensagem: se o
         // MESSAGE_START_EVENT declarar outputMapping (ex.: ticketId), a variável nunca seria
         // criada. Fabrica os mesmos valores que "Simular conclusão" usaria, já na largada.
+        // Já para um START comum (REQ-03.12.003), as variáveis vêm de verdade do chamador
+        // (canal digital/BFF) — validadas e coercionadas contra o que o nó START declarou.
         PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
         Map<String, CamundaVariable> startVariables = snapshot.findStartNode()
-                .filter(node -> "MESSAGE_START_EVENT".equals(node.type()))
-                .map(node -> VariableConversion.fabricateFromOutputMapping(node.connectorConfig()))
+                .map(node -> "MESSAGE_START_EVENT".equals(node.type())
+                        ? VariableConversion.fabricateFromOutputMapping(node.connectorConfig())
+                        : VariableConversion.fromDeclaredVariables(variables, node.startVariables()))
                 .orElse(Map.of());
 
         // Toda instância ganha um businessKey, mesmo iniciada manualmente por aqui — é o que permite

@@ -339,12 +339,19 @@ export const EPICS: Epic[] = [
         name: 'Configuração REST e Kafka',
         requirements: [
           d('REQ-03.09.001', 'O sistema deve permitir configurar REST em SERVICE_TASK e RECEIVE_TASK.'),
-          d(
-            'REQ-03.09.002',
-            'A configuração REST deve suportar método HTTP, URL, headers, parâmetros, body, mapeamento de entrada e mapeamento de saída.',
-          ),
+          {
+            code: 'REQ-03.09.002',
+            description: 'A configuração REST deve suportar método HTTP, URL, headers, parâmetros, body e mapeamento de saída.',
+            status: 'done',
+            notes: 'Mapeamento de entrada foi retirado da UI (painel e assistente, US-03.14) — nunca influenciou a execução real.',
+          },
           d('REQ-03.09.003', 'O sistema deve permitir configurar KAFKA em SERVICE_TASK, RECEIVE_TASK e MESSAGE_START_EVENT.'),
-          d('REQ-03.09.004', 'A configuração Kafka deve suportar tópico, operação, headers, payload, mapeamento de entrada e mapeamento de saída.'),
+          {
+            code: 'REQ-03.09.004',
+            description: 'A configuração Kafka deve suportar tópico, operação, headers, payload e mapeamento de saída.',
+            status: 'done',
+            notes: 'Mapeamento de entrada retirado da UI pelo mesmo motivo do REQ-03.09.002.',
+          },
           d(
             'REQ-03.09.005',
             'Configurações de integração devem suportar referência de credencial sem armazenar secrets diretamente no fluxo ou no snapshot.',
@@ -360,7 +367,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.09.009',
-            'Headers devem ser editados como lista de pares nome/valor, não como texto declarativo livre; params/body/payload permanecem declarativos; mapeamento de saída passou a ter formato estruturado.',
+            'Headers devem ser editados como lista de pares nome/valor, não como texto declarativo livre; params/body (REST) seguem o mesmo padrão por padrão, com modo avançado de JSON livre como alternativa; payload (Kafka) permanece declarativo; mapeamento de saída tem formato estruturado.',
           ),
           d(
             'REQ-03.09.010',
@@ -374,10 +381,13 @@ export const EPICS: Epic[] = [
             'REQ-03.09.012',
             'O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis de passos anteriores usando a sintaxe {{nomeDaVariavel}}.',
           ),
-          d(
-            'REQ-03.09.013',
-            'O editor deve exibir, para cada SERVICE_TASK/RECEIVE_TASK, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado.',
-          ),
+          {
+            code: 'REQ-03.09.013',
+            description:
+              'O editor deve exibir, para cada SERVICE_TASK/RECEIVE_TASK, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado.',
+            status: 'done',
+            notes: 'Mecanismo estendido por US-03.13: agora agrupado por origem, num painel dedicado em vez de chips.',
+          },
           d(
             'REQ-03.09.014',
             'O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie {{variavel}} inexistente no contexto do nó.',
@@ -405,6 +415,20 @@ export const EPICS: Epic[] = [
             'REQ-03.10.005',
             'Campos {{variavel}} presentes na configuração testada devem ser substituídos por um valor de exemplo informado manualmente pelo usuário no momento do teste.',
           ),
+          {
+            code: 'REQ-03.10.006',
+            description:
+              'A chamada de teste deve seguir corretamente redirecionamentos HTTP (301, 302, 303, 307 e 308), preservando o método original quando o status exigir.',
+            status: 'done',
+            notes: 'SimpleClientHttpRequestFactory (HttpURLConnection) não seguia 307/308 — limitação da JDK; trocado por JdkClientHttpRequestFactory.',
+          },
+          {
+            code: 'REQ-03.10.007',
+            description:
+              'Uma falha HTTP na chamada de teste deve ser resumida ao usuário como status e motivo, incluindo o corpo só quando curto e não parecer HTML.',
+            status: 'done',
+            notes: 'Antes despejava a exceção inteira do Spring, incluindo o corpo completo de páginas de erro HTML.',
+          },
         ],
       },
       {
@@ -442,6 +466,70 @@ export const EPICS: Epic[] = [
           d(
             'REQ-03.11.008',
             'Cada variável de saída deve possuir um tipo declarado (texto, número, booleano, data ou data e hora), inferido automaticamente ao gerar o mapeamento a partir de uma resposta real ou escolhido manualmente. O editor da condição do gateway deve oferecer só os operadores compatíveis com o tipo e um campo de valor no formato correspondente.',
+          ),
+        ],
+      },
+      {
+        code: 'US-03.12',
+        name: 'Variáveis de entrada da jornada',
+        requirements: [
+          d(
+            'REQ-03.12.001',
+            'O sistema deve permitir declarar, no nó START de um fluxo, uma lista de variáveis de entrada da jornada (nome e tipo) que a aplicação cliente (canal digital/BFF) deve fornecer ao iniciar uma instância.',
+          ),
+          d(
+            'REQ-03.12.002',
+            'O nome de cada variável de entrada deve ser único no escopo da jornada, compartilhando o mesmo espaço de nomes das variáveis de saída.',
+          ),
+          d(
+            'REQ-03.12.003',
+            'As variáveis de entrada declaradas no nó START tornam-se disponíveis para referência {{nome}} em qualquer conector ou condição de gateway do fluxo.',
+          ),
+          d(
+            'REQ-03.12.004',
+            'O endpoint de início de instância deve aceitar um mapa de valores no corpo da requisição e recusar a chamada, com mensagem indicando os nomes faltantes, se alguma variável declarada não vier preenchida.',
+          ),
+          d('REQ-03.12.005', 'Valores extras informados pelo chamador que não correspondam a nenhuma variável declarada são aceitos e repassados sem erro.'),
+        ],
+      },
+      {
+        code: 'US-03.13',
+        name: 'Assistência de variáveis na configuração de conector',
+        requirements: [
+          d(
+            'REQ-03.13.001',
+            'O painel de propriedades de um conector deve exibir uma seção "Variáveis" com as variáveis disponíveis naquele ponto do fluxo, agrupadas por origem.',
+          ),
+          d(
+            'REQ-03.13.002',
+            'Os campos de URL, cada valor de header, e cada campo de valor de Body/Params devem oferecer um seletor que insere a referência {{nome}} na posição do cursor do campo.',
+          ),
+          d(
+            'REQ-03.13.003',
+            'Body e Params (REST) devem ser editados, por padrão, como uma lista de campos nome→valor, com um "modo avançado" de JSON livre disponível para corpos que não sejam um objeto plano.',
+          ),
+        ],
+      },
+      {
+        code: 'US-03.14',
+        name: 'Assistente de configuração de conector',
+        requirements: [
+          d(
+            'REQ-03.14.001',
+            'O sistema deve oferecer um assistente (wizard) em etapas como forma adicional — não substituta — de configurar um conector REST ou Kafka.',
+          ),
+          d(
+            'REQ-03.14.002',
+            'Para REST, o assistente deve ter 4 etapas: Conexão, Headers, Parâmetros & Corpo, e Testar e Mapear. Para Kafka, 3 etapas: Conexão, Payload, e Mapear saída.',
+          ),
+          d('REQ-03.14.003', 'A navegação entre as etapas do assistente deve ser livre.'),
+          d(
+            'REQ-03.14.004',
+            'As alterações feitas no assistente devem ficar num rascunho local, aplicado à configuração real somente ao concluir; fechar de qualquer outra forma deve confirmar a perda de alterações pendentes.',
+          ),
+          d(
+            'REQ-03.14.005',
+            'A etapa "Testar e Mapear" deve executar a chamada de teste diretamente na tela do assistente, gerar o mapeamento de saída automaticamente em caso de sucesso, e permitir mapeamento manual independentemente do resultado do teste.',
           ),
         ],
       },
@@ -1311,6 +1399,18 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-08-18 01:04',
+    source: 'progresso',
+    summary:
+      'Duas user stories novas em FT-03: US-03.13 Assistência de variáveis na configuração de conector (REQ-03.13.001 a 003) e US-03.14 Assistente de configuração de conector (REQ-03.14.001 a 005), mais 2 REQs novos em US-03.10 (REQ-03.10.006/007) e ajuste em REQ-03.09.002/004/009/013 — formalizando o que foi construído nesta sessão. US-03.13: painel "Variáveis" agrupado por origem (VariableOriginsPanel/availableVariableOriginsAt, rótulo genérico via NODE_META+tipo de conector, sem switch por combinação); botão de inserir variável (VariablePickerButton, ícone Braces, cor accent) reaproveitado em URL/Headers/Body/Params, insere {{nome}} no cursor (insertTokenAtCursor); Body/Params (REST) passam a editor estruturado nome→valor por padrão (StructuredJsonEditor), com "Modo avançado" (JSON livre) pra corpos aninhados. US-03.14: ConnectorWizard.tsx novo — assistente adicional (não substitui o painel inline), 4 etapas pra REST (Conexão, Headers, Parâmetros & Corpo, Testar e Mapear) e 3 pra Kafka (Conexão, Payload, Mapear saída), navegação livre entre etapas, edição em rascunho local só aplicada ao "Concluir" (fechar de outra forma — X/Cancelar/fora/Esc — confirma descarte via ConfirmDialog se houver alteração pendente), e teste inline na última etapa (sem reaproveitar o modal "Testar API" do painel) com mapeamento automático em sucesso e manual sempre disponível. De quebra, 2 bugs achados testando: SimpleClientHttpRequestFactory não seguia redirecionamentos 307/308 (limitação da JDK) — trocado por JdkClientHttpRequestFactory/java.net.http.HttpClient (REQ-03.10.006); e uma falha HTTP no teste despejava a exceção inteira do Spring, incluindo o corpo completo de uma página de erro HTML — resumido pra "status + motivo" (REQ-03.10.007). Também corrigido: seleção de texto (drag) iniciada dentro de um modal e solta fora fechava o modal indevidamente (useBackdropClose, PropertyGrid.tsx, aplicado ao Modal compartilhado e ao backdrop próprio do wizard) — bug de UX, sem REQ dedicado. Mapeamento de entrada (inputMapping) retirado da UI (painel e assistente) — nunca influenciou a execução real, só documentava que {{nome}} podia ser usado nos campos de texto; REQ-03.09.002/004/009 ajustados pra refletir. FT-03 vai de 69/69 para 79/79 (100%, 10 REQs novos). Progresso geral de 317/353 (90%) para 327/363 (90%).',
+  },
+  {
+    date: '2026-08-17 22:15',
+    source: 'progresso',
+    summary:
+      'Nova user story US-03.12 Variáveis de entrada da jornada (REQ-03.12.001 a 005, todos done): o nó START passa a poder declarar uma lista {name, type} de variáveis que a aplicação cliente (canal digital/BFF) precisa fornecer ao iniciar uma instância — motivado por um caso real desta sessão (conector REST referenciando {{cpf}}, sem nenhuma fonte de variável de entrada declarável até então). Back (admin/back): campo novo FlowNode.startVariables, rosqueado por FlowNodeInput/FlowResponse/FlowNodeRecord/PublicationSnapshotRecord e os adapters de persistência/publicação/versionamento — sem migration, flow.nodes já é coluna JSON; FlowValidator valida que só o START declara isso, nomes únicos (mesmo espaço de REQ-03.09.011) e passam a alimentar o availableVars dos checks de conector e gateway. Runtime (ms-espec-registry): POST /journeys/{id}/instances agora aceita Map<String,Object> no corpo; VariableConversion.fromDeclaredVariables valida presença de cada variável declarada (409 com os nomes faltantes se não vier) e coerciona pelo tipo, aceitando e repassando chaves extras não-declaradas sem erro. Front: seção "Variáveis de Entrada" no nó START (StartVariablesEditor, mesmo padrão do OutputMappingEditor sem a coluna de jsonPath); availableVariablesAt/availableVariableRulesAt somam as variáveis do START; tela Execuções (JourneySearch.tsx) ganha um formulário simples (um input por variável, tipado) antes do botão "Executar" quando a jornada selecionada declara alguma. ms-transform-publication não precisou mudar — o BPMN do Camunda já aceita qualquer variável no start independente de declaração; o contrato é só design-time (FlowValidator) + runtime (ms-espec-registry). FT-03 vai de 64/64 para 69/69 (100%, 5 REQs novos). Progresso geral de 312/348 (90%) para 317/353 (90%).',
+  },
+  {
     date: '2026-08-17 01:22',
     source: 'progresso',
     summary:
@@ -1590,6 +1690,23 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-08-17 22:11',
+    source: 'git',
+    summary:
+      'Ajustes pontuais: toggle de bloqueio SSRF do teste de conector desligado em dev, refetch da lista de jornadas ao reabrir a aba Execuções já aberta, e 3 novos endpoints mock (consultarbd/consultarpendencia/consultarmassiva) no ms-mock-api-rest.',
+    epics: ['FT-03', 'FT-05'],
+  },
+  {
+    date: '2026-08-17 21:09',
+    source: 'git',
+    summary: 'Scripts start-all/stop-all (Windows e macOS) para subir e derrubar front, back e os serviços de simulação em sequência.',
+  },
+  {
+    date: '2026-08-17 05:40',
+    source: 'git',
+    summary: 'Atualização da página Sobre (sincronização com progresso.md).',
+  },
   {
     date: '2026-08-17 05:30',
     source: 'git',

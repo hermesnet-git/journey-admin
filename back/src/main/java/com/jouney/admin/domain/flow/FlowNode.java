@@ -1,5 +1,7 @@
 package com.jouney.admin.domain.flow;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class FlowNode {
@@ -12,9 +14,10 @@ public class FlowNode {
     private final int positionY;
     private final UUID formId;
     private final ConnectorConfig connectorConfig;
+    private final List<Map<String, Object>> startVariables;
 
     public FlowNode(String id, FlowNodeType type, String name, String description, int positionX, int positionY,
-                     UUID formId, ConnectorConfig connectorConfig) {
+                     UUID formId, ConnectorConfig connectorConfig, List<Map<String, Object>> startVariables) {
         this.id = id;
         this.type = type;
         this.name = name;
@@ -23,6 +26,7 @@ public class FlowNode {
         this.positionY = positionY;
         this.formId = formId;
         this.connectorConfig = connectorConfig;
+        this.startVariables = startVariables;
     }
 
     public String getId() {
@@ -55,5 +59,9 @@ public class FlowNode {
 
     public ConnectorConfig getConnectorConfig() {
         return connectorConfig;
+    }
+
+    public List<Map<String, Object>> getStartVariables() {
+        return startVariables;
     }
 }

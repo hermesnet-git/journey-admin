@@ -126,6 +126,9 @@ export interface FlowNodeInfo {
   positionY: number;
   formId: string | null;
   connectorConfig: ConnectorConfigInfo | null;
+  // REQ-03.12.001: {name, type} declarations, meaningful only on the START node — variables the
+  // caller must supply when starting an instance (collected by JourneySearch before "Executar").
+  startVariables: { name: string; type: string }[] | null;
 }
 
 export interface FlowConnectionInfo {
@@ -155,8 +158,8 @@ export interface VariableEntry {
   type: string;
 }
 
-export function startInstance(journeyId: string): Promise<InstanceResponse> {
-  return apiPost(`/journeys/${journeyId}/instances`);
+export function startInstance(journeyId: string, variables?: Record<string, unknown>): Promise<InstanceResponse> {
+  return apiPost(`/journeys/${journeyId}/instances`, variables);
 }
 
 /** Diagrama da jornada sem iniciar instância — usado só pra descobrir o tipo do nó de início antes

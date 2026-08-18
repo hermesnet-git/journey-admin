@@ -21,7 +21,7 @@ public record FlowResponse(String flowId, UUID journeyId, String name, List<Node
 
     public record NodeResponse(String nodeId, FlowNodeType nodeType, String name, String description, int positionX,
                                 int positionY, UserTaskConfigResponse userTaskConfig,
-                                ConnectorConfigResponse connectorConfig) {
+                                ConnectorConfigResponse connectorConfig, List<Map<String, Object>> startVariables) {
 
         public static NodeResponse from(FlowNode node) {
             UserTaskConfigResponse userTaskConfig = node.getFormId() != null
@@ -31,7 +31,8 @@ public record FlowResponse(String flowId, UUID journeyId, String name, List<Node
                     ? ConnectorConfigResponse.from(node.getConnectorConfig())
                     : null;
             return new NodeResponse(node.getId(), node.getType(), node.getName(), node.getDescription(),
-                    node.getPositionX(), node.getPositionY(), userTaskConfig, connectorConfig);
+                    node.getPositionX(), node.getPositionY(), userTaskConfig, connectorConfig,
+                    node.getStartVariables());
         }
     }
 

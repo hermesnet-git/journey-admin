@@ -6,7 +6,9 @@ import com.jouney.admin.application.flow.ConnectorTestResult;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -15,10 +17,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Executes REST connector test calls server-side (REQ-03.10.002), so credentials never reach the
@@ -40,8 +43,17 @@ public class ConnectorTestAdapter implements ConnectorTestPort {
     private final boolean blockPrivateNetworks;
 
     public ConnectorTestAdapter(@Value("${app.connector-test.block-private-networks:true}") boolean blockPrivateNetworks) {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(TIMEOUT_MS);
+        // SimpleClientHttpRequestFactory (java.net.HttpURLConnection) only auto-follows 301/302/303
+        // — a well-known JDK limitation — so a target API that answers with 307/308 (redirect while
+        // preserving the original method, e.g. enforcing https or a canonical path) showed up here
+        // as the bare redirect response ("308 Redirecting...") instead of the real one behind it.
+        // java.net.http.HttpClient (JDK 11+, already available, no new dependency) follows all of
+        // 301/302/303/307/308 correctly when told to.
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(TIMEOUT_MS))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
         factory.setReadTimeout(TIMEOUT_MS);
         this.restClient = RestClient.builder().requestFactory(factory).build();
         this.blockPrivateNetworks = blockPrivateNetworks;
@@ -67,9 +79,24 @@ public class ConnectorTestAdapter implements ConnectorTestPort {
                     .retrieve()
                     .toEntity(byte[].class);
             return toResult(response);
+        } catch (RestClientResponseException e) {
+            throw new ConnectorTestException("Connector test call to " + url + " failed: " + describeHttpError(e), e);
         } catch (RestClientException e) {
             throw new ConnectorTestException("Connector test call to " + url + " failed: " + e.getMessage(), e);
         }
+    }
+
+    // RestClientResponseException#getMessage() inlines the full response body verbatim — fine for
+    // a short JSON error, unreadable (often a whole HTML error page, as REQ-03.10.001's own manual
+    // test against a real public API demonstrated) for anything else. Keep just the status by
+    // default, only appending the body when it's short and doesn't look like markup.
+    private String describeHttpError(RestClientResponseException e) {
+        String detail = e.getStatusCode().value() + " " + e.getStatusText();
+        String body = e.getResponseBodyAsString();
+        if (body != null && !body.isBlank() && body.length() <= 300 && !body.stripLeading().startsWith("<")) {
+            detail += ": " + body;
+        }
+        return detail;
     }
 
     private ConnectorTestResult toResult(ResponseEntity<byte[]> response) {

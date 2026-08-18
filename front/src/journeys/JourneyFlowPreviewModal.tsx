@@ -57,6 +57,7 @@ export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Pro
       connectorConfig: n.connectorConfig
         ? { connectorType: n.connectorConfig.connectorType, config: n.connectorConfig.config }
         : null,
+      startVariables: n.startVariables,
     })) ?? [];
 
   const connections: FlowConnectionInfo[] =

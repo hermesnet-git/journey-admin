@@ -3,11 +3,13 @@ package com.jouney.admin.infrastructure.persistence.flow;
 import com.jouney.admin.domain.flow.ConnectorConfig;
 import com.jouney.admin.domain.flow.ConnectorType;
 import com.jouney.admin.domain.flow.FlowNodeType;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public record FlowNodeRecord(String id, FlowNodeType type, String name, String description, int positionX,
-                              int positionY, UUID formId, ConnectorConfigRecord connectorConfig) {
+                              int positionY, UUID formId, ConnectorConfigRecord connectorConfig,
+                              List<Map<String, Object>> startVariables) {
 
     public record ConnectorConfigRecord(ConnectorType connectorType, Map<String, Object> config,
                                          String credentialRef) {

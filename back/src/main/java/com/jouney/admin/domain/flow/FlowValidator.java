@@ -33,6 +33,8 @@ public final class FlowValidator {
             FlowNodeType.SERVICE_TASK, "PRODUCE",
             FlowNodeType.RECEIVE_TASK, "CONSUME",
             FlowNodeType.MESSAGE_START_EVENT, "CONSUME");
+    // REQ-03.12.001: same type vocabulary as an outputMapping rule's "type".
+    private static final Set<String> VALID_VARIABLE_TYPES = Set.of("string", "number", "boolean", "date", "datetime");
     // REQ-03.09.012: {{name}} references in connectorConfig fields (url, headers, body/payload).
     private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
 
@@ -53,6 +55,45 @@ public final class FlowValidator {
         }
         if (ends.isEmpty()) {
             violations.add("The flow must contain at least one END node");
+        }
+
+        // REQ-03.09.011/REQ-03.12.002: output variable names and START's declared startVariables
+        // names share one uniqueness namespace across the whole journey. Declared here (not down by
+        // the outputMapping loop that also feeds it) so the startVariables block below can check
+        // against it too.
+        Set<String> seenOutputNames = new HashSet<>();
+
+        // REQ-03.12.001/003: {name, type} declarations, valid only on the START node — the
+        // variables the caller (canal digital/BFF) must supply when starting an instance. Computed
+        // once, up front, since START is trivially an ancestor of every other node in a valid flow —
+        // no need to recompute per-node like outputMapping's ancestor scan below.
+        Set<String> startVariableNames = new HashSet<>();
+        for (FlowNode node : nodes) {
+            List<Map<String, Object>> declared = node.getStartVariables();
+            if (declared == null || declared.isEmpty()) {
+                continue;
+            }
+            if (node.getType() != FlowNodeType.START) {
+                violations.add("Node '" + node.getName() + "' declares startVariables but is not the START node");
+                continue;
+            }
+            for (Map<String, Object> declaration : declared) {
+                Object name = declaration.get("name");
+                Object type = declaration.get("type");
+                if (!(name instanceof String s) || s.isBlank()) {
+                    violations.add("START node '" + node.getName() + "' has a startVariables entry without a valid name");
+                    continue;
+                }
+                if (!(type instanceof String t) || !VALID_VARIABLE_TYPES.contains(t)) {
+                    violations.add("START node '" + node.getName() + "' declares variable '" + s + "' with an invalid type");
+                    continue;
+                }
+                if (!seenOutputNames.add(s)) {
+                    violations.add("Output variable '" + s + "' is declared more than once in the flow");
+                    continue;
+                }
+                startVariableNames.add(s);
+            }
         }
 
         Map<String, Integer> inDegree = new HashMap<>();
@@ -146,7 +187,7 @@ public final class FlowValidator {
                 collectVariableTokens(connectorConfig.getConfig(), usedTokens);
                 if (!usedTokens.isEmpty()) {
                     Set<String> ancestorIds = bfs(node.getId(), backward);
-                    Set<String> availableVars = new HashSet<>();
+                    Set<String> availableVars = new HashSet<>(startVariableNames);
                     for (FlowNode other : nodes) {
                         if (other.getId().equals(node.getId()) || !ancestorIds.contains(other.getId())) {
                             continue;
@@ -186,7 +227,7 @@ public final class FlowValidator {
                     continue;
                 }
                 Set<String> ancestorIds = bfs(node.getId(), backward);
-                Set<String> availableVars = new HashSet<>();
+                Set<String> availableVars = new HashSet<>(startVariableNames);
                 for (FlowNode other : nodes) {
                     if (other.getId().equals(node.getId()) || !ancestorIds.contains(other.getId())) {
                         continue;
@@ -208,8 +249,8 @@ public final class FlowValidator {
             }
         }
 
-        // REQ-03.09.011: output variable names must be unique across the whole journey.
-        Set<String> seenOutputNames = new HashSet<>();
+        // REQ-03.09.011: output variable names must be unique across the whole journey
+        // (seenOutputNames already carries any startVariables names from the block above).
         for (FlowNode node : nodes) {
             if (node.getConnectorConfig() == null) {
                 continue;

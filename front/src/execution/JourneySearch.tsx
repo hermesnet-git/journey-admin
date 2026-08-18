@@ -40,6 +40,9 @@ export function JourneySearch({ active, onStarted }: Props) {
   const [startNode, setStartNode] = useState<FlowNodeInfo | null>(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  // REQ-03.12.001/003: valores digitados pro formulário de "variáveis de entrada" declaradas no nó
+  // START — chave é o nome da variável, sempre string aqui (convertida pro tipo certo em handleExecute).
+  const [startVariableValues, setStartVariableValues] = useState<Record<string, string>>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,6 +81,7 @@ export function JourneySearch({ active, onStarted }: Props) {
     setOpen(false);
     setStartNode(null);
     setStartError(null);
+    setStartVariableValues({});
     // Precisa saber o tipo do nó de início antes de decidir entre "Executar" e o painel de envio
     // de mensagem — MESSAGE_START_EVENT não tem início manual, só uma mensagem Kafka real inicia.
     getJourneyFlow(journey.journeyId)
@@ -99,7 +103,8 @@ export function JourneySearch({ active, onStarted }: Props) {
     setStarting(true);
     setStartError(null);
     try {
-      const { processInstanceId, businessKey, flow, step } = await startInstance(selected.journeyId);
+      const variables = toStartVariablePayload(startVariables, startVariableValues);
+      const { processInstanceId, businessKey, flow, step } = await startInstance(selected.journeyId, variables);
       recordExecutionStart(selected.journeyId, selected.name, processInstanceId).catch(() => {
         /* falha ao registrar auditoria não deve impedir a execução de continuar */
       });
@@ -126,6 +131,11 @@ export function JourneySearch({ active, onStarted }: Props) {
   const messageStartTopic = isMessageStart && typeof startNode.connectorConfig?.config?.topic === 'string'
     ? startNode.connectorConfig.config.topic
     : null;
+  // REQ-03.12.001: só o nó START comum declara isso — MESSAGE_START_EVENT usa o painel de mensagem.
+  const startVariables = startNode?.startVariables ?? [];
+  const missingStartVariable = startVariables.some(
+    (v) => v.type !== 'boolean' && !startVariableValues[v.name],
+  );
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: skinVars.colors.background }}>
@@ -205,6 +215,50 @@ export function JourneySearch({ active, onStarted }: Props) {
 
           {startError && <Callout variant="default" title="Não foi possível iniciar" description={startError} />}
 
+          {!isMessageStart && startVariables.length > 0 && (
+            <Stack space={8}>
+              <Text size={12.5} weight="medium" color={skinVars.colors.textSecondary}>
+                Variáveis de entrada
+              </Text>
+              {startVariables.map((v) =>
+                v.type === 'boolean' ? (
+                  <label key={v.name} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={startVariableValues[v.name] === 'true'}
+                      onChange={(e) =>
+                        setStartVariableValues((prev) => ({ ...prev, [v.name]: String(e.target.checked) }))
+                      }
+                    />
+                    <Text size={13} color={skinVars.colors.textPrimary}>
+                      {v.name}
+                    </Text>
+                  </label>
+                ) : (
+                  <div key={v.name}>
+                    <Text size={12} color={skinVars.colors.textSecondary}>
+                      {v.name}
+                    </Text>
+                    <input
+                      type={inputTypeFor(v.type)}
+                      value={startVariableValues[v.name] ?? ''}
+                      onChange={(e) => setStartVariableValues((prev) => ({ ...prev, [v.name]: e.target.value }))}
+                      className="w-full box-border"
+                      style={{
+                        fontSize: 13,
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        border: `1px solid ${skinVars.colors.border}`,
+                        background: skinVars.colors.background,
+                        color: skinVars.colors.textPrimary,
+                      }}
+                    />
+                  </div>
+                ),
+              )}
+            </Stack>
+          )}
+
           {isMessageStart && messageStartTopic ? (
             <Stack space={12}>
               <SendTestMessagePanel
@@ -224,14 +278,14 @@ export function JourneySearch({ active, onStarted }: Props) {
           ) : (
             <button
               type="button"
-              disabled={!selected || starting}
+              disabled={!selected || starting || missingStartVariable}
               onClick={handleExecute}
               className="flex items-center justify-center gap-2 rounded-lg py-3 w-full border-0 font-semibold cursor-pointer transition-opacity"
               style={{
                 background: skinVars.colors.buttonPrimaryBackground,
                 color: skinVars.colors.textButtonPrimary,
-                opacity: !selected || starting ? 0.5 : 1,
-                cursor: !selected || starting ? 'default' : 'pointer',
+                opacity: !selected || starting || missingStartVariable ? 0.5 : 1,
+                cursor: !selected || starting || missingStartVariable ? 'default' : 'pointer',
               }}
             >
               <Play size={16} />
@@ -251,6 +305,31 @@ async function pollForNewInstance(journeyId: string, since: string): Promise<Ins
     await delay(LATEST_INSTANCE_POLL_MS);
   }
   throw new Error('Nenhuma instância nova apareceu depois da mensagem — confira se o Kafka e o worker de execução estão no ar.');
+}
+
+// REQ-03.12.003: converte os valores digitados (sempre string, vindos de <input>) pro tipo
+// declarado antes de mandar pro POST .../instances. undefined quando a jornada não declara nada,
+// pra não mandar um body vazio à toa.
+function toStartVariablePayload(
+  declarations: { name: string; type: string }[],
+  values: Record<string, string>,
+): Record<string, unknown> | undefined {
+  if (declarations.length === 0) return undefined;
+  const payload: Record<string, unknown> = {};
+  declarations.forEach((v) => {
+    const raw = values[v.name] ?? '';
+    if (v.type === 'number') payload[v.name] = raw === '' ? null : Number(raw);
+    else if (v.type === 'boolean') payload[v.name] = raw === 'true';
+    else payload[v.name] = raw;
+  });
+  return payload;
+}
+
+function inputTypeFor(type: string): string {
+  if (type === 'number') return 'number';
+  if (type === 'date') return 'date';
+  if (type === 'datetime') return 'datetime-local';
+  return 'text';
 }
 
 function errorMessage(e: unknown): string {

@@ -333,14 +333,14 @@ Permitir a construção visual do fluxo específico de cada jornada.
 
 ### US-03.09 Configuração REST e Kafka
 #### REQ-03.09.001 - O sistema deve permitir configurar `REST` em `SERVICE_TASK` e `RECEIVE_TASK`.
-#### REQ-03.09.002 - A configuração REST deve suportar método HTTP, URL, headers, parâmetros, body, mapeamento de entrada e mapeamento de saída. O mapeamento de saída segue formato estruturado (REQ-03.09.010), não mais configuração livre.
+#### REQ-03.09.002 - A configuração REST deve suportar método HTTP, URL, headers, parâmetros, body e mapeamento de saída. O mapeamento de saída segue formato estruturado (REQ-03.09.010), não mais configuração livre. (Mapeamento de entrada foi retirado da UI — inline e assistente, US-03.14 — por nunca ter influenciado a execução real; era só anotação de que `{{nome}}` pode ser usado nos campos de texto, ver REQ-03.09.012.)
 #### REQ-03.09.003 - O sistema deve permitir configurar `KAFKA` em `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT`.
-#### REQ-03.09.004 - A configuração Kafka deve suportar tópico, operação, headers, payload, mapeamento de entrada e mapeamento de saída. Kafka não possui o conceito de fila; a unidade de endereçamento é sempre o tópico. O mapeamento de saída segue formato estruturado (REQ-03.09.010), não mais configuração livre.
+#### REQ-03.09.004 - A configuração Kafka deve suportar tópico, operação, headers, payload e mapeamento de saída. Kafka não possui o conceito de fila; a unidade de endereçamento é sempre o tópico. O mapeamento de saída segue formato estruturado (REQ-03.09.010), não mais configuração livre. (Mapeamento de entrada retirado da UI pelo mesmo motivo do REQ-03.09.002.)
 #### REQ-03.09.005 - Configurações de integração devem suportar referência de credencial sem armazenar secrets diretamente no fluxo ou no snapshot.
 #### REQ-03.09.006 - O snapshot publicado deve incluir o tipo do elemento, o conector, a configuração declarativa e os mapeamentos necessários para execução pelo runtime.
 #### REQ-03.09.007 - `REST` não é um conector válido para `MESSAGE_START_EVENT`: a configuração REST representa uma chamada de saída (método e URL a serem chamados), e o elemento inicia o fluxo a partir de uma mensagem recebida, nunca chamando algo externamente. `MESSAGE_START_EVENT` deve suportar apenas `KAFKA`.
 #### REQ-03.09.008 - A operação Kafka é determinada pelo tipo de nó, não é uma escolha livre do usuário: `SERVICE_TASK` deve usar `PRODUCE` (publica um evento como efeito da tarefa); `RECEIVE_TASK` e `MESSAGE_START_EVENT` devem usar `CONSUME` (aguardam uma mensagem chegar).
-#### REQ-03.09.009 - Headers (REST e Kafka) devem ser editados como uma lista de pares nome/valor (com opção de adicionar e remover pares), e não como texto declarativo livre — diferente de parâmetros, body e payload, cujo formato ainda não é padronizado e por isso permanecem como configuração declarativa livre. O mapeamento de saída não se enquadra mais nessa exceção (ver REQ-03.09.010).
+#### REQ-03.09.009 - Headers (REST e Kafka) devem ser editados como uma lista de pares nome/valor (com opção de adicionar e remover pares), e não como texto declarativo livre. Params e Body (REST) seguem o mesmo padrão por padrão (REQ-03.13.003), com um modo avançado de JSON livre como alternativa; Payload (Kafka) permanece como configuração declarativa livre, por ainda não ter recebido o mesmo tratamento. O mapeamento de saída também não se enquadra nessa exceção (ver REQ-03.09.010).
 #### REQ-03.09.010 - O mapeamento de saída de uma integração (REST ou Kafka) deve ser declarado como uma lista de regras `nome da variável ← expressão JSONPath`, aplicada sobre o corpo da resposta (REST) ou o payload recebido (Kafka), em vez de configuração JSON livre.
 #### REQ-03.09.011 - O nome de cada variável de saída deve ser único no escopo da jornada e seguir a mesma regra de nome técnico dos campos de formulário (REQ-04.01.007).
 #### REQ-03.09.012 - O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis produzidas por passos anteriores do fluxo (respostas de formulário e saídas de integrações), usando a sintaxe `{{nomeDaVariavel}}`.
@@ -354,6 +354,8 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.10.003 - O backend deve recusar chamadas de teste para URLs que resolvam a endereços privados, de loopback ou reservados (proteção contra SSRF).
 #### REQ-03.10.004 - A chamada de teste deve ter timeout curto e limite de tamanho de resposta, e não deve ser registrada como transação de negócio (fora do escopo de auditoria de domínio, FT-08).
 #### REQ-03.10.005 - Campos `{{variavel}}` presentes na configuração testada devem ser substituídos por um valor de exemplo informado manualmente pelo usuário no momento do teste, sem depender de uma execução real de jornada.
+#### REQ-03.10.006 - A chamada de teste deve seguir corretamente redirecionamentos HTTP (301, 302, 303, 307 e 308), preservando o método original quando o status exigir (307/308) — evita apresentar ao usuário a resposta intermediária de redirecionamento em vez da resposta final.
+#### REQ-03.10.007 - Uma falha HTTP na chamada de teste deve ser resumida ao usuário como status e motivo (ex.: "404 Not Found"), incluindo o corpo da resposta de erro apenas quando ele for curto e não parecer HTML — evita despejar uma página de erro inteira na tela.
 ---
 
 ### US-03.11 Bifurcação condicional (Gateway)
@@ -365,6 +367,28 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.11.006 - O gateway deve possuir ao menos uma entrada e exatamente duas saídas na versão 1.0.0; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição.
 #### REQ-03.11.007 - Na publicação, o gateway deve ser traduzido para um `exclusiveGateway` BPMN nativo, com cada `sequenceFlow` de saída carregando a expressão de condição correspondente (ou marcado como fluxo padrão), avaliado pelo próprio motor do runtime — sem necessidade de implementação especializada (worker), no mesmo princípio do conector REST nativo (US-03.09).
 #### REQ-03.11.008 - Cada variável de saída (REQ-03.09.010) deve possuir um tipo declarado — texto, número, booleano, data ou data e hora — inferido automaticamente ao gerar o mapeamento a partir de uma resposta real (REQ-03.10.001) ou escolhido manualmente pelo usuário. O editor da condição do gateway deve oferecer apenas os operadores compatíveis com o tipo da variável escolhida (texto/booleano: igual/diferente; número/data/data e hora: igual/diferente/maior que/menor que) e um campo de valor no formato correspondente (numérico, seletor verdadeiro/falso, ou seletor de data/data e hora).
+---
+
+### US-03.12 Variáveis de entrada da jornada
+#### REQ-03.12.001 - O sistema deve permitir declarar, no nó START de um fluxo, uma lista de variáveis de entrada da jornada, cada uma com nome e tipo (mesmo vocabulário de REQ-03.11.008: texto, número, booleano, data, data e hora) — são as variáveis que a aplicação cliente (canal digital/BFF) deve fornecer ao iniciar uma instância. Não se aplica a `MESSAGE_START_EVENT`, que já declara suas variáveis via mapeamento de saída sobre o payload da mensagem recebida (REQ-03.09.004).
+#### REQ-03.12.002 - O nome de cada variável de entrada deve ser único no escopo da jornada, compartilhando o mesmo espaço de nomes das variáveis de saída (REQ-03.09.011) — uma variável de entrada não pode colidir com o nome de saída de nenhum nó do fluxo, nem com outra variável de entrada.
+#### REQ-03.12.003 - As variáveis de entrada declaradas no nó START tornam-se disponíveis para referência `{{nome}}` em qualquer conector ou condição de gateway do fluxo, do mesmo jeito que uma variável de saída de integração já é (REQ-03.09.012/013) — o nó START é sempre alcançável a partir de qualquer outro nó do fluxo.
+#### REQ-03.12.004 - O endpoint de início de instância deve aceitar um mapa de valores no corpo da requisição e recusar a chamada, com mensagem indicando os nomes faltantes, se alguma variável declarada no nó START não vier preenchida.
+#### REQ-03.12.005 - Valores extras informados pelo chamador que não correspondam a nenhuma variável declarada são aceitos e repassados como variável de processo sem erro.
+---
+
+### US-03.13 Assistência de variáveis na configuração de conector
+#### REQ-03.13.001 - O painel de propriedades de um `SERVICE_TASK`/`RECEIVE_TASK`/`MESSAGE_START_EVENT` deve exibir uma seção "Variáveis" com as variáveis disponíveis naquele ponto do fluxo (entrada da jornada, REQ-03.12.001, e saída de integrações anteriores alcançáveis, REQ-03.09.010), agrupadas por origem — rótulo derivado do nome/tipo do nó e do tipo de conector, calculado de forma genérica para que um tipo de nó/conector novo no futuro já ganhe um rótulo razoável sem exigir código específico.
+#### REQ-03.13.002 - Os campos de URL, cada valor de header, e cada campo de valor de Body/Params devem oferecer um seletor que insere a referência `{{nome}}` na posição do cursor do campo, dispensando o usuário de digitar a sintaxe manualmente.
+#### REQ-03.13.003 - Body e Params (REST) devem ser editados, por padrão, como uma lista de campos nome→valor (mesmo padrão de Headers, REQ-03.09.009), com um "modo avançado" de JSON livre disponível para corpos que não sejam um objeto plano — uma configuração aninhada já existente nunca deve ser achatada automaticamente.
+---
+
+### US-03.14 Assistente de configuração de conector
+#### REQ-03.14.001 - O sistema deve oferecer um assistente (wizard) em etapas como forma adicional — não substituta — de configurar um conector REST ou Kafka, editando a mesma configuração que o painel de propriedades inline.
+#### REQ-03.14.002 - Para REST, o assistente deve ter 4 etapas: Conexão (método, URL, credencial), Headers, Parâmetros & Corpo, e Testar e Mapear. Para Kafka, 3 etapas: Conexão (tópico, operação, credencial), Payload, e Mapear saída — sem etapa de teste, que não se aplica a esse conector.
+#### REQ-03.14.003 - A navegação entre as etapas do assistente deve ser livre: selecionar qualquer etapa no indicador deve levar direto a ela, sem exigir conclusão sequencial das etapas anteriores.
+#### REQ-03.14.004 - As alterações feitas no assistente devem ficar num rascunho local, aplicado à configuração real do conector somente ao concluir. Fechar o assistente de qualquer outra forma (botão "X", "Cancelar", clique fora do modal ou tecla Esc) deve verificar se há alteração pendente e pedir confirmação do usuário antes de descartá-la.
+#### REQ-03.14.005 - A etapa "Testar e Mapear" deve executar a chamada de teste de verdade diretamente na tela do assistente (sem depender do modal "Testar API" do painel inline, que continua existindo separadamente), exibindo status e corpo da resposta. Em caso de sucesso, o mapeamento de saída deve ser gerado automaticamente a partir da resposta; a edição manual do mapeamento deve permanecer disponível independentemente do resultado do teste.
 ---
 
 

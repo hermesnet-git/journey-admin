@@ -1,4 +1,21 @@
+import { useState } from 'react';
 import { useFlowTheme, type FlowColors } from './theme';
+
+// Backdrop click-to-close, robust against drag-select: dragging to select text that starts inside
+// the panel and releasing (mouseup) over the backdrop produces a click event whose target
+// normalizes to the backdrop — same as a genuine backdrop click — so checking only the click's own
+// target can't tell the two apart. Recording where the *mousedown* happened (before any drag can
+// muddy things) can. Spread the returned handlers onto the fixed/inset-0 backdrop div.
+export function useBackdropClose(onClose: () => void) {
+  const [mouseDownOnBackdrop, setMouseDownOnBackdrop] = useState(false);
+  return {
+    onMouseDown: (e: React.MouseEvent) => setMouseDownOnBackdrop(e.target === e.currentTarget),
+    onClick: () => {
+      if (mouseDownOnBackdrop) onClose();
+      setMouseDownOnBackdrop(false);
+    },
+  };
+}
 
 // Shared object-inspector-style property grid: label cell on the left, typed value on the
 // right, thin uniform rows. Used across every "properties" panel in the journey editor
@@ -77,10 +94,11 @@ export function PropertyGroupHeader({ label, first }: { label: string; first?: b
 // Generic centered dialog, shared by every "..." row editor and the connector test panel.
 export function Modal({ title, onClose, width = 420, children }: { title: string; onClose: () => void; width?: number; children: React.ReactNode }) {
   const { c } = useFlowTheme();
+  const backdrop = useBackdropClose(onClose);
   return (
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-      onClick={onClose}
+      {...backdrop}
     >
       <div
         onClick={(e) => e.stopPropagation()}

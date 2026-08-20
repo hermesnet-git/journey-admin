@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,7 +42,11 @@ public final class FlowValidator {
     private FlowValidator() {
     }
 
-    public static void validate(List<FlowNode> nodes, List<FlowConnection> connections) {
+    // formFieldNamesByFormId: for every Form referenced by a USER_TASK.formId in this flow, the
+    // names of its fields eligible as a variable (resolved by the caller — UpdateFlow, via
+    // FormRepository — since this validator stays pure domain, no repository access of its own).
+    public static void validate(List<FlowNode> nodes, List<FlowConnection> connections,
+                                 Map<UUID, List<String>> formFieldNamesByFormId) {
         List<String> violations = new ArrayList<>();
 
         List<FlowNode> starts = nodes.stream().filter(n -> START_TYPES.contains(n.getType())).toList();
@@ -50,11 +55,11 @@ public final class FlowValidator {
         // one END node; it must just have at least one.
         List<FlowNode> ends = nodes.stream().filter(n -> n.getType() == FlowNodeType.END).toList();
         if (starts.size() != 1) {
-            violations.add("The flow must contain exactly one start element, START or MESSAGE_START_EVENT (found "
+            violations.add("O fluxo deve conter exatamente um elemento inicial, START ou MESSAGE_START_EVENT (encontrado(s) "
                     + starts.size() + ")");
         }
         if (ends.isEmpty()) {
-            violations.add("The flow must contain at least one END node");
+            violations.add("O fluxo deve conter ao menos um nó END");
         }
 
         // REQ-03.09.011/REQ-03.12.002: output variable names and START's declared startVariables
@@ -74,22 +79,22 @@ public final class FlowValidator {
                 continue;
             }
             if (node.getType() != FlowNodeType.START) {
-                violations.add("Node '" + node.getName() + "' declares startVariables but is not the START node");
+                violations.add("Nó '" + node.getName() + "' declara startVariables mas não é o nó START");
                 continue;
             }
             for (Map<String, Object> declaration : declared) {
                 Object name = declaration.get("name");
                 Object type = declaration.get("type");
                 if (!(name instanceof String s) || s.isBlank()) {
-                    violations.add("START node '" + node.getName() + "' has a startVariables entry without a valid name");
+                    violations.add("Nó START '" + node.getName() + "' tem uma entrada de startVariables sem um nome válido");
                     continue;
                 }
                 if (!(type instanceof String t) || !VALID_VARIABLE_TYPES.contains(t)) {
-                    violations.add("START node '" + node.getName() + "' declares variable '" + s + "' with an invalid type");
+                    violations.add("Nó START '" + node.getName() + "' declara a variável '" + s + "' com um tipo inválido");
                     continue;
                 }
                 if (!seenOutputNames.add(s)) {
-                    violations.add("Output variable '" + s + "' is declared more than once in the flow");
+                    violations.add("Variável de saída '" + s + "' foi declarada mais de uma vez no fluxo");
                     continue;
                 }
                 startVariableNames.add(s);
@@ -124,37 +129,37 @@ public final class FlowValidator {
             switch (node.getType()) {
                 case START, MESSAGE_START_EVENT -> {
                     if (in != 0 || out != 1) {
-                        violations.add(node.getType() + " node '" + node.getName()
-                                + "' must have no inputs and exactly one output");
+                        violations.add("Nó " + node.getType() + " '" + node.getName()
+                                + "' deve ter nenhuma entrada e exatamente uma saída");
                     }
                 }
                 case USER_TASK, SERVICE_TASK, RECEIVE_TASK -> {
                     if (in < 1 || out != 1) {
-                        violations.add(node.getType() + " node '" + node.getName()
-                                + "' must have at least one input and exactly one output");
+                        violations.add("Nó " + node.getType() + " '" + node.getName()
+                                + "' deve ter ao menos uma entrada e exatamente uma saída");
                     }
                 }
                 case END -> {
                     if (in < 1 || out != 0) {
-                        violations.add("END node '" + node.getName()
-                                + "' must have at least one input and no outputs");
+                        violations.add("Nó END '" + node.getName()
+                                + "' deve ter ao menos uma entrada e nenhuma saída");
                     }
                 }
                 case GATEWAY -> {
                     if (in < 1 || out != 2) {
-                        violations.add("GATEWAY node '" + node.getName()
-                                + "' must have at least one input and exactly two outputs (MVP scope)");
+                        violations.add("Nó GATEWAY '" + node.getName()
+                                + "' deve ter ao menos uma entrada e exatamente duas saídas (escopo do MVP)");
                     } else {
                         List<FlowConnection> outgoing = outgoingConnections.getOrDefault(node.getId(), List.of());
                         long defaultCount = outgoing.stream().filter(FlowConnection::isDefault).count();
                         if (defaultCount != 1) {
-                            violations.add("GATEWAY node '" + node.getName()
-                                    + "' must have exactly one default output (found " + defaultCount + ")");
+                            violations.add("Nó GATEWAY '" + node.getName()
+                                    + "' deve ter exatamente uma saída padrão (encontrada(s) " + defaultCount + ")");
                         }
                         for (FlowConnection connection : outgoing) {
                             if (!connection.isDefault() && (connection.getCondition() == null || connection.getCondition().isBlank())) {
-                                violations.add("GATEWAY node '" + node.getName()
-                                        + "' has a non-default output without a condition");
+                                violations.add("Nó GATEWAY '" + node.getName()
+                                        + "' tem uma saída não padrão sem condição");
                             }
                         }
                     }
@@ -164,20 +169,20 @@ public final class FlowValidator {
             if (node.getConnectorConfig() != null) {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
                 if (!connectorConfig.getConnectorType().isEnabled()) {
-                    violations.add("Node '" + node.getName() + "' references a disabled connector ("
+                    violations.add("Nó '" + node.getName() + "' referencia um conector desabilitado ("
                             + connectorConfig.getConnectorType() + ")");
                 }
                 if (node.getType() == FlowNodeType.MESSAGE_START_EVENT
                         && connectorConfig.getConnectorType() == ConnectorType.REST) {
-                    violations.add("MESSAGE_START_EVENT node '" + node.getName()
-                            + "' cannot use a REST connector; only KAFKA (consume) starts a flow from an incoming message");
+                    violations.add("Nó MESSAGE_START_EVENT '" + node.getName()
+                            + "' não pode usar um conector REST; só KAFKA (consumo) inicia um fluxo a partir de uma mensagem recebida");
                 }
                 if (connectorConfig.getConnectorType() == ConnectorType.KAFKA) {
                     String expectedOperation = KAFKA_OPERATION_BY_TYPE.get(node.getType());
                     Object operation = connectorConfig.getConfig() != null ? connectorConfig.getConfig().get("operation") : null;
                     if (expectedOperation != null && operation != null && !expectedOperation.equals(operation)) {
-                        violations.add("Node '" + node.getName() + "' Kafka operation must be " + expectedOperation
-                                + " for " + node.getType());
+                        violations.add("Nó '" + node.getName() + "': a operação Kafka deve ser " + expectedOperation
+                                + " para " + node.getType());
                     }
                 }
 
@@ -186,10 +191,10 @@ public final class FlowValidator {
                 Set<String> usedTokens = new HashSet<>();
                 collectVariableTokens(connectorConfig.getConfig(), usedTokens);
                 if (!usedTokens.isEmpty()) {
-                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
+                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames, formFieldNamesByFormId);
                     for (String token : usedTokens) {
                         if (!availableVars.contains(token)) {
-                            violations.add("Node '" + node.getName() + "' references undeclared variable '{{" + token
+                            violations.add("Nó '" + node.getName() + "' referencia variável não declarada '{{" + token
                                     + "}}'");
                         }
                     }
@@ -203,10 +208,10 @@ public final class FlowValidator {
                 Set<String> usedTokens = new HashSet<>();
                 collectVariableTokens(node.getMessageText(), usedTokens);
                 if (!usedTokens.isEmpty()) {
-                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
+                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames, formFieldNamesByFormId);
                     for (String token : usedTokens) {
                         if (!availableVars.contains(token)) {
-                            violations.add("Node '" + node.getName() + "' message references undeclared variable '{{"
+                            violations.add("A mensagem do nó '" + node.getName() + "' referencia variável não declarada '{{"
                                     + token + "}}'");
                         }
                     }
@@ -215,10 +220,8 @@ public final class FlowValidator {
         }
 
         // REQ-03.11.004/006: {{name}} referenced in a gateway's condition must be declared by some
-        // ancestor Service/Receive Task's output mapping reachable backwards from the gateway.
-        // ponytail: a condition referencing a User Task form field name isn't checked against the
-        // form's real fields — Form data isn't available to this pure-domain validator — so that
-        // half of REQ-03.11.004 is accepted without verification for now.
+        // ancestor Service/Receive Task's output mapping, or User Task form field, reachable
+        // backwards from the gateway.
         for (FlowNode node : nodes) {
             if (node.getType() != FlowNodeType.GATEWAY) {
                 continue;
@@ -229,26 +232,48 @@ public final class FlowValidator {
                 if (usedTokens.isEmpty()) {
                     continue;
                 }
-                Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
+                Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames, formFieldNamesByFormId);
                 for (String token : usedTokens) {
                     if (!availableVars.contains(token)) {
-                        violations.add("GATEWAY node '" + node.getName() + "' condition references undeclared variable '{{"
+                        violations.add("A condição do nó GATEWAY '" + node.getName() + "' referencia variável não declarada '{{"
                                 + token + "}}'");
                     }
                 }
             }
         }
 
-        // REQ-03.09.011: output variable names must be unique across the whole journey
-        // (seenOutputNames already carries any startVariables names from the block above).
+        // REQ-03.09.011: nomes de variável de saída devem ser únicos em toda a jornada
+        // (seenOutputNames já carrega os nomes de startVariables do bloco acima). Os nomes de campo
+        // de formulário de uma USER_TASK agora compartilham esse mesmo namespace — dois campos
+        // alcançáveis com o mesmo nome tornariam um {{token}} que os referencia ambíguo sobre qual
+        // dos dois quer dizer. Isso foi cogitado e descartado: colocar um prefixo no token (ex.:
+        // formularioA.cpf) só funcionaria se o motor de runtime realmente gravasse o valor
+        // submetido sob essa chave prefixada — e a resolução de variáveis em runtime está fora do
+        // domínio deste portal (nota do REQ-03.09.012), então não há como confirmar isso daqui.
+        // Rejeitar a colisão como erro, igual já acontece pra choque de nome de outputMapping, não
+        // depende disso.
+        //
+        // ponytail: unicidade verificada em todo o fluxo (mesmo escopo que a checagem de
+        // outputMapping já usava), não restrita a quais nós realmente conseguem se alcançar — mais
+        // simples, e erra pro lado conservador (rejeita algum reuso de nome de campo que nunca
+        // colidiria de verdade em nenhum caminho real, ex.: o mesmo formulário reusado em dois
+        // ramos que nunca se reconvergem). Revisar se isso se mostrar restritivo demais na
+        // prática — restringir por alcançabilidade exigiria o mesmo BFS reverso que as checagens de
+        // {{token}} abaixo já fazem, rodado por par de nós em vez de uma vez só para o fluxo todo.
         for (FlowNode node : nodes) {
-            if (node.getConnectorConfig() == null) {
-                continue;
+            if (node.getConnectorConfig() != null) {
+                for (Map<String, Object> rule : outputMappingOf(node.getConnectorConfig())) {
+                    Object name = rule.get("name");
+                    if (name instanceof String s && !s.isBlank() && !seenOutputNames.add(s)) {
+                        violations.add("Variável de saída '" + s + "' foi declarada mais de uma vez no fluxo");
+                    }
+                }
             }
-            for (Map<String, Object> rule : outputMappingOf(node.getConnectorConfig())) {
-                Object name = rule.get("name");
-                if (name instanceof String s && !s.isBlank() && !seenOutputNames.add(s)) {
-                    violations.add("Output variable '" + s + "' is declared more than once in the flow");
+            if (node.getType() == FlowNodeType.USER_TASK && node.getFormId() != null) {
+                for (String fieldName : formFieldNamesByFormId.getOrDefault(node.getFormId(), List.of())) {
+                    if (!seenOutputNames.add(fieldName)) {
+                        violations.add("Variável de saída '" + fieldName + "' foi declarada mais de uma vez no fluxo");
+                    }
                 }
             }
         }
@@ -263,7 +288,7 @@ public final class FlowValidator {
             }
             for (FlowNode node : nodes) {
                 if (!reachableFromStart.contains(node.getId()) || !reachingEnd.contains(node.getId())) {
-                    violations.add("Node '" + node.getName() + "' is not on a continuous path between START and END");
+                    violations.add("Nó '" + node.getName() + "' não está em um caminho contínuo entre START e END");
                 }
             }
         }
@@ -353,11 +378,13 @@ public final class FlowValidator {
         return result;
     }
 
-    // Shared by every {{name}} check (connector config, gateway condition, USER_TASK message):
-    // the variables visible at `node` are the journey's startVariables plus every output-mapping
-    // name declared by an ancestor reachable backwards from it (REQ-03.09.013).
-    private static Set<String> availableVarsFor(FlowNode node, List<FlowNode> nodes,
-                                                 Map<String, List<String>> backward, Set<String> startVariableNames) {
+    // Shared by every {{name}} check (connector config, gateway condition, USER_TASK message): the
+    // variables visible at `node` are the journey's startVariables, every output-mapping name
+    // declared by an ancestor reachable backwards from it (REQ-03.09.013), and every field name of
+    // an ancestor USER_TASK's linked form — what the end user actually fills in becomes a process
+    // variable the same way a connector's outputMapping does.
+    private static Set<String> availableVarsFor(FlowNode node, List<FlowNode> nodes, Map<String, List<String>> backward,
+                                                  Set<String> startVariableNames, Map<UUID, List<String>> formFieldNamesByFormId) {
         Set<String> ancestorIds = bfs(node.getId(), backward);
         Set<String> availableVars = new HashSet<>(startVariableNames);
         for (FlowNode other : nodes) {
@@ -371,6 +398,9 @@ public final class FlowValidator {
                         availableVars.add(s);
                     }
                 }
+            }
+            if (other.getType() == FlowNodeType.USER_TASK && other.getFormId() != null) {
+                availableVars.addAll(formFieldNamesByFormId.getOrDefault(other.getFormId(), List.of()));
             }
         }
         return availableVars;

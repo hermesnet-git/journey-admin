@@ -7,7 +7,7 @@ public class FlowValidationException extends RuntimeException {
     private final List<String> violations;
 
     public FlowValidationException(List<String> violations) {
-        super("Flow is structurally invalid: " + String.join("; ", violations));
+        super("Fluxo estruturalmente inválido: " + String.join("; ", violations));
         this.violations = violations;
     }
 

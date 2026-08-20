@@ -1,4 +1,5 @@
 # Arquivos de compilação e artefatos
+.codex/
 target/
 build/
 out/

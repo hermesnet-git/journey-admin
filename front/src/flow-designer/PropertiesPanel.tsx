@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, X, RefreshCw, Play, Loader2, Braces } from 'lucide-react';
 import { useFlowTheme, type FlowColors } from './theme';
 import {
@@ -199,25 +200,66 @@ function groupByOrigin(variables: VariableOrigin[]): [string, VariableOrigin[]][
   return [...map.entries()];
 }
 
+// Mesma matemática com consciência de flip do computeDropdownRect acima, mas ancorada pela borda
+// DIREITA do gatilho em vez da esquerda — esse botão fica na ponta direita de uma linha de campo,
+// então crescer o popover a partir da borda direita (pra esquerda) evita que ele ultrapasse a borda
+// direita do painel, o que ancorar pela esquerda faria.
+function computeRightAnchoredRect(trigger: HTMLElement): { right: number; width: number; maxHeight: number; top?: number; bottom?: number } {
+  const r = trigger.getBoundingClientRect();
+  const margin = 8;
+  const gap = 4;
+  const spaceBelow = window.innerHeight - r.bottom - margin;
+  const spaceAbove = r.top - margin;
+  const placeBelow = spaceBelow >= spaceAbove;
+  const maxHeight = Math.min(260, Math.max(0, placeBelow ? spaceBelow : spaceAbove));
+  const right = window.innerWidth - r.right;
+  return placeBelow
+    ? { right, width: 220, maxHeight, top: r.bottom + gap }
+    : { right, width: 220, maxHeight, bottom: window.innerHeight - r.top + gap };
+}
+
 // Small "🔗" button placed next to any free-text field that may reference a variable (URL, header
 // value, body/params row value) — opens a popover of variables in scope, grouped by origin
 // (availableVariableOriginsAt), and inserts `{{nome}}` at the field's caret on selection. Reused
 // identically everywhere instead of one global "click a chip, insert wherever was last focused"
 // mechanism, which would need fragile cross-component focus tracking.
+//
+// Virou portal pro document.body pelo mesmo motivo do dropdown do FormSearchSelect: o container
+// rolável do PropertiesDock recorta qualquer coisa que não caiba no painel de ~300px de largura —
+// exatamente o que uma lista de variáveis, um item por nó ancestral, pode ultrapassar.
 export function VariablePickerButton({ variables, onInsert }: { variables: VariableOrigin[]; onInsert: (token: string) => void }) {
   const { c } = useFlowTheme();
   const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<{ right: number; width: number; maxHeight: number; top?: number; bottom?: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  function toggle() {
+    if (!open && buttonRef.current) setRect(computeRightAnchoredRect(buttonRef.current));
+    setOpen((o) => !o);
+  }
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
+      setOpen(false);
     }
-    window.addEventListener('mousedown', handleClick);
-    return () => window.removeEventListener('mousedown', handleClick);
+    function reposition() {
+      if (buttonRef.current) setRect(computeRightAnchoredRect(buttonRef.current));
+    }
+    // Fase de captura — o canvas do React Flow interrompe a propagação do mousedown pro próprio
+    // pan/drag, então um clique no canvas nunca chegaria a um listener na fase de bolha aqui.
+    window.addEventListener('mousedown', handleClick, true);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('mousedown', handleClick, true);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
   }, [open]);
 
   const groups = groupByOrigin(variables);
@@ -225,8 +267,9 @@ export function VariablePickerButton({ variables, onInsert }: { variables: Varia
   return (
     <div ref={containerRef} style={{ position: 'relative', flex: '0 0 auto' }}>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         title={variables.length === 0 ? 'Nenhuma variável disponível ainda' : 'Inserir variável'}
         disabled={variables.length === 0}
         style={{
@@ -245,57 +288,61 @@ export function VariablePickerButton({ variables, onInsert }: { variables: Varia
       >
         <Braces size={12} />
       </button>
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 'calc(100% + 4px)',
-            zIndex: 30,
-            minWidth: 200,
-            maxHeight: 260,
-            overflowY: 'auto',
-            background: c.cardBg,
-            border: `1px solid ${c.border}`,
-            borderRadius: 8,
-            boxShadow: '0 12px 32px -10px rgba(0,0,0,.25)',
-            padding: 6,
-          }}
-        >
-          {groups.map(([label, vars]) => (
-            <div key={label} style={{ marginBottom: 6 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: c.textSecondary, padding: '2px 6px' }}>{label}</div>
-              {vars.map((v) => (
-                <button
-                  key={v.name}
-                  type="button"
-                  onClick={() => {
-                    onInsert(`{{${v.name}}}`);
-                    setOpen(false);
-                  }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '4px 6px',
-                    border: 'none',
-                    background: 'transparent',
-                    color: c.textPrimary,
-                    fontSize: 12.5,
-                    fontFamily: 'monospace',
-                    cursor: 'pointer',
-                    borderRadius: 4,
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = c.canvasBg)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  {v.name}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+      {open &&
+        rect &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={{
+              position: 'fixed',
+              right: rect.right,
+              width: rect.width,
+              maxHeight: rect.maxHeight,
+              ...(rect.top !== undefined ? { top: rect.top } : { bottom: rect.bottom }),
+              zIndex: 2000,
+              overflowY: 'auto',
+              background: c.cardBg,
+              border: `1px solid ${c.border}`,
+              borderRadius: 8,
+              boxShadow: '0 12px 32px -10px rgba(0,0,0,.25)',
+              padding: 6,
+            }}
+          >
+            {groups.map(([label, vars]) => (
+              <div key={label} style={{ marginBottom: 6 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: c.textSecondary, padding: '2px 6px' }}>{label}</div>
+                {vars.map((v) => (
+                  <button
+                    key={v.name}
+                    type="button"
+                    onClick={() => {
+                      onInsert(`{{${v.name}}}`);
+                      setOpen(false);
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '4px 6px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: c.textPrimary,
+                      fontSize: 12.5,
+                      fontFamily: 'monospace',
+                      cursor: 'pointer',
+                      borderRadius: 4,
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = c.canvasBg)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {v.name}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -354,6 +401,197 @@ function VariableOriginsPanel({ variables }: { variables: VariableOrigin[] }) {
   );
 }
 
+interface DropdownRect {
+  left: number;
+  width: number;
+  maxHeight: number;
+  top?: number;
+  bottom?: number;
+}
+
+// Lê a posição atual do input na tela e escolhe o lado — abaixo ou acima — que tem mais espaço,
+// limitando o maxHeight exatamente ao que está disponível naquele lado. Sem piso mínimo: uma versão
+// anterior forçava pelo menos 120px mesmo quando havia menos que isso de verdade, o que era
+// exatamente o que deixava a caixa passar da borda de uma janela de navegador curta/não maximizada,
+// sem como rolar até o fim da lista — um piso que pode exceder o espaço que ele mesmo está medindo
+// anula o propósito de medir o espaço disponível. "Acima" é ancorado via `bottom` (distância da
+// borda inferior da viewport) em vez de calcular uma altura explícita de antemão, então cresce pra
+// cima conforme conteúdo é adicionado, do mesmo jeito que cresce pra baixo quando fica embaixo.
+function computeDropdownRect(input: HTMLElement): DropdownRect {
+  const r = input.getBoundingClientRect();
+  const margin = 8;
+  const gap = 4;
+  const spaceBelow = window.innerHeight - r.bottom - margin;
+  const spaceAbove = r.top - margin;
+  const width = Math.max(r.width, 220);
+  const placeBelow = spaceBelow >= spaceAbove;
+  const maxHeight = Math.min(240, Math.max(0, placeBelow ? spaceBelow : spaceAbove));
+  return placeBelow
+    ? { left: r.left, width, top: r.bottom + gap, maxHeight }
+    : { left: r.left, width, bottom: window.innerHeight - r.top + gap, maxHeight };
+}
+
+// Seletor de formulário pesquisável: o input de texto filtra a lista de formulários conforme o
+// usuário digita (substring no nome), dropdown embaixo pra escolher. Estilizado com gridInputStyle
+// pra combinar com todo outro campo deste painel — um <select> simples não tem como filtrar
+// conforme a lista de formulários cresce.
+//
+// O dropdown virou portal pro document.body (position: fixed, coordenadas lidas do
+// getBoundingClientRect do próprio input — mesma técnica que o ErrorDetailsModal já usa pelo mesmo
+// motivo) em vez de posicionado como absolute dentro do painel: o container rolável do
+// PropertiesDock tem `overflow-x: hidden` (e rola em Y), o que recorta qualquer popover dentro do
+// painel maior/mais alto que a fresta de espaço que sobra num painel lateral de ~300px de largura —
+// nenhum ajuste de left/right/width escapa do recorte de overflow de um ancestral, só realmente sair
+// dele resolve. Fica aberto e reacompanha a posição do input no scroll/resize em vez de fechar, já
+// que fechar não deixava como reabrir sem tirar e devolver o foco (o gatilho era só por foco, e o
+// input continua focado durante um scroll).
+function FormSearchSelect({
+  forms,
+  value,
+  onChange,
+  onRefresh,
+  onOpenNew,
+}: {
+  forms: Form[];
+  value: string | null;
+  onChange: (formId: string | null) => void;
+  onRefresh: () => void;
+  onOpenNew: () => void;
+}) {
+  const { c } = useFlowTheme();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [rect, setRect] = useState<DropdownRect | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const selected = forms.find((f) => f.formId === value) ?? null;
+
+  function openDropdown() {
+    if (inputRef.current) setRect(computeDropdownRect(inputRef.current));
+    setOpen(true);
+    setQuery('');
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
+      setOpen(false);
+      setQuery('');
+    }
+    function reposition() {
+      if (inputRef.current) setRect(computeDropdownRect(inputRef.current));
+    }
+    // Fase de captura — mesmo motivo do VariablePickerButton acima: o canvas do React Flow
+    // interrompe a propagação do mousedown pro próprio pan/drag.
+    window.addEventListener('mousedown', handleClick, true);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('mousedown', handleClick, true);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [open]);
+
+  const filtered = query.trim()
+    ? forms.filter((f) => f.name.toLowerCase().includes(query.trim().toLowerCase()))
+    : forms;
+
+  const itemStyle: React.CSSProperties = {
+    display: 'block',
+    width: '100%',
+    textAlign: 'left',
+    padding: '6px 8px',
+    border: 'none',
+    background: 'transparent',
+    fontSize: 12.5,
+    cursor: 'pointer',
+    borderRadius: 5,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  };
+
+  return (
+    <div ref={containerRef} style={{ display: 'flex', gap: 4, width: '100%' }}>
+      <input
+        ref={inputRef}
+        style={{ ...gridInputStyle(c), cursor: 'text', flex: 1 }}
+        value={open ? query : (selected?.name ?? '')}
+        placeholder={selected ? undefined : 'Nenhum'}
+        onFocus={openDropdown}
+        onMouseDown={openDropdown}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <MiniIconButton onClick={onRefresh} title="Atualizar lista de formulários">
+        <RefreshCw size={13} />
+      </MiniIconButton>
+      <MiniIconButton onClick={onOpenNew} title="Novo formulário">
+        <Plus size={13} />
+      </MiniIconButton>
+      {open &&
+        rect &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={{
+              position: 'fixed',
+              left: rect.left,
+              ...(rect.top !== undefined ? { top: rect.top } : { bottom: rect.bottom }),
+              width: rect.width,
+              zIndex: 2000,
+              maxHeight: rect.maxHeight,
+              overflowY: 'auto',
+              background: c.cardBg,
+              border: `1px solid ${c.border}`,
+              borderRadius: 8,
+              boxShadow: '0 12px 32px -10px rgba(0,0,0,.35)',
+              padding: 4,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                onChange(null);
+                setOpen(false);
+                setQuery('');
+              }}
+              style={{ ...itemStyle, color: c.textSecondary, borderBottom: `1px solid ${c.border}`, marginBottom: 2, borderRadius: 0 }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              Nenhum
+            </button>
+            {filtered.length === 0 && (
+              <div style={{ padding: '6px 8px', fontSize: 12, color: c.textSecondary }}>Nenhum formulário encontrado</div>
+            )}
+            {filtered.map((f) => (
+              <button
+                key={f.formId}
+                type="button"
+                onClick={() => {
+                  onChange(f.formId);
+                  setOpen(false);
+                  setQuery('');
+                }}
+                title={f.name}
+                style={{ ...itemStyle, color: c.textPrimary, fontWeight: f.formId === value ? 600 : 400 }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                {f.name}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+
 // Content only — PropertiesDock owns the panel chrome (width, collapse,
 // resize, header).
 export function PropertiesPanel({
@@ -392,7 +630,7 @@ export function PropertiesPanel({
   // headers/body pickers) — same data, two presentations. userTask also needs it for the
   // formless-step message's variable picker (REQ-04.01.005).
   const connectorVariableOrigins =
-    isConnectorNode || node.type === 'userTask' ? availableVariableOriginsAt(node.id, allNodes, allEdges) : [];
+    isConnectorNode || node.type === 'userTask' ? availableVariableOriginsAt(node.id, allNodes, allEdges, forms) : [];
   const messageTextRef = useRef<HTMLTextAreaElement>(null);
 
   return (
@@ -429,26 +667,13 @@ export function PropertiesPanel({
         <Section title="Formulário" open={formOpen} onToggle={() => setFormOpen((o) => !o)}>
           <PropertyGrid>
             <PropertyRow label="Formulário" first>
-              <div style={{ display: 'flex', gap: 4, width: '100%' }}>
-                <select
-                  style={{ ...gridInputStyle(c), cursor: 'pointer', flex: 1 }}
-                  value={data.formId ?? ''}
-                  onChange={(e) => onUpdate({ formId: e.target.value || null })}
-                >
-                  <option value="">Nenhum</option>
-                  {forms.map((f) => (
-                    <option key={f.formId} value={f.formId}>
-                      {f.name}
-                    </option>
-                  ))}
-                </select>
-                <MiniIconButton onClick={onRefreshForms} title="Atualizar lista de formulários">
-                  <RefreshCw size={13} />
-                </MiniIconButton>
-                <MiniIconButton onClick={onOpenNewForm} title="Novo formulário">
-                  <Plus size={13} />
-                </MiniIconButton>
-              </div>
+              <FormSearchSelect
+                forms={forms}
+                value={data.formId ?? null}
+                onChange={(formId) => onUpdate({ formId })}
+                onRefresh={onRefreshForms}
+                onOpenNew={onOpenNewForm}
+              />
             </PropertyRow>
             {!data.formId && (
               <PropertyRow label="Mensagem exibida ao usuário">
@@ -502,7 +727,7 @@ export function PropertiesPanel({
             nodeId={node.id}
             allNodes={allNodes}
             allEdges={allEdges}
-            availableRules={availableVariableRulesAt(node.id, allNodes, allEdges)}
+            availableRules={availableVariableRulesAt(node.id, allNodes, allEdges, forms)}
             onUpdateEdge={onUpdateEdge}
           />
         </Section>

@@ -518,7 +518,7 @@ function FieldCard({
   );
 }
 
-function FormPreview({ name, description, fields }: { name: string; description: string; fields: FormField[] }) {
+export function FormPreview({ name, description, fields }: { name: string; description: string; fields: FormField[] }) {
   const { colors: c } = useAppTheme();
   return (
     <div className="flex flex-col gap-4 rounded-lg border p-4" style={{ borderColor: c.border, background: c.bg }}>

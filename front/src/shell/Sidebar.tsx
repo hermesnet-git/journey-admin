@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   GitBranch,
   LayoutDashboard,
@@ -14,11 +14,14 @@ import {
   ChevronsRight,
   ShieldCheck,
   Info,
+  LogOut,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAppTheme } from './theme';
 import { useAuth } from '../auth/AuthContext';
+import type { AuthSession } from '../api/auth';
 import { APP_NAME, APP_VERSION } from './appInfo';
+import { ConfirmDialog } from '../products/ConfirmDialog';
 
 interface NavItem {
   key: string;
@@ -99,14 +102,7 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
           >
             <Info size={15} />
           </button>
-          <button
-            onClick={logout}
-            title={user ? `${user.username} (${user.role}) · Sair` : 'Sair'}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0 cursor-pointer border-0"
-            style={{ background: c.accent }}
-          >
-            {initials}
-          </button>
+          <UserMenu collapsed user={user} logout={logout} initials={initials} />
           <button
             onClick={() => setCollapsed(false)}
             title="Expandir menu"
@@ -174,11 +170,72 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
           <HelpCircle size={15} />
           Ajuda e suporte
         </button>
+        <UserMenu user={user} logout={logout} initials={initials} />
+        <button
+          onClick={() => onNavigate('sobre')}
+          className="text-center text-[10px] pt-2 cursor-pointer border-0 bg-transparent"
+          style={{ color: c.textMuted }}
+        >
+          <span style={{ color: c.accent }}>Sobre</span> · {APP_NAME} · {APP_VERSION}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Clicar no avatar/linha do usuário não desloga mais direto — abre um pequeno
+// menu (mesmo padrão de popover + clique-fora do FilterDropdown) com uma única
+// ação "Sair", que aí sim pede confirmação antes de deslogar de verdade.
+// Segue o padrão de apps tipo Slack/Notion/Linear, que colocam o logout atrás
+// de um menu + confirmação em vez de um único clique acidental.
+function UserMenu({
+  collapsed = false,
+  user,
+  logout,
+  initials,
+}: {
+  collapsed?: boolean;
+  user: AuthSession | null;
+  logout: () => void;
+  initials: string;
+}) {
+  const { colors: c } = useAppTheme();
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('mousedown', handleClick);
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      window.removeEventListener('mousedown', handleClick);
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      {collapsed ? (
+        <button
+          onClick={() => setOpen((o) => !o)}
+          title={user ? `${user.username} (${user.role})` : undefined}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0 cursor-pointer border-0"
+          style={{ background: c.accent }}
+        >
+          {initials}
+        </button>
+      ) : (
         <div
-          className="flex items-center justify-between gap-[10px] p-[10px] border-t mt-[6px] cursor-pointer"
-          style={{ borderColor: c.border }}
-          onClick={logout}
-          title="Sair"
+          className="flex items-center justify-between gap-[10px] p-[10px] border-t mt-[6px] cursor-pointer rounded-md"
+          style={{ borderColor: c.border, background: open ? c.activeBg : 'transparent' }}
+          onClick={() => setOpen((o) => !o)}
         >
           <div className="flex items-center gap-[10px] min-w-0">
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0" style={{ background: c.accent }}>
@@ -193,16 +250,63 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
               </div>
             </div>
           </div>
-          <ChevronDown size={14} className="shrink-0" style={{ color: c.textMuted }} />
+          <ChevronDown
+            size={14}
+            className="shrink-0 transition-transform"
+            style={{ color: c.textMuted, transform: open ? 'rotate(180deg)' : undefined }}
+          />
         </div>
-        <button
-          onClick={() => onNavigate('sobre')}
-          className="text-center text-[10px] pt-2 cursor-pointer border-0 bg-transparent"
-          style={{ color: c.textMuted }}
+      )}
+
+      {open && (
+        <div
+          className="absolute z-30 w-[200px] rounded-lg p-1 flex flex-col"
+          style={{
+            background: c.surface,
+            border: `1px solid ${c.border}`,
+            boxShadow: `0 12px 32px -8px ${c.shadow}`,
+            ...(collapsed ? { left: 'calc(100% + 8px)', bottom: 0 } : { left: 0, right: 0, bottom: 'calc(100% + 6px)' }),
+          }}
         >
-          <span style={{ color: c.accent }}>Sobre</span> · {APP_NAME} · {APP_VERSION}
-        </button>
-      </div>
+          <div className="px-[10px] py-[8px] min-w-0">
+            <div className="text-[12.5px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.textPrimary }}>
+              {user?.username}
+            </div>
+            <div className="text-[11px] whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.textMuted }}>
+              {user?.role}
+            </div>
+          </div>
+          <div className="h-px my-1" style={{ background: c.border }} />
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              setConfirming(true);
+            }}
+            className="flex items-center gap-[8px] px-[10px] py-[8px] rounded-md text-[13px] text-left cursor-pointer border-0 bg-transparent"
+            style={{ color: c.danger }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = c.dangerSoft)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <LogOut size={14} />
+            Sair
+          </button>
+        </div>
+      )}
+
+      {confirming && (
+        <ConfirmDialog
+          title="Sair da conta"
+          message="Tem certeza que deseja sair? Você será desconectado e precisará entrar novamente para continuar."
+          confirmLabel="Sair"
+          cancelLabel="Cancelar"
+          onConfirm={() => {
+            setConfirming(false);
+            logout();
+          }}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
     </div>
   );
 }

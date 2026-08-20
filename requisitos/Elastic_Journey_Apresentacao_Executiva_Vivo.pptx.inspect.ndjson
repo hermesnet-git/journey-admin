@@ -1,0 +1,489 @@
+{"kind":"deck","id":"pr/jyvf9p","name":"Deck"}
+{"kind":"layout","layoutId":"920b55e7-292d-40dd-ba0d-f0f60b769212","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"971d81ae-055c-42fa-9251-ecfdd945c1f3","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/98945n","slide":1,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":5}
+{"kind":"shape","id":"sh/ovuto76l","slide":1,"bbox":[0,0,1280,720]}
+{"kind":"textbox","id":"sh/ahcbqhob","slide":1,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[144,65,600,26]}
+{"kind":"textbox","id":"sh/bilczm5w","slide":1,"text":"Elastic Journey","textPreview":"Elastic Journey","textChars":15,"textLines":1,"bbox":[72,186,700,92]}
+{"kind":"textbox","id":"sh/wjudsr6h","slide":1,"text":"Menos complexidade.\nMais velocidade para inovar.","textPreview":"Menos complexidade. | Mais velocidade para inovar.","textChars":48,"textLines":2,"bbox":[72,290,665,132]}
+{"kind":"shape","id":"sh/xk3u1cn2","slide":1,"bbox":[72,472,134,5]}
+{"kind":"textbox","id":"sh/q18bedo7","slide":1,"text":"Arquitetura, valor e prontidão do Admin Portal","textPreview":"Arquitetura, valor e prontidão do Admin Portal","textChars":46,"textLines":1,"bbox":[72,495,620,38]}
+{"kind":"textbox","id":"sh/rmhcni5s","slide":1,"text":"20 de agosto de 2026","textPreview":"20 de agosto de 2026","textChars":20,"textLines":1,"bbox":[72,643,360,26]}
+{"kind":"image","id":"im/u1szqd0b","slide":1,"name":"","alt":"Fluxos abstratos convergindo em uma rota central","bbox":[0,0,1280,720]}
+{"kind":"image","id":"im/w3uhsni1","slide":1,"name":"","alt":"Marca Vivo","bbox":[72,48,54,54]}
+{"kind":"notes","id":"nt/98945n","slide":1,"text":"Abra pela decisão de negócio: reduzir o custo de experimentar e evoluir jornadas digitais sem abrir mão de controle. A apresentação mostra a escolha arquitetural, o valor e os gates de produção.\n\n[Sources]\n- Mística Vivo Evolution palette: front/node_modules/@telefonica/mistica/src/skins/vivo-evolution.tsx\n- Mística Vivo logo source: front/node_modules/@telefonica/mistica/src/logo-vivo.tsx\n- Generated background prompt: abstract converging digital journey ribbons; built-in image generation; no text or logo\n[/Sources]"}
+{"kind":"slide","id":"sl/eitqpe","slide":2,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":19}
+{"kind":"textbox","id":"sh/0vutkbax","slide":2,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[72,26,620,24]}
+{"kind":"shape","id":"sh/etcbi1sr","slide":2,"bbox":[72,681,1136,1]}
+{"kind":"textbox","id":"sh/ds3apwb6","slide":2,"text":"Elastic Journey • Admin Portal","textPreview":"Elastic Journey • Admin Portal","textChars":30,"textLines":1,"bbox":[72,690,380,18]}
+{"kind":"textbox","id":"sh/srutgra1","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1160,688,48,20]}
+{"kind":"textbox","id":"sh/rq1snmtg","slide":2,"text":"A decisão não é entre velocidade e governança —\né onde colocar a complexidade.","textPreview":"A decisão não é entre velocidade e governança — | é onde colocar a complexidade.","textChars":78,"textLines":2,"bbox":[72,59,1092,100]}
+{"kind":"textbox","id":"sh/q5sbehsv","slide":2,"text":"Centralize jornada, estado e experiência. Mantenha a integração simples por padrão.","textPreview":"Centralize jornada, estado e experiência. Mantenha a integração simples por padrão.","textChars":83,"textLines":1,"bbox":[72,180,1100,58]}
+{"kind":"shape","id":"sh/54jalcba","slide":2,"bbox":[94,324,1060,3]}
+{"kind":"shape","id":"sh/43atc7ap","slide":2,"bbox":[72,282,84,84]}
+{"kind":"textbox","id":"sh/6xg3itkv","slide":2,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,283,84,82]}
+{"kind":"textbox","id":"sh/7ipkry1g","slide":2,"text":"Dor","textPreview":"Dor","textChars":3,"textLines":1,"bbox":[72,386,240,34]}
+{"kind":"textbox","id":"sh/sjylk321","slide":2,"text":"Cada canal replica regras, estado, telas e integrações.","textPreview":"Cada canal replica regras, estado, telas e integrações.","textChars":55,"textLines":1,"bbox":[72,427,244,94]}
+{"kind":"shape","id":"sh/tk7mt8jm","slide":2,"bbox":[354,282,84,84]}
+{"kind":"textbox","id":"sh/itg3e9kz","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[354,283,84,82]}
+{"kind":"textbox","id":"sh/jupkne1k","slide":2,"text":"Escolha","textPreview":"Escolha","textChars":7,"textLines":1,"bbox":[354,386,240,34]}
+{"kind":"textbox","id":"sh/kvylgj25","slide":2,"text":"Elastic Journey concentra orquestração e SDUI.","textPreview":"Elastic Journey concentra orquestração e SDUI.","textChars":46,"textLines":1,"bbox":[354,427,244,94]}
+{"kind":"shape","id":"sh/5w72poja","slide":2,"bbox":[636,282,84,84]}
+{"kind":"textbox","id":"sh/apw3a9kn","slide":2,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[636,283,84,82]}
+{"kind":"textbox","id":"sh/vq5kje18","slide":2,"text":"Resultado","textPreview":"Resultado","textChars":9,"textLines":1,"bbox":[636,386,240,34]}
+{"kind":"textbox","id":"sh/zul0bah0","slide":2,"text":"Reuso, consistência e menor superfície operacional.","textPreview":"Reuso, consistência e menor superfície operacional.","textChars":51,"textLines":1,"bbox":[636,427,244,94]}
+{"kind":"shape","id":"sh/ytszi50f","slide":2,"bbox":[918,282,84,84]}
+{"kind":"textbox","id":"sh/lw3idkz6","slide":2,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[918,283,84,82]}
+{"kind":"textbox","id":"sh/0vuhkfil","slide":2,"text":"Situação","textPreview":"Situação","textChars":8,"textLines":1,"bbox":[918,386,240,34]}
+{"kind":"textbox","id":"sh/nyl0fahc","slide":2,"text":"90% dos requisitos concluídos; industrialização em aberto.","textPreview":"90% dos requisitos concluídos; industrialização em aberto.","textChars":58,"textLines":1,"bbox":[918,427,244,94]}
+{"kind":"shape","id":"sh/mxcjm50r","slide":2,"bbox":[72,579,1136,64]}
+{"kind":"textbox","id":"sh/903ihkz2","slide":2,"text":"Tese executiva","textPreview":"Tese executiva","textChars":14,"textLines":1,"bbox":[94,595,180,30]}
+{"kind":"textbox","id":"sh/8zu1ofix","slide":2,"text":"A plataforma já demonstra valor funcional; o próximo investimento deve transformar essa prova em capacidade corporativa.","textPreview":"A plataforma já demonstra valor funcional; o próximo investimento deve transformar essa prova em capacidade corporativa.","textChars":120,"textLines":1,"bbox":[268,592,908,38]}
+{"kind":"image","id":"im/mdovqxg3","slide":2,"name":"","alt":"Marca Vivo","bbox":[1173,18,36,36]}
+{"kind":"notes","id":"nt/eitqpe","slide":2,"text":"Use este slide como resumo da recomendação. A mensagem central é deslocar a complexidade para uma plataforma reutilizável e impedir que integrações simples herdem uma camada ACL sem necessidade real.\n\n[Sources]\n- User-provided images: as is.png, comparativo.png, over.png, tobe.png\n- requisitos/admin/progresso.md — resumo de progresso da versão 1.0.0\n- requisitos/admin/ej-admin-arquitetura-logica.md — fronteiras e responsabilidades\n[/Sources]"}
+{"kind":"slide","id":"sl/z94cp7","slide":3,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":44}
+{"kind":"textbox","id":"sh/507i94vm","slide":3,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[72,26,620,24]}
+{"kind":"shape","id":"sh/3yp07udw","slide":3,"bbox":[72,681,1136,1]}
+{"kind":"textbox","id":"sh/snih4zud","slide":3,"text":"Elastic Journey • Admin Portal","textPreview":"Elastic Journey • Admin Portal","textChars":30,"textLines":1,"bbox":[72,690,380,18]}
+{"kind":"textbox","id":"sh/dorid4vy","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1160,688,48,20]}
+{"kind":"textbox","id":"sh/q10z2pc7","slide":3,"text":"Hoje, cada novo canal replica a operação inteira.","textPreview":"Hoje, cada novo canal replica a operação inteira.","textChars":49,"textLines":1,"bbox":[72,59,1092,86]}
+{"kind":"textbox","id":"sh/rm90buds","slide":3,"text":"A escala adiciona alcance — e também duplica lógica, manutenção e risco.","textPreview":"A escala adiciona alcance — e também duplica lógica, manutenção e risco.","textChars":72,"textLines":1,"bbox":[72,148,1060,45]}
+{"kind":"shape","id":"sh/0rih8ju9","slide":3,"bbox":[156,212,42,42]}
+{"kind":"textbox","id":"sh/1srihovu","slide":3,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[156,214,42,36]}
+{"kind":"textbox","id":"sh/9c3ax47e","slide":3,"text":"App","textPreview":"App","textChars":3,"textLines":1,"bbox":[76,263,202,28]}
+{"kind":"shape","id":"sh/8butoz6t","slide":3,"bbox":[76,306,202,29]}
+{"kind":"textbox","id":"sh/nalsvup8","slide":3,"text":"Orquestração","textPreview":"Orquestração","textChars":12,"textLines":1,"bbox":[82,310,190,20]}
+{"kind":"shape","id":"sh/m9cbmpon","slide":3,"bbox":[76,345,202,29]}
+{"kind":"textbox","id":"sh/x0na147q","slide":3,"text":"Regras","textPreview":"Regras","textChars":6,"textLines":1,"bbox":[82,349,190,20]}
+{"kind":"shape","id":"sh/wzetsz65","slide":3,"bbox":[76,384,202,29]}
+{"kind":"textbox","id":"sh/ve5szepk","slide":3,"text":"Estado","textPreview":"Estado","textChars":6,"textLines":1,"bbox":[82,388,190,20]}
+{"kind":"shape","id":"sh/adcbq9oz","slide":3,"bbox":[76,423,202,29]}
+{"kind":"textbox","id":"sh/d4japk76","slide":3,"text":"Telas","textPreview":"Telas","textChars":5,"textLines":1,"bbox":[82,427,190,20]}
+{"kind":"shape","id":"sh/c3atgf6l","slide":3,"bbox":[76,462,202,29]}
+{"kind":"textbox","id":"sh/4zy1sjit","slide":3,"text":"Integração","textPreview":"Integração","textChars":10,"textLines":1,"bbox":[82,466,190,20]}
+{"kind":"shape","id":"sh/p072loje","slide":3,"bbox":[174,501,6,28]}
+{"kind":"shape","id":"sh/2xwjq90n","slide":3,"bbox":[381,212,42,42]}
+{"kind":"textbox","id":"sh/3ypkje18","slide":3,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[381,214,42,36]}
+{"kind":"textbox","id":"sh/c3ylwjip","slide":3,"text":"Portal Web","textPreview":"Portal Web","textChars":10,"textLines":1,"bbox":[301,263,202,28]}
+{"kind":"shape","id":"sh/d472poja","slide":3,"bbox":[301,306,202,29]}
+{"kind":"textbox","id":"sh/q1gju90z","slide":3,"text":"Orquestração","textPreview":"Orquestração","textChars":12,"textLines":1,"bbox":[307,310,190,20]}
+{"kind":"shape","id":"sh/b2pkne1k","slide":3,"bbox":[301,345,202,29]}
+{"kind":"textbox","id":"sh/0ril03i1","slide":3,"text":"Regras","textPreview":"Regras","textChars":6,"textLines":1,"bbox":[307,349,190,20]}
+{"kind":"shape","id":"sh/lsr2t8jm","slide":3,"bbox":[301,384,202,29]}
+{"kind":"textbox","id":"sh/vmt4j2lo","slide":3,"text":"Estado","textPreview":"Estado","textChars":6,"textLines":1,"bbox":[307,388,190,20]}
+{"kind":"shape","id":"sh/alknqxk3","slide":3,"bbox":[301,423,202,29]}
+{"kind":"textbox","id":"sh/xovmls3u","slide":3,"text":"Telas","textPreview":"Telas","textChars":5,"textLines":1,"bbox":[307,427,190,20]}
+{"kind":"shape","id":"sh/wn25s729","slide":3,"bbox":[301,462,202,29]}
+{"kind":"textbox","id":"sh/nyt4fils","slide":3,"text":"Integração","textPreview":"Integração","textChars":10,"textLines":1,"bbox":[307,466,190,20]}
+{"kind":"shape","id":"sh/mxknmdk7","slide":3,"bbox":[399,501,6,28]}
+{"kind":"shape","id":"sh/9kbmhs3i","slide":3,"bbox":[606,212,42,42]}
+{"kind":"textbox","id":"sh/8z25on2x","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[606,214,42,36]}
+{"kind":"textbox","id":"sh/7udormlw","slide":3,"text":"WhatsApp","textPreview":"WhatsApp","textChars":8,"textLines":1,"bbox":[526,263,202,28]}
+{"kind":"shape","id":"sh/6t4nyhkb","slide":3,"bbox":[526,306,202,29]}
+{"kind":"textbox","id":"sh/e1krm1gf","slide":3,"text":"Orquestração","textPreview":"Orquestração","textChars":12,"textLines":1,"bbox":[532,310,190,20]}
+{"kind":"shape","id":"sh/f2t8v6h0","slide":3,"bbox":[526,345,202,29]}
+{"kind":"textbox","id":"sh/g3m9obyl","slide":3,"text":"Regras","textPreview":"Regras","textChars":6,"textLines":1,"bbox":[532,349,190,20]}
+{"kind":"shape","id":"sh/14vqhgz6","slide":3,"bbox":[526,384,202,29]}
+{"kind":"textbox","id":"sh/6xkri1gj","slide":3,"text":"Estado","textPreview":"Estado","textChars":6,"textLines":1,"bbox":[532,388,190,20]}
+{"kind":"shape","id":"sh/ryt8r6h4","slide":3,"bbox":[526,423,202,29]}
+{"kind":"textbox","id":"sh/sz29kbyp","slide":3,"text":"Telas","textPreview":"Telas","textChars":5,"textLines":1,"bbox":[532,427,190,20]}
+{"kind":"shape","id":"sh/t0bqtwza","slide":3,"bbox":[526,462,202,29]}
+{"kind":"textbox","id":"sh/qt4rulgn","slide":3,"text":"Integração","textPreview":"Integração","textChars":10,"textLines":1,"bbox":[532,466,190,20]}
+{"kind":"shape","id":"sh/buxsnqh8","slide":3,"bbox":[624,501,6,28]}
+{"kind":"shape","id":"sh/lozutkja","slide":3,"bbox":[831,212,42,42]}
+{"kind":"textbox","id":"sh/knqtkzi5","slide":3,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[831,214,42,36]}
+{"kind":"textbox","id":"sh/zmhcru1k","slide":3,"text":"PDV","textPreview":"PDV","textChars":3,"textLines":1,"bbox":[751,263,202,28]}
+{"kind":"shape","id":"sh/y1obip0z","slide":3,"bbox":[751,306,202,29]}
+{"kind":"textbox","id":"sh/d0fupkje","slide":3,"text":"Orquestração","textPreview":"Orquestração","textChars":12,"textLines":1,"bbox":[757,310,190,20]}
+{"kind":"shape","id":"sh/cz6tgfit","slide":3,"bbox":[751,345,202,29]}
+{"kind":"textbox","id":"sh/byxsna18","slide":3,"text":"Regras","textPreview":"Regras","textChars":6,"textLines":1,"bbox":[757,349,190,20]}
+{"kind":"shape","id":"sh/qxobe50n","slide":3,"bbox":[751,384,202,29]}
+{"kind":"textbox","id":"sh/hwju14ji","slide":3,"text":"Estado","textPreview":"Estado","textChars":6,"textLines":1,"bbox":[757,388,190,20]}
+{"kind":"shape","id":"sh/wvatsjix","slide":3,"bbox":[751,423,202,29]}
+{"kind":"textbox","id":"sh/gb25k7ul","slide":3,"text":"Telas","textPreview":"Telas","textChars":5,"textLines":1,"bbox":[757,427,190,20]}
+{"kind":"shape","id":"sh/1cbmdcv6","slide":3,"bbox":[751,462,202,29]}
+{"kind":"textbox","id":"sh/e90nihcf","slide":3,"text":"Integração","textPreview":"Integração","textChars":10,"textLines":1,"bbox":[757,466,190,20]}
+{"kind":"shape","id":"sh/fa94b2d0","slide":3,"bbox":[849,501,6,28]}
+{"kind":"shape","id":"sh/s7i5g7u9","slide":3,"bbox":[1056,212,42,42]}
+{"kind":"textbox","id":"sh/t8rm9cvu","slide":3,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1056,214,42,36]}
+{"kind":"textbox","id":"sh/650nexcj","slide":3,"text":"Atendimento","textPreview":"Atendimento","textChars":11,"textLines":1,"bbox":[976,263,202,28]}
+{"kind":"shape","id":"sh/r69472d4","slide":3,"bbox":[976,306,202,29]}
+{"kind":"textbox","id":"sh/4ji5cnud","slide":3,"text":"Orquestração","textPreview":"Orquestração","textChars":12,"textLines":1,"bbox":[982,310,190,20]}
+{"kind":"shape","id":"sh/54rm5svy","slide":3,"bbox":[976,345,202,29]}
+{"kind":"textbox","id":"sh/7epofixk","slide":3,"text":"Regras","textPreview":"Regras","textChars":6,"textLines":1,"bbox":[982,349,190,20]}
+{"kind":"shape","id":"sh/mdgnmdwz","slide":3,"bbox":[976,384,202,29]}
+{"kind":"textbox","id":"sh/9g76hsfq","slide":3,"text":"Estado","textPreview":"Estado","textChars":6,"textLines":1,"bbox":[982,388,190,20]}
+{"kind":"shape","id":"sh/8fy5one5","slide":3,"bbox":[976,423,202,29]}
+{"kind":"textbox","id":"sh/v2poj2xw","slide":3,"text":"Telas","textPreview":"Telas","textChars":5,"textLines":1,"bbox":[982,427,190,20]}
+{"kind":"shape","id":"sh/uhgnqxwb","slide":3,"bbox":[976,462,202,29]}
+{"kind":"textbox","id":"sh/h4r6lcf2","slide":3,"text":"Integração","textPreview":"Integração","textChars":10,"textLines":1,"bbox":[982,466,190,20]}
+{"kind":"shape","id":"sh/w3y5s7eh","slide":3,"bbox":[1074,501,6,28]}
+{"kind":"shape","id":"sh/j69on2xs","slide":3,"bbox":[72,529,1136,58]}
+{"kind":"textbox","id":"sh/i50nuxw7","slide":3,"text":"Sistemas corporativos","textPreview":"Sistemas corporativos","textChars":21,"textLines":1,"bbox":[94,544,250,28]}
+{"kind":"textbox","id":"sh/qtgri1cr","slide":3,"text":"CRM     ERP     Billing     Catálogo     Legado","textPreview":"CRM     ERP     Billing     Catálogo     Legado","textChars":47,"textLines":1,"bbox":[360,544,800,28]}
+{"kind":"textbox","id":"sh/rupsr6tc","slide":3,"text":"Uma mudança de jornada se multiplica por canal.","textPreview":"Uma mudança de jornada se multiplica por canal.","textChars":47,"textLines":1,"bbox":[72,611,560,34]}
+{"kind":"textbox","id":"sh/sfy9kbuh","slide":3,"text":"Time to market mais lento  •  TCO maior  •  experiência inconsistente  •  menor foco em inovação","textPreview":"Time to market mais lento  •  TCO maior  •  experiência inconsistente  •  menor foco em inovação","textChars":96,"textLines":1,"bbox":[610,613,598,38]}
+{"kind":"image","id":"im/b6hw7m5g","slide":3,"name":"","alt":"Marca Vivo","bbox":[1173,18,36,36]}
+{"kind":"notes","id":"nt/z94cp7","slide":3,"text":"A dor não é ter vários canais; é cada canal possuir sua própria mini-plataforma. Quanto mais canais, maior a coordenação de mudanças e maior a probabilidade de divergência da experiência.\n\n[Sources]\n- User-provided image: as is.png\n- requisitos/admin/ej-admin-index.md — papel do Admin Portal e cardinalidade por canal\n[/Sources]"}
+{"kind":"slide","id":"sl/fvx6fe","slide":4,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":21}
+{"kind":"textbox","id":"sh/bup4rato","slide":4,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[72,26,620,24]}
+{"kind":"shape","id":"sh/xw7mtkbu","slide":4,"bbox":[72,681,1136,1]}
+{"kind":"textbox","id":"sh/yxg3mpsf","slide":4,"text":"Elastic Journey • Admin Portal","textPreview":"Elastic Journey • Admin Portal","textChars":30,"textLines":1,"bbox":[72,690,380,18]}
+{"kind":"textbox","id":"sh/jyp4vut0","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1160,688,48,20]}
+{"kind":"textbox","id":"sh/kzylozal","slide":4,"text":"O custo escondido está nos handoffs, não na chamada REST.","textPreview":"O custo escondido está nos handoffs, não na chamada REST.","textChars":57,"textLines":1,"bbox":[72,59,1092,86]}
+{"kind":"textbox","id":"sh/l0rmx4bq","slide":4,"text":"Adicionar mensageria e ACL a uma integração síncrona amplia a superfície operacional sem criar valor por si só.","textPreview":"Adicionar mensageria e ACL a uma integração síncrona amplia a superfície operacional sem criar valor por si só.","textChars":111,"textLines":1,"bbox":[72,148,1060,45]}
+{"kind":"shape","id":"sh/6l0nqpsb","slide":4,"bbox":[252,267,42,18]}
+{"kind":"shape","id":"sh/7m94zutw","slide":4,"bbox":[460,267,42,18]}
+{"kind":"shape","id":"sh/nu10fyxg","slide":4,"bbox":[668,267,42,18]}
+{"kind":"shape","id":"sh/mtszmtgv","slide":4,"bbox":[232,448,36,16]}
+{"kind":"shape","id":"sh/9w3ih8fm","slide":4,"bbox":[416,448,36,16]}
+{"kind":"shape","id":"sh/ovaho3y1","slide":4,"bbox":[600,448,36,16]}
+{"kind":"shape","id":"sh/zq10byxk","slide":4,"bbox":[784,448,36,16]}
+{"kind":"shape","id":"sh/epszitgz","slide":4,"bbox":[968,448,36,16]}
+{"kind":"textbox","id":"sh/1sjidofa","slide":4,"text":"CAMINHO DIRETO • PADRÃO","textPreview":"CAMINHO DIRETO • PADRÃO","textChars":23,"textLines":1,"bbox":[92,208,430,26]}
+{"kind":"shape","id":"sh/0rahk3yp","slide":4,"bbox":[92,244,160,72]}
+{"kind":"textbox","id":"sh/jml0nixo","slide":4,"text":"Jornada","textPreview":"Jornada","textChars":7,"textLines":1,"bbox":[102,252,140,56]}
+{"kind":"shape","id":"sh/ylcjudg3","slide":4,"bbox":[300,244,160,72]}
+{"kind":"textbox","id":"sh/uhg3mh0b","slide":4,"text":"Service Task","textPreview":"Service Task","textChars":12,"textLines":1,"bbox":[310,252,140,56]}
+{"kind":"shape","id":"sh/fipkfmhw","slide":4,"bbox":[508,244,160,72]}
+{"kind":"textbox","id":"sh/gjylorih","slide":4,"text":"Conector REST","textPreview":"Conector REST","textChars":13,"textLines":1,"bbox":[518,252,140,56]}
+{"kind":"shape","id":"sh/hk7mhwz2","slide":4,"bbox":[716,244,160,72]}
+{"kind":"textbox","id":"sh/2lg3q107","slide":4,"text":"API corporativa","textPreview":"API corporativa","textChars":15,"textLines":1,"bbox":[726,252,140,56]}
+{"kind":"textbox","id":"sh/3m94j6hs","slide":4,"text":"Contrato explícito • erro/retry centralizados • menos deploys e credenciais","textPreview":"Contrato explícito • erro/retry centralizados • menos deploys e credenciais","textChars":75,"textLines":1,"bbox":[92,327,820,30]}
+{"kind":"textbox","id":"sh/4nilsbid","slide":4,"text":"VIA ACL • APENAS QUANDO HÁ MEDIAÇÃO REAL","textPreview":"VIA ACL • APENAS QUANDO HÁ MEDIAÇÃO REAL","textChars":40,"textLines":1,"bbox":[92,386,650,26]}
+{"kind":"shape","id":"sh/pormlwzy","slide":4,"bbox":[92,425,140,70]}
+{"kind":"textbox","id":"sh/ypw3ex03","slide":4,"text":"Jornada","textPreview":"Jornada","textChars":7,"textLines":1,"bbox":[102,433,120,54]}
+{"kind":"shape","id":"sh/jq5k72ho","slide":4,"bbox":[276,425,140,70]}
+{"kind":"textbox","id":"sh/lgve94ni","slide":4,"text":"Evento","textPreview":"Evento","textChars":6,"textLines":1,"bbox":[286,433,120,54]}
+{"kind":"shape","id":"sh/0fmx0z6x","slide":4,"bbox":[460,425,140,70]}
+{"kind":"textbox","id":"sh/zudw7u5c","slide":4,"text":"Tópico / fila","textPreview":"Tópico / fila","textChars":13,"textLines":1,"bbox":[470,433,120,54]}
+{"kind":"shape","id":"sh/yt4fypor","slide":4,"bbox":[644,425,140,70]}
+{"kind":"textbox","id":"sh/9kfyd4ne","slide":4,"text":"Consumidor ACL","textPreview":"Consumidor ACL","textChars":14,"textLines":1,"bbox":[654,433,120,54]}
+{"kind":"shape","id":"sh/8j6x4z6t","slide":4,"bbox":[828,425,140,70]}
+{"kind":"textbox","id":"sh/nidwbe5o","slide":4,"text":"Adapter","textPreview":"Adapter","textChars":7,"textLines":1,"bbox":[838,433,120,54]}
+{"kind":"shape","id":"sh/mh4f29o3","slide":4,"bbox":[1012,425,140,70]}
+{"kind":"textbox","id":"sh/pobe1kna","slide":4,"text":"API corporativa","textPreview":"API corporativa","textChars":15,"textLines":1,"bbox":[1022,433,120,54]}
+{"kind":"textbox","id":"sh/on2xsf6p","slide":4,"text":"Mais componentes • maior latência potencial • logs distribuídos • operação e escalabilidade separadas","textPreview":"Mais componentes • maior latência potencial • logs distribuídos • operação e escalabilidade separadas","textChars":101,"textLines":1,"bbox":[92,506,1068,30]}
+{"kind":"shape","id":"sh/sjahgnqd","slide":4,"bbox":[72,576,1136,67]}
+{"kind":"textbox","id":"sh/t4ji9s7y","slide":4,"text":"Conclusão","textPreview":"Conclusão","textChars":9,"textLines":1,"bbox":[94,592,140,28]}
+{"kind":"textbox","id":"sh/6h8zed87","slide":4,"text":"Governança deve vir de contratos, observabilidade e guardrails — não da quantidade de camadas.","textPreview":"Governança deve vir de contratos, observabilidade e guardrails — não da quantidade de camadas.","textChars":94,"textLines":1,"bbox":[236,590,920,38]}
+{"kind":"image","id":"im/10n2xcry","slide":4,"name":"","alt":"Marca Vivo","bbox":[1173,18,36,36]}
+{"kind":"notes","id":"nt/fvx6fe","slide":4,"text":"Evite tratar ACL como padrão universal. O argumento não é eliminar ACL; é usá-la onde existe transformação, composição ou isolamento real. Para uma chamada REST simples, o motor e seu conector genérico já cumprem o papel.\n\n[Sources]\n- User-provided image: comparativo.png\n- User-provided image: over.png\n- requisitos/admin/ej-admin-requisitos.md — US-03.08 e US-03.09\n[/Sources]"}
+{"kind":"slide","id":"sl/ypsgjq","slide":5,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":23}
+{"kind":"textbox","id":"sh/wz6pcjmx","slide":5,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[72,26,620,24]}
+{"kind":"shape","id":"sh/axo7at4r","slide":5,"bbox":[72,681,1136,1]}
+{"kind":"textbox","id":"sh/lozq983u","slide":5,"text":"Elastic Journey • Admin Portal","textPreview":"Elastic Journey • Admin Portal","textChars":30,"textLines":1,"bbox":[72,690,380,18]}
+{"kind":"textbox","id":"sh/knqpg3m9","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1160,688,48,20]}
+{"kind":"textbox","id":"sh/jmh87ylo","slide":5,"text":"Princípio arquitetural: simples quando pode; ACL quando precisa.","textPreview":"Princípio arquitetural: simples quando pode; ACL quando precisa.","textChars":64,"textLines":1,"bbox":[72,59,1092,100]}
+{"kind":"shape","id":"sh/ylo7et43","slide":5,"bbox":[581,272,100,24]}
+{"kind":"shape","id":"sh/1sv6d43a","slide":5,"bbox":[600,272,100,24]}
+{"kind":"shape","id":"sh/0rmp4zmp","slide":5,"bbox":[475,200,330,116]}
+{"kind":"textbox","id":"sh/ypwvu9wv","slide":5,"text":"Há necessidade real\nde mediação?","textPreview":"Há necessidade real | de mediação?","textChars":32,"textLines":2,"bbox":[485,208,310,100]}
+{"kind":"textbox","id":"sh/jq5wnexg","slide":5,"text":"NÃO","textPreview":"NÃO","textChars":3,"textLines":1,"bbox":[190,217,120,30]}
+{"kind":"shape","id":"sh/kredwje1","slide":5,"bbox":[106,260,330,104]}
+{"kind":"textbox","id":"sh/lsnepofm","slide":5,"text":"REST direto\nvia conector genérico","textPreview":"REST direto | via conector genérico","textChars":33,"textLines":2,"bbox":[116,268,310,88]}
+{"kind":"shape","id":"sh/6twvytwr","slide":5,"bbox":[112,405,11,11]}
+{"kind":"textbox","id":"sh/7u5wryxc","slide":5,"text":"Contrato adequado","textPreview":"Contrato adequado","textChars":17,"textLines":1,"bbox":[136,398,306,30]}
+{"kind":"textbox","id":"sh/8vyd03ex","slide":5,"text":"A integração já expõe o que a jornada precisa.","textPreview":"A integração já expõe o que a jornada precisa.","textChars":46,"textLines":1,"bbox":[136,429,306,52]}
+{"kind":"shape","id":"sh/tw7et8fi","slide":5,"bbox":[112,487,11,11]}
+{"kind":"textbox","id":"sh/uxgv2tw3","slide":5,"text":"Interação síncrona","textPreview":"Interação síncrona","textChars":18,"textLines":1,"bbox":[136,480,306,30]}
+{"kind":"textbox","id":"sh/vipwvyxo","slide":5,"text":"A necessidade é chamada e resposta.","textPreview":"A necessidade é chamada e resposta.","textChars":35,"textLines":1,"bbox":[136,511,306,52]}
+{"kind":"shape","id":"sh/rm9cjytg","slide":5,"bbox":[112,569,11,11]}
+{"kind":"textbox","id":"sh/qlgvqdcb","slide":5,"text":"Sem mediação","textPreview":"Sem mediação","textChars":12,"textLines":1,"bbox":[136,562,306,30]}
+{"kind":"textbox","id":"sh/dorul8bm","slide":5,"text":"Não há composição, transformação ou isolamento.","textPreview":"Não há composição, transformação ou isolamento.","textChars":47,"textLines":1,"bbox":[136,593,306,52]}
+{"kind":"textbox","id":"sh/snids3u1","slide":5,"text":"SIM","textPreview":"SIM","textChars":3,"textLines":1,"bbox":[965,217,120,30]}
+{"kind":"shape","id":"sh/3ypcfydk","slide":5,"bbox":[844,260,330,104]}
+{"kind":"textbox","id":"sh/ixgvmtcz","slide":5,"text":"ACL com responsabilidade\nexplícita","textPreview":"ACL com responsabilidade | explícita","textChars":34,"textLines":2,"bbox":[854,268,310,88]}
+{"kind":"shape","id":"sh/5k7uh8bq","slide":5,"bbox":[850,405,11,11]}
+{"kind":"textbox","id":"sh/4zydo3u5","slide":5,"text":"Transformar ou compor","textPreview":"Transformar ou compor","textChars":21,"textLines":1,"bbox":[874,398,306,30]}
+{"kind":"textbox","id":"sh/vupcbedo","slide":5,"text":"Payloads, contratos ou múltiplos sistemas.","textPreview":"Payloads, contratos ou múltiplos sistemas.","textChars":42,"textLines":1,"bbox":[874,429,306,52]}
+{"kind":"shape","id":"sh/utwbitc3","slide":5,"bbox":[850,487,11,11]}
+{"kind":"textbox","id":"sh/kzu9cfal","slide":5,"text":"Isolar instabilidade","textPreview":"Isolar instabilidade","textChars":20,"textLines":1,"bbox":[874,480,306,30]}
+{"kind":"textbox","id":"sh/l03alkb6","slide":5,"text":"Legado ou fronteira com alta volatilidade.","textPreview":"Legado ou fronteira com alta volatilidade.","textChars":42,"textLines":1,"bbox":[874,511,306,52]}
+{"kind":"shape","id":"sh/yxcrqpsv","slide":5,"bbox":[850,569,11,11]}
+{"kind":"textbox","id":"sh/jylsjutg","slide":5,"text":"Centralizar governança","textPreview":"Centralizar governança","textChars":22,"textLines":1,"bbox":[874,562,306,30]}
+{"kind":"textbox","id":"sh/83e9gzax","slide":5,"text":"Padrão corporativo com ganho verificável.","textPreview":"Padrão corporativo com ganho verificável.","textChars":41,"textLines":1,"bbox":[874,593,306,52]}
+{"kind":"shape","id":"sh/t4nap4ri","slide":5,"bbox":[476,387,328,217]}
+{"kind":"textbox","id":"sh/61crepsr","slide":5,"text":"Guardrails comuns","textPreview":"Guardrails comuns","textChars":17,"textLines":1,"bbox":[508,413,264,34]}
+{"kind":"textbox","id":"sh/72lsnu9c","slide":5,"text":"Contratos versionados\nObservabilidade ponta a ponta\nTimeout, retry e tratamento de erro\nSegurança e auditoria","textPreview":"Contratos versionados | Observabilidade ponta a ponta | Timeout, retry e tratamento de erro | Segurança e auditoria","textChars":109,"textLines":4,"bbox":[508,464,264,126]}
+{"kind":"image","id":"im/utwv6to7","slide":5,"name":"","alt":"Marca Vivo","bbox":[1173,18,36,36]}
+{"kind":"notes","id":"nt/ypsgjq","slide":5,"text":"Este é o slide de decisão arquitetural. A ACL continua disponível, porém subordinada a critérios explícitos. Os mesmos guardrails de segurança, auditoria e observabilidade valem para os dois caminhos.\n\n[Sources]\n- User-provided image: comparativo.png — seção 'Quando a ACL faz sentido'\n- User-provided image: over.png — recomendação\n- requisitos/admin/ej-admin-arquitetura-logica.md — framework de conectores e fronteira com runtime\n[/Sources]"}
+{"kind":"slide","id":"sl/2ase42","slide":6,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":28}
+{"kind":"textbox","id":"sh/rmxcv69g","slide":6,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[72,26,620,24]}
+{"kind":"shape","id":"sh/dofuxgr6","slide":6,"bbox":[72,681,1136,1]}
+{"kind":"textbox","id":"sh/2x4vihsj","slide":6,"text":"Elastic Journey • Admin Portal","textPreview":"Elastic Journey • Admin Portal","textChars":30,"textLines":1,"bbox":[72,690,380,18]}
+{"kind":"textbox","id":"sh/3yxcrm94","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1160,688,48,20]}
+{"kind":"textbox","id":"sh/4z6dkrap","slide":6,"text":"TO BE: uma plataforma comum separa experiência, orquestração e integração.","textPreview":"TO BE: uma plataforma comum separa experiência, orquestração e integração.","textChars":74,"textLines":1,"bbox":[72,59,1092,86]}
+{"kind":"textbox","id":"sh/pkfutwra","slide":6,"text":"REST síncrono é o caminho principal; eventos entram quando a natureza da necessidade é assíncrona.","textPreview":"REST síncrono é o caminho principal; eventos entram quando a natureza da necessidade é assíncrona.","textChars":98,"textLines":1,"bbox":[72,148,1060,45]}
+{"kind":"shape","id":"sh/ut4vehsn","slide":6,"bbox":[225,338,56,20]}
+{"kind":"shape","id":"sh/fudcnm98","slide":6,"bbox":[414,338,54,20]}
+{"kind":"shape","id":"sh/3ih47ads","slide":6,"bbox":[926,310,96,22]}
+{"kind":"shape","id":"sh/ihone5cn","slide":6,"bbox":[926,470,96,18]}
+{"kind":"textbox","id":"sh/5kzm9kvy","slide":6,"text":"CANAIS DIGITAIS","textPreview":"CANAIS DIGITAIS","textChars":15,"textLines":1,"bbox":[74,205,160,26]}
+{"kind":"shape","id":"sh/4jq5gfud","slide":6,"bbox":[72,245,154,54]}
+{"kind":"textbox","id":"sh/rmh4bud4","slide":6,"text":"Mobile","textPreview":"Mobile","textChars":6,"textLines":1,"bbox":[82,253,134,38]}
+{"kind":"shape","id":"sh/ql8nipcj","slide":6,"bbox":[72,319,154,54]}
+{"kind":"textbox","id":"sh/dozmdkva","slide":6,"text":"Web","textPreview":"Web","textChars":3,"textLines":1,"bbox":[82,327,134,38]}
+{"kind":"shape","id":"sh/snq5kzup","slide":6,"bbox":[72,393,154,54]}
+{"kind":"textbox","id":"sh/7qd4zqd0","slide":6,"text":"WhatsApp","textPreview":"WhatsApp","textChars":8,"textLines":1,"bbox":[82,401,134,38]}
+{"kind":"shape","id":"sh/6p436lwf","slide":6,"bbox":[72,467,154,54]}
+{"kind":"textbox","id":"sh/a5c7etwn","slide":6,"text":"Atendimento","textPreview":"Atendimento","textChars":11,"textLines":1,"bbox":[82,475,134,38]}
+{"kind":"textbox","id":"sh/b6l87yx8","slide":6,"text":"ADAPTAÇÃO","textPreview":"ADAPTAÇÃO","textChars":9,"textLines":1,"bbox":[282,205,135,26]}
+{"kind":"shape","id":"sh/c7upg3et","slide":6,"bbox":[278,284,138,144]}
+{"kind":"textbox","id":"sh/x83q98fe","slide":6,"text":"BFF\nopcional","textPreview":"BFF | opcional","textChars":12,"textLines":2,"bbox":[288,292,118,128]}
+{"kind":"textbox","id":"sh/2hs7atwr","slide":6,"text":"Autenticação\nSessão\nAdaptação por canal","textPreview":"Autenticação | Sessão | Adaptação por canal","textChars":39,"textLines":3,"bbox":[286,445,124,100]}
+{"kind":"shape","id":"sh/nil83yxc","slide":6,"bbox":[468,205,458,375]}
+{"kind":"shape","id":"sh/ojupc3ex","slide":6,"bbox":[468,205,458,70]}
+{"kind":"shape","id":"sh/pk3q5ofi","slide":6,"bbox":[468,250,458,25]}
+{"kind":"textbox","id":"sh/eds769wv","slide":6,"text":"ELASTIC JOURNEY","textPreview":"ELASTIC JOURNEY","textChars":15,"textLines":1,"bbox":[495,219,404,36]}
+{"kind":"textbox","id":"sh/fe1ozex0","slide":6,"text":"DESIGN TIME","textPreview":"DESIGN TIME","textChars":11,"textLines":1,"bbox":[492,301,184,28]}
+{"kind":"textbox","id":"sh/hkr21g3u","slide":6,"text":"Jornadas visuais\nFormulários SDUI\nRegras e versões\nPublicação","textPreview":"Jornadas visuais | Formulários SDUI | Regras e versões | Publicação","textChars":61,"textLines":4,"bbox":[492,344,184,122]}
+{"kind":"shape","id":"sh/gji1sb29","slide":6,"bbox":[696,295,2,230]}
+{"kind":"textbox","id":"sh/fi9kz6l4","slide":6,"text":"RUNTIME","textPreview":"RUNTIME","textChars":7,"textLines":1,"bbox":[716,301,184,28]}
+{"kind":"textbox","id":"sh/uh0jq1kj","slide":6,"text":"Execução de jornadas\nService / User Tasks\nConectores REST / Kafka\nEstado e tratamento de erros","textPreview":"Execução de jornadas | Service / User Tasks | Conectores REST / Kafka | Estado e tratamento de erros","textChars":94,"textLines":4,"bbox":[716,344,184,122]}
+{"kind":"shape","id":"sh/tgr2xw3y","slide":6,"bbox":[492,502,408,50]}
+{"kind":"textbox","id":"sh/sfi1or2d","slide":6,"text":"Governança • Segurança • Auditoria • Observabilidade • Escala","textPreview":"Governança • Segurança • Auditoria • Observabilidade • Escala","textChars":61,"textLines":1,"bbox":[505,515,382,25]}
+{"kind":"textbox","id":"sh/7e90v6ls","slide":6,"text":"SISTEMAS CORPORATIVOS","textPreview":"SISTEMAS CORPORATIVOS","textChars":21,"textLines":1,"bbox":[1025,205,185,26]}
+{"kind":"shape","id":"sh/6dgjm1k7","slide":6,"bbox":[1032,242,168,48]}
+{"kind":"textbox","id":"sh/5c7itw3m","slide":6,"text":"CRM","textPreview":"CRM","textChars":3,"textLines":1,"bbox":[1042,250,148,32]}
+{"kind":"shape","id":"sh/kby1kr21","slide":6,"bbox":[1032,307,168,48]}
+{"kind":"textbox","id":"sh/k3614by1","slide":6,"text":"ERP","textPreview":"ERP","textChars":3,"textLines":1,"bbox":[1042,315,148,32]}
+{"kind":"shape","id":"sh/l4zidwzm","slide":6,"bbox":[1032,372,168,48]}
+{"kind":"textbox","id":"sh/yhoj21gv","slide":6,"text":"Billing","textPreview":"Billing","textChars":7,"textLines":1,"bbox":[1042,380,148,32]}
+{"kind":"shape","id":"sh/zix0b6hg","slide":6,"bbox":[1032,437,168,48]}
+{"kind":"textbox","id":"sh/87q18byx","slide":6,"text":"Catálogo","textPreview":"Catálogo","textChars":8,"textLines":1,"bbox":[1042,445,148,32]}
+{"kind":"shape","id":"sh/98z2hgzi","slide":6,"bbox":[1032,502,168,48]}
+{"kind":"textbox","id":"sh/m58j61g7","slide":6,"text":"Legado","textPreview":"Legado","textChars":6,"textLines":1,"bbox":[1042,510,148,32]}
+{"kind":"textbox","id":"sh/76hkf6hs","slide":6,"text":"REST / JSON\nSÍNCRONO","textPreview":"REST / JSON | SÍNCRONO","textChars":20,"textLines":2,"bbox":[931,246,88,48]}
+{"kind":"textbox","id":"sh/obm1w7yt","slide":6,"text":"EVENTOS\nOPCIONAL","textPreview":"EVENTOS | OPCIONAL","textChars":16,"textLines":2,"bbox":[931,408,88,48]}
+{"kind":"shape","id":"sh/pcfi5cze","slide":6,"bbox":[72,611,1136,43]}
+{"kind":"textbox","id":"sh/r6l4bu1w","slide":6,"text":"Uma definição de jornada e experiência pode ser reutilizada em diferentes canais, preservando variações onde elas realmente importam.","textPreview":"Uma definição de jornada e experiência pode ser reutilizada em diferentes canais, preservando variações onde elas realmente importam.","textChars":133,"textLines":1,"bbox":[94,620,1092,25]}
+{"kind":"image","id":"im/1872lkbi","slide":6,"name":"","alt":"Marca Vivo","bbox":[1173,18,36,36]}
+{"kind":"notes","id":"nt/2ase42","slide":6,"text":"Mostre a separação de responsabilidades: canais renderizam e adaptam; Elastic Journey modela, versiona e executa; sistemas corporativos permanecem atrás de contratos. O caminho assíncrono é opção arquitetural, não obrigação.\n\n[Sources]\n- User-provided image: tobe.png\n- User-provided image: as is.png — visão consolidada Elastic Journey + SDUI\n- requisitos/admin/ej-admin-arquitetura-logica.md — domínios, publicação, execução e fronteira com runtime\n[/Sources]"}
+{"kind":"slide","id":"sl/xbkb9a","slide":7,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":23}
+{"kind":"textbox","id":"sh/tsbel8ji","slide":7,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[72,26,620,24]}
+{"kind":"shape","id":"sh/76twji1s","slide":7,"bbox":[72,681,1136,1]}
+{"kind":"textbox","id":"sh/k32x8321","slide":7,"text":"Elastic Journey • Admin Portal","textPreview":"Elastic Journey • Admin Portal","textChars":30,"textLines":1,"bbox":[72,690,380,18]}
+{"kind":"textbox","id":"sh/54beh8jm","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1160,688,48,20]}
+{"kind":"textbox","id":"sh/i10f6tkv","slide":7,"text":"O valor aparece em ciclos de aprendizado menores.","textPreview":"O valor aparece em ciclos de aprendizado menores.","textChars":49,"textLines":1,"bbox":[72,59,1092,86]}
+{"kind":"textbox","id":"sh/j2twfy1g","slide":7,"text":"A plataforma reduz o esforço entre uma hipótese de negócio e a evidência necessária para evoluí-la.","textPreview":"A plataforma reduz o esforço entre uma hipótese de negócio e a evidência necessária para evoluí-la.","textChars":99,"textLines":1,"bbox":[72,148,1060,45]}
+{"kind":"shape","id":"sh/4zmxk72l","slide":7,"bbox":[242,296,56,18]}
+{"kind":"shape","id":"sh/p0vytcjq","slide":7,"bbox":[472,296,56,18]}
+{"kind":"shape","id":"sh/x0ra9wj6","slide":7,"bbox":[702,296,56,18]}
+{"kind":"shape","id":"sh/wzi9gr2l","slide":7,"bbox":[932,296,56,18]}
+{"kind":"shape","id":"sh/vy9s7ml0","slide":7,"bbox":[208,502,868,22]}
+{"kind":"shape","id":"sh/ax0rehkf","slide":7,"bbox":[128,245,70,70]}
+{"kind":"textbox","id":"sh/9w7q5w3u","slide":7,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[128,246,70,68]}
+{"kind":"textbox","id":"sh/8by9cr29","slide":7,"text":"Idear","textPreview":"Idear","textChars":5,"textLines":1,"bbox":[80,347,170,34]}
+{"kind":"textbox","id":"sh/nap83ml4","slide":7,"text":"Escolher a hipótese e o resultado esperado.","textPreview":"Escolher a hipótese e o resultado esperado.","textChars":43,"textLines":1,"bbox":[75,393,180,90]}
+{"kind":"shape","id":"sh/m9grahkj","slide":7,"bbox":[358,245,70,70]}
+{"kind":"textbox","id":"sh/tsbahgje","slide":7,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[358,246,70,68]}
+{"kind":"textbox","id":"sh/s729ob2t","slide":7,"text":"Modelar","textPreview":"Modelar","textChars":7,"textLines":1,"bbox":[310,347,170,34]}
+{"kind":"textbox","id":"sh/sbatkzap","slide":7,"text":"Configurar fluxo, regras e experiência SDUI.","textPreview":"Configurar fluxo, regras e experiência SDUI.","textChars":44,"textLines":1,"bbox":[305,393,180,90]}
+{"kind":"shape","id":"sh/dcjudkra","slide":7,"bbox":[588,245,70,70]}
+{"kind":"textbox","id":"sh/q9sbipsz","slide":7,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[588,246,70,68]}
+{"kind":"textbox","id":"sh/ra1cbu9k","slide":7,"text":"Publicar","textPreview":"Publicar","textChars":8,"textLines":1,"bbox":[540,347,170,34]}
+{"kind":"textbox","id":"sh/47qtgfat","slide":7,"text":"Congelar versão e snapshot auditável.","textPreview":"Congelar versão e snapshot auditável.","textChars":37,"textLines":1,"bbox":[535,393,180,90]}
+{"kind":"shape","id":"sh/58ju9kre","slide":7,"bbox":[818,245,70,70]}
+{"kind":"textbox","id":"sh/i58be5sn","slide":7,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[818,246,70,68]}
+{"kind":"textbox","id":"sh/36hc7a98","slide":7,"text":"Validar","textPreview":"Validar","textChars":7,"textLines":1,"bbox":[770,347,170,34]}
+{"kind":"textbox","id":"sh/g3qtcfax","slide":7,"text":"Executar, observar e coletar evidências.","textPreview":"Executar, observar e coletar evidências.","textChars":40,"textLines":1,"bbox":[765,393,180,90]}
+{"kind":"shape","id":"sh/h4zu50r2","slide":7,"bbox":[1048,245,70,70]}
+{"kind":"textbox","id":"sh/jexcfqd4","slide":7,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1048,246,70,68]}
+{"kind":"textbox","id":"sh/ydovm5cj","slide":7,"text":"Evoluir","textPreview":"Evoluir","textChars":7,"textLines":1,"bbox":[1000,347,170,34]}
+{"kind":"textbox","id":"sh/lgfuh0va","slide":7,"text":"Ajustar a jornada sem romper a versão ativa.","textPreview":"Ajustar a jornada sem romper a versão ativa.","textChars":44,"textLines":1,"bbox":[995,393,180,90]}
+{"kind":"textbox","id":"sh/kf6dovup","slide":7,"text":"APRENDER E RECOMEÇAR","textPreview":"APRENDER E RECOMEÇAR","textChars":20,"textLines":1,"bbox":[470,507,340,24]}
+{"kind":"shape","id":"sh/72hcjad0","slide":7,"bbox":[72,572,1136,74]}
+{"kind":"textbox","id":"sh/618vq5cv","slide":7,"text":"O efeito para o negócio","textPreview":"O efeito para o negócio","textChars":23,"textLines":1,"bbox":[96,588,252,34]}
+{"kind":"textbox","id":"sh/t4zulkb6","slide":7,"text":"menos dependências  •  validar cedo  •  reutilizar ativos  •  evoluir com segurança","textPreview":"menos dependências  •  validar cedo  •  reutilizar ativos  •  evoluir com segurança","textChars":83,"textLines":1,"bbox":[345,585,830,40]}
+{"kind":"image","id":"im/fu58n69k","slide":7,"name":"","alt":"Marca Vivo","bbox":[1173,18,36,36]}
+{"kind":"notes","id":"nt/xbkb9a","slide":7,"text":"Conecte arquitetura ao processo decisório de produto. O ganho não é apenas prazo de desenvolvimento: é reduzir a distância entre hipótese, execução e evidência, preservando versionamento e controle.\n\n[Sources]\n- User-provided image: tobe.png — resultados de negócio e princípio arquitetural\n- requisitos/admin/ej-admin-requisitos.md — FT-03, FT-04, FT-05 e FT-06\n[/Sources]"}
+{"kind":"slide","id":"sl/k1sxzx","slide":8,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":22}
+{"kind":"textbox","id":"sh/9ovyp8rm","slide":8,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[72,26,620,24]}
+{"kind":"shape","id":"sh/nmdgny9g","slide":8,"bbox":[72,681,1136,1]}
+{"kind":"textbox","id":"sh/0jmxc3ap","slide":8,"text":"Elastic Journey • Admin Portal","textPreview":"Elastic Journey • Admin Portal","textChars":30,"textLines":1,"bbox":[72,690,380,18]}
+{"kind":"textbox","id":"sh/lkvyl8ra","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1160,688,48,20]}
+{"kind":"textbox","id":"sh/eh4fatsz","slide":8,"text":"O núcleo funcional já está comprovado; industrialização é o gap.","textPreview":"O núcleo funcional já está comprovado; industrialização é o gap.","textChars":64,"textLines":1,"bbox":[72,59,1092,86]}
+{"kind":"textbox","id":"sh/zidgjy9k","slide":8,"text":"O progresso é alto, mas está concentrado nas capacidades de produto — não nos gates de produção.","textPreview":"O progresso é alto, mas está concentrado nas capacidades de produto — não nos gates de produção.","textChars":96,"textLines":1,"bbox":[72,148,1060,45]}
+{"kind":"textbox","id":"sh/dwbyhore","slide":8,"text":"90%","textPreview":"90%","textChars":3,"textLines":1,"bbox":[139,291,192,70]}
+{"kind":"textbox","id":"sh/xkr29gfe","slide":8,"text":"335 de 371\nrequisitos concluídos","textPreview":"335 de 371 | requisitos concluídos","textChars":32,"textLines":2,"bbox":[139,362,192,70]}
+{"kind":"textbox","id":"sh/cji10ve9","slide":8,"text":"0 bloqueados","textPreview":"0 bloqueados","textChars":12,"textLines":1,"bbox":[150,548,170,30]}
+{"kind":"textbox","id":"sh/bi9k7qxo","slide":8,"text":"Núcleo da plataforma","textPreview":"Núcleo da plataforma","textChars":20,"textLines":1,"bbox":[470,233,340,28]}
+{"kind":"textbox","id":"sh/ah0jylw3","slide":8,"text":"253 / 255","textPreview":"253 / 255","textChars":9,"textLines":1,"bbox":[820,233,185,28]}
+{"kind":"textbox","id":"sh/pgr25gfi","slide":8,"text":"99%","textPreview":"99%","textChars":3,"textLines":1,"bbox":[1022,230,82,32]}
+{"kind":"shape","id":"sh/ofi1wbex","slide":8,"bbox":[470,271,634,14]}
+{"kind":"shape","id":"sh/ne9036xc","slide":8,"bbox":[470,271,627.66,14]}
+{"kind":"textbox","id":"sh/2d0ju1wr","slide":8,"text":"Produtos, canais, jornadas, modelagem, SDUI, execução e versionamento.","textPreview":"Produtos, canais, jornadas, modelagem, SDUI, execução e versionamento.","textChars":70,"textLines":1,"bbox":[470,296,634,38]}
+{"kind":"textbox","id":"sh/1s7i1wfm","slide":8,"text":"Governança & operação","textPreview":"Governança & operação","textChars":21,"textLines":1,"bbox":[470,354,340,28]}
+{"kind":"textbox","id":"sh/0ry1sre1","slide":8,"text":"82 / 86 aplicáveis","textPreview":"82 / 86 aplicáveis","textChars":18,"textLines":1,"bbox":[820,354,185,28]}
+{"kind":"textbox","id":"sh/sv218bmx","slide":8,"text":"95%","textPreview":"95%","textChars":3,"textLines":1,"bbox":[1022,351,82,32]}
+{"kind":"shape","id":"sh/twb2hgn2","slide":8,"bbox":[470,392,634,14]}
+{"kind":"shape","id":"sh/6tkj614r","slide":8,"bbox":[470,392,602.3,14]}
+{"kind":"textbox","id":"sh/rutkf65c","slide":8,"text":"Autorização, auditoria, ajuda, observabilidade e dashboard.","textPreview":"Autorização, auditoria, ajuda, observabilidade e dashboard.","textChars":59,"textLines":1,"bbox":[470,417,634,38]}
+{"kind":"textbox","id":"sh/k7214rml","slide":8,"text":"Industrialização","textPreview":"Industrialização","textChars":16,"textLines":1,"bbox":[470,475,340,28]}
+{"kind":"textbox","id":"sh/5sb2dwn6","slide":8,"text":"0 / 28","textPreview":"0 / 28","textChars":6,"textLines":1,"bbox":[820,475,185,28]}
+{"kind":"textbox","id":"sh/i50j2h4f","slide":8,"text":"0%","textPreview":"0%","textChars":2,"textLines":1,"bbox":[1022,472,82,32]}
+{"kind":"shape","id":"sh/j69kbm50","slide":8,"bbox":[470,513,634,14]}
+{"kind":"textbox","id":"sh/o3m1gvmp","slide":8,"text":"Testes automatizados e infraestrutura de produção.","textPreview":"Testes automatizados e infraestrutura de produção.","textChars":50,"textLines":1,"bbox":[470,538,634,38]}
+{"kind":"shape","id":"sh/pov2p0na","slide":8,"bbox":[72,599,1136,48]}
+{"kind":"textbox","id":"sh/zuhwveto","slide":8,"text":"Verificação local em 20/08/2026:","textPreview":"Verificação local em 20/08/2026:","textChars":32,"textLines":1,"bbox":[94,612,315,24]}
+{"kind":"textbox","id":"sh/yt8v29sj","slide":8,"text":"front-end build OK  •  back-end Maven verify OK  •  nenhum teste automatizado encontrado","textPreview":"front-end build OK  •  back-end Maven verify OK  •  nenhum teste automatizado encontrado","textChars":88,"textLines":1,"bbox":[410,610,770,28]}
+{"kind":"chart","id":"ch/872h0zy5","slide":8,"name":"","chartType":"doughnut","bbox":[70,202,330,330]}
+{"kind":"image","id":"im/fmhw3mdo","slide":8,"name":"","alt":"Marca Vivo","bbox":[1173,18,36,36]}
+{"kind":"notes","id":"nt/k1sxzx","slide":8,"text":"Diferencie progresso funcional de prontidão produtiva. O progresso oficial é 90%. Quando se excluem FT-11 e FT-12, as demais features estão em aproximadamente 98% dos requisitos aplicáveis; isso reforça que o gap está concentrado.\n\n[Sources]\n- requisitos/admin/progresso.md — 335 done, 3 in_progress, 31 todo, 2 n/a, 0 blocked\n- Calculation from progress table: FT-01..FT-06 = 253/255; FT-07..FT-10 + FT-13 = 82/86 applicable; FT-11..FT-12 = 0/28 done\n- Local verification on 2026-08-20: npm run build success; Maven verify success; source-tree scan found 0 Java tests and 0 front-end test files\n[/Sources]"}
+{"kind":"slide","id":"sl/xru9xe","slide":9,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":37}
+{"kind":"textbox","id":"sh/jmlsfup8","slide":9,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[72,26,620,24]}
+{"kind":"shape","id":"sh/583ah47y","slide":9,"bbox":[72,681,1136,1]}
+{"kind":"textbox","id":"sh/69cbq9oj","slide":9,"text":"Elastic Journey • Admin Portal","textPreview":"Elastic Journey • Admin Portal","textChars":30,"textLines":1,"bbox":[72,690,380,18]}
+{"kind":"textbox","id":"sh/7alcjup4","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1160,688,48,20]}
+{"kind":"textbox","id":"sh/sbutsz6p","slide":9,"text":"Prontidão funcional alta; industrialização deliberadamente pendente.","textPreview":"Prontidão funcional alta; industrialização deliberadamente pendente.","textChars":68,"textLines":1,"bbox":[72,59,1092,100]}
+{"kind":"shape","id":"sh/tc3ul47a","slide":9,"bbox":[72,181,548,421]}
+{"kind":"shape","id":"sh/udwbu9ov","slide":9,"bbox":[660,181,548,421]}
+{"kind":"textbox","id":"sh/fe5cnepg","slide":9,"text":"COMPROVADO NO PRODUTO","textPreview":"COMPROVADO NO PRODUTO","textChars":21,"textLines":1,"bbox":[100,209,490,34]}
+{"kind":"shape","id":"sh/32hg32to","slide":9,"bbox":[102,267,20,20]}
+{"kind":"textbox","id":"sh/2h8fuxsj","slide":9,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[102,266,20,20]}
+{"kind":"textbox","id":"sh/p4zy5cbu","slide":9,"text":"Modelagem visual","textPreview":"Modelagem visual","textChars":16,"textLines":1,"bbox":[136,260,190,28]}
+{"kind":"textbox","id":"sh/o3qhw7a9","slide":9,"text":"REST, Kafka, gateway, variáveis e anotações.","textPreview":"REST, Kafka, gateway, variáveis e anotações.","textChars":44,"textLines":1,"bbox":[326,260,258,44]}
+{"kind":"shape","id":"sh/fexgz2ts","slide":9,"bbox":[102,331,20,20]}
+{"kind":"textbox","id":"sh/udofqxs7","slide":9,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[102,330,20,20]}
+{"kind":"textbox","id":"sh/hgfy1sby","slide":9,"text":"Experiência SDUI","textPreview":"Experiência SDUI","textChars":16,"textLines":1,"bbox":[136,324,190,28]}
+{"kind":"textbox","id":"sh/gf6xsnad","slide":9,"text":"Formulários reutilizáveis e snapshot imutável.","textPreview":"Formulários reutilizáveis e snapshot imutável.","textChars":46,"textLines":1,"bbox":[326,324,258,44]}
+{"kind":"shape","id":"sh/za1gbmtw","slide":9,"bbox":[102,395,20,20]}
+{"kind":"textbox","id":"sh/y9sz2hsb","slide":9,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[102,394,20,20]}
+{"kind":"textbox","id":"sh/a5cjulcj","slide":9,"text":"Ciclo de vida","textPreview":"Ciclo de vida","textChars":13,"textLines":1,"bbox":[136,388,190,28]}
+{"kind":"textbox","id":"sh/v6lk3qd4","slide":9,"text":"Versões, publicação, despublicação e auditoria.","textPreview":"Versões, publicação, despublicação e auditoria.","textChars":47,"textLines":1,"bbox":[326,388,258,44]}
+{"kind":"shape","id":"sh/w7u1wvup","slide":9,"bbox":[102,459,20,20]}
+{"kind":"textbox","id":"sh/xsn250va","slide":9,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[102,458,20,20]}
+{"kind":"textbox","id":"sh/itwjy5cv","slide":9,"text":"Execução real","textPreview":"Execução real","textChars":13,"textLines":1,"bbox":[136,452,190,28]}
+{"kind":"textbox","id":"sh/ju5k7qdg","slide":9,"text":"Runtime, Kafka real, tratamento de falhas e dashboard.","textPreview":"Runtime, Kafka real, tratamento de falhas e dashboard.","textChars":54,"textLines":1,"bbox":[326,452,258,44]}
+{"kind":"shape","id":"sh/kve10vu1","slide":9,"bbox":[102,523,20,20]}
+{"kind":"textbox","id":"sh/5wn290v6","slide":9,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[102,522,20,20]}
+{"kind":"textbox","id":"sh/yxsjm1cr","slide":9,"text":"Integridade técnica","textPreview":"Integridade técnica","textChars":19,"textLines":1,"bbox":[136,516,190,28]}
+{"kind":"textbox","id":"sh/zy10v6dw","slide":9,"text":"Front e back compilam com sucesso.","textPreview":"Front e back compilam com sucesso.","textChars":34,"textLines":1,"bbox":[326,516,258,44]}
+{"kind":"textbox","id":"sh/hsrm14fe","slide":9,"text":"GATES ANTES DA ESCALA","textPreview":"GATES ANTES DA ESCALA","textChars":21,"textLines":1,"bbox":[688,209,490,34]}
+{"kind":"shape","id":"sh/gril8ze9","slide":9,"bbox":[690,267,20,20]}
+{"kind":"textbox","id":"sh/fqp4zuxo","slide":9,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[690,266,20,20]}
+{"kind":"textbox","id":"sh/upg369w3","slide":9,"text":"Testes automatizados","textPreview":"Testes automatizados","textChars":20,"textLines":1,"bbox":[724,260,214,28]}
+{"kind":"textbox","id":"sh/pwrm5ofq","slide":9,"text":"Unitário, integração, front e E2E (0/12).","textPreview":"Unitário, integração, front e E2E (0/12).","textChars":41,"textLines":1,"bbox":[947,260,227,44]}
+{"kind":"shape","id":"sh/4vi5cje5","slide":9,"bbox":[690,331,20,20]}
+{"kind":"textbox","id":"sh/3u943exk","slide":9,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[690,330,20,20]}
+{"kind":"textbox","id":"sh/2t0na9wz","slide":9,"text":"Plataforma de entrega","textPreview":"Plataforma de entrega","textChars":21,"textLines":1,"bbox":[724,324,214,28]}
+{"kind":"textbox","id":"sh/507mtkfm","slide":9,"text":"Docker, Kubernetes, CI/CD e Azure (0/16 done).","textPreview":"Docker, Kubernetes, CI/CD e Azure (0/16 done).","textChars":46,"textLines":1,"bbox":[947,324,227,44]}
+{"kind":"shape","id":"sh/kzel0fe1","slide":9,"bbox":[690,395,20,20]}
+{"kind":"textbox","id":"sh/8fmp8ny9","slide":9,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[690,394,20,20]}
+{"kind":"textbox","id":"sh/9gvq1szu","slide":9,"text":"Identidade real","textPreview":"Identidade real","textChars":15,"textLines":1,"bbox":[724,388,214,28]}
+{"kind":"textbox","id":"sh/md476dgj","slide":9,"text":"Substituir o provedor mock e fechar administração de acesso.","textPreview":"Substituir o provedor mock e fechar administração de acesso.","textChars":60,"textLines":1,"bbox":[947,388,227,44]}
+{"kind":"shape","id":"sh/nedozih4","slide":9,"bbox":[690,459,20,20]}
+{"kind":"textbox","id":"sh/0rmp4nyd","slide":9,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[690,458,20,20]}
+{"kind":"textbox","id":"sh/lcv6xszy","slide":9,"text":"Integrações-alvo","textPreview":"Integrações-alvo","textChars":16,"textLines":1,"bbox":[724,452,214,28]}
+{"kind":"textbox","id":"sh/ypk72dg7","slide":9,"text":"Contrato final de runtime e cenários REST reais de negócio.","textPreview":"Contrato final de runtime e cenários REST reais de negócio.","textChars":59,"textLines":1,"bbox":[947,452,227,44]}
+{"kind":"shape","id":"sh/zqdovihs","slide":9,"bbox":[690,523,20,20]}
+{"kind":"textbox","id":"sh/cn2p03yh","slide":9,"text":"!","textPreview":"!","textChars":1,"textLines":1,"bbox":[690,522,20,20]}
+{"kind":"textbox","id":"sh/dob6t8zm","slide":9,"text":"Observabilidade","textPreview":"Observabilidade","textChars":15,"textLines":1,"bbox":[724,516,214,28]}
+{"kind":"textbox","id":"sh/fi983y1o","slide":9,"text":"Conectar o ponto de extensão ao ambiente ELK.","textPreview":"Conectar o ponto de extensão ao ambiente ELK.","textChars":45,"textLines":1,"bbox":[947,516,227,44]}
+{"kind":"shape","id":"sh/uh07atk3","slide":9,"bbox":[180,622,920,34]}
+{"kind":"textbox","id":"sh/hkbq58ju","slide":9,"text":"Recomendação: avançar para piloto controlado somente após fechar um conjunto mínimo de gates técnicos.","textPreview":"Recomendação: avançar para piloto controlado somente após fechar um conjunto mínimo de gates técnicos.","textChars":102,"textLines":1,"bbox":[200,627,880,24]}
+{"kind":"image","id":"im/hcjmtcjq","slide":9,"name":"","alt":"Marca Vivo","bbox":[1173,18,36,36]}
+{"kind":"notes","id":"nt/xru9xe","slide":9,"text":"A transparência aqui aumenta a confiança. O produto já permite demonstrar valor, mas a organização não deve confundir compilação e cobertura funcional com resiliência, segurança e repetibilidade de produção.\n\n[Sources]\n- requisitos/admin/progresso.md — FT-11 Testes e FT-12 Infraestrutura\n- requisitos/admin/ej-admin-index.md — mocks e fora de escopo\n- requisitos/admin/ej-admin-arquitetura-logica.md — contrato definitivo do runtime ainda não definido\n- Local source-tree and build verification on 2026-08-20\n[/Sources]"}
+{"kind":"slide","id":"sl/ej3h0l","slide":10,"title":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textShapes":26}
+{"kind":"textbox","id":"sh/ih0nuh8r","slide":10,"text":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textPreview":"ELASTIC JOURNEY • VISÃO EXECUTIVA","textChars":33,"textLines":1,"bbox":[72,26,620,24]}
+{"kind":"shape","id":"sh/kji5w7qx","slide":10,"bbox":[72,681,1136,1]}
+{"kind":"textbox","id":"sh/r6to7m98","slide":10,"text":"Elastic Journey • Admin Portal","textPreview":"Elastic Journey • Admin Portal","textChars":30,"textLines":1,"bbox":[72,690,380,18]}
+{"kind":"textbox","id":"sh/650nyh8n","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1160,688,48,20]}
+{"kind":"textbox","id":"sh/t8b69wre","slide":10,"text":"Sequenciamento recomendado: endurecer → pilotar → escalar.","textPreview":"Sequenciamento recomendado: endurecer → pilotar → escalar.","textChars":58,"textLines":1,"bbox":[72,59,1092,86]}
+{"kind":"textbox","id":"sh/s7250rqt","slide":10,"text":"A ordem reduz risco antes de ampliar alcance e protege o princípio de simplicidade.","textPreview":"A ordem reduz risco antes de ampliar alcance e protege o princípio de simplicidade.","textChars":83,"textLines":1,"bbox":[72,148,1060,45]}
+{"kind":"shape","id":"sh/napov294","slide":10,"bbox":[389,300,80,22]}
+{"kind":"shape","id":"sh/mpgnmxsj","slide":10,"bbox":[811,300,80,22]}
+{"kind":"shape","id":"sh/orq90buh","slide":10,"bbox":[72,223,84,84]}
+{"kind":"textbox","id":"sh/9szq9gb2","slide":10,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[72,224,84,82]}
+{"kind":"textbox","id":"sh/mp87y1cb","slide":10,"text":"Endurecer","textPreview":"Endurecer","textChars":9,"textLines":1,"bbox":[176,226,270,38]}
+{"kind":"textbox","id":"sh/nqh876tw","slide":10,"text":"Transformar prova funcional em release repetível.","textPreview":"Transformar prova funcional em release repetível.","textChars":49,"textLines":1,"bbox":[72,332,340,76]}
+{"kind":"shape","id":"sh/wva94bud","slide":10,"bbox":[72,420,340,3]}
+{"kind":"shape","id":"sh/xwjqdgby","slide":10,"bbox":[72,449,10,10]}
+{"kind":"textbox","id":"sh/at8r21cn","slide":10,"text":"Testes e critérios de qualidade","textPreview":"Testes e critérios de qualidade","textChars":31,"textLines":1,"bbox":[94,442,318,39]}
+{"kind":"shape","id":"sh/bu18b6ts","slide":10,"bbox":[72,503,10,10]}
+{"kind":"textbox","id":"sh/cz6psru9","slide":10,"text":"Docker / Kubernetes / CI/CD","textPreview":"Docker / Kubernetes / CI/CD","textChars":27,"textLines":1,"bbox":[94,496,318,39]}
+{"kind":"shape","id":"sh/d0fq1wbu","slide":10,"bbox":[72,557,10,10]}
+{"kind":"textbox","id":"sh/tw76p83i","slide":10,"text":"Ambientes, IdP e contrato de runtime","textPreview":"Ambientes, IdP e contrato de runtime","textChars":36,"textLines":1,"bbox":[94,550,318,39]}
+{"kind":"shape","id":"sh/svy5w3mx","slide":10,"bbox":[72,596,340,50]}
+{"kind":"textbox","id":"sh/ruponi5c","slide":10,"text":"Gate: pipeline reproduzível + cenários críticos automatizados","textPreview":"Gate: pipeline reproduzível + cenários críticos automatizados","textChars":61,"textLines":1,"bbox":[84,604,316,34]}
+{"kind":"shape","id":"sh/6tgnud47","slide":10,"bbox":[494,223,84,84]}
+{"kind":"textbox","id":"sh/1kr6ts3u","slide":10,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[494,224,84,82]}
+{"kind":"textbox","id":"sh/gji50nm9","slide":10,"text":"Pilotar","textPreview":"Pilotar","textChars":7,"textLines":1,"bbox":[598,226,270,38]}
+{"kind":"textbox","id":"sh/fi9orilo","slide":10,"text":"Validar valor em uma jornada relevante e controlada.","textPreview":"Validar valor em uma jornada relevante e controlada.","textChars":52,"textLines":1,"bbox":[494,332,340,76]}
+{"kind":"shape","id":"sh/exgnyd43","slide":10,"bbox":[494,420,340,3]}
+{"kind":"shape","id":"sh/por6xs3q","slide":10,"bbox":[494,449,10,10]}
+{"kind":"textbox","id":"sh/onip4nm5","slide":10,"text":"Um caso de negócio com dono executivo","textPreview":"Um caso de negócio com dono executivo","textChars":37,"textLines":1,"bbox":[516,442,318,39]}
+{"kind":"shape","id":"sh/mhsb25gb","slide":10,"bbox":[494,503,10,10]}
+{"kind":"textbox","id":"sh/ni1cbahw","slide":10,"text":"Dois canais para provar reuso","textPreview":"Dois canais para provar reuso","textChars":29,"textLines":1,"bbox":[516,496,318,39]}
+{"kind":"shape","id":"sh/ojat4vyh","slide":10,"bbox":[494,557,10,10]}
+{"kind":"textbox","id":"sh/9kjud0f2","slide":10,"text":"Baseline de prazo, retrabalho e incidentes","textPreview":"Baseline de prazo, retrabalho e incidentes","textChars":42,"textLines":1,"bbox":[516,550,318,39]}
+{"kind":"shape","id":"sh/alsv65gn","slide":10,"bbox":[494,596,340,50]}
+{"kind":"textbox","id":"sh/bmlcfax8","slide":10,"text":"Gate: evidência de valor + riscos operacionais conhecidos","textPreview":"Gate: evidência de valor + riscos operacionais conhecidos","textChars":57,"textLines":1,"bbox":[506,604,316,34]}
+{"kind":"shape","id":"sh/wnud8fyt","slide":10,"bbox":[916,223,84,84]}
+{"kind":"textbox","id":"sh/xo3uhkfy","slide":10,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[916,224,84,82]}
+{"kind":"textbox","id":"sh/ypcvapgj","slide":10,"text":"Escalar","textPreview":"Escalar","textChars":7,"textLines":1,"bbox":[1020,226,270,38]}
+{"kind":"textbox","id":"sh/jqlcjux4","slide":10,"text":"Converter o aprendizado do piloto em capacidade corporativa.","textPreview":"Converter o aprendizado do piloto em capacidade corporativa.","textChars":60,"textLines":1,"bbox":[916,332,340,76]}
+{"kind":"shape","id":"sh/76hc3ap8","slide":10,"bbox":[916,420,340,3]}
+{"kind":"shape","id":"sh/658bup8n","slide":10,"bbox":[916,449,10,10]}
+{"kind":"textbox","id":"sh/t8ju5k7e","slide":10,"text":"Catálogo e padrões reutilizáveis","textPreview":"Catálogo e padrões reutilizáveis","textChars":32,"textLines":1,"bbox":[938,442,318,39]}
+{"kind":"shape","id":"sh/s7qtwfqt","slide":10,"bbox":[916,503,10,10]}
+{"kind":"textbox","id":"sh/fa1c7upk","slide":10,"text":"SLOs, observabilidade e sustentação","textPreview":"SLOs, observabilidade e sustentação","textChars":35,"textLines":1,"bbox":[938,496,318,39]}
+{"kind":"shape","id":"sh/u9sbyp8z","slide":10,"bbox":[916,557,10,10]}
+{"kind":"textbox","id":"sh/1cju947a","slide":10,"text":"Governança leve e adoção por produto","textPreview":"Governança leve e adoção por produto","textChars":36,"textLines":1,"bbox":[938,550,318,39]}
+{"kind":"shape","id":"sh/gbad0zq5","slide":10,"bbox":[916,596,340,50]}
+{"kind":"textbox","id":"sh/vexcvqp0","slide":10,"text":"Gate: modelo operacional e capacidade de suporte aprovados","textPreview":"Gate: modelo operacional e capacidade de suporte aprovados","textChars":58,"textLines":1,"bbox":[928,604,316,34]}
+{"kind":"image","id":"im/gnmpkj6l","slide":10,"name":"","alt":"Marca Vivo","bbox":[1173,18,36,36]}
+{"kind":"notes","id":"nt/ej3h0l","slide":10,"text":"Este é um sequenciamento, não um cronograma. A proposta evita expandir canais e consumidores antes de fechar repetibilidade, contratos e observabilidade. O piloto deve medir valor e também expor riscos operacionais.\n\n[Sources]\n- requisitos/admin/progresso.md — itens abertos de FT-11 e FT-12\n- User-provided tobe.png — valor esperado de velocidade, qualidade, escala e controle\n- Recommendation synthesized from local project evidence; no committed dates assumed\n[/Sources]"}
+{"kind":"slide","id":"sl/n62jf9","slide":11,"title":"DECISÃO EXECUTIVA","textShapes":12}
+{"kind":"shape","id":"sh/ip4ja1gn","slide":11,"bbox":[0,0,1280,720]}
+{"kind":"textbox","id":"sh/wnm18ryh","slide":11,"text":"DECISÃO EXECUTIVA","textPreview":"DECISÃO EXECUTIVA","textChars":17,"textLines":1,"bbox":[142,61,450,26]}
+{"kind":"textbox","id":"sh/hov2hwf2","slide":11,"text":"Proteger a simplicidade.\nFinanciar a industrialização.","textPreview":"Proteger a simplicidade. | Financiar a industrialização.","textChars":54,"textLines":2,"bbox":[72,146,840,128]}
+{"kind":"shape","id":"sh/ulkj6hgr","slide":11,"bbox":[80,335,58,58]}
+{"kind":"textbox","id":"sh/vmtkfmxc","slide":11,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[80,336,58,56]}
+{"kind":"textbox","id":"sh/gj6lkvy1","slide":11,"text":"Endossar o princípio","textPreview":"Endossar o princípio","textChars":20,"textLines":1,"bbox":[160,333,330,33]}
+{"kind":"textbox","id":"sh/1kf2t0fm","slide":11,"text":"REST por padrão; ACL por exceção justificada.","textPreview":"REST por padrão; ACL por exceção justificada.","textChars":45,"textLines":1,"bbox":[160,370,610,42]}
+{"kind":"shape","id":"sh/9czedwvi","slide":11,"bbox":[80,430,58,58]}
+{"kind":"textbox","id":"sh/8b6d4bex","slide":11,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[80,431,58,56]}
+{"kind":"textbox","id":"sh/naxwb6ds","slide":11,"text":"Priorizar os gates","textPreview":"Priorizar os gates","textChars":18,"textLines":1,"bbox":[160,428,330,33]}
+{"kind":"textbox","id":"sh/m9ov21w7","slide":11,"text":"Testes, infraestrutura, identidade e contratos.","textPreview":"Testes, infraestrutura, identidade e contratos.","textChars":47,"textLines":1,"bbox":[160,465,610,42]}
+{"kind":"shape","id":"sh/18fe9wvm","slide":11,"bbox":[80,525,58,58]}
+{"kind":"textbox","id":"sh/076d0re1","slide":11,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[80,526,58,56]}
+{"kind":"textbox","id":"sh/z6xw7mdg","slide":11,"text":"Patrocinar um piloto","textPreview":"Patrocinar um piloto","textChars":20,"textLines":1,"bbox":[160,523,330,33]}
+{"kind":"textbox","id":"sh/e5ovyhwv","slide":11,"text":"Caso de negócio, dono e métrica de valor explícitos.","textPreview":"Caso de negócio, dono e métrica de valor explícitos.","textChars":52,"textLines":1,"bbox":[160,560,610,42]}
+{"kind":"textbox","id":"sh/54jel0vq","slide":11,"text":"A plataforma já demonstra o caminho. O próximo investimento a transforma em capacidade corporativa.","textPreview":"A plataforma já demonstra o caminho. O próximo investimento a transforma em capacidade corporativa.","textChars":99,"textLines":1,"bbox":[72,658,980,34]}
+{"kind":"image","id":"im/ob2t43y5","slide":11,"name":"","alt":"Fluxos abstratos convergindo em uma rota central","bbox":[0,0,1280,720]}
+{"kind":"image","id":"im/2pkb2tgz","slide":11,"name":"","alt":"Marca Vivo","bbox":[72,44,50,50]}
+{"kind":"notes","id":"nt/n62jf9","slide":11,"text":"Feche com três decisões concretas. Não peça aprovação genérica do projeto: peça adesão ao princípio arquitetural, prioridade aos gates de produção e patrocínio para um piloto mensurável.\n\n[Sources]\n- Synthesis of user-provided AS IS / comparison / overengineering / TO BE artifacts\n- requisitos/admin/progresso.md and ej-admin-arquitetura-logica.md\n- Generated background reused from slide 1\n[/Sources]"}
+{"kind":"slide","id":"sl/agh56q","slide":12,"title":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textShapes":3}
+{"kind":"textbox","id":"sh/cze1o3y9","slide":12,"text":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textPreview":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textChars":36,"textLines":1,"bbox":[58,22,520,22]}
+{"kind":"textbox","id":"sh/axwjmdgj","slide":12,"text":"AS IS e visão consolidada","textPreview":"AS IS e visão consolidada","textChars":25,"textLines":1,"bbox":[58,51,1120,56]}
+{"kind":"shape","id":"sh/pwn2t8fy","slide":12,"bbox":[45,112,1190,555]}
+{"kind":"textbox","id":"sh/nul0ryxs","slide":12,"text":"A1","textPreview":"A1","textChars":2,"textLines":1,"bbox":[1160,686,58,18]}
+{"kind":"image","id":"im/u5c3q5or","slide":12,"name":"","alt":"Marca Vivo","bbox":[1190,15,30,30]}
+{"kind":"image","id":"im/t432h0n6","slide":12,"name":"","geometry":"roundRect","alt":"Comparação visual entre cenário fragmentado e Elastic Journey com SDUI","bbox":[58,123,1164,533]}
+{"kind":"notes","id":"nt/agh56q","slide":12,"text":"Use este artefato como referência técnica quando houver perguntas de detalhamento.\n\n[Sources]\n- User-provided image: C:/Users/gonza/AppData/Local/Temp/as is.png\n[/Sources]"}
+{"kind":"slide","id":"sl/1i6hrj","slide":13,"title":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textShapes":3}
+{"kind":"textbox","id":"sh/uhwfutof","slide":13,"text":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textPreview":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textChars":36,"textLines":1,"bbox":[58,22,520,22]}
+{"kind":"textbox","id":"sh/gjexw36l","slide":13,"text":"REST direto × ACL","textPreview":"REST direto × ACL","textChars":17,"textLines":1,"bbox":[58,51,1120,56]}
+{"kind":"shape","id":"sh/7ulgjep4","slide":13,"bbox":[45,112,1190,555]}
+{"kind":"textbox","id":"sh/twnylo7u","slide":13,"text":"A2","textPreview":"A2","textChars":2,"textLines":1,"bbox":[1160,686,58,18]}
+{"kind":"image","id":"im/kfi1g3m5","slide":13,"name":"","alt":"Marca Vivo","bbox":[1190,15,30,30]}
+{"kind":"image","id":"im/729krylw","slide":13,"name":"","geometry":"roundRect","alt":"Comparativo entre conector REST genérico e integração via ACL","bbox":[58,123,1164,533]}
+{"kind":"notes","id":"nt/1i6hrj","slide":13,"text":"Use este artefato como referência técnica quando houver perguntas de detalhamento.\n\n[Sources]\n- User-provided image: C:/Users/gonza/AppData/Local/Temp/comparativo.png\n[/Sources]"}
+{"kind":"slide","id":"sl/r1fksv","slide":14,"title":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textShapes":3}
+{"kind":"textbox","id":"sh/fa9gvypo","slide":14,"text":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textPreview":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textChars":36,"textLines":1,"bbox":[58,22,520,22]}
+{"kind":"textbox","id":"sh/1cryxo7u","slide":14,"text":"Arquitetura atual com ACL","textPreview":"Arquitetura atual com ACL","textChars":25,"textLines":1,"bbox":[58,51,1120,56]}
+{"kind":"shape","id":"sh/qlgfi9o7","slide":14,"bbox":[45,112,1190,555]}
+{"kind":"textbox","id":"sh/snyxkj6d","slide":14,"text":"A3","textPreview":"A3","textChars":2,"textLines":1,"bbox":[1160,686,58,18]}
+{"kind":"image","id":"im/dszqpori","slide":14,"name":"","alt":"Marca Vivo","bbox":[1190,15,30,30]}
+{"kind":"image","id":"im/21o7qp8v","slide":14,"name":"","geometry":"roundRect","alt":"Arquitetura atual com camada ACL e comparação com abordagem simples","bbox":[58,123,1164,533]}
+{"kind":"notes","id":"nt/r1fksv","slide":14,"text":"Use este artefato como referência técnica quando houver perguntas de detalhamento.\n\n[Sources]\n- User-provided image: C:/Users/gonza/AppData/Local/Temp/over.png\n[/Sources]"}
+{"kind":"slide","id":"sl/hij0dl","slide":15,"title":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textShapes":3}
+{"kind":"textbox","id":"sh/d0j6tgr6","slide":15,"text":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textPreview":"APÊNDICE TÉCNICO • ARTEFATO ORIGINAL","textChars":36,"textLines":1,"bbox":[58,22,520,22]}
+{"kind":"textbox","id":"sh/ry1or69g","slide":15,"text":"Arquitetura TO BE","textPreview":"Arquitetura TO BE","textChars":17,"textLines":1,"bbox":[58,51,1120,56]}
+{"kind":"shape","id":"sh/4vapwrqp","slide":15,"bbox":[45,112,1190,555]}
+{"kind":"textbox","id":"sh/2987uh8j","slide":15,"text":"A4","textPreview":"A4","textChars":2,"textLines":1,"bbox":[1160,686,58,18]}
+{"kind":"image","id":"im/neh0rah8","slide":15,"name":"","alt":"Marca Vivo","bbox":[1190,15,30,30]}
+{"kind":"image","id":"im/c3a1ozip","slide":15,"name":"","geometry":"roundRect","alt":"Arquitetura alvo do Elastic Journey","bbox":[58,123,1164,533]}
+{"kind":"notes","id":"nt/hij0dl","slide":15,"text":"Use este artefato como referência técnica quando houver perguntas de detalhamento.\n\n[Sources]\n- User-provided image: C:/Users/gonza/AppData/Local/Temp/tobe.png\n[/Sources]"}

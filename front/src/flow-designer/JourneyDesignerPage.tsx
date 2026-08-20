@@ -11,6 +11,7 @@ import {
   addEdge,
   useReactFlow,
   useViewport,
+  getViewportForBounds,
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
@@ -52,11 +53,11 @@ import {
   type WFNodeData,
   type WFAnnotation,
   type EdgeShape,
-  type CanvasBackground,
 } from './model';
 import { updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow } from '../api/flows';
 import { listForms, type Form } from '../api/forms';
+import { ApiClientError } from '../api/client';
 
 const nodeTypes = {
   start: WorkflowNode,
@@ -141,13 +142,6 @@ function DesignerInner({
   useEffect(() => {
     localStorage.setItem('flow-designer:edge-shape', edgeShape);
   }, [edgeShape]);
-  // Same idea for the canvas background style.
-  const [canvasBackground, setCanvasBackground] = useState<CanvasBackground>(
-    () => (localStorage.getItem('flow-designer:canvas-bg') as CanvasBackground | null) ?? 'dots',
-  );
-  useEffect(() => {
-    localStorage.setItem('flow-designer:canvas-bg', canvasBackground);
-  }, [canvasBackground]);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -176,8 +170,61 @@ function DesignerInner({
   const redoStack = useRef<HistorySnapshot[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow();
+  const { screenToFlowPosition, zoomIn, zoomOut, fitView, getNodesBounds, getViewport, setViewport } = useReactFlow();
   const { zoom } = useViewport();
+
+  // Fluxos são lidos/construídos da esquerda pra direita (mesma direção do auto-layout LR e de onde
+  // novos nós nascem via onQuickAdd abaixo), então a visão inicial ancora perto da borda esquerda do
+  // canvas com espaço pra crescer pra direita, em vez da centralização padrão do fitView — que só
+  // desperdiça o espaço que está prestes a ser preenchido pelos próximos nós.
+  const fitViewLeftAligned = useCallback(() => {
+    const paneEl = wrapperRef.current;
+    if (!paneEl || nodesRef.current.length === 0) return;
+    const bounds = getNodesBounds(nodesRef.current.map((n) => n.id));
+    if (bounds.width === 0 && bounds.height === 0) return;
+    const { width: paneWidth, height: paneHeight } = paneEl.getBoundingClientRect();
+    if (!paneWidth || !paneHeight) return;
+    // minZoom espelha o <ReactFlow minZoom>; maxZoom é travado em 1 aqui (nunca dá zoom IN além do
+    // tamanho natural) em vez do 1.6 do próprio canvas — ajustar um único nó pequeno ao painel
+    // empurraria o zoom calculado pro máximo, e um nó grande e zoomado ainda parece "centralizado"
+    // visualmente não importa onde sua borda esquerda tecnicamente esteja; um nó de tamanho natural
+    // com canvas vazio de verdade à direita passa a sensação de "início de um fluxo" em vez disso.
+    const { zoom: fitZoom, y } = getViewportForBounds(bounds, paneWidth, paneHeight, 0.4, 1, 0.3);
+    const leftMargin = 64;
+    setViewport({ x: leftMargin - bounds.x * fitZoom, y, zoom: fitZoom }, { duration: 0 });
+  }, [getNodesBounds, setViewport]);
+
+  // Ajusta o pan (nunca o zoom) só o suficiente pra trazer um nó totalmente pra dentro do canvas
+  // visível — usado depois que o quick-add posiciona um nó novo mais à direita, que antes podia
+  // nascer além da borda (ou atrás do painel de propriedades, sempre aberto) sem nada que o trouxesse
+  // de volta à vista.
+  const panIntoView = useCallback(
+    (position: { x: number; y: number }) => {
+      const paneEl = wrapperRef.current;
+      if (!paneEl) return;
+      const { width: paneWidth, height: paneHeight } = paneEl.getBoundingClientRect();
+      if (!paneWidth || !paneHeight) return;
+      const { x: panX, y: panY, zoom: currentZoom } = getViewport();
+      const margin = 60;
+      // O próprio botão "+" de quick-add do nó abre um popup uns 230px mais à direita que o nó em
+      // si (deslocamento do botão + largura do submenu) — reserva essa folga à direita pra que
+      // adicionar um nó não deixe só o nó cabendo, sem espaço pra abrir esse popup.
+      const rightMargin = 260;
+      const nodeHeightEstimate = 90; // cards vary (description/badges) — a visibility margin doesn't need the exact height
+      const left = position.x * currentZoom + panX;
+      const right = (position.x + NODE_WIDTH) * currentZoom + panX;
+      const top = position.y * currentZoom + panY;
+      const bottom = (position.y + nodeHeightEstimate) * currentZoom + panY;
+      let dx = 0;
+      let dy = 0;
+      if (right > paneWidth - rightMargin) dx = paneWidth - rightMargin - right;
+      else if (left < margin) dx = margin - left;
+      if (bottom > paneHeight - margin) dy = paneHeight - margin - bottom;
+      else if (top < margin) dy = margin - top;
+      if (dx !== 0 || dy !== 0) setViewport({ x: panX + dx, y: panY + dy, zoom: currentZoom }, { duration: 220 });
+    },
+    [getViewport, setViewport],
+  );
 
   const refreshForms = useCallback(() => {
     listForms().then(setForms);
@@ -220,8 +267,11 @@ function DesignerInner({
         })),
       );
       setLoading(false);
+      // Os nós só recebem seu tamanho medido de verdade (do que o cálculo de bounds precisa) depois
+      // que esse render é commitado — mesmo raciocínio do requestAnimationFrame no organize() abaixo.
+      requestAnimationFrame(() => fitViewLeftAligned());
     });
-  }, [journey]);
+  }, [journey, fitViewLeftAligned]);
 
   const pushHistory = useCallback(() => {
     undoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current, annotations: annotationsRef.current });
@@ -423,11 +473,33 @@ function DesignerInner({
       const outCount = edgesRef.current.filter((e) => e.source === nodeId).length;
       if (outCount >= outgoingLimitFor(source.type)) return;
       pushHistory();
-      const node = { ...makeNode(type, source.position.x + NODE_WIDTH + 140, source.position.y), selected: true };
+      // Os dois ramos do Gateway se abrem acima/abaixo da origem (mesmo deslocamento que o
+      // auto-layout usa entre linhas irmãs) em vez de empilhar na mesma linha da origem, pra que
+      // caminho A/B leiam como ramos distintos à primeira vista. O primeiro adicionado é sugerido
+      // como caminho padrão — exatamente um dos dois precisa ser (REQ-03.11.002) — o usuário pode
+      // trocar no GatewayFields.
+      const isGateway = source.type === 'gateway';
+      const branchYOffset = isGateway ? (outCount === 0 ? -44 : 44) : 0;
+      const node = {
+        ...makeNode(type, source.position.x + NODE_WIDTH + 140, source.position.y + branchYOffset),
+        selected: true,
+      };
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
-      setEdges((eds) => [...eds, { id: newConnectionId(), source: nodeId, target: node.id }]);
+      setEdges((eds) => [
+        ...eds,
+        {
+          id: newConnectionId(),
+          source: nodeId,
+          target: node.id,
+          ...(isGateway && outCount === 0 ? { data: { isDefault: true } } : {}),
+        },
+      ]);
+      // Nós novos sempre nascem à direita da origem — o fluxo continua crescendo até ultrapassar o
+      // canvas visível (ou ficar atrás do painel de propriedades, sempre aberto) sem nada que o
+      // acompanhe.
+      panIntoView(node.position);
     },
-    [pushHistory],
+    [pushHistory, panIntoView],
   );
 
   const onPaneClick = useCallback(() => {
@@ -476,6 +548,7 @@ function DesignerInner({
       onDelete: deleteNode,
       onOpenForm,
       getFormName: (formId) => forms.find((f) => f.formId === formId)?.name,
+      getForm: (formId) => forms.find((f) => f.formId === formId),
       onUpdateAnnotationText,
       onDeleteAnnotation,
       onUnlinkAnnotation,
@@ -610,7 +683,14 @@ function DesignerInner({
       setActiveJourney(journeyRecord);
       onSaved();
     } catch (err) {
-      setErrors([err instanceof Error ? err.message : 'Erro ao salvar jornada.']);
+      // Uma violação estrutural (422) vem com uma lista de mensagens em `details` — usar cada uma
+      // como item próprio do ErrorModal em vez da mensagem única (que junta tudo com "; ") faz a
+      // lista aparecer como itens separados de verdade, não um parágrafo só.
+      if (err instanceof ApiClientError && err.details?.length) {
+        setErrors(err.details.map((d) => d.message));
+      } else {
+        setErrors([err instanceof Error ? err.message : 'Erro ao salvar jornada.']);
+      }
     } finally {
       setSaving(false);
     }
@@ -626,24 +706,6 @@ function DesignerInner({
     );
   }
 
-  // Dedicated, softer tones for grid/line patterns — reusing `c.dotColor`/`c.border` (tuned for UI
-  // chrome, not a canvas-wide repeating pattern) read as a heavy, mechanical grid, especially in
-  // light mode where a continuous line reads much heavier than a dot at the same opacity.
-  const patternSoft = dark ? 'rgba(255,255,255,0.05)' : 'rgba(20,20,30,0.055)';
-  const patternStrong = dark ? 'rgba(255,255,255,0.11)' : 'rgba(20,20,30,0.11)';
-  // 'glow'/'aurora'/'vignette' swap the flat canvas fill for a tint instead of drawing a grid;
-  // 'aurora' reuses the app's own accent + the userTask blue (TYPE_COLOR) at low alpha rather than
-  // inventing new brand colors. Every other option (including 'plain') keeps the flat color, with
-  // or without a pattern drawn on top of it.
-  const canvasFill =
-    canvasBackground === 'glow'
-      ? `radial-gradient(ellipse 70% 55% at 50% -10%, ${c.accentSoft}, ${c.canvasBg} 65%)`
-      : canvasBackground === 'aurora'
-        ? `radial-gradient(ellipse 60% 50% at 10% 0%, ${c.accentSoft}, transparent 60%), radial-gradient(ellipse 60% 50% at 90% 100%, rgba(1,157,244,0.08), transparent 60%), ${c.canvasBg}`
-        : canvasBackground === 'vignette'
-          ? `radial-gradient(ellipse 85% 75% at 50% 45%, ${c.canvasBg}, ${dark ? 'rgba(0,0,0,0.45)' : 'rgba(15,15,25,0.075)'} 100%)`
-          : c.canvasBg;
-
   return (
     <FlowThemeContext.Provider value={{ dark, c }}>
       <WorkflowActionsContext.Provider value={actions}>
@@ -656,8 +718,6 @@ function DesignerInner({
             onOrganize={organize}
             edgeShape={edgeShape}
             onEdgeShapeChange={setEdgeShape}
-            canvasBackground={canvasBackground}
-            onCanvasBackgroundChange={setCanvasBackground}
             zoomPct={Math.round(zoom * 100)}
             onZoomIn={() => zoomIn({ duration: 150 })}
             onZoomOut={() => zoomOut({ duration: 150 })}
@@ -696,27 +756,10 @@ function DesignerInner({
                 snapGrid={[16, 16]}
                 defaultEdgeOptions={{ type: edgeShape }}
                 colorMode={dark ? 'dark' : 'light'}
-                style={{ background: canvasFill }}
+                style={{ background: c.canvasBg }}
                 proOptions={{ hideAttribution: true }}
               >
-                {canvasBackground === 'dots' && (
-                  <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={20} size={1.2} />
-                )}
-                {canvasBackground === 'dotsLarge' && (
-                  <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={36} size={1.8} />
-                )}
-                {canvasBackground === 'lines' && (
-                  <Background variant={BackgroundVariant.Lines} color={patternSoft} gap={32} lineWidth={0.75} />
-                )}
-                {canvasBackground === 'cross' && (
-                  <Background variant={BackgroundVariant.Cross} color={patternSoft} gap={36} size={7} lineWidth={0.75} />
-                )}
-                {canvasBackground === 'grid' && (
-                  <>
-                    <Background id="bg-minor" variant={BackgroundVariant.Lines} color={patternSoft} gap={28} lineWidth={0.6} />
-                    <Background id="bg-major" variant={BackgroundVariant.Lines} color={patternStrong} gap={140} lineWidth={0.75} />
-                  </>
-                )}
+                <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={20} size={1.2} />
                 <MiniMap
                   pannable
                   zoomable

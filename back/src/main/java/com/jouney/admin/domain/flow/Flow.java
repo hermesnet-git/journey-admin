@@ -2,6 +2,7 @@ package com.jouney.admin.domain.flow;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class Flow {
@@ -36,8 +37,8 @@ public class Flow {
     }
 
     public void replace(String name, List<FlowNode> nodes, List<FlowConnection> connections,
-                         List<FlowAnnotation> annotations) {
-        FlowValidator.validate(nodes, connections);
+                         List<FlowAnnotation> annotations, Map<UUID, List<String>> formFieldNamesByFormId) {
+        FlowValidator.validate(nodes, connections, formFieldNamesByFormId);
         this.name = name;
         this.nodes = nodes;
         this.connections = connections;

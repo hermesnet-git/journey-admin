@@ -1,6 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
 import type { FlowNodeType } from '../api/flows';
+import type { Form, FormField } from '../api/forms';
 
 export type NodeType = 'start' | 'userTask' | 'end' | 'serviceTask' | 'receiveTask' | 'messageStartEvent' | 'gateway';
 export type ConnectorType = 'REST' | 'KAFKA';
@@ -223,23 +224,36 @@ export const EDGE_SHAPE_OPTIONS: { value: EdgeShape; label: string }[] = [
   { value: 'straight', label: 'Reta direta' },
 ];
 
-// Same idea as EdgeShape: a client-only, remembered-but-not-persisted display preference for the
-// canvas surface. 'grid' stacks two Background layers (fine + coarse) for a Figma-style ruled
-// grid. 'glow', 'aurora', 'vignette' and 'plain' render no <Background> pattern at all — each just
-// swaps the flat canvas fill for a different tint (or, for 'plain', no tint).
-export type CanvasBackground = 'dots' | 'dotsLarge' | 'lines' | 'grid' | 'cross' | 'glow' | 'aurora' | 'vignette' | 'plain';
+// Os campos de formulário de uma User Task são o que o usuário final realmente preenche — essas
+// respostas viram variáveis de processo do mesmo jeito que o outputMapping de um conector, então um
+// nó downstream deveria poder referenciá-las também. TEXT (só texto exibido, não coleta nada) e
+// FILE_UPLOAD (referência a um arquivo, não algo que caiba numa mensagem/condição) são os dois
+// tipos de campo sem nada a oferecer aqui.
+//
+// Sem tratamento de deduplicação/colisão aqui de propósito: se dois campos alcançáveis tiverem o
+// mesmo nome (mesmo formulário reusado duas vezes, ou dois formulários usando "cpf" por exemplo),
+// os dois aparecem na lista normalmente. Colocar um prefixo no token (formularioA.cpf) foi cogitado
+// e descartado — só estaria correto se o motor de runtime realmente gravasse o valor submetido sob
+// essa chave prefixada, o que este portal não tem como confirmar (resolução de variável em runtime
+// está fora do seu domínio). Em vez disso, o backend rejeita a colisão direto no salvamento
+// (FlowValidator, REQ-03.09.011 estendido pra campos de formulário) — a mesma nota sobre escopo
+// (fluxo todo vs. restrito por alcançabilidade) está lá.
+function variableTypeForFormField(field: FormField): VariableType {
+  if (field.type === 'INPUT') {
+    if (field.inputSubtype === 'NUMBER') return 'number';
+    if (field.inputSubtype === 'DATE') return 'date';
+  }
+  return 'string';
+}
 
-export const CANVAS_BG_OPTIONS: { value: CanvasBackground; label: string }[] = [
-  { value: 'dots', label: 'Pontilhado' },
-  { value: 'dotsLarge', label: 'Pontilhado amplo' },
-  { value: 'lines', label: 'Grade fina' },
-  { value: 'grid', label: 'Grade dupla' },
-  { value: 'cross', label: 'Cruzes' },
-  { value: 'glow', label: 'Brilho radial' },
-  { value: 'aurora', label: 'Aurora' },
-  { value: 'vignette', label: 'Vinheta' },
-  { value: 'plain', label: 'Liso' },
-];
+function userTaskFormVariables(node: WFNode, forms: Form[]): { name: string; type: VariableType }[] {
+  if (node.type !== 'userTask' || !node.data.formId) return [];
+  const form = forms.find((f) => f.formId === node.data.formId);
+  if (!form) return [];
+  return form.fields
+    .filter((f) => f.type !== 'TEXT' && f.type !== 'FILE_UPLOAD')
+    .map((f) => ({ name: f.name, type: variableTypeForFormField(f) }));
+}
 
 // REQ-03.09.013: variables available at a given node — the outputMapping names declared by every
 // ancestor reachable backwards from it (same BFS shape as validation.ts's reachableFrom), plus
@@ -247,7 +261,7 @@ export const CANVAS_BG_OPTIONS: { value: CanvasBackground; label: string }[] = [
 // ancestor of every node) — keeping each rule's declared type (REQ-03.11.003) instead of just the
 // name, used by the gateway condition picker to offer the right operators and value input per
 // variable.
-export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges: WFEdge[]): OutputMappingRule[] {
+export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges: WFEdge[], forms: Form[]): OutputMappingRule[] {
   const backward = new Map<string, string[]>();
   nodes.forEach((n) => backward.set(n.id, []));
   edges.forEach((e) => backward.get(e.target)?.push(e.source));
@@ -277,6 +291,7 @@ export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges:
         }
       });
     }
+    userTaskFormVariables(n, forms).forEach((v) => rules.push({ name: v.name, jsonPath: '', type: v.type }));
   });
   return rules;
 }
@@ -295,7 +310,7 @@ function originLabelFor(node: WFNode): string {
 // Same ancestor set as availableVariablesAt/availableVariableRulesAt, but carrying where each
 // variable comes from — used by the "Variáveis" reference panel and the field-level variable
 // picker (VariablePickerButton) to group instead of showing one flat list.
-export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edges: WFEdge[]): VariableOrigin[] {
+export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edges: WFEdge[], forms: Form[]): VariableOrigin[] {
   const backward = new Map<string, string[]>();
   nodes.forEach((n) => backward.set(n.id, []));
   edges.forEach((e) => backward.get(e.target)?.push(e.source));
@@ -328,6 +343,9 @@ export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edge
         }
       });
     }
+    userTaskFormVariables(n, forms).forEach((v) =>
+      origins.push({ name: v.name, type: v.type, sourceNodeId: n.id, sourceLabel: originLabelFor(n) }),
+    );
   });
   return origins;
 }

@@ -35,7 +35,7 @@ export function DashboardPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const firstLoad = useRef(true);
 
-  const [granularity, setGranularity] = useState<TrendGranularity>('day');
+  const [granularity, setGranularity] = useState<TrendGranularity>('week');
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [terminatingIds, setTerminatingIds] = useState<Set<string>>(new Set());

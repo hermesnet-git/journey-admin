@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard, ChevronDown } from 'lucide-react';
 import { useFlowTheme } from './theme';
-import { EDGE_SHAPE_OPTIONS, type EdgeShape, CANVAS_BG_OPTIONS, type CanvasBackground } from './model';
+import { EDGE_SHAPE_OPTIONS, type EdgeShape } from './model';
 
 const SHORTCUTS_HINT = [
   'Ctrl+Z — Desfazer',
@@ -40,8 +40,10 @@ function EdgeShapePicker({ value, onChange }: { value: EdgeShape; onChange: (sha
     const onDocClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
+    // Fase de captura — o canvas do React Flow interrompe a propagação do mousedown pro próprio
+    // pan/drag, então um clique no canvas nunca chegaria a um listener na fase de bolha aqui.
+    document.addEventListener('mousedown', onDocClick, true);
+    return () => document.removeEventListener('mousedown', onDocClick, true);
   }, [open]);
 
   return (
@@ -88,8 +90,6 @@ export function Toolbar({
   onOrganize,
   edgeShape,
   onEdgeShapeChange,
-  canvasBackground,
-  onCanvasBackgroundChange,
   zoomPct,
   onZoomIn,
   onZoomOut,
@@ -105,8 +105,6 @@ export function Toolbar({
   onOrganize: () => void;
   edgeShape: EdgeShape;
   onEdgeShapeChange: (shape: EdgeShape) => void;
-  canvasBackground: CanvasBackground;
-  onCanvasBackgroundChange: (bg: CanvasBackground) => void;
   zoomPct: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -118,7 +116,6 @@ export function Toolbar({
   const { c } = useFlowTheme();
   const iconBtn =
     'w-[27px] h-[27px] rounded-lg border-0 bg-transparent flex items-center justify-center cursor-pointer disabled:opacity-35';
-  const selectCls = 'h-[27px] pl-[7px] pr-[4px] rounded-lg text-[12px] font-medium cursor-pointer max-w-[122px]';
   const divider = <div className="w-px h-[18px] mx-[3px]" style={{ background: c.border }} />;
 
   return (
@@ -133,19 +130,6 @@ export function Toolbar({
           <LayoutGrid size={14} /> Organizar
         </button>
         <EdgeShapePicker value={edgeShape} onChange={onEdgeShapeChange} />
-        <select
-          value={canvasBackground}
-          onChange={(e) => onCanvasBackgroundChange(e.target.value as CanvasBackground)}
-          title="Aspecto do fundo do canvas"
-          className={selectCls}
-          style={{ border: `1px solid ${c.border}`, color: c.textPrimary, background: c.cardBg }}
-        >
-          {CANVAS_BG_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
         {divider}
         <button onClick={onUndo} disabled={!canUndo} className={iconBtn} style={{ color: c.textSecondary }} title="Desfazer (Ctrl+Z)">
           <Undo2 size={16} />

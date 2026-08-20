@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ThemeContextProvider, getSkinByName } from '@telefonica/mistica';
 import type { KnownSkinName } from '@telefonica/mistica';
 import { Sidebar } from './shell/Sidebar';
@@ -51,12 +51,35 @@ function AppShell() {
   const skin = getSkinByName(skinName);
   const [tabs, setTabs] = useState<Tab[]>([DASHBOARD_TAB]);
   const [activeKey, setActiveKey] = useState('dashboard');
-  const [openFormId, setOpenFormId] = useState<string | null>(null);
-  const [openNewForm, setOpenNewForm] = useState(false);
+
+  // O AppShell continua montado entre logout/login (só a <LoginPage> troca de lugar), então sem
+  // isso as abas abertas da sessão anterior — incluindo jornadas/formulários em edição — ficariam
+  // ali pro próximo que logar. Deslogar deveria parecer que a sessão realmente terminou.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTabs([DASHBOARD_TAB]);
+      setActiveKey('dashboard');
+    }
+  }, [isAuthenticated]);
 
   function openTab(tab: Tab) {
     setTabs((prev) => (prev.some((t) => t.key === tab.key) ? prev : [...prev, tab]));
     setActiveKey(tab.key);
+  }
+
+  // Fecha uma aba efêmera de edição de formulário (aberta via openForm/openNewFormScreen abaixo) e
+  // devolve o foco pra aba que estava ativa quando ela foi aberta — o designer de jornada, na
+  // prática, já que é o único chamador — em vez do fallback genérico "última aba restante" do
+  // closeTab.
+  function closeFormTab(key: string, returnToKey: string) {
+    setTabs((prev) => {
+      const next = prev.filter((t) => t.key !== key);
+      // returnToKey pode ela mesma ter sido fechada nesse meio tempo (ex.: o usuário fechou a aba
+      // Jornadas enquanto a aba de edição de formulário criada a partir dela ainda estava aberta) —
+      // cai no mesmo fallback "última aba restante" que o closeTab usa abaixo.
+      setActiveKey(next.some((t) => t.key === returnToKey) ? returnToKey : (next[next.length - 1]?.key ?? 'dashboard'));
+      return next;
+    });
   }
 
   function closeTab(key: string) {
@@ -105,14 +128,26 @@ function AppShell() {
     openTab({ key: `nav-${navKey}`, title: NAV_LABELS[navKey], kind: 'placeholder', closable: true });
   }
 
+  // Só é aberto de dentro do designer de jornada (formulário vinculado a uma User Task, ou "novo
+  // formulário"). Reaproveita a aba Formulários se ela estiver livre; se o usuário já tiver aberto
+  // ali navegando/editando outra coisa, cria uma aba dedicada em vez de mexer na que já existe.
+  function openFormEditTab(data: { formId?: string; openNew?: boolean }) {
+    const returnToKey = activeKey;
+    const reuseSlot = !tabs.some((t) => t.key === FORMS_TAB.key);
+    openTab({
+      ...FORMS_TAB,
+      key: reuseSlot ? FORMS_TAB.key : `formularios-${Date.now()}`,
+      ...data,
+      returnToKey,
+    });
+  }
+
   function openForm(formId: string) {
-    setOpenFormId(formId);
-    openTab(FORMS_TAB);
+    openFormEditTab({ formId });
   }
 
   function openNewFormScreen() {
-    setOpenNewForm(true);
-    openTab(FORMS_TAB);
+    openFormEditTab({ openNew: true });
   }
 
   const activeTab = tabs.find((t) => t.key === activeKey) ?? DASHBOARD_TAB;
@@ -159,10 +194,9 @@ function AppShell() {
                   {tab.kind === 'journeys' && <JourneysPage onOpenForm={openForm} onOpenNewForm={openNewFormScreen} />}
                   {tab.kind === 'forms' && (
                     <FormsPage
-                      openFormId={openFormId}
-                      onOpenFormIdHandled={() => setOpenFormId(null)}
-                      openNew={openNewForm}
-                      onOpenNewHandled={() => setOpenNewForm(false)}
+                      formId={tab.formId}
+                      openNew={tab.openNew}
+                      onExit={tab.returnToKey ? () => closeFormTab(tab.key, tab.returnToKey!) : undefined}
                     />
                   )}
                   {tab.kind === 'execution' && <ExecutionsPage active={tab.key === activeKey} />}

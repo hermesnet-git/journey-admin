@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, FileText } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { Search, Plus, FileText, X } from 'lucide-react';
 import { PrimaryButton, LinkButton } from '../products/ui';
 import { useAppTheme } from '../shell/theme';
 import { listForms, getForm, deleteForm, type Form } from '../api/forms';
@@ -8,10 +8,13 @@ import { ToastProvider, useToast } from '../products/Toast';
 import { FormBuilderPage } from './FormBuilderPage';
 
 interface FormsPageProps {
-  openFormId?: string | null;
-  onOpenFormIdHandled?: () => void;
+  // Presente quando essa aba foi aberta a partir do designer de jornada, pra ir direto pro modo de
+  // edição de um formulário (formId) ou de um novo (openNew), em vez de mostrar a lista.
+  formId?: string;
   openNew?: boolean;
-  onOpenNewHandled?: () => void;
+  // Presente junto com formId/openNew: troca "voltar pra lista" por "fechar essa aba e voltar pro
+  // designer de jornada", tanto no Cancelar quanto depois de salvar com sucesso.
+  onExit?: () => void;
 }
 
 export function FormsPage(props: FormsPageProps) {
@@ -22,7 +25,7 @@ export function FormsPage(props: FormsPageProps) {
   );
 }
 
-function FormsPageContent({ openFormId, onOpenFormIdHandled, openNew, onOpenNewHandled }: FormsPageProps) {
+function FormsPageContent({ formId, openNew, onExit }: FormsPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [forms, setForms] = useState<Form[]>([]);
@@ -49,23 +52,24 @@ function FormsPageContent({ openFormId, onOpenFormIdHandled, openNew, onOpenNewH
   }, [reload]);
 
   useEffect(() => {
-    if (!openFormId) return;
-    getForm(openFormId)
+    if (!formId) return;
+    getForm(formId)
       .then(setEditingForm)
-      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao abrir formulário', 'error'))
-      .finally(() => onOpenFormIdHandled?.());
-  }, [openFormId, onOpenFormIdHandled, showToast]);
+      .catch((err) => showToast(err instanceof Error ? err.message : 'Erro ao abrir formulário', 'error'));
+  }, [formId, showToast]);
 
   useEffect(() => {
     if (!openNew) return;
     setEditingForm('new');
-    onOpenNewHandled?.();
-  }, [openNew, onOpenNewHandled]);
+  }, [openNew]);
 
-  const filtered = useMemo(
-    () => forms.filter((f) => !search || f.name.toLowerCase().includes(search.toLowerCase())),
-    [forms, search],
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return forms;
+    // Busca por nome OU descrição — uma pesquisa por "cancelamento" antes vinha vazia só porque a
+    // palavra estava na descrição, não no nome.
+    return forms.filter((f) => f.name.toLowerCase().includes(q) || (f.description ?? '').toLowerCase().includes(q));
+  }, [forms, search]);
 
   async function confirmDelete() {
     if (!deletingForm) return;
@@ -84,11 +88,15 @@ function FormsPageContent({ openFormId, onOpenFormIdHandled, openNew, onOpenNewH
     return (
       <FormBuilderPage
         form={editingForm === 'new' ? null : editingForm}
-        onBack={() => setEditingForm(null)}
-        onSaved={async () => {
-          setEditingForm(null);
-          await reload();
-        }}
+        onBack={onExit ?? (() => setEditingForm(null))}
+        onSaved={
+          onExit
+            ? async () => onExit()
+            : async () => {
+                setEditingForm(null);
+                await reload();
+              }
+        }
       />
     );
   }
@@ -105,17 +113,7 @@ function FormsPageContent({ openFormId, onOpenFormIdHandled, openNew, onOpenNewH
       </div>
 
       <div className="flex items-center justify-between gap-3 mb-[18px] flex-wrap">
-        <div className="relative w-[280px]">
-          <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
-          <input
-            aria-label="Buscar formulário"
-            placeholder="Buscar por nome..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2 pl-[32px] pr-3 rounded-md text-[13px] outline-none box-border"
-            style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
-          />
-        </div>
+        <FormSearchBox search={search} onSearchChange={setSearch} matches={filtered} onPick={setEditingForm} />
         <PrimaryButton onClick={() => setEditingForm('new')}>
           <Plus size={14} /> Novo formulário
         </PrimaryButton>
@@ -190,6 +188,96 @@ function EmptyState({ hasForms, onCreate }: { hasForms: boolean; onCreate: () =>
         <PrimaryButton onClick={onCreate}>
           <Plus size={14} /> Criar primeiro formulário
         </PrimaryButton>
+      )}
+    </div>
+  );
+}
+
+// Busca-e-pula: digitar filtra a tabela abaixo (bate com nome ou descrição) igual antes, mas também
+// solta um dropdown com os mesmos resultados logo abaixo do campo, então escolher um já abre pra
+// edição direto — sem precisar rolar até achar o link "Editar" da linha depois de já ter digitado
+// o nome que procurava.
+function FormSearchBox({
+  search,
+  onSearchChange,
+  matches,
+  onPick,
+}: {
+  search: string;
+  onSearchChange: (value: string) => void;
+  matches: Form[];
+  onPick: (form: Form) => void;
+}) {
+  const { colors: c } = useAppTheme();
+  const [focused, setFocused] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!focused) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setFocused(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [focused]);
+
+  const query = search.trim();
+  const showDropdown = focused && query.length > 0;
+
+  return (
+    <div ref={containerRef} className="relative w-[320px]">
+      <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
+      <input
+        aria-label="Buscar formulário"
+        placeholder="Buscar por nome ou descrição..."
+        value={search}
+        onFocus={() => setFocused(true)}
+        onChange={(e) => onSearchChange(e.target.value)}
+        className="w-full py-2 pl-[32px] pr-8 rounded-md text-[13px] outline-none box-border"
+        style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
+      />
+      {search && (
+        <button
+          type="button"
+          onClick={() => onSearchChange('')}
+          title="Limpar busca"
+          className="absolute right-[7px] top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center cursor-pointer border-0"
+          style={{ width: 18, height: 18, color: c.textMuted, background: 'transparent' }}
+        >
+          <X size={13} />
+        </button>
+      )}
+      {showDropdown && (
+        <div
+          className="absolute left-0 right-0 top-[calc(100%+4px)] rounded-lg z-20"
+          style={{ background: c.surface, border: `1px solid ${c.border}`, boxShadow: `0 12px 32px -10px ${c.shadow}`, maxHeight: 280, overflowY: 'auto' }}
+        >
+          <div className="px-3 pt-2 pb-1 text-[11px]" style={{ color: c.textMuted }}>
+            {matches.length === 0 ? 'Nenhum resultado' : `${matches.length} encontrado${matches.length === 1 ? '' : 's'}`}
+          </div>
+          {matches.slice(0, 8).map((f) => (
+            <button
+              key={f.formId}
+              type="button"
+              onClick={() => {
+                setFocused(false);
+                onPick(f);
+              }}
+              className="w-full text-left px-3 py-[7px] border-0 bg-transparent cursor-pointer block"
+              onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              <div className="text-[13px] font-semibold truncate" style={{ color: c.textPrimary }}>
+                {f.name}
+              </div>
+              {f.description && (
+                <div className="text-[11.5px] truncate mt-px" style={{ color: c.textMuted }}>
+                  {f.description}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

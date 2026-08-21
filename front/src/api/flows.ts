@@ -1,7 +1,7 @@
 import { apiGet, apiPost, apiPut } from './client';
 
 export type FlowNodeType = 'START' | 'USER_TASK' | 'END' | 'SERVICE_TASK' | 'RECEIVE_TASK' | 'MESSAGE_START_EVENT' | 'GATEWAY';
-export type ConnectorType = 'REST' | 'KAFKA';
+export type ConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
 
 export interface ConnectorConfig {
   connectorType: ConnectorType;

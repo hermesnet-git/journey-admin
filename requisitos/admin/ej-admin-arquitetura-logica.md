@@ -95,11 +95,12 @@ As respostas `401` e `403` fazem parte do comportamento da versão 1.0.0 autenti
 
 # 5. Domínios Lógicos
 
-A versão 1.0.0 é composta por dez domínios, organizados em seis grupos funcionais.
+A versão 1.0.0 é composta por onze domínios, organizados em seis grupos funcionais.
 
 ```text
 Grupo Administração
   01. Product & Channel Management
+  11. Integration Catalog
 
 Grupo Autoria
   02. Journey Management
@@ -128,6 +129,7 @@ Grupo Observabilidade Técnica
 | Domínio | Grupo | Responsabilidade |
 |---------|-------|------------------|
 | Product & Channel Management | Administração | Gestão de produtos e seus canais |
+| Integration Catalog | Administração | Catálogo de clusters de mensageria corporativos e referências de credencial usados pelos conectores das jornadas |
 | Journey Management | Autoria | Ciclo de vida das jornadas específicas por canal |
 | Journey Modeler | Autoria | Construção visual dos fluxos |
 | Forms Management | Autoria | Gestão de formulários SDUI |
@@ -150,6 +152,7 @@ flowchart TD
     FORMS[Forms Management]
     EXECUTION[Execution]
     PUBLICATION[Publication Management]
+    INTEGCATALOG[Integration Catalog]
     RUNTIME_API[API de Publicação do Runtime<br/>mock na versão 1.0.0]
 
     CATALOG --> JOURNEY
@@ -158,12 +161,13 @@ flowchart TD
     FORMS --> PUBLICATION
     PUBLICATION --> EXECUTION
     PUBLICATION --> RUNTIME_API
+    MODELER -.->|referencia cluster/credencial| INTEGCATALOG
 
 ```
 
 ## Interpretação
 
-O usuário cadastra um produto e seus canais, cria uma jornada para um canal específico, modela o fluxo e os formulários, publica seu snapshot por meio da API do runtime mockada na versão 1.0.0 e então executa a jornada contra o motor de runtime.
+O usuário cadastra um produto e seus canais, cria uma jornada para um canal específico, modela o fluxo e os formulários — configurando conectores de mensageria a partir do catálogo de integrações quando aplicável —, publica seu snapshot por meio da API do runtime mockada na versão 1.0.0 e então executa a jornada contra o motor de runtime.
 
 Observability (domínio 10) é transversal a todos os domínios acima — instrumenta toda requisição de API e toda transação de persistência independentemente do domínio de negócio envolvido — e por isso não aparece como um nó no fluxo.
 
@@ -283,7 +287,7 @@ Uma nova jornada inicia com `START → END`. O editor pode configurar o elemento
 
 ## Conectores de Integração
 
-O framework de conectores é extensível. Na versão 1.0.0, `REST` e `KAFKA` são habilitados. Os demais conectores permanecem registrados no catálogo como desabilitados e não podem ser usados em fluxos publicados.
+O framework de conectores é extensível. Na versão 1.0.0, `REST`, `KAFKA`, `EVENT_HUBS` e `SERVICE_BUS` são habilitados. Os demais conectores permanecem registrados no catálogo como desabilitados e não podem ser usados em fluxos publicados. Um conector de mensageria (`KAFKA`/`EVENT_HUBS`/`SERVICE_BUS`) referencia um cluster e, opcionalmente, uma credencial do Domínio 11 — Integration Catalog, em vez de texto livre.
 
 O Admin Portal declara, no editor e no snapshot publicado, a estrutura de variáveis do fluxo: o mapeamento de saída de cada integração (`nome ← JSONPath`) e as referências `{{nome}}` usadas nos campos de entrada dos passos seguintes (REQ-03.09.010 a 014). Essa declaração é estática, validada em tempo de design. A **resolução** dessas variáveis durante a execução de uma instância de jornada — substituir `{{nome}}` pelo valor real e popular o contexto a partir da resposta — é responsabilidade do runtime, fora do domínio administrativo, na mesma fronteira já descrita para a transformação executável do fluxo.
 
@@ -461,6 +465,8 @@ O Admin Portal conhece apenas a API de publicação fornecida pela camada de run
 
 Exceção pontual: a árvore de renderização SDUI (`[tag, props, children]`) de cada formulário é gerada pelo próprio Admin Portal no momento da publicação (Domínio 04 — Forms Management), pois é uma projeção direta do modelo de campos que o Admin já possui — não uma transformação executada pelo runtime.
 
+Mesmo princípio se aplica ao teste de conexão do catálogo de integrações (Domínio 11): o Admin Portal nunca resolve credencial nem abre conexão com um cluster de mensageria diretamente — delega ao componente de runtime responsável por isso, que é o único a acessar o cofre de segredos corporativo e o broker de verdade.
+
 ## Capacidades Esperadas
 
 ```text
@@ -554,7 +560,61 @@ Não há entidade de domínio persistida por este domínio — os logs técnicos
 
 ---
 
-# 19. Artefatos Arquiteturais
+# 19. Domínio 11 — Integration Catalog
+
+## Objetivo
+
+Centralizar o cadastro de clusters/brokers de mensageria corporativos e das referências de credencial usadas para acessá-los, servindo de base para os conectores de mensageria configurados no Journey Modeler (Domínio 03) — sem que o Admin Portal armazene segredo algum.
+
+## Responsabilidades
+
+```text
+Cadastrar, editar, consultar e desativar clusters de mensageria corporativos
+
+Cadastrar, editar, consultar e desativar referências de credencial (referência ao Azure Key Vault, nunca o segredo)
+
+Bloquear a desativação de um cluster ou credencial referenciado por um conector de jornada publicada
+
+Restringir a administração do catálogo ao papel ADMIN; demais papéis apenas selecionam entradas já cadastradas
+
+Delegar o teste de conexão ao componente de runtime que resolve a credencial e abre a conexão de verdade
+```
+
+## Entidades
+
+```text
+Messaging Cluster
+
+Credential Reference
+```
+
+## Cardinalidade
+
+```text
+Messaging Cluster 1 → 0..N Credential Reference
+```
+
+A empresa opera múltiplos clusters corporativos por tipo — o catálogo não assume um único cluster fixo por conector.
+
+## Fluxo do Teste de Conexão
+
+```mermaid
+flowchart LR
+    ADMIN[Elastic Journey Admin Portal]
+    RUNTIME[Componente de runtime<br/>resolve credencial]
+    VAULT[Cofre de segredos corporativo]
+    BROKER[Cluster de mensageria]
+
+    ADMIN -->|chamada servidor a servidor| RUNTIME
+    RUNTIME --> VAULT
+    RUNTIME --> BROKER
+```
+
+O Admin Portal nunca acessa o cofre de segredos nem o broker diretamente (mesmo princípio da fronteira com o runtime, Seção 16). O teste valida só conectividade/credencial — nunca publica ou consome uma mensagem real.
+
+---
+
+# 20. Artefatos Arquiteturais
 
 | Artefato | Descrição |
 |----------|-----------|
@@ -571,9 +631,11 @@ Não há entidade de domínio persistida por este domínio — os logs técnicos
 | Execution Step | Etapa registrada durante a execução |
 | Execution Result | Resultado consolidado da execução |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
+| Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
+| Credential Reference | Referência a um secret do Azure Key Vault, usada por um conector de mensageria |
 
 ---
 
-# 20. Resumo Arquitetural
+# 21. Resumo Arquitetural
 
-O Elastic Journey Admin Portal versão 1.0.0 é composto por dez domínios lógicos. A arquitetura parte do cadastro de produtos e canais, mantém jornadas independentes por canal, autentica usuários por um provedor externo mockado, versiona jornadas, registra auditoria e publica uma versão imutável por meio de uma chamada mockada para a futura API do runtime. Observability instrumenta, de forma transversal, todos os domínios de negócio com log técnico de API e de transações de persistência.
+O Elastic Journey Admin Portal versão 1.0.0 é composto por onze domínios lógicos. A arquitetura parte do cadastro de produtos, canais e do catálogo de integrações (clusters de mensageria e referências de credencial), mantém jornadas independentes por canal, autentica usuários por um provedor externo mockado, versiona jornadas, registra auditoria e publica uma versão imutável por meio de uma chamada mockada para a futura API do runtime. Observability instrumenta, de forma transversal, todos os domínios de negócio com log técnico de API e de transações de persistência.

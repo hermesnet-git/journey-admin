@@ -160,10 +160,10 @@ Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | NodeId | UUID | Sim | Nó de integração configurado |
-| ConnectorType | VARCHAR(30) | Sim | `REST` ou `KAFKA` na versão 1.0.0 |
+| ConnectorType | VARCHAR(30) | Sim | `REST`, `KAFKA`, `EVENT_HUBS` ou `SERVICE_BUS` na versão 1.0.0 |
 | ConnectorEnabled | BOOLEAN | Sim | Indica se o conector está habilitado no catálogo |
-| ConnectorConfig | JSONB | Sim | Configuração específica do conector |
-| CredentialRef | VARCHAR(200) | Não | Referência de credencial resolvida pelo runtime |
+| ConnectorConfig | JSONB | Sim | Configuração específica do conector — para um conector de mensageria, inclui `clusterId` (referência a `MessagingCluster`) além do tópico/fila/hub |
+| CredentialRef | VARCHAR(200) | Não | Para um conector de mensageria, `ReferenceName` de uma `CredentialReference` do catálogo de integrações (FT-14); resolvida de fato pelo runtime, nunca pelo Admin Portal |
 | InputMapping | JSONB | Não | Mapeamento do contexto para a integração (formato livre); campos de texto de `ConnectorConfig` (URL, headers, body/payload) podem referenciar variáveis via `{{nome}}` |
 | OutputMapping | JSONB | Não | Lista de regras `{ name, jsonPath }` aplicadas sobre a resposta (REST) ou payload (Kafka) recebido, populando o contexto de execução com a variável `name` — formato estruturado, não livre |
 
@@ -351,7 +351,40 @@ Auditoria não deve armazenar senhas, tokens, secrets ou credenciais.
 
 ---
 
-# 20. Glossário Geral
+# 20. MessagingCluster
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| ClusterId | UUID | Sim | Identificador único do cluster |
+| Name | VARCHAR(150) | Sim | Nome do cluster, único na plataforma |
+| Type | VARCHAR(30) | Sim | `KAFKA`, `EVENT_HUBS` ou `SERVICE_BUS` |
+| ConnectionAddress | VARCHAR(300) | Sim | `bootstrap.servers` (Kafka) ou namespace (Event Hubs/Service Bus), sem prefixo de protocolo |
+| Status | VARCHAR(20) | Sim | `ACTIVE` ou `INACTIVE` |
+| CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
+| UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
+
+A empresa opera múltiplos clusters corporativos por tipo. A desativação é bloqueada enquanto existir `CredentialReference` ativa ou conector de jornada publicada referenciando o cluster.
+
+---
+
+# 21. CredentialReference
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| CredentialId | UUID | Sim | Identificador único da credencial |
+| ReferenceName | VARCHAR(150) | Sim | Nome de referência, único na plataforma — é o valor usado como `CredentialRef` na configuração do conector |
+| ClusterId | UUID | Sim | Cluster ao qual a credencial se aplica |
+| KeyVaultUri | VARCHAR(300) | Sim | URI do Azure Key Vault — só metadado, nunca o segredo |
+| SecretName | VARCHAR(150) | Sim | Nome do secret dentro do cofre acima — nunca o valor |
+| Status | VARCHAR(20) | Sim | `ACTIVE` ou `INACTIVE` |
+| CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
+| UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
+
+Nunca armazena o valor de um segredo, em nenhuma circunstância. A resolução de verdade (buscar o segredo no Key Vault) acontece fora do Admin Portal, no componente de runtime que abre a conexão com o cluster. A desativação é bloqueada enquanto existir conector de jornada publicada referenciando a credencial pelo `ReferenceName`.
+
+---
+
+# 22. Glossário Geral
 
 | Conceito | Descrição |
 |----------|-----------|
@@ -365,9 +398,11 @@ Auditoria não deve armazenar senhas, tokens, secrets ou credenciais.
 | Form / FormField | Formulário e campos que o compõem |
 | ExecutionRun / Step / Result | Execução, etapas e resultado |
 | JourneyPublication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
+| MessagingCluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
+| CredentialReference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
 
 ---
 
-# 21. Resumo
+# 23. Resumo
 
-O dicionário descreve a hierarquia Product → Channel → Journey, o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual, formulários, execução e publicação de jornadas específicas por canal.
+O dicionário descreve a hierarquia Product → Channel → Journey, o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual, formulários, execução e publicação de jornadas específicas por canal, e do catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.

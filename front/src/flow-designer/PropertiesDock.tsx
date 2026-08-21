@@ -5,6 +5,7 @@ import { PropertiesPanel } from './PropertiesPanel';
 import { JourneyPropertiesPanel } from './JourneyPropertiesPanel';
 import type { WFNode, WFEdge, WFNodeData, WFEdgeData } from './model';
 import type { Form } from '../api/forms';
+import type { MessagingCluster, CredentialReference } from '../api/messaging';
 
 const MIN_WIDTH = 280;
 const MAX_WIDTH = 560;
@@ -25,6 +26,8 @@ interface JourneyPanelProps {
 export function PropertiesDock({
   node,
   forms,
+  clusters,
+  credentials,
   allNodes,
   allEdges,
   journeyId,
@@ -37,6 +40,8 @@ export function PropertiesDock({
 }: {
   node: WFNode | null;
   forms: Form[];
+  clusters: MessagingCluster[];
+  credentials: CredentialReference[];
   allNodes: WFNode[];
   allEdges: WFEdge[];
   journeyId: string;
@@ -133,6 +138,8 @@ export function PropertiesDock({
             <PropertiesPanel
               node={node}
               forms={forms}
+              clusters={clusters}
+              credentials={credentials}
               allNodes={allNodes}
               allEdges={allEdges}
               journeyId={journeyId}

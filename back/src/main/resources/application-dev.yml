@@ -15,3 +15,8 @@ app:
     # processos/instâncias/tarefas/incidentes — leitura direta, sem passar pelo ms-espec-registry
     # (que é específico da funcionalidade de Execução).
     base-url: ${RUNTIME_ENGINE_BASE_URL:http://localhost:8080/engine-rest}
+  espec-registry:
+    # o admin-back nunca fala com o broker nem com o Key Vault diretamente — o teste de conexão do
+    # catálogo (FT-14, US-14.04) é delegado ao ms-espec-registry, o único componente que resolve
+    # credencial e abre conexão de verdade.
+    base-url: ${ESPEC_REGISTRY_BASE_URL:http://localhost:8083}

@@ -57,6 +57,7 @@ import {
 import { updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow } from '../api/flows';
 import { listForms, type Form } from '../api/forms';
+import { listClusters, listCredentials, type MessagingCluster, type CredentialReference } from '../api/messaging';
 import { ApiClientError } from '../api/client';
 
 const nodeTypes = {
@@ -116,6 +117,8 @@ function DesignerInner({
   const [name, setName] = useState(journey.name);
   const [description, setDescription] = useState(journey.description ?? '');
   const [forms, setForms] = useState<Form[]>([]);
+  const [clusters, setClusters] = useState<MessagingCluster[]>([]);
+  const [credentials, setCredentials] = useState<CredentialReference[]>([]);
   const [nodes, setNodes] = useState<WFNode[]>(() => initialFlowNodes());
   const [edges, setEdges] = useState<WFEdge[]>(() => initialFlowEdges(nodes));
   // Separate from `nodes`: never touched by validateFlow/computeLayout/save-as-FlowNode mapping, so
@@ -233,6 +236,13 @@ function DesignerInner({
   useEffect(() => {
     refreshForms();
   }, [refreshForms]);
+
+  // Catálogo de clusters/credenciais (FT-14) — carregado uma vez; diferente de forms, não é criado
+  // inline a partir do designer de fluxo, então não precisa de um refresh acionável pelo usuário.
+  useEffect(() => {
+    listClusters({ status: 'ACTIVE' }).then(setClusters);
+    listCredentials({ status: 'ACTIVE' }).then(setCredentials);
+  }, []);
 
   useEffect(() => {
     getFlow(journey.journeyId).then((flow) => {
@@ -774,6 +784,8 @@ function DesignerInner({
             <PropertiesDock
               node={propertiesNode}
               forms={forms}
+              clusters={clusters}
+              credentials={credentials}
               allNodes={nodes}
               allEdges={edges}
               journeyId={activeJourney.journeyId}

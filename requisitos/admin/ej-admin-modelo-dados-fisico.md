@@ -42,6 +42,8 @@ Formulários são ativos reutilizáveis associados às User Tasks por `user_task
 
 Os logs técnicos de observabilidade (FT-10) não são persistidos no PostgreSQL — trafegam por `logback` (console na versão 1.0.0, com ponto de extensão preparado e desativado para ELK) e, por isso, não possuem tabela neste modelo.
 
+`messaging_cluster` e `credential_reference` (FT-14) formam o catálogo de integrações: cada credencial referencia um cluster, e um conector de mensageria de `flow_node` referencia uma credencial por `reference_name` (persistido dentro do documento `jsonb` do fluxo, não por chave estrangeira de banco — mesma limitação já descrita para `flow_node`/`flow_connection` no §9). Nunca armazenam o valor de um segredo — só a referência ao Azure Key Vault.
+
 ---
 
 # 4. Modelo Relacional — Tabelas
@@ -63,6 +65,8 @@ execution_result
 journey_publication
 journey_version
 audit_event
+messaging_cluster
+credential_reference
 ```
 
 ---
@@ -410,7 +414,48 @@ Registros de auditoria são protegidos contra edição e remoção por operaçõ
 
 ---
 
-# 20. Chaves Primárias
+# 20. Tabela MessagingCluster
+
+```sql
+CREATE TABLE messaging_cluster (
+    cluster_id UUID PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    type VARCHAR(30) NOT NULL CHECK (
+        type IN ('KAFKA', 'EVENT_HUBS', 'SERVICE_BUS')
+    ),
+    connection_address VARCHAR(300) NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+`connection_address` guarda o `bootstrap.servers` (Kafka) ou o namespace (Event Hubs/Service Bus) — texto puro, sem prefixo de protocolo. A desativação é bloqueada enquanto existir credencial ativa ou conector de jornada publicada referenciando o cluster.
+
+---
+
+# 21. Tabela CredentialReference
+
+```sql
+CREATE TABLE credential_reference (
+    credential_id UUID PRIMARY KEY,
+    reference_name VARCHAR(150) NOT NULL UNIQUE,
+    cluster_id UUID NOT NULL,
+    key_vault_uri VARCHAR(300) NOT NULL,
+    secret_name VARCHAR(150) NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_credential_reference_cluster
+        FOREIGN KEY (cluster_id) REFERENCES messaging_cluster(cluster_id)
+);
+```
+
+`reference_name` é o valor usado como `credentialRef` na configuração de um conector de mensageria — nunca há coluna de valor de segredo nesta tabela. `key_vault_uri`/`secret_name` são só metadado apontando pro cofre corporativo; a resolução de verdade acontece fora do Admin Portal, no componente de runtime que abre a conexão. A desativação é bloqueada enquanto existir conector de jornada publicada referenciando a credencial.
+
+---
+
+# 22. Chaves Primárias
 
 | Tabela | PK |
 |--------|----|
@@ -429,10 +474,12 @@ Registros de auditoria são protegidos contra edição e remoção por operaçõ
 | journey_publication | publication_id |
 | journey_version | version_id |
 | audit_event | audit_event_id |
+| messaging_cluster | cluster_id |
+| credential_reference | credential_id |
 
 ---
 
-# 21. Chaves Estrangeiras Principais
+# 23. Chaves Estrangeiras Principais
 
 | Origem | Destino |
 |--------|---------|
@@ -452,10 +499,11 @@ Registros de auditoria são protegidos contra edição e remoção por operaçõ
 | journey_publication.journey_id | journey.journey_id |
 | journey_version.journey_id | journey.journey_id |
 | journey_publication.version_id | journey_version.version_id |
+| credential_reference.cluster_id | messaging_cluster.cluster_id |
 
 ---
 
-# 22. Estratégia de Índices
+# 24. Estratégia de Índices
 
 ```sql
 CREATE INDEX idx_product_status ON product(status);
@@ -488,11 +536,16 @@ CREATE INDEX idx_journey_version_status ON journey_version(version_status);
 CREATE INDEX idx_audit_event_user ON audit_event(user_id);
 CREATE INDEX idx_audit_event_resource ON audit_event(resource_type, resource_id);
 CREATE INDEX idx_audit_event_occurred_at ON audit_event(occurred_at);
+
+CREATE INDEX idx_messaging_cluster_type ON messaging_cluster(type);
+CREATE INDEX idx_messaging_cluster_status ON messaging_cluster(status);
+CREATE INDEX idx_credential_reference_cluster ON credential_reference(cluster_id);
+CREATE INDEX idx_credential_reference_status ON credential_reference(status);
 ```
 
 ---
 
-# 23. Estratégia de Consulta
+# 25. Estratégia de Consulta
 
 ```text
 Pesquisar produtos e listar seus canais
@@ -508,11 +561,13 @@ Consultar publicações por produto e canal no Admin Portal
 Consultar versões por jornada
 
 Consultar eventos de auditoria por usuário, recurso, resultado e período
+
+Consultar clusters e credenciais do catálogo de integrações por tipo, cluster associado e status
 ```
 
 ---
 
-# 24. Estratégia de Publicação
+# 26. Estratégia de Publicação
 
 `journey_publication` mantém o snapshot da versão publicada separado da jornada em edição. A restrição `UNIQUE (journey_id)` garante no máximo uma publicação ativa por jornada. Uma nova publicação deve apontar para uma nova `journey_version` e preservar os snapshots anteriores.
 
@@ -544,7 +599,7 @@ Antes de desativar uma jornada, um canal ou um produto, o backend deve consultar
 
 ---
 
-# 25. Diagrama ER Físico
+# 27. Diagrama ER Físico
 
 ```mermaid
 erDiagram
@@ -567,11 +622,13 @@ erDiagram
     JOURNEY ||--o{ JOURNEY_VERSION : versions
     JOURNEY_VERSION ||--o| JOURNEY_PUBLICATION : published_as
     USER ||--o{ AUDIT_EVENT : performs
+
+    MESSAGING_CLUSTER ||--o{ CREDENTIAL_REFERENCE : issues
 ```
 
 ---
 
-# 26. Considerações de Evolução
+# 28. Considerações de Evolução
 
 ```text
 Templates e clonagem entre canais
@@ -581,10 +638,12 @@ Workflow de Aprovação
 Rollback
 
 Promotion Between Environments
+
+Resolução real de credencial via Azure Key Vault (Workload Identity/AKS) — hoje só a referência é persistida, sem integração de fato
 ```
 
 ---
 
-# 27. Resumo Técnico
+# 29. Resumo Técnico
 
-O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, registra execuções, possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado e eventos de auditoria sem dados sensíveis.
+O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, registra execuções, possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado, eventos de auditoria sem dados sensíveis e o catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.

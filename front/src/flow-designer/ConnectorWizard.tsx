@@ -14,8 +14,16 @@ import {
   METHODS_WITH_BODY,
   OUTPUT_MAPPING_FIELD,
 } from './PropertiesPanel';
-import { flattenJsonToOutputMappingRules, type ConnectorConfig, type OutputMappingRule, type VariableOrigin } from './model';
+import { SearchSelect } from './SearchSelect';
+import {
+  flattenJsonToOutputMappingRules,
+  type ConnectorConfig,
+  type ConnectorType,
+  type OutputMappingRule,
+  type VariableOrigin,
+} from './model';
 import { testConnector, type ConnectorTestResponse } from '../api/flows';
+import { testCredentialConnection, type MessagingCluster, type CredentialReference } from '../api/messaging';
 
 const inputStyle = (c: FlowColors): React.CSSProperties => ({
   width: '100%',
@@ -44,11 +52,21 @@ function tokensIn(config: Record<string, unknown> | null | undefined): string[] 
 }
 
 const REST_STEPS = ['Conexão', 'Headers', 'Parâmetros & Corpo', 'Testar e Mapear'] as const;
-const KAFKA_STEPS = ['Conexão', 'Payload', 'Mapear saída'] as const;
+const BROKER_STEPS = ['Conexão', 'Payload', 'Mapear saída'] as const;
+
+// REQ-14.05.005: Event Hubs/Service Bus reaproveitam o mesmo formato de 3 etapas do Kafka.
+const STEPS_BY_TYPE: Record<ConnectorType, readonly string[]> = {
+  REST: REST_STEPS,
+  KAFKA: BROKER_STEPS,
+  EVENT_HUBS: BROKER_STEPS,
+  SERVICE_BUS: BROKER_STEPS,
+};
 
 interface Props {
   connectorConfig: ConnectorConfig;
   variables: VariableOrigin[];
+  clusters: MessagingCluster[];
+  credentials: CredentialReference[];
   journeyId: string;
   nodeId: string;
   onConfigUpdate: (patch: Partial<ConnectorConfig>) => void;
@@ -60,9 +78,18 @@ interface Props {
 // the user explicitly clicks "Concluir". Closing any other way (X, Cancelar, backdrop, Esc) checks
 // for unsaved changes first (ConfirmDialog, same component JourneyDesignerPage already uses for an
 // analogous "you're about to lose something" moment) instead of silently discarding.
-export function ConnectorWizard({ connectorConfig, variables, journeyId, nodeId, onConfigUpdate, onClose }: Props) {
+export function ConnectorWizard({
+  connectorConfig,
+  variables,
+  clusters,
+  credentials,
+  journeyId,
+  nodeId,
+  onConfigUpdate,
+  onClose,
+}: Props) {
   const { c } = useFlowTheme();
-  const steps: readonly string[] = connectorConfig.connectorType === 'REST' ? REST_STEPS : KAFKA_STEPS;
+  const steps: readonly string[] = STEPS_BY_TYPE[connectorConfig.connectorType];
   const [stepIndex, setStepIndex] = useState(0);
   const [draft, setDraft] = useState<ConnectorConfig>(connectorConfig);
   const urlInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +103,11 @@ export function ConnectorWizard({ connectorConfig, variables, journeyId, nodeId,
   const [testError, setTestError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<ConnectorTestResponse | null>(null);
   const [generatedCount, setGeneratedCount] = useState<number | null>(null);
+
+  // REQ-14.04.005: teste de conexão do conector de mensageria — só valida cluster+credencial,
+  // nunca publica/consome mensagem real. Estado próprio, separado do teste REST acima.
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -108,6 +140,20 @@ export function ConnectorWizard({ connectorConfig, variables, journeyId, nodeId,
   function finish() {
     onConfigUpdate({ config: draft.config, credentialRef: draft.credentialRef });
     onClose();
+  }
+
+  async function runConnectionTest() {
+    const credential = credentials.find((cr) => cr.referenceName === draft.credentialRef);
+    if (!credential) return;
+    setTestingConnection(true);
+    setConnectionTestResult(null);
+    try {
+      setConnectionTestResult(await testCredentialConnection(credential.credentialId));
+    } catch (e) {
+      setConnectionTestResult({ ok: false, message: e instanceof Error ? e.message : 'Falha ao testar conexão' });
+    } finally {
+      setTestingConnection(false);
+    }
   }
 
   const method = (draft.config?.method as string) ?? '';
@@ -312,12 +358,34 @@ export function ConnectorWizard({ connectorConfig, variables, journeyId, nodeId,
     }
   }
 
-  function renderKafkaStep(label: string) {
+  const brokerClusterId = (draft.config?.clusterId as string) ?? null;
+  const brokerCredentialsForCluster = brokerClusterId
+    ? credentials.filter((cr) => cr.clusterId === brokerClusterId)
+    : credentials;
+  const brokerTopicLabel =
+    draft.connectorType === 'EVENT_HUBS' ? 'Nome do Event Hub' : draft.connectorType === 'SERVICE_BUS' ? 'Fila/Tópico' : 'Tópico';
+
+  function renderBrokerStep(label: string) {
     switch (label) {
       case 'Conexão':
         return (
           <div>
-            <div style={labelStyle(c)}>Tópico</div>
+            <div style={labelStyle(c)}>Cluster</div>
+            <div style={{ marginBottom: 12 }}>
+              <SearchSelect
+                items={clusters}
+                getId={(cluster) => cluster.clusterId}
+                getLabel={(cluster) => cluster.name}
+                value={brokerClusterId}
+                onChange={(clusterId) => {
+                  updateDraftConfig('clusterId', clusterId ?? '');
+                  updateDraft({ credentialRef: null });
+                }}
+                placeholder="Nenhum cluster cadastrado"
+                emptyLabel="Nenhum cluster encontrado — cadastre em Catálogo de Integrações"
+              />
+            </div>
+            <div style={labelStyle(c)}>{brokerTopicLabel}</div>
             <input
               style={{ ...inputStyle(c), marginBottom: 12 }}
               value={(draft.config?.topic as string) ?? ''}
@@ -330,13 +398,50 @@ export function ConnectorWizard({ connectorConfig, variables, journeyId, nodeId,
             >
               {(draft.config?.operation as string) ?? '—'}
             </div>
-            <div style={labelStyle(c)}>Credencial (opcional)</div>
-            <input
-              style={inputStyle(c)}
-              value={draft.credentialRef ?? ''}
-              onChange={(e) => updateDraft({ credentialRef: e.target.value || null })}
-              placeholder="ex.: credential-runtime-01"
+            <div style={labelStyle(c)}>Credencial</div>
+            <SearchSelect
+              items={brokerCredentialsForCluster}
+              getId={(cred) => cred.referenceName}
+              getLabel={(cred) => cred.referenceName}
+              value={draft.credentialRef}
+              onChange={(referenceName) => {
+                updateDraft({ credentialRef: referenceName });
+                setConnectionTestResult(null);
+              }}
+              placeholder={brokerClusterId ? 'Nenhuma credencial cadastrada' : 'Escolha um cluster primeiro'}
+              emptyLabel="Nenhuma credencial encontrada — cadastre em Catálogo de Integrações"
             />
+
+            {draft.credentialRef && (
+              <div style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={runConnectionTest}
+                  disabled={testingConnection}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 14px',
+                    borderRadius: 8,
+                    border: `1px solid ${c.border}`,
+                    background: c.cardBg,
+                    color: c.textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: testingConnection ? 'default' : 'pointer',
+                  }}
+                >
+                  {testingConnection ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+                  {testingConnection ? 'Testando...' : 'Testar conexão'}
+                </button>
+                {connectionTestResult && (
+                  <div style={{ marginTop: 8, fontSize: 12.5, color: connectionTestResult.ok ? c.accent : c.danger }}>
+                    {connectionTestResult.message}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       case 'Payload':
@@ -361,7 +466,7 @@ export function ConnectorWizard({ connectorConfig, variables, journeyId, nodeId,
   }
 
   const currentLabel = steps[stepIndex];
-  const stepContent = draft.connectorType === 'REST' ? renderRestStep(currentLabel) : renderKafkaStep(currentLabel);
+  const stepContent = draft.connectorType === 'REST' ? renderRestStep(currentLabel) : renderBrokerStep(currentLabel);
   const isLastStep = stepIndex === steps.length - 1;
   const backdrop = useBackdropClose(requestClose);
 

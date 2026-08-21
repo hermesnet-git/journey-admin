@@ -815,6 +815,59 @@ Dar visibilidade operacional em tempo real sobre os processos em execução no m
 
 <br/><br/>
 
+# FT-14 Catálogo de Integrações
+
+## Objetivo
+
+Centralizar o cadastro de clusters/brokers de mensageria corporativos e das
+referências de credencial usadas para acessá-los, servindo de base para os
+conectores de mensageria (Kafka, Event Hubs, Service Bus) configurados nas
+jornadas (FT-03) — sem que a plataforma armazene segredo algum: cada
+credencial é apenas uma referência a um segredo mantido no Azure Key Vault da
+empresa.
+
+### US-14.01 Catálogo de clusters e brokers corporativos
+#### REQ-14.01.001 - O sistema deve permitir cadastrar um cluster/broker de mensageria corporativo, com nome amigável, tipo (`KAFKA`, `EVENT_HUBS` ou `SERVICE_BUS`) e endereço de conexão (bootstrap servers para Kafka; namespace para Event Hubs/Service Bus).
+#### REQ-14.01.002 - Cada cluster deve possuir identificador único (`clusterId`), nome único na plataforma e status (ativo/inativo).
+#### REQ-14.01.003 - O sistema deve permitir editar, consultar e desativar um cluster cadastrado.
+#### REQ-14.01.004 - O sistema deve impedir a desativação de um cluster referenciado por alguma credencial ativa (US-14.02) ou por algum conector de jornada publicada.
+#### REQ-14.01.005 - O sistema deve permitir pesquisar e filtrar clusters por tipo e por status.
+#### REQ-14.01.006 - A empresa opera múltiplos clusters corporativos por tipo (ex.: mais de um cluster Kafka); o catálogo não deve assumir um único cluster fixo por tipo de conector.
+---
+
+### US-14.02 Catálogo de credenciais
+#### REQ-14.02.001 - O sistema deve permitir cadastrar uma credencial associada a um cluster do catálogo (US-14.01), composta por nome de referência (o valor usado como `credentialRef` na configuração do conector), URI do Azure Key Vault e nome do secret dentro dele.
+#### REQ-14.02.002 - Cada credencial deve possuir identificador único (`credentialId`), nome de referência único na plataforma, cluster associado e status (ativa/inativa).
+#### REQ-14.02.003 - O sistema não deve, em nenhuma tela, campo, log ou registro de auditoria, armazenar ou exibir o valor do secret — apenas a referência (URI do Key Vault + nome do secret). O valor real do segredo nunca deve ser lido pelo Admin Portal, em nenhuma circunstância.
+#### REQ-14.02.004 - O sistema deve permitir editar, consultar e desativar uma credencial cadastrada.
+#### REQ-14.02.005 - O sistema deve impedir a desativação de uma credencial referenciada por algum conector de jornada publicada.
+#### REQ-14.02.006 - O sistema deve permitir pesquisar e filtrar credenciais por cluster associado e por status.
+---
+
+### US-14.03 Acesso restrito à administração dos catálogos
+#### REQ-14.03.001 - A criação, edição e desativação de clusters (US-14.01) e credenciais (US-14.02) deve ser restrita ao papel `ADMIN` (FT-07); os papéis `EDITOR` e `VIEWER` não devem ter acesso a essas ações.
+#### REQ-14.03.002 - O papel `EDITOR`, ao configurar um conector de mensageria numa jornada (FT-03), deve poder selecionar um cluster e uma credencial já cadastrados no catálogo, sem poder criar, editar ou desativar entradas do catálogo.
+#### REQ-14.03.003 - Toda criação, edição e desativação de cluster ou credencial deve ser registrada na auditoria do portal (FT-08), incluindo o usuário responsável.
+---
+
+### US-14.04 Teste de conexão
+#### REQ-14.04.001 - O sistema deve permitir, a partir do catálogo, disparar um teste de conexão para um par cluster + credencial cadastrado, validando alcançabilidade do cluster e validade da credencial associada.
+#### REQ-14.04.002 - O teste de conexão deve se limitar a uma operação de metadado (ex.: descrever/listar o tópico, fila ou hub) — o sistema não deve, em nenhuma hipótese, publicar ou consumir uma mensagem real como parte do teste.
+#### REQ-14.04.003 - A execução do teste de conexão deve ser delegada ao componente de runtime responsável por resolver credenciais junto ao Key Vault (o mesmo worker que executa a integração de verdade), nunca executada diretamente pelo admin-back ou pelo navegador — preservando a regra de que o admin-back nunca acessa o Key Vault.
+#### REQ-14.04.004 - O resultado do teste deve indicar sucesso, ou falha traduzida para uma causa reconhecível (cluster inacessível, credencial inválida, sem permissão/ACL no recurso) — nunca repassar ao usuário o erro cru do broker ou do Key Vault sem tradução.
+#### REQ-14.04.005 - O teste de conexão também deve estar disponível a partir do painel/assistente de configuração de um conector de mensageria na jornada (US-03.14), reaproveitando o par cluster + credencial já selecionado naquele conector.
+---
+
+### US-14.05 Conectores de mensageria adicionais no framework
+#### REQ-14.05.001 - O catálogo de conectores (REQ-03.08.003/004) deve habilitar `EVENT_HUBS` e `SERVICE_BUS` como tipos válidos para uso em `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT`, seguindo a mesma regra de operação determinada pelo tipo de nó já aplicada ao Kafka (REQ-03.09.008): `PRODUCE` para `SERVICE_TASK`, `CONSUME` para `RECEIVE_TASK`/`MESSAGE_START_EVENT`.
+#### REQ-14.05.002 - A configuração de `EVENT_HUBS`/`SERVICE_BUS` deve reaproveitar o mesmo padrão de mapeamento de saída (REQ-03.09.010) e de referência a variáveis `{{nome}}` (REQ-03.09.012) já usado por REST e Kafka.
+#### REQ-14.05.003 - O campo equivalente a "tópico" — nome do Event Hub, ou fila/tópico do Service Bus — deve ser selecionado a partir do catálogo de clusters (US-14.01), nunca digitado como texto livre.
+#### REQ-14.05.004 - A partir desta capacidade, o campo de credencial de um conector `KAFKA`, `EVENT_HUBS` ou `SERVICE_BUS` deve ser selecionado a partir do catálogo de credenciais (US-14.02) em vez de texto livre — substitui, para esses conectores, o campo de texto livre descrito em REQ-03.09.005.
+#### REQ-14.05.005 - O assistente de configuração de conector (US-03.14) deve ganhar as mesmas 3 etapas hoje aplicadas ao Kafka (Conexão, Payload, Mapear saída) para `EVENT_HUBS` e `SERVICE_BUS`, com a etapa "Conexão" oferecendo os seletores de cluster e credencial em vez de campos de texto.
+---
+
+<br/><br/>
+
 # 5. Fora do Escopo da Versão 1.0.0 
 
 ## Evolução de Plataforma

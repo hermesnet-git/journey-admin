@@ -97,6 +97,8 @@ flowchart TD
 | Journey Version | Versão imutável de uma jornada |
 | User / Role | Identidade autenticada e papel de autorização |
 | Audit Event | Registro de operação realizada no sistema |
+| Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
+| Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria — nunca o valor do segredo |
 
 ---
 
@@ -222,7 +224,7 @@ Os demais identificadores do domínio (`productId`, `channelId`, `journeyId`, `f
 
 `SERVICE_TASK` executes an external integration. `RECEIVE_TASK` waits for a message in an already running journey instance. `MESSAGE_START_EVENT` creates a new journey instance from an external message.
 
-The connector framework is extensible. `REST` and `KAFKA` are enabled in version 1.0.0; additional connectors may be cataloged as disabled without being available for use in flows.
+The connector framework is extensible. `REST`, `KAFKA`, `EVENT_HUBS` and `SERVICE_BUS` are enabled in version 1.0.0; additional connectors may be cataloged as disabled without being available for use in flows.
 
 ```text
 SERVICE_TASK        → bpmn:serviceTask
@@ -230,7 +232,7 @@ RECEIVE_TASK        → bpmn:receiveTask
 MESSAGE_START_EVENT → bpmn:startEvent + messageEventDefinition
 ```
 
-Connector configuration is declarative and stored with the flow snapshot. Credential values are not stored; only a runtime-resolved credential reference is persisted. Output mapping follows a defined structure (a list of `name`/`jsonPath` rules) rather than free-form JSON; input fields (URL, headers, body/payload) may reference variables from prior steps via `{{name}}`.
+Connector configuration is declarative and stored with the flow snapshot. Credential values are not stored; a messaging connector (`KAFKA`/`EVENT_HUBS`/`SERVICE_BUS`) references a `Credential Reference` from the Integration Catalog (Section 14) instead of free text. Output mapping follows a defined structure (a list of `name`/`jsonPath` rules) rather than free-form JSON; input fields (URL, headers, body/payload) may reference variables from prior steps via `{{name}}`.
 
 # 10. User Task Configuration
 
@@ -332,7 +334,41 @@ Ao despublicar, o Admin Portal chama a API mockada do runtime. Somente após o r
 
 ---
 
-# 14. Relacionamentos das Entidades
+# 14. Messaging Cluster e Credential Reference
+
+## Messaging Cluster
+
+Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações, usado como base pelos conectores de mensageria do Journey Modeler (Seção 9). A empresa opera múltiplos clusters corporativos por tipo — o catálogo não assume um único cluster fixo.
+
+```text
+Nome, Tipo (KAFKA, EVENT_HUBS, SERVICE_BUS), Endereço de conexão, Status
+```
+
+## Credential Reference
+
+Referência a um secret mantido no Azure Key Vault da empresa, associada a um `Messaging Cluster`. Nunca armazena o valor do segredo — só o nome de referência (usado como `credentialRef` na configuração do conector), a URI do Key Vault e o nome do secret dentro dele.
+
+```text
+Nome de referência, Cluster, URI do Key Vault, Nome do secret, Status
+```
+
+## Administração
+
+A criação, edição e desativação de clusters e credenciais é restrita ao papel `ADMIN`. Demais papéis apenas selecionam entradas já cadastradas ao configurar um conector. A desativação de um cluster ou credencial é bloqueada enquanto houver credencial ativa ou conector de jornada publicada referenciando-a.
+
+## Teste de Conexão
+
+Valida conectividade e credencial contra o cluster — nunca publica ou consome uma mensagem real. É delegado ao componente de runtime que efetivamente resolve a credencial e abre a conexão; o Admin Portal nunca acessa o Key Vault nem o broker diretamente.
+
+## Cardinalidade
+
+```text
+Messaging Cluster 1 → 0..N Credential Reference
+```
+
+---
+
+# 15. Relacionamentos das Entidades
 
 | Origem | Destino | Cardinalidade |
 |--------|---------|---------------|
@@ -353,10 +389,11 @@ Ao despublicar, o Admin Portal chama a API mockada do runtime. Somente após o r
 | Journey | Journey Version | 1:N |
 | Journey Version | Journey Publication | 1:0..1 |
 | User | Audit Event | 1:N |
+| Messaging Cluster | Credential Reference | 1:N |
 
 ---
 
-# 15. Diagrama ER Conceitual
+# 16. Diagrama ER Conceitual
 
 ```mermaid
 erDiagram
@@ -381,11 +418,14 @@ erDiagram
     JOURNEY ||--o{ JOURNEY_VERSION : versions
     JOURNEY_VERSION ||--o| JOURNEY_PUBLICATION : published_as
     USER ||--o{ AUDIT_EVENT : performs
+
+    MESSAGING_CLUSTER ||--o{ CREDENTIAL_REFERENCE : issues
+    FLOW_NODE }o--o| CREDENTIAL_REFERENCE : may_reference
 ```
 
 ---
 
-# 16. Glossário
+# 17. Glossário
 
 | Conceito | Descrição |
 |----------|-----------|
@@ -398,9 +438,11 @@ erDiagram
 | Form / Form Component | Formulário e seus componentes visuais |
 | Execution Run / Step / Result | Execução, etapas e resultado |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
+| Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
+| Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
 
 ---
 
-# 17. Resumo Conceitual
+# 18. Resumo Conceitual
 
-O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo, execuções e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, e eventos de auditoria registram operações relevantes sem dados sensíveis.
+O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo, execuções e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, eventos de auditoria registram operações relevantes sem dados sensíveis, e um catálogo de clusters de mensageria e referências de credencial dá suporte aos conectores de mensageria configurados no fluxo.

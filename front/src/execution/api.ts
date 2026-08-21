@@ -105,7 +105,7 @@ export interface StepResponse {
   errorMessage: string | null;
 }
 
-export type BackendConnectorType = 'REST' | 'KAFKA';
+export type BackendConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
 
 export interface ConnectorConfigInfo {
   connectorType: BackendConnectorType;

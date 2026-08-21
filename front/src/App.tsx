@@ -6,6 +6,7 @@ import { TabBar } from './shell/TabBar';
 import { PlaceholderPanel } from './shell/PlaceholderPanel';
 import { DashboardPage } from './dashboard/DashboardPage';
 import { ProductsPage } from './products/ProductsPage';
+import { CatalogPage } from './catalog/CatalogPage';
 import { JourneysPage } from './journeys/JourneysPage';
 import { FormsPage } from './forms/FormsPage';
 import { ExecutionsPage } from './execution/ExecutionsPage';
@@ -22,6 +23,7 @@ import { AppErrorBoundary } from './shell/AppErrorBoundary';
 const DASHBOARD_TAB: Tab = { key: 'dashboard', title: 'Dashboard', kind: 'dashboard', closable: false };
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: true };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
+const CATALOG_TAB: Tab = { key: 'integracoes', title: 'Catálogo de Integrações', kind: 'catalog', closable: true };
 const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
 const EXECUCOES_TAB: Tab = { key: 'execucoes', title: 'Executar', kind: 'execution', closable: true };
 const AUDIT_TAB: Tab = { key: 'auditoria', title: 'Auditoria', kind: 'audit', closable: true };
@@ -30,7 +32,6 @@ const SOBRE_TAB: Tab = { key: 'sobre', title: `Sobre ${APP_VERSION}`, kind: 'sob
 
 const NAV_LABELS: Record<string, string> = {
   aprovacoes: 'Aprovações',
-  configuracoes: 'Configurações',
 };
 
 export function App() {
@@ -101,6 +102,10 @@ function AppShell() {
       openTab(PRODUCTS_TAB);
       return;
     }
+    if (navKey === 'integracoes') {
+      openTab(CATALOG_TAB);
+      return;
+    }
     if (navKey === 'jornadas') {
       openTab(JOURNEYS_TAB);
       return;
@@ -158,7 +163,9 @@ function AppShell() {
         ? 'dashboard'
         : activeTab.kind === 'products'
           ? 'produtos'
-          : activeTab.kind === 'forms'
+          : activeTab.kind === 'catalog'
+            ? 'integracoes'
+            : activeTab.kind === 'forms'
             ? 'formularios'
             : activeTab.kind === 'execution'
               ? 'execucoes'
@@ -191,6 +198,7 @@ function AppShell() {
                   {tab.kind === 'placeholder' && <PlaceholderPanel title={tab.title} />}
                   {tab.kind === 'dashboard' && <DashboardPage />}
                   {tab.kind === 'products' && <ProductsPage />}
+                  {tab.kind === 'catalog' && <CatalogPage />}
                   {tab.kind === 'journeys' && <JourneysPage onOpenForm={openForm} onOpenNewForm={openNewFormScreen} />}
                   {tab.kind === 'forms' && (
                     <FormsPage

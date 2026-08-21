@@ -23,10 +23,16 @@ import type { AuthSession } from '../api/auth';
 import { APP_NAME, APP_VERSION } from './appInfo';
 import { ConfirmDialog } from '../products/ConfirmDialog';
 
+interface NavChild {
+  key: string;
+  label: string;
+}
+
 interface NavItem {
   key: string;
   label: string;
   icon: ReactNode;
+  children?: NavChild[];
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -36,7 +42,12 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'formularios', label: 'Formulários', icon: <FileText size={16} /> },
   { key: 'execucoes', label: 'Executar', icon: <PlayCircle size={16} /> },
   { key: 'aprovacoes', label: 'Aprovações', icon: <CheckSquare size={16} /> },
-  { key: 'configuracoes', label: 'Configurações', icon: <Settings size={16} /> },
+  {
+    key: 'configuracoes',
+    label: 'Configurações',
+    icon: <Settings size={16} />,
+    children: [{ key: 'integracoes', label: 'Integrações' }],
+  },
 ];
 
 const AUDIT_NAV_ITEM: NavItem = { key: 'auditoria', label: 'Auditoria', icon: <ShieldCheck size={16} /> };
@@ -50,6 +61,7 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
   const { colors: c } = useAppTheme();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const initials = user ? user.username.slice(0, 2).toUpperCase() : '';
   // Audit log access is ADMIN-only (the API rejects everyone else), so the nav entry
   // is only shown to admins — matches the backend's @PreAuthorize("hasRole('ADMIN')").
@@ -67,12 +79,15 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
 
         <nav className="flex flex-col gap-[2px] w-full items-center">
           {navItems.map((item) => {
-            const active = item.key === activeKey;
+            // Sem espaço pra um flyout de submenu na barra recolhida — com só um filho hoje, vai
+            // direto pra ele; reconsiderar se "Configurações" ganhar mais de uma seção.
+            const targetKey = item.children?.[0]?.key ?? item.key;
+            const active = targetKey === activeKey;
             return (
               <button
                 key={item.key}
-                onClick={() => onNavigate(item.key)}
-                title={item.label}
+                onClick={() => onNavigate(targetKey)}
+                title={item.children ? `${item.label} · ${item.children[0].label}` : item.label}
                 className="flex items-center justify-center w-[36px] h-[36px] rounded-md cursor-pointer border-0"
                 style={{
                   background: active ? c.activeBg : 'transparent',
@@ -142,21 +157,55 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
 
       <nav className="flex flex-col gap-[2px]">
         {navItems.map((item) => {
-          const active = item.key === activeKey;
+          const childActive = item.children?.some((child) => child.key === activeKey) ?? false;
+          const active = item.key === activeKey || childActive;
+          const isOpen = item.key === openKey || childActive;
           return (
-            <button
-              key={item.key}
-              onClick={() => onNavigate(item.key)}
-              className="flex items-center gap-[10px] px-[10px] py-2 rounded-md text-[13px] text-left cursor-pointer border-0"
-              style={{
-                background: active ? c.activeBg : 'transparent',
-                color: active ? c.accent : c.textMuted,
-                fontWeight: active ? 500 : 400,
-              }}
-            >
-              <span style={{ color: active ? c.accent : c.textMuted }}>{item.icon}</span>
-              {item.label}
-            </button>
+            <div key={item.key}>
+              <button
+                onClick={() =>
+                  item.children ? setOpenKey((k) => (k === item.key ? null : item.key)) : onNavigate(item.key)
+                }
+                className="flex items-center gap-[10px] px-[10px] py-2 rounded-md text-[13px] text-left cursor-pointer border-0 w-full"
+                style={{
+                  background: active && !item.children ? c.activeBg : 'transparent',
+                  color: active ? c.accent : c.textMuted,
+                  fontWeight: active ? 500 : 400,
+                }}
+              >
+                <span style={{ color: active ? c.accent : c.textMuted }}>{item.icon}</span>
+                {item.label}
+                {item.children && (
+                  <ChevronDown
+                    size={13}
+                    className="ml-auto transition-transform"
+                    style={{ transform: isOpen ? 'rotate(180deg)' : undefined }}
+                  />
+                )}
+              </button>
+              {item.children && isOpen && (
+                <div className="flex flex-col gap-[2px] mt-[2px]">
+                  {item.children.map((child) => {
+                    const childIsActive = child.key === activeKey;
+                    return (
+                      <button
+                        key={child.key}
+                        onClick={() => onNavigate(child.key)}
+                        className="flex items-center rounded-md text-[13px] text-left cursor-pointer border-0"
+                        style={{
+                          padding: '8px 10px 8px 34px',
+                          background: childIsActive ? c.activeBg : 'transparent',
+                          color: childIsActive ? c.accent : c.textMuted,
+                          fontWeight: childIsActive ? 500 : 400,
+                        }}
+                      >
+                        {child.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

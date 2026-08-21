@@ -5,7 +5,8 @@ import { useFlowTheme, type FlowColors } from './theme';
 import {
   NODE_META,
   CONNECTOR_TYPES_BY_NODE,
-  KAFKA_OPERATION_BY_NODE,
+  BROKER_OPERATION_BY_NODE,
+  MESSAGE_BROKER_TYPES,
   availableVariableRulesAt,
   availableVariableOriginsAt,
   flattenJsonToOutputMappingRules,
@@ -23,8 +24,10 @@ import {
 } from './model';
 import { Section } from './PropertiesSection';
 import { ConnectorWizard } from './ConnectorWizard';
+import { SearchSelect } from './SearchSelect';
 import type { Form } from '../api/forms';
 import { testConnector, type ConnectorTestResponse } from '../api/flows';
+import type { MessagingCluster, CredentialReference } from '../api/messaging';
 import { PropertyGrid, PropertyRow, PropertyGroupHeader, Modal, gridInputStyle } from './PropertyGrid';
 
 const CONNECTOR_NODE_TYPES = new Set(['serviceTask', 'receiveTask', 'messageStartEvent']);
@@ -597,6 +600,8 @@ function FormSearchSelect({
 export function PropertiesPanel({
   node,
   forms,
+  clusters,
+  credentials,
   allNodes,
   allEdges,
   journeyId,
@@ -608,6 +613,8 @@ export function PropertiesPanel({
 }: {
   node: WFNode;
   forms: Form[];
+  clusters: MessagingCluster[];
+  credentials: CredentialReference[];
   allNodes: WFNode[];
   allEdges: WFEdge[];
   journeyId: string;
@@ -713,6 +720,8 @@ export function PropertiesPanel({
             nodeType={node.type as NodeType}
             connectorConfig={data.connectorConfig}
             availableVariables={connectorVariableOrigins}
+            clusters={clusters}
+            credentials={credentials}
             journeyId={journeyId}
             nodeId={node.id}
             onUpdate={onUpdate}
@@ -926,6 +935,8 @@ function ConnectorFields({
   nodeType,
   connectorConfig,
   availableVariables,
+  clusters,
+  credentials,
   journeyId,
   nodeId,
   onUpdate,
@@ -933,14 +944,27 @@ function ConnectorFields({
   nodeType: NodeType;
   connectorConfig: ConnectorConfig | null;
   availableVariables: VariableOrigin[];
+  clusters: MessagingCluster[];
+  credentials: CredentialReference[];
   journeyId: string;
   nodeId: string;
   onUpdate: (patch: Partial<WFNodeData>) => void;
 }) {
   const { c } = useFlowTheme();
   const availableConnectors = CONNECTOR_TYPES_BY_NODE[nodeType] ?? [];
-  const kafkaOperation = KAFKA_OPERATION_BY_NODE[nodeType];
+  const brokerOperation = BROKER_OPERATION_BY_NODE[nodeType];
   const urlInputRef = useRef<HTMLInputElement>(null);
+  const isBroker = !!connectorConfig && MESSAGE_BROKER_TYPES.includes(connectorConfig.connectorType);
+  const selectedClusterId = (connectorConfig?.config?.clusterId as string) ?? null;
+  const credentialsForCluster = selectedClusterId
+    ? credentials.filter((cr) => cr.clusterId === selectedClusterId)
+    : credentials;
+  const topicLabel =
+    connectorConfig?.connectorType === 'EVENT_HUBS'
+      ? 'Nome do Event Hub'
+      : connectorConfig?.connectorType === 'SERVICE_BUS'
+        ? 'Fila/Tópico'
+        : 'Tópico';
 
   function update(patch: Partial<ConnectorConfig>) {
     const current: ConnectorConfig = connectorConfig ?? { connectorType: 'REST', config: {}, credentialRef: null };
@@ -978,9 +1002,12 @@ function ConnectorFields({
                 onUpdate({ connectorConfig: null });
                 return;
               }
-              // Kafka's operation is implied by the node's role (REQ-03.09.008), so it's
-              // pre-filled here rather than left for the user to pick.
-              const config = value === 'KAFKA' && kafkaOperation ? { operation: kafkaOperation } : {};
+              // A operação de conector de mensageria é implícita ao papel do nó (REQ-03.09.008),
+              // então já vem preenchida em vez de deixar o usuário escolher.
+              const config =
+                MESSAGE_BROKER_TYPES.includes(value as ConnectorType) && brokerOperation
+                  ? { operation: brokerOperation }
+                  : {};
               update({ connectorType: value as ConnectorType, config });
             }}
           >
@@ -1020,6 +1047,8 @@ function ConnectorFields({
               <ConnectorWizard
                 connectorConfig={connectorConfig}
                 variables={availableVariables}
+                clusters={clusters}
+                credentials={credentials}
                 journeyId={journeyId}
                 nodeId={nodeId}
                 onConfigUpdate={update}
@@ -1027,14 +1056,16 @@ function ConnectorFields({
               />
             )}
 
-            <PropertyRow label="Credencial">
-              <input
-                style={gridInputStyle(c)}
-                value={connectorConfig.credentialRef ?? ''}
-                onChange={(e) => update({ credentialRef: e.target.value || null })}
-                placeholder="ex.: credential-runtime-01 (opcional)"
-              />
-            </PropertyRow>
+            {!isBroker && (
+              <PropertyRow label="Credencial">
+                <input
+                  style={gridInputStyle(c)}
+                  value={connectorConfig.credentialRef ?? ''}
+                  onChange={(e) => update({ credentialRef: e.target.value || null })}
+                  placeholder="ex.: credential-runtime-01 (opcional)"
+                />
+              </PropertyRow>
+            )}
 
             <PropertyGroupHeader label="Conexão" />
             {connectorConfig.connectorType === 'REST' ? (
@@ -1075,7 +1106,22 @@ function ConnectorFields({
               </>
             ) : (
               <>
-                <PropertyRow label="Tópico">
+                <PropertyRow label="Cluster">
+                  <SearchSelect
+                    items={clusters}
+                    getId={(cluster) => cluster.clusterId}
+                    getLabel={(cluster) => cluster.name}
+                    value={selectedClusterId}
+                    onChange={(clusterId) => {
+                      updateConfigField('clusterId', clusterId ?? '');
+                      // Trocar de cluster invalida a credencial escolhida (é filtrada por cluster).
+                      update({ credentialRef: null });
+                    }}
+                    placeholder="Nenhum cluster cadastrado"
+                    emptyLabel="Nenhum cluster encontrado — cadastre em Catálogo de Integrações"
+                  />
+                </PropertyRow>
+                <PropertyRow label={topicLabel}>
                   <input
                     style={gridInputStyle(c)}
                     value={(connectorConfig.config?.topic as string) ?? ''}
@@ -1084,8 +1130,19 @@ function ConnectorFields({
                 </PropertyRow>
                 <PropertyRow label="Operação">
                   <div style={{ color: c.textSecondary, fontSize: 12 }} title="Definida automaticamente pelo tipo de nó">
-                    {kafkaOperation}
+                    {brokerOperation}
                   </div>
+                </PropertyRow>
+                <PropertyRow label="Credencial">
+                  <SearchSelect
+                    items={credentialsForCluster}
+                    getId={(cred) => cred.referenceName}
+                    getLabel={(cred) => cred.referenceName}
+                    value={connectorConfig.credentialRef}
+                    onChange={(referenceName) => update({ credentialRef: referenceName })}
+                    placeholder={selectedClusterId ? 'Nenhuma credencial cadastrada' : 'Escolha um cluster primeiro'}
+                    emptyLabel="Nenhuma credencial encontrada — cadastre em Catálogo de Integrações"
+                  />
                 </PropertyRow>
               </>
             )}
@@ -1121,7 +1178,7 @@ function ConnectorFields({
                 />
               </ComplexPropertyRow>
             )}
-            {connectorConfig.connectorType === 'KAFKA' && (
+            {isBroker && (
               <ComplexPropertyRow label="Payload" summary={jsonFieldSummary(connectorConfig.config?.payload)} dialogTitle="Payload">
                 <JsonFieldEditor value={connectorConfig.config?.payload} onChange={(v) => updateConfigJsonField('payload', v)} />
               </ComplexPropertyRow>

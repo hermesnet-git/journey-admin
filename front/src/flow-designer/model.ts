@@ -4,7 +4,7 @@ import type { FlowNodeType } from '../api/flows';
 import type { Form, FormField } from '../api/forms';
 
 export type NodeType = 'start' | 'userTask' | 'end' | 'serviceTask' | 'receiveTask' | 'messageStartEvent' | 'gateway';
-export type ConnectorType = 'REST' | 'KAFKA';
+export type ConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
 
 export const FRONT_TO_BACKEND_TYPE: Record<NodeType, FlowNodeType> = {
   start: 'START',
@@ -138,23 +138,27 @@ export function outgoingLimitFor(type: NodeType): number {
   return Infinity;
 }
 
-// Enabled connectors only (REQ-03.08.003/004) — SOAP and others exist in the backend
-// catalog but are registered disabled, so they're never offered here.
-export const CONNECTOR_TYPES: ConnectorType[] = ['REST', 'KAFKA'];
+// Enabled connectors only (REQ-03.08.003/004, REQ-14.05.001) — SOAP and others exist in the
+// backend catalog but are registered disabled, so they're never offered here.
+export const CONNECTOR_TYPES: ConnectorType[] = ['REST', 'KAFKA', 'EVENT_HUBS', 'SERVICE_BUS'];
+
+// Connectors de mensageria (Kafka/Event Hubs/Service Bus) — usados nos pontos onde REST não se
+// aplica (MESSAGE_START_EVENT) e no seletor de cluster/credencial do catálogo (FT-14).
+export const MESSAGE_BROKER_TYPES: ConnectorType[] = ['KAFKA', 'EVENT_HUBS', 'SERVICE_BUS'];
 
 // REST models an outbound call (method/URL to reach), which doesn't fit a
 // MESSAGE_START_EVENT — it starts the flow from an incoming message, it never
-// calls out. Only KAFKA (consume) applies there (REQ-03.09.007).
+// calls out. Só conectores de mensageria (consumo) se aplicam lá (REQ-03.09.007, REQ-14.05.001).
 export const CONNECTOR_TYPES_BY_NODE: Partial<Record<NodeType, ConnectorType[]>> = {
-  serviceTask: ['REST', 'KAFKA'],
-  receiveTask: ['REST', 'KAFKA'],
-  messageStartEvent: ['KAFKA'],
+  serviceTask: ['REST', 'KAFKA', 'EVENT_HUBS', 'SERVICE_BUS'],
+  receiveTask: ['REST', 'KAFKA', 'EVENT_HUBS', 'SERVICE_BUS'],
+  messageStartEvent: ['KAFKA', 'EVENT_HUBS', 'SERVICE_BUS'],
 };
 
-// Kafka operation is implied by the node's role, not a free choice: a
-// SERVICE_TASK publishes as a side effect of running; RECEIVE_TASK and
-// MESSAGE_START_EVENT only ever wait for a message (REQ-03.09.008).
-export const KAFKA_OPERATION_BY_NODE: Partial<Record<NodeType, 'PRODUCE' | 'CONSUME'>> = {
+// A operação de mensageria é implícita ao papel do nó, não uma escolha livre: um
+// SERVICE_TASK publica como efeito de rodar; RECEIVE_TASK e
+// MESSAGE_START_EVENT só esperam uma mensagem (REQ-03.09.008).
+export const BROKER_OPERATION_BY_NODE: Partial<Record<NodeType, 'PRODUCE' | 'CONSUME'>> = {
   serviceTask: 'PRODUCE',
   receiveTask: 'CONSUME',
   messageStartEvent: 'CONSUME',

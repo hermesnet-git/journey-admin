@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 public final class FlowValidator {
 
     private static final Set<FlowNodeType> START_TYPES = Set.of(FlowNodeType.START, FlowNodeType.MESSAGE_START_EVENT);
-    private static final Map<FlowNodeType, String> KAFKA_OPERATION_BY_TYPE = Map.of(
+    private static final Map<FlowNodeType, String> BROKER_OPERATION_BY_TYPE = Map.of(
             FlowNodeType.SERVICE_TASK, "PRODUCE",
             FlowNodeType.RECEIVE_TASK, "CONSUME",
             FlowNodeType.MESSAGE_START_EVENT, "CONSUME");
@@ -173,15 +173,16 @@ public final class FlowValidator {
                             + connectorConfig.getConnectorType() + ")");
                 }
                 if (node.getType() == FlowNodeType.MESSAGE_START_EVENT
-                        && connectorConfig.getConnectorType() == ConnectorType.REST) {
+                        && !connectorConfig.getConnectorType().isMessageBroker()) {
                     violations.add("Nó MESSAGE_START_EVENT '" + node.getName()
-                            + "' não pode usar um conector REST; só KAFKA (consumo) inicia um fluxo a partir de uma mensagem recebida");
+                            + "' não pode usar um conector " + connectorConfig.getConnectorType()
+                            + "; só um conector de mensageria (Kafka, Event Hubs ou Service Bus, em modo de consumo) inicia um fluxo a partir de uma mensagem recebida");
                 }
-                if (connectorConfig.getConnectorType() == ConnectorType.KAFKA) {
-                    String expectedOperation = KAFKA_OPERATION_BY_TYPE.get(node.getType());
+                if (connectorConfig.getConnectorType().isMessageBroker()) {
+                    String expectedOperation = BROKER_OPERATION_BY_TYPE.get(node.getType());
                     Object operation = connectorConfig.getConfig() != null ? connectorConfig.getConfig().get("operation") : null;
                     if (expectedOperation != null && operation != null && !expectedOperation.equals(operation)) {
-                        violations.add("Nó '" + node.getName() + "': a operação Kafka deve ser " + expectedOperation
+                        violations.add("Nó '" + node.getName() + "': a operação de mensageria deve ser " + expectedOperation
                                 + " para " + node.getType());
                     }
                 }

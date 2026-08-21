@@ -23,7 +23,9 @@ Gestão de Jornadas por Canal
 
 Modelagem Visual de Fluxos
 
-Service Tasks, Receive Tasks e Message Start Events com conectores REST e Kafka
+Service Tasks, Receive Tasks e Message Start Events com conectores REST, Kafka, Azure Event Hubs e Azure Service Bus
+
+Catálogo de integrações: clusters de mensageria corporativos e referências de credencial (Azure Key Vault)
 
 Formulários
 
@@ -155,7 +157,11 @@ Estrutura visual da jornada: Start, Message Start Event, User Tasks, Service Tas
 
 ## Connectors
 
-Framework de integrações com REST e Kafka habilitados na versão 1.0.0 e conectores adicionais catalogados como desabilitados.
+Framework de integrações com REST, Kafka, Azure Event Hubs e Azure Service Bus habilitados na versão 1.0.0 e conectores adicionais catalogados como desabilitados. Um conector de mensageria referencia um cluster e, opcionalmente, uma credencial do Integration Catalog em vez de texto livre.
+
+## Integration Catalog
+
+Catálogo de clusters de mensageria corporativos e referências de credencial (Azure Key Vault) usados pelos conectores de mensageria. Administração restrita ao papel `ADMIN`; demais papéis apenas selecionam entradas já cadastradas. Nunca armazena o valor de um segredo.
 
 ## Form
 
@@ -227,7 +233,7 @@ Especificação OpenAPI
 
 ## Requisitos Funcionais
 
-**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo da versão 1.0.0, organizado em treze features.
+**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo da versão 1.0.0, organizado em catorze features.
 
 ## Arquitetura Lógica
 
@@ -275,6 +281,8 @@ Especificação OpenAPI
 | Journey Publication | Snapshot de uma versão enviado para a API de publicação do runtime |
 | External Identity Provider | Provedor externo de autenticação, mockado na versão 1.0.0 |
 | Audit Event | Evento de auditoria de uma operação do sistema |
+| Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
+| Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
 
 ---
 
@@ -293,9 +301,10 @@ Especificação OpenAPI
 | Runtime | Camada responsável pela execução das jornadas |
 | ms-journey | Motor de execução que não conhece nem consulta o Admin Portal |
 | BPMN | Modelo executável utilizado pelo motor de workflow |
+| Integration Catalog | Catálogo de clusters de mensageria e referências de credencial usados pelos conectores |
 
 ---
 
 # 12. Resumo Executivo
 
-O Elastic Journey Admin Portal versão 1.0.0 cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários, versionamento, execução, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).
+O Elastic Journey Admin Portal versão 1.0.0 cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários (incluindo conectores REST, Kafka, Azure Event Hubs e Azure Service Bus apoiados por um catálogo de integrações de clusters e credenciais), versionamento, execução, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).

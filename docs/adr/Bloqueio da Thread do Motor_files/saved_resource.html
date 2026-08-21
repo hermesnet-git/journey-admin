@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<!-- saved from url=(0253)https://57943f04-b5ae-4704-be00-9cd8d2e01975.frame.claudeusercontent.com/_f/1787282382-d0d9/?__frame_t=ZxYo1qdKLZmoo5QhdIr_7i4c.d92d2a10-dd9f-47b5-ac68-865e436d5be2.222f7939-c9b4-46f6-ac41-7b301edcc4b0.1787286071&__frame_v=manifest.cedd5fcdd733d664.json -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!-- frame-runtime --><!--<base href="/_f/1787282382-d0d9/">--><base href="."><script>window.__FRAME_PREAMBLE={"capabilities":{"artifact":"artifact.CPjnkS1k.js","assets":"assets.BkxVItX2.js","comments":"comments.GLuHR3zP.js","db":"db.CRhVHzSt.js","downloads":"downloads.C3GSvEDP.js","embed":"embed.qSh8AS5_.js","mcp":"mcp.D3B2EyQu.js","permissions":"permissions.BNySkLV5.js","room":"room.BgXZkiYR.js","sample":"sample.C7z_6W62.js","self":"artifact.CPjnkS1k.js","user":"user.BpKav-Rf.js"},"transforms":"_transforms.h3_8GSUa.js","comments":"_comments.kok9hxlq.js","translate":"_translate.5HCW4BJh.js"}</script><script>(function(){"use strict";var Y=["light","dark","system"],X=/^[A-Za-z0-9_-]{1,64}$/,x=/^[a-zA-Z_:][a-zA-Z0-9_:.-]{0,127}$/,G=new Set(["class","hidden","value","checked"]);function V(e){const t=e.toLowerCase();return t.startsWith("data-")||t.startsWith("aria-")||G.has(t)}var Z="http://www.w3.org/1999/xhtml",J="http://www.w3.org/2000/svg",Q=new Set(["script","style","iframe","noscript","noframes","noembed","xmp","plaintext","template","title","textarea","object","embed"]),ee=new Set(["script","style"]);function te(e){const t=e.localName.toLowerCase();return e.namespaceURI===Z?!Q.has(t):e.namespaceURI===J?!ee.has(t):!1}function re(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_patch;if(t===null||typeof t!="object")return!1;const{seq:n,elements:a}=t;if(typeof n!="number"||!Number.isSafeInteger(n)||!Array.isArray(a)||a.length===0||a.length>64)return!1;for(const l of a){if(l===null||typeof l!="object")return!1;const s=l;if(typeof s.target!="string"||!X.test(s.target)||s.text!==void 0&&typeof s.text!="string")return!1;if(s.attrsSet!==void 0){if(s.attrsSet===null||typeof s.attrsSet!="object")return!1;for(const[c,u]of Object.entries(s.attrsSet))if(!x.test(c)||typeof u!="string")return!1}if(s.attrsRemoved!==void 0){if(!Array.isArray(s.attrsRemoved))return!1;for(const c of s.attrsRemoved)if(typeof c!="string"||!x.test(c))return!1}}return!0}function ne(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_init;return t!==null&&typeof t=="object"}function se(e){return e!==null&&typeof e=="object"&&e.__frame_size_poke===!0}function ae(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_theme;if(t===null||typeof t!="object")return!1;const n=t.theme;return typeof n=="string"&&Y.includes(n)}var j="__frame_scroll",oe=150,ie=310,le=160,ce=3e4;function ue(){let e=0,t=!1,n=!1,a=!1,l=0,s=null;const c=i=>{try{sessionStorage.setItem(j,JSON.stringify({y:i}))}catch{}},u=()=>{if(clearTimeout(e),s===null)return;const i=s;s=null,c(i)},S=()=>{if(t){t=!1;return}n=!0,s=scrollY,clearTimeout(e),e=setTimeout(u,oe)};try{addEventListener("scroll",S,{passive:!0}),addEventListener("pagehide",u)}catch{}const v=()=>{let i;try{i=sessionStorage.getItem(j)}catch{return null}if(i===null)return null;let d;try{d=JSON.parse(i)}catch{d=null}const f=d?.y;if(!(typeof f=="number"&&Number.isFinite(f)&&f>=0)){try{sessionStorage.removeItem(j)}catch{}return null}return f};let w=!1;const m=i=>{try{const d=scrollY;scrollTo({top:i,left:0,behavior:"instant"}),l=i,a=!0,clearTimeout(e),s=null,c(i);const f=scrollY;f!==d&&(t=!0),f!==i&&!w&&(w=!0,addEventListener("load",()=>{try{if(scrollY===f){const _=v();m(_!==null?_:l)}}catch{}},{once:!0}))}catch{}},y=()=>{try{return!!location.hash}catch{return!0}};let g=!1;const E=()=>{try{if(g||innerWidth>ie||innerHeight>le)return;g=!0;const i=Date.now(),d=()=>{try{removeEventListener("resize",d)}catch{}if(Date.now()-i>ce||n||y())return;const f=v();m(f!==null?f:l)};addEventListener("resize",d)}catch{}};let r=!1,p=!1;return{restore(){if(r||(r=!0,y()))return;const i=v();i!==null&&(m(i),E())},promoted(){if(p||(p=!0,y()))return;const i=v();i!==null?(m(i),E()):a&&m(l)}}}var ye="modulepreload",ge=function(e){return"/"+e},be={},fe=function(t,n,a){let l=Promise.resolve();function s(c){const u=new Event("vite:preloadError",{cancelable:!0});if(u.payload=c,window.dispatchEvent(u),!u.defaultPrevented)throw c}return l.then(c=>{for(const u of c||[])u.status==="rejected"&&s(u.reason);return t().catch(s)})};(function(){const e=Object.defineProperty,t=globalThis,n=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let a=0;for(let l=0;l<n.length;l++){const s=n[l];try{e(t,s,{value:void 0,writable:!1,configurable:!1})}catch{try{delete t[s]}catch{}try{e(t,s,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof t[s]=="function"&&a++}if(a&&window!==top)try{parent.postMessage({__frame_rtc_lockdown_failed:a},"*")}catch{}})();var pe=1e4,de=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function D(e){for(const t of de)if(t.endsWith(":*"))try{const n=new URL(e);if(`${n.protocol}//${n.hostname}:*`===t)return!0}catch{}else if(e===t)return!0;return!1}var M=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),O=window.__FRAME_PREAMBLE?.transforms,N=window.__FRAME_PREAMBLE?.comments,B=window.__FRAME_PREAMBLE?.translate,L=/^[\w.-]+\.js$/;function T(e){return fe(()=>import("/_runtime/"+e),void 0)}function z(e,t){return{contract:e.contract,changes:new Set(e.changes??[]),flags:new Set(e.flags??[]),capabilities:e.capabilities??{},capBudgets:e.capBudgets??{},transforms:new Map,shellOrigin:t,mount:W,pipe:()=>({wrap:(n,a)=>(...l)=>{try{return a(...l)}catch(s){return Promise.reject(s)}}})}}var P=null,b=null;function q(e,t,n){try{Object.defineProperty(e,t,{value:n,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(e,t,{value:n,writable:!1,configurable:!0,enumerable:!0})}catch{}}}var I=!1;function me(e,t){const n=[];for(const a of e.elements){const l=document.querySelector(`[data-id="${a.target}"]`);if(!l){parent.postMessage({__frame_patch_miss:{seq:e.seq}},t);return}if([...Object.keys(a.attrsSet??{}),...a.attrsRemoved??[]].some(s=>!V(s))){parent.postMessage({__frame_patch_miss:{seq:e.seq}},t);return}if(a.text!==void 0&&!te(l)){parent.postMessage({__frame_patch_miss:{seq:e.seq}},t);return}for(const[s,c]of Object.entries(a.attrsSet??{}))if(!$(l,s)){try{l.setAttribute(s,c)}catch{}H(l,s,c)}for(const s of a.attrsRemoved??[])$(l,s)||(l.removeAttribute(s),H(l,s,null));typeof a.text=="string"&&(l.textContent=a.text),n.push(a.target)}try{document.dispatchEvent(new CustomEvent("claude:edit",{detail:{seq:e.seq,targets:n}}))}catch{}}function H(e,t,n){if(!(e instanceof HTMLInputElement))return;const a=t.toLowerCase();a==="checked"?e.checked=n!==null:a==="value"&&e.type!=="file"&&(e.value=n??"")}function $(e,t){const n=t.toLowerCase(),a=e;return n==="data-id"||(n==="value"||n==="checked")&&(a.__artifactSecret===!0||/^(password|hidden|file)$/.test(a.type??"")||/(^|\s)(cc-|one-time-code|current-password|new-password)/i.test(`${e.getAttribute("autocomplete")??""} ${a.autocomplete??""}`))}function K(e){const t=document.documentElement;e==="light"||e==="dark"?(t.dataset.theme=e,t.style.colorScheme=e,I=!0):I&&(delete t.dataset.theme,t.style.colorScheme="",I=!1)}var R=new Map;function _e(){let e;const t={u:new Promise(n=>{e=n}),r:n=>{t.done=!0,e(n)},done:!1,nulled:!1};return t}var he=Object.freeze(Object.assign(Object.create(null),{call:Function.prototype.call,apply:Function.prototype.apply,bind:Function.prototype.bind})),W=(e,t)=>{const n=R.get(e);if(!n||n.done){n?.nulled&&b&&parent.postMessage({__frame_cap_telemetry:{kind:"cap-load-error",cap:e}},b);return}const a=typeof t=="function"?Object.setPrototypeOf(t,he):Object.assign(Object.create(null),t);typeof a.then=="function"&&delete a.then,n.r(Object.freeze(a))},U=Object.getOwnPropertyDescriptor(window,"claude");if(window!==top&&!(U&&U.writable===!1)){const e=O&&L.test(O)?T(O).catch(()=>{}):Promise.resolve(void 0),t=r=>{if(r.type==="auxclick"&&r.button!==1)return;const p=r.target,i=p&&p.closest?p.closest("a[href],area[href]"):null;if(!i)return;const d=i.getAttribute("href");if(!d)return;let f,_;try{f=new URL(d,document.baseURI),_=new URL(document.baseURI).origin}catch{return}if((f.protocol==="http:"||f.protocol==="https:")&&f.origin!==_){r.preventDefault();const h=(i.getAttribute("target")??"").toLowerCase(),C=r.type==="auxclick"||r.metaKey||r.ctrlKey||r.shiftKey||r.altKey||!["","_self","_top","_parent"].includes(h);parent.postMessage({__frame_nav:!0,url:f.href,newTab:C},"*")}};addEventListener("click",t,!0),addEventListener("auxclick",t,!0);const n={},a=r=>{r.isTrusted&&(n.pointer=!0)},l=r=>{r.isTrusted&&(n.click=!0)};addEventListener("pointermove",a,{capture:!0,passive:!0}),addEventListener("click",l,{capture:!0,passive:!0}),e.then(r=>{r?.wireNav&&(r.wireNav(),removeEventListener("click",t,!0),removeEventListener("auxclick",t,!0),removeEventListener("pointermove",a,!0),removeEventListener("click",l,!0),r.wireEngagement?.(n))});let s=null;try{s=ue()}catch{}const c=U?.value??{};q(window,"claude",c);for(const r of Object.keys(M)){if(c[r]!==void 0){q(c,r,c[r]);continue}R.set(r,_e())}if(c.use===void 0){const r=p=>{if(typeof p!="string"||!Object.hasOwn(M,p))return Promise.resolve(null);const i=R.get(p);return i?i.u:Promise.resolve(c[p]??null)};try{Object.defineProperty(c,"use",{value:r,writable:!0,configurable:!0,enumerable:!1})}catch{}}let u=null,S=null,v=0;const w=r=>{r.source!==parent||!D(r.origin)||ne(r.data)&&(u=r.data.__frame_init,b=r.origin,removeEventListener("message",w),clearTimeout(v),S?.())};addEventListener("message",w),parent.postMessage({__frame_connect:!0},"*");const m=new Promise(r=>{S=r,v=setTimeout(()=>{removeEventListener("message",w),r()},pe)}),y=document.readyState==="loading"?new Promise(r=>document.addEventListener("DOMContentLoaded",()=>r(),{once:!0})):Promise.resolve();y.then(()=>{try{s?.restore()}catch{}});const g={cb:null},E=r=>{if(!(r.source!==parent||!D(r.origin))&&se(r.data)){try{s?.promoted()}catch{}g.cb?.()}};addEventListener("message",E),m.then(async()=>{if(!u||!b){for(const o of R.values())o.nulled=!0,o.r(null);return}K(u.theme);const r=b;let p=!1,i=!1;addEventListener("message",o=>{if(o.source!==parent||o.origin!==r)return;ae(o.data)&&K(o.data.__frame_theme.theme),re(o.data)&&me(o.data.__frame_patch,r);const k=o.data?.__fc_mode;k&&typeof k=="object"&&!p&&N&&L.test(N)&&(p=!0,T(N).then(F=>F.install?.(r,k.on===!0)).catch(()=>{}));const A=o.data?.__ft_cmd;A&&typeof A=="object"&&!i&&B&&L.test(B)&&(i=!0,T(B).then(F=>F.install?.(r,A)).catch(()=>{}))});const d=Object.keys(u.capabilities??{}).filter(o=>Object.hasOwn(M,o)).map(o=>[o,M[o]]).filter(o=>typeof o[1]=="string"&&L.test(o[1])),f=await Promise.allSettled(d.map(([,o])=>T(o))),_=await e,h=b;if(_?.buildBoot||parent.postMessage({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},h),_?.buildBoot)try{P=_.buildBoot(u,_.TRANSFORMS??{},{shellOrigin:h,mount:W},o=>parent.postMessage({__frame_cap_telemetry:o},h))}catch{parent.postMessage({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},h),P=z(u,h)}else P=z(u,h);const C=o=>parent.postMessage({__frame_cap_telemetry:{kind:"cap-load-error",cap:o}},h),ve=P;f.forEach((o,k)=>{const A=d[k][0];if(o.status!=="fulfilled"){C(A);return}try{o.value?.install?.(ve)}catch{C(A)}});for(const o of R.values())o.done||(o.nulled=!0,o.r(null));await y,parent.postMessage({__frame_ready:!0},b),e.then(o=>o?.installSizeReporter?.(h,g))})}})();</script><!-- /frame-runtime --><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>Bloqueio da Thread do Motor</title>
+<link rel="stylesheet" href="./css2">
+<style>
+  :root {
+    --bg: #f5f7f9;
+    --surface: #ffffff;
+    --surface-2: #eef1f4;
+    --surface-3: #e3e8ec;
+    --border: #d7dde3;
+    --border-strong: #b7c1ca;
+    --text: #1a2129;
+    --text-muted: #57626e;
+    --text-faint: #838f9b;
+    --accent: #a85a1c;
+    --accent-soft: #f1e0cc;
+    --accent-2: #1f6b62;
+    --accent-2-soft: #dbebe8;
+    --good: #1f7a4c;
+    --good-soft: #dcefe3;
+    --bad: #a13a26;
+    --bad-soft: #f6ddd5;
+    --shadow: 0 1px 2px rgba(20,26,33,.06), 0 10px 28px -14px rgba(20,26,33,.16);
+    --font-display: 'IBM Plex Sans Condensed', 'Arial Narrow', sans-serif;
+    --font-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10151b;
+      --surface: #171e26;
+      --surface-2: #1c242d;
+      --surface-3: #232c36;
+      --border: #2a3440;
+      --border-strong: #3d4a58;
+      --text: #e7ebee;
+      --text-muted: #9aa5b0;
+      --text-faint: #6e7b87;
+      --accent: #e2934f;
+      --accent-soft: #3a2c1c;
+      --accent-2: #62b9ad;
+      --accent-2-soft: #163430;
+      --good: #57c184;
+      --good-soft: #143423;
+      --bad: #e2694f;
+      --bad-soft: #351d16;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 14px 34px -16px rgba(0,0,0,.65);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #10151b;
+    --surface: #171e26;
+    --surface-2: #1c242d;
+    --surface-3: #232c36;
+    --border: #2a3440;
+    --border-strong: #3d4a58;
+    --text: #e7ebee;
+    --text-muted: #9aa5b0;
+    --text-faint: #6e7b87;
+    --accent: #e2934f;
+    --accent-soft: #3a2c1c;
+    --accent-2: #62b9ad;
+    --accent-2-soft: #163430;
+    --good: #57c184;
+    --good-soft: #143423;
+    --bad: #e2694f;
+    --bad-soft: #351d16;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 14px 34px -16px rgba(0,0,0,.65);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: .88em;
+    background: var(--surface-3);
+    padding: .1em .38em;
+    border-radius: 4px;
+  }
+
+  .page { max-width: 1080px; margin: 0 auto; padding: 3rem 1.75rem 4.5rem; }
+
+  header { max-width: 700px; margin: 0 auto 2.4rem; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: .78rem;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: .9rem;
+  }
+  .eyebrow::before { content: ""; display: inline-block; width: 22px; height: 2px; background: var(--accent); }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.75rem, 4vw, 2.35rem);
+    line-height: 1.14;
+    letter-spacing: -.01em;
+    margin: 0 0 .9rem;
+    text-wrap: balance;
+  }
+
+  header p { margin: 0; color: var(--text-muted); max-width: 62ch; }
+
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 2rem 1.9rem;
+    overflow-x: auto;
+  }
+
+  .lanes { display: flex; flex-direction: column; gap: 1.5rem; min-width: 720px; }
+
+  .lane {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-2);
+    padding: 1.15rem 1.3rem 1.3rem;
+  }
+  .lane.recommended { background: var(--accent-2-soft); border-color: color-mix(in srgb, var(--accent-2) 40%, var(--border)); }
+
+  .lane-head { display: flex; align-items: center; gap: .7rem; margin-bottom: 1rem; }
+  .lane-name { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; }
+  .lane-badge {
+    font-family: var(--font-mono); font-size: .68rem; letter-spacing: .03em;
+    padding: .22rem .55rem; border-radius: 999px; border: 1px solid var(--border-strong);
+    color: var(--text-muted); background: var(--surface);
+  }
+  .lane-badge.bad { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--border-strong)); background: var(--bad-soft); }
+  .lane-badge.mid { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong)); background: var(--accent-soft); }
+  .lane-badge.good { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 45%, var(--border-strong)); background: var(--accent-2-soft); }
+
+  .track { display: grid; grid-template-columns: 190px 1fr; gap: .85rem; align-items: center; margin-bottom: .55rem; }
+  .track:last-child { margin-bottom: 0; }
+  .track-label { font-family: var(--font-mono); font-size: .74rem; color: var(--text-muted); line-height: 1.35; }
+
+  .pool { display: flex; gap: 3px; margin-top: .35rem; }
+  .slot { width: 9px; height: 9px; border-radius: 2px; background: var(--surface-3); border: 1px solid var(--border-strong); }
+  .slot.on.bad { background: var(--bad); border-color: var(--bad); }
+  .slot.on.mid { background: var(--accent); border-color: var(--accent); }
+  .slot.on.good { background: var(--accent-2); border-color: var(--accent-2); }
+  .slot.dashed { border-style: dashed; }
+
+  .bar-row { position: relative; height: 34px; }
+  .bar {
+    position: absolute; top: 0; left: 0; height: 100%;
+    border-radius: 5px;
+    display: flex; align-items: center;
+    padding: 0 .6rem;
+    font-family: var(--font-mono); font-size: .72rem; font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .bar.bad { background: color-mix(in srgb, var(--bad) 22%, var(--surface)); border: 1px solid var(--bad); color: var(--bad); }
+  .bar.mid { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); border: 1px solid var(--accent); color: var(--accent); }
+  .bar.good { background: color-mix(in srgb, var(--accent-2) 18%, var(--surface)); border: 1px solid var(--accent-2); color: var(--accent-2); }
+  .bar.risk {
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--bad) 30%, var(--surface)), color-mix(in srgb, var(--bad) 30%, var(--surface)) 5px, color-mix(in srgb, var(--bad) 12%, var(--surface)) 5px, color-mix(in srgb, var(--bad) 12%, var(--surface)) 10px);
+    border: 1px dashed var(--bad); color: var(--bad);
+  }
+  .bar.free {
+    background: none; border: 1px dashed var(--border-strong); color: var(--text-faint);
+  }
+  .bar.unbounded::after {
+    content: "";
+    position: absolute; right: -1px; top: 0; bottom: 0; width: 16px;
+    background: linear-gradient(90deg, transparent, var(--surface-2));
+  }
+
+  .timeout-line {
+    position: absolute; top: -4px; bottom: -4px; width: 0;
+    border-left: 2px dashed var(--text-faint);
+  }
+  .timeout-line span {
+    position: absolute; top: -1.35rem; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: .66rem; color: var(--text-faint); white-space: nowrap;
+  }
+
+  .wait-note {
+    font-family: var(--font-mono); font-size: .7rem; color: var(--text-faint);
+    margin: .3rem 0 .1rem 190px; padding-left: .85rem;
+  }
+
+  .lane-note {
+    font-size: .86rem; color: var(--text-muted);
+    margin-top: .95rem; padding-top: .8rem; border-top: 1px dashed var(--border);
+    max-width: 66ch;
+  }
+
+  .impact-row {
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+    font-family: var(--font-mono); font-size: .72rem;
+    margin-top: .9rem;
+    padding: .5rem .75rem;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .impact-row .k { color: var(--text-faint); }
+  .impact-row .v { font-weight: 600; }
+  .impact-row .v.none { color: var(--accent-2); }
+  .impact-row .v.high { color: var(--accent); }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 1.3rem;
+    margin-top: 1.8rem; padding-top: 1.3rem; border-top: 1px solid var(--border);
+    font-size: .82rem; color: var(--text-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: .5rem; }
+  .swatch { width: 13px; height: 13px; border-radius: 3px; flex: none; }
+  .swatch.bad { background: color-mix(in srgb, var(--bad) 55%, var(--surface)); border: 1px solid var(--bad); }
+  .swatch.mid { background: color-mix(in srgb, var(--accent) 55%, var(--surface)); border: 1px solid var(--accent); }
+  .swatch.good { background: color-mix(in srgb, var(--accent-2) 45%, var(--surface)); border: 1px solid var(--accent-2); }
+
+  .callout {
+    max-width: 700px; margin: 2.2rem auto 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.2rem 1.4rem; box-shadow: var(--shadow);
+  }
+  .callout .label {
+    font-family: var(--font-mono); font-size: .74rem; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--accent); display: block; margin-bottom: .55rem;
+  }
+  .callout p { margin: 0 0 .6rem; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout strong { color: var(--text); }
+
+  @media (max-width: 700px) {
+    .track { grid-template-columns: 1fr; }
+    .wait-note { margin-left: 0; }
+  }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">Comparativo técnico · complementa a ADR-001-integracao</div>
+    <h1>Ocupação da thread do motor × complexidade imposta ao BFF</h1>
+    <p>Quatro formas de fazer uma chamada de integração dentro de uma jornada Camunda — o que cada uma custa em termos de thread e transação do motor, e o que cada uma custa em complexidade para o BFF/canal digital do outro lado. A decisão não é uma escolha única: é por tipo de chamada.</p>
+  </header>
+
+  <div class="diagram">
+    <div class="lanes">
+
+      <div class="lane">
+        <div class="lane-head">
+          <span class="lane-name">Conector HTTP nativo</span>
+          <span class="lane-badge bad">evitar sempre</span>
+        </div>
+        <div class="track">
+          <div class="track-label">
+            Thread do motor<br>+ chamada HTTP
+            <div class="pool">
+              <span class="slot on bad"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span>
+            </div>
+          </div>
+          <div class="bar-row">
+            <div class="bar bad unbounded" style="width:100%">mesma thread, mesma transação — sem limite definido</div>
+          </div>
+        </div>
+        <div class="impact-row"><span class="k">Impacto no BFF/canal:</span><span class="v none">nenhum — resposta síncrona imediata</span></div>
+        <p class="lane-note">É a mesma coisa em uma única etapa: não existe separação entre "motor" e "chamada". Trava até o timeout da chamada, se algum existir. Nenhum isolamento de outras jornadas — a pool é do job executor inteiro. O contrato simples com o BFF não compensa esse risco sem limite.</p>
+      </div>
+
+      <div class="lane">
+        <div class="lane-head">
+          <span class="lane-name">Java Delegate (chamada direta)</span>
+          <span class="lane-badge bad">= conector nativo</span>
+        </div>
+        <div class="track">
+          <div class="track-label">
+            Thread do motor<br>+ chamada HTTP
+            <div class="pool">
+              <span class="slot on bad"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span>
+            </div>
+          </div>
+          <div class="bar-row">
+            <div class="bar bad unbounded" style="width:100%">mesma thread, mesma transação — sem limite definido</div>
+          </div>
+        </div>
+        <div class="impact-row"><span class="k">Impacto no BFF/canal:</span><span class="v none">nenhum — resposta síncrona imediata</span></div>
+        <p class="lane-note">Pixel a pixel idêntico à linha acima. Só muda quem escreveu o código que bloqueia — o motor não enxerga diferença nenhuma entre os dois.</p>
+      </div>
+
+      <div class="lane">
+        <div class="lane-head">
+          <span class="lane-name">Java Delegate + Resilience4j</span>
+          <span class="lane-badge mid">recomendada — consultas rápidas</span>
+        </div>
+        <div class="track">
+          <div class="track-label">
+            Thread do motor<br>(pool do job executor)
+            <div class="pool">
+              <span class="slot on mid"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span>
+            </div>
+          </div>
+          <div class="bar-row">
+            <div class="bar mid" style="width:38%">TimeLimiter — teto ex.: 3s
+              <div class="timeout-line" style="left:100%"><span>timeout</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="wait-note">↓ thread do motor aguarda o resultado até esse teto</div>
+        <div class="track">
+          <div class="track-label">
+            Bulkhead Pool<br>(isolada, ainda limitada)
+            <div class="pool">
+              <span class="slot on mid"></span><span class="slot"></span><span class="slot"></span>
+            </div>
+          </div>
+          <div class="bar-row">
+            <div class="bar risk unbounded" style="width:78%">sem timeout no client HTTP → pode seguir preso aqui</div>
+          </div>
+        </div>
+        <div class="impact-row"><span class="k">Impacto no BFF/canal:</span><span class="v none">nenhum — resposta síncrona imediata</span></div>
+        <p class="lane-note">Reduz o pior caso e contém o estrago numa pool separada — mas a thread do motor segue bloqueada até o teto do <code>TimeLimiter</code>, e esse teto só funciona de verdade se o client HTTP também tiver timeout de conexão/leitura configurado. Sem isso, o bloqueio real pode ultrapassar o teto, só que numa pool diferente. Em compensação, o BFF continua recebendo a resposta na mesma chamada — sem correlação, sem mecanismo de notificação assíncrona. Para consultas rápidas e delimitadas, essa troca compensa.</p>
+      </div>
+
+      <div class="lane recommended">
+        <div class="lane-head">
+          <span class="lane-name">External Task</span>
+          <span class="lane-badge good">recomendada — integração obrigatória por evento</span>
+        </div>
+        <div class="track">
+          <div class="track-label">
+            Thread do motor
+            <div class="pool">
+              <span class="slot on good"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span>
+            </div>
+          </div>
+          <div class="bar-row">
+            <div class="bar good" style="width:4%">~ms</div>
+            <div class="bar free" style="left:5%;width:94%">livre — disponível para qualquer outra jornada</div>
+          </div>
+        </div>
+        <div class="track">
+          <div class="track-label">
+            Worker externo<br>(pool própria, escalável)
+            <div class="pool">
+              <span class="slot on good"></span><span class="slot on good dashed"></span><span class="slot dashed"></span><span class="slot dashed"></span>
+            </div>
+          </div>
+          <div class="bar-row">
+            <div class="bar good unbounded" style="width:100%">duração real da chamada — não compete com o motor</div>
+          </div>
+        </div>
+        <div class="impact-row"><span class="k">Impacto no BFF/canal:</span><span class="v high">alto — exige correlação (businessKey) e notificação assíncrona (polling, webhook ou canal de evento)</span></div>
+        <p class="lane-note">Único modelo em que a thread do motor é liberada quase de imediato. A chamada pode demorar o quanto for — isso deixa de ser um risco para o motor, porque quem espera é uma pool isolada e escalável, não a pool compartilhada de todas as jornadas. O preço fica do outro lado: mais esforço de implementação, teste e observabilidade no BFF. Vale a pena quando a integração é, por natureza, assíncrona — não quando é só uma consulta rápida.</p>
+      </div>
+
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="swatch bad"></span> ocupa recurso compartilhado e limitado do motor, sem teto</div>
+      <div class="legend-item"><span class="swatch mid"></span> ocupa recurso isolado, ainda limitado, com teto configurado</div>
+      <div class="legend-item"><span class="swatch good"></span> execução fora do motor — não compete pelos recursos dele</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="label">A decisão é por tipo de chamada, não uma regra única</span>
+    <p><strong>Java Delegate puro é, para o motor, indistinguível do conector nativo</strong> — mesma thread, mesma transação, sem limite. Trocar um pelo outro não muda o risco em nada, e os dois devem ser evitados.</p>
+    <p><strong>Resilience4j acrescenta um teto de espera e isola a pool</strong> — reduz o pior caso e contém o estrago a um grupo menor de threads, sem exigir nada de novo do BFF. Para consultas HTTP rápidas e delimitadas, esse risco residual e limitado compensa manter o contrato síncrono simples.</p>
+    <p><strong>External Task continua sendo a escolha certa quando a integração é, por natureza, assíncrona</strong> — Kafka, Event Hubs, Service Bus — ou quando a etapa é a integração obrigatória do domínio corporativo na jornada. Nesses casos, vale aceitar a complexidade adicional no BFF em troca de nunca comprometer a saúde do motor.</p>
+  </div>
+</div>
+
+</body></html>

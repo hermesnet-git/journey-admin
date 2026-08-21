@@ -12,6 +12,10 @@ import com.jouney.admin.domain.journey.ChannelInactiveException;
 import com.jouney.admin.domain.journey.JourneyInactiveException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
+import com.jouney.admin.domain.messaging.ClusterInUseException;
+import com.jouney.admin.domain.messaging.CredentialInUseException;
+import com.jouney.admin.domain.messaging.CredentialReferenceNotFoundException;
+import com.jouney.admin.domain.messaging.MessagingClusterNotFoundException;
 import com.jouney.admin.domain.product.ProductNotFoundException;
 import com.jouney.admin.domain.version.JourneyVersionNotFoundException;
 import com.jouney.admin.domain.version.VersionHasNoFlowException;
@@ -21,6 +25,7 @@ import com.jouney.admin.domain.version.VersionNotUnpublishedException;
 import com.jouney.admin.infrastructure.connector.ConnectorTestException;
 import com.jouney.admin.infrastructure.connector.SsrfBlockedException;
 import com.jouney.admin.infrastructure.dashboard.RuntimeMonitoringException;
+import com.jouney.admin.infrastructure.messaging.MessagingConnectionTestException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
@@ -39,14 +44,15 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler({ProductNotFoundException.class, ChannelNotFoundException.class,
-            JourneyNotFoundException.class, FormNotFoundException.class, JourneyVersionNotFoundException.class})
+            JourneyNotFoundException.class, FormNotFoundException.class, JourneyVersionNotFoundException.class,
+            MessagingClusterNotFoundException.class, CredentialReferenceNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler({ActivePublicationExistsException.class, JourneyNotPublishedException.class,
             JourneyInactiveException.class, VersionNotDraftException.class, VersionNotPublishedException.class,
-            VersionNotUnpublishedException.class})
+            VersionNotUnpublishedException.class, ClusterInUseException.class, CredentialInUseException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }
@@ -70,6 +76,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimePublicationException.class)
     public ResponseEntity<ApiError> handleRuntimePublication(RuntimePublicationException ex, HttpServletRequest request) {
         log.error("Runtime publication call failed", ex);
+        return build(HttpStatus.BAD_GATEWAY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(MessagingConnectionTestException.class)
+    public ResponseEntity<ApiError> handleMessagingConnectionTest(MessagingConnectionTestException ex, HttpServletRequest request) {
+        log.error("Messaging connection test call failed", ex);
         return build(HttpStatus.BAD_GATEWAY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
     }
 

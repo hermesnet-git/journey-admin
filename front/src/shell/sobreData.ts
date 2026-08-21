@@ -1382,6 +1382,83 @@ export const EPICS: Epic[] = [
       },
     ],
   },
+  {
+    code: 'FT-14',
+    name: 'Catálogo de Integrações',
+    features: [
+      {
+        code: 'US-14.01',
+        name: 'Catálogo de clusters e brokers corporativos',
+        requirements: [
+          d('REQ-14.01.001', 'O sistema deve permitir cadastrar um cluster/broker de mensageria corporativo, com nome amigável, tipo e endereço de conexão.'),
+          d('REQ-14.01.002', 'Cada cluster deve possuir identificador único (clusterId), nome único na plataforma e status.'),
+          d('REQ-14.01.003', 'O sistema deve permitir editar, consultar e desativar um cluster cadastrado.'),
+          d('REQ-14.01.004', 'O sistema deve impedir a desativação de um cluster referenciado por credencial ativa ou conector de jornada publicada.'),
+          d('REQ-14.01.005', 'O sistema deve permitir pesquisar e filtrar clusters por tipo e por status.'),
+          d('REQ-14.01.006', 'O catálogo não deve assumir um único cluster fixo por tipo de conector.'),
+        ],
+      },
+      {
+        code: 'US-14.02',
+        name: 'Catálogo de credenciais',
+        requirements: [
+          d('REQ-14.02.001', 'O sistema deve permitir cadastrar uma credencial associada a um cluster, com nome de referência, URI do Key Vault e nome do secret.'),
+          d('REQ-14.02.002', 'Cada credencial deve possuir identificador único (credentialId), nome de referência único na plataforma, cluster associado e status.'),
+          d('REQ-14.02.003', 'O sistema não deve, em nenhuma tela, campo, log ou auditoria, armazenar ou exibir o valor do secret.'),
+          d('REQ-14.02.004', 'O sistema deve permitir editar, consultar e desativar uma credencial cadastrada.'),
+          d('REQ-14.02.005', 'O sistema deve impedir a desativação de uma credencial referenciada por conector de jornada publicada.'),
+          d('REQ-14.02.006', 'O sistema deve permitir pesquisar e filtrar credenciais por cluster associado e por status.'),
+        ],
+      },
+      {
+        code: 'US-14.03',
+        name: 'Acesso restrito à administração dos catálogos',
+        requirements: [
+          d('REQ-14.03.001', 'A criação, edição e desativação de clusters e credenciais deve ser restrita ao papel ADMIN.'),
+          d('REQ-14.03.002', 'EDITOR, ao configurar um conector de mensageria, deve poder selecionar cluster/credencial já cadastrados, sem poder administrar o catálogo.'),
+          d('REQ-14.03.003', 'Toda criação, edição e desativação de cluster ou credencial deve ser registrada na auditoria do portal.'),
+        ],
+      },
+      {
+        code: 'US-14.04',
+        name: 'Teste de conexão',
+        requirements: [
+          partial(
+            'REQ-14.04.001',
+            'O sistema deve permitir disparar um teste de conexão para um par cluster + credencial, validando alcançabilidade e credencial.',
+            'Mecanismo completo, mas só valida de verdade contra KAFKA (testado contra o broker local, sem autenticação); EVENT_HUBS/SERVICE_BUS retornam "não suportado neste ambiente" de forma explícita — falta dependência do SDK da Azure (nenhuma no projeto hoje) e um ambiente Azure real pra fechar essa ponta.',
+          ),
+          d('REQ-14.04.002', 'O teste de conexão deve se limitar a metadado, nunca publicar ou consumir uma mensagem real.'),
+          d('REQ-14.04.003', 'A execução do teste deve ser delegada ao componente de runtime que resolve credenciais, nunca ao admin-back ou ao navegador diretamente.'),
+          d('REQ-14.04.004', 'O resultado deve indicar sucesso ou falha traduzida para uma causa reconhecível, nunca o erro cru.'),
+          d('REQ-14.04.005', 'O teste de conexão também deve estar disponível a partir do assistente de configuração do conector.'),
+        ],
+      },
+      {
+        code: 'US-14.05',
+        name: 'Conectores de mensageria adicionais no framework',
+        requirements: [
+          {
+            code: 'REQ-14.05.001',
+            description:
+              'O catálogo de conectores deve habilitar EVENT_HUBS e SERVICE_BUS para SERVICE_TASK, RECEIVE_TASK e MESSAGE_START_EVENT, com operação determinada pelo tipo de nó.',
+            status: 'done',
+            notes:
+              'Cobre o framework/design-time (habilitar, configurar, salvar, publicar); execução real (publicar/consumir de verdade via Event Hubs/Service Bus numa jornada) é FT-05, fora do escopo desta feature, e também depende do SDK da Azure — sem ambiente pra validar hoje.',
+          },
+          d('REQ-14.05.002', 'A configuração de Event Hubs/Service Bus deve reaproveitar o mapeamento de saída e a referência a variáveis {{nome}}.'),
+          {
+            code: 'REQ-14.05.003',
+            description: 'O campo equivalente a "tópico" deve ser selecionado a partir do catálogo de clusters, nunca texto livre.',
+            status: 'done',
+            notes: 'O cluster é escolhido do catálogo; o nome do tópico/fila/hub em si continua texto livre — o catálogo cadastra clusters, não enumera os tópicos/filas dentro deles.',
+          },
+          d('REQ-14.05.004', 'O campo de credencial de um conector Kafka/Event Hubs/Service Bus deve ser selecionado a partir do catálogo, substituindo o texto livre.'),
+          d('REQ-14.05.005', 'O assistente de configuração de conector deve ganhar as mesmas 3 etapas do Kafka para Event Hubs e Service Bus.'),
+        ],
+      },
+    ],
+  },
 ];
 
 export interface OutOfScopeGroup {
@@ -1453,7 +1530,13 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-08-18 05:30 (não commitado)',
+    date: '2026-08-21 01:44 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Nova feature FT-14 Catálogo de Integrações (5 USs, 25 REQs): catálogo de clusters de mensageria corporativos (MessagingCluster) e referências de credencial (CredentialReference, Azure Key Vault, nunca o segredo), com CRUD restrito ao papel ADMIN (US-14.01/02/03), teste de conexão delegado ao ms-espec-registry — admin-back nunca acessa broker ou Key Vault diretamente (US-14.04) — e Event Hubs/Service Bus habilitados como conectores de mensageria no framework do FT-03, ao lado do Kafka já existente (US-14.05). Backend: domain/application/infrastructure/interfaces/messaging novo, migration V4__messaging_catalog.sql, ConnectorType ganhou EVENT_HUBS/SERVICE_BUS, FlowValidator generalizado de checagens hardcoded pra Kafka (isMessageBroker()). Frontend: front/src/catalog/ novo (CatalogPage/ClusterFormModal/CredentialFormModal), item "Integrações" como submenu de "Configurações" na sidebar, seletor de cluster/credencial (SearchSelect, extraído de FormSearchSelect) reaproveitado no painel inline e no assistente de conector. ms-espec-registry ganhou POST /api/v1/connection-tests (AdminClient.describeCluster(), sem publicar/consumir). REQ-14.04.001 fica in_progress: só valida de verdade contra Kafka (broker local); Event Hubs/Service Bus retornam "não suportado neste ambiente" — sem dependência do SDK da Azure no projeto nem ambiente Azure real disponível. Documentação sincronizada em ej-admin-arquitetura-logica.md (novo Domínio 11), ej-admin-modelo-dados-conceitual.md, ej-admin-modelo-dados-fisico.md, ej-admin-dicionario-dados.md e ej-admin-index.md. Progresso geral de 335/371 (90%) para 359/396 (91%, 14 features).',
+  },
+  {
+    date: '2026-08-18 05:35',
     source: 'progresso',
     summary:
       'Requisitos atualizados para refletir o que foi construído nesta sessão além de US-03.13/03.14 (já registradas). Novo REQ-03.02.008: o backend passa a rejeitar (422), ao salvar o fluxo, qualquer caminho que alcance um END via SERVICE_TASK REST síncrona sem antes passar por um checkpoint (USER_TASK, RECEIVE_TASK ou SERVICE_TASK não-REST) — motivado por um bug real: uma jornada nesse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha com NullValueException: execution ... doesn\'t exist ao tentar ler o histórico depois (a transação sofre rollback antes de qualquer consulta conseguir lê-lo). Nova US-03.15 Anotações (REQ-03.15.001 a 005): notas livres em formato de post-it no canvas do editor de fluxo (AnnotationNode.tsx), com texto editável, posição livre, vínculo opcional a um ou mais nós (linha tracejada, reaproveitando os handles target já existentes), fora da validação estrutural e nunca traduzidas para BPMN — persistidas em flow.annotations (V3__add_flow_annotations.sql). REQ-04.01.005 expandido: uma User Task sem formulário associado agora suporta uma mensagem configurável com {{nome}} resolvido pelos valores reais das variáveis do processo no momento da execução (FlowNode.messageText, sintetizado como SDUI por StepResolver em ms-espec-registry); FT-05 ganhou REQ-05.02.005 documentando esse reflexo na tela de execução. Nova REQ-05.08.005: a mesma regra de checkpoint de REQ-03.02.008 passou a ser checada também em tempo de execução (SynchronousChainCheck, ms-espec-registry), antes de start()/completeTask()/simulateStep() — proteção para fluxos que já estavam persistidos antes da validação estrutural existir; achada ao vivo quando o mesmo erro do motor reapareceu depois de uma edição de condição de gateway tornar um caminho existente 100% síncrono. REQ-05.06.003 revisado: a aba "Integrações" da tela de execução foi removida por redundância (decisão do usuário) — o mesmo dado (URL/resposta de cada integração) passou a ser exibido na aba Log, anexado a cada entrada do trail. REQ-05.06.004 com evidência ampliada: corrigido bug em que SimulationController.start() não populava trail e o front ignorava initialStep.trail, deixando o log vazio quando a jornada rodava inteira numa única chamada síncrona. FT-03 vai de 79/79 para 85/85 (100%, 6 REQs novos); FT-05 de 37/37 para 39/39 (100%, 2 REQs novos). Progresso geral de 327/363 (90%) para 335/371 (90%).',
@@ -1750,6 +1833,35 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-08-20 01:37',
+    source: 'git',
+    summary: 'Ajuste no .gitignore do back.',
+  },
+  {
+    date: '2026-08-20 01:35',
+    source: 'git',
+    summary: 'Remoção de arquivos de apresentação e inspeção duplicados/obsoletos.',
+  },
+  {
+    date: '2026-08-20 01:28',
+    source: 'git',
+    summary: 'Ajuste de terminologia no conteúdo da apresentação executiva do Elastic Journey.',
+  },
+  {
+    date: '2026-08-20 01:25',
+    source: 'git',
+    summary:
+      'Refinamentos amplos no editor de fluxo: combobox de formulário pesquisável, popups sem recorte pelo painel de propriedades, canvas iniciando ancorado à esquerda, sessão limpando as abas ao deslogar; e materiais de apresentação executiva adicionados ao repositório.',
+    epics: ['FT-03'],
+  },
+  {
+    date: '2026-08-18 05:35',
+    source: 'git',
+    summary:
+      'Anotações no canvas do editor de fluxo (US-03.15), checagem de cadeia síncrona extraída para SynchronousChainCheck dedicado no ms-espec-registry, e documentação sincronizada.',
+    epics: ['FT-03', 'FT-05'],
+  },
   {
     date: '2026-08-18 01:09',
     source: 'git',

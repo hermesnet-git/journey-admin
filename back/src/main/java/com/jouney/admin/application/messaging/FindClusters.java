@@ -1,6 +1,5 @@
 package com.jouney.admin.application.messaging;
 
-import com.jouney.admin.domain.Status;
 import com.jouney.admin.domain.messaging.ClusterType;
 import com.jouney.admin.domain.messaging.MessagingCluster;
 import com.jouney.admin.domain.messaging.MessagingClusterRepository;
@@ -16,7 +15,7 @@ public class FindClusters {
         this.clusterRepository = clusterRepository;
     }
 
-    public List<MessagingCluster> execute(String query, ClusterType type, Status status) {
-        return clusterRepository.search(query, type, status);
+    public List<MessagingCluster> execute(String query, ClusterType type) {
+        return clusterRepository.search(query, type);
     }
 }

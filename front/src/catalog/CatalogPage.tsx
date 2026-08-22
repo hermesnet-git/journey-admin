@@ -1,24 +1,35 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, KeyRound, Server } from 'lucide-react';
-import { PrimaryButton, LinkButton, StatusTag, FilterDropdown, SelectInput } from '../products/ui';
+import {
+  Search,
+  Plus,
+  KeyRound,
+  Server,
+  RefreshCw,
+  ChevronDown,
+  CircleCheck,
+  CircleDashed,
+  CircleX,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
+import { PrimaryButton, IconAction } from '../products/ui';
+import { KafkaIcon, EventHubsIcon, ServiceBusIcon } from './brandIcons';
 import { ConfirmDialog } from '../products/ConfirmDialog';
 import { ToastProvider, useToast } from '../products/Toast';
 import { useAppTheme } from '../shell/theme';
 import { useAuth } from '../auth/AuthContext';
-import { ApiClientError } from '../api/client';
 import {
   listClusters,
   createCluster,
   updateCluster,
-  deactivateCluster,
-  activateCluster,
+  deleteCluster,
   listCredentials,
   createCredential,
   updateCredential,
-  deactivateCredential,
-  activateCredential,
+  deleteCredential,
   testCredentialConnection,
   type MessagingCluster,
+  type ClusterType,
   type ClusterInput,
   type CredentialReference,
   type CredentialInput,
@@ -26,14 +37,37 @@ import {
 import { ClusterFormModal } from './ClusterFormModal';
 import { CredentialFormModal } from './CredentialFormModal';
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'Todos os status' },
-  { value: 'ACTIVE', label: 'Ativos' },
-  { value: 'INACTIVE', label: 'Inativos' },
-];
+type ConnectionTestState = { status: 'idle' | 'testing' | 'ok' | 'error'; message?: string };
+const IDLE_CONNECTION_TEST: ConnectionTestState = { status: 'idle' };
+type Colors = ReturnType<typeof useAppTheme>['colors'];
+
+// Mesma linguagem visual da grid de requisitos da página "Sobre" (SobrePage.tsx): grid tipada por
+// nível, chevron de expandir/colapsar, cabeçalho uppercase tracked.
+const CATALOG_GRID_COLS = 'minmax(0,2.2fr) 130px minmax(0,1.6fr) 140px';
+
+// Logos oficiais das marcas (vendorizados em brandIcons.tsx) em vez de ícones genéricos.
+const CLUSTER_TYPE_ICON: Record<ClusterType, typeof KafkaIcon> = {
+  KAFKA: KafkaIcon,
+  EVENT_HUBS: EventHubsIcon,
+  SERVICE_BUS: ServiceBusIcon,
+};
+
+const CLUSTER_TYPE_LABEL: Record<ClusterType, string> = {
+  KAFKA: 'Kafka',
+  EVENT_HUBS: 'Event Hubs',
+  SERVICE_BUS: 'Service Bus',
+};
+
+function connectionMeta(state: ConnectionTestState, c: Colors) {
+  if (state.status === 'testing') return { Icon: RefreshCw, color: c.textMuted, label: 'Testando conexão...', spin: true };
+  if (state.status === 'ok') return { Icon: CircleCheck, color: c.success, label: 'Conectado', spin: false };
+  if (state.status === 'error')
+    return { Icon: CircleX, color: c.danger, label: state.message ? `Falha: ${state.message}` : 'Falha na conexão', spin: false };
+  return { Icon: CircleDashed, color: c.textMuted, label: 'Conexão não testada', spin: false };
+}
 
 // REQ-14.03: catálogo de clusters/credenciais (FT-14) — leitura liberada pra qualquer papel
-// autenticado, escrita (criar/editar/(de)ativar) restrita a ADMIN.
+// autenticado, escrita (criar/editar/excluir) restrita a ADMIN.
 export function CatalogPage() {
   return (
     <ToastProvider>
@@ -53,13 +87,12 @@ function CatalogPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
   const [editingCluster, setEditingCluster] = useState<MessagingCluster | 'new' | null>(null);
-  const [deactivatingCluster, setDeactivatingCluster] = useState<MessagingCluster | null>(null);
+  const [deletingCluster, setDeletingCluster] = useState<MessagingCluster | null>(null);
   const [editingCredential, setEditingCredential] = useState<CredentialReference | 'new' | null>(null);
-  const [deactivatingCredential, setDeactivatingCredential] = useState<CredentialReference | null>(null);
-  const [testingCredentialId, setTestingCredentialId] = useState<string | null>(null);
+  const [deletingCredential, setDeletingCredential] = useState<CredentialReference | null>(null);
+  const [connectionTests, setConnectionTests] = useState<Record<string, ConnectionTestState>>({});
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -80,17 +113,15 @@ function CatalogPageContent() {
   }, [reload]);
 
   const filteredClusters = useMemo(
-    () =>
-      clusters
-        .filter((cl) => !statusFilter || cl.status === statusFilter)
-        .filter((cl) => !search || cl.name.toLowerCase().includes(search.toLowerCase())),
-    [clusters, search, statusFilter],
+    () => clusters.filter((cl) => !search || cl.name.toLowerCase().includes(search.toLowerCase())),
+    [clusters, search],
   );
 
-  const selectedCluster = filteredClusters.find((cl) => cl.clusterId === selectedClusterId) ?? filteredClusters[0] ?? null;
-  const credentialsForSelected = selectedCluster
-    ? credentials.filter((cr) => cr.clusterId === selectedCluster.clusterId)
-    : [];
+  const expandedCluster = filteredClusters.find((cl) => cl.clusterId === selectedClusterId) ?? null;
+
+  function toggleExpandCluster(clusterId: string) {
+    setSelectedClusterId((current) => (current === clusterId ? null : clusterId));
+  }
 
   async function handleClusterSubmit(input: ClusterInput) {
     const isNew = editingCluster === 'new';
@@ -104,32 +135,16 @@ function CatalogPageContent() {
     showToast(isNew ? 'Cluster criado com sucesso.' : 'Cluster atualizado com sucesso.');
   }
 
-  async function confirmDeactivateCluster() {
-    if (!deactivatingCluster) return;
-    const cluster = deactivatingCluster;
-    setDeactivatingCluster(null);
+  async function confirmDeleteCluster() {
+    if (!deletingCluster) return;
+    const cluster = deletingCluster;
+    setDeletingCluster(null);
     try {
-      await deactivateCluster(cluster.clusterId);
+      await deleteCluster(cluster.clusterId);
       await reload();
-      showToast('Cluster desativado com sucesso.');
+      showToast('Cluster excluído com sucesso.');
     } catch (err) {
-      const message =
-        err instanceof ApiClientError && err.status === 409
-          ? 'Não é possível desativar: existe credencial ativa ou conector de jornada publicada referenciando este cluster.'
-          : err instanceof Error
-            ? err.message
-            : 'Erro ao desativar cluster';
-      showToast(message, 'error');
-    }
-  }
-
-  async function handleActivateCluster(cluster: MessagingCluster) {
-    try {
-      await activateCluster(cluster.clusterId);
-      await reload();
-      showToast('Cluster ativado com sucesso.');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Erro ao ativar cluster', 'error');
+      showToast(err instanceof Error ? err.message : 'Erro ao excluir cluster', 'error');
     }
   }
 
@@ -145,44 +160,31 @@ function CatalogPageContent() {
     showToast(isNew ? 'Credencial criada com sucesso.' : 'Credencial atualizada com sucesso.');
   }
 
-  async function confirmDeactivateCredential() {
-    if (!deactivatingCredential) return;
-    const credential = deactivatingCredential;
-    setDeactivatingCredential(null);
+  async function confirmDeleteCredential() {
+    if (!deletingCredential) return;
+    const credential = deletingCredential;
+    setDeletingCredential(null);
     try {
-      await deactivateCredential(credential.credentialId);
+      await deleteCredential(credential.credentialId);
       await reload();
-      showToast('Credencial desativada com sucesso.');
+      showToast('Credencial excluída com sucesso.');
     } catch (err) {
-      const message =
-        err instanceof ApiClientError && err.status === 409
-          ? 'Não é possível desativar: existe conector de jornada publicada referenciando esta credencial.'
-          : err instanceof Error
-            ? err.message
-            : 'Erro ao desativar credencial';
-      showToast(message, 'error');
-    }
-  }
-
-  async function handleActivateCredential(credential: CredentialReference) {
-    try {
-      await activateCredential(credential.credentialId);
-      await reload();
-      showToast('Credencial ativada com sucesso.');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Erro ao ativar credencial', 'error');
+      showToast(err instanceof Error ? err.message : 'Erro ao excluir credencial', 'error');
     }
   }
 
   async function handleTestConnection(credential: CredentialReference) {
-    setTestingCredentialId(credential.credentialId);
+    const { credentialId } = credential;
+    setConnectionTests((prev) => ({ ...prev, [credentialId]: { status: 'testing' } }));
     try {
-      const result = await testCredentialConnection(credential.credentialId);
-      showToast(result.message, result.ok ? 'success' : 'error');
+      const result = await testCredentialConnection(credentialId);
+      setConnectionTests((prev) => ({
+        ...prev,
+        [credentialId]: { status: result.ok ? 'ok' : 'error', message: result.message },
+      }));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Erro ao testar conexão', 'error');
-    } finally {
-      setTestingCredentialId(null);
+      const message = err instanceof Error ? err.message : 'Erro ao testar conexão';
+      setConnectionTests((prev) => ({ ...prev, [credentialId]: { status: 'error', message } }));
     }
   }
 
@@ -209,14 +211,11 @@ function CatalogPageContent() {
             style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <FilterDropdown label="Status" options={STATUS_OPTIONS} value={statusFilter} onChange={setStatusFilter} />
-          {canWrite && (
-            <PrimaryButton onClick={() => setEditingCluster('new')}>
-              <Plus size={14} /> Novo cluster
-            </PrimaryButton>
-          )}
-        </div>
+        {canWrite && (
+          <PrimaryButton onClick={() => setEditingCluster('new')}>
+            <Plus size={14} /> Novo cluster
+          </PrimaryButton>
+        )}
       </div>
 
       {error && <p className="text-[13px]" style={{ color: c.danger }}>{error}</p>}
@@ -230,57 +229,23 @@ function CatalogPageContent() {
       ) : filteredClusters.length === 0 ? (
         <EmptyState hasClusters={clusters.length > 0} canWrite={canWrite} onCreate={() => setEditingCluster('new')} />
       ) : (
-        <div className="flex flex-col gap-5">
-          <ClustersTable
-            clusters={filteredClusters}
-            selectedId={selectedCluster?.clusterId ?? null}
-            canWrite={canWrite}
-            onSelect={(cl) => setSelectedClusterId(cl.clusterId)}
-            onEdit={setEditingCluster}
-            onDeactivate={setDeactivatingCluster}
-            onActivate={handleActivateCluster}
-          />
-
-          <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b flex-wrap" style={{ borderColor: c.border, background: c.bg }}>
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-semibold" style={{ color: c.textPrimary }}>Credenciais</span>
-                <span className="text-[12.5px]" style={{ color: c.textSecondary }}>do cluster</span>
-                <div className="w-[220px]">
-                  <SelectInput value={selectedCluster?.clusterId ?? ''} onChange={(e) => setSelectedClusterId(e.target.value)}>
-                    {filteredClusters.map((cl) => (
-                      <option key={cl.clusterId} value={cl.clusterId}>
-                        {cl.name}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </div>
-              </div>
-              {canWrite && selectedCluster && (
-                <PrimaryButton onClick={() => setEditingCredential('new')}>
-                  <Plus size={14} /> Nova credencial
-                </PrimaryButton>
-              )}
-            </div>
-            <div className="p-4">
-              {credentialsForSelected.length === 0 ? (
-                <p className="m-0 text-[13px]" style={{ color: c.textSecondary }}>
-                  Nenhuma credencial cadastrada para este cluster.
-                </p>
-              ) : (
-                <CredentialsTable
-                  credentials={credentialsForSelected}
-                  canWrite={canWrite}
-                  testingCredentialId={testingCredentialId}
-                  onEdit={setEditingCredential}
-                  onDeactivate={setDeactivatingCredential}
-                  onActivate={handleActivateCredential}
-                  onTestConnection={handleTestConnection}
-                />
-              )}
-            </div>
-          </div>
-        </div>
+        <ClustersTable
+          clusters={filteredClusters}
+          credentials={credentials}
+          expandedId={selectedClusterId}
+          canWrite={canWrite}
+          connectionTests={connectionTests}
+          onToggleExpand={toggleExpandCluster}
+          onEdit={setEditingCluster}
+          onDelete={setDeletingCluster}
+          onNewCredential={(clusterId) => {
+            setSelectedClusterId(clusterId);
+            setEditingCredential('new');
+          }}
+          onEditCredential={setEditingCredential}
+          onDeleteCredential={setDeletingCredential}
+          onTestConnection={handleTestConnection}
+        />
       )}
 
       {editingCluster && (
@@ -290,32 +255,39 @@ function CatalogPageContent() {
           onSubmit={handleClusterSubmit}
         />
       )}
-      {deactivatingCluster && (
+      {deletingCluster && (
         <ConfirmDialog
-          title="Desativar cluster"
-          message={`Tem certeza que deseja desativar "${deactivatingCluster.name}"? Não será possível se houver credencial ativa ou conector de jornada publicada referenciando este cluster.`}
-          confirmLabel="Desativar"
-          onConfirm={confirmDeactivateCluster}
-          onCancel={() => setDeactivatingCluster(null)}
+          title="Excluir cluster"
+          message={(() => {
+            const credentialCount = credentials.filter((cr) => cr.clusterId === deletingCluster.clusterId).length;
+            const cascadeNote =
+              credentialCount > 0
+                ? ` As ${credentialCount} credencial${credentialCount === 1 ? '' : 'is'} associada${credentialCount === 1 ? '' : 's'} a ele também será${credentialCount === 1 ? '' : 'ão'} excluída${credentialCount === 1 ? '' : 's'}.`
+                : '';
+            return `Tem certeza que deseja excluir "${deletingCluster.name}"? Essa ação não pode ser desfeita.${cascadeNote} Não será possível se o cluster ou alguma dessas credenciais estiver associado a uma jornada publicada.`;
+          })()}
+          confirmLabel="Excluir"
+          onConfirm={confirmDeleteCluster}
+          onCancel={() => setDeletingCluster(null)}
         />
       )}
 
-      {editingCredential && selectedCluster && (
+      {editingCredential && (
         <CredentialFormModal
           credential={editingCredential === 'new' ? null : editingCredential}
           clusters={clusters}
-          defaultClusterId={selectedCluster.clusterId}
+          defaultClusterId={expandedCluster?.clusterId}
           onClose={() => setEditingCredential(null)}
           onSubmit={handleCredentialSubmit}
         />
       )}
-      {deactivatingCredential && (
+      {deletingCredential && (
         <ConfirmDialog
-          title="Desativar credencial"
-          message={`Tem certeza que deseja desativar "${deactivatingCredential.referenceName}"? Não será possível se houver conector de jornada publicada referenciando esta credencial.`}
-          confirmLabel="Desativar"
-          onConfirm={confirmDeactivateCredential}
-          onCancel={() => setDeactivatingCredential(null)}
+          title="Excluir credencial"
+          message={`Tem certeza que deseja excluir "${deletingCredential.referenceName}"? Essa ação não pode ser desfeita. Não será possível se ela estiver associada a uma jornada publicada.`}
+          confirmLabel="Excluir"
+          onConfirm={confirmDeleteCredential}
+          onCancel={() => setDeletingCredential(null)}
         />
       )}
     </div>
@@ -338,7 +310,7 @@ function EmptyState({ hasClusters, canWrite, onCreate }: { hasClusters: boolean;
         </p>
         <p className="m-0 mt-1 text-[12.5px] max-w-[320px]" style={{ color: c.textSecondary }}>
           {hasClusters
-            ? 'Ajuste a busca ou os filtros para encontrar o que procura.'
+            ? 'Ajuste a busca para encontrar o que procura.'
             : canWrite
               ? 'Cadastre um cluster de mensageria corporativo para disponibilizá-lo aos conectores das jornadas.'
               : 'Peça a um administrador para cadastrar um cluster de mensageria corporativo.'}
@@ -355,68 +327,88 @@ function EmptyState({ hasClusters, canWrite, onCreate }: { hasClusters: boolean;
 
 function ClustersTable({
   clusters,
-  selectedId,
+  credentials,
+  expandedId,
   canWrite,
-  onSelect,
+  connectionTests,
+  onToggleExpand,
   onEdit,
-  onDeactivate,
-  onActivate,
+  onDelete,
+  onNewCredential,
+  onEditCredential,
+  onDeleteCredential,
+  onTestConnection,
 }: {
   clusters: MessagingCluster[];
-  selectedId: string | null;
+  credentials: CredentialReference[];
+  expandedId: string | null;
   canWrite: boolean;
-  onSelect: (cl: MessagingCluster) => void;
+  connectionTests: Record<string, ConnectionTestState>;
+  onToggleExpand: (clusterId: string) => void;
   onEdit: (cl: MessagingCluster) => void;
-  onDeactivate: (cl: MessagingCluster) => void;
-  onActivate: (cl: MessagingCluster) => void;
+  onDelete: (cl: MessagingCluster) => void;
+  onNewCredential: (clusterId: string) => void;
+  onEditCredential: (cr: CredentialReference) => void;
+  onDeleteCredential: (cr: CredentialReference) => void;
+  onTestConnection: (cr: CredentialReference) => void;
 }) {
   const { colors: c } = useAppTheme();
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${c.border}`, background: c.surface }}>
       <div
-        className="grid px-4 py-[10px] text-[11.5px] font-semibold border-b"
-        style={{ gridTemplateColumns: '2fr 1fr 2fr 1fr 1.2fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
+        className="grid items-center px-4"
+        style={{ gridTemplateColumns: CATALOG_GRID_COLS, minHeight: 34, borderBottom: `1px solid ${c.border}` }}
       >
-        <span>Cluster</span>
-        <span>Tipo</span>
-        <span>Endereço de conexão</span>
-        <span>Status</span>
-        <span>Ações</span>
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em] py-2" style={{ color: c.textMuted }}>
+          Cluster
+        </span>
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
+          Tipo
+        </span>
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
+          Endereço
+        </span>
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
+          Ações
+        </span>
       </div>
-      {clusters.map((cl) => {
-        const selected = cl.clusterId === selectedId;
+      {clusters.map((cl, i) => {
+        const expanded = cl.clusterId === expandedId;
+        const isLast = i === clusters.length - 1;
+        const clusterCredentials = credentials.filter((cr) => cr.clusterId === cl.clusterId);
         return (
-          <div
-            key={cl.clusterId}
-            className="grid items-center px-4 py-3 text-[13px] border-b box-border last:border-b-0 cursor-pointer"
-            style={{ gridTemplateColumns: '2fr 1fr 2fr 1fr 1.2fr', borderColor: c.border, background: selected ? c.accentSoft : 'transparent' }}
-            onClick={() => onSelect(cl)}
-            onMouseEnter={(e) => {
-              if (!selected) e.currentTarget.style.background = c.hoverBg;
-            }}
-            onMouseLeave={(e) => {
-              if (!selected) e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
-              {cl.name}
-            </div>
-            <span style={{ color: c.textSecondary }}>{cl.type}</span>
-            <span className="truncate" style={{ color: c.textSecondary }} title={cl.connectionAddress}>
-              {cl.connectionAddress}
-            </span>
-            <span className="w-fit">
-              <StatusTag active={cl.status === 'ACTIVE'} />
-            </span>
-            {canWrite ? (
-              <div className="flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
-                <LinkButton onClick={() => onEdit(cl)}>Editar</LinkButton>
-                {cl.status === 'ACTIVE' && <LinkButton onClick={() => onDeactivate(cl)}>Desativar</LinkButton>}
-                {cl.status === 'INACTIVE' && <LinkButton onClick={() => onActivate(cl)}>Ativar</LinkButton>}
+          <div key={cl.clusterId}>
+            <ClusterRow
+              cluster={cl}
+              expanded={expanded}
+              isLast={isLast}
+              credentialCount={clusterCredentials.length}
+              canWrite={canWrite}
+              onToggle={() => onToggleExpand(cl.clusterId)}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onNewCredential={onNewCredential}
+            />
+            {expanded && clusterCredentials.length === 0 && (
+              <div className="pl-[46px] pr-4 py-3" style={{ borderBottom: isLast ? 'none' : `1px solid ${c.border}` }}>
+                <span className="text-[12px] italic" style={{ color: c.textMuted }}>
+                  Nenhuma credencial cadastrada para este cluster.
+                </span>
               </div>
-            ) : (
-              <span />
             )}
+            {expanded &&
+              clusterCredentials.map((cr, j) => (
+                <CredentialLeafRow
+                  key={cr.credentialId}
+                  credential={cr}
+                  isLast={isLast && j === clusterCredentials.length - 1}
+                  canWrite={canWrite}
+                  connectionState={connectionTests[cr.credentialId] ?? IDLE_CONNECTION_TEST}
+                  onTest={() => onTestConnection(cr)}
+                  onEdit={() => onEditCredential(cr)}
+                  onDelete={() => onDeleteCredential(cr)}
+                />
+              ))}
           </div>
         );
       })}
@@ -424,72 +416,142 @@ function ClustersTable({
   );
 }
 
-function CredentialsTable({
-  credentials,
+function ClusterRow({
+  cluster,
+  expanded,
+  isLast,
+  credentialCount,
   canWrite,
-  testingCredentialId,
+  onToggle,
   onEdit,
-  onDeactivate,
-  onActivate,
-  onTestConnection,
+  onDelete,
+  onNewCredential,
 }: {
-  credentials: CredentialReference[];
+  cluster: MessagingCluster;
+  expanded: boolean;
+  isLast: boolean;
+  credentialCount: number;
   canWrite: boolean;
-  testingCredentialId: string | null;
-  onEdit: (cr: CredentialReference) => void;
-  onDeactivate: (cr: CredentialReference) => void;
-  onActivate: (cr: CredentialReference) => void;
-  onTestConnection: (cr: CredentialReference) => void;
+  onToggle: () => void;
+  onEdit: (cl: MessagingCluster) => void;
+  onDelete: (cl: MessagingCluster) => void;
+  onNewCredential: (clusterId: string) => void;
 }) {
   const { colors: c } = useAppTheme();
+  const TypeIcon = CLUSTER_TYPE_ICON[cluster.type];
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${c.border}` }}>
-      <div
-        className="grid px-3 py-[8px] text-[11px] font-semibold border-b"
-        style={{ gridTemplateColumns: '1.4fr 1.4fr 1.4fr 0.7fr 1.6fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
-      >
-        <span>Referência</span>
-        <span>Key Vault</span>
-        <span>Secret</span>
-        <span>Status</span>
-        <span>Ações</span>
+    <div
+      className="grid items-center px-4 cursor-pointer"
+      style={{
+        gridTemplateColumns: CATALOG_GRID_COLS,
+        minHeight: 44,
+        background: c.chipBg,
+        borderBottom: isLast && !expanded ? 'none' : `1px solid ${c.border}`,
+      }}
+      onClick={onToggle}
+    >
+      <div className="flex items-center gap-[8px] min-w-0 py-2">
+        <ChevronDown
+          size={13}
+          className="shrink-0 transition-transform"
+          style={{ color: c.textMuted, transform: expanded ? 'none' : 'rotate(-90deg)' }}
+        />
+        <span className="text-[13px] font-semibold truncate" style={{ color: c.textPrimary }}>
+          {cluster.name}
+        </span>
+        <span className="text-[11px] shrink-0" style={{ color: c.textMuted }}>
+          · {credentialCount} credencial{credentialCount === 1 ? '' : 'is'}
+        </span>
       </div>
-      {credentials.map((cr) => {
-        const testing = testingCredentialId === cr.credentialId;
-        return (
-          <div
-            key={cr.credentialId}
-            className="grid items-center px-3 py-[10px] text-[12.5px] border-b box-border last:border-b-0"
-            style={{ gridTemplateColumns: '1.4fr 1.4fr 1.4fr 0.7fr 1.6fr', borderColor: c.border }}
-          >
-            <div className="flex items-center gap-[6px] font-semibold truncate" style={{ color: c.textPrimary }}>
-              <KeyRound size={12} style={{ color: c.textMuted }} />
-              {cr.referenceName}
-            </div>
-            <span className="truncate" style={{ color: c.textSecondary }} title={cr.keyVaultUri}>
-              {cr.keyVaultUri}
-            </span>
-            <span className="truncate" style={{ color: c.textSecondary }} title={cr.secretName}>
-              {cr.secretName}
-            </span>
-            <span className="w-fit">
-              <StatusTag active={cr.status === 'ACTIVE'} />
-            </span>
-            <div className="flex items-center gap-3">
-              <LinkButton onClick={() => onTestConnection(cr)} disabled={testing}>
-                {testing ? 'Testando...' : 'Testar conexão'}
-              </LinkButton>
-              {canWrite && (
-                <>
-                  <LinkButton onClick={() => onEdit(cr)}>Editar</LinkButton>
-                  {cr.status === 'ACTIVE' && <LinkButton onClick={() => onDeactivate(cr)}>Desativar</LinkButton>}
-                  {cr.status === 'INACTIVE' && <LinkButton onClick={() => onActivate(cr)}>Ativar</LinkButton>}
-                </>
-              )}
-            </div>
+      <span className="flex items-center gap-[6px] text-[11.5px] font-semibold" style={{ color: c.textPrimary }}>
+        <TypeIcon size={14} className="shrink-0" />
+        {CLUSTER_TYPE_LABEL[cluster.type]}
+      </span>
+      <span className="truncate text-[11.5px] font-mono" style={{ color: c.textSecondary }} title={cluster.connectionAddress}>
+        {cluster.connectionAddress}
+      </span>
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        {canWrite && (
+          <>
+            <IconAction icon={<Pencil size={14} />} label="Editar" onClick={() => onEdit(cluster)} />
+            <IconAction icon={<Trash2 size={14} />} label="Excluir" onClick={() => onDelete(cluster)} danger />
+            <IconAction icon={<Plus size={14} />} label="Nova credencial" onClick={() => onNewCredential(cluster.clusterId)} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CredentialLeafRow({
+  credential,
+  isLast,
+  canWrite,
+  connectionState,
+  onTest,
+  onEdit,
+  onDelete,
+}: {
+  credential: CredentialReference;
+  isLast: boolean;
+  canWrite: boolean;
+  connectionState: ConnectionTestState;
+  onTest: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { colors: c } = useAppTheme();
+  const meta = connectionMeta(connectionState, c);
+  return (
+    <div
+      className="grid items-center px-4"
+      style={{ gridTemplateColumns: CATALOG_GRID_COLS, minHeight: 34, borderBottom: isLast ? 'none' : `1px solid ${c.border}` }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      <div className="flex items-start gap-2 min-w-0 py-[6px] pl-[30px]">
+        <KeyRound size={12} className="shrink-0 mt-[2px]" style={{ color: c.textMuted }} />
+        <div className="min-w-0">
+          <div className="text-[12px] leading-[16px] font-medium truncate" style={{ color: c.textSecondary }}>
+            {credential.referenceName}
           </div>
-        );
-      })}
+          <div
+            className="text-[11px] truncate mt-px"
+            style={{ color: c.textMuted }}
+            title={`${credential.keyVaultUri} · ${credential.secretName}`}
+          >
+            {credential.keyVaultUri} · {credential.secretName}
+          </div>
+          <div className="flex items-center gap-[4px] text-[11px] mt-[2px]" style={{ color: meta.color }} title={connectionState.message}>
+            <meta.Icon size={10} className={meta.spin ? 'shrink-0 animate-spin' : 'shrink-0'} />
+            {meta.label}
+            <button
+              type="button"
+              onClick={onTest}
+              disabled={connectionState.status === 'testing'}
+              title="Testar conexão"
+              className="inline-flex items-center justify-center rounded-full border-0 bg-transparent cursor-pointer disabled:cursor-not-allowed"
+              style={{ width: 16, height: 16, color: c.textMuted }}
+            >
+              <RefreshCw size={10} />
+            </button>
+          </div>
+        </div>
+      </div>
+      <span className="text-[11px]" style={{ color: c.textMuted }}>
+        —
+      </span>
+      <span className="text-[11px]" style={{ color: c.textMuted }}>
+        —
+      </span>
+      <div className="flex items-center gap-1">
+        {canWrite && (
+          <>
+            <IconAction icon={<Pencil size={13} />} label="Editar" onClick={onEdit} />
+            <IconAction icon={<Trash2 size={13} />} label="Excluir" onClick={onDelete} danger />
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,10 +1,7 @@
 package com.jouney.admin.infrastructure.persistence.messaging;
 
-import com.jouney.admin.domain.Status;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
@@ -30,10 +27,6 @@ public class CredentialReferenceJpaEntity {
     @Column(name = "secret_name", nullable = false)
     private String secretName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Status status;
-
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -44,14 +37,12 @@ public class CredentialReferenceJpaEntity {
     }
 
     public CredentialReferenceJpaEntity(UUID id, String referenceName, UUID clusterId, String keyVaultUri,
-                                         String secretName, Status status, OffsetDateTime createdAt,
-                                         OffsetDateTime updatedAt) {
+                                         String secretName, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.referenceName = referenceName;
         this.clusterId = clusterId;
         this.keyVaultUri = keyVaultUri;
         this.secretName = secretName;
-        this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -74,10 +65,6 @@ public class CredentialReferenceJpaEntity {
 
     public String getSecretName() {
         return secretName;
-    }
-
-    public Status getStatus() {
-        return status;
     }
 
     public OffsetDateTime getCreatedAt() {

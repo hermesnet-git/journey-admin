@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, Boxes } from 'lucide-react';
-import { PrimaryButton, LinkButton, StatusTag, FilterDropdown, SelectInput } from './ui';
+import { Search, Plus, Boxes, Pencil, Ban, Power } from 'lucide-react';
+import { PrimaryButton, IconAction, StatusTag, FilterDropdown } from './ui';
 import { useAppTheme } from '../shell/theme';
 import {
   listProducts,
@@ -124,12 +124,15 @@ function ProductsPageContent() {
         <h1 className="m-0 mb-1 text-[22px] font-semibold tracking-[-0.02em]" style={{ color: c.textPrimary }}>
           Produtos
         </h1>
-        <p className="m-0 text-[13.5px]" style={{ color: c.textSecondary }}>
-          Gerencie produtos e seus canais de atendimento
+        <p className="m-0 text-[13.5px] max-w-[720px]" style={{ color: c.textSecondary }}>
+          Produtos organizam suas jornadas por linha de negócio; canais definem por qual meio de
+          atendimento (Web, Mobile, WhatsApp, URA, Contact Center) essas jornadas ficam disponíveis
+          para o cliente. Crie um produto para agrupar essas jornadas e um canal para cada meio de
+          atendimento em que elas devem rodar.
         </p>
       </div>
 
-      <div className="flex items-center justify-between gap-3 mb-[18px] flex-wrap">
+      <div className="mb-[18px]">
         <div className="relative w-[240px]">
           <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
           <input
@@ -141,73 +144,63 @@ function ProductsPageContent() {
             style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <FilterDropdown
-            label="Status"
-            options={STATUS_OPTIONS}
-            value={statusFilter}
-            onChange={(v) => setStatusFilter(v as StatusFilter)}
-          />
-          <PrimaryButton onClick={() => setEditingProduct('new')}>
-            <Plus size={14} /> Novo produto
-          </PrimaryButton>
-        </div>
       </div>
 
       {error && <p className="text-[13px]" style={{ color: c.danger }}>{error}</p>}
 
-      {loading ? (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-[52px] rounded-lg animate-pulse" style={{ background: c.skeletonBg }} />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState hasProducts={products.length > 0} onCreate={() => setEditingProduct('new')} />
-      ) : (
-        <div className="flex flex-col gap-5">
-          <ProductsTable
-            products={filtered}
-            selectedId={selectedProduct?.productId ?? null}
-            onSelect={(p) => setDualProductId(p.productId)}
-            onEdit={setEditingProduct}
-            onDeactivate={setDeactivatingProduct}
-            onActivate={handleActivate}
-          />
-          <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b flex-wrap" style={{ borderColor: c.border, background: c.bg }}>
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-semibold" style={{ color: c.textPrimary }}>Canais</span>
-                <span className="text-[12.5px]" style={{ color: c.textSecondary }}>do produto</span>
-                <div className="w-[220px]">
-                  <SelectInput value={selectedProduct?.productId ?? ''} onChange={(e) => setDualProductId(e.target.value)}>
-                    {filtered.map((p) => (
-                      <option key={p.productId} value={p.productId}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </div>
+      <div className="flex gap-5 items-start">
+        <div className="flex-[3] min-w-0 rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+          <div className="flex items-center justify-end gap-2 px-3 py-2 border-b flex-wrap" style={{ borderColor: c.border, background: c.bg }}>
+            <FilterDropdown
+              label="Status"
+              options={STATUS_OPTIONS}
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v as StatusFilter)}
+            />
+            <PrimaryButton onClick={() => setEditingProduct('new')}>
+              <Plus size={14} /> Novo produto
+            </PrimaryButton>
+          </div>
+          <div className="p-4">
+            {loading ? (
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-[52px] rounded-lg animate-pulse" style={{ background: c.skeletonBg }} />
+                ))}
               </div>
-              {selectedProduct && (
-                <PrimaryButton onClick={() => handleNewChannel(selectedProduct.productId)}>
-                  <Plus size={14} /> Novo canal
-                </PrimaryButton>
-              )}
-            </div>
-            <div className="p-4">
-              {selectedProduct && (
-                <ProductChannelsPage
-                  key={selectedProduct.productId}
-                  product={selectedProduct}
-                  openNewSignal={newChannelRequest?.productId === selectedProduct.productId ? newChannelRequest.token : undefined}
-                  onOpenNewConsumed={() => setNewChannelRequest(null)}
-                />
-              )}
-            </div>
+            ) : filtered.length === 0 ? (
+              <EmptyState hasProducts={products.length > 0} onCreate={() => setEditingProduct('new')} />
+            ) : (
+              <ProductsTable
+                products={filtered}
+                selectedId={selectedProduct?.productId ?? null}
+                onSelect={(p) => setDualProductId(p.productId)}
+                onEdit={setEditingProduct}
+                onDeactivate={setDeactivatingProduct}
+                onActivate={handleActivate}
+              />
+            )}
           </div>
         </div>
-      )}
+
+        {!loading && selectedProduct && (
+          <div className="flex-[2] min-w-0 rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
+            <div className="flex items-center justify-end px-3 py-2 border-b" style={{ borderColor: c.border, background: c.bg }}>
+              <PrimaryButton onClick={() => handleNewChannel(selectedProduct.productId)}>
+                <Plus size={14} /> Novo canal
+              </PrimaryButton>
+            </div>
+            <div className="p-4">
+              <ProductChannelsPage
+                key={selectedProduct.productId}
+                product={selectedProduct}
+                openNewSignal={newChannelRequest?.productId === selectedProduct.productId ? newChannelRequest.token : undefined}
+                onOpenNewConsumed={() => setNewChannelRequest(null)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
       {editingProduct && (
         <ProductFormModal
@@ -275,57 +268,71 @@ function ProductsTable({
   onActivate: (p: Product) => void;
 }) {
   const { colors: c } = useAppTheme();
+  const thStyle: React.CSSProperties = { color: c.textSecondary, borderColor: c.border };
+  const narrow = (minWidth: number): React.CSSProperties => ({ ...thStyle, width: '1%', minWidth });
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-      <div
-        className="grid px-4 py-[10px] text-[11.5px] font-semibold border-b"
-        style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1.2fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
-      >
-        <span>Produto</span>
-        <span>Status</span>
-        <span>Canais</span>
-        <span>Ações</span>
-      </div>
-      {products.map((p) => {
-        const selected = p.productId === selectedId;
-        return (
-          <div
-            key={p.productId}
-            className="grid items-center px-4 py-3 text-[13px] border-b box-border last:border-b-0 cursor-pointer"
-            style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1.2fr', borderColor: c.border, background: selected ? c.accentSoft : 'transparent' }}
-            onClick={() => onSelect(p)}
-            onMouseEnter={(e) => {
-              if (!selected) e.currentTarget.style.background = c.hoverBg;
-            }}
-            onMouseLeave={(e) => {
-              if (!selected) e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            <div className="min-w-0">
-              <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
-                {p.name}
-              </div>
-              {p.description && (
-                <div className="text-[11.5px] truncate" style={{ color: c.textMuted }}>
-                  {p.description}
-                </div>
-              )}
-            </div>
-            <span className="w-fit">
-              <StatusTag active={p.status === 'ACTIVE'} />
-            </span>
-            <span className="inline-flex items-center gap-[4px]" style={{ color: c.textSecondary }}>
-              <Boxes size={12} />
-              {p.channelNames.length}
-            </span>
-            <div className="flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
-              <LinkButton onClick={() => onEdit(p)}>Editar</LinkButton>
-              {p.status === 'ACTIVE' && <LinkButton onClick={() => onDeactivate(p)}>Desativar</LinkButton>}
-              {p.status === 'INACTIVE' && <LinkButton onClick={() => onActivate(p)}>Ativar</LinkButton>}
-            </div>
-          </div>
-        );
-      })}
+      <table className="w-full border-collapse text-[13px]">
+        <thead>
+          <tr style={{ background: c.bg }}>
+            <th className="text-left px-4 py-2 text-[11.5px] font-semibold border-b" style={thStyle}>Produto</th>
+            <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(90)}>Status</th>
+            <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(64)}>Canais</th>
+            <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(76)}>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((p, i) => {
+            const selected = p.productId === selectedId;
+            const borderBottom = i === products.length - 1 ? 'none' : `1px solid ${c.border}`;
+            return (
+              <tr
+                key={p.productId}
+                className="cursor-pointer"
+                style={{ background: selected ? c.accentSoft : 'transparent' }}
+                onClick={() => onSelect(p)}
+                onMouseEnter={(e) => {
+                  if (!selected) e.currentTarget.style.background = c.hoverBg;
+                }}
+                onMouseLeave={(e) => {
+                  if (!selected) e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <td className="align-middle px-4 py-2" style={{ borderBottom }}>
+                  <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
+                    {p.name}
+                  </div>
+                  {p.description && (
+                    <div className="text-[11.5px] truncate" style={{ color: c.textMuted }}>
+                      {p.description}
+                    </div>
+                  )}
+                </td>
+                <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom }}>
+                  <StatusTag active={p.status === 'ACTIVE'} />
+                </td>
+                <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom }}>
+                  <span className="inline-flex items-center gap-[4px]" style={{ color: c.textSecondary }}>
+                    <Boxes size={12} />
+                    {p.channelNames.length}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom }} onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1">
+                    <IconAction icon={<Pencil size={14} />} label="Editar" onClick={() => onEdit(p)} />
+                    {p.status === 'ACTIVE' && (
+                      <IconAction icon={<Ban size={14} />} label="Desativar" onClick={() => onDeactivate(p)} danger />
+                    )}
+                    {p.status === 'INACTIVE' && (
+                      <IconAction icon={<Power size={14} />} label="Ativar" onClick={() => onActivate(p)} />
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

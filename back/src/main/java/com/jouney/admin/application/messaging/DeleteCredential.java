@@ -6,18 +6,19 @@ import com.jouney.admin.domain.messaging.CredentialInUseException;
 import com.jouney.admin.domain.messaging.CredentialReference;
 import com.jouney.admin.domain.messaging.CredentialReferenceNotFoundException;
 import com.jouney.admin.domain.messaging.CredentialReferenceRepository;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 @Service
-public class DeactivateCredential {
+public class DeleteCredential {
 
     private final CredentialReferenceRepository credentialRepository;
     private final MessagingReferenceInUsePort referenceInUsePort;
     private final RecordAuditEvent recordAuditEvent;
 
-    public DeactivateCredential(CredentialReferenceRepository credentialRepository,
-                                 MessagingReferenceInUsePort referenceInUsePort, RecordAuditEvent recordAuditEvent) {
+    public DeleteCredential(CredentialReferenceRepository credentialRepository,
+                             MessagingReferenceInUsePort referenceInUsePort, RecordAuditEvent recordAuditEvent) {
         this.credentialRepository = credentialRepository;
         this.referenceInUsePort = referenceInUsePort;
         this.recordAuditEvent = recordAuditEvent;
@@ -27,13 +28,14 @@ public class DeactivateCredential {
         CredentialReference credential = credentialRepository.findById(id)
                 .orElseThrow(() -> new CredentialReferenceNotFoundException(id));
 
-        if (referenceInUsePort.existsPublishedConnectorForCredential(credential.getReferenceName())) {
-            throw new CredentialInUseException(
-                    "Cannot deactivate credential referenced by a published journey's connector: " + id);
+        Optional<String> journeyName =
+                referenceInUsePort.findPublishedJourneyNameReferencingCredential(credential.getReferenceName());
+        if (journeyName.isPresent()) {
+            throw new CredentialInUseException("Não é possível excluir a credencial \"" + credential.getReferenceName()
+                    + "\": ela está associada à jornada publicada \"" + journeyName.get() + "\".");
         }
 
-        credential.deactivate();
-        credentialRepository.save(credential);
-        recordAuditEvent.record("CREDENTIAL_DEACTIVATE", "CREDENTIAL_REFERENCE", id, AuditResult.SUCCESS);
+        credentialRepository.deleteById(id);
+        recordAuditEvent.record("CREDENTIAL_DELETE", "CREDENTIAL_REFERENCE", id, AuditResult.SUCCESS);
     }
 }

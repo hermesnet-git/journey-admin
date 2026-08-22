@@ -1,6 +1,5 @@
 package com.jouney.admin.infrastructure.persistence.messaging;
 
-import com.jouney.admin.domain.Status;
 import com.jouney.admin.domain.messaging.ClusterType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -29,10 +28,6 @@ public class MessagingClusterJpaEntity {
     @Column(name = "connection_address", nullable = false)
     private String connectionAddress;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Status status;
-
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -43,12 +38,11 @@ public class MessagingClusterJpaEntity {
     }
 
     public MessagingClusterJpaEntity(UUID id, String name, ClusterType type, String connectionAddress,
-                                      Status status, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                                      OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.type = type;
         this.connectionAddress = connectionAddress;
-        this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -67,10 +61,6 @@ public class MessagingClusterJpaEntity {
 
     public String getConnectionAddress() {
         return connectionAddress;
-    }
-
-    public Status getStatus() {
-        return status;
     }
 
     public OffsetDateTime getCreatedAt() {

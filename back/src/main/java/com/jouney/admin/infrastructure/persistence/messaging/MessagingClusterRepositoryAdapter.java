@@ -1,6 +1,5 @@
 package com.jouney.admin.infrastructure.persistence.messaging;
 
-import com.jouney.admin.domain.Status;
 import com.jouney.admin.domain.messaging.ClusterType;
 import com.jouney.admin.domain.messaging.MessagingCluster;
 import com.jouney.admin.domain.messaging.MessagingClusterRepository;
@@ -22,8 +21,7 @@ public class MessagingClusterRepositoryAdapter implements MessagingClusterReposi
     @Override
     public MessagingCluster save(MessagingCluster cluster) {
         MessagingClusterJpaEntity entity = new MessagingClusterJpaEntity(cluster.getId(), cluster.getName(),
-                cluster.getType(), cluster.getConnectionAddress(), cluster.getStatus(), cluster.getCreatedAt(),
-                cluster.getUpdatedAt());
+                cluster.getType(), cluster.getConnectionAddress(), cluster.getCreatedAt(), cluster.getUpdatedAt());
         return toDomain(jpaRepository.save(entity));
     }
 
@@ -33,7 +31,7 @@ public class MessagingClusterRepositoryAdapter implements MessagingClusterReposi
     }
 
     @Override
-    public List<MessagingCluster> search(String query, ClusterType type, Status status) {
+    public List<MessagingCluster> search(String query, ClusterType type) {
         Specification<MessagingClusterJpaEntity> spec = Specification.allOf();
         if (query != null && !query.isBlank()) {
             String like = "%" + query.toLowerCase() + "%";
@@ -42,14 +40,16 @@ public class MessagingClusterRepositoryAdapter implements MessagingClusterReposi
         if (type != null) {
             spec = spec.and((root, cq, cb) -> cb.equal(root.get("type"), type));
         }
-        if (status != null) {
-            spec = spec.and((root, cq, cb) -> cb.equal(root.get("status"), status));
-        }
         return jpaRepository.findAll(spec).stream().map(MessagingClusterRepositoryAdapter::toDomain).toList();
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
     }
 
     private static MessagingCluster toDomain(MessagingClusterJpaEntity entity) {
         return new MessagingCluster(entity.getId(), entity.getName(), entity.getType(),
-                entity.getConnectionAddress(), entity.getStatus(), entity.getCreatedAt(), entity.getUpdatedAt());
+                entity.getConnectionAddress(), entity.getCreatedAt(), entity.getUpdatedAt());
     }
 }

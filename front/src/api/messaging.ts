@@ -1,5 +1,4 @@
-import { apiGet, apiPost, apiPut } from './client';
-import type { Status } from './products';
+import { apiGet, apiPost, apiPut, apiDelete } from './client';
 
 export type ClusterType = 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
 
@@ -8,7 +7,6 @@ export interface MessagingCluster {
   name: string;
   type: ClusterType;
   connectionAddress: string;
-  status: Status;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,7 +23,6 @@ export interface CredentialReference {
   clusterId: string;
   keyVaultUri: string;
   secretName: string;
-  status: Status;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,11 +34,10 @@ export interface CredentialInput {
   secretName: string;
 }
 
-export function listClusters(params: { q?: string; type?: ClusterType; status?: Status } = {}): Promise<MessagingCluster[]> {
+export function listClusters(params: { q?: string; type?: ClusterType } = {}): Promise<MessagingCluster[]> {
   const query = new URLSearchParams();
   if (params.q) query.set('q', params.q);
   if (params.type) query.set('type', params.type);
-  if (params.status) query.set('status', params.status);
   const qs = query.toString();
   return apiGet<MessagingCluster[]>(`/messaging-clusters${qs ? `?${qs}` : ''}`);
 }
@@ -54,21 +50,14 @@ export function updateCluster(clusterId: string, input: ClusterInput): Promise<M
   return apiPut<MessagingCluster>(`/messaging-clusters/${clusterId}`, input);
 }
 
-export function deactivateCluster(clusterId: string): Promise<void> {
-  return apiPost<void>(`/messaging-clusters/${clusterId}/deactivate`);
+export function deleteCluster(clusterId: string): Promise<void> {
+  return apiDelete<void>(`/messaging-clusters/${clusterId}`);
 }
 
-export function activateCluster(clusterId: string): Promise<void> {
-  return apiPost<void>(`/messaging-clusters/${clusterId}/activate`);
-}
-
-export function listCredentials(
-  params: { q?: string; clusterId?: string; status?: Status } = {},
-): Promise<CredentialReference[]> {
+export function listCredentials(params: { q?: string; clusterId?: string } = {}): Promise<CredentialReference[]> {
   const query = new URLSearchParams();
   if (params.q) query.set('q', params.q);
   if (params.clusterId) query.set('clusterId', params.clusterId);
-  if (params.status) query.set('status', params.status);
   const qs = query.toString();
   return apiGet<CredentialReference[]>(`/credential-references${qs ? `?${qs}` : ''}`);
 }
@@ -81,12 +70,8 @@ export function updateCredential(credentialId: string, input: CredentialInput): 
   return apiPut<CredentialReference>(`/credential-references/${credentialId}`, input);
 }
 
-export function deactivateCredential(credentialId: string): Promise<void> {
-  return apiPost<void>(`/credential-references/${credentialId}/deactivate`);
-}
-
-export function activateCredential(credentialId: string): Promise<void> {
-  return apiPost<void>(`/credential-references/${credentialId}/activate`);
+export function deleteCredential(credentialId: string): Promise<void> {
+  return apiDelete<void>(`/credential-references/${credentialId}`);
 }
 
 export interface ConnectionTestResponse {

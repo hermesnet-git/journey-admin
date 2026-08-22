@@ -1,19 +1,18 @@
 package com.jouney.admin.interfaces.messaging;
 
-import com.jouney.admin.application.messaging.ActivateCredential;
 import com.jouney.admin.application.messaging.CreateCredential;
-import com.jouney.admin.application.messaging.DeactivateCredential;
+import com.jouney.admin.application.messaging.DeleteCredential;
 import com.jouney.admin.application.messaging.FindCredentials;
 import com.jouney.admin.application.messaging.GetCredential;
 import com.jouney.admin.application.messaging.TestCredentialConnection;
 import com.jouney.admin.application.messaging.UpdateCredential;
-import com.jouney.admin.domain.Status;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,30 +35,26 @@ public class CredentialReferenceController {
     private final UpdateCredential updateCredential;
     private final GetCredential getCredential;
     private final FindCredentials findCredentials;
-    private final DeactivateCredential deactivateCredential;
-    private final ActivateCredential activateCredential;
+    private final DeleteCredential deleteCredential;
     private final TestCredentialConnection testCredentialConnection;
 
     public CredentialReferenceController(CreateCredential createCredential, UpdateCredential updateCredential,
                                           GetCredential getCredential, FindCredentials findCredentials,
-                                          DeactivateCredential deactivateCredential,
-                                          ActivateCredential activateCredential,
+                                          DeleteCredential deleteCredential,
                                           TestCredentialConnection testCredentialConnection) {
         this.createCredential = createCredential;
         this.updateCredential = updateCredential;
         this.getCredential = getCredential;
         this.findCredentials = findCredentials;
-        this.deactivateCredential = deactivateCredential;
-        this.activateCredential = activateCredential;
+        this.deleteCredential = deleteCredential;
         this.testCredentialConnection = testCredentialConnection;
     }
 
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping
     public List<CredentialResponse> list(@RequestParam(required = false) String q,
-                                          @RequestParam(required = false) UUID clusterId,
-                                          @RequestParam(required = false) Status status) {
-        return findCredentials.execute(q, clusterId, status).stream().map(CredentialResponse::from).toList();
+                                          @RequestParam(required = false) UUID clusterId) {
+        return findCredentials.execute(q, clusterId).stream().map(CredentialResponse::from).toList();
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -84,17 +79,10 @@ public class CredentialReferenceController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/{credentialId}/deactivate")
-    public ResponseEntity<Void> deactivate(@PathVariable UUID credentialId) {
-        deactivateCredential.execute(credentialId);
-        return ResponseEntity.ok().build();
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/{credentialId}/activate")
-    public ResponseEntity<Void> activate(@PathVariable UUID credentialId) {
-        activateCredential.execute(credentialId);
-        return ResponseEntity.ok().build();
+    @DeleteMapping("/{credentialId}")
+    public ResponseEntity<Void> delete(@PathVariable UUID credentialId) {
+        deleteCredential.execute(credentialId);
+        return ResponseEntity.noContent().build();
     }
 
     // Mesma role do teste de conector REST existente (REQ-03.10.002) — validar que uma credencial

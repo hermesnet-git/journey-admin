@@ -190,6 +190,35 @@ export function FilterDropdown({ label, options, value, onChange }: FilterDropdo
   );
 }
 
+interface IconActionProps {
+  icon: ReactNode;
+  label: string;
+  onClick?: (e: React.MouseEvent) => void;
+  disabled?: boolean;
+  danger?: boolean;
+}
+
+export function IconAction({ icon, label, onClick, disabled, danger }: IconActionProps) {
+  const { colors: c } = useAppTheme();
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center justify-center w-7 h-7 rounded-md border-0 bg-transparent cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+      style={{ color: danger ? c.danger : c.textSecondary }}
+      onMouseEnter={(e) => {
+        if (!disabled) e.currentTarget.style.background = c.hoverBg;
+      }}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      {icon}
+    </button>
+  );
+}
+
 export function StatusTag({ active }: { active: boolean }) {
   return (
     <Tag type={active ? 'active' : 'inactive'} small>

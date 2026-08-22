@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Info,
   LogOut,
+  Plug,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAppTheme } from './theme';
@@ -26,6 +27,7 @@ import { ConfirmDialog } from '../products/ConfirmDialog';
 interface NavChild {
   key: string;
   label: string;
+  icon: ReactNode;
 }
 
 interface NavItem {
@@ -46,7 +48,7 @@ const NAV_ITEMS: NavItem[] = [
     key: 'configuracoes',
     label: 'Configurações',
     icon: <Settings size={16} />,
-    children: [{ key: 'integracoes', label: 'Integrações' }],
+    children: [{ key: 'integracoes', label: 'Integrações', icon: <Plug size={14} /> }],
   },
 ];
 
@@ -191,7 +193,7 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
                       <button
                         key={child.key}
                         onClick={() => onNavigate(child.key)}
-                        className="flex items-center rounded-md text-[13px] text-left cursor-pointer border-0"
+                        className="flex items-center gap-[10px] rounded-md text-[13px] text-left cursor-pointer border-0"
                         style={{
                           padding: '8px 10px 8px 34px',
                           background: childIsActive ? c.activeBg : 'transparent',
@@ -199,6 +201,7 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
                           fontWeight: childIsActive ? 500 : 400,
                         }}
                       >
+                        <span style={{ color: childIsActive ? c.accent : c.textMuted }}>{child.icon}</span>
                         {child.label}
                       </button>
                     );

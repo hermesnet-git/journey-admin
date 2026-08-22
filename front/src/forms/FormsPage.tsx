@@ -132,7 +132,7 @@ function FormsPageContent({ formId, openNew, onExit }: FormsPageProps) {
       ) : (
         <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
           <div
-            className="grid px-4 py-[10px] text-[11.5px] font-semibold border-b"
+            className="grid px-4 py-2 text-[11.5px] font-semibold border-b"
             style={{ gridTemplateColumns: '2fr 3fr 1fr 1fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
           >
             <span>Formulário</span>
@@ -287,7 +287,7 @@ function FormRow({ form, onEdit, onDelete }: { form: Form; onEdit: () => void; o
   const { colors: c } = useAppTheme();
   return (
     <div
-      className="grid items-center px-4 py-3 text-[13px] border-b box-border last:border-b-0"
+      className="grid items-center px-4 py-2 text-[13px] border-b box-border last:border-b-0"
       style={{ gridTemplateColumns: '2fr 3fr 1fr 1fr', borderColor: c.border }}
       onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}

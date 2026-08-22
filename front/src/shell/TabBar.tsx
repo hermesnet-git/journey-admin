@@ -1,8 +1,36 @@
-import { X, Sun, Moon } from 'lucide-react';
+import {
+  X,
+  Sun,
+  Moon,
+  LayoutDashboard,
+  Boxes,
+  Route,
+  FileText,
+  PlayCircle,
+  ShieldCheck,
+  HelpCircle,
+  Info,
+  Plug,
+} from 'lucide-react';
 import type { KnownSkinName } from '@telefonica/mistica';
-import type { Tab } from './types';
+import type { Tab, TabKind } from './types';
 import { useAppTheme } from './theme';
 import { FilterDropdown } from '../products/ui';
+
+// Mesmo ícone usado na Sidebar (NAV_ITEMS) pra cada funcionalidade — mantém a identidade visual
+// consistente entre o menu e a aba aberta correspondente. 'placeholder' fica sem ícone de propósito:
+// cobre destinos de nav ainda sem página própria (ex.: Aprovações).
+const TAB_ICONS: Partial<Record<TabKind, typeof Plug>> = {
+  dashboard: LayoutDashboard,
+  products: Boxes,
+  journeys: Route,
+  forms: FileText,
+  execution: PlayCircle,
+  audit: ShieldCheck,
+  help: HelpCircle,
+  sobre: Info,
+  catalog: Plug,
+};
 
 const SKIN_OPTIONS: { value: KnownSkinName; label: string }[] = [
   { value: 'Blau', label: 'Blau' },
@@ -31,6 +59,7 @@ export function TabBar({ tabs, activeKey, onSelect, onClose }: TabBarProps) {
       <div className="flex items-end gap-[2px] min-w-0 flex-1">
         {tabs.map((tab) => {
           const active = tab.key === activeKey;
+          const Icon = TAB_ICONS[tab.kind];
           return (
             <div
               key={tab.key}
@@ -47,6 +76,7 @@ export function TabBar({ tabs, activeKey, onSelect, onClose }: TabBarProps) {
                 maxWidth: 200,
               }}
             >
+              {Icon && <Icon size={13} className="shrink-0" style={{ color: active ? c.accent : c.textMuted }} />}
               <span className="min-w-0 truncate">{tab.title}</span>
               {tab.closable && (
                 <span

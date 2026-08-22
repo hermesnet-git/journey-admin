@@ -240,8 +240,8 @@ function DesignerInner({
   // Catálogo de clusters/credenciais (FT-14) — carregado uma vez; diferente de forms, não é criado
   // inline a partir do designer de fluxo, então não precisa de um refresh acionável pelo usuário.
   useEffect(() => {
-    listClusters({ status: 'ACTIVE' }).then(setClusters);
-    listCredentials({ status: 'ACTIVE' }).then(setCredentials);
+    listClusters().then(setClusters);
+    listCredentials().then(setCredentials);
   }, []);
 
   useEffect(() => {

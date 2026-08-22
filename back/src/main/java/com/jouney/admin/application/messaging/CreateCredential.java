@@ -3,10 +3,12 @@ package com.jouney.admin.application.messaging;
 import com.jouney.admin.application.audit.RecordAuditEvent;
 import com.jouney.admin.domain.audit.AuditResult;
 import com.jouney.admin.domain.messaging.CredentialReference;
+import com.jouney.admin.domain.messaging.CredentialReferenceNameAlreadyExistsException;
 import com.jouney.admin.domain.messaging.CredentialReferenceRepository;
 import com.jouney.admin.domain.messaging.MessagingClusterNotFoundException;
 import com.jouney.admin.domain.messaging.MessagingClusterRepository;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,8 +29,13 @@ public class CreateCredential {
         clusterRepository.findById(clusterId)
                 .orElseThrow(() -> new MessagingClusterNotFoundException(clusterId));
 
-        CredentialReference credential = credentialRepository.save(
-                CredentialReference.create(referenceName, clusterId, keyVaultUri, secretName));
+        CredentialReference credential;
+        try {
+            credential = credentialRepository.save(
+                    CredentialReference.create(referenceName, clusterId, keyVaultUri, secretName));
+        } catch (DataIntegrityViolationException e) {
+            throw new CredentialReferenceNameAlreadyExistsException(referenceName);
+        }
         recordAuditEvent.record("CREDENTIAL_CREATE", "CREDENTIAL_REFERENCE", credential.getId(), AuditResult.SUCCESS);
         return credential;
     }

@@ -13,7 +13,9 @@ import com.jouney.admin.domain.journey.JourneyInactiveException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.messaging.ClusterInUseException;
+import com.jouney.admin.domain.messaging.ClusterNameAlreadyExistsException;
 import com.jouney.admin.domain.messaging.CredentialInUseException;
+import com.jouney.admin.domain.messaging.CredentialReferenceNameAlreadyExistsException;
 import com.jouney.admin.domain.messaging.CredentialReferenceNotFoundException;
 import com.jouney.admin.domain.messaging.MessagingClusterNotFoundException;
 import com.jouney.admin.domain.product.ProductNotFoundException;
@@ -52,7 +54,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({ActivePublicationExistsException.class, JourneyNotPublishedException.class,
             JourneyInactiveException.class, VersionNotDraftException.class, VersionNotPublishedException.class,
-            VersionNotUnpublishedException.class, ClusterInUseException.class, CredentialInUseException.class})
+            VersionNotUnpublishedException.class, ClusterInUseException.class, CredentialInUseException.class,
+            ClusterNameAlreadyExistsException.class, CredentialReferenceNameAlreadyExistsException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }

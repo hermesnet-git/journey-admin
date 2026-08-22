@@ -1,6 +1,5 @@
 package com.jouney.admin.application.messaging;
 
-import com.jouney.admin.domain.Status;
 import com.jouney.admin.domain.messaging.CredentialReference;
 import com.jouney.admin.domain.messaging.CredentialReferenceRepository;
 import java.util.List;
@@ -16,7 +15,7 @@ public class FindCredentials {
         this.credentialRepository = credentialRepository;
     }
 
-    public List<CredentialReference> execute(String query, UUID clusterId, Status status) {
-        return credentialRepository.search(query, clusterId, status);
+    public List<CredentialReference> execute(String query, UUID clusterId) {
+        return credentialRepository.search(query, clusterId);
     }
 }

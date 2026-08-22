@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, Route } from 'lucide-react';
-import { PrimaryButton, LinkButton, StatusTag } from './ui';
+import { Plus, Route, Pencil, Ban, Power } from 'lucide-react';
+import { PrimaryButton, IconAction, StatusTag } from './ui';
 import { useAppTheme } from '../shell/theme';
 import {
   listChannels,
@@ -120,25 +120,29 @@ export function ProductChannelsPage({ product, openNewSignal, onOpenNewConsumed 
         <EmptyState hasChannels={channels.length > 0} onCreate={() => setEditingChannel('new')} />
       ) : (
         <div className="rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-          <div
-            className="grid px-4 py-[10px] text-[11.5px] font-semibold border-b"
-            style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1.2fr', color: c.textSecondary, borderColor: c.border, background: c.bg }}
-          >
-            <span>Canal</span>
-            <span>Tipo</span>
-            <span>Status</span>
-            <span>Jornadas</span>
-            <span>Ações</span>
-          </div>
-          {channels.map((ch) => (
-            <ChannelRow
-              key={ch.channelId}
-              channel={ch}
-              onEdit={() => setEditingChannel(ch)}
-              onDeactivate={() => setDeactivatingChannel(ch)}
-              onActivate={() => handleActivate(ch)}
-            />
-          ))}
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr style={{ background: c.bg }}>
+                <th className="text-left px-4 py-2 text-[11.5px] font-semibold border-b" style={{ color: c.textSecondary, borderColor: c.border }}>Canal</th>
+                <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={{ color: c.textSecondary, borderColor: c.border, width: '1%', minWidth: 110 }}>Tipo</th>
+                <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={{ color: c.textSecondary, borderColor: c.border, width: '1%', minWidth: 90 }}>Status</th>
+                <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={{ color: c.textSecondary, borderColor: c.border, width: '1%', minWidth: 64 }}>Jornadas</th>
+                <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={{ color: c.textSecondary, borderColor: c.border, width: '1%', minWidth: 76 }}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {channels.map((ch, i) => (
+                <ChannelRow
+                  key={ch.channelId}
+                  channel={ch}
+                  isLast={i === channels.length - 1}
+                  onEdit={() => setEditingChannel(ch)}
+                  onDeactivate={() => setDeactivatingChannel(ch)}
+                  onActivate={() => handleActivate(ch)}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -194,24 +198,25 @@ function EmptyState({ hasChannels, onCreate }: { hasChannels: boolean; onCreate:
 
 function ChannelRow({
   channel,
+  isLast,
   onEdit,
   onDeactivate,
   onActivate,
 }: {
   channel: Channel;
+  isLast: boolean;
   onEdit: () => void;
   onDeactivate: () => void;
   onActivate: () => void;
 }) {
   const { colors: c } = useAppTheme();
+  const borderBottom = isLast ? 'none' : `1px solid ${c.border}`;
   return (
-    <div
-      className="grid items-center px-4 py-3 text-[13px] border-b box-border last:border-b-0"
-      style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1.2fr', borderColor: c.border }}
+    <tr
       onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
-      <div className="min-w-0">
+      <td className="align-middle px-4 py-2" style={{ borderBottom }}>
         <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
           {channel.name}
         </div>
@@ -220,17 +225,23 @@ function ChannelRow({
             {channel.description}
           </div>
         )}
-      </div>
-      <span style={{ color: c.textSecondary }}>{CHANNEL_TYPE_LABELS[channel.type] ?? channel.type}</span>
-      <span className="w-fit">
+      </td>
+      <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom, color: c.textSecondary }}>
+        {CHANNEL_TYPE_LABELS[channel.type] ?? channel.type}
+      </td>
+      <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom }}>
         <StatusTag active={channel.status === 'ACTIVE'} />
-      </span>
-      <span style={{ color: c.textSecondary }}>{channel.journeyCount}</span>
-      <div className="flex items-center gap-4">
-        <LinkButton onClick={onEdit}>Editar</LinkButton>
-        {channel.status === 'ACTIVE' && <LinkButton onClick={onDeactivate}>Desativar</LinkButton>}
-        {channel.status === 'INACTIVE' && <LinkButton onClick={onActivate}>Ativar</LinkButton>}
-      </div>
-    </div>
+      </td>
+      <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom, color: c.textSecondary }}>
+        {channel.journeyCount}
+      </td>
+      <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom }}>
+        <div className="flex items-center gap-1">
+          <IconAction icon={<Pencil size={14} />} label="Editar" onClick={onEdit} />
+          {channel.status === 'ACTIVE' && <IconAction icon={<Ban size={14} />} label="Desativar" onClick={onDeactivate} danger />}
+          {channel.status === 'INACTIVE' && <IconAction icon={<Power size={14} />} label="Ativar" onClick={onActivate} />}
+        </div>
+      </td>
+    </tr>
   );
 }

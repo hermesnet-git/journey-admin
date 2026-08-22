@@ -32,25 +32,29 @@ public class FlowConnectorReferenceAdapter implements MessagingReferenceInUsePor
     }
 
     @Override
-    public boolean existsPublishedConnectorForCluster(UUID clusterId) {
-        return anyPublishedConnectorMatches(config -> config.getConfig() != null
+    public Optional<String> findPublishedJourneyNameReferencingCluster(UUID clusterId) {
+        return findPublishedJourneyMatching(config -> config.getConfig() != null
                 && clusterId.toString().equals(String.valueOf(config.getConfig().get("clusterId"))));
     }
 
     @Override
-    public boolean existsPublishedConnectorForCredential(String credentialReferenceName) {
-        return anyPublishedConnectorMatches(config -> credentialReferenceName.equals(config.getCredentialRef()));
+    public Optional<String> findPublishedJourneyNameReferencingCredential(String credentialReferenceName) {
+        return findPublishedJourneyMatching(config -> credentialReferenceName.equals(config.getCredentialRef()));
     }
 
-    private boolean anyPublishedConnectorMatches(Predicate<ConnectorConfig> predicate) {
+    private Optional<String> findPublishedJourneyMatching(Predicate<ConnectorConfig> predicate) {
         List<Journey> publishedJourneys = journeyRepository.search(null, null, null, JourneyStatus.PUBLISHED, null);
-        return publishedJourneys.stream()
-                .map(Journey::getId)
-                .map(publicationRepository::findByJourneyId)
-                .flatMap(Optional::stream)
-                .flatMap(publication -> publication.getFlowNodes().stream())
-                .map(FlowNode::getConnectorConfig)
-                .filter(config -> config != null)
-                .anyMatch(predicate);
+        for (Journey journey : publishedJourneys) {
+            boolean matches = publicationRepository.findByJourneyId(journey.getId())
+                    .map(publication -> publication.getFlowNodes().stream()
+                            .map(FlowNode::getConnectorConfig)
+                            .filter(config -> config != null)
+                            .anyMatch(predicate))
+                    .orElse(false);
+            if (matches) {
+                return Optional.of(journey.getName());
+            }
+        }
+        return Optional.empty();
     }
 }

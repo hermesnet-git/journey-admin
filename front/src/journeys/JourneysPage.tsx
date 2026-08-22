@@ -1,6 +1,23 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, Route, Trash2, Pencil, CloudOff, ChevronRight, FileJson, Waypoints, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
-import { PrimaryButton, SecondaryButton, FilterDropdown, type FilterOption } from '../products/ui';
+import {
+  Search,
+  Plus,
+  Route,
+  Trash2,
+  Pencil,
+  CloudOff,
+  ChevronRight,
+  FileJson,
+  Waypoints,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Upload,
+  RotateCw,
+  Loader2,
+  GitCommitHorizontal,
+} from 'lucide-react';
+import { PrimaryButton, FilterDropdown, type FilterOption } from '../products/ui';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
 import { ConfirmDialog } from '../products/ConfirmDialog';
@@ -464,6 +481,7 @@ function IconAction({
   color,
   hoverColor,
   disabled,
+  loading,
 }: {
   icon: typeof Pencil;
   label: string;
@@ -471,18 +489,19 @@ function IconAction({
   color?: string;
   hoverColor?: string;
   disabled?: boolean;
+  loading?: boolean;
 }) {
   const { colors: c } = useAppTheme();
-  if (disabled) {
+  if (disabled || loading) {
     return (
       <span
         title={label}
         aria-label={label}
         aria-disabled="true"
         className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md cursor-not-allowed"
-        style={{ color: c.textMuted, opacity: 0.4 }}
+        style={{ color: c.textMuted, opacity: loading ? 0.8 : 0.4 }}
       >
-        <Icon size={14} />
+        {loading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
       </span>
     );
   }
@@ -587,6 +606,7 @@ function JourneyDetailRow({
             className="shrink-0 transition-transform"
             style={{ color: c.textMuted, transform: open ? 'rotate(90deg)' : 'none' }}
           />
+          <Route size={13} className="shrink-0" style={{ color: c.accent }} />
           <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
             {journey.name}
           </div>
@@ -754,6 +774,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               <div className="flex items-center gap-2 min-w-0">
+                <GitCommitHorizontal size={12} className="shrink-0" style={{ color: c.textMuted }} />
                 <span className="text-[12.5px] font-semibold" style={{ color: c.textPrimary }}>
                   v{v.versionNumber}
                 </span>
@@ -775,36 +796,35 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
               <span className="text-[12px]" style={{ color: c.textSecondary }}>
                 {formatDate(v.publishedAt ?? v.createdAt)}
               </span>
-              <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={() => setJsonVersion(v)}
-                  title="Ver JSON do snapshot"
-                  className="flex items-center justify-center w-7 h-7 rounded-md border cursor-pointer shrink-0"
-                  style={{ borderColor: c.border, background: c.surface, color: c.accent }}
-                >
-                  <FileJson size={14} />
-                </button>
+              <div className="flex items-center justify-end gap-[2px]" onClick={(e) => e.stopPropagation()}>
+                <IconAction icon={FileJson} label="Ver JSON do snapshot" onClick={() => setJsonVersion(v)} color={c.accent} />
                 {v.status === 'DRAFT' && (
-                  <span title={v.snapshot.flowNodes.length === 0 ? 'Esta versão ainda não tem um fluxo definido.' : undefined}>
-                    <PrimaryButton
-                      onClick={() => setPublishingVersion(v)}
-                      loading={busyVersionId === v.versionId}
-                      disabled={v.snapshot.flowNodes.length === 0}
-                    >
-                      Publicar
-                    </PrimaryButton>
-                  </span>
+                  <IconAction
+                    icon={Upload}
+                    label={v.snapshot.flowNodes.length === 0 ? 'Esta versão ainda não tem um fluxo definido.' : 'Publicar versão'}
+                    onClick={() => setPublishingVersion(v)}
+                    color={c.success}
+                    disabled={v.snapshot.flowNodes.length === 0}
+                    loading={busyVersionId === v.versionId}
+                  />
                 )}
                 {v.status === 'PUBLISHED' && (
-                  <SecondaryButton onClick={() => setUnpublishingVersion(v)} disabled={busyVersionId === v.versionId}>
-                    Despublicar
-                  </SecondaryButton>
+                  <IconAction
+                    icon={CloudOff}
+                    label="Despublicar versão"
+                    onClick={() => setUnpublishingVersion(v)}
+                    color={c.warning}
+                    loading={busyVersionId === v.versionId}
+                  />
                 )}
                 {v.status === 'UNPUBLISHED' && (
-                  <PrimaryButton onClick={() => setRepublishingVersion(v)} loading={busyVersionId === v.versionId}>
-                    Republicar
-                  </PrimaryButton>
+                  <IconAction
+                    icon={RotateCw}
+                    label="Republicar versão"
+                    onClick={() => setRepublishingVersion(v)}
+                    color={c.accent}
+                    loading={busyVersionId === v.versionId}
+                  />
                 )}
               </div>
             </div>

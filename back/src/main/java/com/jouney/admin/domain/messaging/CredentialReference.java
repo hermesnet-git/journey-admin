@@ -1,6 +1,5 @@
 package com.jouney.admin.domain.messaging;
 
-import com.jouney.admin.domain.Status;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -15,18 +14,16 @@ public class CredentialReference {
     private UUID clusterId;
     private String keyVaultUri;
     private String secretName;
-    private Status status;
     private final OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
     public CredentialReference(UUID id, String referenceName, UUID clusterId, String keyVaultUri,
-                                String secretName, Status status, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                                String secretName, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.referenceName = referenceName;
         this.clusterId = clusterId;
         this.keyVaultUri = keyVaultUri;
         this.secretName = secretName;
-        this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -35,7 +32,7 @@ public class CredentialReference {
                                                String secretName) {
         OffsetDateTime now = OffsetDateTime.now();
         return new CredentialReference(UUID.randomUUID(), referenceName, clusterId, keyVaultUri, secretName,
-                Status.ACTIVE, now, now);
+                now, now);
     }
 
     public void update(String referenceName, UUID clusterId, String keyVaultUri, String secretName) {
@@ -44,20 +41,6 @@ public class CredentialReference {
         this.keyVaultUri = keyVaultUri;
         this.secretName = secretName;
         this.updatedAt = OffsetDateTime.now();
-    }
-
-    public void deactivate() {
-        this.status = Status.INACTIVE;
-        this.updatedAt = OffsetDateTime.now();
-    }
-
-    public void activate() {
-        this.status = Status.ACTIVE;
-        this.updatedAt = OffsetDateTime.now();
-    }
-
-    public boolean isActive() {
-        return status == Status.ACTIVE;
     }
 
     public UUID getId() {
@@ -78,10 +61,6 @@ public class CredentialReference {
 
     public String getSecretName() {
         return secretName;
-    }
-
-    public Status getStatus() {
-        return status;
     }
 
     public OffsetDateTime getCreatedAt() {

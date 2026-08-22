@@ -24,3 +24,16 @@ app:
     session-inactivity-minutes: 30
   logging:
     include-payload: false
+
+# Protótipo (FT-03 "gerar fluxo por prompt"): chave de serviço, nunca por usuário. "provider"
+# escolhe qual dos dois adapters (AnthropicFlowGenerator/GeminiFlowGenerator) fica ativo.
+ai:
+  provider: gemini
+
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}
+  model: claude-opus-5
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: gemini-3.5-flash-lite

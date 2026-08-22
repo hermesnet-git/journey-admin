@@ -47,7 +47,11 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter {
         MDC.put(MDC_KEY, correlationId);
         response.setHeader(CORRELATION_HEADER, correlationId);
 
-        boolean cachePayloads = includePayload && !isMultipart(request);
+        // ContentCachingResponseWrapper bufferiza tudo internamente e só é copiado pro response real
+        // no finally abaixo — incompatível com uma resposta assíncrona/streaming (ex.: SseEmitter em
+        // POST /flow/generate), cujas escritas acontecem bem depois desse finally já ter rodado; sem
+        // essa exclusão, o cliente nunca recebe nada, mesmo sem nenhum erro no servidor.
+        boolean cachePayloads = includePayload && !isMultipart(request) && !isEventStream(request);
         HttpServletRequest loggedRequest =
                 cachePayloads ? new ContentCachingRequestWrapper(request, MAX_PAYLOAD_LENGTH) : request;
         ContentCachingResponseWrapper loggedResponse =
@@ -99,6 +103,11 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter {
     private boolean isMultipart(HttpServletRequest request) {
         String contentType = request.getContentType();
         return contentType != null && contentType.toLowerCase().startsWith("multipart/");
+    }
+
+    private boolean isEventStream(HttpServletRequest request) {
+        String accept = request.getHeader("Accept");
+        return accept != null && accept.contains("text/event-stream");
     }
 
     private String resolveCorrelationId(HttpServletRequest request) {

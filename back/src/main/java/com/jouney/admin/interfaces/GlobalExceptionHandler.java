@@ -24,6 +24,7 @@ import com.jouney.admin.domain.version.VersionHasNoFlowException;
 import com.jouney.admin.domain.version.VersionNotDraftException;
 import com.jouney.admin.domain.version.VersionNotPublishedException;
 import com.jouney.admin.domain.version.VersionNotUnpublishedException;
+import com.jouney.admin.infrastructure.ai.AiGenerationException;
 import com.jouney.admin.infrastructure.connector.ConnectorTestException;
 import com.jouney.admin.infrastructure.connector.SsrfBlockedException;
 import com.jouney.admin.infrastructure.dashboard.RuntimeMonitoringException;
@@ -95,6 +96,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleRuntimeMonitoring(RuntimeMonitoringException ex, HttpServletRequest request) {
         log.error("Runtime monitoring call failed", ex);
         return build(HttpStatus.FAILED_DEPENDENCY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(AiGenerationException.class)
+    public ResponseEntity<ApiError> handleAiGeneration(AiGenerationException ex, HttpServletRequest request) {
+        log.error("AI flow generation call failed", ex);
+        return build(HttpStatus.BAD_GATEWAY, "AI_GENERATION_UNAVAILABLE", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(FlowValidationException.class)

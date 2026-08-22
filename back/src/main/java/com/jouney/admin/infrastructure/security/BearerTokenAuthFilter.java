@@ -35,6 +35,17 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
         this.recordAuditEvent = recordAuditEvent;
     }
 
+    // Endpoints assíncronos (SseEmitter, ex.: POST /flow/generate) fazem o Spring reentrar na cadeia
+    // de filtros num dispatch ASYNC quando a resposta é finalizada — o padrão de OncePerRequestFilter
+    // é pular esse segundo passe, mas como a sessão é STATELESS (REQ-07.02), a autenticação só existe
+    // porque este filtro a recoloca no SecurityContextHolder a cada passe; pular o ASYNC deixaria
+    // esse segundo passe sem ninguém autenticado, e authorizeHttpRequests().anyRequest().authenticated()
+    // rejeitaria com 401 em cima de uma resposta SSE que já tinha sido enviada com sucesso.
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {

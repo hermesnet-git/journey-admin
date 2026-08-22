@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from './client';
+import { apiGet, apiPost, apiPostSse, apiPut, ApiClientError } from './client';
 
 export type FlowNodeType = 'START' | 'USER_TASK' | 'END' | 'SERVICE_TASK' | 'RECEIVE_TASK' | 'MESSAGE_START_EVENT' | 'GATEWAY';
 export type ConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
@@ -66,6 +66,25 @@ export function getFlow(journeyId: string): Promise<Flow> {
 
 export function updateFlow(journeyId: string, input: FlowUpdateInput): Promise<Flow> {
   return apiPut<Flow>(`/journeys/${journeyId}/flow`, input);
+}
+
+// Protótipo (FT-03 "gerar fluxo por prompt"): só preview, mesmo formato de getFlow — essa chamada
+// nunca persiste nada, o canvas só carrega o resultado como se fosse uma edição manual não salva.
+// Via SSE: o back pode levar até 3 tentativas de correção, cada uma vira um evento "progress"
+// entregue a onProgress conforme acontece, antes do "result" final (ou "error" se todas falharem).
+export function generateFlow(journeyId: string, prompt: string, onProgress: (message: string) => void): Promise<Flow> {
+  return new Promise((resolve, reject) => {
+    apiPostSse(`/journeys/${journeyId}/flow/generate`, { prompt }, (event, data) => {
+      if (event === 'progress') {
+        onProgress(data);
+      } else if (event === 'result') {
+        resolve(JSON.parse(data) as Flow);
+      } else if (event === 'error') {
+        const err = JSON.parse(data) as { status: number; message: string; details?: { field: string; code: string; message: string }[] };
+        reject(new ApiClientError(err.status, err.message, err.details));
+      }
+    }).catch(reject);
+  });
 }
 
 // REQ-03.10.001: test call executed server-side, never directly from the browser (REQ-03.10.002).

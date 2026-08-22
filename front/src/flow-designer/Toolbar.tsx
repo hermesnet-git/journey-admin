@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard, ChevronDown } from 'lucide-react';
+import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard, ChevronDown, Sparkles } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { EDGE_SHAPE_OPTIONS, type EdgeShape } from './model';
 
@@ -97,6 +97,7 @@ export function Toolbar({
   onSave,
   saving,
   onCancel,
+  onGenerate,
 }: {
   canUndo: boolean;
   canRedo: boolean;
@@ -112,6 +113,7 @@ export function Toolbar({
   onSave: () => void;
   saving: boolean;
   onCancel: () => void;
+  onGenerate: () => void;
 }) {
   const { c } = useFlowTheme();
   const iconBtn =
@@ -121,6 +123,15 @@ export function Toolbar({
   return (
     <div className="shrink-0 border-b px-3 py-[6px] flex items-center justify-between gap-3" style={{ background: c.headerBg, borderColor: c.border }}>
       <div className="flex items-center gap-[3px] shrink-0 ml-auto">
+        <button
+          onClick={onGenerate}
+          title="Gerar fluxo a partir de um prompt"
+          className="h-[27px] px-[8px] rounded-lg flex items-center gap-[5px] text-[12px] font-semibold cursor-pointer"
+          style={{ border: `1px solid ${c.border}`, color: c.accent }}
+        >
+          <Sparkles size={14} /> Gerar com IA
+        </button>
+        {divider}
         <button
           onClick={onOrganize}
           title="Organizar objetos no canvas"

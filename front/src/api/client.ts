@@ -115,3 +115,64 @@ export function apiPut<T>(path: string, body: unknown): Promise<T> {
 export function apiDelete<T>(path: string): Promise<T> {
   return request<T>(path, { method: 'DELETE' });
 }
+
+// POST que consome uma resposta text/event-stream (SSE) linha a linha, chamando onEvent pra cada
+// bloco "event: X\ndata: Y" recebido — usado pelo "Gerar com IA" do flow-designer, que pode levar
+// várias tentativas e quer mostrar o progresso ao vivo em vez de só esperar o resultado final.
+export async function apiPostSse(
+  path: string,
+  body: unknown,
+  onEvent: (event: string, data: string) => void,
+): Promise<void> {
+  const token = getStoredToken();
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new NetworkError('Não foi possível conectar ao servidor. Tente novamente em instantes.');
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) onUnauthorized?.();
+    const errBody = await response.json().catch(() => null);
+    if (response.status >= 500) {
+      onServerError?.({
+        status: response.status,
+        code: errBody?.code,
+        message: errBody?.message ?? response.statusText,
+        path,
+      });
+    }
+    throw new ApiClientError(response.status, errBody?.message ?? response.statusText, errBody?.details ?? undefined);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new NetworkError('Resposta do servidor sem corpo.');
+  const decoder = new TextDecoder();
+  let buffer = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let sepIndex: number;
+    while ((sepIndex = buffer.indexOf('\n\n')) !== -1) {
+      const rawEvent = buffer.slice(0, sepIndex);
+      buffer = buffer.slice(sepIndex + 2);
+      let eventName = 'message';
+      const dataLines: string[] = [];
+      for (const line of rawEvent.split('\n')) {
+        if (line.startsWith('event:')) eventName = line.slice(6).trim();
+        else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+      }
+      if (dataLines.length) onEvent(eventName, dataLines.join('\n'));
+    }
+  }
+}

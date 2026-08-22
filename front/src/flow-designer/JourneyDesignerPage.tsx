@@ -28,6 +28,7 @@ import { AnnotationNode } from './AnnotationNode';
 import { Palette } from './Palette';
 import { PropertiesDock } from './PropertiesDock';
 import { ErrorModal } from './ErrorModal';
+import { GeneratePromptModal, type GenerateLogEntry } from './GeneratePromptModal';
 import { Toolbar } from './Toolbar';
 import { validateFlow } from './validation';
 import {
@@ -55,7 +56,7 @@ import {
   type EdgeShape,
 } from './model';
 import { updateJourney, type Journey } from '../api/journeys';
-import { getFlow, updateFlow } from '../api/flows';
+import { getFlow, updateFlow, generateFlow, type Flow } from '../api/flows';
 import { listForms, type Form } from '../api/forms';
 import { listClusters, listCredentials, type MessagingCluster, type CredentialReference } from '../api/messaging';
 import { ApiClientError } from '../api/client';
@@ -244,9 +245,11 @@ function DesignerInner({
     listCredentials().then(setCredentials);
   }, []);
 
-  useEffect(() => {
-    getFlow(journey.journeyId).then((flow) => {
-      const loadedNodes: WFNode[] = flow.nodes.map((n) => ({
+  // Mapeamento puro backend -> estado do canvas, reaproveitado tanto pelo carregamento inicial
+  // quanto pela geração por prompt (GeneratePromptModal) abaixo.
+  const mapFlowToState = useCallback(
+    (flow: Flow) => ({
+      nodes: flow.nodes.map((n) => ({
         id: n.nodeId,
         type: BACKEND_TO_FRONT_TYPE[n.nodeType],
         position: { x: n.positionX, y: n.positionY },
@@ -258,30 +261,39 @@ function DesignerInner({
           connectorConfig: n.connectorConfig,
           startVariables: n.startVariables ?? undefined,
         },
-      }));
-      setNodes(loadedNodes);
-      setEdges(
-        flow.connections.map((c) => ({
-          id: c.connectionId,
-          source: c.sourceNodeId,
-          target: c.targetNodeId,
-          data: { condition: c.condition ?? undefined, isDefault: c.isDefault },
-        })),
-      );
-      setAnnotations(
-        flow.annotations.map((a) => ({
-          id: a.id,
-          type: 'annotation' as const,
-          position: { x: a.positionX, y: a.positionY },
-          data: { text: a.text, linkedNodeIds: a.linkedNodeIds },
-        })),
-      );
+      })) as WFNode[],
+      edges: flow.connections.map((c) => ({
+        id: c.connectionId,
+        source: c.sourceNodeId,
+        target: c.targetNodeId,
+        data: { condition: c.condition ?? undefined, isDefault: c.isDefault },
+      })) as WFEdge[],
+      annotations: flow.annotations.map((a) => ({
+        id: a.id,
+        type: 'annotation' as const,
+        position: { x: a.positionX, y: a.positionY },
+        data: { text: a.text, linkedNodeIds: a.linkedNodeIds },
+      })) as WFAnnotation[],
+    }),
+    [],
+  );
+
+  useEffect(() => {
+    getFlow(journey.journeyId).then((flow) => {
+      const mapped = mapFlowToState(flow);
+      setNodes(mapped.nodes);
+      setEdges(mapped.edges);
+      setAnnotations(mapped.annotations);
       setLoading(false);
       // Os nós só recebem seu tamanho medido de verdade (do que o cálculo de bounds precisa) depois
       // que esse render é commitado — mesmo raciocínio do requestAnimationFrame no organize() abaixo.
       requestAnimationFrame(() => fitViewLeftAligned());
     });
-  }, [journey, fitViewLeftAligned]);
+  }, [journey, fitViewLeftAligned, mapFlowToState]);
+
+  const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generateLog, setGenerateLog] = useState<GenerateLogEntry[]>([]);
 
   const pushHistory = useCallback(() => {
     undoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current, annotations: annotationsRef.current });
@@ -308,6 +320,40 @@ function DesignerInner({
     setAnnotations(next.annotations);
     setHistoryTick((t) => t + 1);
   }, []);
+
+  // O back-end só valida/monta o fluxo (FlowValidator) e devolve um preview — nada é persistido
+  // aqui. pushHistory antes de aplicar deixa Ctrl+Z desfazer a geração como qualquer outra edição.
+  const handleGenerate = useCallback(
+    async (prompt: string) => {
+      setGenerating(true);
+      setGenerateLog([]);
+      try {
+        const flow = await generateFlow(activeJourney.journeyId, prompt, (message) =>
+          setGenerateLog((log) => [...log, { text: message }]),
+        );
+        const mapped = mapFlowToState(flow);
+        pushHistory();
+        setNodes(computeLayout(mapped.nodes, mapped.edges));
+        setEdges(mapped.edges);
+        setAnnotations(mapped.annotations);
+        setGenerateModalOpen(false);
+        setGenerateLog([]);
+        requestAnimationFrame(() => fitView({ padding: 0.2, duration: 200 }));
+      } catch (err) {
+        // Fica no log do próprio modal (em vermelho), não num ErrorModal separado — o usuário
+        // continua vendo o prompt e o histórico de tentativas junto do erro, e pode ajustar e
+        // tentar de novo sem perder o contexto.
+        const messages =
+          err instanceof ApiClientError && err.details?.length
+            ? err.details.map((d) => d.message)
+            : [err instanceof Error ? err.message : 'Erro ao gerar fluxo.'];
+        setGenerateLog((log) => [...log, ...messages.map((text) => ({ text, error: true }))]);
+      } finally {
+        setGenerating(false);
+      }
+    },
+    [activeJourney.journeyId, mapFlowToState, pushHistory, fitView],
+  );
 
   // Marks exactly one node as selected (used when a node is created/duplicated).
   const selectOnlyNode = useCallback((nodeId: string) => {
@@ -735,6 +781,7 @@ function DesignerInner({
             onSave={handleSave}
             saving={saving}
             onCancel={onClose}
+            onGenerate={() => setGenerateModalOpen(true)}
           />
           <div className="flex-1 flex min-h-0">
             <Palette onAdd={addNodeFromPalette} onAddAnnotation={addAnnotationFromPalette} />
@@ -806,6 +853,17 @@ function DesignerInner({
           </div>
         </div>
         {errors.length > 0 && <ErrorModal errors={errors} onClose={() => setErrors([])} />}
+        {generateModalOpen && (
+          <GeneratePromptModal
+            generating={generating}
+            log={generateLog}
+            onGenerate={handleGenerate}
+            onCancel={() => {
+              setGenerateModalOpen(false);
+              setGenerateLog([]);
+            }}
+          />
+        )}
         {confirmingPublishedEdit && (
           <ConfirmDialog
             title="Editar jornada publicada?"

@@ -1,0 +1,143 @@
+package com.jouney.admin.infrastructure.ai;
+
+import com.jouney.admin.domain.flow.AiFlowGenerator;
+import com.jouney.admin.domain.flow.FlowValidationException;
+import com.jouney.admin.domain.flow.FlowValidator;
+import com.jouney.admin.domain.flow.GeneratedFlow;
+import com.jouney.admin.domain.flow.GenerationContext;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Consumer;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
+/**
+ * Adapter da Gemini API (generateContent) pra AiFlowGenerator — alternativa gratuita à Anthropic
+ * pra teste (FT-03 "gerar fluxo por prompt"). Diferente de AnthropicFlowGenerator, cada tentativa do
+ * loop de correção é uma conversa nova de um turno só (não um replay do turno anterior do modelo):
+ * modelos Gemini com "thinking" ligado anexam um thought_signature à function call, exigido de volta
+ * byte a byte pra continuar a mesma conversa — sem um formato documentado pra REST puro, replicar
+ * isso manualmente é frágil. Em vez disso, o que foi gerado antes e o que deu errado entram como
+ * texto no próximo prompt — mais simples e não depende de nenhum detalhe não documentado da API.
+ */
+@Component
+@ConditionalOnProperty(prefix = "ai", name = "provider", havingValue = "gemini")
+public class GeminiFlowGenerator implements AiFlowGenerator {
+
+    private static final int MAX_ATTEMPTS = 3;
+    private static final List<Map<String, Object>> TOOLS = List.of(Map.of("functionDeclarations", List.of(
+            Map.of("name", FlowGenerationPrompt.TOOL_NAME, "description", FlowGenerationPrompt.TOOL_DESCRIPTION,
+                    "parameters", FlowGenerationPrompt.schema()),
+            Map.of("name", FlowGenerationPrompt.DECLINE_TOOL_NAME, "description", FlowGenerationPrompt.DECLINE_TOOL_DESCRIPTION,
+                    "parameters", FlowGenerationPrompt.declineSchema()))));
+
+    private final RestClient restClient;
+    private final ObjectMapper objectMapper;
+    private final String apiKey;
+    private final String model;
+
+    public GeminiFlowGenerator(ObjectMapper objectMapper, @Value("${gemini.api-key:}") String apiKey,
+                                @Value("${gemini.model:gemini-3.6-flash}") String model) {
+        this.objectMapper = objectMapper;
+        this.apiKey = apiKey;
+        this.model = model;
+        this.restClient = FlowGenerationPrompt.timeoutedRestClientBuilder()
+                .baseUrl("https://generativelanguage.googleapis.com").build();
+    }
+
+    @Override
+    public GeneratedFlow generate(GenerationContext context, Consumer<String> onProgress) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new AiGenerationException("GEMINI_API_KEY não configurada no servidor.");
+        }
+
+        String basePrompt = FlowGenerationPrompt.buildUserPrompt(context);
+        String currentPrompt = basePrompt;
+        Map<UUID, List<String>> formFieldNamesByFormId = new HashMap<>();
+        for (var form : context.forms()) {
+            formFieldNamesByFormId.put(form.id(), form.fieldNames());
+        }
+
+        FlowValidationException lastViolation = null;
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            onProgress.accept("Tentativa " + attempt + "/" + MAX_ATTEMPTS + ": chamando Gemini (" + model + ")...");
+            long start = System.currentTimeMillis();
+            List<Map<String, Object>> contents = List.of(
+                    Map.of("role", "user", "parts", List.of(Map.of("text", currentPrompt))));
+            JsonNode functionCall = callGemini(contents);
+            onProgress.accept("Tentativa " + attempt + ": resposta recebida em "
+                    + String.format("%.1fs", (System.currentTimeMillis() - start) / 1000.0) + ".");
+            if (FlowGenerationPrompt.DECLINE_TOOL_NAME.equals(functionCall.path("name").asText())) {
+                throw new AiRequestDeclinedException(functionCall.path("args").path("reason").asText());
+            }
+            FlowGenerationPrompt.LlmFlowOutput output;
+            try {
+                output = objectMapper.treeToValue(functionCall.get("args"), FlowGenerationPrompt.LlmFlowOutput.class);
+            } catch (Exception ex) {
+                throw new AiGenerationException("Resposta da IA em formato inesperado: " + ex.getMessage(), ex);
+            }
+            GeneratedFlow candidate = FlowGenerationPrompt.toDomain(output);
+            onProgress.accept("Tentativa " + attempt + ": " + FlowGenerationPrompt.describeFlow(candidate) + " — validando...");
+            try {
+                FlowValidator.validate(candidate.nodes(), candidate.connections(), formFieldNamesByFormId);
+                onProgress.accept("Tentativa " + attempt + ": fluxo válido.");
+                return candidate;
+            } catch (FlowValidationException ex) {
+                lastViolation = ex;
+                if (attempt == MAX_ATTEMPTS) {
+                    throw ex;
+                }
+                FlowGenerationPrompt.reportViolations(onProgress, attempt, ex.getViolations());
+                onProgress.accept("Pedindo correção pro modelo...");
+                String violations = String.join("; ", ex.getViolations());
+                // Conversa nova por tentativa (não um replay do turno anterior) — ver javadoc da classe.
+                currentPrompt = basePrompt + "\n\nVocê já tentou gerar esse fluxo antes e produziu:\n"
+                        + functionCall.get("args") + "\n\nMas esse fluxo tem os seguintes problemas — corrija e gere "
+                        + "de novo, do zero, chamando generate_flow: " + violations;
+            }
+        }
+        throw lastViolation;
+    }
+
+    private JsonNode callGemini(List<Map<String, Object>> contents) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("contents", contents);
+        body.put("systemInstruction", Map.of("parts", List.of(Map.of("text", FlowGenerationPrompt.SYSTEM_PROMPT))));
+        body.put("tools", TOOLS);
+        body.put("toolConfig", Map.of("functionCallingConfig", Map.of("mode", "ANY", "allowedFunctionNames",
+                List.of(FlowGenerationPrompt.TOOL_NAME, FlowGenerationPrompt.DECLINE_TOOL_NAME))));
+
+        JsonNode response;
+        try {
+            response = restClient.post()
+                    .uri("/v1beta/models/{model}:generateContent", model)
+                    .header("x-goog-api-key", apiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (RestClientResponseException ex) {
+            throw new AiGenerationException(
+                    "Falha ao chamar a API do Gemini (" + ex.getStatusCode() + "): " + ex.getResponseBodyAsString(), ex);
+        } catch (ResourceAccessException ex) {
+            throw new AiGenerationException("Não foi possível conectar à API do Gemini.", ex);
+        }
+
+        for (JsonNode part : response.path("candidates").path(0).path("content").path("parts")) {
+            if (part.has("functionCall")) {
+                return part.get("functionCall");
+            }
+        }
+        throw new AiGenerationException("A resposta da IA não incluiu uma chamada de função. Resposta bruta: " + response);
+    }
+}

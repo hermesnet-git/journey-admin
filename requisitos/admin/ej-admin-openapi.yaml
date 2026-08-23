@@ -826,11 +826,6 @@ paths:
           in: query
           schema:
             type: string
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [ACTIVE, INACTIVE]
       responses:
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -867,8 +862,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
@@ -923,8 +916,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
@@ -1480,7 +1471,7 @@ components:
           type: integer
         userTaskConfig:
           $ref: '#/components/schemas/UserTaskConfig'
-        integrationTaskConfig:
+        connectorConfig:
           $ref: '#/components/schemas/IntegrationTaskConfig'
 
     UserTaskConfig:
@@ -1493,43 +1484,53 @@ components:
 
     IntegrationTaskConfig:
       type: object
-      required: [connectorType, connectorEnabled, connectorConfig]
+      description: >
+        Exposed as FlowNode.connectorConfig — not a standalone resource:
+        connectorType/config/credentialRef are attributes of the FlowNode
+        item itself (Flow.nodes, JSONB array). There is no connectorEnabled
+        per node: whether a connector type is available at all is a
+        catalog-level filter on the type list offered to the user, not a
+        stored field. `config` is a free-form map, not a discriminated
+        union — RestConnectorConfig/KafkaConnectorConfig below document its
+        real shape per connectorType for reference, they are not separate
+        schema types on the wire.
+      required: [connectorType, config]
       properties:
         connectorType:
           type: string
-          enum: [REST, KAFKA]
-        connectorEnabled:
-          type: boolean
-          description: Must be true for connectors available in the 1.0.0 catalog.
-        connectorConfig:
-          oneOf:
-            - $ref: '#/components/schemas/RestConnectorConfig'
-            - $ref: '#/components/schemas/KafkaConnectorConfig'
+          enum: [REST, KAFKA, EVENT_HUBS, SERVICE_BUS]
+        config:
+          type: object
+          additionalProperties: true
+          description: >
+            REST: see RestConnectorConfig. KAFKA/EVENT_HUBS/SERVICE_BUS: see
+            KafkaConnectorConfig. outputMapping lives inside this map for
+            both — there is no separate top-level outputMapping field, and
+            no inputMapping field at all (text fields like url/headers/body/
+            payload just reference prior-step variables inline via
+            `{{name}}`, REQ-03.09.012).
         credentialRef:
           type: string
           maxLength: 200
           description: Runtime-resolved credential reference; secret values are not stored.
-        inputMapping:
-          type: object
-          additionalProperties: true
-          description: Declarative, free-form. Text fields (url, headers, body/payload) may reference prior-step variables via `{{name}}`.
-        outputMapping:
-          type: array
-          description: Rules extracting variables from the integration response, populating the execution context.
-          items:
-            type: object
-            required: [name, jsonPath]
-            properties:
-              name:
-                type: string
-                description: Technical variable name, unique within the journey (same rule as REQ-04.01.007).
-              jsonPath:
-                type: string
-                example: $.razao_social
+
+    OutputMappingRule:
+      type: object
+      description: One rule of `config.outputMapping` (REQ-03.09.010), populating the execution context with the named variable.
+      required: [name, jsonPath]
+      properties:
+        name:
+          type: string
+          description: Technical variable name, unique within the journey (same rule as REQ-04.01.007).
+        jsonPath:
+          type: string
+          example: $.razao_social
 
     RestConnectorConfig:
       type: object
-      required: [method, url]
+      description: >
+        Reference shape of `config` when connectorType is REST — not a
+        separate schema type on the wire (see IntegrationTaskConfig.config).
       properties:
         method:
           type: string
@@ -1540,32 +1541,47 @@ components:
         headers:
           type: object
           additionalProperties: true
-        query:
+        params:
           type: object
           additionalProperties: true
+          description: URL query params.
         body:
           type: object
           additionalProperties: true
+        outputMapping:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutputMappingRule'
 
     KafkaConnectorConfig:
       type: object
-      required: [topic, operation]
+      description: >
+        Reference shape of `config` when connectorType is KAFKA, EVENT_HUBS
+        or SERVICE_BUS — not a separate schema type on the wire (see
+        IntegrationTaskConfig.config). Despite the name, also covers Event
+        Hubs/Service Bus: the field is always `topic` regardless of broker
+        type (the editor only relabels it "Event Hub"/"Fila" per type).
       properties:
-        topic:
+        clusterId:
           type: string
-        queue:
+          format: uuid
+          description: References a MessagingCluster from the Integration Catalog (FT-14).
+        topic:
           type: string
         operation:
           type: string
-          enum: [PUBLISH, CONSUME]
+          enum: [PRODUCE, CONSUME]
+          description: Implicit from the node's role (SERVICE_TASK produces; RECEIVE_TASK/MESSAGE_START_EVENT consume) — not user-chosen.
         headers:
           type: object
           additionalProperties: true
         payload:
           type: object
           additionalProperties: true
-        correlationKey:
-          type: string
+        outputMapping:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutputMappingRule'
 
     ConnectorTestRequest:
       type: object
@@ -1643,33 +1659,31 @@ components:
 
     FormInput:
       type: object
-      required: [code, name, fields]
+      required: [name, fields]
       properties:
-        code:
-          type: string
-          maxLength: 80
         name:
           type: string
-          maxLength: 200
+          maxLength: 150
         description:
           type: string
+          maxLength: 500
         fields:
           type: array
           items:
             $ref: '#/components/schemas/FormField'
 
     Form:
+      description: >
+        No code, no status: a form is identified only by formId and can be
+        referenced by User Tasks of any journey for as long as it exists.
       allOf:
         - $ref: '#/components/schemas/FormInput'
         - type: object
-          required: [formId, status, createdAt, updatedAt]
+          required: [formId, createdAt, updatedAt]
           properties:
             formId:
               type: string
               format: uuid
-            status:
-              type: string
-              enum: [ACTIVE, INACTIVE]
             createdAt:
               type: string
               format: date-time
@@ -1679,7 +1693,11 @@ components:
 
     FormField:
       type: object
-      required: [name, fieldType, displayOrder]
+      description: >
+        Not a standalone resource — the persisted shape of one item in
+        Form.fields (JSONB array). There is no displayOrder: presentation
+        order is the field's own position in the array, not a stored column.
+      required: [name, fieldType]
       properties:
         name:
           type: string
@@ -1700,8 +1718,6 @@ components:
           type: boolean
         defaultValue:
           type: string
-        displayOrder:
-          type: integer
         options:
           type: array
           description: Aplicável a SINGLE_SELECT/MULTI_SELECT.

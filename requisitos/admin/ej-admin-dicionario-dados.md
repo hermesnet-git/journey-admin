@@ -100,9 +100,12 @@ O produto da jornada é obtido por meio de `Channel.ProductId`.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
-| FlowId | UUID | Sim | Identificador do fluxo |
+| FlowId | VARCHAR(80) | Sim | Identificador do fluxo — gerado como `Process_<uuid>`, não é UUID puro |
 | JourneyId | UUID | Sim | Jornada proprietária do fluxo |
 | Name | VARCHAR(200) | Sim | Nome do fluxo |
+| Nodes | JSONB | Sim | Array de `FlowNode` (§7) — persistência real dos nós, sem tabela própria |
+| Connections | JSONB | Sim | Array de `FlowConnection` (§8) — persistência real das conexões, sem tabela própria |
+| Annotations | JSONB | Sim | Array de `FlowAnnotation` (§8) — persistência real das anotações, sem tabela própria |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
@@ -126,6 +129,8 @@ Cada jornada possui no máximo um fluxo.
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
+`FlowNode` não é uma tabela própria: é a forma de cada item do array `Flow.Nodes` (JSONB, §6). `NodeId` é a chave dentro do array, não uma PK de banco.
+
 ---
 
 # 8. FlowConnection
@@ -142,6 +147,8 @@ Cada fluxo possui exatamente um elemento inicial (`START` ou `MESSAGE_START_EVEN
 
 Um `END` alcançável apenas por `SERVICE_TASK`s com conector REST, sem nenhum checkpoint (`USER_TASK`, `RECEIVE_TASK` ou `SERVICE_TASK` Kafka) desde o elemento inicial, é rejeitado ao salvar (422) — o conector REST nativo do motor de runtime roda de forma síncrona, e várias execuções concluindo a instância na mesma transação que a iniciou rompem o motor.
 
+`FlowConnection` não é uma tabela própria: é a forma de cada item do array `Flow.Connections` (JSONB, §6). A cardinalidade de saída por tipo de nó é garantida pelo `FlowValidator` no backend, não por constraint de banco.
+
 ## FlowAnnotation
 
 | Campo | Tipo | Obrigatório | Descrição |
@@ -153,7 +160,7 @@ Um `END` alcançável apenas por `SERVICE_TASK`s com conector REST, sem nenhum c
 | PositionY | INTEGER | Não | Coordenada vertical no canvas |
 | LinkedNodeIds | UUID[] | Não | Nós do mesmo fluxo aos quais a anotação está vinculada, exibidos como linha pontilhada no editor |
 
-Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da validação estrutural do `Flow` (`FlowValidator`) nem é enviada ao `ms-transform-publication` na publicação — não existe no BPMN gerado.
+Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da validação estrutural do `Flow` (`FlowValidator`) nem é enviada ao `ms-transform-publication` na publicação — não existe no BPMN gerado. Não é uma tabela própria: é a forma de cada item do array `Flow.Annotations` (JSONB, §6).
 
 ---
 
@@ -163,13 +170,10 @@ Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da 
 |-------|------|-------------|-----------|
 | NodeId | UUID | Sim | Nó de integração configurado |
 | ConnectorType | VARCHAR(30) | Sim | `REST`, `KAFKA`, `EVENT_HUBS` ou `SERVICE_BUS` na versão 1.0.0 |
-| ConnectorEnabled | BOOLEAN | Sim | Indica se o conector está habilitado no catálogo |
-| ConnectorConfig | JSONB | Sim | Configuração específica do conector — para um conector de mensageria, inclui `clusterId` (referência a `MessagingCluster`) além do tópico/fila/hub |
+| Config | JSONB | Sim | Configuração específica do conector (mapa livre) — REST: `method`/`url`/`headers`/`params`/`body`; mensageria: `clusterId` (referência a `MessagingCluster`), tópico/fila/hub, `payload`. `InputMapping`/`OutputMapping` (REQ-03.09.010) vivem aqui dentro, não como campos próprios: campos de texto podem referenciar variáveis via `{{nome}}`, e a saída é uma lista de regras `{ name, jsonPath }` |
 | CredentialRef | VARCHAR(200) | Não | Para um conector de mensageria, `ReferenceName` de uma `CredentialReference` do catálogo de integrações (FT-14); resolvida de fato pelo runtime, nunca pelo Admin Portal |
-| InputMapping | JSONB | Não | Mapeamento do contexto para a integração (formato livre); campos de texto de `ConnectorConfig` (URL, headers, body/payload) podem referenciar variáveis via `{{nome}}` |
-| OutputMapping | JSONB | Não | Lista de regras `{ name, jsonPath }` aplicadas sobre a resposta (REST) ou payload (Kafka) recebido, populando o contexto de execução com a variável `name` — formato estruturado, não livre |
 
-`ConnectorConfig` deve suportar configuração REST e Kafka sem armazenar secrets. Conectores catalogados como desabilitados não podem ser associados a nós de fluxo.
+`ConnectorType` deve suportar configuração REST e Kafka sem armazenar secrets. Conectores catalogados como desabilitados no catálogo de integrações não ficam disponíveis para seleção na versão 1.0.0 — não é um campo persistido por nó, é um filtro aplicado na lista de tipos oferecida ao usuário. `IntegrationTaskConfig` não é uma tabela própria: `ConnectorType`/`Config`/`CredentialRef` são atributos do próprio item de `Flow.Nodes` (JSONB, §6-7).
 
 ---
 
@@ -178,12 +182,13 @@ Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | FormId | UUID | Sim | Identificador do formulário |
-| Code | VARCHAR(80) | Sim | Código único do formulário |
-| Name | VARCHAR(200) | Sim | Nome do formulário |
-| Description | TEXT | Não | Descrição do formulário |
-| Status | VARCHAR(20) | Sim | `ACTIVE` ou `INACTIVE` |
+| Name | VARCHAR(150) | Sim | Nome do formulário |
+| Description | VARCHAR(500) | Não | Descrição do formulário |
+| Fields | JSONB | Sim | Array de `FormField` (§11) — persistência real dos campos, sem tabela própria |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
+
+Não há `Code` nem `Status`: um formulário não tem código técnico próprio nem ciclo de ativo/inativo — é identificado só pelo `FormId` e pode ser referenciado por User Tasks de qualquer jornada enquanto existir.
 
 ---
 
@@ -199,7 +204,6 @@ Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da 
 | HelpText | TEXT | Não | Texto de ajuda |
 | Required | BOOLEAN | Sim | Indica preenchimento obrigatório |
 | DefaultValue | TEXT | Não | Valor padrão |
-| DisplayOrder | INTEGER | Sim | Ordem de apresentação |
 | Configuration | JSONB | Não | Configuração específica do campo: opções `{label, value}` (`SINGLE_SELECT`/`MULTI_SELECT`), validação de formato (min/max para `NUMBER`, regex/máscara para `TEXT`) e regras de arquivo aceito — extensões e tamanho máximo — (`FILE_UPLOAD`) |
 
 ## Valores de FieldType
@@ -213,6 +217,8 @@ FILE_UPLOAD
 ```
 
 > `STATIC_CONTENT` foi colapsado em `TEXT` (mesmo modelo de dados, diferença apenas de apresentação visual).
+
+`FormField` não é uma tabela própria: é a forma de cada item do array `Form.Fields` (JSONB, §10). Não existe `DisplayOrder`: a ordem de exibição é a própria ordem do campo no array, não uma coluna armazenada.
 
 ## Valores de InputSubtype (quando FieldType = INPUT)
 
@@ -234,6 +240,8 @@ DATE
 | MessageText | TEXT | Não | Mensagem exibida ao usuário quando não há `FormId` (REQ-04.01.005) |
 
 Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, a configuração associa a User Task a exatamente um formulário **ou** declara uma mensagem de etapa sem formulário — os dois nunca coexistem com sentido (se `FormId` estiver preenchido, `MessageText` é ignorado).
+
+`UserTaskConfig` não é uma tabela própria nem um sub-documento separado: `FormId`/`MessageText` são atributos do próprio item de `Flow.Nodes` (JSONB, §6-7) — presentes mesmo em nós que não são `USER_TASK`, mas só têm sentido nesse tipo.
 
 ---
 

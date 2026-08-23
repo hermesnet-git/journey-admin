@@ -133,14 +133,19 @@ CREATE TABLE journey (
 
 ```sql
 CREATE TABLE flow (
-    flow_id UUID PRIMARY KEY,
+    flow_id VARCHAR(80) PRIMARY KEY,
     journey_id UUID NOT NULL UNIQUE,
     name VARCHAR(200) NOT NULL,
+    nodes JSONB NOT NULL,
+    connections JSONB NOT NULL,
+    annotations JSONB NOT NULL DEFAULT '[]',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (journey_id) REFERENCES journey(journey_id)
 );
 ```
+
+`flow_id` é gerado como `Process_<uuid>` — não é um UUID puro, então a coluna é `VARCHAR`, não `UUID` (ver dicionário de dados). `nodes`, `connections` e `annotations` são a persistência real de `FlowNode`, `FlowConnection` e `FlowAnnotation` (§9-10) — arrays JSONB, não tabelas próprias. As seções seguintes descrevem cada item desses arrays no formato de referência relacional (colunas, FK) só para documentar sua forma; nenhuma delas existe como tabela de fato.
 
 ---
 
@@ -164,13 +169,14 @@ CREATE TABLE flow_node (
 );
 ```
 
+O desenho acima é a referência relacional de cada elemento do array — a persistência real é um item do array `flow.nodes` (JSONB, ver §8), sem tabela própria: `node_id` é a chave dentro do array, não uma PK de banco, e a FK para `flow_id` é implícita (o nó só existe dentro do documento do próprio `Flow`).
+
 As configurações de integração dos nós `SERVICE_TASK`, `RECEIVE_TASK` e `MESSAGE_START_EVENT` permanecem no documento JSONB do fluxo. A estrutura deve separar propriedades comuns (`connector_type`, `credential_ref`, `input_mapping`, `output_mapping`) das propriedades específicas de `REST` e `KAFKA`, permitindo a inclusão futura de novos conectores sem alteração da tabela `flow_node`. `output_mapping` segue formato estruturado — lista de regras `name`/`jsonPath` — em vez de objeto livre (REQ-03.09.010); campos de texto de `connectorConfig` (`url`, `headers`, `body`) podem referenciar variáveis de passos anteriores via `{{nome}}` (REQ-03.09.012).
 
 ```json
 {
   "nodeType": "SERVICE_TASK",
   "connectorType": "REST",
-  "connectorEnabled": true,
   "connectorConfig": {
     "method": "POST",
     "url": "https://brasilapi.com.br/api/cnpj/v1/{{cnpjInformado}}",
@@ -233,14 +239,15 @@ Mesmo caso de `flow_node`/`flow_connection`: o desenho acima é a referência re
 ```sql
 CREATE TABLE form (
     form_id UUID PRIMARY KEY,
-    code VARCHAR(80) NOT NULL UNIQUE,
-    name VARCHAR(200) NOT NULL,
-    description TEXT,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    name VARCHAR(150) NOT NULL,
+    description VARCHAR(500),
+    fields JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+`fields` é a persistência real de `FormField` (§12) — array JSONB, não tabela própria. Não há `code` nem `status`: um `Form` não tem código técnico próprio nem ciclo de ativo/inativo — é identificado só pelo `form_id` e pode ser referenciado por User Tasks de qualquer jornada enquanto existir.
 
 ---
 
@@ -260,15 +267,15 @@ CREATE TABLE form_field (
     help_text TEXT,
     required BOOLEAN NOT NULL DEFAULT FALSE,
     default_value TEXT,
-    display_order INTEGER NOT NULL,
     configuration JSONB,
     PRIMARY KEY (form_id, name),
-    FOREIGN KEY (form_id) REFERENCES form(form_id),
-    UNIQUE (form_id, display_order)
+    FOREIGN KEY (form_id) REFERENCES form(form_id)
 );
 ```
 
 `name` é a chave técnica do campo (substitui o antigo `component_id` gerado pelo sistema): definida pelo usuário, única dentro do formulário e imutável após a criação. `input_subtype` só se aplica a `field_type = 'INPUT'`. `configuration` (JSONB) guarda, conforme o tipo/subtipo: opções como pares `{label, value}` (`SINGLE_SELECT`/`MULTI_SELECT`), validação de formato — faixa mínima/máxima para `NUMBER`, regex/máscara para `TEXT` — e regras de arquivo aceito — extensões e tamanho máximo — para `FILE_UPLOAD`.
+
+O desenho acima é a referência relacional de cada elemento do array — a persistência real é um item do array `form.fields` (JSONB, ver §11), sem tabela própria. Não existe `display_order`: a ordem de exibição é a própria ordem do campo dentro do array, não uma coluna armazenada.
 
 ---
 
@@ -284,7 +291,7 @@ CREATE TABLE user_task_config (
 );
 ```
 
-`user_task_config` só pode referenciar nós cujo `node_type` seja `USER_TASK`. Essa restrição deve ser garantida por regra de domínio ou trigger. `form_id` é opcional (REQ-04.01.005: uma User Task pode não ter formulário associado); quando ausente, `message_text` guarda a mensagem exibida ao usuário nessa etapa em vez de um formulário — os dois nunca coexistem com sentido (se `form_id` estiver preenchido, `message_text` é ignorado). Na persistência real (documento `jsonb` de `flow_node`, ver §9), isso é o objeto `userTaskConfig` do nó, não uma tabela própria.
+`user_task_config` só pode referenciar nós cujo `node_type` seja `USER_TASK`. Essa restrição deve ser garantida por regra de domínio ou trigger. `form_id` é opcional (REQ-04.01.005: uma User Task pode não ter formulário associado); quando ausente, `message_text` guarda a mensagem exibida ao usuário nessa etapa em vez de um formulário — os dois nunca coexistem com sentido (se `form_id` estiver preenchido, `message_text` é ignorado). Na persistência real, `form_id`/`message_text` são atributos do próprio item de `flow.nodes` (JSONB, ver §8-9) — não existe `user_task_config` como tabela própria, nem como sub-documento separado dentro do nó.
 
 ---
 

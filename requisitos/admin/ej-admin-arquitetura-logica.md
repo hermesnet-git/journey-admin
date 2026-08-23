@@ -369,17 +369,9 @@ O snapshot de publicação também guarda, para cada formulário, uma projeção
 
 Permitir a verificação do caminho e das telas de uma jornada publicada, executando-a de fato contra o motor de runtime real.
 
-## Entidades
+## Persistência
 
-```text
-Execution Run
-
-Execution Step
-
-Execution Result
-```
-
-Antes de persistir cada `Execution Step`, o backend deve percorrer `Flow Node → Flow → Journey` e confirmar que o nó pertence à mesma jornada da `Execution Run`. Passos de outra jornada não devem ser persistidos.
+A execução roda inteiramente contra o motor de runtime e é acompanhada em tempo real pelo frontend — não existe um agregado Execution Run/Step/Result persistido pelo Admin Portal. O único registro que sobrevive no banco do Admin Portal é um Audit Event genérico (`EXECUTION_START`) marcando que uma execução foi iniciada (Domínio 09 — Audit Management).
 
 ## Fluxo de Publicação e Execução
 
@@ -388,11 +380,9 @@ flowchart TD
     JOURNEY[Journey]
     PUBLICATION[Publication]
     EXECUTION[Execution]
-    RESULT[Execution Result]
 
     JOURNEY --> PUBLICATION
     PUBLICATION --> EXECUTION
-    EXECUTION --> RESULT
 ```
 
 ---
@@ -638,12 +628,10 @@ O Admin Portal nunca acessa o cofre de segredos nem o broker diretamente (mesmo 
 | Flow | Estrutura visual da jornada |
 | Flow Node | Elemento do fluxo: Start, End ou User Task |
 | Flow Connection | Conexão entre nós do fluxo |
+| Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
 | User Task Configuration | Associação entre uma User Task e seu formulário |
 | Form | Formulário utilizado por User Tasks |
 | Form Component | Componente visual de um formulário |
-| Execution Run | Execução da jornada |
-| Execution Step | Etapa registrada durante a execução |
-| Execution Result | Resultado consolidado da execução |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault, usada por um conector de mensageria |

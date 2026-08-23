@@ -279,6 +279,7 @@ Especificação OpenAPI
 | Flow | Estrutura visual da jornada |
 | Flow Node | Elemento individual do fluxo |
 | Flow Connection | Conexão entre elementos do fluxo |
+| Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
 | Service Task | Tarefa que executa uma integração externa |
 | Receive Task | Tarefa que aguarda uma mensagem externa |
 | Message Start Event | Elemento que inicia uma jornada por mensagem externa |
@@ -286,9 +287,6 @@ Especificação OpenAPI
 | User Task Configuration | Associação entre uma User Task e seu formulário |
 | Form | Formulário utilizado por User Tasks |
 | Form Component | Componente visual pertencente a um formulário |
-| Execution Run | Execução da jornada |
-| Execution Step | Etapa executada durante a execução |
-| Execution Result | Resultado consolidado da execução |
 | Journey Version | Versão imutável de uma jornada |
 | Journey Publication | Snapshot de uma versão enviado para a API de publicação do runtime |
 | External Identity Provider | Provedor externo de autenticação, mockado na versão 1.0.0 |

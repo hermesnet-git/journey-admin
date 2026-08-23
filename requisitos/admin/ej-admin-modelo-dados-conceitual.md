@@ -8,7 +8,7 @@
 
 # 1. Objetivo
 
-Este documento descreve o modelo de dados conceitual do Elastic Journey Admin Portal, abrangendo produtos, canais, jornadas, fluxos, formulários, execução e publicação.
+Este documento descreve o modelo de dados conceitual do Elastic Journey Admin Portal, abrangendo produtos, canais, jornadas, fluxos, formulários e publicação.
 
 ---
 
@@ -46,6 +46,10 @@ A versão 1.0.0 contempla versionamento de jornadas, autenticação mockada, aut
 
 Os logs técnicos de observabilidade (requisições de API e transações de persistência, FT-10) não constituem entidade de domínio: não são armazenados em banco de dados, ao contrário do Audit Event. Por isso não aparecem nas seções seguintes deste documento.
 
+## 2.8 Execução Não É Uma Entidade Persistida
+
+A execução de uma jornada publicada roda inteiramente contra o motor de runtime (fora do domínio deste portal) e é acompanhada em tempo real pelo frontend, sem passar por um agregado próprio do Admin Portal — não existe um Execution Run/Step/Result persistido. O único vestígio que sobrevive no banco do Admin Portal é um Audit Event genérico (`EXECUTION_START`) registrando que uma execução foi iniciada. Por isso não aparece como entidade nas seções seguintes deste documento.
+
 ---
 
 # 3. Visão Conceitual
@@ -57,7 +61,6 @@ flowchart TD
     JOURNEY[Journey]
     FLOW[Flow]
     FORMS[Forms]
-    EXECUTION[Execution Run]
     VERSION[Journey Version]
     PUBLICATION[Journey Publication]
     USER[User / Role]
@@ -66,7 +69,6 @@ flowchart TD
     PRODUCT --> CHANNEL
     CHANNEL --> JOURNEY
     JOURNEY --> FLOW
-    JOURNEY --> EXECUTION
     JOURNEY --> VERSION
     JOURNEY --> PUBLICATION
     USER --> AUDIT
@@ -87,12 +89,8 @@ flowchart TD
 | Flow Node | Elemento posicionado no canvas: Start, Message Start Event, User Task, Service Task, Receive Task, Gateway ou End |
 | Flow Connection | Conexão entre nós do fluxo |
 | Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
-| User Task Configuration | Associação entre uma User Task e um formulário |
 | Form | Formulário reutilizável utilizado por User Tasks |
-| Form Component | Elemento visual pertencente a um formulário |
-| Execution Run | Execução da jornada |
-| Execution Step | Etapa registrada durante a execução |
-| Execution Result | Resultado consolidado da execução |
+| Form Field | Campo pertencente a um formulário |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Journey Version | Versão imutável de uma jornada |
 | User / Role | Identidade autenticada e papel de autorização |
@@ -233,20 +231,20 @@ RECEIVE_TASK        → bpmn:receiveTask
 MESSAGE_START_EVENT → bpmn:startEvent + messageEventDefinition
 ```
 
-Connector configuration is declarative and stored with the flow snapshot. Credential values are not stored; a messaging connector (`KAFKA`/`EVENT_HUBS`/`SERVICE_BUS`) references a `Credential Reference` from the Integration Catalog (Section 14) instead of free text. Output mapping follows a defined structure (a list of `name`/`jsonPath` rules) rather than free-form JSON; input fields (URL, headers, body/payload) may reference variables from prior steps via `{{name}}`.
+Connector configuration is declarative and stored with the flow snapshot. Credential values are not stored; a messaging connector (`KAFKA`/`EVENT_HUBS`/`SERVICE_BUS`) references a `Credential Reference` from the Integration Catalog (Section 13) instead of free text. Output mapping follows a defined structure (a list of `name`/`jsonPath` rules) rather than free-form JSON; input fields (URL, headers, body/payload) may reference variables from prior steps via `{{name}}`.
 
 # 10. User Task Configuration
 
-Associa um nó `USER_TASK` a um formulário. Na versão 1.0.0, a associação é opcional: cada User Task pode possuir zero ou uma configuração e, quando configurada, referencia exatamente um formulário.
+Par de atributos (`formId`, `messageText`) que a API expõe agrupado sob o nome `User Task Configuration` — não é uma entidade com identidade própria: pertence ao próprio `Flow Node`, dentro do mesmo documento `jsonb` do `Flow` (ver §8), e não existe fora dele (não tem id, não é criada/consultada/removida separadamente). Só é relevante para um `Flow Node` do tipo `USER_TASK`.
+
+Na versão 1.0.0, a associação é opcional: cada `USER_TASK` referencia zero ou um `Form` (`formId`). Quando ausente, `messageText` guarda a mensagem de texto exibida ao usuário nessa etapa em vez de um formulário (REQ-04.01.005) — os dois nunca coexistem com sentido.
 
 ```mermaid
 flowchart LR
-    USER_TASK[User Task]
-    CONFIG[User Task Configuration]
+    USER_TASK[Flow Node · USER_TASK]
     FORM[Form]
 
-    USER_TASK --> CONFIG
-    CONFIG --> FORM
+    USER_TASK -.->|formId, opcional| FORM
 ```
 
 ---
@@ -273,37 +271,13 @@ Cada campo (`Form Field`) possui um `name` técnico, único dentro do formulári
 
 Um formulário pode ser utilizado por User Tasks de jornadas diferentes. Ao publicar uma jornada, o conteúdo de cada formulário referenciado é copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras no formulário original (mesmo princípio de congelamento do versionamento de jornada). O snapshot de publicação também guarda, para cada formulário, uma representação derivada em árvore de nós no formato `[tag, props, children]` (estilo SDUI/hyperscript) — uma projeção de leitura gerada a partir do Form Field congelado, e não um formato de armazenamento do form em edição.
 
----
+## Persistência
 
-# 12. Execution Run, Execution Step e Execution Result
-
-## Execution Run
-
-Execução da jornada publicada, permitindo verificar seu caminho e suas telas contra o motor de runtime real.
-
-## Execution Step
-
-Etapa percorrida durante a execução, associada a um nó do fluxo.
-
-## Execution Result
-
-Resultado consolidado contendo o caminho executado e o resumo da execução.
-
-```mermaid
-flowchart TD
-    JOURNEY[Journey]
-    PUBLICATION[Journey Publication]
-    EXECUTION[Execution Run]
-    RESULT[Execution Result]
-
-    JOURNEY --> PUBLICATION
-    PUBLICATION --> EXECUTION
-    EXECUTION --> RESULT
-```
+Os `Form Field` de um formulário são persistidos como um único documento `jsonb` (`Form.fields`) — não são normalizados em tabela própria, mesmo caso do `Flow` (ver §8). Cada campo não tem um id UUID próprio: sua chave real é o `name` técnico, definido pelo usuário e único apenas dentro do formulário (garantido em memória na criação/edição, não por constraint de banco).
 
 ---
 
-# 13. Journey Publication
+# 12. Journey Publication
 
 ## Descrição
 
@@ -335,7 +309,7 @@ Ao despublicar, o Admin Portal chama a API mockada do runtime. Somente após o r
 
 ---
 
-# 14. Messaging Cluster e Credential Reference
+# 13. Messaging Cluster e Credential Reference
 
 ## Messaging Cluster
 
@@ -369,7 +343,7 @@ Messaging Cluster 1 → 0..N Credential Reference
 
 ---
 
-# 15. AI Provider Credential
+# 14. AI Provider Credential
 
 Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida do Journey Modeler (Seção 9). Entidade isolada, sem relacionamento com nenhuma outra — não pertence ao mesmo agrupamento de `Messaging Cluster`/`Credential Reference`, por servir um único consumidor (a geração de fluxo), não um framework de conectores com múltiplos tipos.
 
@@ -377,11 +351,11 @@ Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo a
 Provedor, Chave de API, Data de criação, Data de atualização
 ```
 
-Diferente de `Credential Reference`, esta entidade armazena o valor do segredo — exceção deliberada e temporária ao princípio de nunca persistir um segredo (ver Seção 14), com pendência de criptografia registrada como TODO no código antes de produção. A API nunca retorna o valor da chave, apenas se o provedor está configurado e a data da última atualização.
+Diferente de `Credential Reference`, esta entidade armazena o valor do segredo — exceção deliberada e temporária ao princípio de nunca persistir um segredo (ver Seção 13), com pendência de criptografia registrada como TODO no código antes de produção. A API nunca retorna o valor da chave, apenas se o provedor está configurado e a data da última atualização.
 
 ---
 
-# 16. Relacionamentos das Entidades
+# 15. Relacionamentos das Entidades
 
 | Origem | Destino | Cardinalidade |
 |--------|---------|---------------|
@@ -392,12 +366,8 @@ Diferente de `Credential Reference`, esta entidade armazena o valor do segredo �
 | Flow | Flow Connection | 1:N |
 | Flow | Flow Annotation | 1:N |
 | Flow Annotation | Flow Node | N:M |
-| Flow Node | User Task Configuration | 1:0..1 |
-| Form | User Task Configuration | 1:N |
-| Form | Form Component | 1:N |
-| Journey | Execution Run | 1:N |
-| Execution Run | Execution Step | 1:N |
-| Execution Run | Execution Result | 1:0..1 |
+| Flow Node | Form | N:0..1 |
+| Form | Form Field | 1:N |
 | Journey | Journey Publication | 1:0..1 |
 | Journey | Journey Version | 1:N |
 | Journey Version | Journey Publication | 1:0..1 |
@@ -406,7 +376,7 @@ Diferente de `Credential Reference`, esta entidade armazena o valor do segredo �
 
 ---
 
-# 17. Diagrama ER Conceitual
+# 16. Diagrama ER Conceitual
 
 ```mermaid
 erDiagram
@@ -419,13 +389,8 @@ erDiagram
     FLOW ||--o{ FLOW_ANNOTATION : annotates
     FLOW_ANNOTATION }o--o{ FLOW_NODE : links_to
 
-    FLOW_NODE ||--o| USER_TASK_CONFIG : configures
-    FORM ||--o{ USER_TASK_CONFIG : serves
-    FORM ||--o{ FORM_COMPONENT : contains
-
-    JOURNEY ||--o{ EXECUTION_RUN : executes
-    EXECUTION_RUN ||--o{ EXECUTION_STEP : contains
-    EXECUTION_RUN ||--o| EXECUTION_RESULT : generates
+    FLOW_NODE }o--o| FORM : may_reference
+    FORM ||--o{ FORM_FIELD : contains
 
     JOURNEY ||--o| JOURNEY_PUBLICATION : publishes
     JOURNEY ||--o{ JOURNEY_VERSION : versions
@@ -440,7 +405,7 @@ erDiagram
 
 ---
 
-# 18. Glossário
+# 17. Glossário
 
 | Conceito | Descrição |
 |----------|-----------|
@@ -449,9 +414,8 @@ erDiagram
 | Journey | Jornada específica de um canal |
 | Flow / Flow Node / Flow Connection | Estrutura visual da jornada e seus elementos |
 | Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
-| User Task Configuration | Associação entre User Task e Form |
-| Form / Form Component | Formulário e seus componentes visuais |
-| Execution Run / Step / Result | Execução, etapas e resultado |
+| User Task Configuration | Par `formId`/`messageText` embutido num Flow Node `USER_TASK` — não é uma entidade própria |
+| Form / Form Field | Formulário e os campos que o compõem |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
@@ -459,6 +423,6 @@ erDiagram
 
 ---
 
-# 19. Resumo Conceitual
+# 18. Resumo Conceitual
 
-O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo, execuções e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, eventos de auditoria registram operações relevantes sem dados sensíveis, e um catálogo de clusters de mensageria e referências de credencial dá suporte aos conectores de mensageria configurados no fluxo.
+O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, eventos de auditoria registram operações relevantes sem dados sensíveis, e um catálogo de clusters de mensageria e referências de credencial dá suporte aos conectores de mensageria configurados no fluxo.

@@ -16,6 +16,8 @@ Referência semântica das entidades e campos do Elastic Journey Admin Portal.
 
 Os logs técnicos de observabilidade (requisições de API e transações de persistência, FT-10) não são persistidos em banco de dados e, portanto, não possuem entrada neste dicionário. Não confundir com o Audit Event (seção de auditoria), que é persistido.
 
+A execução de uma jornada publicada roda inteiramente contra o motor de runtime, acompanhada em tempo real pelo frontend — não existe um agregado ExecutionRun/ExecutionStep/ExecutionResult persistido pelo Admin Portal, e por isso essas entradas não aparecem neste dicionário. O único registro que sobrevive no banco do Admin Portal é um Audit Event genérico (`EXECUTION_START`) marcando que uma execução foi iniciada.
+
 # 2. Convenções
 
 ## Tipos de Dados
@@ -235,47 +237,7 @@ Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, 
 
 ---
 
-# 13. ExecutionRun
-
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| ExecutionId | UUID | Sim | Identificador da execução |
-| JourneyId | UUID | Sim | Jornada executada |
-| InputData | JSONB | Não | Dados informados para os formulários durante a execução |
-| ExecutedAt | TIMESTAMPTZ | Sim | Data da execução |
-| Status | VARCHAR(20) | Sim | `RUNNING`, `COMPLETED`, `FAILED` ou `CANCELLED` |
-
----
-
-# 14. ExecutionStep
-
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| StepId | UUID | Sim | Identificador da etapa |
-| ExecutionId | UUID | Sim | Execução proprietária |
-| NodeId | UUID | Sim | Nó executado |
-| StepOrder | INTEGER | Sim | Ordem da etapa |
-| StartedAt | TIMESTAMPTZ | Não | Início da etapa |
-| FinishedAt | TIMESTAMPTZ | Não | Fim da etapa |
-| Result | VARCHAR(20) | Não | `SUCCESS`, `FAILED` ou `SKIPPED` |
-| FormData | JSONB | Não | Dados do formulário apresentado na etapa |
-
-O backend deve registrar o passo somente quando `NodeId` pertencer ao fluxo da mesma jornada indicada pela `ExecutionRun`.
-
----
-
-# 15. ExecutionResult
-
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| ResultId | UUID | Sim | Identificador do resultado |
-| ExecutionId | UUID | Sim | Execução relacionada |
-| ExecutedPath | JSONB | Não | Caminho percorrido |
-| ExecutionSummary | JSONB | Não | Resumo consolidado |
-
----
-
-# 16. JourneyPublication
+# 13. JourneyPublication
 
 Na versão 1.0.0, a publicação ativa deve referenciar uma `JourneyVersion`. Versões publicadas são imutáveis e versões anteriores devem ser preservadas.
 
@@ -297,7 +259,7 @@ Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somen
 
 ---
 
-# 17. JourneyVersion
+# 14. JourneyVersion
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -317,7 +279,7 @@ Versões `PUBLISHED` são imutáveis. Restauração e rollback não fazem parte 
 
 ---
 
-# 18. User e Role
+# 15. User e Role
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -332,7 +294,7 @@ A versão 1.0.0 deve disponibilizar o usuário `admin`, senha `admin` e papel `A
 
 ---
 
-# 19. AuditEvent
+# 16. AuditEvent
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -351,7 +313,7 @@ Auditoria não deve armazenar senhas, tokens, secrets ou credenciais.
 
 ---
 
-# 20. MessagingCluster
+# 17. MessagingCluster
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -367,7 +329,7 @@ A empresa opera múltiplos clusters corporativos por tipo. A desativação é bl
 
 ---
 
-# 21. CredentialReference
+# 18. CredentialReference
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -384,7 +346,7 @@ Nunca armazena o valor de um segredo, em nenhuma circunstância. A resolução d
 
 ---
 
-# 22. AiProviderCredential
+# 19. AiProviderCredential
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
@@ -398,19 +360,18 @@ Entidade isolada, sem chave estrangeira. Diferente de `CredentialReference`, arm
 
 ---
 
-# 23. Glossário Geral
+# 20. Glossário Geral
 
 | Conceito | Descrição |
 |----------|-----------|
 | Product | Produto ou serviço digital |
 | Channel | Aplicação ou interface de atendimento de um produto |
 | Journey | Jornada específica de um canal |
-| Flow / FlowNode / FlowConnection | Estrutura visual da jornada |
+| Flow / FlowNode / FlowConnection / FlowAnnotation | Estrutura visual da jornada e suas notas de documentação |
 | IntegrationTaskConfig | Configuração de integração e conector de uma Service Task, Receive Task ou Message Start Event |
 | ConnectorType | Tipo de conector habilitado ou catalogado como desabilitado |
 | UserTaskConfig | Associação entre User Task e Form |
 | Form / FormField | Formulário e campos que o compõem |
-| ExecutionRun / Step / Result | Execução, etapas e resultado |
 | JourneyPublication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | MessagingCluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | CredentialReference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
@@ -418,6 +379,6 @@ Entidade isolada, sem chave estrangeira. Diferente de `CredentialReference`, arm
 
 ---
 
-# 24. Resumo
+# 21. Resumo
 
-O dicionário descreve a hierarquia Product → Channel → Journey, o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual, formulários, execução e publicação de jornadas específicas por canal, e do catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.
+O dicionário descreve a hierarquia Product → Channel → Journey, o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual, formulários e publicação de jornadas específicas por canal, e do catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.

@@ -35,7 +35,6 @@ tags:
   - name: Journeys
   - name: Flows
   - name: Forms
-  - name: Execution
   - name: Publications
   - name: Authentication
   - name: Versions
@@ -960,64 +959,6 @@ paths:
         '204':
           description: Form deleted
 
-  /journeys/{journeyId}/executions:
-    post:
-      tags: [Execution]
-      summary: Start journey execution
-      operationId: startExecution
-      parameters:
-        - $ref: '#/components/parameters/JourneyId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExecutionRequest'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '201':
-          description: Execution started
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExecutionRun'
-
-  /executions/{executionId}:
-    get:
-      tags: [Execution]
-      summary: Get execution
-      operationId: getExecution
-      parameters:
-        - $ref: '#/components/parameters/ExecutionId'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Execution details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExecutionDetails'
-
   /publications:
     get:
       tags: [Publications]
@@ -1225,14 +1166,6 @@ components:
 
     FormId:
       name: formId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-
-    ExecutionId:
-      name: executionId
       in: path
       required: true
       schema:
@@ -1493,7 +1426,7 @@ components:
       type: object
       description: >
         Persisted as a single JSONB document per journey (flow, journeyId,
-        name, nodes, connections). flowId, FlowNode.nodeId and
+        name, nodes, connections, annotations). flowId, FlowNode.nodeId and
         FlowConnection.connectionId are the identifiers later embedded
         verbatim as BPMN element ids by the runtime when the flow is
         translated to a runtime engine process definition; XML ID/NCName forbids an
@@ -1502,8 +1435,9 @@ components:
         + UUID (Process_<uuid>, Node_<uuid>, Flow_<uuid> respectively), never
         a bare UUID. All other entity identifiers in this API (productId,
         channelId, journeyId, formId, ...) never appear inside generated BPMN
-        XML and remain plain UUIDs.
-      required: [flowId, journeyId, name, nodes, connections]
+        XML and remain plain UUIDs. annotations are canvas-only notes, never
+        translated to BPMN and never embedded with a runtime-facing id.
+      required: [flowId, journeyId, name, nodes, connections, annotations]
       properties:
         flowId:
           type: string
@@ -1521,6 +1455,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FlowConnection'
+        annotations:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowAnnotation'
 
     FlowNode:
       type: object
@@ -1678,6 +1616,31 @@ components:
           type: string
           example: Node_f47ac10b-58cc-4372-a567-0e02b2c3d479
 
+    FlowAnnotation:
+      type: object
+      description: >
+        Free-floating note on the flow canvas, documentation-only — never
+        validated by FlowValidator, never translated to BPMN. id is a plain
+        Annotation_<uuid> by convention, never embedded in generated BPMN
+        XML, so it carries no NCName constraint.
+      required: [id, text, positionX, positionY]
+      properties:
+        id:
+          type: string
+          example: Annotation_f47ac10b-58cc-4372-a567-0e02b2c3d479
+        text:
+          type: string
+        positionX:
+          type: integer
+        positionY:
+          type: integer
+        linkedNodeIds:
+          type: array
+          items:
+            type: string
+            example: Node_f47ac10b-58cc-4372-a567-0e02b2c3d479
+          description: FlowNode ids in the same flow this note is visually tied to (dashed line in the editor). Informational only.
+
     FormInput:
       type: object
       required: [code, name, fields]
@@ -1818,74 +1781,6 @@ components:
             field-by-field here.
           type: array
           items: {}
-
-    ExecutionRequest:
-      type: object
-      properties:
-        inputData:
-          type: object
-          additionalProperties: true
-
-    ExecutionRun:
-      type: object
-      required: [executionId, journeyId, status, executedAt]
-      properties:
-        executionId:
-          type: string
-          format: uuid
-        journeyId:
-          type: string
-          format: uuid
-        status:
-          type: string
-          enum: [RUNNING, COMPLETED, FAILED, CANCELLED]
-        executedAt:
-          type: string
-          format: date-time
-
-    ExecutionStep:
-      type: object
-      required: [stepId, nodeId, stepOrder]
-      properties:
-        stepId:
-          type: string
-          format: uuid
-        nodeId:
-          type: string
-          format: uuid
-        stepOrder:
-          type: integer
-        result:
-          type: string
-          enum: [SUCCESS, FAILED, SKIPPED]
-        formData:
-          type: object
-          additionalProperties: true
-
-    ExecutionResult:
-      type: object
-      properties:
-        executedPath:
-          type: array
-          items:
-            type: string
-            format: uuid
-        executionSummary:
-          type: object
-          additionalProperties: true
-
-    ExecutionDetails:
-      type: object
-      required: [execution, steps]
-      properties:
-        execution:
-          $ref: '#/components/schemas/ExecutionRun'
-        steps:
-          type: array
-          items:
-            $ref: '#/components/schemas/ExecutionStep'
-        result:
-          $ref: '#/components/schemas/ExecutionResult'
 
     JourneySnapshot:
       type: object

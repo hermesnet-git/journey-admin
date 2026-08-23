@@ -8,7 +8,7 @@
 
 # 1. Objetivo
 
-Este documento descreve o modelo físico de dados do Elastic Journey Admin Portal para produtos, canais, jornadas, fluxos, formulários, execução e publicação.
+Este documento descreve o modelo físico de dados do Elastic Journey Admin Portal para produtos, canais, jornadas, fluxos, formulários e publicação.
 
 ---
 
@@ -42,6 +42,8 @@ Formulários são ativos reutilizáveis associados às User Tasks por `user_task
 
 Os logs técnicos de observabilidade (FT-10) não são persistidos no PostgreSQL — trafegam por `logback` (console na versão 1.0.0, com ponto de extensão preparado e desativado para ELK) e, por isso, não possuem tabela neste modelo.
 
+A execução de uma jornada publicada roda inteiramente contra o motor de runtime, acompanhada em tempo real pelo frontend — não existe `execution_run`/`execution_step`/`execution_result` neste schema. O único registro que sobrevive no PostgreSQL do Admin Portal é um `audit_event` genérico (`EXECUTION_START`) marcando que uma execução foi iniciada.
+
 `messaging_cluster` e `credential_reference` (FT-14) formam o catálogo de integrações: cada credencial referencia um cluster, e um conector de mensageria de `flow_node` referencia uma credencial por `reference_name` (persistido dentro do documento `jsonb` do fluxo, não por chave estrangeira de banco — mesma limitação já descrita para `flow_node`/`flow_connection` no §9). Nunca armazenam o valor de um segredo — só a referência ao Azure Key Vault.
 
 `ai_provider_credential` (FT-14 US-14.06) é uma tabela isolada, sem relacionamento com as demais: guarda a credencial de API de um provedor de IA (Gemini) usada pela geração de fluxo assistida (FT-03 US-03.17). Diferente de `credential_reference`, armazena o segredo em texto plano — desvio deliberado e temporário do princípio de nunca persistir segredo, documentado como TODO no código.
@@ -61,9 +63,6 @@ flow_annotation
 form
 form_field
 user_task_config
-execution_run
-execution_step
-execution_result
 journey_publication
 journey_version
 audit_event
@@ -289,60 +288,7 @@ CREATE TABLE user_task_config (
 
 ---
 
-# 14. Tabela ExecutionRun
-
-```sql
-CREATE TABLE execution_run (
-    execution_id UUID PRIMARY KEY,
-    journey_id UUID NOT NULL,
-    input_data JSONB,
-    executed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) NOT NULL CHECK (
-        status IN ('RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED')
-    ),
-    FOREIGN KEY (journey_id) REFERENCES journey(journey_id)
-);
-```
-
----
-
-# 15. Tabela ExecutionStep
-
-```sql
-CREATE TABLE execution_step (
-    step_id UUID PRIMARY KEY,
-    execution_id UUID NOT NULL,
-    node_id UUID NOT NULL,
-    step_order INTEGER NOT NULL,
-    started_at TIMESTAMPTZ,
-    finished_at TIMESTAMPTZ,
-    result VARCHAR(20) CHECK (result IN ('SUCCESS', 'FAILED', 'SKIPPED')),
-    form_data JSONB,
-    FOREIGN KEY (execution_id) REFERENCES execution_run(execution_id),
-    FOREIGN KEY (node_id) REFERENCES flow_node(node_id),
-    UNIQUE (execution_id, step_order)
-);
-```
-
-As chaves estrangeiras garantem a existência da execução e do nó, mas não comparam suas jornadas. Antes da persistência, o serviço de execução deve confirmar que `flow_node.flow_id → flow.journey_id` corresponde a `execution_run.journey_id`.
-
----
-
-# 16. Tabela ExecutionResult
-
-```sql
-CREATE TABLE execution_result (
-    result_id UUID PRIMARY KEY,
-    execution_id UUID NOT NULL UNIQUE,
-    executed_path JSONB,
-    execution_summary JSONB,
-    FOREIGN KEY (execution_id) REFERENCES execution_run(execution_id)
-);
-```
-
----
-
-# 17. Tabela JourneyPublication
+# 14. Tabela JourneyPublication
 
 Atualização do escopo: `journey_publication` representa a publicação ativa e deve possuir `version_id` apontando para a `journey_version` publicada. Versões anteriores não são sobrescritas.
 
@@ -370,7 +316,7 @@ A chave estrangeira sem `ON DELETE CASCADE` impede a exclusão física de uma jo
 
 ---
 
-# 18. Tabela JourneyVersion
+# 15. Tabela JourneyVersion
 
 ```sql
 CREATE TABLE journey_version (
@@ -394,7 +340,7 @@ Versões publicadas são imutáveis. A versão 1.0.0 não contempla restauraçã
 
 ---
 
-# 19. Tabelas de Identidade e Auditoria
+# 16. Tabelas de Identidade e Auditoria
 
 A versão 1.0.0 utiliza provedor externo mockado. O usuário `admin`, com senha `admin` e papel `ADMIN`, pode ser representado por configuração mockada; a senha não deve ser persistida nem auditada.
 
@@ -417,7 +363,7 @@ Registros de auditoria são protegidos contra edição e remoção por operaçõ
 
 ---
 
-# 20. Tabela MessagingCluster
+# 17. Tabela MessagingCluster
 
 ```sql
 CREATE TABLE messaging_cluster (
@@ -437,7 +383,7 @@ CREATE TABLE messaging_cluster (
 
 ---
 
-# 21. Tabela CredentialReference
+# 18. Tabela CredentialReference
 
 ```sql
 CREATE TABLE credential_reference (
@@ -458,7 +404,7 @@ CREATE TABLE credential_reference (
 
 ---
 
-# 22. Tabela AiProviderCredential
+# 19. Tabela AiProviderCredential
 
 ```sql
 CREATE TABLE ai_provider_credential (
@@ -474,7 +420,7 @@ Tabela isolada, sem chave estrangeira — `provider` é único por natureza (um 
 
 ---
 
-# 23. Chaves Primárias
+# 20. Chaves Primárias
 
 | Tabela | PK |
 |--------|----|
@@ -487,9 +433,6 @@ Tabela isolada, sem chave estrangeira — `provider` é único por natureza (um 
 | form | form_id |
 | form_field | (form_id, name) |
 | user_task_config | node_id |
-| execution_run | execution_id |
-| execution_step | step_id |
-| execution_result | result_id |
 | journey_publication | publication_id |
 | journey_version | version_id |
 | audit_event | audit_event_id |
@@ -499,7 +442,7 @@ Tabela isolada, sem chave estrangeira — `provider` é único por natureza (um 
 
 ---
 
-# 24. Chaves Estrangeiras Principais
+# 21. Chaves Estrangeiras Principais
 
 | Origem | Destino |
 |--------|---------|
@@ -512,10 +455,6 @@ Tabela isolada, sem chave estrangeira — `provider` é único por natureza (um 
 | form_field.form_id | form.form_id |
 | user_task_config.node_id | flow_node.node_id |
 | user_task_config.form_id | form.form_id |
-| execution_run.journey_id | journey.journey_id |
-| execution_step.execution_id | execution_run.execution_id |
-| execution_step.node_id | flow_node.node_id |
-| execution_result.execution_id | execution_run.execution_id |
 | journey_publication.journey_id | journey.journey_id |
 | journey_version.journey_id | journey.journey_id |
 | journey_publication.version_id | journey_version.version_id |
@@ -523,7 +462,7 @@ Tabela isolada, sem chave estrangeira — `provider` é único por natureza (um 
 
 ---
 
-# 25. Estratégia de Índices
+# 22. Estratégia de Índices
 
 ```sql
 CREATE INDEX idx_product_status ON product(status);
@@ -546,9 +485,6 @@ CREATE INDEX idx_form_status ON form(status);
 CREATE INDEX idx_form_field_form ON form_field(form_id);
 CREATE INDEX idx_user_task_form ON user_task_config(form_id);
 
-CREATE INDEX idx_execution_journey ON execution_run(journey_id);
-CREATE INDEX idx_execution_step_run ON execution_step(execution_id);
-
 CREATE INDEX idx_publication_status ON journey_publication(publication_status);
 CREATE INDEX idx_publication_snapshot ON journey_publication USING GIN (journey_snapshot);
 CREATE INDEX idx_journey_version_journey ON journey_version(journey_id, version_number);
@@ -565,7 +501,7 @@ CREATE INDEX idx_credential_reference_status ON credential_reference(status);
 
 ---
 
-# 26. Estratégia de Consulta
+# 23. Estratégia de Consulta
 
 ```text
 Pesquisar produtos e listar seus canais
@@ -587,7 +523,7 @@ Consultar clusters e credenciais do catálogo de integrações por tipo, cluster
 
 ---
 
-# 27. Estratégia de Publicação
+# 24. Estratégia de Publicação
 
 `journey_publication` mantém o snapshot da versão publicada separado da jornada em edição. A restrição `UNIQUE (journey_id)` garante no máximo uma publicação ativa por jornada. Uma nova publicação deve apontar para uma nova `journey_version` e preservar os snapshots anteriores.
 
@@ -619,7 +555,7 @@ Antes de desativar uma jornada, um canal ou um produto, o backend deve consultar
 
 ---
 
-# 28. Diagrama ER Físico
+# 25. Diagrama ER Físico
 
 ```mermaid
 erDiagram
@@ -634,10 +570,6 @@ erDiagram
     FORM ||--o{ USER_TASK_CONFIG : serves
     FORM ||--o{ FORM_COMPONENT : contains
 
-    JOURNEY ||--o{ EXECUTION_RUN : executes
-    EXECUTION_RUN ||--o{ EXECUTION_STEP : contains
-    EXECUTION_RUN ||--o| EXECUTION_RESULT : generates
-
     JOURNEY ||--o| JOURNEY_PUBLICATION : publishes
     JOURNEY ||--o{ JOURNEY_VERSION : versions
     JOURNEY_VERSION ||--o| JOURNEY_PUBLICATION : published_as
@@ -648,7 +580,7 @@ erDiagram
 
 ---
 
-# 29. Considerações de Evolução
+# 26. Considerações de Evolução
 
 ```text
 Templates e clonagem entre canais
@@ -664,6 +596,6 @@ Resolução real de credencial via Azure Key Vault (Workload Identity/AKS) — h
 
 ---
 
-# 30. Resumo Técnico
+# 27. Resumo Técnico
 
-O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, registra execuções, possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado, eventos de auditoria sem dados sensíveis e o catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.
+O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado, eventos de auditoria sem dados sensíveis e o catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.

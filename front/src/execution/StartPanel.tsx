@@ -155,7 +155,7 @@ export function StartPanel({ journey, onStarted }: Props) {
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={manualKafkaControl} onChange={(e) => setManualKafkaControl(e.target.checked)} />
               <Text size={13} color={skinVars.colors.textPrimary}>
-                Controlar mensagens Kafka manualmente nesta execução
+                Controlar tarefas assíncronas manualmente nesta execução
               </Text>
             </label>
           )}

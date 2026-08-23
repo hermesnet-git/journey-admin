@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -135,8 +136,14 @@ public final class FlowValidator {
                 }
                 case USER_TASK, SERVICE_TASK, RECEIVE_TASK -> {
                     if (in < 1 || out != 1) {
+                        // Dica só quando a causa provável é tentar ramificar direto daqui (out > 1) —
+                        // é o erro mais comum tanto de quem desenha na mão quanto da geração por IA
+                        // (ver FlowGenerationPrompt): a intenção é uma decisão, mas falta o GATEWAY.
+                        String hint = out > 1
+                                ? " (para ramificar a partir daqui, insira um GATEWAY logo depois — este tipo de nó nunca tem mais de uma saída)"
+                                : "";
                         violations.add("Nó " + node.getType() + " '" + node.getName()
-                                + "' deve ter ao menos uma entrada e exatamente uma saída");
+                                + "' deve ter ao menos uma entrada e exatamente uma saída" + hint);
                     }
                 }
                 case END -> {
@@ -196,7 +203,7 @@ public final class FlowValidator {
                     for (String token : usedTokens) {
                         if (!availableVars.contains(token)) {
                             violations.add("Nó '" + node.getName() + "' referencia variável não declarada '{{" + token
-                                    + "}}'");
+                                    + "}}'" + describeAvailableVars(availableVars));
                         }
                     }
                 }
@@ -213,7 +220,7 @@ public final class FlowValidator {
                     for (String token : usedTokens) {
                         if (!availableVars.contains(token)) {
                             violations.add("A mensagem do nó '" + node.getName() + "' referencia variável não declarada '{{"
-                                    + token + "}}'");
+                                    + token + "}}'" + describeAvailableVars(availableVars));
                         }
                     }
                 }
@@ -228,6 +235,19 @@ public final class FlowValidator {
                 continue;
             }
             for (FlowConnection connection : outgoingConnections.getOrDefault(node.getId(), List.of())) {
+                // Uma condição gerada com aspas escapadas por barra invertida (\" ou \') nunca é
+                // válida em JUEL — o parser do Camunda rejeita o processo inteiro no deploy
+                // ("lexical error ... encountered invalid character '\'"), só perceptível como um
+                // 502 opaco na publicação. Modelos de IA às vezes produzem isso ao tentar escapar
+                // aspas dentro de um valor de condição (ex.: {{campo}} == \"valor\" em vez de
+                // {{campo}} == "valor") — pegar aqui barra o salvamento/candidato de IA cedo, com
+                // mensagem acionável, em vez de deixar estourar só na publicação.
+                if (connection.getCondition() != null
+                        && (connection.getCondition().contains("\\\"") || connection.getCondition().contains("\\'"))) {
+                    violations.add("A condição do nó GATEWAY '" + node.getName()
+                            + "' contém aspas escapadas com barra invertida (\\\" ou \\'), inválidas em JUEL — use aspas"
+                            + " diretas, sem escapar, ex.: {{campo}} == \"valor\".");
+                }
                 Set<String> usedTokens = new HashSet<>();
                 collectVariableTokens(connection.getCondition(), usedTokens);
                 if (usedTokens.isEmpty()) {
@@ -237,7 +257,7 @@ public final class FlowValidator {
                 for (String token : usedTokens) {
                     if (!availableVars.contains(token)) {
                         violations.add("A condição do nó GATEWAY '" + node.getName() + "' referencia variável não declarada '{{"
-                                + token + "}}'");
+                                + token + "}}'" + describeAvailableVars(availableVars));
                     }
                 }
             }
@@ -405,6 +425,17 @@ public final class FlowValidator {
             }
         }
         return availableVars;
+    }
+
+    // Lista as opções reais em vez de só apontar o erro — sem isso, tanto a IA (que só vê a
+    // violação de volta no próximo prompt, sem visão do fluxo inteiro) quanto quem desenha na mão
+    // ficam sem saber se o problema é um nome digitado errado (quase sempre) ou um outputMapping
+    // que realmente falta declarar.
+    private static String describeAvailableVars(Set<String> availableVars) {
+        if (availableVars.isEmpty()) {
+            return " (nenhuma variável disponível ainda neste ponto do fluxo)";
+        }
+        return " — variáveis disponíveis aqui: " + String.join(", ", new TreeSet<>(availableVars));
     }
 
     private static void collectVariableTokens(Object value, Set<String> tokens) {

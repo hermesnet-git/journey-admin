@@ -1,6 +1,7 @@
-import { ChevronDown, Filter, Check } from 'lucide-react';
+import { ChevronDown, Filter, Check, Loader2, MoreVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { ButtonPrimary, ButtonSecondary, ButtonLink, Tag } from '@telefonica/mistica';
 import { useAppTheme, type AppColors } from '../shell/theme';
 
@@ -59,9 +60,9 @@ export function ErrorBanner({ children }: { children: ReactNode }) {
   );
 }
 
-export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+export function TextInput({ style, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   const { colors: c } = useAppTheme();
-  return <input {...props} style={fieldInputStyle(c)} />;
+  return <input {...props} style={{ ...fieldInputStyle(c), ...style }} />;
 }
 
 export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
@@ -190,32 +191,164 @@ export function FilterDropdown({ label, options, value, onChange }: FilterDropdo
   );
 }
 
-interface IconActionProps {
-  icon: ReactNode;
+export interface MenuAction {
+  icon: ComponentType<{ size?: number }>;
   label: string;
-  onClick?: (e: React.MouseEvent) => void;
+  onClick: () => void;
+  variant?: 'default' | 'danger' | 'warning' | 'success';
   disabled?: boolean;
-  danger?: boolean;
+  loading?: boolean;
 }
 
-export function IconAction({ icon, label, onClick, disabled, danger }: IconActionProps) {
+function menuActionColor(c: AppColors, variant: MenuAction['variant']): string {
+  switch (variant) {
+    case 'danger':
+      return c.danger;
+    case 'warning':
+      return c.warning;
+    case 'success':
+      return c.success;
+    default:
+      return c.textPrimary;
+  }
+}
+
+// Reaproveita o mesmo problema de clipping do SearchSelect (flow-designer): a tabela que hospeda
+// isso tem overflow-hidden nos ancestrais, então o menu precisa escapar via portal + position:fixed
+// (regra do impeccable) em vez de position:absolute normal. Sempre alinhado à direita do gatilho —
+// suficiente aqui porque o botão vive sempre na última coluna (borda direita da tabela).
+interface MenuRect {
+  right: number;
+  width: number;
+  top?: number;
+  bottom?: number;
+}
+
+function computeMenuRect(trigger: HTMLElement, width: number): MenuRect {
+  const r = trigger.getBoundingClientRect();
+  const margin = 8;
+  const gap = 4;
+  const spaceBelow = window.innerHeight - r.bottom - margin;
+  const spaceAbove = r.top - margin;
+  const placeBelow = spaceBelow >= spaceAbove;
+  return {
+    right: window.innerWidth - r.right,
+    width,
+    ...(placeBelow ? { top: r.bottom + gap } : { bottom: window.innerHeight - r.top + gap }),
+  };
+}
+
+// Substitui uma fileira de botões de ícone soltos por um único gatilho "⋮" com menu — mesmo padrão
+// de Linear/Notion pra ações de linha de tabela, menos ruído visual que N ícones lado a lado.
+export function ActionsMenu({ actions, label = 'Mais ações' }: { actions: MenuAction[]; label?: string }) {
   const { colors: c } = useAppTheme();
+  const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<ReturnType<typeof computeMenuRect> | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const width = 208;
+
+  function openMenu() {
+    if (triggerRef.current) setRect(computeMenuRect(triggerRef.current, width));
+    setOpen(true);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    function reposition() {
+      if (triggerRef.current) setRect(computeMenuRect(triggerRef.current, width));
+    }
+    window.addEventListener('mousedown', handleClick, true);
+    window.addEventListener('keydown', handleKey);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      window.removeEventListener('mousedown', handleClick, true);
+      window.removeEventListener('keydown', handleKey);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [open]);
+
   return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex items-center justify-center w-7 h-7 rounded-md border-0 bg-transparent cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
-      style={{ color: danger ? c.danger : c.textSecondary }}
-      onMouseEnter={(e) => {
-        if (!disabled) e.currentTarget.style.background = c.hoverBg;
-      }}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-    >
-      {icon}
-    </button>
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        title={label}
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        className="inline-flex items-center justify-center w-7 h-7 rounded-md border-0 bg-transparent cursor-pointer"
+        style={{ color: open ? c.textPrimary : c.textSecondary, background: open ? c.hoverBg : 'transparent' }}
+        onMouseEnter={(e) => {
+          if (!open) e.currentTarget.style.background = c.hoverBg;
+        }}
+        onMouseLeave={(e) => {
+          if (!open) e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        <MoreVertical size={16} />
+      </button>
+      {open &&
+        rect &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            className="fixed z-[2000] py-1 rounded-lg animate-[modal-panel-in_140ms_cubic-bezier(0.16,1,0.3,1)]"
+            style={{
+              right: rect.right,
+              width: rect.width,
+              ...(rect.top !== undefined ? { top: rect.top } : { bottom: rect.bottom }),
+              background: c.surface,
+              border: `1px solid ${c.border}`,
+              boxShadow: `0 12px 32px -10px ${c.shadow}`,
+            }}
+          >
+            {actions.map((action, i) => {
+              const prevVariant = actions[i - 1]?.variant;
+              const showDivider = action.variant === 'danger' && prevVariant !== 'danger' && i > 0;
+              const color = menuActionColor(c, action.variant);
+              const Icon = action.icon;
+              return (
+                <div key={action.label}>
+                  {showDivider && <div className="my-1 h-px" style={{ background: c.border }} />}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={action.disabled || action.loading}
+                    title={action.disabled ? action.label : undefined}
+                    onClick={() => {
+                      setOpen(false);
+                      action.onClick();
+                    }}
+                    className="w-full flex items-center gap-[10px] px-3 py-[8px] text-[13px] text-left border-0 bg-transparent cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{ color }}
+                    onMouseEnter={(e) => {
+                      if (!action.disabled && !action.loading) e.currentTarget.style.background = c.hoverBg;
+                    }}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {action.loading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
+                    {action.label}
+                  </button>
+                </div>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 

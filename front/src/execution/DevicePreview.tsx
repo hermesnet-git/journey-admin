@@ -4,6 +4,7 @@ import type { ConnectorConfigInfo, StepResponse } from './api';
 import { SduiFormRenderer } from './SduiFormRenderer';
 import { PhoneFrame } from './PhoneFrame';
 import { SendTestMessagePanel } from './SendTestMessagePanel';
+import { KafkaManualSendPanel } from './KafkaManualSendPanel';
 
 interface Props {
   channelType: string;
@@ -11,9 +12,14 @@ interface Props {
   busy: boolean;
   connectorConfig: ConnectorConfigInfo | null;
   businessKey: string;
+  // Ligado quando a execução foi iniciada com "controlar mensagens Kafka manualmente" — só afeta o
+  // lado produtor (SERVICE_TASK), que passa a esperar uma ação explícita em vez do worker automático.
+  manualKafkaControl: boolean;
   onCompleteTask: (answers: Record<string, unknown>) => void;
   onSkipStep: () => void;
   onSendTestMessage: (nodeId: string, payload: Record<string, unknown>) => Promise<void>;
+  onSendKafkaMessage: (payload?: Record<string, unknown>) => Promise<void>;
+  onPreviewKafkaMessage: () => Promise<unknown>;
 }
 
 const NODE_TYPE_LABEL: Record<string, string> = {
@@ -27,9 +33,12 @@ export function DevicePreview({
   busy,
   connectorConfig,
   businessKey,
+  manualKafkaControl,
   onCompleteTask,
   onSkipStep,
   onSendTestMessage,
+  onSendKafkaMessage,
+  onPreviewKafkaMessage,
 }: Props) {
   // Só Kafka tem worker automático (produtor) ou faz sentido testar via mensagem real (consumidor)
   // — REST e "sem conector" continuam exatamente como antes, com o botão "Pular etapa".
@@ -53,7 +62,19 @@ export function DevicePreview({
           </Stack>
         )}
 
-        {step.type === 'WAITING' && isKafka && kafkaTopic && step.nodeType === 'SERVICE_TASK' && (
+        {step.type === 'WAITING' && isKafka && kafkaTopic && step.nodeType === 'SERVICE_TASK' && manualKafkaControl && (
+          <Stack space={12}>
+            <KafkaManualSendPanel
+              topic={kafkaTopic}
+              description={`${step.nodeName ?? 'Esta etapa'} está aguardando você — gere a mensagem automaticamente (igual o worker faria) ou digite o payload à mão.`}
+              onSend={onSendKafkaMessage}
+              onPreview={onPreviewKafkaMessage}
+            />
+            <BypassLink onPress={onSkipStep} disabled={busy} />
+          </Stack>
+        )}
+
+        {step.type === 'WAITING' && isKafka && kafkaTopic && step.nodeType === 'SERVICE_TASK' && !manualKafkaControl && (
           <Stack space={12}>
             <Callout
               variant="brand"

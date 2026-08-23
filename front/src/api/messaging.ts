@@ -54,6 +54,19 @@ export function deleteCluster(clusterId: string): Promise<void> {
   return apiDelete<void>(`/messaging-clusters/${clusterId}`);
 }
 
+export interface TopicListingResponse {
+  ok: boolean;
+  message: string | null;
+  topics: string[];
+}
+
+// Sugestão pro seletor de tópico do editor de fluxo — sempre volta 200 (ok:false + mensagem em vez
+// de erro HTTP quando o broker está inacessível), pra nunca bloquear o campo de texto livre.
+export function listClusterTopics(clusterId: string, credentialReferenceName?: string | null): Promise<TopicListingResponse> {
+  const qs = credentialReferenceName ? `?credentialReferenceName=${encodeURIComponent(credentialReferenceName)}` : '';
+  return apiGet<TopicListingResponse>(`/messaging-clusters/${clusterId}/topics${qs}`);
+}
+
 export function listCredentials(params: { q?: string; clusterId?: string } = {}): Promise<CredentialReference[]> {
   const query = new URLSearchParams();
   if (params.q) query.set('q', params.q);

@@ -1,5 +1,7 @@
 package com.jouney.transformpublication.camunda;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -12,6 +14,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Thin client for the Camunda 7 REST API (engine-rest). Deploys BPMN and, on unpublish,
@@ -24,6 +27,10 @@ public class CamundaRestClient {
 
     public record DeploymentResult(String deploymentId, String processDefinitionId) {
     }
+
+    // Only used to pull the "message" field out of Camunda's own error body — internal detail, no
+    // need for the app's shared Jackson config, so a plain instance (same call BpmnTransformer makes).
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final RestClient restClient;
     private final String baseUrl;
@@ -54,9 +61,39 @@ public class CamundaRestClient {
                     .retrieve()
                     .body(Map.class);
             return toDeploymentResult(response);
+        } catch (RestClientResponseException e) {
+            // Camunda answered — it's up, it just rejected this specific BPMN (e.g. an invalid JUEL
+            // expression in a gateway condition). Not an availability problem.
+            throw new CamundaDeploymentException(
+                    "Camunda rejeitou o deploy do processo " + processId + ": " + extractCamundaMessage(e), e);
         } catch (RestClientException e) {
-            throw new CamundaDeploymentException("Failed to deploy process " + processId + " to Camunda", e);
+            // No response at all — connection refused, timeout, DNS failure. This IS an availability
+            // problem, unlike the case above.
+            throw new CamundaUnavailableException("Não foi possível conectar ao Camunda em " + baseUrl, e);
         }
+    }
+
+    // Camunda's own deployment error body is short, genuinely useful JSON (e.g.
+    // {"type":"ProcessEngineException","message":"ENGINE-01009 ... lexical error ..."}) that used to
+    // get thrown away entirely — the caller only ever saw "Failed to deploy process X to Camunda",
+    // with no way to tell a BPMN/JUEL problem in the journey itself from Camunda being down, and no
+    // detail on which expression broke. Pulls just the "message" field so what reaches the Admin
+    // Portal is one clean sentence instead of that JSON re-wrapped (and re-escaped) through every hop
+    // between here and the user.
+    private String extractCamundaMessage(RestClientResponseException e) {
+        String body = e.getResponseBodyAsString();
+        if (body != null && !body.isBlank()) {
+            try {
+                JsonNode node = objectMapper.readTree(body);
+                JsonNode message = node.get("message");
+                if (message != null && message.isTextual() && !message.asText().isBlank()) {
+                    return message.asText();
+                }
+            } catch (Exception ignored) {
+                // Body isn't the JSON shape we expect (e.g. an HTML error page) — fall through.
+            }
+        }
+        return e.getStatusCode().value() + " " + e.getStatusText();
     }
 
     // Deletes every deployment ever made for this key (all republish versions), not just the
@@ -78,9 +115,12 @@ public class CamundaRestClient {
                         .retrieve()
                         .toBodilessEntity();
             }
-        } catch (RestClientException e) {
+        } catch (RestClientResponseException e) {
             throw new CamundaDeploymentException(
-                    "Failed to delete deployments for process definition " + processDefinitionKey + " in Camunda", e);
+                    "Camunda rejeitou a remoção dos deployments de " + processDefinitionKey + ": "
+                            + extractCamundaMessage(e), e);
+        } catch (RestClientException e) {
+            throw new CamundaUnavailableException("Não foi possível conectar ao Camunda em " + baseUrl, e);
         }
     }
 

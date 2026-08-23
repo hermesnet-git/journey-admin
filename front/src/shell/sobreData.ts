@@ -255,10 +255,13 @@ export const EPICS: Epic[] = [
           d('REQ-03.02.001', 'O sistema deve permitir criar conexões entre elementos.'),
           d('REQ-03.02.002', 'O sistema deve permitir remover conexões.'),
           d('REQ-03.02.003', 'O sistema deve permitir editar conexões.'),
-          d(
-            'REQ-03.02.004',
-            'O nó START não deve possuir entrada e deve possuir exatamente uma saída; cada USER_TASK deve possuir ao menos uma entrada e exatamente uma saída; o nó END deve possuir ao menos uma entrada e nenhuma saída.',
-          ),
+          {
+            code: 'REQ-03.02.004',
+            description:
+              'O nó START não deve possuir entrada e deve possuir exatamente uma saída; cada USER_TASK deve possuir ao menos uma entrada e exatamente uma saída; o nó END deve possuir ao menos uma entrada e nenhuma saída.',
+            status: 'done',
+            notes: 'Corrigido bug: o editor permitia criar múltiplas conexões de saída a partir do START — a validação de salvamento já rejeitava corretamente, o gap era só no canvas.',
+          },
           d('REQ-03.02.005', 'Todos os nós devem pertencer a um caminho contínuo e alcançável entre o elemento inicial e algum END.'),
           d(
             'REQ-03.02.006',
@@ -306,14 +309,29 @@ export const EPICS: Epic[] = [
           d('REQ-03.05.002', 'O sistema deve permitir zoom out.'),
           d('REQ-03.05.003', 'O sistema deve permitir mover-se livremente pelo canvas.'),
           d('REQ-03.05.004', 'O sistema deve permitir centralizar o fluxo na área visível.'),
+          d(
+            'REQ-03.05.005',
+            'Ao abrir uma jornada para edição, criar uma jornada nova, ou concluir a geração de fluxo por IA, o canvas deve abrir sempre em zoom de 100%, com o elemento inicial alinhado próximo à borda esquerda.',
+          ),
+          d('REQ-03.05.006', 'O minimapa do canvas deve iniciar colapsado num canto da tela, abrindo apenas quando o usuário clicar nele.'),
         ],
       },
       {
         code: 'US-03.06',
         name: 'Produtividade',
         requirements: [
-          d('REQ-03.06.001', 'O sistema deve permitir desfazer ações.'),
-          d('REQ-03.06.002', 'O sistema deve permitir refazer ações.'),
+          {
+            code: 'REQ-03.06.001',
+            description: 'O sistema deve permitir desfazer ações.',
+            status: 'done',
+            notes: 'Corrigido bug: o atalho Ctrl+Z estava anunciado na Toolbar mas nunca implementado no listener de teclado — só o botão funcionava.',
+          },
+          {
+            code: 'REQ-03.06.002',
+            description: 'O sistema deve permitir refazer ações.',
+            status: 'done',
+            notes: 'Mesmo bug/correção de REQ-03.06.001 (Ctrl+Shift+Z/Ctrl+Y).',
+          },
         ],
       },
       {
@@ -400,6 +418,13 @@ export const EPICS: Epic[] = [
             'REQ-03.09.014',
             'O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie {{variavel}} inexistente no contexto do nó.',
           ),
+          {
+            code: 'REQ-03.09.015',
+            description:
+              'O campo de tópico de um conector Kafka deve oferecer, como sugestão, a lista de tópicos existentes no cluster selecionado, consultada em tempo real; a digitação livre deve continuar disponível quando a listagem não estiver disponível.',
+            status: 'done',
+            notes: 'Válido de verdade só para KAFKA hoje, mesma limitação de ambiente do teste de conexão (REQ-14.04.001).',
+          },
         ],
       },
       {
@@ -451,10 +476,13 @@ export const EPICS: Epic[] = [
             'REQ-03.11.002',
             'Uma das duas saídas do gateway deve ser marcada como saída padrão (sem condição própria), usada quando a condição da outra saída não for satisfeita.',
           ),
-          d(
-            'REQ-03.11.003',
-            'A saída não padrão do gateway deve possuir uma condição composta por variável, operador de comparação (igual, diferente, maior que, menor que) e um valor de referência informado pelo usuário, editados como combos/campo tipado.',
-          ),
+          {
+            code: 'REQ-03.11.003',
+            description:
+              'A saída não padrão do gateway deve possuir uma condição composta por variável, operador de comparação (igual, diferente, maior que, menor que) e um valor de referência informado pelo usuário, editados como combos/campo tipado.',
+            status: 'done',
+            notes: 'FlowValidator ganhou guarda contra aspas escapadas na condição — formato que quebrava o parser de expressão do motor de runtime quando gerado por IA (US-03.17), rejeitado também na edição manual.',
+          },
           d(
             'REQ-03.11.004',
             'A condição deve poder referenciar tanto uma variável de saída de um Service Task/Receive Task quanto um campo de resposta de um User Task, desde que alcançável a partir do gateway.',
@@ -559,6 +587,45 @@ export const EPICS: Epic[] = [
           ),
           d('REQ-03.15.004', 'O sistema deve permitir desvincular uma anotação de um nó e excluir uma anotação, sem afetar o fluxo executável.'),
           d('REQ-03.15.005', 'As anotações devem ser persistidas junto com o fluxo da jornada e restauradas ao reabrir o editor.'),
+        ],
+      },
+      {
+        code: 'US-03.16',
+        name: 'Pré-visualização de formulário no editor',
+        requirements: [
+          partial(
+            'REQ-03.16.001',
+            'Ao selecionar, no canvas, uma USER_TASK com formulário associado, o editor deve exibir automaticamente uma pré-visualização do formulário, ancorada à base do canvas, sem exigir uma ação dedicada de clique.',
+            'Carece de enriquecimento — a pré-visualização por seleção está implementada e funcional, mas ainda não tem paridade de fidelidade com a renderização real (SDUI) da tela de Execução.',
+          ),
+          partial(
+            'REQ-03.16.002',
+            'Ao selecionar qualquer outro elemento do canvas, a pré-visualização deve deixar de ser exibida.',
+            'Mesma nota de enriquecimento do REQ-03.16.001.',
+          ),
+        ],
+      },
+      {
+        code: 'US-03.17',
+        name: 'Geração de fluxo assistida por IA',
+        requirements: [
+          d(
+            'REQ-03.17.001',
+            'O sistema deve permitir gerar automaticamente um rascunho de fluxo a partir de uma descrição em linguagem natural (prompt), preenchendo nós e conexões no canvas do editor.',
+          ),
+          d(
+            'REQ-03.17.002',
+            'A geração deve depender de uma credencial de API de IA configurada (US-14.06); sem credencial, o sistema deve informar o usuário e recusar a geração.',
+          ),
+          d(
+            'REQ-03.17.003',
+            'Um fluxo gerado que viole a validação estrutural deve ser corrigido e reenviado ao modelo (retry/reparo) dentro de um número limitado de tentativas, incluindo a rejeição de aspas escapadas em condição de gateway.',
+          ),
+          d(
+            'REQ-03.17.004',
+            'O fluxo gerado deve ser apresentado como rascunho editável, sujeito às mesmas regras de validação e revisão manual de um fluxo criado por edição direta.',
+          ),
+          d('REQ-03.17.005', 'Ao concluir a geração, o canvas deve reposicionar automaticamente a visualização do fluxo gerado (REQ-03.05.005).'),
         ],
       },
     ],
@@ -772,6 +839,14 @@ export const EPICS: Epic[] = [
             'REQ-05.06.005',
             'O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida.',
           ),
+          d(
+            'REQ-05.06.006',
+            'O log cronológico deve registrar toda chamada de API entre o frontend e o backend relacionada à execução (método, caminho, status, headers e corpo), com exceção da consulta de variáveis do processo.',
+          ),
+          d(
+            'REQ-05.06.007',
+            'O log deve permitir busca textual, com navegação entre ocorrências, e permitir expandir ou recolher cada entrada individualmente ou em bloco.',
+          ),
         ],
       },
       {
@@ -871,6 +946,14 @@ export const EPICS: Epic[] = [
             notes:
               'Reexpõe, como link discreto ("Pular etapa"/"Iniciar sem mensagem"), o mecanismo de fabricar resultado que existia desde antes do broker Kafka real — nunca foi removido do backend, só deixou de ter botão na tela para nós Kafka.',
           },
+          d(
+            'REQ-05.09.010',
+            'Ao iniciar uma execução, o sistema deve permitir optar por controle manual das mensagens Kafka daquela instância, retirando suas Service Tasks Kafka do disparo automático do worker em background.',
+          ),
+          d(
+            'REQ-05.09.011',
+            'Com controle manual ativo, a tela de execução deve permitir publicar a mensagem de uma Service Task Kafka digitando o payload manualmente ou gerando-o automaticamente a partir do mapeamento configurado.',
+          ),
         ],
       },
     ],
@@ -909,9 +992,16 @@ export const EPICS: Epic[] = [
             'REQ-06.02.009',
             'Ao salvar o fluxo de uma jornada, o sistema deve manter a versão DRAFT atual sincronizada com o conteúdo salvo: se já existir uma DRAFT, seu conteúdo é substituído; caso não exista, uma nova DRAFT é criada. Outras versões nunca são alteradas.',
           ),
+          {
+            code: 'REQ-06.02.010',
+            description:
+              'Antes de salvar a edição de uma jornada PUBLISHED, o sistema deve avisar o usuário de que a alteração será registrada em uma versão em rascunho separada da publicada.',
+            status: 'done',
+            notes: 'Texto revisado com ênfase em "PUBLICADA" e explicação de que a jornada roda tarefa por tarefa contra a engine de runtime.',
+          },
           d(
-            'REQ-06.02.010',
-            'Antes de salvar a edição de uma jornada PUBLISHED, o sistema deve avisar o usuário de que a alteração será registrada em uma versão em rascunho separada da publicada.',
+            'REQ-06.02.011',
+            'Ao salvar um fluxo sem alteração real em relação ao conteúdo já persistido, o sistema deve informar o usuário de que nada foi alterado e não deve gerar ou atualizar a versão DRAFT.',
           ),
         ],
       },
@@ -954,6 +1044,13 @@ export const EPICS: Epic[] = [
             'REQ-06.04.012',
             'Antes de republicar uma versão, se já existir uma versão PUBLISHED na jornada, o sistema deve informar ao usuário que a versão publicada atual será substituída e solicitar confirmação antes de prosseguir.',
           ),
+          {
+            code: 'REQ-06.04.013',
+            description:
+              'O sistema deve distinguir uma falha de publicação genuinamente indisponível de uma rejeição de conteúdo, apresentando uma mensagem de erro única e legível, nunca a resposta crua ou aninhada do serviço subjacente.',
+            status: 'done',
+            notes: 'Achado real: condição de gateway gerada por IA com aspas escapadas quebrava o parser de expressão do motor — motivou também a guarda em FlowValidator (REQ-03.11.003).',
+          },
         ],
       },
       {
@@ -1451,10 +1548,31 @@ export const EPICS: Epic[] = [
             code: 'REQ-14.05.003',
             description: 'O campo equivalente a "tópico" deve ser selecionado a partir do catálogo de clusters, nunca texto livre.',
             status: 'done',
-            notes: 'O cluster é escolhido do catálogo; o nome do tópico/fila/hub em si continua texto livre — o catálogo cadastra clusters, não enumera os tópicos/filas dentro deles.',
+            notes: 'O cluster é escolhido do catálogo; para Kafka, o próprio nome do tópico passou a ser sugerido a partir da listagem real (REQ-03.09.015) — Event Hubs/Service Bus continuam com o nome em texto livre, mesma limitação de ambiente do teste de conexão.',
           },
           d('REQ-14.05.004', 'O campo de credencial de um conector Kafka/Event Hubs/Service Bus deve ser selecionado a partir do catálogo, substituindo o texto livre.'),
           d('REQ-14.05.005', 'O assistente de configuração de conector deve ganhar as mesmas 3 etapas do Kafka para Event Hubs e Service Bus.'),
+        ],
+      },
+      {
+        code: 'US-14.06',
+        name: 'Credencial de IA',
+        requirements: [
+          d(
+            'REQ-14.06.001',
+            'O sistema deve permitir cadastrar, atualizar e remover uma credencial de API de um provedor de IA (Gemini), restrito ao papel ADMIN.',
+          ),
+          d(
+            'REQ-14.06.002',
+            'A API não deve, em nenhuma resposta, retornar o valor da chave salva — apenas seu status (configurada/não configurada) e a data da última atualização.',
+          ),
+          {
+            code: 'REQ-14.06.003',
+            description:
+              'Diferente do catálogo de credenciais de mensageria (REQ-14.02.003), esta credencial é armazenada em texto plano, como desvio deliberado e temporário do princípio de nunca persistir segredo.',
+            status: 'done',
+            notes: 'Pendente: criptografar/descriptografar a chave ao usar, antes de produção — TODO registrado no código.',
+          },
         ],
       },
     ],
@@ -1475,7 +1593,6 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
       'Rollback',
       'Promotion entre ambientes',
       'Analytics',
-      'IA assistida',
       'Gestão de tenants',
       'Governança corporativa',
     ],
@@ -1529,6 +1646,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-23 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Documentação sincronizada com o que foi construído/corrigido numa longa sessão sobre Execução, publicação, editor de fluxo e catálogo de integrações — 19 REQs novos, 3 USs novas, 4 correções de evidência. FT-05 Execução (US-05.06/US-05.09, 39→43 REQs): log cronológico passou a registrar toda chamada de API front↔back da execução, exceto a consulta de variáveis (REQ-05.06.006), com busca textual e expandir/recolher por entrada (REQ-05.06.007); novo controle manual de mensagens Kafka por instância, tirando as Service Tasks Kafka do piloto automático do KafkaBridgeScheduler e permitindo publicação manual (digitada ou gerada a partir do mapeamento) pela tela de execução (REQ-05.09.010/011). FT-06 Versionamento (US-06.02/US-06.04, 40→42 REQs): salvar um fluxo sem alteração real passou a avisar o usuário em vez de gerar uma versão DRAFT vazia (REQ-06.02.011); publicação passou a distinguir runtime genuinamente indisponível (502 RUNTIME_UNAVAILABLE) de conteúdo rejeitado pelo motor (422 RUNTIME_DEPLOYMENT_REJECTED), com mensagem única e legível em vez de JSON aninhado (REQ-06.04.013, achado a partir de uma condição de gateway gerada por IA com aspas escapadas quebrando o parser JUEL do motor). FT-03 Modelagem Visual (85→95 REQs, 2 in_progress): canvas passou a abrir sempre em zoom 100% com o início alinhado à esquerda ao editar/criar jornada ou concluir geração por IA, e o minimapa passou a iniciar colapsado, abrindo só sob clique (REQ-03.05.005/006); campo de tópico de conector Kafka passou a sugerir os tópicos reais do cluster selecionado, com fallback a texto livre (REQ-03.09.015); nova US-03.16 Pré-visualização de formulário no editor (REQ-03.16.001/002, in_progress — pré-visualização por seleção implementada e funcional, mas carece de enriquecimento de fidelidade visual com a renderização SDUI real), substituindo o antigo badge de preview na User Task, removido por bug de sobreposição de pointer-events; nova US-03.17 Geração de fluxo assistida por IA (REQ-03.17.001 a 005), trazida para dentro do escopo da versão 1.0.0 — geração de rascunho de fluxo a partir de prompt via Gemini, dependente da credencial de IA (US-14.06), com retry/reparo automático contra violações estruturais antes de apresentar o resultado ao usuário; REQ-03.11.003 ganhou nota sobre a guarda contra aspas escapadas em condição de gateway; corrigidos bugs em REQs já done: nó START aceitando múltiplas saídas no editor (REQ-03.02.004) e atalhos Ctrl+Z/Ctrl+Y anunciados na toolbar mas nunca implementados no listener de teclado (REQ-03.06.001/002). FT-14 Catálogo de Integrações (25→28 REQs): nova US-14.06 Credencial de IA — cadastro/atualização/remoção da chave de API do Gemini restrito a ADMIN, nunca retornada pela API, armazenada em texto plano como desvio deliberado e temporário do princípio de nunca persistir segredo (REQ-14.02.003), com TODO de criptografia registrado no código (REQ-14.06.001 a 003); entidade isolada, sem relação com o modelo de credencial de mensageria existente. "IA Assistida" removida de ej-admin-requisitos.md/ej-admin-index.md §5 Fora do Escopo — a geração de fluxo por IA passa a ser tratada como capacidade da versão 1.0.0, não mais um item futuro. Painel de capacidades entregues (ej-admin-requisitos.md §2, ej-admin-index.md §2/§4) atualizado para citar geração de fluxo por IA, catálogo de integrações e dashboard operacional, que já estavam implementados mas nunca haviam sido listados ali. Documentação técnica sincronizada: ej-admin-arquitetura-logica.md (Domínio 03 ganhou a capacidade de geração assistida, Domínio 11 passou a incluir AI Provider Credential), ej-admin-modelo-dados-fisico.md/ej-admin-modelo-dados-conceitual.md/ej-admin-dicionario-dados.md (nova tabela/entidade ai_provider_credential, isolada e sem FK, com as seções seguintes renumeradas). Progresso geral de 359/396 (91%, 14 features/84 USs) para 376/415 (91%, 14 features/87 USs, 6 in_progress).',
+  },
   {
     date: '2026-08-21 01:44 (não commitado)',
     source: 'progresso',
@@ -1833,6 +1956,27 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-08-22 03:33',
+    source: 'git',
+    summary:
+      'Geração de fluxo assistida por IA a partir de um prompt (GenerateFlow, AnthropicFlowGenerator/GeminiFlowGenerator, GeneratePromptModal na Toolbar do editor).',
+    epics: ['FT-03'],
+  },
+  {
+    date: '2026-08-21 22:44',
+    source: 'git',
+    summary:
+      'IconAction reutilizável para botões de ícone, sidebar/tab bar com ícones, ícones de marca para Kafka/Event Hubs/Service Bus, exclusão de cluster e credencial com verificações de referência (DeleteCluster/DeleteCredential), e contagem real de jornadas por canal (JourneyCountAdapter).',
+    epics: ['FT-14', 'FT-01'],
+  },
+  {
+    date: '2026-08-21 01:53',
+    source: 'git',
+    summary:
+      'Catálogo de integração para cadastro de metadados de credenciais dos conectores: serviços de aplicação de cluster/credencial (criar, editar, ativar, desativar, consultar), teste de conexão e generalização do FlowValidator/ConnectorType para conectores de mensageria.',
+    epics: ['FT-14', 'FT-03'],
+  },
   {
     date: '2026-08-20 01:37',
     source: 'git',

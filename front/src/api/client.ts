@@ -4,11 +4,13 @@ const SESSION_KEY = 'journey-admin-session';
 
 export class ApiClientError extends Error {
   status: number;
+  code?: string;
   details?: { field: string; code: string; message: string }[];
 
-  constructor(status: number, message: string, details?: { field: string; code: string; message: string }[]) {
+  constructor(status: number, message: string, code?: string, details?: { field: string; code: string; message: string }[]) {
     super(message);
     this.status = status;
+    this.code = code;
     this.details = details;
   }
 }
@@ -34,6 +36,14 @@ let onServerError: ((info: ServerErrorInfo) => void) | null = null;
 /** Registered by AppErrorBoundary so a 5xx response shows a full-screen application-error notice. */
 export function setServerErrorHandler(handler: ((info: ServerErrorInfo) => void) | null) {
   onServerError = handler;
+}
+
+/** Manually routes a caught error through that same notice — for a caller whose action failed with
+ * a status < 500 (so the automatic trigger below never fired) but still wants the full technical
+ * detail box instead of an inline message, e.g. a runtime/infra failure the backend correctly
+ * reports as 422 (content rejected) rather than an outage, but that's just as opaque to fix inline. */
+export function reportServerError(info: ServerErrorInfo) {
+  onServerError?.(info);
 }
 
 export function getStoredToken(): string | null {
@@ -91,7 +101,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         path: body?.path ?? path,
       });
     }
-    throw new ApiClientError(response.status, body?.message ?? response.statusText, body?.details ?? undefined);
+    throw new ApiClientError(response.status, body?.message ?? response.statusText, body?.code, body?.details ?? undefined);
   }
 
   if (response.status === 204 || response.headers.get('content-length') === '0') {
@@ -151,7 +161,7 @@ export async function apiPostSse(
         path,
       });
     }
-    throw new ApiClientError(response.status, errBody?.message ?? response.statusText, errBody?.details ?? undefined);
+    throw new ApiClientError(response.status, errBody?.message ?? response.statusText, errBody?.code, errBody?.details ?? undefined);
   }
 
   const reader = response.body?.getReader();

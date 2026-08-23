@@ -30,6 +30,7 @@ import com.jouney.admin.infrastructure.connector.SsrfBlockedException;
 import com.jouney.admin.infrastructure.dashboard.RuntimeMonitoringException;
 import com.jouney.admin.infrastructure.messaging.MessagingConnectionTestException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationException;
+import com.jouney.admin.infrastructure.publication.RuntimePublicationRejectedException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -81,6 +82,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleRuntimePublication(RuntimePublicationException ex, HttpServletRequest request) {
         log.error("Runtime publication call failed", ex);
         return build(HttpStatus.BAD_GATEWAY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
+    }
+
+    // 422, not 502: the runtime answered and rejected this specific publish (e.g. an invalid JUEL
+    // expression in a gateway condition) — a problem with the journey's own content, not with
+    // reaching the runtime. See handleRuntimePublication above for the genuinely-unreachable case.
+    @ExceptionHandler(RuntimePublicationRejectedException.class)
+    public ResponseEntity<ApiError> handleRuntimePublicationRejected(RuntimePublicationRejectedException ex,
+                                                                       HttpServletRequest request) {
+        log.error("Runtime rejected the publication", ex);
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "RUNTIME_DEPLOYMENT_REJECTED", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(MessagingConnectionTestException.class)

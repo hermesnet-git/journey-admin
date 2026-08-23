@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard, ChevronDown, Sparkles } from 'lucide-react';
+import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard, ChevronDown, Sparkles, PaintBucket } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { EDGE_SHAPE_OPTIONS, type EdgeShape } from './model';
 
@@ -90,6 +90,8 @@ export function Toolbar({
   onOrganize,
   edgeShape,
   onEdgeShapeChange,
+  nodeFill,
+  onNodeFillChange,
   zoomPct,
   onZoomIn,
   onZoomOut,
@@ -106,6 +108,8 @@ export function Toolbar({
   onOrganize: () => void;
   edgeShape: EdgeShape;
   onEdgeShapeChange: (shape: EdgeShape) => void;
+  nodeFill: boolean;
+  onNodeFillChange: (fill: boolean) => void;
   zoomPct: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -141,6 +145,14 @@ export function Toolbar({
           <LayoutGrid size={14} /> Organizar
         </button>
         <EdgeShapePicker value={edgeShape} onChange={onEdgeShapeChange} />
+        <button
+          onClick={() => onNodeFillChange(!nodeFill)}
+          title={nodeFill ? 'Nós preenchidos com a cor do tipo — clique para deixar vazios' : 'Nós vazios — clique para preencher com a cor do tipo'}
+          className={iconBtn}
+          style={{ color: nodeFill ? c.accent : c.textSecondary, background: nodeFill ? c.accentSoft : 'transparent' }}
+        >
+          <PaintBucket size={15} />
+        </button>
         {divider}
         <button onClick={onUndo} disabled={!canUndo} className={iconBtn} style={{ color: c.textSecondary }} title="Desfazer (Ctrl+Z)">
           <Undo2 size={16} />

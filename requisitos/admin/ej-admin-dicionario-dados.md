@@ -384,7 +384,21 @@ Nunca armazena o valor de um segredo, em nenhuma circunstância. A resolução d
 
 ---
 
-# 22. Glossário Geral
+# 22. AiProviderCredential
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| CredentialId | UUID | Sim | Identificador único da credencial |
+| Provider | VARCHAR(30) | Sim | Provedor de IA — só `GEMINI` na versão 1.0.0; único (um registro por provedor) |
+| ApiKey | TEXT | Sim | Chave de API do provedor — em texto plano, nunca retornada pela API |
+| CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
+| UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
+
+Entidade isolada, sem chave estrangeira. Diferente de `CredentialReference`, armazena o valor do segredo em texto plano — exceção deliberada e temporária ao princípio de nunca persistir segredo, com pendência de criptografia registrada como TODO no código antes de produção. Usada pela geração de fluxo assistida por IA do Journey Modeler (FT-03 US-03.17).
+
+---
+
+# 23. Glossário Geral
 
 | Conceito | Descrição |
 |----------|-----------|
@@ -400,9 +414,10 @@ Nunca armazena o valor de um segredo, em nenhuma circunstância. A resolução d
 | JourneyPublication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | MessagingCluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | CredentialReference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
+| AiProviderCredential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
 
 ---
 
-# 23. Resumo
+# 24. Resumo
 
 O dicionário descreve a hierarquia Product → Channel → Journey, o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual, formulários, execução e publicação de jornadas específicas por canal, e do catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.

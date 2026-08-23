@@ -35,11 +35,17 @@ Gestão de Jornadas por Canal
 
 Modelagem Visual de Fluxos
 
+Geração de Fluxo Assistida por IA
+
 Gestão de Formulários
 
 Execução
 
 Versionamento de Jornadas
+
+Catálogo de Integrações
+
+Dashboard Operacional
 
 Autenticação e Autorização
 
@@ -64,7 +70,7 @@ Governança / Workflow de Aprovação
 
 Rollback / Promotion Between Environments
 
-Analytics / IA Assistida
+Analytics
 ```
 
 A versão 1.0.0 utilizará um provedor externo de autenticação representado por mock, com tela de login e usuário `admin`/`admin` no papel `ADMIN`. A autorização será baseada nos papéis `ADMIN`, `EDITOR` e `VIEWER`, e as operações relevantes serão auditadas sem armazenamento de dados sensíveis.
@@ -296,6 +302,10 @@ SERVICE_TASK       → bpmn:serviceTask
 RECEIVE_TASK       → bpmn:receiveTask
 MESSAGE_START_EVENT → bpmn:startEvent + messageEventDefinition
 ```
+
+## Geração de Fluxo Assistida por IA
+
+O editor permite gerar automaticamente um rascunho de fluxo a partir de um prompt em linguagem natural, usando a credencial de IA cadastrada no Domínio 11 — Integration Catalog. Um fluxo gerado que viole a validação estrutural do próprio domínio é corrigido e reenviado ao modelo de IA (retry/reparo) dentro de um número limitado de tentativas antes de ser apresentado; uma vez apresentado, o fluxo é um rascunho comum, sujeito às mesmas regras de validação e à mesma revisão manual de qualquer edição direta — a geração por IA não é um caminho de publicação separado.
 
 ## Entidades
 
@@ -564,7 +574,7 @@ Não há entidade de domínio persistida por este domínio — os logs técnicos
 
 ## Objetivo
 
-Centralizar o cadastro de clusters/brokers de mensageria corporativos e das referências de credencial usadas para acessá-los, servindo de base para os conectores de mensageria configurados no Journey Modeler (Domínio 03) — sem que o Admin Portal armazene segredo algum.
+Centralizar o cadastro de clusters/brokers de mensageria corporativos e das referências de credencial usadas para acessá-los, servindo de base para os conectores de mensageria configurados no Journey Modeler (Domínio 03) — sem que o Admin Portal armazene segredo algum. Também centraliza a credencial de API do provedor de IA usada pela geração de fluxo assistida (Domínio 03), como única exceção deliberada a esse princípio.
 
 ## Responsabilidades
 
@@ -578,6 +588,8 @@ Bloquear a desativação de um cluster ou credencial referenciado por um conecto
 Restringir a administração do catálogo ao papel ADMIN; demais papéis apenas selecionam entradas já cadastradas
 
 Delegar o teste de conexão ao componente de runtime que resolve a credencial e abre a conexão de verdade
+
+Cadastrar, atualizar e remover a credencial de API de um provedor de IA (Gemini), nunca a expondo de volta pela API
 ```
 
 ## Entidades
@@ -586,6 +598,8 @@ Delegar o teste de conexão ao componente de runtime que resolve a credencial e 
 Messaging Cluster
 
 Credential Reference
+
+AI Provider Credential
 ```
 
 ## Cardinalidade
@@ -633,9 +647,10 @@ O Admin Portal nunca acessa o cofre de segredos nem o broker diretamente (mesmo 
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault, usada por um conector de mensageria |
+| AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
 
 ---
 
 # 21. Resumo Arquitetural
 
-O Elastic Journey Admin Portal versão 1.0.0 é composto por onze domínios lógicos. A arquitetura parte do cadastro de produtos, canais e do catálogo de integrações (clusters de mensageria e referências de credencial), mantém jornadas independentes por canal, autentica usuários por um provedor externo mockado, versiona jornadas, registra auditoria e publica uma versão imutável por meio de uma chamada mockada para a futura API do runtime. Observability instrumenta, de forma transversal, todos os domínios de negócio com log técnico de API e de transações de persistência.
+O Elastic Journey Admin Portal versão 1.0.0 é composto por onze domínios lógicos. A arquitetura parte do cadastro de produtos, canais e do catálogo de integrações (clusters de mensageria, referências de credencial e credencial de IA), mantém jornadas independentes por canal, permite modelar fluxos manualmente ou gerar um rascunho assistido por IA, autentica usuários por um provedor externo mockado, versiona jornadas, registra auditoria e publica uma versão imutável por meio de uma chamada mockada para a futura API do runtime. Observability instrumenta, de forma transversal, todos os domínios de negócio com log técnico de API e de transações de persistência.

@@ -11,8 +11,9 @@ import {
   CircleX,
   Pencil,
   Trash2,
+  Sparkles,
 } from 'lucide-react';
-import { PrimaryButton, IconAction } from '../products/ui';
+import { PrimaryButton, SecondaryButton, ActionsMenu } from '../products/ui';
 import { KafkaIcon, EventHubsIcon, ServiceBusIcon } from './brandIcons';
 import { ConfirmDialog } from '../products/ConfirmDialog';
 import { ToastProvider, useToast } from '../products/Toast';
@@ -34,8 +35,10 @@ import {
   type CredentialReference,
   type CredentialInput,
 } from '../api/messaging';
+import { getAiCredentialStatus, saveAiCredential, deleteAiCredential, type AiCredentialStatus } from '../api/aiCredentials';
 import { ClusterFormModal } from './ClusterFormModal';
 import { CredentialFormModal } from './CredentialFormModal';
+import { AiCredentialModal } from './AiCredentialModal';
 
 type ConnectionTestState = { status: 'idle' | 'testing' | 'ok' | 'error'; message?: string };
 const IDLE_CONNECTION_TEST: ConnectionTestState = { status: 'idle' };
@@ -43,7 +46,9 @@ type Colors = ReturnType<typeof useAppTheme>['colors'];
 
 // Mesma linguagem visual da grid de requisitos da página "Sobre" (SobrePage.tsx): grid tipada por
 // nível, chevron de expandir/colapsar, cabeçalho uppercase tracked.
-const CATALOG_GRID_COLS = 'minmax(0,2.2fr) 130px minmax(0,1.6fr) 140px';
+// Última coluna encolhida (era 140px, larga o bastante pra até 3 ícones lado a lado) agora que
+// carrega só o gatilho "⋮" do ActionsMenu.
+const CATALOG_GRID_COLS = 'minmax(0,2.2fr) 130px minmax(0,1.6fr) 56px';
 
 // Logos oficiais das marcas (vendorizados em brandIcons.tsx) em vez de ícones genéricos.
 const CLUSTER_TYPE_ICON: Record<ClusterType, typeof KafkaIcon> = {
@@ -93,14 +98,22 @@ function CatalogPageContent() {
   const [editingCredential, setEditingCredential] = useState<CredentialReference | 'new' | null>(null);
   const [deletingCredential, setDeletingCredential] = useState<CredentialReference | null>(null);
   const [connectionTests, setConnectionTests] = useState<Record<string, ConnectionTestState>>({});
+  const [aiCredential, setAiCredential] = useState<AiCredentialStatus | null>(null);
+  const [configuringAiCredential, setConfiguringAiCredential] = useState(false);
+  const [removingAiCredential, setRemovingAiCredential] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [clusterList, credentialList] = await Promise.all([listClusters(), listCredentials()]);
+      const [clusterList, credentialList, aiStatus] = await Promise.all([
+        listClusters(),
+        listCredentials(),
+        getAiCredentialStatus('GEMINI'),
+      ]);
       setClusters(clusterList);
       setCredentials(credentialList);
+      setAiCredential(aiStatus);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar o catálogo de integrações');
     } finally {
@@ -188,6 +201,24 @@ function CatalogPageContent() {
     }
   }
 
+  async function handleSaveAiCredential(apiKey: string) {
+    const status = await saveAiCredential('GEMINI', apiKey);
+    setAiCredential(status);
+    setConfiguringAiCredential(false);
+    showToast('Credencial de IA salva com sucesso.');
+  }
+
+  async function confirmRemoveAiCredential() {
+    setRemovingAiCredential(false);
+    try {
+      await deleteAiCredential('GEMINI');
+      setAiCredential({ configured: false, updatedAt: null });
+      showToast('Credencial de IA removida.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Erro ao remover credencial de IA', 'error');
+    }
+  }
+
   return (
     <div className="flex-1 overflow-auto p-[32px_40px] box-border">
       <div className="mb-6">
@@ -248,6 +279,35 @@ function CatalogPageContent() {
         />
       )}
 
+      <div
+        className="flex items-center justify-between gap-3 mt-6 p-4 rounded-xl flex-wrap"
+        style={{ border: `1px solid ${c.border}`, background: c.surface }}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: c.accentSoft }}>
+            <Sparkles size={16} color={c.accent} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[13.5px] font-semibold" style={{ color: c.textPrimary }}>
+              Credencial de IA — Gemini
+            </div>
+            <div className="text-[12px]" style={{ color: c.textSecondary }}>
+              {aiCredential?.configured
+                ? `Configurada${aiCredential.updatedAt ? ` · atualizada ${formatAiCredentialDate(aiCredential.updatedAt)}` : ''}`
+                : 'Não configurada — a geração de fluxo por prompt (“Gerar com IA”) não funciona até configurar'}
+            </div>
+          </div>
+        </div>
+        {canWrite && (
+          <div className="flex items-center gap-2 shrink-0">
+            {aiCredential?.configured && <SecondaryButton onClick={() => setRemovingAiCredential(true)}>Remover</SecondaryButton>}
+            <PrimaryButton onClick={() => setConfiguringAiCredential(true)}>
+              {aiCredential?.configured ? 'Substituir chave' : 'Configurar chave'}
+            </PrimaryButton>
+          </div>
+        )}
+      </div>
+
       {editingCluster && (
         <ClusterFormModal
           cluster={editingCluster === 'new' ? null : editingCluster}
@@ -290,8 +350,25 @@ function CatalogPageContent() {
           onCancel={() => setDeletingCredential(null)}
         />
       )}
+
+      {configuringAiCredential && (
+        <AiCredentialModal onClose={() => setConfiguringAiCredential(false)} onSubmit={handleSaveAiCredential} />
+      )}
+      {removingAiCredential && (
+        <ConfirmDialog
+          title="Remover credencial de IA"
+          message="Tem certeza que deseja remover a chave de API do Gemini? A geração de fluxo por prompt para de funcionar até uma nova chave ser configurada."
+          confirmLabel="Remover"
+          onConfirm={confirmRemoveAiCredential}
+          onCancel={() => setRemovingAiCredential(false)}
+        />
+      )}
     </div>
   );
+}
+
+function formatAiCredentialDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 function EmptyState({ hasClusters, canWrite, onCreate }: { hasClusters: boolean; canWrite: boolean; onCreate: () => void }) {
@@ -470,13 +547,16 @@ function ClusterRow({
       <span className="truncate text-[11.5px] font-mono" style={{ color: c.textSecondary }} title={cluster.connectionAddress}>
         {cluster.connectionAddress}
       </span>
-      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <div onClick={(e) => e.stopPropagation()}>
         {canWrite && (
-          <>
-            <IconAction icon={<Pencil size={14} />} label="Editar" onClick={() => onEdit(cluster)} />
-            <IconAction icon={<Trash2 size={14} />} label="Excluir" onClick={() => onDelete(cluster)} danger />
-            <IconAction icon={<Plus size={14} />} label="Nova credencial" onClick={() => onNewCredential(cluster.clusterId)} />
-          </>
+          <ActionsMenu
+            label="Ações do cluster"
+            actions={[
+              { icon: Pencil, label: 'Editar', onClick: () => onEdit(cluster) },
+              { icon: Plus, label: 'Nova credencial', onClick: () => onNewCredential(cluster.clusterId) },
+              { icon: Trash2, label: 'Excluir', onClick: () => onDelete(cluster), variant: 'danger' },
+            ]}
+          />
         )}
       </div>
     </div>
@@ -544,12 +624,15 @@ function CredentialLeafRow({
       <span className="text-[11px]" style={{ color: c.textMuted }}>
         —
       </span>
-      <div className="flex items-center gap-1">
+      <div>
         {canWrite && (
-          <>
-            <IconAction icon={<Pencil size={13} />} label="Editar" onClick={onEdit} />
-            <IconAction icon={<Trash2 size={13} />} label="Excluir" onClick={onDelete} danger />
-          </>
+          <ActionsMenu
+            label="Ações da credencial"
+            actions={[
+              { icon: Pencil, label: 'Editar', onClick: onEdit },
+              { icon: Trash2, label: 'Excluir', onClick: onDelete, variant: 'danger' },
+            ]}
+          />
         )}
       </div>
     </div>

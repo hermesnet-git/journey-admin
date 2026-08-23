@@ -38,6 +38,11 @@ interface Props<T> {
   noneLabel?: string;
   emptyLabel?: string;
   extraActions?: React.ReactNode;
+  // Quando true, aceita um valor que não está em `items` (digitado e confirmado com Enter ou ao
+  // clicar fora) em vez de só permitir escolher um item da lista — usado pelo seletor de tópico
+  // Kafka (US-03.09), que sugere tópicos reais do broker mas não pode bloquear um nome que ainda
+  // não existe ou que veio de uma jornada já salva antes dessa lista existir.
+  allowCustomValue?: boolean;
 }
 
 // Seletor pesquisável genérico: portal pro document.body (o mesmo motivo de sempre nesse painel —
@@ -55,6 +60,7 @@ export function SearchSelect<T>({
   noneLabel = 'Nenhum',
   emptyLabel = 'Nenhum resultado encontrado',
   extraActions,
+  allowCustomValue = false,
 }: Props<T>) {
   const { c } = useFlowTheme();
   const [open, setOpen] = useState(false);
@@ -64,10 +70,22 @@ export function SearchSelect<T>({
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const selected = items.find((item) => getId(item) === value) ?? null;
+  // Sem correspondência em `items` não é necessariamente vazio quando aceita valor customizado — é
+  // o caso normal de um tópico digitado antes de existir no broker, ou salvo antes dessa listagem.
+  const displayValue = selected ? getLabel(selected) : allowCustomValue ? (value ?? '') : '';
 
   function openDropdown() {
     if (inputRef.current) setRect(computeDropdownRect(inputRef.current));
     setOpen(true);
+    setQuery('');
+  }
+
+  function closeDropdown(commitTyped: boolean) {
+    if (commitTyped && allowCustomValue) {
+      const trimmed = query.trim();
+      if (trimmed && trimmed !== displayValue) onChange(trimmed);
+    }
+    setOpen(false);
     setQuery('');
   }
 
@@ -76,8 +94,7 @@ export function SearchSelect<T>({
     function handleClick(e: MouseEvent) {
       const target = e.target as Node;
       if (containerRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
-      setOpen(false);
-      setQuery('');
+      closeDropdown(true);
     }
     function reposition() {
       if (inputRef.current) setRect(computeDropdownRect(inputRef.current));
@@ -90,7 +107,8 @@ export function SearchSelect<T>({
       window.removeEventListener('scroll', reposition, true);
       window.removeEventListener('resize', reposition);
     };
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, query]);
 
   const filtered = query.trim()
     ? items.filter((item) => getLabel(item).toLowerCase().includes(query.trim().toLowerCase()))
@@ -116,11 +134,14 @@ export function SearchSelect<T>({
       <input
         ref={inputRef}
         style={{ ...gridInputStyle(c), cursor: 'text', flex: 1 }}
-        value={open ? query : (selected ? getLabel(selected) : '')}
-        placeholder={selected ? undefined : placeholder ?? 'Nenhum'}
+        value={open ? query : displayValue}
+        placeholder={displayValue ? undefined : (placeholder ?? 'Nenhum')}
         onFocus={openDropdown}
         onMouseDown={openDropdown}
         onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') closeDropdown(true);
+        }}
       />
       {extraActions}
       {open &&

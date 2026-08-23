@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, Plus, Boxes, Pencil, Ban, Power } from 'lucide-react';
-import { PrimaryButton, IconAction, StatusTag, FilterDropdown } from './ui';
+import { PrimaryButton, ActionsMenu, StatusTag, FilterDropdown } from './ui';
 import { useAppTheme } from '../shell/theme';
 import {
   listProducts,
@@ -278,7 +278,7 @@ function ProductsTable({
             <th className="text-left px-4 py-2 text-[11.5px] font-semibold border-b" style={thStyle}>Produto</th>
             <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(90)}>Status</th>
             <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(64)}>Canais</th>
-            <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(76)}>Ações</th>
+            <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(48)}>Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -318,15 +318,18 @@ function ProductsTable({
                   </span>
                 </td>
                 <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom }} onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center gap-1">
-                    <IconAction icon={<Pencil size={14} />} label="Editar" onClick={() => onEdit(p)} />
-                    {p.status === 'ACTIVE' && (
-                      <IconAction icon={<Ban size={14} />} label="Desativar" onClick={() => onDeactivate(p)} danger />
-                    )}
-                    {p.status === 'INACTIVE' && (
-                      <IconAction icon={<Power size={14} />} label="Ativar" onClick={() => onActivate(p)} />
-                    )}
-                  </div>
+                  <ActionsMenu
+                    label="Ações do produto"
+                    actions={[
+                      { icon: Pencil, label: 'Editar', onClick: () => onEdit(p) },
+                      ...(p.status === 'ACTIVE'
+                        ? [{ icon: Ban, label: 'Desativar', onClick: () => onDeactivate(p), variant: 'danger' as const }]
+                        : []),
+                      ...(p.status === 'INACTIVE'
+                        ? [{ icon: Power, label: 'Ativar', onClick: () => onActivate(p), variant: 'success' as const }]
+                        : []),
+                    ]}
+                  />
                 </td>
               </tr>
             );

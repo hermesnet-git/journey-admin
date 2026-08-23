@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { Stack, Text, skinVars } from '@telefonica/mistica';
+import { skinVars } from '@telefonica/mistica';
 import {
+  apiCallLogData,
   completeTask,
   ExecutionApiError,
   ExecutionNetworkError,
+  formatApiCallLog,
   getCurrentStep,
   getVariables,
+  now,
+  previewKafkaMessage,
+  sendKafkaMessage,
   sendTestMessage,
   setVariable,
+  shouldLogApiCall,
   skipStep,
+  type ApiCallLogEntry,
   type FlowBundle,
   type JourneySummary,
   type StepResponse,
@@ -27,7 +33,16 @@ interface Props {
   journey: JourneySummary;
   flow: FlowBundle;
   initialStep: StepResponse;
-  onRestart: () => void;
+  manualKafkaControl: boolean;
+  // Chamadas já feitas antes desta tela montar (busca da jornada, o próprio start) — capturadas por
+  // quem orquestra a tela anterior (ExecutionsPage) e passadas pra cá pra abrir o log já com a
+  // linha do zero, em vez de só a partir do momento em que este componente existe.
+  initialApiLog?: LogEntry[];
+  // ExecutionsPage é quem de fato chama setApiCallLogger (uma única vez, pra vida inteira da
+  // página) — este componente só se "anuncia" como o dono ativo enquanto está montado, pra evitar
+  // uma corrida entre o cleanup de um registro e o setup do outro no mesmo commit (ver
+  // ExecutionsPage.handleApiCallHandlerChange).
+  onApiCallHandlerChange?: (handler: ((entry: ApiCallLogEntry) => void) | null) => void;
 }
 
 const NODE_TYPE_LABEL: Record<string, string> = {
@@ -38,10 +53,6 @@ const NODE_TYPE_LABEL: Record<string, string> = {
 
 function taskLabel(nodeType: string | null): string {
   return nodeType ? (NODE_TYPE_LABEL[nodeType] ?? 'etapa') : 'etapa';
-}
-
-function now(): string {
-  return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 function describeStep(step: StepResponse): string {
@@ -69,11 +80,17 @@ function describeTrailEntry(entry: TrailEntry): string {
   return describe ? describe(entry.nodeName) : `Etapa "${entry.nodeName}" concluída.`;
 }
 
-// Only a REST-connector SERVICE_TASK carries url/response (see TrailEntry) — shown inline in the
-// log entry via the same JSON block LogView already renders for any entry.data.
+// A SERVICE_TASK carrega url/response (conector REST) ou kafkaTopic/kafkaPayload (conector Kafka),
+// nunca os dois — mostrado inline no log via o mesmo bloco JSON que LogPanel já renderiza pra
+// qualquer entry.data.
 function trailLogData(entry: TrailEntry): Record<string, unknown> | undefined {
-  if (!entry.url && !entry.response) return undefined;
-  return { url: entry.url, resposta: parseMaybeJson(entry.response) };
+  if (entry.url || entry.response) {
+    return { url: entry.url, resposta: parseMaybeJson(entry.response) };
+  }
+  if (entry.kafkaTopic || entry.kafkaPayload) {
+    return { topico: entry.kafkaTopic, payload: parseMaybeJson(entry.kafkaPayload) };
+  }
+  return undefined;
 }
 
 function parseMaybeJson(value: string | null): unknown {
@@ -85,7 +102,16 @@ function parseMaybeJson(value: string | null): unknown {
   }
 }
 
-export function ExecutionWorkspace({ processInstanceId, businessKey, journey, flow, initialStep, onRestart }: Props) {
+export function ExecutionWorkspace({
+  processInstanceId,
+  businessKey,
+  journey,
+  flow,
+  initialStep,
+  manualKafkaControl,
+  initialApiLog,
+  onApiCallHandlerChange,
+}: Props) {
   const startNodeId = flow.flowNodes.find((n) => n.type === 'START')?.id;
 
   const [step, setStep] = useState(initialStep);
@@ -107,6 +133,7 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
   });
   const [variables, setVariables] = useState<VariableEntry[]>([]);
   const [log, setLog] = useState<LogEntry[]>(() => [
+    ...(initialApiLog ?? []),
     { id: 'start', time: now(), message: 'Jornada iniciada.' },
     ...initialStep.trail.map((entry, i) => ({
       id: `start-trail-${i}`,
@@ -117,9 +144,22 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
     { id: 'start-step', time: now(), message: describeStep(initialStep) },
   ]);
 
-  const appendLog = useCallback((message: string, data?: Record<string, unknown>) => {
-    setLog((prev) => [...prev, { id: `${Date.now()}-${prev.length}`, time: now(), message, data }]);
+  const appendLog = useCallback((message: string, data?: Record<string, unknown>, isError?: boolean) => {
+    setLog((prev) => [...prev, { id: `${Date.now()}-${prev.length}`, time: now(), message, data, isError }]);
   }, []);
+
+  // Toda chamada que ./api.ts faz ao ms-espec-registry (não só os eventos de negócio já logados nos
+  // handlers abaixo) — o pedido era ver TODAS as integrações front→outras pontas, não só as
+  // curadas. initialApiLog acima já trouxe o que aconteceu antes deste componente montar; a partir
+  // daqui é este handler que ExecutionsPage repassa (ver onApiCallHandlerChange/liveLoggerRef lá).
+  useEffect(() => {
+    onApiCallHandlerChange?.((entry) => {
+      if (!shouldLogApiCall(entry)) return;
+      const { message, isError } = formatApiCallLog(entry);
+      appendLog(message, apiCallLogData(entry), isError);
+    });
+    return () => onApiCallHandlerChange?.(null);
+  }, [appendLog, onApiCallHandlerChange]);
 
   const refreshVariables = useCallback(() => {
     getVariables(processInstanceId)
@@ -142,11 +182,19 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
 
   function applyNewStep(newStep: StepResponse) {
     setStep(newStep);
-    if (newStep.errorNodeId) {
+    // errorMessage é a fonte da verdade de "houve erro", não errorNodeId: a heurística que tenta
+    // achar QUAL nó falhou pode não conseguir (ex.: o ramo que falhou nem chegou a rodar de novo
+    // por causa de um loop no fluxo) e volta null mesmo com um erro real — tratar isso como "sem
+    // erro" escondia a falha inteira do usuário, mostrando só "respondida" no log.
+    if (newStep.errorMessage) {
       setErroredNodeId(newStep.errorNodeId);
       setErroredNodeName(newStep.errorNodeName);
       setErroredMessage(newStep.errorMessage);
-      appendLog(`Falha ao executar "${newStep.errorNodeName ?? 'etapa'}": ${newStep.errorMessage ?? 'erro desconhecido'}.`);
+      appendLog(
+        `Falha ao executar "${newStep.errorNodeName ?? 'etapa'}": ${newStep.errorMessage ?? 'erro desconhecido'}.`,
+        newStep.errorConnectorConfig ? { ...newStep.errorConnectorConfig } : undefined,
+        true,
+      );
     } else {
       clearError();
     }
@@ -168,7 +216,7 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
     setBusy(true);
     try {
       const newStep = await completeTask(processInstanceId, step.taskId, answers);
-      if (!newStep.errorNodeId) {
+      if (!newStep.errorMessage) {
         appendLog(`${capitalize(taskLabel(step.nodeType))} "${step.nodeName}" respondida.`, answers);
       }
       applyNewStep(newStep);
@@ -177,7 +225,7 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
       setErroredNodeId(step.nodeId);
       setErroredNodeName(step.nodeName);
       setErroredMessage(message);
-      appendLog(`Falha de comunicação ao tentar avançar "${step.nodeName}": ${message}`);
+      appendLog(`Falha de comunicação ao tentar avançar "${step.nodeName}": ${message}`, undefined, true);
     } finally {
       setBusy(false);
     }
@@ -187,7 +235,7 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
     setBusy(true);
     try {
       const newStep = await skipStep(processInstanceId);
-      if (!newStep.errorNodeId) {
+      if (!newStep.errorMessage) {
         appendLog(`Etapa "${step.nodeName}" (${taskLabel(step.nodeType)}) pulada manualmente.`);
       }
       applyNewStep(newStep);
@@ -196,7 +244,7 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
       setErroredNodeId(step.nodeId);
       setErroredNodeName(step.nodeName);
       setErroredMessage(message);
-      appendLog(`Falha de comunicação ao tentar avançar "${step.nodeName}": ${message}`);
+      appendLog(`Falha de comunicação ao tentar avançar "${step.nodeName}": ${message}`, undefined, true);
     } finally {
       setBusy(false);
     }
@@ -207,6 +255,22 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
     appendLog(`Mensagem de teste publicada no Kafka para "${step.nodeName}".`, payload);
   }
 
+  async function handleSendKafkaMessage(payload?: Record<string, unknown>) {
+    const nodeName = step.nodeName;
+    const newStep = await sendKafkaMessage(processInstanceId, payload);
+    appendLog(
+      payload
+        ? `Mensagem Kafka enviada manualmente para "${nodeName}".`
+        : `Mensagem Kafka gerada automaticamente para "${nodeName}".`,
+      payload,
+    );
+    applyNewStep(newStep);
+  }
+
+  function handlePreviewKafkaMessage() {
+    return previewKafkaMessage(processInstanceId);
+  }
+
   // Nó Kafka em espera não tem botão: o produtor completa sozinho (worker em background) e o
   // consumidor só avança quando uma mensagem real chega (painel "Enviar mensagem" ou um produtor
   // externo de verdade) — em ambos os casos, só o polling aqui detecta que o passo mudou.
@@ -215,9 +279,15 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
 
   useEffect(() => {
     if (!isWaitingOnKafka) return;
+    // Rastreia desde quando ainda não perguntamos ao backend — sem isso o polling só saberia que o
+    // passo mudou, nunca o que o worker automático publicou de fato nesse meio-tempo (ver
+    // trailLogData/currentStep). Só avança em caso de sucesso: numa falha de rede, mantém a janela
+    // pra não perder a trilha de um Service Task que rodou durante a instabilidade.
+    let since = new Date().toISOString();
     const id = setInterval(async () => {
       try {
-        const latest = await getCurrentStep(processInstanceId);
+        const latest = await getCurrentStep(processInstanceId, since);
+        since = new Date().toISOString();
         if (latest.type !== step.type || latest.nodeId !== step.nodeId) {
           applyNewStep(latest);
         }
@@ -236,7 +306,7 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
       setVariables(updated);
       appendLog(`Variável "${name}" alterada manualmente para ${rawValue}.`);
     } catch (e) {
-      appendLog(`Falha ao alterar a variável "${name}": ${errorMessage(e)}`);
+      appendLog(`Falha ao alterar a variável "${name}": ${errorMessage(e)}`, undefined, true);
     }
   }
 
@@ -244,38 +314,19 @@ export function ExecutionWorkspace({ processInstanceId, businessKey, journey, fl
     <div className="flex-1 min-h-0 flex flex-col" style={{ background: skinVars.colors.background }}>
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="max-w-[1040px] mx-auto px-6 py-8">
-          <Stack space={24}>
-            <div className="flex items-center justify-between">
-              <Stack space={2}>
-                <Text size={12.5} color={skinVars.colors.textSecondary}>
-                  {journey.productName} · {journey.channelName}
-                </Text>
-                <Text size={19} weight="bold" color={skinVars.colors.textPrimary}>
-                  {journey.name}
-                </Text>
-              </Stack>
-              <button
-                type="button"
-                onClick={onRestart}
-                className="flex items-center gap-[6px] rounded-lg px-3 py-2 text-[13px] font-medium cursor-pointer"
-                style={{ background: 'transparent', border: `1px solid ${skinVars.colors.border}`, color: skinVars.colors.textSecondary }}
-              >
-                <ArrowLeft size={14} />
-                Nova execução
-              </button>
-            </div>
-
-            <DevicePreview
-              channelType={flow.channelType}
-              step={step}
-              busy={busy}
-              connectorConfig={waitingConnectorConfig}
-              businessKey={businessKey}
-              onCompleteTask={handleCompleteTask}
-              onSkipStep={handleSkipStep}
-              onSendTestMessage={handleSendTestMessage}
-            />
-          </Stack>
+          <DevicePreview
+            channelType={flow.channelType}
+            step={step}
+            busy={busy}
+            connectorConfig={waitingConnectorConfig}
+            businessKey={businessKey}
+            manualKafkaControl={manualKafkaControl}
+            onCompleteTask={handleCompleteTask}
+            onSkipStep={handleSkipStep}
+            onSendTestMessage={handleSendTestMessage}
+            onSendKafkaMessage={handleSendKafkaMessage}
+            onPreviewKafkaMessage={handlePreviewKafkaMessage}
+          />
         </div>
       </div>
 

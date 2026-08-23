@@ -25,11 +25,15 @@ Modelagem Visual de Fluxos
 
 Service Tasks, Receive Tasks e Message Start Events com conectores REST, Kafka, Azure Event Hubs e Azure Service Bus
 
-Catálogo de integrações: clusters de mensageria corporativos e referências de credencial (Azure Key Vault)
+Catálogo de integrações: clusters de mensageria corporativos, referências de credencial (Azure Key Vault) e credencial de IA
+
+Geração de fluxo assistida por IA
 
 Formulários
 
 Execução
+
+Dashboard operacional
 
 Publicação de Jornadas
 
@@ -69,9 +73,15 @@ Gestão de Jornadas Específicas por Canal
 
 Modelagem Visual de Fluxos
 
+Geração de Fluxo Assistida por IA
+
 Gestão de Formulários
 
 Versionamento de Jornadas
+
+Catálogo de Integrações (clusters e credenciais de mensageria, credencial de IA)
+
+Dashboard Operacional
 
 Autenticação e Autorização mockadas
 
@@ -101,8 +111,6 @@ Rollback
 Promotion Between Environments
 
 Analytics
-
-IA Assistida
 
 Workflow de Aprovação
 
@@ -161,7 +169,11 @@ Framework de integrações com REST, Kafka, Azure Event Hubs e Azure Service Bus
 
 ## Integration Catalog
 
-Catálogo de clusters de mensageria corporativos e referências de credencial (Azure Key Vault) usados pelos conectores de mensageria. Administração restrita ao papel `ADMIN`; demais papéis apenas selecionam entradas já cadastradas. Nunca armazena o valor de um segredo.
+Catálogo de clusters de mensageria corporativos e referências de credencial (Azure Key Vault) usados pelos conectores de mensageria, além da credencial de API de IA usada pela geração de fluxo assistida. Administração restrita ao papel `ADMIN`; demais papéis apenas selecionam entradas já cadastradas. Nunca armazena o valor de um segredo de mensageria; a credencial de IA é a única exceção deliberada e temporária a esse princípio (ver FT-14 US-14.06).
+
+## AI-Assisted Flow Generation
+
+Geração automática de um rascunho de fluxo a partir de uma descrição em linguagem natural, usando a credencial de IA do Integration Catalog. O fluxo gerado é sempre um rascunho editável, sujeito às mesmas regras de validação estrutural e à mesma revisão manual de um fluxo criado por edição direta.
 
 ## Form
 
@@ -283,6 +295,7 @@ Especificação OpenAPI
 | Audit Event | Evento de auditoria de uma operação do sistema |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
+| AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
 
 ---
 
@@ -301,7 +314,8 @@ Especificação OpenAPI
 | Runtime | Camada responsável pela execução das jornadas |
 | ms-journey | Motor de execução que não conhece nem consulta o Admin Portal |
 | BPMN | Modelo executável utilizado pelo motor de workflow |
-| Integration Catalog | Catálogo de clusters de mensageria e referências de credencial usados pelos conectores |
+| Integration Catalog | Catálogo de clusters de mensageria e referências de credencial usados pelos conectores, e da credencial de IA |
+| AI-Assisted Flow Generation | Geração de um rascunho de fluxo a partir de um prompt em linguagem natural |
 
 ---
 

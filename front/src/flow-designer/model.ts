@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
+import { Play, User, CheckCircle2, Server, Mail, X, type LucideIcon } from 'lucide-react';
 import type { FlowNodeType } from '../api/flows';
 import type { Form, FormField } from '../api/forms';
 
@@ -131,10 +132,13 @@ export function makeAnnotation(x: number, y: number): WFAnnotation {
 export const SINGLE_OUTPUT_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask'];
 
 // Max outgoing connections allowed for a node type, used to disable the connect handle/quick-add
-// once reached (REQ-03.02.004/03.02.007, REQ-03.11.001).
+// once reached (REQ-03.02.004/03.02.007, REQ-03.11.001). START/MESSAGE_START_EVENT are capped at 1
+// here too (REQ-03.07.005: the start element has exactly one output) but deliberately left out of
+// SINGLE_OUTPUT_TYPES itself — that list also gates copy/duplicate eligibility (Ctrl+C/D), and
+// duplicating the start node would produce a second one, which is invalid (exactly one start per flow).
 export function outgoingLimitFor(type: NodeType): number {
   if (type === 'gateway') return 2;
-  if (SINGLE_OUTPUT_TYPES.includes(type)) return 1;
+  if (type === 'start' || type === 'messageStartEvent' || SINGLE_OUTPUT_TYPES.includes(type)) return 1;
   return Infinity;
 }
 
@@ -215,7 +219,48 @@ export const TYPE_COLOR: Record<NodeType, string> = {
   gateway: '#eab308',
 };
 
-export const NODE_WIDTH = 190;
+// Única fonte do ícone por tipo — antes vivia triplicado (WorkflowNode, Palette,
+// execution/FlowDiagramViewer), o que já causou o designer e o visualizador de execução
+// divergirem (um trocado pra User, o outro esquecido em ClipboardList). Gateway usa o mesmo X do
+// marcador "exclusivo" desenhado dentro do losango (NodeShape) — não é um ícone genérico de
+// "excluir" aqui, mesmo componente reaproveitado.
+export const NODE_ICON: Record<NodeType, LucideIcon> = {
+  start: Play,
+  userTask: User,
+  end: CheckCircle2,
+  serviceTask: Server,
+  receiveTask: Mail,
+  messageStartEvent: Mail,
+  gateway: X,
+};
+
+// Formato de renderização por tipo — evento (círculo), decisão (losango) ou tarefa (caixa
+// arredondada), igual notação BPMN de mercado (bpmn.io/Camunda Modeler) em vez do card retangular
+// largo único que existia antes pra todos os tipos.
+export type NodeShape = 'event' | 'gateway' | 'task';
+export const NODE_SHAPE: Record<NodeType, NodeShape> = {
+  start: 'event',
+  messageStartEvent: 'event',
+  end: 'event',
+  gateway: 'gateway',
+  userTask: 'task',
+  serviceTask: 'task',
+  receiveTask: 'task',
+};
+
+export const NODE_DIMENSIONS: Record<NodeType, { width: number; height: number }> = {
+  start: { width: 44, height: 44 },
+  messageStartEvent: { width: 44, height: 44 },
+  end: { width: 44, height: 44 },
+  gateway: { width: 50, height: 50 },
+  userTask: { width: 116, height: 82 },
+  serviceTask: { width: 116, height: 82 },
+  receiveTask: { width: 116, height: 82 },
+};
+
+// Fallback genérico pra call sites que precisam de um tamanho aproximado sem saber o tipo exato
+// (ex.: margem de "manter nó visível" no pan automático) — usa o tamanho de tarefa, o mais comum.
+export const NODE_WIDTH = NODE_DIMENSIONS.userTask.width;
 
 // Client-only display preference (not persisted with the flow) — lets the user try out the
 // built-in @xyflow/react edge renderers directly in the designer.
@@ -432,7 +477,6 @@ export function initialFlowEdges(_nodes: WFNode[]): WFEdge[] {
   return [];
 }
 
-const NODE_HEIGHT = 56;
 // Gap between nodes of adjacent layers / within the same layer. dagre's ranker already handles
 // crossing minimization and rank assignment properly, so layout tuning is just these two numbers.
 const RANK_SEP = 90;
@@ -440,14 +484,21 @@ const NODE_SEP = 32;
 
 // Layered auto-layout via dagre (replaces a hand-rolled barycenter-sweep layout that was ported
 // from the wf-designer reference project — dagre does real crossing minimization and holds up
-// better on larger, denser flows). All node types share a fixed size here (no branch rows like
-// the reference's decision nodes), so spacing is constant regardless of node type.
+// better on larger, denser flows). Cada tipo usa seu próprio tamanho real (NODE_DIMENSIONS) desde
+// que eventos/decisão pararam de compartilhar a caixa larga única das tarefas.
 export function computeLayout(nodes: WFNode[], edges: WFEdge[]): WFNode[] {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: 'LR', nodesep: NODE_SEP, ranksep: RANK_SEP, marginx: 80, marginy: 80 });
 
-  nodes.forEach((n) => g.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
+  // Cópia nova a cada chamada — dagre.layout muta o próprio objeto do label (escreve x/y nele
+  // direto), e NODE_DIMENSIONS[type] é a MESMA referência pra todo nó daquele tipo. Sem copiar,
+  // todo nó do mesmo tipo (ex.: todas as USER_TASK) compartilha um único objeto, e a última escrita
+  // do dagre vence pra todos eles — colapsando todos na mesma posição (x,y). Foi isso que fez o
+  // canvas parecer "doidinho" depois de eventos/decisão pararem de usar NODE_WIDTH/NODE_HEIGHT fixos.
+  const dimensionsOf = (n: WFNode) => ({ ...(NODE_DIMENSIONS[n.type as NodeType] ?? NODE_DIMENSIONS.userTask) });
+
+  nodes.forEach((n) => g.setNode(n.id, dimensionsOf(n)));
   edges.forEach((e) => {
     if (g.hasNode(e.source) && g.hasNode(e.target)) g.setEdge(e.source, e.target);
   });
@@ -456,6 +507,7 @@ export function computeLayout(nodes: WFNode[], edges: WFEdge[]): WFNode[] {
 
   return nodes.map((n) => {
     const pos = g.node(n.id);
-    return { ...n, position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 } };
+    const dim = dimensionsOf(n);
+    return { ...n, position: { x: pos.x - dim.width / 2, y: pos.y - dim.height / 2 } };
   });
 }

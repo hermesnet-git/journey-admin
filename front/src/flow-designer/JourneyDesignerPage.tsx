@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Map as MapIcon, X } from 'lucide-react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -11,7 +12,6 @@ import {
   addEdge,
   useReactFlow,
   useViewport,
-  getViewportForBounds,
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
@@ -27,12 +27,14 @@ import { WorkflowNode } from './WorkflowNode';
 import { AnnotationNode } from './AnnotationNode';
 import { Palette } from './Palette';
 import { PropertiesDock } from './PropertiesDock';
+import { FormPreviewDock } from './FormPreviewDock';
 import { ErrorModal } from './ErrorModal';
 import { GeneratePromptModal, type GenerateLogEntry } from './GeneratePromptModal';
 import { Toolbar } from './Toolbar';
 import { validateFlow } from './validation';
 import {
   NODE_WIDTH,
+  NODE_DIMENSIONS,
   TYPE_COLOR,
   initialFlowNodes,
   initialFlowEdges,
@@ -60,6 +62,52 @@ import { getFlow, updateFlow, generateFlow, type Flow } from '../api/flows';
 import { listForms, type Form } from '../api/forms';
 import { listClusters, listCredentials, type MessagingCluster, type CredentialReference } from '../api/messaging';
 import { ApiClientError } from '../api/client';
+import { useToast } from '../products/Toast';
+
+// Mesmo formato enviado a updateJourney/updateFlow — usado tanto pro save de verdade quanto pra
+// detectar, comparando com o snapshot salvo pela última vez, se há algo pra salvar. Sem isso,
+// "Salvar" sem nenhuma edição real ainda dispara updateFlow, que sempre grava uma nova versão em
+// rascunho (UpdateFlow.execute chama createJourneyVersion incondicionalmente).
+function buildFlowSnapshot(
+  name: string,
+  description: string,
+  nodes: WFNode[],
+  edges: WFEdge[],
+  annotations: WFAnnotation[],
+) {
+  return JSON.stringify({
+    name,
+    description,
+    nodes: nodes.map((n) => ({
+      nodeId: n.id,
+      nodeType: FRONT_TO_BACKEND_TYPE[n.type as NodeType],
+      name: n.data.name,
+      description: n.data.description || null,
+      positionX: Math.round(n.position.x),
+      positionY: Math.round(n.position.y),
+      userTaskConfig:
+        n.data.formId || n.data.messageText
+          ? { formId: n.data.formId || null, messageText: n.data.messageText || null }
+          : null,
+      connectorConfig: n.data.connectorConfig,
+      startVariables: n.data.startVariables ?? null,
+    })),
+    connections: edges.map((e) => ({
+      connectionId: e.id,
+      sourceNodeId: e.source,
+      targetNodeId: e.target,
+      condition: e.data?.condition ?? null,
+      isDefault: !!e.data?.isDefault,
+    })),
+    annotations: annotations.map((a) => ({
+      id: a.id,
+      text: a.data.text,
+      positionX: Math.round(a.position.x),
+      positionY: Math.round(a.position.y),
+      linkedNodeIds: a.data.linkedNodeIds,
+    })),
+  });
+}
 
 const nodeTypes = {
   start: WorkflowNode,
@@ -111,8 +159,9 @@ function DesignerInner({
   onOpenForm: (formId: string) => void;
   onOpenNewForm: () => void;
 }) {
-  const { dark } = useAppTheme();
+  const { dark, colors: appColors } = useAppTheme();
   const c = dark ? DARK_COLORS : LIGHT_COLORS;
+  const { showToast } = useToast();
 
   const [activeJourney, setActiveJourney] = useState<Journey>(journey);
   const [name, setName] = useState(journey.name);
@@ -146,6 +195,17 @@ function DesignerInner({
   useEffect(() => {
     localStorage.setItem('flow-designer:edge-shape', edgeShape);
   }, [edgeShape]);
+  // Mesma ideia do edgeShape: preferência só de exibição, lembrada entre sessões. Padrão vazio
+  // (sem tingir o fundo do card com a cor do tipo do nó) — pedido explícito do usuário.
+  const [nodeFill, setNodeFill] = useState<boolean>(
+    () => localStorage.getItem('flow-designer:node-fill') === 'true',
+  );
+  useEffect(() => {
+    localStorage.setItem('flow-designer:node-fill', String(nodeFill));
+  }, [nodeFill]);
+  // Minimapa começa recolhido de propósito (pedido do usuário) — só um botão no canto até clicar
+  // pra usar; não persiste entre sessões (sempre volta a recolhido, diferente de edgeShape/nodeFill).
+  const [minimapOpen, setMinimapOpen] = useState(false);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -172,30 +232,31 @@ function DesignerInner({
 
   const undoStack = useRef<HistorySnapshot[]>([]);
   const redoStack = useRef<HistorySnapshot[]>([]);
+  // Snapshot (mesmo formato enviado ao backend) do que está salvo agora — comparado no handleSave
+  // pra saber se há algo de fato pra salvar. Populado ao carregar o fluxo e atualizado após cada
+  // save bem-sucedido.
+  const savedSnapshotRef = useRef<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const { screenToFlowPosition, zoomIn, zoomOut, fitView, getNodesBounds, getViewport, setViewport } = useReactFlow();
   const { zoom } = useViewport();
 
-  // Fluxos são lidos/construídos da esquerda pra direita (mesma direção do auto-layout LR e de onde
-  // novos nós nascem via onQuickAdd abaixo), então a visão inicial ancora perto da borda esquerda do
-  // canvas com espaço pra crescer pra direita, em vez da centralização padrão do fitView — que só
-  // desperdiça o espaço que está prestes a ser preenchido pelos próximos nós.
+  // Padrão pedido pelo usuário: sempre 100% de zoom (nunca reduz pra caber o fluxo inteiro na tela,
+  // mesmo que ultrapasse a área visível — o usuário navega/dá pan pro resto) com o início do fluxo
+  // ancorado perto da borda esquerda do canvas, não centralizado — mesma direção do auto-layout LR e
+  // de onde novos nós nascem via onQuickAdd abaixo, então o espaço à direita já nasce livre pra
+  // crescer. Usado ao carregar uma jornada (nova ou existente) e depois do "Gerar com IA".
   const fitViewLeftAligned = useCallback(() => {
     const paneEl = wrapperRef.current;
     if (!paneEl || nodesRef.current.length === 0) return;
     const bounds = getNodesBounds(nodesRef.current.map((n) => n.id));
     if (bounds.width === 0 && bounds.height === 0) return;
-    const { width: paneWidth, height: paneHeight } = paneEl.getBoundingClientRect();
-    if (!paneWidth || !paneHeight) return;
-    // minZoom espelha o <ReactFlow minZoom>; maxZoom é travado em 1 aqui (nunca dá zoom IN além do
-    // tamanho natural) em vez do 1.6 do próprio canvas — ajustar um único nó pequeno ao painel
-    // empurraria o zoom calculado pro máximo, e um nó grande e zoomado ainda parece "centralizado"
-    // visualmente não importa onde sua borda esquerda tecnicamente esteja; um nó de tamanho natural
-    // com canvas vazio de verdade à direita passa a sensação de "início de um fluxo" em vez disso.
-    const { zoom: fitZoom, y } = getViewportForBounds(bounds, paneWidth, paneHeight, 0.4, 1, 0.3);
+    const { height: paneHeight } = paneEl.getBoundingClientRect();
+    if (!paneHeight) return;
+    const zoom = 1;
     const leftMargin = 64;
-    setViewport({ x: leftMargin - bounds.x * fitZoom, y, zoom: fitZoom }, { duration: 0 });
+    const y = paneHeight / 2 - (bounds.y + bounds.height / 2) * zoom;
+    setViewport({ x: leftMargin - bounds.x * zoom, y, zoom }, { duration: 0 });
   }, [getNodesBounds, setViewport]);
 
   // Ajusta o pan (nunca o zoom) só o suficiente pra trazer um nó totalmente pra dentro do canvas
@@ -284,6 +345,13 @@ function DesignerInner({
       setNodes(mapped.nodes);
       setEdges(mapped.edges);
       setAnnotations(mapped.annotations);
+      savedSnapshotRef.current = buildFlowSnapshot(
+        journey.name,
+        journey.description ?? '',
+        mapped.nodes,
+        mapped.edges,
+        mapped.annotations,
+      );
       setLoading(false);
       // Os nós só recebem seu tamanho medido de verdade (do que o cálculo de bounds precisa) depois
       // que esse render é commitado — mesmo raciocínio do requestAnimationFrame no organize() abaixo.
@@ -338,7 +406,7 @@ function DesignerInner({
         setAnnotations(mapped.annotations);
         setGenerateModalOpen(false);
         setGenerateLog([]);
-        requestAnimationFrame(() => fitView({ padding: 0.2, duration: 200 }));
+        requestAnimationFrame(() => fitViewLeftAligned());
       } catch (err) {
         // Fica no log do próprio modal (em vermelho), não num ErrorModal separado — o usuário
         // continua vendo o prompt e o histórico de tentativas junto do erro, e pode ajustar e
@@ -352,7 +420,7 @@ function DesignerInner({
         setGenerating(false);
       }
     },
-    [activeJourney.journeyId, mapFlowToState, pushHistory, fitView],
+    [activeJourney.journeyId, mapFlowToState, pushHistory, fitViewLeftAligned],
   );
 
   // Marks exactly one node as selected (used when a node is created/duplicated).
@@ -451,7 +519,8 @@ function DesignerInner({
       const rect = wrapperRef.current?.getBoundingClientRect();
       const center = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : { x: 400, y: 300 };
       const pos = screenToFlowPosition(center);
-      addNodeAt(type, pos.x - NODE_WIDTH / 2, pos.y - 30);
+      const dim = NODE_DIMENSIONS[type];
+      addNodeAt(type, pos.x - dim.width / 2, pos.y - dim.height / 2);
     },
     [addNodeAt, screenToFlowPosition],
   );
@@ -471,7 +540,8 @@ function DesignerInner({
       const type = e.dataTransfer.getData('text/plain') as NodeType;
       if (!type) return;
       const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      addNodeAt(type, pos.x - NODE_WIDTH / 2, pos.y - 30);
+      const dim = NODE_DIMENSIONS[type];
+      addNodeAt(type, pos.x - dim.width / 2, pos.y - dim.height / 2);
     },
     [addNodeAt, screenToFlowPosition],
   );
@@ -503,7 +573,20 @@ function DesignerInner({
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
       const selected = nodesRef.current.filter((n) => n.selected);
-      if (e.key === 'c') {
+      // A toolbar já anuncia "Desfazer (Ctrl+Z)"/"Refazer (Ctrl+Y)" nos tooltips dos botões (ver
+      // Toolbar.tsx), mas o atalho de teclado em si nunca tinha sido implementado aqui — só os
+      // botões funcionavam. Ctrl+Shift+Z como redo também, de brinde: convenção comum o bastante
+      // (Mac/vários apps) pra valer o `else if` a mais.
+      if (e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        redo();
+      } else if (e.key === 'z') {
+        e.preventDefault();
+        undo();
+      } else if (e.key === 'y') {
+        e.preventDefault();
+        redo();
+      } else if (e.key === 'c') {
         const type = selected[0]?.type;
         if (selected.length === 1 && type && SINGLE_OUTPUT_TYPES.includes(type)) clipboardRef.current = selected[0];
       } else if (e.key === 'v') {
@@ -520,7 +603,7 @@ function DesignerInner({
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [duplicateNode]);
+  }, [duplicateNode, undo, redo]);
 
   const onQuickAdd = useCallback(
     (nodeId: string, type: NodeType) => {
@@ -537,7 +620,7 @@ function DesignerInner({
       const isGateway = source.type === 'gateway';
       const branchYOffset = isGateway ? (outCount === 0 ? -44 : 44) : 0;
       const node = {
-        ...makeNode(type, source.position.x + NODE_WIDTH + 140, source.position.y + branchYOffset),
+        ...makeNode(type, source.position.x + NODE_DIMENSIONS[source.type].width + 140, source.position.y + branchYOffset),
         selected: true,
       };
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
@@ -603,7 +686,6 @@ function DesignerInner({
       onQuickAdd,
       onDelete: deleteNode,
       onOpenForm,
-      getFormName: (formId) => forms.find((f) => f.formId === formId)?.name,
       getForm: (formId) => forms.find((f) => f.formId === formId),
       onUpdateAnnotationText,
       onDeleteAnnotation,
@@ -693,6 +775,11 @@ function DesignerInner({
       return;
     }
 
+    if (buildFlowSnapshot(name, description, nodes, edges, annotations) === savedSnapshotRef.current) {
+      showToast('Nenhuma alteração foi feita — nenhuma nova versão será gerada.', 'info');
+      return;
+    }
+
     if (activeJourney.status === 'PUBLISHED') {
       setConfirmingPublishedEdit(true);
       return;
@@ -737,6 +824,7 @@ function DesignerInner({
         })),
       });
       setActiveJourney(journeyRecord);
+      savedSnapshotRef.current = buildFlowSnapshot(name, description, nodes, edges, annotations);
       onSaved();
     } catch (err) {
       // Uma violação estrutural (422) vem com uma lista de mensagens em `details` — usar cada uma
@@ -753,6 +841,11 @@ function DesignerInner({
   }
 
   const propertiesNode = nodes.find((n) => n.id === propertiesNodeId) ?? null;
+  // Preview do formulário segue a seleção diretamente (não tem gatilho/estado próprio): qualquer
+  // User Task com formulário vinculado mostra o preview assim que selecionada, e selecionar
+  // qualquer outra coisa (outro tipo de nó, ou nada) some com ele — pedido explícito do usuário.
+  const previewNode = propertiesNode?.type === 'userTask' && propertiesNode.data.formId ? propertiesNode : null;
+  const previewForm = previewNode?.data.formId ? forms.find((f) => f.formId === previewNode.data.formId) : undefined;
 
   if (loading) {
     return (
@@ -763,7 +856,7 @@ function DesignerInner({
   }
 
   return (
-    <FlowThemeContext.Provider value={{ dark, c }}>
+    <FlowThemeContext.Provider value={{ dark, c, nodeFill }}>
       <WorkflowActionsContext.Provider value={actions}>
         <div className="flex-1 flex flex-col overflow-hidden">
           <Toolbar
@@ -774,6 +867,8 @@ function DesignerInner({
             onOrganize={organize}
             edgeShape={edgeShape}
             onEdgeShapeChange={setEdgeShape}
+            nodeFill={nodeFill}
+            onNodeFillChange={setNodeFill}
             zoomPct={Math.round(zoom * 100)}
             onZoomIn={() => zoomIn({ duration: 150 })}
             onZoomOut={() => zoomOut({ duration: 150 })}
@@ -817,16 +912,45 @@ function DesignerInner({
                 proOptions={{ hideAttribution: true }}
               >
                 <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={20} size={1.2} />
-                <MiniMap
-                  pannable
-                  zoomable
-                  nodeColor={(n) => TYPE_COLOR[n.type as NodeType] ?? c.textSecondary}
-                  nodeStrokeWidth={0}
-                  nodeBorderRadius={4}
-                  maskColor={dark ? 'rgba(14,15,19,0.65)' : 'rgba(244,244,247,0.7)'}
-                  style={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: 8 }}
-                />
+                {minimapOpen ? (
+                  <>
+                    <MiniMap
+                      position="top-right"
+                      pannable
+                      zoomable
+                      nodeColor={(n) => TYPE_COLOR[n.type as NodeType] ?? c.textSecondary}
+                      nodeStrokeWidth={0}
+                      nodeBorderRadius={4}
+                      maskColor={dark ? 'rgba(14,15,19,0.65)' : 'rgba(244,244,247,0.7)'}
+                      style={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: 8 }}
+                    />
+                    <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 30 }}>
+                      <button
+                        onClick={() => setMinimapOpen(false)}
+                        title="Recolher minimapa"
+                        className="w-[20px] h-[20px] rounded-full flex items-center justify-center cursor-pointer border-0"
+                        style={{ background: c.cardBg, border: `1px solid ${c.border}`, color: c.textSecondary }}
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 30 }}>
+                    <button
+                      onClick={() => setMinimapOpen(true)}
+                      title="Abrir minimapa"
+                      className="w-[28px] h-[28px] rounded-lg flex items-center justify-center cursor-pointer border-0"
+                      style={{ background: c.cardBg, border: `1px solid ${c.border}`, color: c.textSecondary }}
+                    >
+                      <MapIcon size={14} />
+                    </button>
+                  </div>
+                )}
               </ReactFlow>
+              {previewNode && previewForm && (
+                <FormPreviewDock nodeName={previewNode.data.name} form={previewForm} onEdit={() => onOpenForm(previewForm.formId)} />
+              )}
             </div>
             <PropertiesDock
               node={propertiesNode}
@@ -867,7 +991,14 @@ function DesignerInner({
         {confirmingPublishedEdit && (
           <ConfirmDialog
             title="Editar jornada publicada?"
-            message="Esta jornada está publicada. Salvar agora grava essas alterações numa versão em rascunho separada — a versão publicada continua ativa até que o rascunho seja publicado."
+            message={
+              <>
+                Esta jornada está publicada. Salvar agora grava essas alterações numa versão em rascunho separada.{' '}
+                <strong style={{ color: appColors.warning }}>
+                  A versão publicada continua ativa até que o rascunho seja publicado.
+                </strong>
+              </>
+            }
             confirmLabel="Salvar como rascunho"
             onConfirm={() => {
               setConfirmingPublishedEdit(false);

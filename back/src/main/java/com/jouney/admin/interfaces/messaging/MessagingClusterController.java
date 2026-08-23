@@ -4,6 +4,7 @@ import com.jouney.admin.application.messaging.CreateCluster;
 import com.jouney.admin.application.messaging.DeleteCluster;
 import com.jouney.admin.application.messaging.FindClusters;
 import com.jouney.admin.application.messaging.GetCluster;
+import com.jouney.admin.application.messaging.ListClusterTopics;
 import com.jouney.admin.application.messaging.UpdateCluster;
 import com.jouney.admin.domain.messaging.ClusterType;
 import jakarta.validation.Valid;
@@ -36,15 +37,17 @@ public class MessagingClusterController {
     private final GetCluster getCluster;
     private final FindClusters findClusters;
     private final DeleteCluster deleteCluster;
+    private final ListClusterTopics listClusterTopics;
 
     public MessagingClusterController(CreateCluster createCluster, UpdateCluster updateCluster,
                                        GetCluster getCluster, FindClusters findClusters,
-                                       DeleteCluster deleteCluster) {
+                                       DeleteCluster deleteCluster, ListClusterTopics listClusterTopics) {
         this.createCluster = createCluster;
         this.updateCluster = updateCluster;
         this.getCluster = getCluster;
         this.findClusters = findClusters;
         this.deleteCluster = deleteCluster;
+        this.listClusterTopics = listClusterTopics;
     }
 
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
@@ -79,5 +82,17 @@ public class MessagingClusterController {
     public ResponseEntity<Void> delete(@PathVariable UUID clusterId) {
         deleteCluster.execute(clusterId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Sugestão de tópicos reais pro seletor do editor de fluxo (US-03.09) — o front continua
+     * aceitando digitação livre mesmo quando essa chamada falha ou volta vazia, então nunca bloqueia
+     * o desenho da jornada.
+     */
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
+    @GetMapping("/{clusterId}/topics")
+    public TopicListingResponse listTopics(@PathVariable UUID clusterId,
+                                            @RequestParam(required = false) String credentialReferenceName) {
+        return TopicListingResponse.from(listClusterTopics.execute(clusterId, credentialReferenceName));
     }
 }

@@ -2,6 +2,7 @@ package com.jouney.transformpublication.interfaces;
 
 import com.jouney.transformpublication.bpmn.BpmnTransformationException;
 import com.jouney.transformpublication.camunda.CamundaDeploymentException;
+import com.jouney.transformpublication.camunda.CamundaUnavailableException;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -21,9 +22,18 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "BPMN_TRANSFORMATION_ERROR", ex.getMessage());
     }
 
+    // 422, not 502: Camunda answered and rejected this specific BPMN (e.g. an invalid JUEL
+    // expression) — a problem with the journey's own content, not with reaching Camunda. See
+    // handleUnavailable below for the genuinely-unreachable case.
     @ExceptionHandler(CamundaDeploymentException.class)
     public ResponseEntity<Map<String, Object>> handleDeployment(CamundaDeploymentException ex) {
-        log.error("Camunda deployment call failed", ex);
+        log.error("Camunda rejected deployment", ex);
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "CAMUNDA_DEPLOYMENT_REJECTED", ex.getMessage());
+    }
+
+    @ExceptionHandler(CamundaUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> handleUnavailable(CamundaUnavailableException ex) {
+        log.error("Camunda unreachable", ex);
         return build(HttpStatus.BAD_GATEWAY, "CAMUNDA_UNAVAILABLE", ex.getMessage());
     }
 

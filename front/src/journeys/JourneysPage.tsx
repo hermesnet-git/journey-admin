@@ -14,14 +14,14 @@ import {
   ArrowUpDown,
   Upload,
   RotateCw,
-  Loader2,
+  RefreshCw,
   GitCommitHorizontal,
 } from 'lucide-react';
-import { PrimaryButton, FilterDropdown, type FilterOption } from '../products/ui';
+import { PrimaryButton, SecondaryButton, FilterDropdown, ActionsMenu, type FilterOption, type MenuAction } from '../products/ui';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
 import { ConfirmDialog } from '../products/ConfirmDialog';
-import { ApiClientError } from '../api/client';
+import { ApiClientError, reportServerError } from '../api/client';
 import {
   listJourneys,
   deleteJourney,
@@ -92,7 +92,9 @@ function compareJourneys(a: Journey, b: Journey, field: SortField): number {
   }
 }
 
-const GRID_COLS = 'minmax(0,2fr) 1.3fr 1fr 1fr 132px';
+// Última coluna encolhida de 132px pra 56px: agora carrega só o gatilho "⋮" do ActionsMenu, não
+// mais uma fileira de até 5 ícones lado a lado.
+const GRID_COLS = 'minmax(0,2fr) 1.3fr 1fr 1fr 56px';
 
 function journeyStatusMeta(c: AppColors): Record<JourneyStatus, { label: string; bg: string; color: string }> {
   return {
@@ -288,9 +290,14 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
             onChange={(v) => setGroupMode(v as GroupMode)}
           />
         </div>
-        <PrimaryButton onClick={() => setCreatingJourney(true)}>
-          <Plus size={14} /> Nova jornada
-        </PrimaryButton>
+        <div className="flex items-center gap-2">
+          <SecondaryButton onClick={reload} disabled={loading}>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /> Atualizar
+          </SecondaryButton>
+          <PrimaryButton onClick={() => setCreatingJourney(true)}>
+            <Plus size={14} /> Nova jornada
+          </PrimaryButton>
+        </div>
       </div>
 
       {error && <p className="text-[13px]" style={{ color: c.danger }}>{error}</p>}
@@ -474,60 +481,6 @@ function EmptyState({ hasJourneys, onCreate }: { hasJourneys: boolean; onCreate:
   );
 }
 
-function IconAction({
-  icon: Icon,
-  label,
-  onClick,
-  color,
-  hoverColor,
-  disabled,
-  loading,
-}: {
-  icon: typeof Pencil;
-  label: string;
-  onClick: () => void;
-  color?: string;
-  hoverColor?: string;
-  disabled?: boolean;
-  loading?: boolean;
-}) {
-  const { colors: c } = useAppTheme();
-  if (disabled || loading) {
-    return (
-      <span
-        title={label}
-        aria-label={label}
-        aria-disabled="true"
-        className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md cursor-not-allowed"
-        style={{ color: c.textMuted, opacity: loading ? 0.8 : 0.4 }}
-      >
-        {loading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
-      </span>
-    );
-  }
-  const restColor = color ?? c.textMuted;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={label}
-      aria-label={label}
-      className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-md bg-transparent border-0 cursor-pointer"
-      style={{ color: restColor }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = hoverColor ?? restColor;
-        e.currentTarget.style.background = c.chipBg;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = restColor;
-        e.currentTarget.style.background = 'transparent';
-      }}
-    >
-      <Icon size={14} />
-    </button>
-  );
-}
-
 function JourneyActions({
   journey,
   onEdit,
@@ -543,30 +496,31 @@ function JourneyActions({
   onViewPublication: () => void;
   onViewFlow: () => void;
 }) {
-  const { colors: c } = useAppTheme();
+  const actions: MenuAction[] = [
+    { icon: Waypoints, label: 'Ver fluxo da jornada', onClick: onViewFlow },
+    {
+      icon: Pencil,
+      label: journey.status === 'INACTIVE' ? 'Jornada inativa não pode ser editada' : 'Editar jornada',
+      onClick: onEdit,
+      disabled: journey.status === 'INACTIVE',
+    },
+    ...(journey.status === 'PUBLISHED'
+      ? [{ icon: FileJson, label: 'Ver publicação', onClick: onViewPublication }]
+      : []),
+    ...(journey.status === 'PUBLISHED'
+      ? [{ icon: CloudOff, label: 'Despublicar jornada', onClick: onUnpublish, variant: 'warning' as const }]
+      : []),
+    {
+      icon: Trash2,
+      label: journey.status === 'INACTIVE' ? 'Jornada já está inativa' : 'Excluir jornada',
+      onClick: onDelete,
+      variant: 'danger',
+      disabled: journey.status === 'INACTIVE',
+    },
+  ];
   return (
-    <div className="flex items-center justify-end gap-[2px]" onClick={(e) => e.stopPropagation()}>
-      <IconAction icon={Waypoints} label="Ver fluxo da jornada" onClick={onViewFlow} color={c.accent} />
-      <IconAction
-        icon={Pencil}
-        label={journey.status === 'INACTIVE' ? 'Jornada inativa não pode ser editada' : 'Editar jornada'}
-        onClick={onEdit}
-        color={c.accent}
-        disabled={journey.status === 'INACTIVE'}
-      />
-      {journey.status === 'PUBLISHED' && (
-        <IconAction icon={FileJson} label="Ver publicação" onClick={onViewPublication} color={c.accent} />
-      )}
-      {journey.status === 'PUBLISHED' && (
-        <IconAction icon={CloudOff} label="Despublicar jornada" onClick={onUnpublish} color={c.warning} />
-      )}
-      <IconAction
-        icon={Trash2}
-        label={journey.status === 'INACTIVE' ? 'Jornada já está inativa' : 'Excluir jornada'}
-        onClick={onDelete}
-        color={c.danger}
-        disabled={journey.status === 'INACTIVE'}
-      />
+    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+      <ActionsMenu actions={actions} label="Ações da jornada" />
     </div>
   );
 }
@@ -684,13 +638,24 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
       onJourneyChanged();
       showToast('Versão publicada com sucesso.');
     } catch (err) {
-      const message =
-        err instanceof ApiClientError && err.status === 422
-          ? 'Não é possível publicar: o produto ou o canal está inativo.'
-          : err instanceof Error
-            ? err.message
-            : 'Erro ao publicar versão.';
-      setError(message);
+      // Produto/canal inativo é um erro de validação comum, mostrado inline no grid como antes. Todo
+      // o resto (RUNTIME_UNAVAILABLE, RUNTIME_DEPLOYMENT_REJECTED, ou qualquer outra falha) vai para
+      // o modal técnico — mesmo caixa de "Status HTTP/Código/Mensagem/Endpoint" com "Copiar" que um
+      // 5xx automático já mostra, só que disparada manualmente aqui porque o back usa um status < 500
+      // nesses dois casos de propósito (não são "erro inesperado da aplicação", ver
+      // PublicationAdapter/CamundaRestClient) para não acionar o próprio catch-all.
+      if (err instanceof ApiClientError && err.status === 422 && err.code !== 'RUNTIME_DEPLOYMENT_REJECTED') {
+        setError('Não é possível publicar: o produto ou o canal está inativo.');
+      } else if (err instanceof ApiClientError) {
+        reportServerError({
+          status: err.status,
+          code: err.code,
+          message: err.message,
+          path: `/journeys/${journeyId}/versions/${versionId}/publish`,
+        });
+      } else {
+        setError(err instanceof Error ? err.message : 'Erro ao publicar versão.');
+      }
     } finally {
       setBusyVersionId(null);
     }
@@ -732,13 +697,20 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
       onJourneyChanged();
       showToast('Versão republicada com sucesso.');
     } catch (err) {
-      const message =
-        err instanceof ApiClientError && err.status === 422
-          ? 'Não é possível republicar: o produto ou o canal está inativo.'
-          : err instanceof Error
-            ? err.message
-            : 'Erro ao republicar versão.';
-      setError(message);
+      // Mesma lógica de confirmPublish acima: republicar passa pelo mesmo goLive() no back
+      // (PublishJourneyVersion/RepublishJourneyVersion), então está sujeito às mesmas duas causas.
+      if (err instanceof ApiClientError && err.status === 422 && err.code !== 'RUNTIME_DEPLOYMENT_REJECTED') {
+        setError('Não é possível republicar: o produto ou o canal está inativo.');
+      } else if (err instanceof ApiClientError) {
+        reportServerError({
+          status: err.status,
+          code: err.code,
+          message: err.message,
+          path: `/journeys/${journeyId}/versions/${versionId}/republish`,
+        });
+      } else {
+        setError(err instanceof Error ? err.message : 'Erro ao republicar versão.');
+      }
     } finally {
       setBusyVersionId(null);
     }
@@ -796,36 +768,49 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
               <span className="text-[12px]" style={{ color: c.textSecondary }}>
                 {formatDate(v.publishedAt ?? v.createdAt)}
               </span>
-              <div className="flex items-center justify-end gap-[2px]" onClick={(e) => e.stopPropagation()}>
-                <IconAction icon={FileJson} label="Ver JSON do snapshot" onClick={() => setJsonVersion(v)} color={c.accent} />
-                {v.status === 'DRAFT' && (
-                  <IconAction
-                    icon={Upload}
-                    label={v.snapshot.flowNodes.length === 0 ? 'Esta versão ainda não tem um fluxo definido.' : 'Publicar versão'}
-                    onClick={() => setPublishingVersion(v)}
-                    color={c.success}
-                    disabled={v.snapshot.flowNodes.length === 0}
-                    loading={busyVersionId === v.versionId}
-                  />
-                )}
-                {v.status === 'PUBLISHED' && (
-                  <IconAction
-                    icon={CloudOff}
-                    label="Despublicar versão"
-                    onClick={() => setUnpublishingVersion(v)}
-                    color={c.warning}
-                    loading={busyVersionId === v.versionId}
-                  />
-                )}
-                {v.status === 'UNPUBLISHED' && (
-                  <IconAction
-                    icon={RotateCw}
-                    label="Republicar versão"
-                    onClick={() => setRepublishingVersion(v)}
-                    color={c.accent}
-                    loading={busyVersionId === v.versionId}
-                  />
-                )}
+              <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                <ActionsMenu
+                  label="Ações da versão"
+                  actions={[
+                    { icon: FileJson, label: 'Ver JSON do snapshot', onClick: () => setJsonVersion(v) },
+                    ...(v.status === 'DRAFT'
+                      ? [
+                          {
+                            icon: Upload,
+                            label:
+                              v.snapshot.flowNodes.length === 0
+                                ? 'Esta versão ainda não tem um fluxo definido.'
+                                : 'Publicar versão',
+                            onClick: () => setPublishingVersion(v),
+                            variant: 'success' as const,
+                            disabled: v.snapshot.flowNodes.length === 0,
+                            loading: busyVersionId === v.versionId,
+                          },
+                        ]
+                      : []),
+                    ...(v.status === 'PUBLISHED'
+                      ? [
+                          {
+                            icon: CloudOff,
+                            label: 'Despublicar versão',
+                            onClick: () => setUnpublishingVersion(v),
+                            variant: 'warning' as const,
+                            loading: busyVersionId === v.versionId,
+                          },
+                        ]
+                      : []),
+                    ...(v.status === 'UNPUBLISHED'
+                      ? [
+                          {
+                            icon: RotateCw,
+                            label: 'Republicar versão',
+                            onClick: () => setRepublishingVersion(v),
+                            loading: busyVersionId === v.versionId,
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               </div>
             </div>
               {selectedVersion?.versionId === v.versionId && <VersionDetailPanel version={selectedVersion} />}

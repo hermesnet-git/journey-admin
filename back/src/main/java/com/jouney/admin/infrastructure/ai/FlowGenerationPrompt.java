@@ -8,6 +8,13 @@ import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
 import com.jouney.admin.domain.flow.GeneratedFlow;
 import com.jouney.admin.domain.flow.GenerationContext;
+import com.jouney.admin.domain.form.DuplicateFieldNameException;
+import com.jouney.admin.domain.form.Form;
+import com.jouney.admin.domain.form.FormField;
+import com.jouney.admin.domain.form.FormFieldOption;
+import com.jouney.admin.domain.form.FormFieldType;
+import com.jouney.admin.domain.form.FormRepository;
+import com.jouney.admin.domain.form.InputSubtype;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,13 +28,14 @@ import java.util.stream.Collectors;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
-// Conteúdo compartilhado entre os adapters de LLM (AnthropicFlowGenerator, GeminiFlowGenerator): as
-// mesmas regras de negócio, o mesmo schema da tool e o mesmo mapeamento da saída pro domínio — só a
-// casca da chamada HTTP (autenticação, formato de tool_choice, forma da resposta) muda por provedor.
+// Conteúdo usado pelo adapter de LLM (GeminiFlowGenerator): as regras de negócio, o schema da tool
+// e o mapeamento da saída pro domínio, separados da casca da chamada HTTP (autenticação, formato de
+// tool_choice, forma da resposta) — só existiu mais de um adapter (Anthropic, removido) por um tempo.
 final class FlowGenerationPrompt {
 
     static final String TOOL_NAME = "generate_flow";
-    static final String TOOL_DESCRIPTION = "Gera a estrutura completa (nós e conexões) do fluxo de uma jornada.";
+    static final String TOOL_DESCRIPTION =
+            "Gera a estrutura completa (nós, conexões e, se necessário, formulários novos) do fluxo de uma jornada.";
     // Segunda ferramenta, tão obrigatória de declarar quanto generate_flow: como tool_choice força o
     // modelo a chamar ALGUMA ferramenta, sem uma saída de recusa ele "obedece" qualquer pedido — até
     // um sem nenhuma relação com desenho de jornada — e inventa um fluxo sem sentido pra caber nele.
@@ -46,7 +54,13 @@ final class FlowGenerationPrompt {
             Regras estruturais obrigatórias (quando o pedido for válido e você chamar generate_flow):
             - Exatamente um nó inicial, tipo START ou MESSAGE_START_EVENT, sem entradas e com exatamente uma saída.
             - Ao menos um nó END, cada um com ao menos uma entrada e nenhuma saída.
-            - USER_TASK, SERVICE_TASK e RECEIVE_TASK têm ao menos uma entrada e exatamente uma saída.
+            - USER_TASK, SERVICE_TASK e RECEIVE_TASK têm ao menos uma entrada e exatamente uma saída — \
+            NUNCA mais de uma, mesmo quando a etapa representa uma escolha do usuário (ex.: forma de \
+            pagamento, sim/não, tipo de solicitação). Toda decisão que leve a caminhos diferentes exige \
+            um GATEWAY logo depois: a USER_TASK só coleta a resposta (num campo do formulário), e é o \
+            GATEWAY seguinte, com uma condição sobre esse campo (ex.: {{forma_pagamento}} == "cartao"), \
+            quem de fato ramifica — nunca conecte a mesma USER_TASK/SERVICE_TASK/RECEIVE_TASK a mais de \
+            um nó seguinte.
             - GATEWAY tem ao menos uma entrada e exatamente duas saídas: uma marcada isDefault=true e \
             sem condição, a outra com uma condição não vazia.
             - Toda referência {{variavel}} (em connectorConfig.config, messageText ou condição de \
@@ -58,10 +72,22 @@ final class FlowGenerationPrompt {
             Receive Task ou tarefa Kafka no caminho), inclua uma USER_TASK de checkpoint (pode ser sem \
             formulário, só com messageText) — sem isso o motor de execução trava.
             - USER_TASK referencia um formId do catálogo (fica sem formulário, com messageText, se \
-            nenhum servir) ou nenhum dos dois.
+            nenhum servir), ou um newFormId apontando pra um item de newForms, ou nenhum dos três.
             - connectorType só pode ser um dos conectores habilitados informados no catálogo.
             - Use ids locais simples e únicos por nó (ex.: "start", "n1", "end") — eles são remapeados \
             depois, não precisam seguir nenhum formato.
+            Sobre formulários: prefira SEMPRE reaproveitar um formulário existente do catálogo (via \
+            formId) quando ele já cobrir o que a etapa precisa coletar, mesmo que os nomes dos campos \
+            não batam perfeitamente. Só inclua um item novo em newForms quando genuinamente não existir \
+            nada parecido no catálogo. Nunca tente alterar um formulário existente — generate_flow não \
+            tem esse poder, só criar um novo (em newForms) ou referenciar um existente sem tocar nele. \
+            Dê nomes de campo (name) em snake_case ou camelCase simples, sem espaço — eles viram \
+            variáveis de processo referenciáveis como {{nome_do_campo}} por nós seguintes. \
+            Sobre conectores REST: preencha method/url/headers/body (só em POST/PUT/PATCH)/outputMapping \
+            dentro de connectorConfig.config. Sobre conectores de mensageria (Kafka/Event Hubs/Service \
+            Bus): preencha topic/payload (só em SERVICE_TASK, que produz — RECEIVE_TASK e \
+            MESSAGE_START_EVENT só consomem, não têm payload)/outputMapping; deixe clusterId de fora \
+            (não há catálogo de clusters disponível aqui — o usuário completa isso depois no canvas).
             """;
 
     private FlowGenerationPrompt() {
@@ -117,8 +143,8 @@ final class FlowGenerationPrompt {
         return sb.toString();
     }
 
-    // JSON Schema puro (sem o envelope específico de cada provedor — Anthropic usa "input_schema",
-    // Gemini usa "parameters" — cada adapter empacota isto do seu próprio jeito).
+    // JSON Schema puro (sem o envelope específico do provedor — GeminiFlowGenerator empacota isto
+    // sob "parameters" ao montar a tool).
     static Map<String, Object> schema() {
         Map<String, Object> nodeProps = new LinkedHashMap<>();
         nodeProps.put("id", Map.of("type", "string", "description", "Identificador local único dentro deste fluxo"));
@@ -126,12 +152,10 @@ final class FlowGenerationPrompt {
                 List.of("START", "USER_TASK", "END", "SERVICE_TASK", "RECEIVE_TASK", "MESSAGE_START_EVENT", "GATEWAY")));
         nodeProps.put("name", Map.of("type", "string"));
         nodeProps.put("description", Map.of("type", "string"));
-        nodeProps.put("formId", Map.of("type", "string", "description", "UUID de um formulário do catálogo (só USER_TASK)"));
-        nodeProps.put("messageText", Map.of("type", "string", "description", "Mensagem exibida quando USER_TASK não tem formId"));
-        nodeProps.put("connectorConfig", Map.of("type", "object", "properties", Map.of(
-                "connectorType", Map.of("type", "string", "enum", List.of("REST", "KAFKA", "EVENT_HUBS", "SERVICE_BUS")),
-                "config", Map.of("type", "object", "description",
-                        "Campos do conector: method/url/headers/body/outputMapping (REST) ou topic/operation/outputMapping (Kafka/Event Hubs/Service Bus)"))));
+        nodeProps.put("formId", Map.of("type", "string", "description", "UUID de um formulário do catálogo (só USER_TASK) — use isto OU newFormId, nunca os dois"));
+        nodeProps.put("newFormId", Map.of("type", "string", "description", "Id local de um item de newForms (só USER_TASK) — use isto OU formId, nunca os dois"));
+        nodeProps.put("messageText", Map.of("type", "string", "description", "Mensagem exibida quando USER_TASK não tem formId nem newFormId"));
+        nodeProps.put("connectorConfig", Map.of("type", "object", "properties", connectorConfigProps()));
         nodeProps.put("startVariables", Map.of("type", "array", "description", "Só no nó START", "items", Map.of(
                 "type", "object", "properties", Map.of(
                         "name", Map.of("type", "string"),
@@ -143,15 +167,62 @@ final class FlowGenerationPrompt {
                 "condition", Map.of("type", "string", "description", "Só na saída não padrão de um GATEWAY"),
                 "isDefault", Map.of("type", "boolean", "description", "true na saída padrão de um GATEWAY"));
 
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("name", Map.of("type", "string", "description", "Nome curto do fluxo"));
+        properties.put("nodes", Map.of("type", "array", "items", Map.of(
+                "type", "object", "properties", nodeProps, "required", List.of("id", "type", "name"))));
+        properties.put("connections", Map.of("type", "array", "items", Map.of(
+                "type", "object", "properties", connectionProps, "required", List.of("sourceId", "targetId"))));
+        properties.put("newForms", Map.of("type", "array",
+                "description", "Formulários novos a criar — só quando nada do catálogo servir (ver regras no system prompt)",
+                "items", Map.of("type", "object", "properties", newFormProps(), "required", List.of("id", "name", "fields"))));
+
+        return Map.of("type", "object", "properties", properties, "required", List.of("name", "nodes", "connections"));
+    }
+
+    private static Map<String, Object> connectorConfigProps() {
+        Map<String, Object> outputMappingItem = Map.of("type", "object", "properties", Map.of(
+                "name", Map.of("type", "string"),
+                "jsonPath", Map.of("type", "string", "description", "Ex.: $.campo, $.lista[0].id"),
+                "type", Map.of("type", "string", "enum", List.of("string", "number", "boolean", "date", "datetime"))),
+                "required", List.of("name", "jsonPath"));
+
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("method", Map.of("type", "string", "enum", List.of("GET", "POST", "PUT", "PATCH", "DELETE"), "description", "Só REST"));
+        config.put("url", Map.of("type", "string", "description", "Só REST — pode referenciar {{variavel}}"));
+        config.put("headers", Map.of("type", "object", "description", "Só REST, opcional"));
+        config.put("body", Map.of("type", "object", "description", "Só REST em POST/PUT/PATCH"));
+        config.put("topic", Map.of("type", "string", "description", "Só Kafka/Event Hubs/Service Bus — nome do tópico/fila/Event Hub"));
+        config.put("payload", Map.of("type", "object", "description", "Só Kafka/Event Hubs/Service Bus em SERVICE_TASK (produz) — pode referenciar {{variavel}}"));
+        config.put("outputMapping", Map.of("type", "array", "description",
+                "Variáveis extraídas da resposta/mensagem, disponíveis como {{name}} pra nós seguintes", "items", outputMappingItem));
+
         return Map.of(
-                "type", "object",
-                "properties", Map.of(
-                        "name", Map.of("type", "string", "description", "Nome curto do fluxo"),
-                        "nodes", Map.of("type", "array", "items", Map.of(
-                                "type", "object", "properties", nodeProps, "required", List.of("id", "type", "name"))),
-                        "connections", Map.of("type", "array", "items", Map.of(
-                                "type", "object", "properties", connectionProps, "required", List.of("sourceId", "targetId")))),
-                "required", List.of("name", "nodes", "connections"));
+                "connectorType", Map.of("type", "string", "enum", List.of("REST", "KAFKA", "EVENT_HUBS", "SERVICE_BUS")),
+                "config", Map.of("type", "object", "properties", config));
+    }
+
+    private static Map<String, Object> newFormProps() {
+        Map<String, Object> fieldProps = new LinkedHashMap<>();
+        fieldProps.put("name", Map.of("type", "string", "description", "snake_case ou camelCase, sem espaço — vira {{name}}"));
+        fieldProps.put("type", Map.of("type", "string",
+                "enum", List.of("TEXT", "INPUT", "SINGLE_SELECT", "MULTI_SELECT", "FILE_UPLOAD")));
+        fieldProps.put("inputSubtype", Map.of("type", "string", "enum", List.of("TEXT", "NUMBER", "EMAIL", "DATE"),
+                "description", "Só quando type=INPUT"));
+        fieldProps.put("label", Map.of("type", "string", "description", "Rótulo exibido ao usuário"));
+        fieldProps.put("required", Map.of("type", "boolean"));
+        fieldProps.put("helpText", Map.of("type", "string", "description", "Opcional"));
+        fieldProps.put("options", Map.of("type", "array", "description", "Só quando type=SINGLE_SELECT ou MULTI_SELECT",
+                "items", Map.of("type", "object", "properties", Map.of(
+                        "label", Map.of("type", "string"), "value", Map.of("type", "string")),
+                        "required", List.of("label", "value"))));
+
+        return Map.of(
+                "id", Map.of("type", "string", "description", "Identificador local único — referenciado por newFormId nos nós"),
+                "name", Map.of("type", "string"),
+                "description", Map.of("type", "string"),
+                "fields", Map.of("type", "array", "items", Map.of(
+                        "type", "object", "properties", fieldProps, "required", List.of("name", "type", "label"))));
     }
 
     static Map<String, Object> declineSchema() {
@@ -162,7 +233,45 @@ final class FlowGenerationPrompt {
                 "required", List.of("reason"));
     }
 
-    static GeneratedFlow toDomain(LlmFlowOutput output) {
+    // Cria os newForms do LLM pelo mesmo caminho de domínio que a criação manual usa (Form.create +
+    // FormRepository.save — o mesmo que CreateForm faz, sem nenhuma orquestração extra) — herda
+    // DuplicateFieldNameException e qualquer regra futura de Form automaticamente, sem duplicar nada.
+    // generate_flow nunca expõe uma forma de EDITAR um formulário existente — só isto (criar novo) ou
+    // referenciar um existente pelo formId do catálogo, então "nunca alterar um formulário já
+    // associado a uma jornada" vale por construção, não por uma checagem em tempo de execução.
+    static Map<String, UUID> createNewForms(FormRepository formRepository, List<LlmNewForm> newForms) {
+        Map<String, UUID> idsByLocalId = new LinkedHashMap<>();
+        for (LlmNewForm newForm : newForms) {
+            List<FormField> fields = newForm.fields().stream().map(FlowGenerationPrompt::toFormField).toList();
+            try {
+                Form saved = formRepository.save(Form.create(newForm.name(), newForm.description(), fields));
+                idsByLocalId.put(newForm.id(), saved.getId());
+            } catch (DuplicateFieldNameException ex) {
+                throw new AiGenerationException("Formulário '" + newForm.name() + "' inválido: " + ex.getMessage());
+            }
+        }
+        return idsByLocalId;
+    }
+
+    // Mesmo filtro que GenerateFlow/UpdateFlow aplicam aos formulários existentes: TEXT (só exibe,
+    // não coleta) e FILE_UPLOAD (referência a arquivo) não viram variável de processo.
+    static List<String> variableFieldNames(LlmNewForm form) {
+        return form.fields().stream()
+                .filter(f -> !"TEXT".equals(f.type()) && !"FILE_UPLOAD".equals(f.type()))
+                .map(LlmFormField::name)
+                .toList();
+    }
+
+    private static FormField toFormField(LlmFormField f) {
+        InputSubtype inputSubtype = f.inputSubtype() != null && !f.inputSubtype().isBlank()
+                ? InputSubtype.valueOf(f.inputSubtype()) : null;
+        List<FormFieldOption> options = f.options() == null ? List.of()
+                : f.options().stream().map(o -> new FormFieldOption(o.label(), o.value())).toList();
+        return new FormField(f.name(), parseEnumOrThrow(FormFieldType.class, f.type()), inputSubtype, f.label(),
+                Boolean.TRUE.equals(f.required()), null, f.helpText(), options, null, null, null, null, null);
+    }
+
+    static GeneratedFlow toDomain(LlmFlowOutput output, Map<String, UUID> newFormIdsByLocalId) {
         Map<String, String> idsByLocalId = new HashMap<>();
         for (LlmNode node : output.nodes()) {
             idsByLocalId.put(node.id(), FlowIds.newNodeId());
@@ -172,8 +281,11 @@ final class FlowGenerationPrompt {
         int i = 0;
         for (LlmNode node : output.nodes()) {
             ConnectorConfig connectorConfig = toConnectorConfigOrNull(node.connectorConfig());
+            UUID formId = node.newFormId() != null && newFormIdsByLocalId.containsKey(node.newFormId())
+                    ? newFormIdsByLocalId.get(node.newFormId())
+                    : parseUuidOrNull(node.formId());
             nodes.add(new FlowNode(idsByLocalId.get(node.id()), parseEnumOrThrow(FlowNodeType.class, node.type()),
-                    node.name(), node.description(), (i % 6) * 40, (i / 6) * 40, parseUuidOrNull(node.formId()),
+                    node.name(), node.description(), (i % 6) * 40, (i / 6) * 40, formId,
                     connectorConfig, node.startVariables(), node.messageText()));
             i++;
         }
@@ -231,16 +343,30 @@ final class FlowGenerationPrompt {
         }
     }
 
-    record LlmFlowOutput(String name, List<LlmNode> nodes, List<LlmConnection> connections) {
+    record LlmFlowOutput(String name, List<LlmNode> nodes, List<LlmConnection> connections, List<LlmNewForm> newForms) {
+        // newForms é opcional na saída do modelo — Jackson deixa null se ele não incluir o campo.
+        LlmFlowOutput {
+            newForms = newForms != null ? newForms : List.of();
+        }
     }
 
-    record LlmNode(String id, String type, String name, String description, String formId, String messageText,
-                    LlmConnectorConfig connectorConfig, List<Map<String, Object>> startVariables) {
+    record LlmNode(String id, String type, String name, String description, String formId, String newFormId,
+                    String messageText, LlmConnectorConfig connectorConfig, List<Map<String, Object>> startVariables) {
     }
 
     record LlmConnectorConfig(String connectorType, Map<String, Object> config) {
     }
 
     record LlmConnection(String sourceId, String targetId, String condition, Boolean isDefault) {
+    }
+
+    record LlmNewForm(String id, String name, String description, List<LlmFormField> fields) {
+    }
+
+    record LlmFormField(String name, String type, String inputSubtype, String label, Boolean required,
+                         String helpText, List<LlmFormFieldOption> options) {
+    }
+
+    record LlmFormFieldOption(String label, String value) {
     }
 }

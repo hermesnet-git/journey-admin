@@ -70,11 +70,12 @@ public class FlowController {
     @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
     @PostMapping(value = "/generate", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter generate(@PathVariable UUID journeyId, @Valid @RequestBody GenerateFlowInput input) {
-        // Até 3 tentativas (repair loop), cada uma podendo levar bem mais que alguns segundos num
-        // pedido complexo com um modelo "lite" — 120s se mostrou curto demais na prática: o timeout
-        // fechava a conexão antes do resultado sair, e o front ficava esperando pra sempre porque o
-        // evento final nunca chegava a tempo.
-        SseEmitter emitter = new SseEmitter(300_000L);
+        // Até 5 tentativas (repair loop), cada uma podendo levar bem mais que alguns segundos num
+        // pedido complexo com um modelo "lite" — 120s já se mostrou curto demais na prática (o timeout
+        // fechava a conexão antes do resultado sair, front ficava esperando pra sempre porque o evento
+        // final nunca chegava a tempo). Com o read timeout de 90s por tentativa (FlowGenerationPrompt),
+        // o pior caso (5 tentativas travando perto do limite) chegaria a 450s — 600s dá folga real.
+        SseEmitter emitter = new SseEmitter(600_000L);
         Thread.ofVirtual().start(() -> {
             try {
                 var generated = generateFlow.execute(journeyId, input.prompt(),

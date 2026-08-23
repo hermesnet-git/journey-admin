@@ -27,7 +27,7 @@ import { ConnectorWizard } from './ConnectorWizard';
 import { SearchSelect } from './SearchSelect';
 import type { Form } from '../api/forms';
 import { testConnector, type ConnectorTestResponse } from '../api/flows';
-import type { MessagingCluster, CredentialReference } from '../api/messaging';
+import { listClusterTopics, type MessagingCluster, type CredentialReference } from '../api/messaging';
 import { PropertyGrid, PropertyRow, PropertyGroupHeader, Modal, gridInputStyle } from './PropertyGrid';
 
 const CONNECTOR_NODE_TYPES = new Set(['serviceTask', 'receiveTask', 'messageStartEvent']);
@@ -988,6 +988,44 @@ function ConnectorFields({
   const [lastTestResponse, setLastTestResponse] = useState<ConnectorTestResponse | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
 
+  // Sugestão de tópicos reais do cluster escolhido (US-03.09) — cacheada por cluster pra não
+  // rebuscar ao reabrir o seletor; o campo continua aceitando digitação livre (allowCustomValue),
+  // então uma falha aqui nunca bloqueia o desenho do fluxo, só perde a sugestão.
+  const [topicsByCluster, setTopicsByCluster] = useState<Record<string, string[]>>({});
+  const [topicsLoading, setTopicsLoading] = useState(false);
+  const [topicsError, setTopicsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isBroker || !selectedClusterId || topicsByCluster[selectedClusterId]) {
+      setTopicsError(null);
+      return;
+    }
+    let cancelled = false;
+    setTopicsLoading(true);
+    setTopicsError(null);
+    listClusterTopics(selectedClusterId)
+      .then((response) => {
+        if (cancelled) return;
+        if (response.ok) {
+          setTopicsByCluster((prev) => ({ ...prev, [selectedClusterId]: response.topics }));
+        } else {
+          setTopicsError(response.message ?? 'Não foi possível listar os tópicos do cluster.');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTopicsError('Não foi possível listar os tópicos do cluster (ms-espec-registry fora do ar?).');
+      })
+      .finally(() => {
+        if (!cancelled) setTopicsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBroker, selectedClusterId]);
+
+  const clusterTopics = selectedClusterId ? (topicsByCluster[selectedClusterId] ?? []) : [];
+
   return (
     <div>
       <PropertyGrid>
@@ -1106,6 +1144,11 @@ function ConnectorFields({
               </>
             ) : (
               <>
+                <PropertyRow label="Operação">
+                  <div style={{ color: c.textSecondary, fontSize: 12 }} title="Definida automaticamente pelo tipo de nó">
+                    {brokerOperation}
+                  </div>
+                </PropertyRow>
                 <PropertyRow label="Cluster">
                   <SearchSelect
                     items={clusters}
@@ -1113,25 +1156,18 @@ function ConnectorFields({
                     getLabel={(cluster) => cluster.name}
                     value={selectedClusterId}
                     onChange={(clusterId) => {
-                      updateConfigField('clusterId', clusterId ?? '');
-                      // Trocar de cluster invalida a credencial escolhida (é filtrada por cluster).
-                      update({ credentialRef: null });
+                      // Uma única chamada de update: `config` (clusterId) e `credentialRef` (trocar
+                      // de cluster invalida a credencial escolhida, filtrada por cluster) precisam
+                      // ir num só patch — duas chamadas separadas leriam o mesmo connectorConfig
+                      // desatualizado e a segunda sobrescreveria o clusterId que a primeira gravou.
+                      update({
+                        config: { ...(connectorConfig?.config ?? {}), clusterId: clusterId ?? '' },
+                        credentialRef: null,
+                      });
                     }}
                     placeholder="Nenhum cluster cadastrado"
                     emptyLabel="Nenhum cluster encontrado — cadastre em Catálogo de Integrações"
                   />
-                </PropertyRow>
-                <PropertyRow label={topicLabel}>
-                  <input
-                    style={gridInputStyle(c)}
-                    value={(connectorConfig.config?.topic as string) ?? ''}
-                    onChange={(e) => updateConfigField('topic', e.target.value)}
-                  />
-                </PropertyRow>
-                <PropertyRow label="Operação">
-                  <div style={{ color: c.textSecondary, fontSize: 12 }} title="Definida automaticamente pelo tipo de nó">
-                    {brokerOperation}
-                  </div>
                 </PropertyRow>
                 <PropertyRow label="Credencial">
                   <SearchSelect
@@ -1143,6 +1179,27 @@ function ConnectorFields({
                     placeholder={selectedClusterId ? 'Nenhuma credencial cadastrada' : 'Escolha um cluster primeiro'}
                     emptyLabel="Nenhuma credencial encontrada — cadastre em Catálogo de Integrações"
                   />
+                </PropertyRow>
+                <PropertyRow label={topicLabel}>
+                  <div style={{ width: '100%' }}>
+                    <SearchSelect
+                      items={clusterTopics}
+                      getId={(topic) => topic}
+                      getLabel={(topic) => topic}
+                      value={(connectorConfig.config?.topic as string) ?? null}
+                      onChange={(topic) => updateConfigField('topic', topic ?? '')}
+                      allowCustomValue
+                      placeholder={
+                        !selectedClusterId
+                          ? 'Escolha um cluster primeiro'
+                          : topicsLoading
+                            ? 'Carregando tópicos...'
+                            : 'Digite ou escolha um tópico'
+                      }
+                      emptyLabel={topicsLoading ? 'Carregando…' : (topicsError ?? 'Nenhum tópico encontrado no cluster — digite um nome novo')}
+                    />
+                    {topicsError && <div style={{ fontSize: 11, color: c.danger, marginTop: 2 }}>{topicsError}</div>}
+                  </div>
                 </PropertyRow>
               </>
             )}

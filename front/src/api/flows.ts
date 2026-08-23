@@ -80,8 +80,13 @@ export function generateFlow(journeyId: string, prompt: string, onProgress: (mes
       } else if (event === 'result') {
         resolve(JSON.parse(data) as Flow);
       } else if (event === 'error') {
-        const err = JSON.parse(data) as { status: number; message: string; details?: { field: string; code: string; message: string }[] };
-        reject(new ApiClientError(err.status, err.message, err.details));
+        const err = JSON.parse(data) as {
+          status: number;
+          message: string;
+          code?: string;
+          details?: { field: string; code: string; message: string }[];
+        };
+        reject(new ApiClientError(err.status, err.message, err.code, err.details));
       }
     }).catch(reject);
   });

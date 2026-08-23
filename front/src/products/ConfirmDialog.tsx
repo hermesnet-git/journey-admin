@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { ButtonDanger } from '@telefonica/mistica';
 import { useAppTheme } from '../shell/theme';
@@ -6,7 +7,7 @@ import { SecondaryButton } from './ui';
 
 interface ConfirmDialogProps {
   title: string;
-  message: string;
+  message: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;

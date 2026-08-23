@@ -1,8 +1,12 @@
 package com.jouney.especregistry.adminback;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /** Mapeia só os campos usados do PublicationSnapshotRecord do admin/back
@@ -30,23 +34,36 @@ public record PublicationSnapshot(UUID journeyId, String journeyName, String cha
      * (SERVICE_TASK/RECEIVE_TASK/MESSAGE_START_EVENT) — o único tipo capaz de falhar de verdade numa
      * transação da engine. Usado quando um /complete ou /simulate-step falha: a transação inteira dá
      * rollback antes de qualquer histórico ser gravado, então a engine não expõe diretamente qual nó
-     * causou o erro — mas como nossos fluxos nunca têm paralelismo, o caminho a partir do passo atual
-     * até o próximo conector é sempre determinístico. */
+     * causou o erro.
+     *
+     * BFS por TODOS os ramos (não só o primeiro), com conjunto de visitados — não dá pra assumir um
+     * caminho único e determinístico como antes: um GATEWAY tem duas saídas possíveis, e se a saída
+     * "errada" (a que não falhou) volta a um nó já visitado mais cedo no fluxo (loop de verdade, ex.:
+     * "ramo A leva de volta pra uma User Task anterior"), o walk linear antigo (só `.findFirst()`,
+     * sem marcar visitados) ficava girando nesse ciclo até estourar o orçamento de iterações sem
+     * nunca chegar no outro ramo — devolvendo vazio mesmo com um conector real mais à frente. */
     public Optional<FlowNode> nextConnectorNodeAfter(String nodeId) {
-        String currentId = nodeId;
-        for (int i = 0; i < flowNodes.size() && currentId != null; i++) {
-            String from = currentId;
-            Optional<FlowNode> next = flowConnections.stream()
-                    .filter(c -> c.sourceNodeId().equals(from))
-                    .findFirst()
-                    .flatMap(c -> findNode(c.targetNodeId()));
-            if (next.isEmpty()) {
-                return Optional.empty();
+        Set<String> visited = new HashSet<>();
+        Deque<String> queue = new ArrayDeque<>();
+        visited.add(nodeId);
+        queue.add(nodeId);
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            for (FlowConnection c : flowConnections) {
+                if (!c.sourceNodeId().equals(current)) {
+                    continue;
+                }
+                Optional<FlowNode> next = findNode(c.targetNodeId());
+                if (next.isEmpty()) {
+                    continue;
+                }
+                if (next.get().connectorConfig() != null) {
+                    return next;
+                }
+                if (visited.add(next.get().id())) {
+                    queue.add(next.get().id());
+                }
             }
-            if (next.get().connectorConfig() != null) {
-                return next;
-            }
-            currentId = next.get().id();
         }
         return Optional.empty();
     }

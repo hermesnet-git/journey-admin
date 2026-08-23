@@ -10,8 +10,11 @@ import com.jouney.especregistry.camunda.CamundaVariable;
 import com.jouney.especregistry.camunda.HistoricActivityInstance;
 import com.jouney.especregistry.camunda.ProcessIds;
 import com.jouney.especregistry.camunda.ProcessInstanceInfo;
+import com.jouney.especregistry.kafka.KafkaMessagePublisher;
+import com.jouney.especregistry.kafka.PublishedKafkaMessage;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,14 +43,16 @@ public class SimulationController {
     private final CamundaClient camundaClient;
     private final StepResolver stepResolver;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaMessagePublisher kafkaMessagePublisher;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SimulationController(AdminBackClient adminBackClient, CamundaClient camundaClient, StepResolver stepResolver,
-                                 KafkaTemplate<String, String> kafkaTemplate) {
+                                 KafkaTemplate<String, String> kafkaTemplate, KafkaMessagePublisher kafkaMessagePublisher) {
         this.adminBackClient = adminBackClient;
         this.camundaClient = camundaClient;
         this.stepResolver = stepResolver;
         this.kafkaTemplate = kafkaTemplate;
+        this.kafkaMessagePublisher = kafkaMessagePublisher;
     }
 
     @GetMapping("/journeys")
@@ -64,6 +70,7 @@ public class SimulationController {
 
     @PostMapping("/journeys/{journeyId}/instances")
     public InstanceResponse start(@PathVariable UUID journeyId,
+                                   @RequestParam(defaultValue = "false") boolean manualKafkaControl,
                                    @RequestBody(required = false) Map<String, Object> variables) {
         // Iniciar por chave funciona igual para START e MESSAGE_START_EVENT (sem correlação de
         // mensagem — testado ao vivo), mas isso pula o payload da mensagem: se o
@@ -80,6 +87,14 @@ public class SimulationController {
                         ? VariableConversion.fabricateFromOutputMapping(node.connectorConfig())
                         : VariableConversion.fromDeclaredVariables(variables, node.startVariables()))
                 .orElse(Map.of());
+        if (manualKafkaControl) {
+            // Setado antes do processo existir, não depois de chegar num Service Task Kafka: é o
+            // único jeito de garantir que o KafkaBridgeScheduler (roda a cada 3s, sem saber se alguém
+            // está olhando a tela de Execução) nunca publique sozinho numa instância que o usuário
+            // marcou pra controlar na mão.
+            startVariables = new LinkedHashMap<>(startVariables);
+            startVariables.put(KafkaMessagePublisher.MANUAL_KAFKA_CONTROL_VAR, new CamundaVariable(Boolean.TRUE, "Boolean"));
+        }
 
         // Toda instância ganha um businessKey, mesmo iniciada manualmente por aqui — é o que permite
         // uma RECEIVE_TASK dela ser correlacionada depois via mensagem Kafka de verdade (ver
@@ -92,7 +107,83 @@ public class SimulationController {
         Instant before = Instant.now();
         String processInstanceId = camundaClient.startProcessInstance(ProcessIds.keyForJourney(journeyId), startVariables, businessKey);
         StepResponse step = stepResolver.resolve(processInstanceId).withTrail(trailSince(processInstanceId, snapshot, before));
-        return new InstanceResponse(processInstanceId, businessKey, FlowBundle.from(snapshot), step);
+        return new InstanceResponse(processInstanceId, businessKey, FlowBundle.from(snapshot), step, manualKafkaControl);
+    }
+
+    /** Publica de verdade no tópico Kafka do Service Task atual — só aceito quando a instância foi
+     * iniciada com controle manual ligado (senão o worker automático já teria completado essa task
+     * sozinho, e essa chamada nunca encontraria nada pendente). {@code payload} ausente pede pro
+     * corpo ser resolvido igual ao worker faria (o botão "Gerar automaticamente" da tela de
+     * Execução); presente é o texto digitado pelo usuário. */
+    @PostMapping("/instances/{processInstanceId}/send-kafka-message")
+    public StepResponse sendKafkaMessage(@PathVariable String processInstanceId,
+                                          @RequestBody(required = false) SendKafkaMessageRequest request) {
+        StepResponse current = stepResolver.resolve(processInstanceId);
+        if (!"WAITING".equals(current.type())) {
+            throw new IllegalStateException(
+                    "Instância " + processInstanceId + " não está aguardando um passo não-usuário");
+        }
+
+        ProcessInstanceInfo instance = camundaClient.getProcessInstance(processInstanceId)
+                .orElseThrow(() -> new IllegalStateException("Instância de processo não encontrada: " + processInstanceId));
+        UUID journeyId = ProcessIds.journeyIdFromKey(instance.definitionKey());
+        PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        SynchronousChainCheck.verify(snapshot);
+        FlowNode node = snapshot.findNode(current.nodeId())
+                .orElseThrow(() -> new IllegalStateException("Nó " + current.nodeId() + " não encontrado no snapshot da jornada"));
+        ConnectorConfig connectorConfig = node.connectorConfig();
+        if (!"SERVICE_TASK".equals(node.type()) || connectorConfig == null || !"KAFKA".equalsIgnoreCase(connectorConfig.connectorType())) {
+            throw new IllegalStateException("Nó " + node.id() + " não é um Service Task com conector Kafka");
+        }
+
+        Map<String, CamundaVariable> rawVariables = camundaClient.getProcessVariables(processInstanceId);
+        CamundaVariable manualFlag = rawVariables.get(KafkaMessagePublisher.MANUAL_KAFKA_CONTROL_VAR);
+        if (manualFlag == null || !Boolean.TRUE.equals(manualFlag.value())) {
+            throw new IllegalStateException(
+                    "Instância " + processInstanceId + " não foi iniciada com controle manual do Kafka — o worker automático já cuida dela");
+        }
+
+        Object payloadOverride = request != null ? request.payload() : null;
+        Instant before = Instant.now();
+        try {
+            PublishedKafkaMessage published = kafkaMessagePublisher.publish(processInstanceId, connectorConfig, rawVariables, payloadOverride);
+            camundaClient.completeExternalTask(processInstanceId, node.id(), kafkaMessagePublisher.completionVariables(node.id(), published));
+        } catch (RestClientException ex) {
+            // Ao contrário de completeTask/simulateStep (onde o nó que falhou é incerto, por causa do
+            // rollback da engine — daí o errorResponse() com heurística), aqui não há ambiguidade: o
+            // node atual É o que acabou de falhar ao completar, não "o próximo depois dele".
+            return current.withError(node.id(), node.name(), errorMessageFrom(ex), connectorConfig);
+        } catch (Exception e) {
+            throw new IllegalStateException("Falha ao publicar mensagem Kafka: " + e.getMessage(), e);
+        }
+        StepResponse next = stepResolver.resolve(processInstanceId);
+        return next.withTrail(trailSince(processInstanceId, snapshot, before));
+    }
+
+    /** Só resolve o payload que "Gerar automaticamente" enviaria, sem publicar nada — usado pra
+     * pré-preencher o editor de "Inserir manualmente" com um JSON válido de partida (o corpo real
+     * que o worker mandaria) em vez de abrir em branco e depender do usuário lembrar o formato
+     * esperado de cor. */
+    @GetMapping("/instances/{processInstanceId}/kafka-message-preview")
+    public Object previewKafkaMessage(@PathVariable String processInstanceId) {
+        StepResponse current = stepResolver.resolve(processInstanceId);
+        if (!"WAITING".equals(current.type())) {
+            throw new IllegalStateException(
+                    "Instância " + processInstanceId + " não está aguardando um passo não-usuário");
+        }
+        ProcessInstanceInfo instance = camundaClient.getProcessInstance(processInstanceId)
+                .orElseThrow(() -> new IllegalStateException("Instância de processo não encontrada: " + processInstanceId));
+        UUID journeyId = ProcessIds.journeyIdFromKey(instance.definitionKey());
+        PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        FlowNode node = snapshot.findNode(current.nodeId())
+                .orElseThrow(() -> new IllegalStateException("Nó " + current.nodeId() + " não encontrado no snapshot da jornada"));
+        ConnectorConfig connectorConfig = node.connectorConfig();
+        if (!"SERVICE_TASK".equals(node.type()) || connectorConfig == null || !"KAFKA".equalsIgnoreCase(connectorConfig.connectorType())) {
+            throw new IllegalStateException("Nó " + node.id() + " não é um Service Task com conector Kafka");
+        }
+
+        Map<String, CamundaVariable> rawVariables = camundaClient.getProcessVariables(processInstanceId);
+        return kafkaMessagePublisher.resolvePayload(connectorConfig, rawVariables);
     }
 
     /** Publica de verdade no tópico Kafka configurado no nó — usado pelo painel "Enviar mensagem"
@@ -131,13 +222,29 @@ public class SimulationController {
         ProcessInstanceInfo instance = camundaClient.getProcessInstance(processInstanceId.get())
                 .orElseThrow(() -> new IllegalStateException("Instância " + processInstanceId.get() + " não encontrada"));
         PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        // Instância iniciada por uma mensagem externa (MESSAGE_START_EVENT), nunca pelo botão
+        // "Iniciar" desta tela — não houve momento nenhum pra oferecer o toggle de controle manual.
         return ResponseEntity.ok(new InstanceResponse(instance.id(), instance.businessKey(), FlowBundle.from(snapshot),
-                stepResolver.resolve(instance.id())));
+                stepResolver.resolve(instance.id()), false));
     }
 
+    /** {@code since} (ISO 8601) opcional: quando presente, computa a trilha de nós que o worker
+     * automático rodou sozinho desde então — sem isso, o polling da tela de Execução nunca saberia
+     * que um Service Task Kafka rodou em segundo plano (só as chamadas diretas — completar User
+     * Task, simulate-step, send-kafka-message — computavam trilha até agora). */
     @GetMapping("/instances/{processInstanceId}/current-step")
-    public StepResponse currentStep(@PathVariable String processInstanceId) {
-        return stepResolver.resolve(processInstanceId);
+    public StepResponse currentStep(@PathVariable String processInstanceId, @RequestParam(required = false) String since) {
+        StepResponse current = stepResolver.resolve(processInstanceId);
+        if (since == null) {
+            return current;
+        }
+        ProcessInstanceInfo instance = camundaClient.getProcessInstance(processInstanceId).orElse(null);
+        if (instance == null) {
+            return current;
+        }
+        UUID journeyId = ProcessIds.journeyIdFromKey(instance.definitionKey());
+        PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        return current.withTrail(trailSince(processInstanceId, snapshot, Instant.parse(since)));
     }
 
     @PostMapping("/instances/{processInstanceId}/tasks/{taskId}/complete")
@@ -206,7 +313,8 @@ public class SimulationController {
         return current.withError(
                 failedNode != null ? failedNode.id() : null,
                 failedNode != null ? failedNode.name() : null,
-                errorMessageFrom(ex));
+                describeRequest(failedNode) + errorMessageFrom(ex),
+                failedNode != null ? failedNode.connectorConfig() : null);
     }
 
     private String errorMessageFrom(RestClientException ex) {
@@ -214,6 +322,31 @@ public class SimulationController {
             return httpEx.getResponseBodyAsString();
         }
         return ex.getMessage();
+    }
+
+    // O erro que volta da engine (ex.: "HTCL-02007 Unable to execute HTTP request") não diz pra
+    // onde a chamada ia — sem isso não dá pra saber, só olhando o log, se o problema é a URL
+    // configurada no nó, uma variável não resolvida, ou algo do lado do servidor de destino.
+    // Prefixa com o que o conector do nó de fato tentou chamar (método+URL/tópico), antes de
+    // qualquer resolução de {{variável}} — a variável já resolvida não sobrevive ao rollback da
+    // transação, só o que está salvo no fluxo mesmo.
+    private String describeRequest(FlowNode failedNode) {
+        if (failedNode == null || failedNode.connectorConfig() == null) {
+            return "";
+        }
+        ConnectorConfig connectorConfig = failedNode.connectorConfig();
+        Map<String, Object> config = connectorConfig.config();
+        if (config == null) {
+            return "";
+        }
+        if ("REST".equalsIgnoreCase(connectorConfig.connectorType()) && config.get("url") instanceof String url && !url.isBlank()) {
+            String method = config.get("method") instanceof String m && !m.isBlank() ? m : "GET";
+            return method + " " + url + " — ";
+        }
+        if (config.get("topic") instanceof String topic && !topic.isBlank()) {
+            return "tópico " + topic + " — ";
+        }
+        return "";
     }
 
     // Nós que o motor atravessou sozinho (sem parar) desde `since` — SERVICE_TASK, gateway, e o END
@@ -241,14 +374,18 @@ public class SimulationController {
             }
             String url = null;
             String response = null;
+            String kafkaTopic = null;
+            String kafkaPayload = null;
             if ("SERVICE_TASK".equals(node.get().type())) {
                 if (variables == null) {
                     variables = camundaClient.getProcessVariables(processInstanceId);
                 }
                 url = stringValue(variables.get(HTTP_URL_VAR_PREFIX + node.get().id()));
                 response = stringValue(variables.get(HTTP_RESPONSE_VAR_PREFIX + node.get().id()));
+                kafkaTopic = stringValue(variables.get(KafkaMessagePublisher.KAFKA_TOPIC_VAR_PREFIX + node.get().id()));
+                kafkaPayload = stringValue(variables.get(KafkaMessagePublisher.KAFKA_PAYLOAD_VAR_PREFIX + node.get().id()));
             }
-            trail.add(new TrailEntry(node.get().id(), node.get().name(), node.get().type(), url, response));
+            trail.add(new TrailEntry(node.get().id(), node.get().name(), node.get().type(), url, response, kafkaTopic, kafkaPayload));
         }
         return trail;
     }
@@ -267,6 +404,13 @@ public class SimulationController {
                                             @RequestBody SetVariableRequest request) {
         camundaClient.setProcessVariable(processInstanceId, name, new CamundaVariable(request.value(), request.type()));
         return toEntries(camundaClient.getProcessVariables(processInstanceId));
+    }
+
+    /** Encerra a instância em execução — usado pelo botão "Parar execução" da UI pra não deixar a
+     * engine com processos abandonados quando o usuário troca de jornada no meio do caminho. */
+    @DeleteMapping("/instances/{processInstanceId}")
+    public void stop(@PathVariable String processInstanceId) {
+        camundaClient.deleteProcessInstance(processInstanceId);
     }
 
     private List<VariableEntry> toEntries(Map<String, CamundaVariable> variables) {

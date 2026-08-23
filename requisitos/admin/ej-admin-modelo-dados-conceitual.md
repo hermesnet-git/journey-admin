@@ -99,6 +99,7 @@ flowchart TD
 | Audit Event | Registro de operação realizada no sistema |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria — nunca o valor do segredo |
+| AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
 
 ---
 
@@ -368,7 +369,19 @@ Messaging Cluster 1 → 0..N Credential Reference
 
 ---
 
-# 15. Relacionamentos das Entidades
+# 15. AI Provider Credential
+
+Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida do Journey Modeler (Seção 9). Entidade isolada, sem relacionamento com nenhuma outra — não pertence ao mesmo agrupamento de `Messaging Cluster`/`Credential Reference`, por servir um único consumidor (a geração de fluxo), não um framework de conectores com múltiplos tipos.
+
+```text
+Provedor, Chave de API, Data de criação, Data de atualização
+```
+
+Diferente de `Credential Reference`, esta entidade armazena o valor do segredo — exceção deliberada e temporária ao princípio de nunca persistir um segredo (ver Seção 14), com pendência de criptografia registrada como TODO no código antes de produção. A API nunca retorna o valor da chave, apenas se o provedor está configurado e a data da última atualização.
+
+---
+
+# 16. Relacionamentos das Entidades
 
 | Origem | Destino | Cardinalidade |
 |--------|---------|---------------|
@@ -393,7 +406,7 @@ Messaging Cluster 1 → 0..N Credential Reference
 
 ---
 
-# 16. Diagrama ER Conceitual
+# 17. Diagrama ER Conceitual
 
 ```mermaid
 erDiagram
@@ -423,9 +436,11 @@ erDiagram
     FLOW_NODE }o--o| CREDENTIAL_REFERENCE : may_reference
 ```
 
+`AI Provider Credential` não aparece no diagrama acima por não possuir relacionamento com nenhuma outra entidade — é consultada pelo Journey Modeler (Seção 9) no momento da geração de fluxo, sem chave estrangeira ou vínculo persistido.
+
 ---
 
-# 17. Glossário
+# 18. Glossário
 
 | Conceito | Descrição |
 |----------|-----------|
@@ -440,9 +455,10 @@ erDiagram
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
+| AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
 
 ---
 
-# 18. Resumo Conceitual
+# 19. Resumo Conceitual
 
 O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo, execuções e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, eventos de auditoria registram operações relevantes sem dados sensíveis, e um catálogo de clusters de mensageria e referências de credencial dá suporte aos conectores de mensageria configurados no fluxo.

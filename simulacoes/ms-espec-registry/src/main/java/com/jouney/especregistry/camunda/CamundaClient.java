@@ -187,6 +187,18 @@ public class CamundaClient {
                 .toBodilessEntity();
     }
 
+    /** Libera um external task travado sem completá-lo — usado pelo worker do bridge Kafka quando,
+     * só depois de já ter travado a task (fetchAndLockAll não filtra por instância, só por tópico),
+     * descobre que ela pertence a uma instância em modo de controle manual. Sem isso o lock (30s,
+     * renovado a cada tick de 3s) nunca soltaria, e o envio manual (SimulationController) nunca
+     * conseguiria travar essa mesma task pra completá-la de verdade. */
+    public void unlockExternalTask(String externalTaskId) {
+        restClient.post()
+                .uri(baseUrl + "/external-task/{id}/unlock", externalTaskId)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     /** Trava em lote, num único fetchAndLock, todos os external tasks pendentes nos tópicos dados —
      * usado pelo worker do bridge Kafka (que não sabe de antemão quais instâncias/atividades tem
      * tarefa pendente, ao contrário de {@link #completeExternalTask}, que já sabe exatamente qual). */
@@ -262,6 +274,22 @@ public class CamundaClient {
                 .body(new ParameterizedTypeReference<List<HistoricActivityInstance>>() {
                 });
         return list != null ? list : List.of();
+    }
+
+    /** Encerra (mata) uma instância em execução — usado quando o usuário para a execução pela UI,
+     * pra não deixar lixo na engine. skipCustomListeners/skipIoMappings é a forma recomendada do
+     * Camunda de cancelar de fato, sem tentar rodar listeners pensados pro fluxo terminar
+     * normalmente. 404 (a instância já tinha terminado sozinha nesse meio-tempo) não é erro aqui —
+     * parar uma execução que já acabou é um no-op, não uma falha. */
+    public void deleteProcessInstance(String processInstanceId) {
+        try {
+            restClient.delete()
+                    .uri(baseUrl + "/process-instance/{id}?skipCustomListeners=true&skipIoMappings=true", processInstanceId)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (HttpClientErrorException.NotFound e) {
+            // já não existe — objetivo alcançado
+        }
     }
 
     public void correlateMessage(String messageName, String processInstanceId, Map<String, CamundaVariable> variables) {

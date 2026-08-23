@@ -47,7 +47,7 @@ export function AnnotationNode({ id, data, selected }: NodeProps<WFAnnotation>) 
         }}
         onPointerDown={(e) => e.stopPropagation()}
         title="Remover anotação"
-        className="absolute -top-[7px] -right-[7px] w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+        className="nodrag absolute -top-[7px] -right-[7px] w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ background: p.border, color: '#fff', zIndex: 10 }}
       >
         <X size={11} strokeWidth={2.5} />
@@ -68,7 +68,7 @@ export function AnnotationNode({ id, data, selected }: NodeProps<WFAnnotation>) 
           onBlur={() => setEditing(false)}
           onPointerDown={(e) => e.stopPropagation()}
           placeholder="Escreva a nota..."
-          className="w-full text-[12px] leading-[1.4] bg-transparent border-0 outline-none resize-none"
+          className="nodrag w-full text-[12px] leading-[1.4] bg-transparent border-0 outline-none resize-none"
           style={{ color: p.text, minHeight: 48, fontFamily: 'inherit' }}
         />
       ) : (
@@ -90,7 +90,7 @@ export function AnnotationNode({ id, data, selected }: NodeProps<WFAnnotation>) 
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 title="Desvincular"
-                className="shrink-0 border-0 bg-transparent cursor-pointer p-0 flex items-center"
+                className="nodrag shrink-0 border-0 bg-transparent cursor-pointer p-0 flex items-center"
                 style={{ color: p.textSoft }}
               >
                 <Link2Off size={10} />

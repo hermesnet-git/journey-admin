@@ -1,21 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Play, ClipboardList, CheckCircle2, Plus, X, FileText, Pencil, Server, Mail, Plug, Diamond } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
-import { NODE_META, NODE_WIDTH, TYPE_COLOR, type NodeType, type WFNode } from './model';
-import { FormPreview } from '../forms/FormBuilderPage';
+import { NODE_META, NODE_DIMENSIONS, NODE_ICON, TYPE_COLOR, type NodeType, type WFNode } from './model';
+import { NodeShape } from './NodeShape';
 
-const ICON: Record<NodeType, typeof Play> = {
-  start: Play,
-  userTask: ClipboardList,
-  end: CheckCircle2,
-  serviceTask: Server,
-  receiveTask: Mail,
-  messageStartEvent: Mail,
-  gateway: Diamond,
-};
 const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask', 'gateway', 'end'];
 
 // A lista de opções virou portal pro document.body (position: fixed, coordenadas a partir do
@@ -61,14 +52,14 @@ function QuickAdd({ nodeId }: { nodeId: string }) {
     <div
       ref={triggerRef}
       className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-      style={{ right: -25, zIndex: open ? 20 : 1 }}
+      style={{ left: 'calc(100% + 8px)', zIndex: open ? 20 : 1 }}
     >
       <button
         ref={buttonRef}
         onClick={toggle}
         onPointerDown={(e) => e.stopPropagation()}
         title="Adicionar próxima etapa"
-        className="w-[17px] h-[17px] rounded-full flex items-center justify-center cursor-pointer"
+        className="nodrag w-[17px] h-[17px] rounded-full flex items-center justify-center cursor-pointer"
         style={{ border: `1.5px solid ${c.handleColor}`, background: c.cardBg, color: c.handleColor }}
       >
         <Plus size={11} />
@@ -90,7 +81,7 @@ function QuickAdd({ nodeId }: { nodeId: string }) {
             }}
           >
             {QUICK_ADD_TYPES.map((t) => {
-              const Icon = ICON[t];
+              const Icon = NODE_ICON[t];
               return (
                 <button
                   key={t}
@@ -117,54 +108,38 @@ function QuickAdd({ nodeId }: { nodeId: string }) {
 export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   const nodeType = type as NodeType;
   const actions = useWorkflowActions();
-  const { c, dark } = useFlowTheme();
-  const Icon = ICON[nodeType];
+  const { c, dark, nodeFill } = useFlowTheme();
+  const dim = NODE_DIMENSIONS[nodeType];
   const hasInput = nodeType !== 'start' && nodeType !== 'messageStartEvent';
   const hasOutput = nodeType !== 'end';
   const outgoingLimitReached = !!data.outgoingLimitReached;
   const invalid = !!data.invalid;
-  // Semantic zoom: description and the linked-form/connector row are the first things that turn
-  // to illegible noise once a wide flow is zoomed out to fit — drop them below a threshold instead
-  // of rendering unreadable 4px text.
-  const showDetails = (data.zoom ?? 1) >= 0.65;
-  const linkedForm = nodeType === 'userTask' && data.formId ? actions.getForm(data.formId) : undefined;
+  // Semantic zoom: em zoom baixo o rótulo quebrado é a primeira coisa a virar ruído ilegível — a
+  // própria forma continua reconhecível sem ele, então só o texto some abaixo do limiar.
+  const showLabel = (data.zoom ?? 1) >= 0.65;
+  const hasConnectorBadge =
+    (nodeType === 'serviceTask' || nodeType === 'receiveTask' || nodeType === 'messageStartEvent') && !!data.connectorConfig;
 
   const borderColor = invalid ? c.danger : selected ? c.accent : c.cardBorder;
   const ringColor = invalid ? c.dangerSoft : c.accentSoft;
-  // Resting elevation so cards read as raised, tappable surfaces against the dotted canvas
-  // instead of flat rectangles — same shadow family the selection ring stacks on top of.
+  // Resting elevation so shapes read as raised, tappable surfaces against the dotted canvas
+  // instead of flat cutouts — same shadow family the selection ring stacks on top of.
   const elevation = dark ? '0 1px 3px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.25)' : '0 1px 2px rgba(15,15,20,.07), 0 1px 1px rgba(15,15,20,.04)';
+  const ring = selected || invalid ? `0 0 0 4px ${ringColor}, ${elevation}` : elevation;
   // Both start-type elements are deletable so a MESSAGE_START_EVENT can replace the
   // default START (REQ-03.07.005 allows exactly one, of either type).
   const deletable = true;
   // Leve tom de categoria em vez de um card neutro chapado — mistura 10% da cor do tipo do nó no
-  // fundo do card do tema, então continua legível/opaco nos dois temas.
-  const cardFill = `color-mix(in srgb, ${TYPE_COLOR[nodeType]} 10%, ${c.cardBg})`;
+  // fundo do card do tema, então continua legível/opaco nos dois temas. Opcional (toggle "Preencher"
+  // na toolbar, padrão desligado): card neutro por padrão, sem tingir o fundo.
+  const cardFill = nodeFill ? `color-mix(in srgb, ${TYPE_COLOR[nodeType]} 10%, ${c.cardBg})` : c.cardBg;
 
   return (
     <div
       onDoubleClick={() => actions.onEdit(id)}
-      style={{
-        width: NODE_WIDTH,
-        background: cardFill,
-        borderColor,
-        boxShadow: selected || invalid ? `0 0 0 4px ${ringColor}, ${elevation}` : elevation,
-      }}
-      className="group relative rounded-xl border cursor-grab select-none px-[12px] py-[9px]"
+      style={{ width: dim.width, height: dim.height }}
+      className="group relative cursor-grab select-none"
     >
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          actions.onEdit(id);
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-        onDoubleClick={(e) => e.stopPropagation()}
-        title="Editar propriedades"
-        className="absolute -top-[7px] -left-[7px] w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ background: c.cardBg, border: `1.5px solid ${c.handleColor}`, color: c.handleColor, zIndex: 10 }}
-      >
-        <Pencil size={10} strokeWidth={2.2} />
-      </button>
       {deletable && (
         <button
           onClick={(e) => {
@@ -173,19 +148,11 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           }}
           onPointerDown={(e) => e.stopPropagation()}
           title="Remover nó"
-          className="absolute -top-[7px] -right-[7px] w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+          className="nodrag absolute -top-[7px] -right-[7px] w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
           style={{ background: c.danger, color: '#fff', zIndex: 10 }}
         >
           <X size={11} strokeWidth={2.5} />
         </button>
-      )}
-      {showDetails && linkedForm && (
-        <div
-          className="absolute bottom-full left-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-          style={{ width: 260, maxHeight: 360, overflow: 'hidden', zIndex: 25, boxShadow: '0 14px 34px -10px rgba(0,0,0,.3)', borderRadius: 8 }}
-        >
-          <FormPreview name={linkedForm.name} description={linkedForm.description ?? ''} fields={linkedForm.fields} />
-        </div>
       )}
       {hasInput && (
         <Handle
@@ -202,61 +169,21 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
           }}
         />
       )}
-      <div className="flex items-center gap-[8px]">
-        <div className="relative shrink-0">
-          <div
-            className="w-[24px] h-[24px] rounded-md flex items-center justify-center"
-            style={{ background: c.cardBg }}
-          >
-            <Icon size={13} color={TYPE_COLOR[nodeType]} strokeWidth={1.8} />
-          </div>
-          {nodeType === 'userTask' && data.formId && (
-            <div
-              title="Formulário associado"
-              className="absolute -bottom-1 -right-1 w-[13px] h-[13px] rounded-full flex items-center justify-center"
-              style={{ background: c.accent, border: `1.5px solid ${c.cardBg}` }}
-            >
-              <FileText size={7.5} color="#fff" strokeWidth={2.5} />
-            </div>
-          )}
-          {(nodeType === 'serviceTask' || nodeType === 'receiveTask' || nodeType === 'messageStartEvent') &&
-            data.connectorConfig && (
-              <div
-                title={`Conector ${data.connectorConfig.connectorType} associado`}
-                className="absolute -bottom-1 -right-1 w-[13px] h-[13px] rounded-full flex items-center justify-center"
-                style={{ background: c.accent, border: `1.5px solid ${c.cardBg}` }}
-              >
-                <Plug size={7.5} color="#fff" strokeWidth={2.5} />
-              </div>
-            )}
-        </div>
-        <div className="min-w-0">
-          <div className="text-[13px] font-bold truncate" style={{ color: c.textPrimary }}>
-            {data.name}
-          </div>
-          {showDetails && (
-            <div className="text-[11px] truncate mt-px" style={{ color: c.textSecondary }}>
-              {data.description}
-            </div>
-          )}
-        </div>
-      </div>
-      {showDetails && nodeType === 'userTask' && data.formId && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            actions.onOpenForm(data.formId!);
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-          onDoubleClick={(e) => e.stopPropagation()}
-          title="Abrir formulário para edição"
-          className="flex items-center gap-[5px] mt-[6px] pt-[6px] w-full min-w-0 text-[9.5px] font-semibold border-0 bg-transparent cursor-pointer text-left"
-          style={{ borderTop: `1px solid ${c.border}`, color: c.accent }}
-        >
-          <FileText size={10} strokeWidth={2} className="shrink-0" />
-          <span className="truncate">{actions.getFormName(data.formId) ?? 'Formulário vinculado'}</span>
-        </button>
-      )}
+
+      <NodeShape
+        nodeType={nodeType}
+        name={data.name}
+        background={cardFill}
+        borderColor={borderColor}
+        iconColor={TYPE_COLOR[nodeType]}
+        labelColor={c.textPrimary}
+        boxShadow={ring}
+        surfaceColor={c.cardBg}
+        badgeColor={c.accent}
+        showLabel={showLabel}
+        connectorType={hasConnectorBadge ? data.connectorConfig!.connectorType : null}
+      />
+
       {hasOutput && (
         <>
           <Handle

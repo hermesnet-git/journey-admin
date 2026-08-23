@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, Info, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAppTheme } from '../shell/theme';
 import { PrimaryButton } from './ui';
 
-type ToastType = 'success' | 'error';
+type ToastType = 'success' | 'error' | 'info';
 
 interface ToastItem {
   id: number;
@@ -54,7 +54,9 @@ function ToastDialog({ item, onClose }: { item: ToastItem; onClose: () => void }
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  const isSuccess = item.type === 'success';
+  const iconBg = item.type === 'success' ? c.successSoft : item.type === 'error' ? c.dangerSoft : c.accentSoft;
+  const iconColor = item.type === 'success' ? c.success : item.type === 'error' ? c.danger : c.accent;
+  const title = item.type === 'success' ? 'Sucesso' : item.type === 'error' ? 'Erro' : 'Aviso';
 
   return (
     <div
@@ -68,15 +70,18 @@ function ToastDialog({ item, onClose }: { item: ToastItem; onClose: () => void }
         style={{ background: c.surface, border: `1px solid ${c.border}`, boxShadow: `0 20px 50px -12px ${c.shadow}` }}
       >
         <div className="flex items-start gap-3">
-          <div
-            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: isSuccess ? c.successSoft : c.dangerSoft }}
-          >
-            {isSuccess ? <CheckCircle2 size={17} color={c.success} /> : <XCircle size={17} color={c.danger} />}
+          <div className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: iconBg }}>
+            {item.type === 'success' ? (
+              <CheckCircle2 size={17} color={iconColor} />
+            ) : item.type === 'error' ? (
+              <XCircle size={17} color={iconColor} />
+            ) : (
+              <Info size={17} color={iconColor} />
+            )}
           </div>
           <div className="min-w-0">
             <h2 className="m-0 text-[15px] font-semibold" style={{ color: c.textPrimary }}>
-              {isSuccess ? 'Sucesso' : 'Erro'}
+              {title}
             </h2>
             <p className="m-0 mt-[6px] text-[13px]" style={{ color: c.textSecondary }}>
               {item.message}

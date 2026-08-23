@@ -13,23 +13,12 @@ import {
   type NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Play, ClipboardList, CheckCircle2 as EndIcon, Server, Mail, Diamond, Info, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { Info, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { skinVars } from '@telefonica/mistica';
-import { BACKEND_TO_FRONT_TYPE, NODE_META, NODE_WIDTH, TYPE_COLOR, type NodeType } from '../flow-designer/model';
+import { BACKEND_TO_FRONT_TYPE, NODE_DIMENSIONS, TYPE_COLOR, type NodeType } from '../flow-designer/model';
+import { NodeShape } from '../flow-designer/NodeShape';
 import type { FlowConnectionInfo, FlowNodeInfo } from './api';
 import { ErrorDetailsModal } from './ErrorDetailsModal';
-
-// Mesmo mapa de ícones do WorkflowNode.tsx (flow-designer) — redeclarado aqui de propósito: são 7
-// linhas, e esse visualizador não deve depender de um componente acoplado ao editor de fluxo.
-const ICON: Record<NodeType, typeof Play> = {
-  start: Play,
-  userTask: ClipboardList,
-  end: EndIcon,
-  serviceTask: Server,
-  receiveTask: Mail,
-  messageStartEvent: Mail,
-  gateway: Diamond,
-};
 
 const PENDING_COLOR = skinVars.colors.neutralMedium;
 
@@ -49,85 +38,84 @@ interface SimNodeData extends Record<string, unknown> {
   onShowError?: () => void;
 }
 
+// Cores por status — mesma forma/ícone do designer (NodeShape), só a "pintura" muda conforme a
+// execução avança. 'pending'/'type' usam o mesmo tratamento neutro do designer por padrão (fundo/
+// borda neutros, só o ícone com a cor do tipo); 'current'/'done'/'error' são a trilha de execução
+// de verdade (REQ desta funcionalidade: "ir pintando conforme vai executando"), a única coisa que
+// não podia se perder na unificação com o editor.
+function statusStyle(status: NodeStatus, typeColor: string) {
+  switch (status) {
+    case 'current':
+      return {
+        background: `${typeColor}26`,
+        borderColor: typeColor,
+        iconColor: typeColor,
+        boxShadow: 'none',
+        pulse: true,
+        pulseColor: typeColor,
+      };
+    case 'done':
+      return {
+        background: skinVars.colors.successLow,
+        borderColor: skinVars.colors.success,
+        iconColor: skinVars.colors.success,
+        boxShadow: 'none',
+        pulse: false,
+      };
+    case 'error':
+      // Anel só (sem piscar) — usa o token "Low" já pronto da Mística em vez de concatenar alfa
+      // hexadecimal numa cor var(...) do skin, que não é uma string hex e quebraria.
+      return {
+        background: skinVars.colors.errorLow,
+        borderColor: skinVars.colors.error,
+        iconColor: skinVars.colors.error,
+        boxShadow: `0 0 0 3px ${skinVars.colors.errorLow}`,
+        pulse: false,
+      };
+    case 'pending':
+      return {
+        background: skinVars.colors.backgroundContainer,
+        borderColor: PENDING_COLOR,
+        iconColor: skinVars.colors.textSecondary,
+        boxShadow: 'none',
+        pulse: false,
+      };
+    case 'type':
+    default:
+      return {
+        background: skinVars.colors.backgroundContainer,
+        borderColor: skinVars.colors.border,
+        iconColor: typeColor,
+        boxShadow: 'none',
+        pulse: false,
+      };
+  }
+}
+
 function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
   const { frontType, name, status, onShowError } = data;
-  const Icon = ICON[frontType];
   const typeColor = TYPE_COLOR[frontType];
-  const isCurrent = status === 'current';
-  const isDone = status === 'done';
-  const isPending = status === 'pending';
-  const isError = status === 'error';
-  const isTypeColored = status === 'type';
-  // Mirrors WorkflowNode.tsx (flow-designer): start/end carry no description/badges, so they
-  // shrink to fit their label instead of the fixed width every other node uses. Without this, a
-  // start/end placed close to its neighbor (common — it's a small node) visually overlaps it here
-  // even though the designer, which already renders it compact, shows no overlap for that same
-  // saved position.
-  const isCompact = frontType === 'start' || frontType === 'end';
-
-  // O ícone é sempre o do tipo de componente (nunca vira um "check") — só a cor do card muda por
-  // status. `successLow`/`errorLow` são os tokens já prontos da Mística para preenchimento tintado
-  // (concatenar alfa hexadecimal numa cor `var(...)` do skin não funciona — não é uma string hex).
-  const background = isCurrent
-    ? `${typeColor}26`
-    : isDone
-      ? skinVars.colors.successLow
-      : isError
-        ? skinVars.colors.errorLow
-        : isTypeColored
-          ? `${typeColor}14`
-          : skinVars.colors.backgroundContainer;
-  const borderColor = isCurrent
-    ? typeColor
-    : isDone
-      ? skinVars.colors.success
-      : isError
-        ? skinVars.colors.error
-        : isTypeColored
-          ? typeColor
-          : PENDING_COLOR;
-  const iconColor = isCurrent
-    ? typeColor
-    : isDone
-      ? skinVars.colors.success
-      : isError
-        ? skinVars.colors.error
-        : isTypeColored
-          ? typeColor
-          : skinVars.colors.textSecondary;
-  const textColor = isPending ? skinVars.colors.textSecondary : skinVars.colors.textPrimary;
+  const dim = NODE_DIMENSIONS[frontType];
+  const style = statusStyle(status, typeColor);
+  const labelColor = status === 'pending' ? skinVars.colors.textSecondary : skinVars.colors.textPrimary;
 
   return (
-    <div
-      className="relative rounded-xl px-3 py-[10px] flex items-center gap-[10px]"
-      style={{
-        width: isCompact ? 'fit-content' : NODE_WIDTH,
-        background,
-        // Largura da borda sempre igual em todo status — variar `borderWidth` muda a altura "auto"
-        // do card (border soma fora do conteúdo mesmo com box-sizing:border-box), o que desalinha o
-        // handle vertical (top:50%) entre nós vizinhos e torce as setas. O destaque do passo atual
-        // (mais grosso, piscando) usa `outline` em vez disso — não participa do box model/layout.
-        border: `1.5px solid ${borderColor}`,
-        outline: isCurrent ? `2.5px solid ${typeColor}` : isError ? `2px solid ${skinVars.colors.error}` : 'none',
-        outlineOffset: isCurrent || isError ? 1.5 : 0,
-        // A etapa atual "pisca" o contorno lentamente pra deixar óbvio que o fluxo está parado ali
-        // aguardando (resposta de usuário ou "Pular etapa").
-        ['--sim-outline-full' as string]: typeColor,
-        ['--sim-outline-dim' as string]: `${typeColor}30`,
-        animation: isCurrent ? 'blink-current-outline 2.2s ease-in-out infinite' : 'none',
-      }}
-    >
+    <div className="relative" style={{ width: dim.width, height: dim.height }}>
       <Handle type="target" position={Position.Left} style={HANDLE_STYLE} />
-      <Icon size={17} color={iconColor} strokeWidth={2} className="shrink-0" />
-      <div className="min-w-0">
-        <div className="text-[12.5px] font-semibold truncate" style={{ color: textColor }}>
-          {name}
-        </div>
-        <div className="text-[10.5px] truncate" style={{ color: skinVars.colors.textSecondary }}>
-          {NODE_META[frontType].title}
-        </div>
-      </div>
-      {isError && onShowError && (
+      <NodeShape
+        nodeType={frontType}
+        name={name}
+        background={style.background}
+        borderColor={style.borderColor}
+        iconColor={style.iconColor}
+        labelColor={labelColor}
+        boxShadow={style.boxShadow}
+        pulse={style.pulse}
+        pulseColor={style.pulseColor}
+        surfaceColor={skinVars.colors.backgroundContainer}
+        badgeColor={skinVars.colors.brand}
+      />
+      {status === 'error' && onShowError && (
         <button
           type="button"
           onClick={(e) => {
@@ -135,11 +123,11 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
             onShowError();
           }}
           title="Ver detalhes do erro"
-          className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center cursor-pointer border-0"
+          className="absolute -top-[7px] -right-[7px] w-5 h-5 rounded-full flex items-center justify-center cursor-pointer border-0"
           // O React Flow põe `pointer-events: none` no wrapper do nó quando ele não é
           // selecionável/arrastável (nosso caso, o diagrama é somente-leitura) — sem isso o clique
           // nunca chega a este botão.
-          style={{ background: skinVars.colors.error, color: '#fff', pointerEvents: 'auto' }}
+          style={{ background: skinVars.colors.error, color: '#fff', pointerEvents: 'auto', zIndex: 10 }}
         >
           <Info size={13} strokeWidth={2.5} />
         </button>
@@ -254,7 +242,8 @@ function FlowDiagramInner({
       fitView({ padding: 0.2, duration: 300 });
       return;
     }
-    setCenter(current.positionX + NODE_WIDTH / 2, current.positionY + 30, { zoom: 1, duration: 300 });
+    const dim = NODE_DIMENSIONS[BACKEND_TO_FRONT_TYPE[current.type]];
+    setCenter(current.positionX + dim.width / 2, current.positionY + dim.height / 2, { zoom: 1, duration: 300 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentNodeId, staticView]);
 

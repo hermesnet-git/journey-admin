@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { Search, Plus, FileText, X } from 'lucide-react';
-import { PrimaryButton, LinkButton } from '../products/ui';
+import { Search, Plus, FileText, Pencil, Trash2, X, RefreshCw } from 'lucide-react';
+import { PrimaryButton, SecondaryButton, ActionsMenu } from '../products/ui';
 import { useAppTheme } from '../shell/theme';
 import { listForms, getForm, deleteForm, type Form } from '../api/forms';
 import { ConfirmDialog } from '../products/ConfirmDialog';
@@ -114,9 +114,14 @@ function FormsPageContent({ formId, openNew, onExit }: FormsPageProps) {
 
       <div className="flex items-center justify-between gap-3 mb-[18px] flex-wrap">
         <FormSearchBox search={search} onSearchChange={setSearch} matches={filtered} onPick={setEditingForm} />
-        <PrimaryButton onClick={() => setEditingForm('new')}>
-          <Plus size={14} /> Novo formulário
-        </PrimaryButton>
+        <div className="flex items-center gap-2">
+          <SecondaryButton onClick={reload} disabled={loading}>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : undefined} /> Atualizar
+          </SecondaryButton>
+          <PrimaryButton onClick={() => setEditingForm('new')}>
+            <Plus size={14} /> Novo formulário
+          </PrimaryButton>
+        </div>
       </div>
 
       {error && <p className="text-[13px]" style={{ color: c.danger }}>{error}</p>}
@@ -299,10 +304,13 @@ function FormRow({ form, onEdit, onDelete }: { form: Form; onEdit: () => void; o
         {form.description || '—'}
       </div>
       <span style={{ color: c.textSecondary }}>{form.fields.length}</span>
-      <div className="flex items-center gap-4">
-        <LinkButton onClick={onEdit}>Editar</LinkButton>
-        <LinkButton onClick={onDelete}>Excluir</LinkButton>
-      </div>
+      <ActionsMenu
+        label="Ações do formulário"
+        actions={[
+          { icon: Pencil, label: 'Editar', onClick: onEdit },
+          { icon: Trash2, label: 'Excluir', onClick: onDelete, variant: 'danger' },
+        ]}
+      />
     </div>
   );
 }

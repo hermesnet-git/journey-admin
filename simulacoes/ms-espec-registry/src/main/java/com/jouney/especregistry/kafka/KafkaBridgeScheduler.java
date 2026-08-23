@@ -1,6 +1,5 @@
 package com.jouney.especregistry.kafka;
 
-import com.jouney.especregistry.adminback.ConnectorConfig;
 import com.jouney.especregistry.camunda.CamundaClient;
 import com.jouney.especregistry.camunda.CamundaVariable;
 import com.jouney.especregistry.camunda.LockedExternalTask;
@@ -8,35 +7,35 @@ import com.jouney.especregistry.camunda.ProcessIds;
 import com.jouney.especregistry.camunda.ProcessInstanceInfo;
 import com.jouney.especregistry.simulation.VariableConversion;
 import com.jayway.jsonpath.JsonPath;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Substitui, dos dois lados, o botão "Simular conclusão" (que fabricava variáveis e
  * completava/correlacionava direto): a cada tick, o lado produtor trava em lote os external tasks
- * Kafka pendentes e publica de verdade; o lado consumidor mantém um KafkaConsumer inscrito nos
- * tópicos de toda RECEIVE_TASK/MESSAGE_START_EVENT publicada e correlaciona/inicia jornada quando
- * uma mensagem real chega — sem clique nenhum dos dois lados. Um único método @Scheduled (não dois)
- * garante que produção e consumo nunca rodem ao mesmo tempo, mesmo que o pool do scheduler mude no
- * futuro — o KafkaConsumer não é thread-safe.
+ * Kafka pendentes e publica de verdade (via {@link KafkaMessagePublisher}); o lado consumidor mantém
+ * um KafkaConsumer inscrito nos tópicos de toda RECEIVE_TASK/MESSAGE_START_EVENT publicada e
+ * correlaciona/inicia jornada quando uma mensagem real chega — sem clique nenhum dos dois lados. Um
+ * único método @Scheduled (não dois) garante que produção e consumo nunca rodem ao mesmo tempo, mesmo
+ * que o pool do scheduler mude no futuro — o KafkaConsumer não é thread-safe.
+ *
+ * Uma instância com {@link KafkaMessagePublisher#MANUAL_KAFKA_CONTROL_VAR} true fica de fora do lado
+ * produtor: a tarefa é destravada de volta na hora (não completada, ver produceTick) até o usuário
+ * publicar manualmente pela tela de Execução (SimulationController.sendKafkaMessage) — ver
+ * [[project_local_dev_stack]] pra contexto de como esse worker é o "emulador" do que em produção
+ * seriam domínios/serviços separados.
  */
 @Component
 public class KafkaBridgeScheduler {
@@ -45,20 +44,16 @@ public class KafkaBridgeScheduler {
 
     private final KafkaTopicDiscovery topicDiscovery;
     private final CamundaClient camundaClient;
-    private final VariableTemplateResolver resolver;
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaMessagePublisher publisher;
     private final KafkaConsumer<String, String> kafkaConsumer;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private Set<String> subscribedTopics = Set.of();
 
     public KafkaBridgeScheduler(KafkaTopicDiscovery topicDiscovery, CamundaClient camundaClient,
-                                 VariableTemplateResolver resolver, KafkaTemplate<String, String> kafkaTemplate,
-                                 KafkaConsumer<String, String> kafkaConsumer) {
+                                 KafkaMessagePublisher publisher, KafkaConsumer<String, String> kafkaConsumer) {
         this.topicDiscovery = topicDiscovery;
         this.camundaClient = camundaClient;
-        this.resolver = resolver;
-        this.kafkaTemplate = kafkaTemplate;
+        this.publisher = publisher;
         this.kafkaConsumer = kafkaConsumer;
     }
 
@@ -94,8 +89,17 @@ public class KafkaBridgeScheduler {
                 continue;
             }
             try {
-                produce(task, node);
-                camundaClient.completeExternalTaskById(task.id(), Map.of());
+                Map<String, CamundaVariable> rawVariables = camundaClient.getProcessVariables(task.processInstanceId());
+                if (isManualControl(rawVariables)) {
+                    // Reservado pro envio manual da tela de Execução — não completa nem publica
+                    // sozinho. Solta o lock na hora (em vez de deixar expirar em 30s) pra não bloquear
+                    // o fetchAndLock que SimulationController.sendKafkaMessage precisa fazer.
+                    camundaClient.unlockExternalTask(task.id());
+                    continue;
+                }
+                PublishedKafkaMessage published = publisher.publish(task.processInstanceId(), node.connectorConfig(), rawVariables, null);
+                camundaClient.completeExternalTaskById(task.id(), publisher.completionVariables(node.nodeId(), published));
+                log.info("Publicado no tópico Kafka pelo worker automático (nó {}, instância {})", node.nodeId(), task.processInstanceId());
             } catch (Exception e) {
                 // Deixa a task travada — expira o lock (30s) e volta a ser pega no próximo tick.
                 log.error("Falha ao publicar mensagem Kafka pro nó {} (instância {}): {}",
@@ -104,38 +108,9 @@ public class KafkaBridgeScheduler {
         }
     }
 
-    private void produce(LockedExternalTask task, ProducerNode node) throws Exception {
-        Map<String, String> vars = stringify(camundaClient.getProcessVariables(task.processInstanceId()));
-        ConnectorConfig connectorConfig = node.connectorConfig();
-        Map<String, Object> config = connectorConfig.config() != null ? connectorConfig.config() : Map.of();
-
-        String topic = resolver.resolve(asString(config.get("topic")), vars);
-        if (topic == null || topic.isBlank()) {
-            throw new IllegalStateException("Nó " + node.nodeId() + " não tem tópico Kafka configurado");
-        }
-        Object resolvedPayload = resolver.resolveDeep(config.get("payload"), vars);
-        String payloadJson = objectMapper.writeValueAsString(resolvedPayload);
-
-        ProducerRecord<String, String> record = new ProducerRecord<>(topic, task.processInstanceId(), payloadJson);
-        if (config.get("headers") instanceof Map<?, ?> headers) {
-            headers.forEach((key, value) -> {
-                Object resolvedValue = resolver.resolveDeep(value, vars);
-                record.headers().add(String.valueOf(key), String.valueOf(resolvedValue).getBytes(StandardCharsets.UTF_8));
-            });
-        }
-
-        kafkaTemplate.send(record).get(5, TimeUnit.SECONDS);
-        log.info("Publicado no tópico Kafka '{}' (nó {}, instância {})", topic, node.nodeId(), task.processInstanceId());
-    }
-
-    private String asString(Object value) {
-        return value instanceof String s ? s : null;
-    }
-
-    private Map<String, String> stringify(Map<String, CamundaVariable> variables) {
-        Map<String, String> result = new LinkedHashMap<>();
-        variables.forEach((name, variable) -> result.put(name, variable.value() != null ? String.valueOf(variable.value()) : ""));
-        return result;
+    private boolean isManualControl(Map<String, CamundaVariable> variables) {
+        CamundaVariable flag = variables.get(KafkaMessagePublisher.MANUAL_KAFKA_CONTROL_VAR);
+        return flag != null && Boolean.TRUE.equals(flag.value());
     }
 
     private void consumeTick() {

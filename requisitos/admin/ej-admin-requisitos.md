@@ -24,11 +24,13 @@ de observabilidade (API e transações de persistência).
 
 A versão 1.0.0 do Elastic Journey Admin Portal permite cadastrar produtos e canais,
 construir jornadas independentes para cada canal, modelar fluxos e
-formulários, criar e consultar versões, executar jornadas, autenticar usuários
-por provedor externo mockado, aplicar papéis, registrar auditoria, publicar
-versões por meio de uma chamada mockada para a futura API de publicação do
-runtime, consultar uma central de ajuda e observar a aplicação por meio de
-logs técnicos correlacionados.
+formulários (inclusive gerando um rascunho de fluxo assistido por IA a partir
+de um prompt), criar e consultar versões, executar jornadas, gerenciar um
+catálogo de integrações de mensageria e de credencial de IA, acompanhar a
+operação por um dashboard, autenticar usuários por provedor externo mockado,
+aplicar papéis, registrar auditoria, publicar versões por meio de uma chamada
+mockada para a futura API de publicação do runtime, consultar uma central de
+ajuda e observar a aplicação por meio de logs técnicos correlacionados.
 
 ```text
 Gerenciar produtos e canais
@@ -37,11 +39,17 @@ Gerenciar jornadas
 
 Modelar fluxos visualmente
 
+Gerar rascunho de fluxo assistido por IA
+
 Criar formulários
 
 Executar jornadas
 
 Versionar jornadas
+
+Gerenciar catálogo de integrações (clusters e credenciais de mensageria, credencial de IA)
+
+Acompanhar a operação por um dashboard
 
 Autenticar e autorizar usuários
 
@@ -308,6 +316,8 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.05.002 - O sistema deve permitir zoom out.
 #### REQ-03.05.003 - O sistema deve permitir mover-se livremente pelo canvas.
 #### REQ-03.05.004 - O sistema deve permitir centralizar o fluxo na área visível.
+#### REQ-03.05.005 - Ao abrir uma jornada para edição, ao criar uma jornada nova, ou ao concluir a geração de fluxo assistida por IA (US-03.17), o canvas deve abrir sempre em zoom de 100%, com o elemento inicial alinhado próximo à borda esquerda — não um ajuste adaptativo à área visível.
+#### REQ-03.05.006 - O minimapa do canvas deve iniciar colapsado num canto da tela, abrindo apenas quando o usuário clicar nele.
 ---
 
 ### US-03.06 Produtividade
@@ -347,6 +357,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.09.012 - O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis produzidas por passos anteriores do fluxo (respostas de formulário e saídas de integrações), usando a sintaxe `{{nomeDaVariavel}}`.
 #### REQ-03.09.013 - O editor deve exibir, para cada `SERVICE_TASK`/`RECEIVE_TASK`, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado.
 #### REQ-03.09.014 - O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie `{{variavel}}` inexistente no contexto do nó (nome não declarado por nenhum passo anterior alcançável).
+#### REQ-03.09.015 - O campo de tópico de um conector Kafka deve oferecer, como sugestão, a lista de tópicos existentes no cluster selecionado (US-14.01), consultada em tempo real a partir do catálogo de integrações; a digitação livre deve continuar disponível quando a listagem não estiver disponível.
 ---
 
 ### US-03.10 Teste de conectores
@@ -398,6 +409,19 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.15.003 - O sistema deve permitir vincular uma anotação a um ou mais nós do fluxo, exibindo uma linha tracejada entre a anotação e cada nó vinculado.
 #### REQ-03.15.004 - O sistema deve permitir desvincular uma anotação de um nó e excluir uma anotação, sem afetar o fluxo executável.
 #### REQ-03.15.005 - As anotações devem ser persistidas junto com o fluxo da jornada e restauradas ao reabrir o editor.
+---
+
+### US-03.16 Pré-visualização de formulário no editor
+#### REQ-03.16.001 - Ao selecionar, no canvas, uma `USER_TASK` com formulário associado, o editor deve exibir automaticamente uma pré-visualização do formulário, ancorada à base do canvas, sem exigir uma ação dedicada de clique.
+#### REQ-03.16.002 - Ao selecionar qualquer outro elemento do canvas, a pré-visualização deve deixar de ser exibida.
+---
+
+### US-03.17 Geração de fluxo assistida por IA
+#### REQ-03.17.001 - O sistema deve permitir gerar automaticamente um rascunho de fluxo a partir de uma descrição em linguagem natural (prompt) informada pelo usuário, preenchendo nós e conexões no canvas do editor.
+#### REQ-03.17.002 - A geração deve depender de uma credencial de API de IA configurada (US-14.06); sem credencial configurada, o sistema deve informar o usuário e recusar a geração, sem expor detalhe técnico do provedor.
+#### REQ-03.17.003 - Um fluxo gerado que viole as regras estruturais de validação (US-03.02) deve ser automaticamente corrigido e reenviado ao modelo de IA (retry/reparo) antes de ser apresentado ao usuário, dentro de um número limitado de tentativas — inclui a rejeição de aspas escapadas (`\"`) em condição de gateway, formato que quebra o parser de expressão do motor de runtime.
+#### REQ-03.17.004 - O fluxo gerado deve ser apresentado como um rascunho editável no canvas, sujeito às mesmas regras de validação e à mesma revisão manual de qualquer fluxo criado por edição direta — a geração por IA não substitui a revisão do usuário antes de salvar ou publicar.
+#### REQ-03.17.005 - Ao concluir a geração, o canvas deve reposicionar automaticamente a visualização do fluxo gerado (REQ-03.05.005).
 ---
 
 
@@ -503,6 +527,8 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.06.003 - O sistema deve apresentar o resultado das integrações já executadas (dados retornados/mapeados por Service/Receive Tasks).
 #### REQ-05.06.004 - O sistema deve apresentar um log cronológico dos passos executados durante a execução.
 #### REQ-05.06.005 - O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida.
+#### REQ-05.06.006 - O log cronológico deve registrar toda chamada de API entre o frontend e o backend relacionada à execução (método, caminho, status, headers e corpo da requisição), com exceção da consulta de variáveis do processo, que não representa uma ação da jornada.
+#### REQ-05.06.007 - O log deve permitir busca textual, com navegação entre ocorrências, e permitir expandir ou recolher cada entrada individualmente ou em bloco.
 ---
 
 ### US-05.07 Seleção e apresentação
@@ -529,6 +555,8 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.09.007 - Uma jornada cujo início é por mensagem (Message Start Event) deve oferecer, na tela de busca de jornada, o painel de envio de mensagem de teste (REQ-05.09.005) para iniciar uma instância nova, sem pré-preencher a business key (a instância ainda não existe).
 #### REQ-05.09.008 - Depois de enviar a mensagem de teste que inicia uma jornada por mensagem, o sistema deve aguardar automaticamente até a instância nova aparecer e prosseguir para a tela de execução, sem ação adicional do usuário.
 #### REQ-05.09.009 - O sistema deve permitir, como alternativa manual secundária à publicação ou ao consumo Kafka real, pular qualquer etapa Kafka em espera (Service Task, Receive Task ou início por mensagem), fabricando o resultado a partir do mapeamento de saída configurado — útil quando o broker está indisponível ou para avançar rapidamente durante um teste.
+#### REQ-05.09.010 - Ao iniciar uma execução, o sistema deve permitir optar por controle manual das mensagens Kafka daquela instância, retirando suas Service Tasks Kafka do disparo automático do worker em background e exigindo publicação manual pela tela de execução.
+#### REQ-05.09.011 - Quando o controle manual estiver ativo, a tela de execução deve permitir publicar a mensagem de uma Service Task Kafka digitando o payload manualmente ou gerando-o automaticamente a partir do mesmo mapeamento que o worker automático usaria.
 ---
 
 <br/><br/>
@@ -556,6 +584,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-06.02.008 - O sistema deve impedir números de versão duplicados dentro da mesma jornada.
 #### REQ-06.02.009 - Ao salvar o fluxo de uma jornada, o sistema deve manter a versão `DRAFT` atual sincronizada com o conteúdo salvo: se já existir uma versão `DRAFT`, seu conteúdo deve ser substituído (mesmo identificador e número de versão); caso não exista nenhuma `DRAFT` (por exemplo, logo após a publicação da versão anterior), uma nova versão `DRAFT` deve ser criada automaticamente. Em nenhum caso outras versões são alteradas.
 #### REQ-06.02.010 - Antes de salvar a edição de uma jornada `PUBLISHED`, o sistema deve avisar o usuário de que a alteração será registrada em uma versão em rascunho separada da publicada.
+#### REQ-06.02.011 - Ao salvar um fluxo sem alteração real em relação ao conteúdo já persistido, o sistema deve informar o usuário de que nada foi alterado e não deve gerar ou atualizar a versão `DRAFT`.
 
 ### US-06.03 Histórico e consulta
 #### REQ-06.03.001 - O sistema deve permitir listar todas as versões de uma jornada.
@@ -577,6 +606,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-06.04.010 - O sistema deve permitir despublicar a versão atualmente `PUBLISHED` de uma jornada diretamente pela versão; a despublicação de uma versão deve refletir no status da jornada, que passa a `UNPUBLISHED`.
 #### REQ-06.04.011 - O sistema deve permitir republicar qualquer versão `UNPUBLISHED` de uma jornada (não apenas a mais recente), sem alterar seu conteúdo/snapshot, retornando-a ao estado `PUBLISHED` e refletindo no status da jornada, que volta a `PUBLISHED`. Se já existir uma versão `PUBLISHED` na jornada no momento da republicação, essa versão deve ser marcada como `UNPUBLISHED` antes (mesmo comportamento de REQ-06.04.004). Versões `INACTIVE` (jornada excluída) permanecem fora de alcance (REQ-06.05.004).
 #### REQ-06.04.012 - Antes de republicar uma versão, se já existir uma versão `PUBLISHED` na jornada, o sistema deve informar ao usuário que a versão publicada atual será substituída e solicitar confirmação antes de prosseguir.
+#### REQ-06.04.013 - O sistema deve distinguir uma falha de publicação genuinamente indisponível (runtime inacessível) de uma rejeição de conteúdo (fluxo inválido para o motor de runtime), apresentando ao usuário uma mensagem de erro única e legível, nunca a resposta de erro crua ou aninhada do serviço subjacente.
 
 ### US-06.05 Compatibilidade e limites da Versão 1.0.0
 #### REQ-06.05.001 - O sistema deve preservar versões de jornadas desativadas.
@@ -866,6 +896,12 @@ empresa.
 #### REQ-14.05.005 - O assistente de configuração de conector (US-03.14) deve ganhar as mesmas 3 etapas hoje aplicadas ao Kafka (Conexão, Payload, Mapear saída) para `EVENT_HUBS` e `SERVICE_BUS`, com a etapa "Conexão" oferecendo os seletores de cluster e credencial em vez de campos de texto.
 ---
 
+### US-14.06 Credencial de IA
+#### REQ-14.06.001 - O sistema deve permitir cadastrar, atualizar e remover uma credencial de API de um provedor de IA (Gemini), restrito ao papel `ADMIN`.
+#### REQ-14.06.002 - A API não deve, em nenhuma resposta, retornar o valor da chave salva — apenas seu status (configurada/não configurada) e a data da última atualização.
+#### REQ-14.06.003 - Diferente do catálogo de credenciais de mensageria (REQ-14.02.003), esta credencial é armazenada em texto plano no banco de dados, como desvio deliberado e temporário do princípio de nunca persistir segredo — decisão registrada no código com pendência explícita de criptografia antes de produção.
+---
+
 <br/><br/>
 
 # 5. Fora do Escopo da Versão 1.0.0 
@@ -878,7 +914,6 @@ Publicação Agendada
 Rollback
 Promotion Between Environments
 Analytics
-IA Assistida
 Gestão de Tenants
 
 ```

@@ -64,9 +64,12 @@ export const DARK_COLORS: FlowColors = {
 export interface FlowTheme {
   dark: boolean;
   c: FlowColors;
+  // Preferência de exibição dos nós: false (padrão) = card neutro, sem tingir o fundo com a cor do
+  // tipo; true = 10% da cor do tipo misturada no fundo do card (comportamento antigo).
+  nodeFill: boolean;
 }
 
-export const FlowThemeContext = createContext<FlowTheme>({ dark: false, c: LIGHT_COLORS });
+export const FlowThemeContext = createContext<FlowTheme>({ dark: false, c: LIGHT_COLORS, nodeFill: false });
 
 export function useFlowTheme() {
   return useContext(FlowThemeContext);

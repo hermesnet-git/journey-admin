@@ -44,6 +44,8 @@ Os logs técnicos de observabilidade (FT-10) não são persistidos no PostgreSQL
 
 `messaging_cluster` e `credential_reference` (FT-14) formam o catálogo de integrações: cada credencial referencia um cluster, e um conector de mensageria de `flow_node` referencia uma credencial por `reference_name` (persistido dentro do documento `jsonb` do fluxo, não por chave estrangeira de banco — mesma limitação já descrita para `flow_node`/`flow_connection` no §9). Nunca armazenam o valor de um segredo — só a referência ao Azure Key Vault.
 
+`ai_provider_credential` (FT-14 US-14.06) é uma tabela isolada, sem relacionamento com as demais: guarda a credencial de API de um provedor de IA (Gemini) usada pela geração de fluxo assistida (FT-03 US-03.17). Diferente de `credential_reference`, armazena o segredo em texto plano — desvio deliberado e temporário do princípio de nunca persistir segredo, documentado como TODO no código.
+
 ---
 
 # 4. Modelo Relacional — Tabelas
@@ -67,6 +69,7 @@ journey_version
 audit_event
 messaging_cluster
 credential_reference
+ai_provider_credential
 ```
 
 ---
@@ -455,7 +458,23 @@ CREATE TABLE credential_reference (
 
 ---
 
-# 22. Chaves Primárias
+# 22. Tabela AiProviderCredential
+
+```sql
+CREATE TABLE ai_provider_credential (
+    credential_id UUID PRIMARY KEY,
+    provider VARCHAR(30) NOT NULL UNIQUE CHECK (provider IN ('GEMINI')),
+    api_key TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+Tabela isolada, sem chave estrangeira — `provider` é único por natureza (um único registro por provedor suportado). `api_key` guarda o segredo em texto plano, ao contrário de `credential_reference`: exceção deliberada e temporária ao princípio de nunca persistir segredo (REQ-14.02.003/REQ-14.06.003), com pendência de criptografia registrada como TODO no código antes de produção. A API nunca retorna `api_key` numa resposta — apenas se `provider` está configurado e `updated_at`.
+
+---
+
+# 23. Chaves Primárias
 
 | Tabela | PK |
 |--------|----|
@@ -476,10 +495,11 @@ CREATE TABLE credential_reference (
 | audit_event | audit_event_id |
 | messaging_cluster | cluster_id |
 | credential_reference | credential_id |
+| ai_provider_credential | credential_id |
 
 ---
 
-# 23. Chaves Estrangeiras Principais
+# 24. Chaves Estrangeiras Principais
 
 | Origem | Destino |
 |--------|---------|
@@ -503,7 +523,7 @@ CREATE TABLE credential_reference (
 
 ---
 
-# 24. Estratégia de Índices
+# 25. Estratégia de Índices
 
 ```sql
 CREATE INDEX idx_product_status ON product(status);
@@ -545,7 +565,7 @@ CREATE INDEX idx_credential_reference_status ON credential_reference(status);
 
 ---
 
-# 25. Estratégia de Consulta
+# 26. Estratégia de Consulta
 
 ```text
 Pesquisar produtos e listar seus canais
@@ -567,7 +587,7 @@ Consultar clusters e credenciais do catálogo de integrações por tipo, cluster
 
 ---
 
-# 26. Estratégia de Publicação
+# 27. Estratégia de Publicação
 
 `journey_publication` mantém o snapshot da versão publicada separado da jornada em edição. A restrição `UNIQUE (journey_id)` garante no máximo uma publicação ativa por jornada. Uma nova publicação deve apontar para uma nova `journey_version` e preservar os snapshots anteriores.
 
@@ -599,7 +619,7 @@ Antes de desativar uma jornada, um canal ou um produto, o backend deve consultar
 
 ---
 
-# 27. Diagrama ER Físico
+# 28. Diagrama ER Físico
 
 ```mermaid
 erDiagram
@@ -628,7 +648,7 @@ erDiagram
 
 ---
 
-# 28. Considerações de Evolução
+# 29. Considerações de Evolução
 
 ```text
 Templates e clonagem entre canais
@@ -644,6 +664,6 @@ Resolução real de credencial via Azure Key Vault (Workload Identity/AKS) — h
 
 ---
 
-# 29. Resumo Técnico
+# 30. Resumo Técnico
 
 O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, registra execuções, possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado, eventos de auditoria sem dados sensíveis e o catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.

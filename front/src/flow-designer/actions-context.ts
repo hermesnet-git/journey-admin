@@ -7,7 +7,6 @@ export interface WorkflowActions {
   onQuickAdd: (nodeId: string, type: NodeType) => void;
   onDelete: (nodeId: string) => void;
   onOpenForm: (formId: string) => void;
-  getFormName: (formId: string) => string | undefined;
   getForm: (formId: string) => Form | undefined;
   onUpdateAnnotationText: (annotationId: string, text: string) => void;
   onDeleteAnnotation: (annotationId: string) => void;

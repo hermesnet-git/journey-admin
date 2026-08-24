@@ -8,6 +8,7 @@ import { JourneyMetaBar } from './JourneyMetaBar';
 // the dock falls back to the journey's own data (name/description/product/
 // channel) instead of a node's.
 export function JourneyPropertiesPanel({
+  journeyId,
   productName,
   channelName,
   name,
@@ -15,6 +16,7 @@ export function JourneyPropertiesPanel({
   description,
   onDescriptionChange,
 }: {
+  journeyId: string;
   productName: string;
   channelName: string;
   name: string;
@@ -30,6 +32,7 @@ export function JourneyPropertiesPanel({
       <div style={{ fontSize: 12.5, color: c.textSecondary, marginBottom: 14 }}>Jornada</div>
       <Section title="Dados da jornada" open={dataOpen} onToggle={() => setDataOpen((o) => !o)}>
         <JourneyMetaBar
+          journeyId={journeyId}
           productName={productName}
           channelName={channelName}
           name={name}

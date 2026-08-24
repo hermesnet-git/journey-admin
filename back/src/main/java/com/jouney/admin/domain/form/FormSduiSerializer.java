@@ -1,5 +1,6 @@
 package com.jouney.admin.domain.form;
 
+import com.jouney.admin.domain.flow.ConnectorConfig;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,21 +18,101 @@ public final class FormSduiSerializer {
     }
 
     public static List<Object> serialize(Form form) {
-        List<Object> children = new ArrayList<>();
-        for (FormField field : form.getFields()) {
-            children.add(serializeField(field));
+        return serialize(form.getFields());
+    }
+
+    // Núcleo da serialização — a sobrecarga acima é só um atalho pra Form.getFields().
+    public static List<Object> serialize(List<FormField> fields) {
+        List<Object> topLevel = new ArrayList<>();
+        List<Object> currentSectionChildren = null;
+        for (FormField field : fields) {
+            if (field.getType() == FormFieldType.SECTION) {
+                currentSectionChildren = new ArrayList<>();
+                topLevel.add(node("ui.section", sectionProps(field), currentSectionChildren));
+                continue;
+            }
+            List<Object> fieldNode = serializeField(field);
+            (currentSectionChildren != null ? currentSectionChildren : topLevel).add(fieldNode);
         }
-        return node("ui.form", Map.of(), children);
+        return node("ui.form", Map.of(), topLevel);
+    }
+
+    private static Map<String, Object> sectionProps(FormField field) {
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("label", field.getLabel());
+        props.put("columns", field.getColumns() != null ? field.getColumns() : 1);
+        if (field.getVisibleIf() != null) {
+            props.put("visibleIf", field.getVisibleIf());
+        }
+        return props;
     }
 
     private static List<Object> serializeField(FormField field) {
-        return switch (field.getType()) {
-            case TEXT -> node("ui.text", textProps(field), List.of());
-            case INPUT -> node("ui.input", inputProps(field), List.of());
-            case SINGLE_SELECT -> node("ui.select", selectProps(field), List.of());
-            case MULTI_SELECT -> node("ui.multiselect", selectProps(field), List.of());
-            case FILE_UPLOAD -> node("ui.upload", uploadProps(field), List.of());
+        // As tags dos 5 tipos originais (ui.select, ui.multiselect, ui.upload) já são consumidas por
+        // fora (SduiFormRenderer.tsx, ms-espec-registry) — mantidas literais, não geradas por
+        // convenção, pra não arriscar mudar um contrato já publicado sem querer.
+        String tag = switch (field.getType()) {
+            case TEXT -> "ui.text";
+            case INPUT -> "ui.input";
+            case SINGLE_SELECT -> "ui.select";
+            case MULTI_SELECT -> "ui.multiselect";
+            case FILE_UPLOAD -> "ui.upload";
+            case RADIO -> "ui.radio";
+            case SWITCH -> "ui.switch";
+            case SLIDER -> "ui.slider";
+            case RATING -> "ui.rating";
+            case STEPPER -> "ui.stepper";
+            case AUTOCOMPLETE -> "ui.autocomplete";
+            case TITLE -> "ui.title";
+            case IMAGE -> "ui.image";
+            case DIVIDER -> "ui.divider";
+            case CARD -> "ui.card";
+            case CALLOUT -> "ui.callout";
+            case SECTION -> throw new IllegalStateException("SECTION is handled by serialize(), not serializeField()");
         };
+        Map<String, Object> props = switch (field.getType()) {
+            case TEXT -> textProps(field);
+            case INPUT -> inputProps(field);
+            case SINGLE_SELECT, MULTI_SELECT, RADIO, AUTOCOMPLETE -> selectProps(field);
+            case FILE_UPLOAD -> uploadProps(field);
+            case DIVIDER -> withConfig(new LinkedHashMap<>(), field);
+            case TITLE, IMAGE, CARD, CALLOUT -> contentProps(field);
+            case SWITCH -> nameProps(field);
+            case SLIDER, RATING, STEPPER -> withConfig(nameProps(field), field);
+            case SECTION -> throw new IllegalStateException("SECTION is handled by serialize(), not serializeField()");
+        };
+        if (field.getVisibleIf() != null) {
+            props.put("visibleIf", field.getVisibleIf());
+        }
+        return node(tag, props, List.of());
+    }
+
+    // name/label/required — a base comum aos campos de entrada mais simples (sem opções nem
+    // config extra), reaproveitada por SWITCH e como ponto de partida de SLIDER/RATING/STEPPER.
+    private static Map<String, Object> nameProps(FormField field) {
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("name", field.getName());
+        props.put("label", field.getLabel());
+        props.put("required", field.isRequired());
+        return props;
+    }
+
+    // TITLE/IMAGE/CARD/CALLOUT são só-de-apresentação (não coletam valor, sem "name") — o rótulo
+    // vira o texto padrão, e a config específica de cada um (variant, url, etc.) vem de field.config.
+    private static Map<String, Object> contentProps(FormField field) {
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("label", field.getLabel());
+        return withConfig(props, field);
+    }
+
+    // Repassa a config declarativa do componente tal como o form builder a montou — o backend não
+    // conhece o shape interno de cada tipo (min/max/step do slider, variant/title/description do
+    // callout etc.), mesmo princípio já usado pro config do dataSource/ConnectorConfig.
+    private static Map<String, Object> withConfig(Map<String, Object> props, FormField field) {
+        if (field.getConfig() != null) {
+            props.putAll(field.getConfig());
+        }
+        return props;
     }
 
     private static Map<String, Object> textProps(FormField field) {
@@ -68,7 +149,21 @@ public final class FormSduiSerializer {
         props.put("name", field.getName());
         props.put("label", field.getLabel());
         props.put("required", field.isRequired());
-        props.put("options", field.getOptions() != null ? field.getOptions() : List.of());
+        if (field.getDataSource() != null) {
+            props.put("dataSource", dataSourceProps(field.getDataSource()));
+        } else {
+            props.put("options", field.getOptions() != null ? field.getOptions() : List.of());
+        }
+        return props;
+    }
+
+    // Config declarativa repassada tal como está (method/url/headers/params/body + as convenções
+    // de extração de opções/paginação) — o canal/serviço que resolve isso em tempo de execução é
+    // quem interpreta essas chaves, igual o outputMapping do conector REST já é só repassado hoje.
+    private static Map<String, Object> dataSourceProps(ConnectorConfig dataSource) {
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("config", dataSource.getConfig());
+        props.put("credentialRef", dataSource.getCredentialRef());
         return props;
     }
 

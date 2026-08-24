@@ -1,5 +1,6 @@
 package com.jouney.transformpublication.interfaces.publication;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -11,9 +12,11 @@ import java.util.UUID;
 /**
  * Mirrors the shape of {@code PublicationSnapshotRecord} sent by the Admin Portal
  * (ej-admin-requisitos.md EP-02.09 / EP-04.06) when a journey is published. Only the
- * fields this service actually needs are modeled — {@code forms} is kept loose since
- * only the form id referenced by a User Task is used (formId lives on the node, not here).
+ * fields this service actually needs are modeled — {@code embeddedScreen(Sdui)} é ignorado aqui de
+ * propósito (@JsonIgnoreProperties): a tela de uma User Task não entra no BPMN, o simulador resolve
+ * ela direto do snapshot pelo id do nó (ver StepResolver no ms-espec-registry).
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record PublicationSnapshotRequest(
         @NotNull UUID journeyId,
         @NotBlank String journeyName,
@@ -23,10 +26,11 @@ public record PublicationSnapshotRequest(
         UUID channelId,
         String channelName,
         String channelType,
+        Integer versionNumber,
         @NotEmpty @Valid List<FlowNodeRequest> flowNodes,
-        @NotNull @Valid List<FlowConnectionRequest> flowConnections,
-        List<Map<String, Object>> forms) {
+        @NotNull @Valid List<FlowConnectionRequest> flowConnections) {
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record FlowNodeRequest(
             @NotBlank String id,
             @NotBlank String type,
@@ -34,7 +38,6 @@ public record PublicationSnapshotRequest(
             String description,
             Integer positionX,
             Integer positionY,
-            UUID formId,
             ConnectorConfigRequest connectorConfig) {
     }
 

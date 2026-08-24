@@ -125,11 +125,15 @@ Cada jornada possui no máximo um fluxo.
 | PositionX | INTEGER | Não | Coordenada horizontal no canvas |
 | PositionY | INTEGER | Não | Coordenada vertical no canvas |
 | StartVariables | JSONB | Não | Lista `{ name, type }` — só em nós `START`; variáveis que o canal digital/BFF deve fornecer ao iniciar uma instância (REQ-03.12.001) |
-| MessageText | TEXT | Não | Só em `USER_TASK` sem `FormId` (via `UserTaskConfig`) — mensagem exibida ao usuário nessa etapa, podendo referenciar `{{nome}}`, resolvida em tempo de execução (REQ-04.01.005) |
+| MessageText | TEXT | Não | Só em `USER_TASK` sem tela desenhada (`EmbeddedScreen` vazio, via `UserTaskConfig`) — mensagem exibida ao usuário nessa etapa, podendo referenciar `{{nome}}`, resolvida em tempo de execução (REQ-04.01.005) |
+| EmbeddedScreen | JSONB | Não | Só em `USER_TASK` — array de `FormField` (§11) desenhado diretamente no nó, editável no editor de fluxo (via `UserTaskConfig`) |
+| EmbeddedScreenSdui | JSONB | Não | Só presente numa snapshot de publicação/versão (nunca no fluxo ao vivo do editor) — árvore `[tag, props, children]` compilada de `EmbeddedScreen` no momento da publicação (via `UserTaskConfig`) |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
 `FlowNode` não é uma tabela própria: é a forma de cada item do array `Flow.Nodes` (JSONB, §6). `NodeId` é a chave dentro do array, não uma PK de banco.
+
+> **Nota de revisão (2026-08-24):** `EmbeddedScreen`/`EmbeddedScreenSdui` adicionados e `MessageText` reescrito nesta revisão — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó.
 
 ---
 
@@ -188,7 +192,9 @@ Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da 
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
-Não há `Code` nem `Status`: um formulário não tem código técnico próprio nem ciclo de ativo/inativo — é identificado só pelo `FormId` e pode ser referenciado por User Tasks de qualquer jornada enquanto existir.
+Não há `Code` nem `Status`: um formulário não tem código técnico próprio nem ciclo de ativo/inativo — é identificado só pelo `FormId`. Um `Form` nunca é referenciado por uma User Task; serve só como modelo de partida (cópia dos campos) ao desenhar a tela de um nó (`FlowNode.EmbeddedScreen`, §7/§12) — nada liga o nó ao `FormId` de origem depois da cópia.
+
+> **Nota de revisão (2026-08-24):** parágrafo reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó (`EmbeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 
@@ -196,29 +202,31 @@ Não há `Code` nem `Status`: um formulário não tem código técnico próprio 
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
-| Name | VARCHAR(80) | Sim | Chave técnica do campo: definida pelo usuário, única dentro do formulário, imutável após criada. Substitui o antigo identificador interno gerado pelo sistema. |
-| FormId | UUID | Sim | Formulário ao qual pertence |
+| Name | VARCHAR(80) | Sim | Chave técnica do campo: definida pelo usuário. No catálogo (`Form.Fields`), única dentro do formulário e imutável após criada. Na tela embutida de uma User Task (`FlowNode.EmbeddedScreen`), editável a qualquer momento, com unicidade verificada na jornada inteira (REQ-03.09.011) — mesmo espaço de nomes das variáveis de saída de integração. Substitui o antigo identificador interno gerado pelo sistema. |
+| FormId | UUID | Não | Formulário ao qual pertence — presente só quando o campo vive em `Form.Fields` (catálogo); ausente/irrelevante quando o campo vive em `FlowNode.EmbeddedScreen` (tela embutida) |
 | FieldType | VARCHAR(50) | Sim | Tipo do campo |
 | InputSubtype | VARCHAR(20) | Não | Subtipo de entrada, aplicável apenas quando `FieldType = INPUT` |
 | Label | VARCHAR(200) | Não | Rótulo apresentado ao usuário |
 | HelpText | TEXT | Não | Texto de ajuda |
 | Required | BOOLEAN | Sim | Indica preenchimento obrigatório |
-| DefaultValue | TEXT | Não | Valor padrão |
-| Configuration | JSONB | Não | Configuração específica do campo: opções `{label, value}` (`SINGLE_SELECT`/`MULTI_SELECT`), validação de formato (min/max para `NUMBER`, regex/máscara para `TEXT`) e regras de arquivo aceito — extensões e tamanho máximo — (`FILE_UPLOAD`) |
+| DefaultValue | TEXT | Não | Valor padrão; pode referenciar `{{nome}}` de uma variável do fluxo, resolvida em tempo de execução e usada para pré-preencher o campo (editável) |
+| Columns | INTEGER | Não | Só em `FieldType = SECTION` — número de colunas da grade que agrupa os campos seguintes até a próxima seção |
+| VisibleIf | TEXT | Não | Expressão de exibição condicional; modelada e validada, mas ainda não avaliada em tempo de execução (fora do escopo da v1.0.0, seção 5) |
+| DataSource | JSONB | Não | Só em `FieldType = AUTOCOMPLETE` — mesma forma de `IntegrationTaskConfig` (§9), pensada para popular opções por busca remota; ainda não resolvida em tempo de execução — opções estáticas por enquanto (fora do escopo da v1.0.0, seção 5) |
+| Configuration | JSONB | Não | Configuração específica do campo: opções `{label, value}` (`SINGLE_SELECT`/`MULTI_SELECT`/`RADIO`/`AUTOCOMPLETE`), validação de formato (min/max para `NUMBER`, regex/máscara para `TEXT`), regras de arquivo aceito — extensões e tamanho máximo — (`FILE_UPLOAD`), e configuração livre dos componentes novos (`min`/`max`/`step` de `SLIDER`/`STEPPER`, contagem de `RATING`, `url`/`alt` de `IMAGE`, `variant`/`description` de `CALLOUT` etc.) |
 
 ## Valores de FieldType
 
 ```text
-TEXT
-INPUT
-SINGLE_SELECT
-MULTI_SELECT
-FILE_UPLOAD
+SECTION, TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD, RADIO, SWITCH,
+SLIDER, RATING, STEPPER, AUTOCOMPLETE, TITLE, IMAGE, DIVIDER, CARD, CALLOUT
 ```
 
 > `STATIC_CONTENT` foi colapsado em `TEXT` (mesmo modelo de dados, diferença apenas de apresentação visual).
 
-`FormField` não é uma tabela própria: é a forma de cada item do array `Form.Fields` (JSONB, §10). Não existe `DisplayOrder`: a ordem de exibição é a própria ordem do campo no array, não uma coluna armazenada.
+`FormField` não é uma tabela própria: é a forma de cada item do array `Form.Fields` (JSONB, §10) ou de `FlowNode.EmbeddedScreen` (JSONB, §7). Não existe `DisplayOrder`: a ordem de exibição é a própria ordem do campo no array, não uma coluna armazenada.
+
+> **Nota de revisão (2026-08-24):** `FieldType` ampliado de 5 para 17 valores, e as colunas `Columns`/`VisibleIf`/`DataSource` adicionadas nesta revisão — mesma mudança que substituiu a associação por `FormId` pelo desenho direto da tela no nó: como a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), o catálogo próprio do Admin Portal foi ampliado para cobrir a necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de depender do motor.
 
 ## Valores de InputSubtype (quando FieldType = INPUT)
 
@@ -236,12 +244,15 @@ DATE
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | NodeId | UUID | Sim | Nó `USER_TASK` configurado |
-| FormId | UUID | Não | Formulário exibido pela User Task |
-| MessageText | TEXT | Não | Mensagem exibida ao usuário quando não há `FormId` (REQ-04.01.005) |
+| EmbeddedScreen | JSONB | Não | Tela desenhada diretamente no nó — array de `FormField` (§11), editável no editor de fluxo |
+| EmbeddedScreenSdui | JSONB | Não | Só presente numa snapshot de publicação/versão — árvore `[tag, props, children]` compilada de `EmbeddedScreen` no momento da publicação (§4, Imutabilidade) |
+| MessageText | TEXT | Não | Mensagem exibida ao usuário quando `EmbeddedScreen` está vazio (REQ-04.01.005) |
 
-Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, a configuração associa a User Task a exatamente um formulário **ou** declara uma mensagem de etapa sem formulário — os dois nunca coexistem com sentido (se `FormId` estiver preenchido, `MessageText` é ignorado).
+Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, a configuração desenha uma tela diretamente no nó (`EmbeddedScreen`) **ou** declara uma mensagem de etapa sem tela — os dois nunca coexistem com sentido (se `EmbeddedScreen` não estiver vazio, `MessageText` é ignorado). Um formulário do catálogo (§10) pode servir de modelo de partida ao montar `EmbeddedScreen`, mas nada é persistido ligando o nó ao formulário de origem — a cópia dos campos é o único rastro dessa escolha.
 
-`UserTaskConfig` não é uma tabela própria nem um sub-documento separado: `FormId`/`MessageText` são atributos do próprio item de `Flow.Nodes` (JSONB, §6-7) — presentes mesmo em nós que não são `USER_TASK`, mas só têm sentido nesse tipo.
+`UserTaskConfig` não é uma tabela própria nem um sub-documento separado: `EmbeddedScreen`/`EmbeddedScreenSdui`/`MessageText` são atributos do próprio item de `Flow.Nodes` (JSONB, §6-7) — presentes mesmo em nós que não são `USER_TASK`, mas só têm sentido nesse tipo.
+
+> **Nota de revisão (2026-08-24):** seção reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó (`EmbeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 
@@ -257,13 +268,15 @@ Na versão 1.0.0, a publicação ativa deve referenciar uma `JourneyVersion`. Ve
 | PublicationStatus | VARCHAR(30) | Sim | `PUBLISHED` ou `UNPUBLISHED` |
 | PublicationDate | TIMESTAMPTZ | Não | Data da publicação |
 | UnpublishedDate | TIMESTAMPTZ | Não | Data da despublicação |
-| JourneySnapshot | JSONB | Sim | Cópia de Product, Channel, Journey, Flow e Forms |
+| JourneySnapshot | JSONB | Sim | Cópia de Product, Channel, Journey e Flow (com a tela já compilada — `EmbeddedScreenSdui` — de cada User Task) e do `VersionNumber` da versão publicada |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação do registro |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última substituição do snapshot |
 
-Cada jornada possui no máximo uma publicação ativa, associada a uma `JourneyVersion`. Uma nova publicação aponta para uma nova versão e preserva os snapshots anteriores após o retorno de sucesso da API mockada do runtime.
+Cada jornada possui no máximo uma publicação ativa, associada a uma `JourneyVersion`. Uma nova publicação aponta para uma nova versão e preserva os snapshots anteriores após o retorno de sucesso da chamada real (HTTP) à API de publicação do runtime.
 
-Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somente após o retorno de sucesso do mock. Uma jornada nunca publicada utiliza o estado `DRAFT`.
+Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somente após o retorno de sucesso dessa mesma chamada. Uma jornada nunca publicada utiliza o estado `DRAFT`.
+
+> **Nota de revisão (2026-08-24):** `JourneySnapshot` reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó, e o snapshot não carrega mais uma lista de formulários — só a tela já compilada de cada nó.
 
 ---
 
@@ -284,6 +297,8 @@ Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somen
 Versões `PUBLISHED` são imutáveis. Restauração e rollback não fazem parte da versão 1.0.0.
 
 `JourneyPublication` deve manter referência à `VersionId` publicada. Uma nova publicação deve associar-se a uma nova versão e preservar os snapshots anteriores.
+
+Ao publicar, `VersionNumber` também é gravado como a tag de versão do processo implantado no runtime (`v<N>`) — distinta do contador de implantação que o próprio runtime mantém internamente para aquela definição, que não é garantido coincidir com `VersionNumber`.
 
 ---
 
@@ -378,12 +393,14 @@ Entidade isolada, sem chave estrangeira. Diferente de `CredentialReference`, arm
 | Flow / FlowNode / FlowConnection / FlowAnnotation | Estrutura visual da jornada e suas notas de documentação |
 | IntegrationTaskConfig | Configuração de integração e conector de uma Service Task, Receive Task ou Message Start Event |
 | ConnectorType | Tipo de conector habilitado ou catalogado como desabilitado |
-| UserTaskConfig | Associação entre User Task e Form |
-| Form / FormField | Formulário e campos que o compõem |
+| UserTaskConfig | Tela embutida (`EmbeddedScreen`/`EmbeddedScreenSdui`) desenhada diretamente no nó de uma User Task |
+| Form / FormField | Formulário reutilizável do catálogo (modelo de cópia opcional) e campos que o compõem |
 | JourneyPublication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | MessagingCluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | CredentialReference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
 | AiProviderCredential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+
+> **Nota de revisão (2026-08-24):** linhas `UserTaskConfig` e `Form / FormField` reescritas — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó (`EmbeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 

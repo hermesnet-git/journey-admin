@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 /**
  * Wrapper fino da REST API do Camunda 7 (engine-rest) — cada método corresponde a exatamente uma
@@ -238,18 +239,54 @@ public class CamundaClient {
 
     /** Todas as variáveis visíveis no escopo do processo agora — inclui tudo que outputMapping de
      * SERVICE_TASK/RECEIVE_TASK já escreveu, já que nossos fluxos nunca têm mais de uma execução
-     * viva ao mesmo tempo (sem gateway paralelo/subprocesso/multi-instância). */
+     * viva ao mesmo tempo (sem gateway paralelo/subprocesso/multi-instância). Uma instância já
+     * terminada não existe mais nas tabelas de runtime (o Camunda as move pra história assim que o
+     * processo chega no Fim) — testado ao vivo: pra uma instância terminada, este endpoint não
+     * responde 404 nem um mapa vazio, e sim {@code 500 NullValueException} ("execution ... doesn't
+     * exist: execution is null"). Por isso {@link #getRuntimeProcessVariables} engole QUALQUER
+     * RestClientException (não só 404) — e o fallback pra {@link #getHistoricProcessVariables}
+     * dispara sempre que o runtime vem vazio (erro OU mapa vazio de verdade, ex.: instância ativa
+     * ainda sem nenhuma variável) — nesse segundo caso só custa uma chamada extra que também volta
+     * vazia. */
     public Map<String, CamundaVariable> getProcessVariables(String processInstanceId) {
-        Map<String, Map<String, Object>> raw = restClient.get()
-                .uri(baseUrl + "/process-instance/{id}/variables", processInstanceId)
+        Map<String, CamundaVariable> runtime = getRuntimeProcessVariables(processInstanceId);
+        return runtime.isEmpty() ? getHistoricProcessVariables(processInstanceId) : runtime;
+    }
+
+    private Map<String, CamundaVariable> getRuntimeProcessVariables(String processInstanceId) {
+        try {
+            Map<String, Map<String, Object>> raw = restClient.get()
+                    .uri(baseUrl + "/process-instance/{id}/variables", processInstanceId)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
+                    });
+            if (raw == null) {
+                return Map.of();
+            }
+            Map<String, CamundaVariable> result = new java.util.LinkedHashMap<>();
+            raw.forEach((name, v) -> result.put(name, new CamundaVariable(v.get("value"), String.valueOf(v.get("type")))));
+            return result;
+        } catch (RestClientException e) {
+            return Map.of();
+        }
+    }
+
+    /** Último valor de cada variável que a instância já teve, resolvido pela API de história —
+     * ao contrário do endpoint de runtime, existe pra instância em qualquer estado, ativa ou já
+     * terminada. */
+    public Map<String, CamundaVariable> getHistoricProcessVariables(String processInstanceId) {
+        List<HistoricVariableInstance> list = restClient.get()
+                .uri(baseUrl + "/history/variable-instance?processInstanceId={id}", processInstanceId)
                 .retrieve()
-                .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
+                .body(new ParameterizedTypeReference<List<HistoricVariableInstance>>() {
                 });
-        if (raw == null) {
+        if (list == null) {
             return Map.of();
         }
         Map<String, CamundaVariable> result = new java.util.LinkedHashMap<>();
-        raw.forEach((name, v) -> result.put(name, new CamundaVariable(v.get("value"), String.valueOf(v.get("type")))));
+        for (HistoricVariableInstance v : list) {
+            result.put(v.name(), new CamundaVariable(v.value(), v.type()));
+        }
         return result;
     }
 

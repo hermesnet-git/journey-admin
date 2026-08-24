@@ -3,16 +3,13 @@ package com.jouney.admin.infrastructure.persistence.version;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.form.Form;
-import com.jouney.admin.domain.form.FormField;
-import com.jouney.admin.domain.form.FormSduiSerializer;
 import com.jouney.admin.domain.version.JourneyVersion;
 import com.jouney.admin.domain.version.JourneyVersionRepository;
 import com.jouney.admin.domain.version.VersionStatus;
 import com.jouney.admin.infrastructure.persistence.flow.FlowConnectionRecord;
 import com.jouney.admin.infrastructure.persistence.flow.FlowNodeRecord;
-import com.jouney.admin.infrastructure.persistence.form.FormFieldRecord;
 import com.jouney.admin.infrastructure.persistence.publication.PublicationSnapshotRecord;
-import com.jouney.admin.infrastructure.persistence.publication.SnapshotFormRecord;
+import com.jouney.admin.infrastructure.persistence.publication.SnapshotFlowNodeRecord;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,7 +19,7 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Persists a {@link JourneyVersion}'s content as a JSONB snapshot, reusing the same on-wire shape
  * as {@code journey_publication} ({@link PublicationSnapshotRecord}) since both represent the same
- * "journey + product + channel + flow + forms" bundle at a point in time.
+ * "journey + product + channel + flow" bundle at a point in time.
  */
 @Component
 public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository {
@@ -40,27 +37,17 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
         PublicationSnapshotRecord record = new PublicationSnapshotRecord(version.getJourneyId(),
                 version.getJourneyName(), version.getJourneyDescription(), version.getProductId(),
                 version.getProductName(), version.getChannelId(), version.getChannelName(), version.getChannelType(),
+                version.getVersionNumber(),
                 version.getFlowNodes().stream()
-                        .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
-                                n.getPositionX(), n.getPositionY(), n.getFormId(),
+                        .map(n -> new SnapshotFlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
+                                n.getPositionX(), n.getPositionY(),
                                 FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
-                                n.getStartVariables(), n.getMessageText()))
+                                n.getStartVariables(), n.getMessageText(),
+                                PublicationSnapshotRecord.embeddedScreenSduiOf(n)))
                         .toList(),
                 version.getFlowConnections().stream()
                         .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
                                 c.isDefault()))
-                        .toList(),
-                version.getForms().stream()
-                        .map(f -> new SnapshotFormRecord(f.getId(), f.getName(), f.getDescription(),
-                                f.getFields().stream()
-                                        .map(field -> new FormFieldRecord(field.getName(), field.getType(),
-                                                field.getInputSubtype(), field.getLabel(), field.isRequired(),
-                                                field.getDefaultValue(), field.getHelpText(), field.getOptions(),
-                                                field.getMinValue(), field.getMaxValue(),
-                                                field.getValidationPattern(), field.getAcceptedExtensions(),
-                                                field.getMaxFileSizeBytes()))
-                                        .toList(),
-                                FormSduiSerializer.serialize(f)))
                         .toList());
 
         JourneyVersionJpaEntity entity = new JourneyVersionJpaEntity(version.getId(), version.getJourneyId(),
@@ -97,31 +84,24 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
     private JourneyVersion toDomain(JourneyVersionJpaEntity entity) {
         PublicationSnapshotRecord record = readJson(entity.getSnapshot());
 
+        // O nó reconstruído a partir da snapshot nunca carrega embeddedScreen (só existia na
+        // snapshot como a árvore já compilada) — mas carrega embeddedScreenSdui: PublishJourneyVersion
+        // usa version.getFlowNodes() pra montar a Publication na hora de (re)publicar, e sem isto
+        // aqui a tela se perderia nesse republish (embeddedScreen vazio recompilaria pra null).
         List<FlowNode> flowNodes = record.flowNodes().stream()
                 .map(n -> new FlowNode(n.id(), n.type(), n.name(), n.description(), n.positionX(), n.positionY(),
-                        n.formId(), n.connectorConfig() != null ? n.connectorConfig().toDomain() : null,
-                        n.startVariables(), n.messageText()))
+                        n.connectorConfig() != null ? n.connectorConfig().toDomain() : null,
+                        n.startVariables(), n.messageText(), List.of(), n.embeddedScreenSdui()))
                 .toList();
         List<FlowConnection> flowConnections = record.flowConnections().stream()
                 .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
-                .toList();
-        List<Form> forms = record.forms().stream()
-                .map(f -> new Form(f.id(), f.name(), f.description(),
-                        f.fields().stream()
-                                .map(field -> new FormField(field.name(), field.type(), field.inputSubtype(),
-                                        field.label(), field.required(), field.defaultValue(), field.helpText(),
-                                        field.options(), field.minValue(), field.maxValue(),
-                                        field.validationPattern(), field.acceptedExtensions(),
-                                        field.maxFileSizeBytes()))
-                                .toList(),
-                        entity.getCreatedAt(), entity.getCreatedAt()))
                 .toList();
 
         return new JourneyVersion(entity.getId(), entity.getJourneyId(), entity.getVersionNumber(),
                 entity.getStatus(), entity.getDescription(), entity.getCreatedBy(), entity.getCreatedAt(),
                 entity.getPublishedAt(), record.journeyName(), record.journeyDescription(), record.productId(),
                 record.productName(), record.channelId(), record.channelName(), record.channelType(), flowNodes,
-                flowConnections, forms);
+                flowConnections, List.<Form>of());
     }
 
     private String writeJson(Object value) {

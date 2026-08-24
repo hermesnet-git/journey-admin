@@ -29,6 +29,7 @@ import type { Form } from '../api/forms';
 import { testConnector, type ConnectorTestResponse } from '../api/flows';
 import { listClusterTopics, type MessagingCluster, type CredentialReference } from '../api/messaging';
 import { PropertyGrid, PropertyRow, PropertyGroupHeader, Modal, gridInputStyle } from './PropertyGrid';
+import { OPERATORS_BY_TYPE, VALUE_INPUT_TYPE, parseCondition, composeCondition } from '../shared/condition';
 
 const CONNECTOR_NODE_TYPES = new Set(['serviceTask', 'receiveTask', 'messageStartEvent']);
 
@@ -448,7 +449,7 @@ function computeDropdownRect(input: HTMLElement): DropdownRect {
 // dele resolve. Fica aberto e reacompanha a posição do input no scroll/resize em vez de fechar, já
 // que fechar não deixava como reabrir sem tirar e devolver o foco (o gatilho era só por foco, e o
 // input continua focado durante um scroll).
-function FormSearchSelect({
+export function FormSearchSelect({
   forms,
   value,
   onChange,
@@ -608,8 +609,6 @@ export function PropertiesPanel({
   onUpdate,
   onUpdateEdge,
   onDelete,
-  onOpenNewForm,
-  onRefreshForms,
 }: {
   node: WFNode;
   forms: Form[];
@@ -621,24 +620,18 @@ export function PropertiesPanel({
   onUpdate: (patch: Partial<WFNodeData>) => void;
   onUpdateEdge: (edgeId: string, patch: Partial<WFEdgeData>) => void;
   onDelete: () => void;
-  onOpenNewForm: () => void;
-  onRefreshForms: () => void;
 }) {
   const { c } = useFlowTheme();
   const [generalOpen, setGeneralOpen] = useState(true);
   const [startVariablesOpen, setStartVariablesOpen] = useState(true);
-  const [formOpen, setFormOpen] = useState(true);
   const [variablesOpen, setVariablesOpen] = useState(true);
   const [connectorOpen, setConnectorOpen] = useState(true);
   const [decisionOpen, setDecisionOpen] = useState(true);
   const data = node.data;
   const isConnectorNode = !!node.type && CONNECTOR_NODE_TYPES.has(node.type);
-  // Computed once, shared by the "Variáveis" reference panel below and ConnectorFields (URL/
-  // headers/body pickers) — same data, two presentations. userTask also needs it for the
-  // formless-step message's variable picker (REQ-04.01.005).
-  const connectorVariableOrigins =
-    isConnectorNode || node.type === 'userTask' ? availableVariableOriginsAt(node.id, allNodes, allEdges, forms) : [];
-  const messageTextRef = useRef<HTMLTextAreaElement>(null);
+  // Computed once, shared by the "Variáveis" reference panel below e ConnectorFields (URL/
+  // headers/body pickers) — same data, two presentations.
+  const connectorVariableOrigins = isConnectorNode ? availableVariableOriginsAt(node.id, allNodes, allEdges, forms) : [];
 
   return (
     <div>
@@ -667,43 +660,6 @@ export function PropertiesPanel({
             variables={data.startVariables ?? []}
             onChange={(startVariables) => onUpdate({ startVariables })}
           />
-        </Section>
-      )}
-
-      {node.type === 'userTask' && (
-        <Section title="Formulário" open={formOpen} onToggle={() => setFormOpen((o) => !o)}>
-          <PropertyGrid>
-            <PropertyRow label="Formulário" first>
-              <FormSearchSelect
-                forms={forms}
-                value={data.formId ?? null}
-                onChange={(formId) => onUpdate({ formId })}
-                onRefresh={onRefreshForms}
-                onOpenNew={onOpenNewForm}
-              />
-            </PropertyRow>
-            {!data.formId && (
-              <PropertyRow label="Mensagem exibida ao usuário">
-                <div style={{ display: 'flex', gap: 4, width: '100%', alignItems: 'flex-start' }}>
-                  <textarea
-                    ref={messageTextRef}
-                    style={{ ...gridInputStyle(c), flex: 1, minHeight: 64, resize: 'vertical', fontFamily: 'inherit' }}
-                    value={data.messageText ?? ''}
-                    onChange={(e) => onUpdate({ messageText: e.target.value || null })}
-                    placeholder="Mensagem que o canal digital (app/site) deve apresentar ao usuário nessa etapa. Ex.: Sua solicitação foi registrada sob o protocolo {{numeroProtocolo}}."
-                  />
-                  <VariablePickerButton
-                    variables={connectorVariableOrigins}
-                    onInsert={(token) =>
-                      insertTokenAtCursor(messageTextRef.current, data.messageText ?? '', token, (next) =>
-                        onUpdate({ messageText: next || null }),
-                      )
-                    }
-                  />
-                </div>
-              </PropertyRow>
-            )}
-          </PropertyGrid>
         </Section>
       )}
 
@@ -765,44 +721,8 @@ export function PropertiesPanel({
 // REQ-03.11.003: {{variavel}} OP valor. Which operators make sense, and how the value is entered,
 // depends on the chosen variable's declared type (REQ-03.09.010's OutputMappingRule.type) — string
 // only makes sense compared for (in)equality, number/boolean get their own value widget.
-const EQUALITY_OPERATORS = [
-  { value: '==', label: 'Igual' },
-  { value: '!=', label: 'Diferente' },
-];
-const ORDERED_OPERATORS = [
-  { value: '==', label: 'Igual' },
-  { value: '!=', label: 'Diferente' },
-  { value: '>', label: 'Maior que' },
-  { value: '<', label: 'Menor que' },
-];
-const OPERATORS_BY_TYPE: Record<VariableType, { value: string; label: string }[]> = {
-  string: EQUALITY_OPERATORS,
-  boolean: EQUALITY_OPERATORS,
-  // Date/date-time are compared chronologically (ISO 8601 strings sort lexicographically the same
-  // way they sort in time), same operator set as numbers.
-  number: ORDERED_OPERATORS,
-  date: ORDERED_OPERATORS,
-  datetime: ORDERED_OPERATORS,
-};
-// Only string/date/datetime need quoting — number/boolean literals stay bare in the JUEL expression.
-const QUOTED_TYPES = new Set<VariableType>(['string', 'date', 'datetime']);
-// Boolean gets its own <select> (see render), so it isn't listed here.
-const VALUE_INPUT_TYPE: Partial<Record<VariableType, string>> = { number: 'number', date: 'date', datetime: 'datetime-local' };
-const CONDITION_PATTERN = /^\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}\s*(==|!=|>|<)\s*(.*)$/;
-
-function parseCondition(condition: string | undefined): { variable: string; operator: string; value: string } {
-  const match = condition?.match(CONDITION_PATTERN);
-  if (!match) return { variable: '', operator: '==', value: '' };
-  let value = match[3].trim();
-  if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
-  return { variable: match[1], operator: match[2], value };
-}
-
-function composeCondition(variable: string, operator: string, value: string, type: VariableType): string {
-  if (!variable) return '';
-  const literal = QUOTED_TYPES.has(type) ? `'${value.replace(/'/g, "\\'")}'` : value.trim() || (type === 'boolean' ? 'false' : '0');
-  return `{{${variable}}} ${operator} ${literal}`;
-}
+// Extraído pra shared/condition.ts — a Exibição condicional do form builder reaproveita a mesma
+// sintaxe/lógica.
 
 // REQ-03.11.001-005: a gateway's outgoing edges (found by source id, not a separate model) each
 // get a row — a variable/operator/value picker for the non-default path, a checkbox for the

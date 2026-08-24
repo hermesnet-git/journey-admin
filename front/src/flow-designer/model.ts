@@ -2,7 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
 import { Play, User, CheckCircle2, Server, Mail, X, type LucideIcon } from 'lucide-react';
 import type { FlowNodeType } from '../api/flows';
-import type { Form, FormField } from '../api/forms';
+import { collectsValue, type Form, type FormField } from '../api/forms';
 
 export type NodeType = 'start' | 'userTask' | 'end' | 'serviceTask' | 'receiveTask' | 'messageStartEvent' | 'gateway';
 export type ConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
@@ -65,11 +65,14 @@ export interface VariableOrigin {
 export interface WFNodeData extends Record<string, unknown> {
   name: string;
   description: string;
-  formId: string | null;
-  // Only meaningful on a userTask with no formId (REQ-04.01.005): a display-only step shows this
-  // message instead of a form — may reference {{name}} tokens (REQ-03.09.012 syntax), resolved by
-  // the simulator at execution time.
+  // Only meaningful on a userTask with no tela desenhada (REQ-04.01.005): a display-only step
+  // shows this message instead of a form — may reference {{name}} tokens (REQ-03.09.012 syntax),
+  // resolved by the simulator at execution time.
   messageText?: string | null;
+  // Tela desenhada no editor embutido do dock (FormPreviewDock) — campos copiados de um formulário
+  // do catálogo (só como ponto de partida) ou desenhados do zero. Nunca uma referência viva a um
+  // Form: escolher um formulário salvo copia os campos pra cá, não guarda o id em lugar nenhum.
+  embeddedScreen?: FormField[];
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: only meaningful on the START node.
   startVariables?: StartVariable[];
@@ -287,7 +290,7 @@ export const EDGE_SHAPE_OPTIONS: { value: EdgeShape; label: string }[] = [
 // está fora do seu domínio). Em vez disso, o backend rejeita a colisão direto no salvamento
 // (FlowValidator, REQ-03.09.011 estendido pra campos de formulário) — a mesma nota sobre escopo
 // (fluxo todo vs. restrito por alcançabilidade) está lá.
-function variableTypeForFormField(field: FormField): VariableType {
+export function variableTypeForFormField(field: FormField): VariableType {
   if (field.type === 'INPUT') {
     if (field.inputSubtype === 'NUMBER') return 'number';
     if (field.inputSubtype === 'DATE') return 'date';
@@ -295,12 +298,10 @@ function variableTypeForFormField(field: FormField): VariableType {
   return 'string';
 }
 
-function userTaskFormVariables(node: WFNode, forms: Form[]): { name: string; type: VariableType }[] {
-  if (node.type !== 'userTask' || !node.data.formId) return [];
-  const form = forms.find((f) => f.formId === node.data.formId);
-  if (!form) return [];
-  return form.fields
-    .filter((f) => f.type !== 'TEXT' && f.type !== 'FILE_UPLOAD')
+function userTaskFormVariables(node: WFNode): { name: string; type: VariableType }[] {
+  if (node.type !== 'userTask' || !node.data.embeddedScreen) return [];
+  return node.data.embeddedScreen
+    .filter((f) => collectsValue(f.type))
     .map((f) => ({ name: f.name, type: variableTypeForFormField(f) }));
 }
 
@@ -310,7 +311,7 @@ function userTaskFormVariables(node: WFNode, forms: Form[]): { name: string; typ
 // ancestor of every node) — keeping each rule's declared type (REQ-03.11.003) instead of just the
 // name, used by the gateway condition picker to offer the right operators and value input per
 // variable.
-export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges: WFEdge[], forms: Form[]): OutputMappingRule[] {
+export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges: WFEdge[], _forms: Form[]): OutputMappingRule[] {
   const backward = new Map<string, string[]>();
   nodes.forEach((n) => backward.set(n.id, []));
   edges.forEach((e) => backward.get(e.target)?.push(e.source));
@@ -340,9 +341,37 @@ export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges:
         }
       });
     }
-    userTaskFormVariables(n, forms).forEach((v) => rules.push({ name: v.name, jsonPath: '', type: v.type }));
+    userTaskFormVariables(n).forEach((v) => rules.push({ name: v.name, jsonPath: '', type: v.type }));
   });
   return rules;
+}
+
+// Ordem de navegação do painel de tarefas do editor de tela embutido (FormPreviewDock): BFS a
+// partir do(s) nó(s) de início, na ordem em que cada User Task é alcançada pelas arestas — cobre o
+// caso comum (fluxo linear) e dá uma ordem estável mesmo com desvios/gateways. Tarefas
+// inalcançáveis a partir do início (fluxo ainda sendo montado, pedaço solto) entram no fim, na
+// ordem em que aparecem no array de nós.
+export function orderedUserTasks(nodes: WFNode[], edges: WFEdge[]): WFNode[] {
+  const forward = new Map<string, string[]>();
+  nodes.forEach((n) => forward.set(n.id, []));
+  edges.forEach((e) => forward.get(e.source)?.push(e.target));
+
+  const visited = new Set<string>();
+  const queue = nodes.filter((n) => n.type === 'start').map((n) => n.id);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const order: WFNode[] = [];
+  while (queue.length) {
+    const id = queue.shift()!;
+    if (visited.has(id)) continue;
+    visited.add(id);
+    const node = byId.get(id);
+    if (node?.type === 'userTask') order.push(node);
+    queue.push(...(forward.get(id) ?? []));
+  }
+  nodes.forEach((n) => {
+    if (n.type === 'userTask' && !visited.has(n.id)) order.push(n);
+  });
+  return order;
 }
 
 // A node/connector-type combination that a future node type doesn't know about yet still gets a
@@ -359,7 +388,7 @@ function originLabelFor(node: WFNode): string {
 // Same ancestor set as availableVariablesAt/availableVariableRulesAt, but carrying where each
 // variable comes from — used by the "Variáveis" reference panel and the field-level variable
 // picker (VariablePickerButton) to group instead of showing one flat list.
-export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edges: WFEdge[], forms: Form[]): VariableOrigin[] {
+export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edges: WFEdge[], _forms: Form[]): VariableOrigin[] {
   const backward = new Map<string, string[]>();
   nodes.forEach((n) => backward.set(n.id, []));
   edges.forEach((e) => backward.get(e.target)?.push(e.source));
@@ -392,7 +421,7 @@ export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edge
         }
       });
     }
-    userTaskFormVariables(n, forms).forEach((v) =>
+    userTaskFormVariables(n).forEach((v) =>
       origins.push({ name: v.name, type: v.type, sourceNodeId: n.id, sourceLabel: originLabelFor(n) }),
     );
   });
@@ -447,7 +476,7 @@ export function makeNode(type: NodeType, x: number, y: number): WFNode {
     id: newNodeId(),
     type,
     position: { x, y },
-    data: { name: meta.title, description: meta.subtitle, formId: null, connectorConfig: null },
+    data: { name: meta.title, description: meta.subtitle, connectorConfig: null },
   };
 }
 

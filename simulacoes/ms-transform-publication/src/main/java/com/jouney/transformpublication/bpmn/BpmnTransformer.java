@@ -101,6 +101,13 @@ public class BpmnTransformer {
         process.setName(request.journeyName());
         process.setExecutable(true);
         process.setCamundaHistoryTimeToLive(180);
+        // Camunda's own "Definition Version" (shown in Cockpit) is a deploy counter it manages
+        // itself per process key — it increments on every deploy, including a republish of
+        // unchanged content, so it never matches the Admin Portal's JourneyVersion.versionNumber.
+        // versionTag is the field Cockpit offers precisely for an external version identifier.
+        if (request.versionNumber() != null) {
+            process.setCamundaVersionTag("v" + request.versionNumber());
+        }
         definitions.getRootElements().add(process);
 
         Map<String, FlowNode> byId = new HashMap<>();
@@ -236,13 +243,10 @@ public class BpmnTransformer {
                 definition.setMessage(getOrCreateMessage(modelInstance, definitions, messageName(node)));
                 yield event;
             }
-            case "USER_TASK" -> {
-                UserTask task = newElement(modelInstance, process, UserTask.class, node);
-                if (node.formId() != null) {
-                    addInputParameter(modelInstance, task, "formId", node.formId().toString());
-                }
-                yield task;
-            }
+            // A tela da User Task (embeddedScreenSdui) não precisa ir pro BPMN — o simulador resolve
+            // ela direto do snapshot da publicação pelo id do nó, sem depender de nenhuma variável
+            // de processo (ver StepResolver no ms-espec-registry).
+            case "USER_TASK" -> newElement(modelInstance, process, UserTask.class, node);
             case "SERVICE_TASK" -> {
                 ServiceTask task = newElement(modelInstance, process, ServiceTask.class, node);
                 attachServiceTask(modelInstance, task, node);

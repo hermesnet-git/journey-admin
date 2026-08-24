@@ -2,14 +2,9 @@ package com.jouney.admin.infrastructure.persistence.publication;
 
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
-import com.jouney.admin.domain.form.Form;
-import com.jouney.admin.domain.form.FormField;
-import com.jouney.admin.domain.form.FormSduiSerializer;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.domain.publication.PublicationRepository;
 import com.jouney.admin.infrastructure.persistence.flow.FlowConnectionRecord;
-import com.jouney.admin.infrastructure.persistence.flow.FlowNodeRecord;
-import com.jouney.admin.infrastructure.persistence.form.FormFieldRecord;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,32 +24,7 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
 
     @Override
     public Publication save(Publication publication) {
-        PublicationSnapshotRecord record = new PublicationSnapshotRecord(
-                publication.getJourneyId(), publication.getJourneyName(), publication.getJourneyDescription(),
-                publication.getProductId(), publication.getProductName(), publication.getChannelId(),
-                publication.getChannelName(), publication.getChannelType(),
-                publication.getFlowNodes().stream()
-                        .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
-                                n.getPositionX(), n.getPositionY(), n.getFormId(),
-                                FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
-                                n.getStartVariables(), n.getMessageText()))
-                        .toList(),
-                publication.getFlowConnections().stream()
-                        .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
-                                c.isDefault()))
-                        .toList(),
-                publication.getForms().stream()
-                        .map(f -> new SnapshotFormRecord(f.getId(), f.getName(), f.getDescription(),
-                                f.getFields().stream()
-                                        .map(field -> new FormFieldRecord(field.getName(), field.getType(),
-                                                field.getInputSubtype(), field.getLabel(), field.isRequired(),
-                                                field.getDefaultValue(), field.getHelpText(), field.getOptions(),
-                                                field.getMinValue(), field.getMaxValue(),
-                                                field.getValidationPattern(), field.getAcceptedExtensions(),
-                                                field.getMaxFileSizeBytes()))
-                                        .toList(),
-                                FormSduiSerializer.serialize(f)))
-                        .toList());
+        PublicationSnapshotRecord record = PublicationSnapshotRecord.from(publication);
 
         PublicationJpaEntity entity = new PublicationJpaEntity(publication.getId(), publication.getJourneyId(),
                 writeJson(record), publication.getVersionId(), publication.getPublishedAt(),
@@ -70,30 +40,25 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
     private Publication toDomain(PublicationJpaEntity entity) {
         PublicationSnapshotRecord record = readJson(entity.getSnapshot());
 
+        // O nó reconstruído a partir da snapshot nunca carrega embeddedScreen (só existia na
+        // snapshot como a árvore já compilada) — mas carrega embeddedScreenSdui: GetPublicationSnapshot
+        // (REQ-02.10.001, inspeção do JSON pela admin UI) monta a resposta rechamando
+        // PublicationSnapshotRecord.from(publication) em cima disto, e sem isto aqui a tela sumiria
+        // dessa inspeção mesmo já tendo sido publicada corretamente.
         List<FlowNode> flowNodes = record.flowNodes().stream()
                 .map(n -> new FlowNode(n.id(), n.type(), n.name(), n.description(), n.positionX(), n.positionY(),
-                        n.formId(), n.connectorConfig() != null ? n.connectorConfig().toDomain() : null,
-                        n.startVariables(), n.messageText()))
+                        n.connectorConfig() != null ? n.connectorConfig().toDomain() : null,
+                        n.startVariables(), n.messageText(), List.of(), n.embeddedScreenSdui()))
                 .toList();
         List<FlowConnection> flowConnections = record.flowConnections().stream()
                 .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
                 .toList();
-        List<Form> forms = record.forms().stream()
-                .map(f -> new Form(f.id(), f.name(), f.description(),
-                        f.fields().stream()
-                                .map(field -> new FormField(field.name(), field.type(), field.inputSubtype(),
-                                        field.label(), field.required(), field.defaultValue(), field.helpText(),
-                                        field.options(), field.minValue(), field.maxValue(),
-                                        field.validationPattern(), field.acceptedExtensions(),
-                                        field.maxFileSizeBytes()))
-                                .toList(),
-                        entity.getCreatedAt(), entity.getUpdatedAt()))
-                .toList();
 
         return new Publication(entity.getId(), entity.getJourneyId(), record.journeyName(),
                 record.journeyDescription(), record.productId(), record.productName(), record.channelId(),
-                record.channelName(), record.channelType(), flowNodes, flowConnections, forms,
-                entity.getVersionId(), entity.getPublishedAt(), entity.getCreatedAt(), entity.getUpdatedAt());
+                record.channelName(), record.channelType(), flowNodes, flowConnections,
+                entity.getVersionId(), record.versionNumber(), entity.getPublishedAt(), entity.getCreatedAt(),
+                entity.getUpdatedAt());
     }
 
     private String writeJson(Object value) {

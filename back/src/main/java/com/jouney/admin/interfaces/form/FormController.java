@@ -1,10 +1,13 @@
 package com.jouney.admin.interfaces.form;
 
+import com.jouney.admin.application.flow.TestConnector;
 import com.jouney.admin.application.form.CreateForm;
 import com.jouney.admin.application.form.DeleteForm;
 import com.jouney.admin.application.form.FindForms;
 import com.jouney.admin.application.form.GetForm;
 import com.jouney.admin.application.form.UpdateForm;
+import com.jouney.admin.interfaces.flow.ConnectorTestInput;
+import com.jouney.admin.interfaces.flow.ConnectorTestResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -30,14 +33,16 @@ public class FormController {
     private final GetForm getForm;
     private final FindForms findForms;
     private final DeleteForm deleteForm;
+    private final TestConnector testConnector;
 
     public FormController(CreateForm createForm, UpdateForm updateForm, GetForm getForm, FindForms findForms,
-                           DeleteForm deleteForm) {
+                           DeleteForm deleteForm, TestConnector testConnector) {
         this.createForm = createForm;
         this.updateForm = updateForm;
         this.getForm = getForm;
         this.findForms = findForms;
         this.deleteForm = deleteForm;
+        this.testConnector = testConnector;
     }
 
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
@@ -73,5 +78,14 @@ public class FormController {
     public ResponseEntity<Void> delete(@PathVariable UUID formId) {
         deleteForm.execute(formId);
         return ResponseEntity.noContent().build();
+    }
+
+    // Mesmo caso de uso do teste de conector REST do flow (US-03.10) — journeyId/nodeId nunca eram
+    // usados pelo use case ali, só serviam pra escopar a URL; aqui não existe nó de fluxo pra
+    // escopar, então a rota já nasce desacoplada. Reaproveita a mesma proteção de SSRF/timeout.
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
+    @PostMapping("/datasource-test")
+    public ConnectorTestResponse testDataSource(@Valid @RequestBody ConnectorTestInput input) {
+        return ConnectorTestResponse.from(testConnector.execute(input.toCommand()));
     }
 }

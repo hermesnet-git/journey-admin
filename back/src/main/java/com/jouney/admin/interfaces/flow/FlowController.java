@@ -2,6 +2,7 @@ package com.jouney.admin.interfaces.flow;
 
 import com.jouney.admin.application.flow.GenerateFlow;
 import com.jouney.admin.application.flow.GetFlow;
+import com.jouney.admin.application.flow.PromoteEmbeddedScreen;
 import com.jouney.admin.application.flow.TestConnector;
 import com.jouney.admin.application.flow.UpdateFlow;
 import com.jouney.admin.domain.flow.Flow;
@@ -9,7 +10,9 @@ import com.jouney.admin.domain.flow.FlowIds;
 import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.infrastructure.ai.AiRequestDeclinedException;
 import com.jouney.admin.interfaces.ApiError;
+import com.jouney.admin.interfaces.form.FormResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -36,13 +39,15 @@ public class FlowController {
     private final UpdateFlow updateFlow;
     private final TestConnector testConnector;
     private final GenerateFlow generateFlow;
+    private final PromoteEmbeddedScreen promoteEmbeddedScreen;
 
     public FlowController(GetFlow getFlow, UpdateFlow updateFlow, TestConnector testConnector,
-                           GenerateFlow generateFlow) {
+                           GenerateFlow generateFlow, PromoteEmbeddedScreen promoteEmbeddedScreen) {
         this.getFlow = getFlow;
         this.updateFlow = updateFlow;
         this.testConnector = testConnector;
         this.generateFlow = generateFlow;
+        this.promoteEmbeddedScreen = promoteEmbeddedScreen;
     }
 
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
@@ -121,5 +126,17 @@ public class FlowController {
     public ConnectorTestResponse testConnector(@PathVariable UUID journeyId, @PathVariable String nodeId,
                                                  @Valid @RequestBody ConnectorTestInput input) {
         return ConnectorTestResponse.from(testConnector.execute(input.toCommand()));
+    }
+
+    // "Salvar como formulário reutilizável" — não altera o nó (não mexe em embeddedScreen), só cria
+    // uma cópia no catálogo de Formulários a partir da tela desenhada.
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
+    @PostMapping("/nodes/{nodeId}/promote-form")
+    public FormResponse promoteForm(@PathVariable UUID journeyId, @PathVariable String nodeId,
+                                     @Valid @RequestBody PromoteFormInput input) {
+        return FormResponse.from(promoteEmbeddedScreen.execute(journeyId, nodeId, input.name(), input.description()));
+    }
+
+    public record PromoteFormInput(@NotBlank String name, String description) {
     }
 }

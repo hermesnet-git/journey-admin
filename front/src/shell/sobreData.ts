@@ -167,6 +167,10 @@ export const EPICS: Epic[] = [
           d('REQ-02.05.002', 'Cada jornada deve possuir definição independente de fluxo e formulários.'),
           d('REQ-02.05.003', 'Alterações realizadas em uma jornada não devem modificar automaticamente jornadas de outros canais.'),
           d('REQ-02.05.004', 'O sistema deve exibir o produto e o canal durante toda a edição da jornada.'),
+          d(
+            'REQ-02.05.005',
+            'O painel de propriedades do editor de fluxo deve exibir o identificador (UUID) da jornada, somente leitura, quando nenhum nó estiver selecionado.',
+          ),
         ],
       },
       {
@@ -207,7 +211,10 @@ export const EPICS: Epic[] = [
         name: 'Publicação no runtime',
         requirements: [
           d('REQ-02.09.001', 'O Admin Portal deve iniciar a publicação por meio de uma chamada de saída para a API de publicação do runtime.'),
-          d('REQ-02.09.002', 'A chamada deve enviar a definição completa da jornada, incluindo produto, canal, fluxo e formulários.'),
+          d(
+            'REQ-02.09.002',
+            'A chamada deve enviar a definição completa da jornada, incluindo produto, canal e o fluxo com a tela embutida (já compilada) de cada User Task.',
+          ),
           d(
             'REQ-02.09.003',
             'O Admin Portal deve realizar uma chamada de saída real (HTTP) para a API de publicação do runtime. Após sucesso, substitui o snapshot anterior e altera o estado da jornada para PUBLISHED; em falha, o erro propaga e nenhum estado é alterado.',
@@ -215,6 +222,10 @@ export const EPICS: Epic[] = [
           d(
             'REQ-02.09.004',
             'Ao despublicar, o Admin Portal deve chamar a API de publicação do runtime para remover/desfazer a publicação. Após sucesso, jornada e publicação assumem UNPUBLISHED; em falha, os estados atuais são preservados.',
+          ),
+          d(
+            'REQ-02.09.005',
+            'Ao publicar, o número da versão publicada deve ser gravado como a tag de versão do processo implantado no runtime, distinta do contador de implantação que o próprio runtime mantém internamente.',
           ),
         ],
       },
@@ -224,7 +235,7 @@ export const EPICS: Epic[] = [
         requirements: [
           d(
             'REQ-02.10.001',
-            'Para uma jornada com publicação ativa (PUBLISHED), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários, incluindo a árvore SDUI de cada formulário), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".',
+            'Para uma jornada com publicação ativa (PUBLISHED), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo — com a árvore SDUI já compilada da tela de cada User Task), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".',
           ),
         ],
       },
@@ -401,7 +412,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.09.011',
-            'O nome de cada variável de saída deve ser único no escopo da jornada e seguir a mesma regra de nome técnico dos campos de formulário (REQ-04.01.007).',
+            'O nome de cada variável de saída — de integração ou de campo de tela embutida de User Task — deve ser único no escopo da jornada e seguir a mesma regra de nome técnico dos campos de formulário (REQ-04.01.007).',
           ),
           d(
             'REQ-03.09.012',
@@ -591,18 +602,13 @@ export const EPICS: Epic[] = [
       },
       {
         code: 'US-03.16',
-        name: 'Pré-visualização de formulário no editor',
+        name: 'Editor de tela embutido no editor de fluxo',
         requirements: [
-          partial(
+          d(
             'REQ-03.16.001',
-            'Ao selecionar, no canvas, uma USER_TASK com formulário associado, o editor deve exibir automaticamente uma pré-visualização do formulário, ancorada à base do canvas, sem exigir uma ação dedicada de clique.',
-            'Carece de enriquecimento — a pré-visualização por seleção está implementada e funcional, mas ainda não tem paridade de fidelidade com a renderização real (SDUI) da tela de Execução.',
+            'Ao selecionar, no canvas, uma USER_TASK, o editor deve exibir automaticamente um dock com o editor da tela embutida do nó, ancorado à base do canvas, sem exigir uma ação dedicada de clique.',
           ),
-          partial(
-            'REQ-03.16.002',
-            'Ao selecionar qualquer outro elemento do canvas, a pré-visualização deve deixar de ser exibida.',
-            'Mesma nota de enriquecimento do REQ-03.16.001.',
-          ),
+          d('REQ-03.16.002', 'Ao selecionar qualquer outro elemento do canvas, o dock deve deixar de ser exibido.'),
         ],
       },
       {
@@ -626,6 +632,10 @@ export const EPICS: Epic[] = [
             'O fluxo gerado deve ser apresentado como rascunho editável, sujeito às mesmas regras de validação e revisão manual de um fluxo criado por edição direta.',
           ),
           d('REQ-03.17.005', 'Ao concluir a geração, o canvas deve reposicionar automaticamente a visualização do fluxo gerado (REQ-03.05.005).'),
+          d(
+            'REQ-03.17.006',
+            'A geração deve considerar o fluxo já desenhado no canvas como contexto — pedido aditivo/pontual não deve remover ou recriar o que não tem relação com ele; id, posição e tela de um nó não afetado devem ser preservados.',
+          ),
         ],
       },
     ],
@@ -641,21 +651,24 @@ export const EPICS: Epic[] = [
           d('REQ-04.01.001', 'O sistema deve permitir criar formulários.'),
           d('REQ-04.01.002', 'O sistema deve permitir editar formulários.'),
           d('REQ-04.01.003', 'O sistema deve permitir remover formulários.'),
-          d('REQ-04.01.004', 'O sistema deve permitir associar formulários a User Tasks.'),
+          d(
+            'REQ-04.01.004',
+            'O sistema deve permitir usar um formulário do catálogo como modelo de partida ao desenhar a tela de uma User Task (cópia dos campos, sem vínculo persistido).',
+          ),
           {
             code: 'REQ-04.01.005',
             description:
-              'O sistema deve permitir manter uma User Task sem formulário associado; nesse caso, o sistema deve permitir configurar uma mensagem exibida ao usuário, com suporte a {{nome}} resolvido pelos valores reais da execução.',
+              'O sistema deve permitir manter uma User Task sem tela desenhada; nesse caso, o sistema deve permitir configurar uma mensagem exibida ao usuário, com suporte a {{nome}} resolvido pelos valores reais da execução.',
             status: 'done',
             notes: 'Ver REQ-05.02.005 para a resolução dessas variáveis na tela de execução.',
           },
           d(
             'REQ-04.01.006',
-            'Ao associar formulário a uma User Task, o editor deve permitir criar um novo formulário sem sair do editor de fluxo e atualizar a lista de formulários disponíveis.',
+            'No editor de tela embutido, o sistema deve permitir importar campos de um formulário existente do catálogo e, separadamente, salvar a tela atual como um novo formulário reutilizável.',
           ),
           d(
             'REQ-04.01.007',
-            'Cada campo de formulário deve possuir um name técnico, único no formulário e imutável após criado, substituindo o identificador interno atual como chave de referência do campo.',
+            'No catálogo de formulários, cada campo deve possuir um name técnico único dentro do formulário e imutável após criado. Na tela embutida de uma User Task, o name é editável a qualquer momento, com unicidade verificada na jornada inteira.',
           ),
         ],
       },
@@ -678,14 +691,37 @@ export const EPICS: Epic[] = [
             'As opções de seleção simples/múltipla devem ser pares rótulo/valor, não apenas rótulo.',
           ),
           d('REQ-04.02.010', 'O upload de arquivo deve permitir configurar extensões aceitas e tamanho máximo.'),
+          d('REQ-04.02.011', 'O sistema deve suportar seção estrutural (SECTION), agrupando os campos seguintes em uma grade de colunas configurável.'),
+          d('REQ-04.02.012', 'O sistema deve suportar botões de opção (RADIO).'),
+          d('REQ-04.02.013', 'O sistema deve suportar interruptor sim/não (SWITCH).'),
+          d('REQ-04.02.014', 'O sistema deve suportar escala numérica (SLIDER).'),
+          d('REQ-04.02.015', 'O sistema deve suportar avaliação por estrelas (RATING).'),
+          d('REQ-04.02.016', 'O sistema deve suportar contador numérico (STEPPER).'),
+          {
+            code: 'REQ-04.02.017',
+            description: 'O sistema deve suportar busca com sugestão (AUTOCOMPLETE).',
+            status: 'done',
+            notes: 'Opções estáticas na v1.0.0 — fonte de dados dinâmica remota é evolução futura.',
+          },
+          d('REQ-04.02.018', 'O sistema deve suportar título (TITLE).'),
+          d('REQ-04.02.019', 'O sistema deve suportar imagem (IMAGE).'),
+          d('REQ-04.02.020', 'O sistema deve suportar divisor visual (DIVIDER).'),
+          d('REQ-04.02.021', 'O sistema deve suportar card de conteúdo (CARD).'),
+          d('REQ-04.02.022', 'O sistema deve suportar aviso (CALLOUT).'),
         ],
       },
       {
         code: 'US-04.03',
         name: 'Reutilização',
         requirements: [
-          d('REQ-04.03.001', 'O sistema deve permitir reutilizar formulários em múltiplas jornadas.'),
-          d('REQ-04.03.002', 'O sistema deve permitir reutilizar formulários em múltiplas User Tasks.'),
+          d(
+            'REQ-04.03.001',
+            'O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia) para telas de User Tasks em múltiplas jornadas.',
+          ),
+          d(
+            'REQ-04.03.002',
+            'O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia) para telas de múltiplas User Tasks.',
+          ),
         ],
       },
       {
@@ -693,7 +729,12 @@ export const EPICS: Epic[] = [
         name: 'Configuração',
         requirements: [
           d('REQ-04.04.001', 'O usuário deve poder definir campos obrigatórios.'),
-          d('REQ-04.04.002', 'O usuário deve poder definir valores padrão.'),
+          {
+            code: 'REQ-04.04.002',
+            description: 'O usuário deve poder definir valores padrão, podendo referenciar {{nome}} de uma variável do fluxo.',
+            status: 'done',
+            notes: 'O valor resolvido pré-preenche o campo na execução, permanecendo editável.',
+          },
           d('REQ-04.04.003', 'O usuário deve poder definir textos de ajuda.'),
         ],
       },
@@ -711,11 +752,11 @@ export const EPICS: Epic[] = [
         requirements: [
           d(
             'REQ-04.06.001',
-            'Ao publicar uma jornada, o conteúdo de cada formulário referenciado pelas User Tasks deve ser copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras no formulário original.',
+            'Ao publicar uma jornada, a tela embutida de cada User Task deve ser copiada/compilada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó.',
           ),
           d(
             'REQ-04.06.002',
-            'O snapshot de publicação deve conter, para cada formulário, uma representação em árvore [tag, props, children] (SDUI), derivada do conteúdo congelado do formulário.',
+            'O snapshot de publicação deve conter, para cada User Task com tela desenhada, uma representação em árvore [tag, props, children] (SDUI), derivada da tela congelada do nó.',
           ),
         ],
       },
@@ -752,7 +793,7 @@ export const EPICS: Epic[] = [
           d('REQ-05.02.004', 'O sistema deve apresentar o resultado final da execução.'),
           d(
             'REQ-05.02.005',
-            'Para uma User Task sem formulário associado, o sistema deve apresentar a mensagem configurada com {{nome}} já substituído pelos valores atuais das variáveis do processo.',
+            'O sistema deve apresentar a tela de uma User Task com toda referência {{nome}} já resolvida — na mensagem (sem tela) ou em qualquer prop de texto de um campo de tela real, inclusive pré-preenchendo defaultValue (editável).',
           ),
         ],
       },
@@ -869,6 +910,10 @@ export const EPICS: Epic[] = [
             status: 'done',
             notes: 'Mística não tem componente de moldura de dispositivo pronto; construído à mão.',
           },
+          d(
+            'REQ-05.07.004',
+            'O sistema deve exibir o número da versão publicada da jornada (v<N>) tanto na lista de busca quanto no cabeçalho de uma execução em andamento.',
+          ),
         ],
       },
       {
@@ -983,7 +1028,10 @@ export const EPICS: Epic[] = [
           d('REQ-06.02.001', 'Ao criar uma jornada, o sistema deve criar sua primeira versão em DRAFT.'),
           d('REQ-06.02.002', 'O sistema deve permitir criar uma nova versão a partir da versão atual.'),
           d('REQ-06.02.003', 'O sistema deve criar a nova versão a partir da versão atualmente selecionada para edição.'),
-          d('REQ-06.02.004', 'A nova versão deve possuir cópia independente do fluxo, conexões e referências aos formulários.'),
+          d(
+            'REQ-06.02.004',
+            'A nova versão deve possuir cópia independente do fluxo, conexões e das telas embutidas de cada User Task.',
+          ),
           d('REQ-06.02.005', 'Alterações em uma versão DRAFT não devem modificar outras versões.'),
           d('REQ-06.02.006', 'Uma versão PUBLISHED deve ser imutável.'),
           d('REQ-06.02.007', 'O sistema deve indicar claramente qual versão está sendo editada.'),
@@ -1623,9 +1671,7 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
   {
     title: 'Formulários Avançados (SDUI)',
     items: [
-      'Seções',
-      'Exibição condicional',
-      'Organização dinâmica de campos',
+      'Exibição condicional (campo visibleIf já existe no modelo, mas não é avaliado em runtime)',
       'Formulários multi-etapas (wizard)',
       'Fontes de dados dinâmicas - $dataSource e estratégia de prefetch no servidor ou no cliente',
       'Paginação de opções carregadas dinamicamente',
@@ -1646,6 +1692,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-08-24 06:14 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Mudança arquitetural: formId associado à User Task removido, substituído por embeddedScreen/embeddedScreenSdui desenhado direto no FlowNode — motivada pela Runtime Engine só suportar um conjunto básico de tipos de campo nativos (~5-6), o que sempre exigiu o Admin Portal resolver a tela sozinho (SDUI) e tornava a associação por formId só um vínculo sem função real. Form/FormField (catálogo "Formulários") viraram modelo de cópia opcional (FormPreviewDock.tsx — "Importar formulário"/"Salvar como formulário reutilizável"), nunca mais referência persistida; catálogo de tipos de campo ampliado de 5 para 17 (REQ-04.02.011 a 022 novos: SECTION, RADIO, SWITCH, SLIDER, RATING, STEPPER, AUTOCOMPLETE, TITLE, IMAGE, DIVIDER, CARD, CALLOUT), com editor de tela embutido drag-and-drop completo (FormFieldPalette.tsx/FormScreenCanvas.tsx/FormFieldConfigPanel.tsx, dnd-kit, componentes reais da Mística) — US-03.16 renomeada ("Editor de tela embutido no editor de fluxo") e upgradada de in_progress pra done (REQ-03.16.001/002). Nome técnico do campo (REQ-04.01.007) passou a ser editável na tela embutida (antes só no catálogo), com validação de formato e unicidade na jornada inteira (REQ-03.09.011 explicitado, front passou a checar cross-node na hora de criar/renomear, não só o back no salvar). Publicação: forms removido do snapshot enviado ao runtime e da inspeção (REQ-02.09.002/REQ-02.10.001/REQ-06.02.004); Publication.forms (campo morto no domínio, nunca mais serializado) removido do código. Novo REQ-02.09.005: número da versão publicada gravado como tag de versão do processo implantado no runtime, distinta do contador de implantação interno (que incrementa a cada deploy, mesmo sem mudança de conteúdo) — exibido também no Executor, tanto na busca quanto durante a execução (REQ-05.07.004 novo). Bugs reais corrigidos no caminho: {{variavel}} não era resolvido dentro de uma tela real desenhada, só funcionava no caso sem tela (StepResolver.resolveSduiNode, REQ-05.02.005 ampliado); defaultValue com {{variavel}} passou a pré-preencher o campo de verdade, editável (REQ-04.04.002); variáveis da aba Execuções não apareciam depois do "Fim" porque o endpoint de runtime responde 500 (não 404/vazio) pra instância já terminada — CamundaClient.getProcessVariables ganhou fallback pra API de história; estado de formulário vazava de uma User Task pra outra no Executor por falta de key no componente (React reaproveitava a instância); geração de fluxo por IA sempre recriava a jornada do zero, mesmo em pedido aditivo, por nunca receber o fluxo atual como contexto (REQ-03.17.006 novo — GenerateFlow/FlowGenerationPrompt agora preservam id/posição/tela de nós não afetados). Sem relação com a mudança acima: id da jornada exibido somente-leitura no painel de Propriedades sem nó selecionado (REQ-02.05.005 novo); conexão do editor de fluxo agora reconecta arrastando a ponta pra outro nó, sem excluir e redesenhar (reconnectEdge, REQ-03.02.003). Documentação sincronizada em todos os documentos de requisitos/modelo de dados/arquitetura/OpenAPI, com nota de revisão citando a causa raiz em cada trecho reescrito. Progresso geral de 376/415 (91%) para 394/431 (91%, FT-03 fecha 100%).',
+  },
   {
     date: '2026-08-23 (não commitado)',
     source: 'progresso',
@@ -1956,6 +2008,22 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-08-23 18:21',
+    source: 'git',
+    summary: 'Revisão e equalização da documentação de requisitos (arquitetura, dicionário de dados, índice, modelo de dados conceitual/físico, OpenAPI).',
+  },
+  {
+    date: '2026-08-23 17:53',
+    source: 'git',
+    summary: 'Revisão e equalização da documentação de requisitos (arquitetura, dicionário de dados, índice, modelo de dados conceitual/físico, OpenAPI).',
+  },
+  {
+    date: '2026-08-23 16:44',
+    source: 'git',
+    summary: 'Texto do controle de execução manual ajustado de "mensagens Kafka" para "tarefas assíncronas", cobrindo qualquer conector, não só Kafka.',
+    epics: ['FT-05'],
+  },
   {
     date: '2026-08-22 03:33',
     source: 'git',

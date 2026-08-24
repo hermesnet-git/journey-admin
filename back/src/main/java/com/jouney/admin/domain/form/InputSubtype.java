@@ -4,5 +4,7 @@ public enum InputSubtype {
     TEXT,
     NUMBER,
     EMAIL,
-    DATE
+    DATE,
+    PHONE,
+    PASSWORD
 }

@@ -2,13 +2,14 @@ package com.jouney.admin.interfaces.flow;
 
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
+import com.jouney.admin.domain.form.FormField;
+import com.jouney.admin.interfaces.form.FormFieldInput;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public record FlowNodeInput(
         @NotBlank @Pattern(regexp = "^Node_.+") String nodeId,
@@ -24,9 +25,12 @@ public record FlowNodeInput(
         List<Map<String, Object>> startVariables) {
 
     public FlowNode toDomain() {
-        UUID formId = userTaskConfig != null ? userTaskConfig.formId() : null;
         String messageText = userTaskConfig != null ? userTaskConfig.messageText() : null;
-        return new FlowNode(nodeId, nodeType, name, description, positionX, positionY, formId,
-                connectorConfig != null ? connectorConfig.toDomain() : null, startVariables, messageText);
+        List<FormField> embeddedScreen = userTaskConfig != null && userTaskConfig.embeddedScreen() != null
+                ? userTaskConfig.embeddedScreen().stream().map(FormFieldInput::toDomain).toList()
+                : List.of();
+        return new FlowNode(nodeId, nodeType, name, description, positionX, positionY,
+                connectorConfig != null ? connectorConfig.toDomain() : null, startVariables, messageText,
+                embeddedScreen, null);
     }
 }

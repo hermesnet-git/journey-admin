@@ -234,6 +234,7 @@ futura e não faz parte dos requisitos entregáveis desta versão.
 #### REQ-02.05.002 - Cada jornada deve possuir definição independente de fluxo e formulários.
 #### REQ-02.05.003 - Alterações reali zadas em uma jornada não devem modificar automaticamente jornadas de outros canais.
 #### REQ-02.05.004 - O sistema deve exibir o produto e o canal durante toda a edição da jornada.
+#### REQ-02.05.005 - O painel de propriedades do editor de fluxo deve exibir o identificador (UUID) da jornada, somente leitura, quando nenhum nó estiver selecionado.
 ---
 
 ### US-02.06 Publicação de jornadas
@@ -259,13 +260,19 @@ futura e não faz parte dos requisitos entregáveis desta versão.
 
 ### US-02.09 Publicação no runtime
 #### REQ-02.09.001 - O Admin Portal deve iniciar a publicacao por meio de uma chamada de saida para a API de publicacao do runtime.
-#### REQ-02.09.002 - A chamada deve enviar a definicao completa da jornada, incluindo produto, canal, fluxo e formularios.
+#### REQ-02.09.002 - A chamada deve enviar a definição completa da jornada, incluindo produto, canal e o fluxo com a tela embutida (já compilada) de cada User Task.
+
+> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional. O snapshot enviado ao runtime não carrega mais uma lista de formulários — só a tela já compilada de cada nó.
+
 #### REQ-02.09.003 - O Admin Portal deve realizar uma chamada de saída real (HTTP) para a API de publicação do runtime. Após o retorno de sucesso, o Admin Portal deve substituir o snapshot anterior, quando existir, e alterar o estado da jornada para `PUBLISHED`; em caso de falha na chamada, o erro deve propagar e nenhum estado deve ser alterado.
 #### REQ-02.09.004 - Ao despublicar, o Admin Portal deve chamar a API de publicação do runtime para remover/desfazer a publicação. Apos o retorno de sucesso, a jornada e sua publicacao devem assumir o estado `UNPUBLISHED`; em caso de falha, os estados atuais devem ser preservados.
+#### REQ-02.09.005 - Ao publicar, o número da versão publicada (`JourneyVersion.versionNumber`) deve ser gravado como a tag de versão do processo implantado no runtime (`v<N>`), distinta do contador de implantação que o próprio runtime mantém internamente para aquela definição — os dois números não são garantidos coincidir (o contador interno avança a cada implantação, mesmo sem mudança de conteúdo, enquanto o número da versão só avança a cada publicação de nova versão no Admin Portal).
 ---
 
 ### US-02.10 Inspeção da publicação
-#### REQ-02.10.001 - Para uma jornada com publicação ativa (`PUBLISHED`), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo e formulários, incluindo a árvore SDUI de cada formulário), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".
+#### REQ-02.10.001 - Para uma jornada com publicação ativa (`PUBLISHED`), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo — incluindo a árvore SDUI já compilada da tela de cada User Task), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".
+
+> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional. O snapshot inspecionado aqui não carrega mais uma lista de formulários — só a árvore SDUI já compilada de cada nó.
 ---
 
 <br/>
@@ -353,7 +360,9 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.09.008 - A operação Kafka é determinada pelo tipo de nó, não é uma escolha livre do usuário: `SERVICE_TASK` deve usar `PRODUCE` (publica um evento como efeito da tarefa); `RECEIVE_TASK` e `MESSAGE_START_EVENT` devem usar `CONSUME` (aguardam uma mensagem chegar).
 #### REQ-03.09.009 - Headers (REST e Kafka) devem ser editados como uma lista de pares nome/valor (com opção de adicionar e remover pares), e não como texto declarativo livre. Params e Body (REST) seguem o mesmo padrão por padrão (REQ-03.13.003), com um modo avançado de JSON livre como alternativa; Payload (Kafka) permanece como configuração declarativa livre, por ainda não ter recebido o mesmo tratamento. O mapeamento de saída também não se enquadra nessa exceção (ver REQ-03.09.010).
 #### REQ-03.09.010 - O mapeamento de saída de uma integração (REST ou Kafka) deve ser declarado como uma lista de regras `nome da variável ← expressão JSONPath`, aplicada sobre o corpo da resposta (REST) ou o payload recebido (Kafka), em vez de configuração JSON livre.
-#### REQ-03.09.011 - O nome de cada variável de saída deve ser único no escopo da jornada e seguir a mesma regra de nome técnico dos campos de formulário (REQ-04.01.007).
+#### REQ-03.09.011 - O nome de cada variável de saída — seja de uma integração (outputMapping, REQ-03.09.010) ou de um campo que coleta valor na tela embutida de uma User Task (`embeddedScreen`, US-03.16) — deve ser único no escopo da jornada inteira e seguir a mesma regra de nome técnico dos campos de formulário (REQ-04.01.007).
+
+> **Nota de revisão (2026-08-24):** requisito reescrito para deixar explícito que campos de tela embutida entram no mesmo espaço de nomes — mesma mudança que substituiu a associação por `formId` pelo desenho direto da tela no nó, motivada pela limitação da Runtime Engine a poucos tipos de campo nativos.
 #### REQ-03.09.012 - O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis produzidas por passos anteriores do fluxo (respostas de formulário e saídas de integrações), usando a sintaxe `{{nomeDaVariavel}}`.
 #### REQ-03.09.013 - O editor deve exibir, para cada `SERVICE_TASK`/`RECEIVE_TASK`, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado.
 #### REQ-03.09.014 - O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie `{{variavel}}` inexistente no contexto do nó (nome não declarado por nenhum passo anterior alcançável).
@@ -411,13 +420,17 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.15.005 - As anotações devem ser persistidas junto com o fluxo da jornada e restauradas ao reabrir o editor.
 ---
 
-### US-03.16 Pré-visualização de formulário no editor
-#### REQ-03.16.001 - Ao selecionar, no canvas, uma `USER_TASK` com formulário associado, o editor deve exibir automaticamente uma pré-visualização do formulário, ancorada à base do canvas, sem exigir uma ação dedicada de clique.
-#### REQ-03.16.002 - Ao selecionar qualquer outro elemento do canvas, a pré-visualização deve deixar de ser exibida.
+### US-03.16 Editor de tela embutido no editor de fluxo
+#### REQ-03.16.001 - Ao selecionar, no canvas, uma `USER_TASK`, o editor deve exibir automaticamente um dock ancorado à base do canvas com o editor da tela embutida do nó (`embeddedScreen`), desenhada diretamente ali — sem depender de associação a um formulário do catálogo (REQ-04.01.004) —, sem exigir uma ação dedicada de clique.
+
+> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+
+#### REQ-03.16.002 - Ao selecionar qualquer outro elemento do canvas, o dock deve deixar de ser exibido.
 ---
 
 ### US-03.17 Geração de fluxo assistida por IA
 #### REQ-03.17.001 - O sistema deve permitir gerar automaticamente um rascunho de fluxo a partir de uma descrição em linguagem natural (prompt) informada pelo usuário, preenchendo nós e conexões no canvas do editor.
+#### REQ-03.17.006 - A geração deve considerar o fluxo já desenhado no canvas (nós, conexões e a tela embutida de cada User Task) como contexto do pedido: um pedido aditivo ou pontual (ex.: "adicione uma tarefa para X", "mude a mensagem da tarefa Y") não deve remover ou recriar nós/conexões sem relação com o pedido — o id, a posição no canvas e a tela desenhada de um nó não afetado devem ser preservados. Redesenhar o fluxo inteiro só deve ocorrer quando o pedido pedir isso explicitamente.
 #### REQ-03.17.002 - A geração deve depender de uma credencial de API de IA configurada (US-14.06); sem credencial configurada, o sistema deve informar o usuário e recusar a geração, sem expor detalhe técnico do provedor.
 #### REQ-03.17.003 - Um fluxo gerado que viole as regras estruturais de validação (US-03.02) deve ser automaticamente corrigido e reenviado ao modelo de IA (retry/reparo) antes de ser apresentado ao usuário, dentro de um número limitado de tentativas — inclui a rejeição de aspas escapadas (`\"`) em condição de gateway, formato que quebra o parser de expressão do motor de runtime.
 #### REQ-03.17.004 - O fluxo gerado deve ser apresentado como um rascunho editável no canvas, sujeito às mesmas regras de validação e à mesma revisão manual de qualquer fluxo criado por edição direta — a geração por IA não substitui a revisão do usuário antes de salvar ou publicar.
@@ -431,7 +444,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 
 ## Objetivo
 
-Permitir a criação de formulários utilizados pelas User Tasks.
+Permitir a criação de formulários reutilizáveis que sirvam como modelo de partida (cópia) para o desenho da tela de uma User Task — tela essa desenhada diretamente no editor de fluxo (ver US-03.16), não mais vinculada por referência ao formulário de origem.
 
 ---
 
@@ -439,10 +452,19 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 #### REQ-04.01.001 - O sistema deve permitir criar formulários.
 #### REQ-04.01.002 - O sistema deve permitir editar formulários.
 #### REQ-04.01.003 - O sistema deve permitir remover formulários.
-#### REQ-04.01.004 - O sistema deve permitir associar formulários a User Tasks.
-#### REQ-04.01.005 - O sistema deve permitir manter uma User Task sem formulário associado; nesse caso, o sistema deve permitir configurar uma mensagem exibida ao usuário, com suporte a interpolação de variáveis do fluxo pela sintaxe `{{nome}}`, resolvida com os valores reais da execução no momento em que a tarefa é apresentada.
-#### REQ-04.01.006 - Ao associar um formulário a uma User Task no editor de fluxo, o sistema deve permitir criar um novo formulário sem sair do editor, sendo levado à tela de criação, e deve permitir atualizar a lista de formulários disponíveis para refletir formulários criados nesse meio-tempo.
-#### REQ-04.01.007 - Cada campo de formulário deve possuir um `name` técnico, definido pelo usuário, único dentro do formulário e imutável após a criação do campo; o `name` substitui o identificador interno anteriormente usado para referenciar o campo.
+#### REQ-04.01.004 - O sistema deve permitir usar um formulário do catálogo como modelo de partida ao desenhar a tela de uma User Task: os campos do formulário são copiados para a tela do nó (`embeddedScreen`) no momento da escolha, sem manter nenhum vínculo persistido entre o nó e o formulário de origem — alterar o formulário depois não afeta telas já copiadas dele, e vice-versa.
+
+> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+
+#### REQ-04.01.005 - O sistema deve permitir manter uma User Task sem nenhuma tela desenhada; nesse caso, o sistema deve permitir configurar uma mensagem exibida ao usuário, com suporte a interpolação de variáveis do fluxo pela sintaxe `{{nome}}`, resolvida com os valores reais da execução no momento em que a tarefa é apresentada.
+
+> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+
+#### REQ-04.01.006 - No editor de tela embutido de uma User Task (US-03.16), o sistema deve permitir importar os campos de um formulário existente do catálogo como ponto de partida (cópia, sem vínculo persistido) e, separadamente, salvar a tela atualmente desenhada no nó como um novo formulário reutilizável no catálogo.
+
+> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+
+#### REQ-04.01.007 - No catálogo de formulários reutilizáveis, cada campo deve possuir um `name` técnico, definido pelo usuário, único dentro do formulário e imutável após a criação do campo; o `name` substitui o identificador interno anteriormente usado para referenciar o campo. Na tela embutida de uma User Task (US-03.16), a mesma regra de nome técnico se aplica com duas diferenças: o `name` é editável a qualquer momento (não só na criação), e a unicidade é verificada na jornada inteira, não só na tela do nó — ver REQ-03.09.011.
 ---
 
 ### US-04.02 Componentes
@@ -456,11 +478,29 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 #### REQ-04.02.008 - O sistema deve permitir configurar validação de formato por subtipo de `INPUT`: faixa mínima/máxima para o subtipo número; expressão regular/máscara para o subtipo texto.
 #### REQ-04.02.009 - As opções de campos de seleção simples e múltipla devem ser definidas como pares rótulo/valor (não apenas um rótulo), permitindo que o valor técnico persistido seja diferente do texto exibido ao usuário.
 #### REQ-04.02.010 - O campo de upload de arquivo deve permitir configurar as extensões de arquivo aceitas e o tamanho máximo do arquivo.
+#### REQ-04.02.011 - O sistema deve suportar um componente estrutural de seção (`SECTION`), que agrupa os campos seguintes até a próxima seção (ou o fim da lista) em uma grade com número de colunas configurável.
+#### REQ-04.02.012 - O sistema deve suportar botões de opção (`RADIO`), com o mesmo modelo de opções rótulo/valor de seleção simples (REQ-04.02.009).
+#### REQ-04.02.013 - O sistema deve suportar interruptor sim/não (`SWITCH`).
+#### REQ-04.02.014 - O sistema deve suportar escala numérica (`SLIDER`), com mínimo, máximo e incremento configuráveis.
+#### REQ-04.02.015 - O sistema deve suportar avaliação por estrelas (`RATING`), com o número máximo de estrelas configurável.
+#### REQ-04.02.016 - O sistema deve suportar contador numérico com incremento/decremento (`STEPPER`), com mínimo, máximo e incremento configuráveis.
+#### REQ-04.02.017 - O sistema deve suportar busca com sugestão (`AUTOCOMPLETE`), com o mesmo modelo de opções rótulo/valor de seleção simples (REQ-04.02.009) — fonte de dados dinâmica remota permanece fora do escopo (seção 5).
+#### REQ-04.02.018 - O sistema deve suportar título (`TITLE`), um componente de conteúdo somente-apresentação.
+#### REQ-04.02.019 - O sistema deve suportar imagem (`IMAGE`), configurável por URL e texto alternativo.
+#### REQ-04.02.020 - O sistema deve suportar divisor visual (`DIVIDER`), sem configuração própria.
+#### REQ-04.02.021 - O sistema deve suportar card de conteúdo (`CARD`), com título, descrição e imagem opcionais.
+#### REQ-04.02.022 - O sistema deve suportar aviso (`CALLOUT`), com título, descrição e variante visual configuráveis.
+
+> **Nota de revisão (2026-08-24):** tipos REQ-04.02.011 a REQ-04.02.022 adicionados nesta revisão — mesma mudança que substituiu a associação por `formId` pelo desenho direto da tela no nó (`embeddedScreen`): como a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), o catálogo próprio do Admin Portal foi ampliado para cobrir a necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de depender do motor.
+
 ---
 
 ### US-04.03 Reutilização
-#### REQ-04.03.001 - O sistema deve permitir reutili zar formulários em múltiplas jornadas.
-#### REQ-04.03.002 - O sistema deve permitir reutilizar formulários em múltiplas User Tasks.
+#### REQ-04.03.001 - O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia dos campos) para telas de User Tasks em múltiplas jornadas — sem manter vínculo persistido entre a tela copiada e o formulário de origem.
+#### REQ-04.03.002 - O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia dos campos) para telas de múltiplas User Tasks, inclusive dentro da mesma jornada — sem manter vínculo persistido entre as telas copiadas e o formulário de origem, nem entre si.
+
+> **Nota de revisão (2026-08-24):** requisitos reescritos — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+
 ---
 
 ### US-04.04 Configuração
@@ -473,8 +513,11 @@ Permitir a criação de formulários utilizados pelas User Tasks.
 ---
 
 ### US-04.06 Imutabilidade e serialização para publicação
-#### REQ-04.06.001 - Ao publicar uma jornada, o conteúdo de cada formulário referenciado pelas User Tasks da versão publicada deve ser copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras feitas no formulário original (mesmo princípio de congelamento aplicado à versão da jornada no FT-06).
-#### REQ-04.06.002 - O snapshot de publicação deve conter, para cada formulário, uma representação em árvore de nós no formato `[tag, props, children]` (estilo hyperscript/SDUI), derivada do conteúdo congelado do formulário no momento da publicação. Essa árvore é uma projeção de leitura gerada a partir do modelo de campos; o modelo de campos (não a árvore) continua sendo a fonte de dados editável no form builder.
+#### REQ-04.06.001 - Ao publicar uma jornada, a tela embutida (`embeddedScreen`) de cada User Task da versão publicada deve ser compilada e copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras feitas na tela do nó (mesmo princípio de congelamento aplicado à versão da jornada no FT-06).
+#### REQ-04.06.002 - O snapshot de publicação deve conter, para cada User Task com tela desenhada, uma representação em árvore de nós no formato `[tag, props, children]` (estilo hyperscript/SDUI) — `embeddedScreenSdui` — derivada da tela congelada (`embeddedScreen`) do nó no momento da publicação. Essa árvore é uma projeção de leitura gerada a partir do modelo de campos; o modelo de campos (não a árvore) continua sendo a fonte de dados editável no editor de fluxo.
+
+> **Nota de revisão (2026-08-24):** requisitos reescritos — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional. A compilação/congelamento em SDUI descrita aqui agora se aplica à tela do próprio nó, não a um formulário externo referenciado.
+
 ---
 
 ---
@@ -501,7 +544,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.02.002 - O sistema deve apresentar as User Tasks executadas.
 #### REQ-05.02.003 - O sistema deve apresentar os formulários exibidos.
 #### REQ-05.02.004 - O sistema deve apresentar o resultado final da execução.
-#### REQ-05.02.005 - Para uma User Task sem formulário associado (REQ-04.01.005), o sistema deve apresentar a mensagem configurada com as referências `{{nome}}` já substituídas pelos valores atuais das variáveis do processo.
+#### REQ-05.02.005 - O sistema deve apresentar a tela de uma User Task com toda referência `{{nome}}` já substituída pelos valores atuais das variáveis do processo — tanto na mensagem de uma User Task sem tela desenhada (REQ-04.01.005) quanto em qualquer prop de texto (rótulo, texto de ajuda, valor padrão, opções etc.) de qualquer campo de uma tela embutida (`embeddedScreen`) real. Quando a referência estiver no valor padrão (`defaultValue`) de um campo editável, o campo deve nascer pré-preenchido com o valor resolvido, permanecendo editável pelo usuário.
 ---
 
 ### US-05.03 Visualização da execução
@@ -535,6 +578,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.07.001 - O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado.
 #### REQ-05.07.002 - A execução deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.
 #### REQ-05.07.003 - A pré-visualização da execução deve se adaptar ao canal da jornada (Web ou App), incluindo uma representação visual compatível com o canal (ex.: layout de dispositivo móvel para jornadas de canal App).
+#### REQ-05.07.004 - O sistema deve exibir o número da versão publicada da jornada (`v<N>`) tanto na lista de busca quanto no cabeçalho de uma execução em andamento.
 ---
 
 ### US-05.08 Tratamento de falhas de integração
@@ -577,7 +621,9 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-06.02.001 - Ao criar uma jornada, o sistema deve criar sua primeira versão em `DRAFT`.
 #### REQ-06.02.002 - O sistema deve permitir criar uma nova versão a partir da versão atual.
 #### REQ-06.02.003 - O sistema deve criar a nova versão a partir da versão atualmente selecionada para edição.
-#### REQ-06.02.004 - A nova versão deve possuir cópia independente do fluxo, conexões e referências aos formulários.
+#### REQ-06.02.004 - A nova versão deve possuir cópia independente do fluxo, conexões e das telas embutidas (`embeddedScreen`/`embeddedScreenSdui`) de cada User Task.
+
+> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 #### REQ-06.02.005 - Alterações em uma versão `DRAFT` não devem modificar outras versões.
 #### REQ-06.02.006 - Uma versão `PUBLISHED` deve ser imutável.
 #### REQ-06.02.007 - O sistema deve indicar claramente qual versão está sendo editada.
@@ -943,10 +989,10 @@ Comparação (diff) visual entre versões de uma jornada
 ## Formulários Avançados (SDUI)
 
 ```text
-Seções
-Exibição condicional
-Organização dinâmica de campos
+Exibição condicional (campo visibleIf já existe no modelo, mas não é avaliado em runtime)
 Formulários multi-etapas (wizard)
 Fontes de dados dinâmicas - $dataSource e estratégia de prefetch no servidor ou no cliente
 Paginação de opções carregadas dinamicamente
 ```
+
+> **Nota de revisão (2026-08-24):** "Seções" e "Organização dinâmica de campos" saíram desta lista — implementadas nesta revisão (REQ-04.02.011, US-03.16).

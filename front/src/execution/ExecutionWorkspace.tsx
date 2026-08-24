@@ -206,9 +206,7 @@ export function ExecutionWorkspace({
       setVisitedPath((prev) => (prev[prev.length - 1] === newStep.nodeId ? prev : [...prev, newStep.nodeId!]));
     }
     appendLog(describeStep(newStep));
-    if (newStep.type !== 'ENDED') {
-      refreshVariables();
-    }
+    refreshVariables();
   }
 
   async function handleCompleteTask(answers: Record<string, unknown>) {

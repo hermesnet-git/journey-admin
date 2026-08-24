@@ -192,7 +192,9 @@ As configurações de integração dos nós `SERVICE_TASK`, `RECEIVE_TASK` e `ME
 }
 ```
 
-Dois outros atributos do documento `flow_node`, fora do bloco de conector acima: `startVariables` (REQ-03.12.001) — lista `{ name, type }`, só preenchida no nó `START`, declarando as variáveis que o canal digital/BFF deve fornecer ao iniciar uma instância; e `messageText` (REQ-04.01.005) — texto livre, só relevante numa `USER_TASK` sem `formId`, podendo referenciar `{{nome}}` do mesmo jeito que `connectorConfig`, resolvido pelo simulador de execução em tempo real (não na publicação).
+Outros atributos do documento `flow_node`, fora do bloco de conector acima: `startVariables` (REQ-03.12.001) — lista `{ name, type }`, só preenchida no nó `START`, declarando as variáveis que o canal digital/BFF deve fornecer ao iniciar uma instância; `messageText` (REQ-04.01.005) — texto livre, só relevante numa `USER_TASK` sem tela desenhada (`embeddedScreen` vazio), podendo referenciar `{{nome}}` do mesmo jeito que `connectorConfig`; `embeddedScreen` — array de `FormField` (§12) desenhado diretamente no nó, só relevante numa `USER_TASK`; e `embeddedScreenSdui` — árvore SDUI compilada de `embeddedScreen`, só presente numa snapshot de publicação/versão, nunca no fluxo ao vivo do editor. Toda referência `{{nome}}`, seja em `messageText` ou em qualquer prop de texto de um campo de `embeddedScreen`, é resolvida pelo simulador de execução em tempo real (não na publicação).
+
+> **Nota de revisão (2026-08-24):** `embeddedScreen`/`embeddedScreenSdui` adicionados e `messageText` reescrito nesta revisão — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó.
 
 ---
 
@@ -247,7 +249,9 @@ CREATE TABLE form (
 );
 ```
 
-`fields` é a persistência real de `FormField` (§12) — array JSONB, não tabela própria. Não há `code` nem `status`: um `Form` não tem código técnico próprio nem ciclo de ativo/inativo — é identificado só pelo `form_id` e pode ser referenciado por User Tasks de qualquer jornada enquanto existir.
+`fields` é a persistência real de `FormField` (§12) — array JSONB, não tabela própria. Não há `code` nem `status`: um `Form` não tem código técnico próprio nem ciclo de ativo/inativo — é identificado só pelo `form_id`. Um `Form` nunca é referenciado por uma User Task; serve só como modelo de partida (cópia dos campos) ao desenhar a tela de um nó (`flow_node.embeddedScreen`, §9/§13) — nada liga o nó ao `form_id` de origem depois da cópia.
+
+> **Nota de revisão (2026-08-24):** parágrafo reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `form_id`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 
@@ -258,7 +262,11 @@ CREATE TABLE form_field (
     name VARCHAR(80) NOT NULL,
     form_id UUID NOT NULL,
     field_type VARCHAR(50) NOT NULL CHECK (
-        field_type IN ('TEXT', 'INPUT', 'SINGLE_SELECT', 'MULTI_SELECT', 'FILE_UPLOAD')
+        field_type IN (
+            'SECTION', 'TEXT', 'INPUT', 'SINGLE_SELECT', 'MULTI_SELECT', 'FILE_UPLOAD',
+            'RADIO', 'SWITCH', 'SLIDER', 'RATING', 'STEPPER', 'AUTOCOMPLETE',
+            'TITLE', 'IMAGE', 'DIVIDER', 'CARD', 'CALLOUT'
+        )
     ),
     input_subtype VARCHAR(20) CHECK (
         input_subtype IN ('TEXT', 'NUMBER', 'EMAIL', 'DATE')
@@ -267,15 +275,20 @@ CREATE TABLE form_field (
     help_text TEXT,
     required BOOLEAN NOT NULL DEFAULT FALSE,
     default_value TEXT,
+    columns INTEGER,
+    visible_if TEXT,
+    data_source JSONB,
     configuration JSONB,
     PRIMARY KEY (form_id, name),
     FOREIGN KEY (form_id) REFERENCES form(form_id)
 );
 ```
 
-`name` é a chave técnica do campo (substitui o antigo `component_id` gerado pelo sistema): definida pelo usuário, única dentro do formulário e imutável após a criação. `input_subtype` só se aplica a `field_type = 'INPUT'`. `configuration` (JSONB) guarda, conforme o tipo/subtipo: opções como pares `{label, value}` (`SINGLE_SELECT`/`MULTI_SELECT`), validação de formato — faixa mínima/máxima para `NUMBER`, regex/máscara para `TEXT` — e regras de arquivo aceito — extensões e tamanho máximo — para `FILE_UPLOAD`.
+`name` é a chave técnica do campo (substitui o antigo `component_id` gerado pelo sistema): definida pelo usuário. Neste catálogo (`form_field`), única dentro do formulário e imutável após a criação; quando o mesmo modelo de campo é usado na tela embutida de uma User Task (`flow_node.embeddedScreen`, §9), o `name` passa a ser editável, com unicidade verificada na jornada inteira (REQ-03.09.011). `input_subtype` só se aplica a `field_type = 'INPUT'`. `columns` só se aplica a `field_type = 'SECTION'` (número de colunas da grade que agrupa os campos seguintes). `visible_if` é modelado mas ainda não avaliado em tempo de execução (fora do escopo da v1.0.0). `data_source` só se aplica a `field_type = 'AUTOCOMPLETE'` — mesma forma de `connector_config` (§9) para busca remota, ainda não resolvida em tempo de execução (opções estáticas por enquanto, fora do escopo da v1.0.0). `configuration` (JSONB) guarda, conforme o tipo/subtipo: opções como pares `{label, value}` (`SINGLE_SELECT`/`MULTI_SELECT`/`RADIO`/`AUTOCOMPLETE`), validação de formato — faixa mínima/máxima para `NUMBER`, regex/máscara para `TEXT` —, regras de arquivo aceito — extensões e tamanho máximo — para `FILE_UPLOAD`, e configuração livre dos componentes novos (`min`/`max`/`step` de `SLIDER`/`STEPPER`, contagem de `RATING`, `url`/`alt` de `IMAGE`, `variant`/`description` de `CALLOUT` etc.).
 
-O desenho acima é a referência relacional de cada elemento do array — a persistência real é um item do array `form.fields` (JSONB, ver §11), sem tabela própria. Não existe `display_order`: a ordem de exibição é a própria ordem do campo dentro do array, não uma coluna armazenada.
+O desenho acima é a referência relacional de cada elemento do array — a persistência real é um item do array `form.fields` (JSONB, ver §11) ou de `flow_node.embeddedScreen` (JSONB, ver §9), sem tabela própria. Não existe `display_order`: a ordem de exibição é a própria ordem do campo dentro do array, não uma coluna armazenada.
+
+> **Nota de revisão (2026-08-24):** `field_type` ampliado de 5 para 17 valores, e as colunas `columns`/`visible_if`/`data_source` adicionadas nesta revisão — mesma mudança que substituiu a associação por `form_id` pelo desenho direto da tela no nó: como a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), o catálogo próprio do Admin Portal foi ampliado para cobrir a necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de depender do motor.
 
 ---
 
@@ -284,14 +297,16 @@ O desenho acima é a referência relacional de cada elemento do array — a pers
 ```sql
 CREATE TABLE user_task_config (
     node_id UUID PRIMARY KEY,
-    form_id UUID,
+    embedded_screen JSONB,
+    embedded_screen_sdui JSONB,
     message_text TEXT,
-    FOREIGN KEY (node_id) REFERENCES flow_node(node_id),
-    FOREIGN KEY (form_id) REFERENCES form(form_id)
+    FOREIGN KEY (node_id) REFERENCES flow_node(node_id)
 );
 ```
 
-`user_task_config` só pode referenciar nós cujo `node_type` seja `USER_TASK`. Essa restrição deve ser garantida por regra de domínio ou trigger. `form_id` é opcional (REQ-04.01.005: uma User Task pode não ter formulário associado); quando ausente, `message_text` guarda a mensagem exibida ao usuário nessa etapa em vez de um formulário — os dois nunca coexistem com sentido (se `form_id` estiver preenchido, `message_text` é ignorado). Na persistência real, `form_id`/`message_text` são atributos do próprio item de `flow.nodes` (JSONB, ver §8-9) — não existe `user_task_config` como tabela própria, nem como sub-documento separado dentro do nó.
+`user_task_config` só pode referenciar nós cujo `node_type` seja `USER_TASK`. Essa restrição deve ser garantida por regra de domínio ou trigger. `embedded_screen` é opcional (REQ-04.01.005: uma User Task pode não ter tela desenhada); quando vazio, `message_text` guarda a mensagem exibida ao usuário nessa etapa em vez de uma tela — os dois nunca coexistem com sentido (se `embedded_screen` não estiver vazio, `message_text` é ignorado). `embedded_screen_sdui` só é preenchido numa snapshot de publicação/versão (árvore SDUI compilada de `embedded_screen` no momento da publicação) — nunca no fluxo ao vivo do editor. Um `form` do catálogo (§11) pode servir de modelo de partida ao montar `embedded_screen`, mas nenhuma referência é persistida ligando o nó ao `form_id` de origem — por isso não há FK para `form` nesta tabela. Na persistência real, `embedded_screen`/`embedded_screen_sdui`/`message_text` são atributos do próprio item de `flow.nodes` (JSONB, ver §8-9) — não existe `user_task_config` como tabela própria, nem como sub-documento separado dentro do nó.
+
+> **Nota de revisão (2026-08-24):** tabela reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `form_id`; a tela passou a ser desenhada diretamente no nó (`embedded_screen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 
@@ -299,7 +314,9 @@ CREATE TABLE user_task_config (
 
 Atualização do escopo: `journey_publication` representa a publicação ativa e deve possuir `version_id` apontando para a `journey_version` publicada. Versões anteriores não são sobrescritas.
 
-A publicação armazena o snapshot da versão contendo produto, canal, jornada, fluxo e formulários. Existe no máximo uma publicação ativa por jornada; versões anteriores são preservadas.
+A publicação armazena o snapshot da versão contendo produto, canal, jornada, fluxo (com a tela já compilada — `embeddedScreenSdui` — de cada User Task) e o número da versão publicada (`versionNumber`, também gravado como tag de versão do processo implantado no runtime — distinta do contador de implantação que o próprio runtime mantém internamente). Existe no máximo uma publicação ativa por jornada; versões anteriores são preservadas.
+
+> **Nota de revisão (2026-08-24):** parágrafo reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `form_id`; a tela passou a ser desenhada diretamente no nó, e o snapshot não carrega mais uma lista de formulários — só a tela já compilada de cada nó.
 
 ```sql
 CREATE TABLE journey_publication (
@@ -461,11 +478,12 @@ Tabela isolada, sem chave estrangeira — `provider` é único por natureza (um 
 | flow_connection.(flow_id, target_node_id) | flow_node.(flow_id, node_id) |
 | form_field.form_id | form.form_id |
 | user_task_config.node_id | flow_node.node_id |
-| user_task_config.form_id | form.form_id |
 | journey_publication.journey_id | journey.journey_id |
 | journey_version.journey_id | journey.journey_id |
 | journey_publication.version_id | journey_version.version_id |
 | credential_reference.cluster_id | messaging_cluster.cluster_id |
+
+> **Nota de revisão (2026-08-24):** FK `user_task_config.form_id → form.form_id` removida nesta revisão — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `form_id`; a tela passou a ser desenhada diretamente no nó (`embedded_screen`), sem vínculo persistido ao formulário de origem.
 
 ---
 
@@ -490,7 +508,6 @@ CREATE INDEX idx_flow_connection_flow ON flow_connection(flow_id);
 
 CREATE INDEX idx_form_status ON form(status);
 CREATE INDEX idx_form_field_form ON form_field(form_id);
-CREATE INDEX idx_user_task_form ON user_task_config(form_id);
 
 CREATE INDEX idx_publication_status ON journey_publication(publication_status);
 CREATE INDEX idx_publication_snapshot ON journey_publication USING GIN (journey_snapshot);
@@ -543,10 +560,12 @@ Channel
 
 Journey
 
-Flow
+Flow (com a tela já compilada — embeddedScreenSdui — de cada User Task)
 
-Forms
+VersionNumber
 ```
+
+> **Nota de revisão (2026-08-24):** "Forms" removido e "VersionNumber" adicionado nesta revisão — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `form_id`; a tela passou a ser desenhada diretamente no nó, e o snapshot não carrega mais uma lista de formulários — só a tela já compilada de cada nó.
 
 ## Status de Publicação
 
@@ -554,9 +573,9 @@ Forms
 PUBLISHED, UNPUBLISHED
 ```
 
-Na versão 1.0.0, a publicação chama uma API mockada do runtime. Após o retorno de sucesso, o snapshot é persistido e `journey.status` passa a `PUBLISHED`. O contrato definitivo da API externa será definido posteriormente.
+O Admin Portal realiza uma chamada de saída real (HTTP) para a API de publicação do runtime. Após o retorno de sucesso, o snapshot é persistido e `journey.status` passa a `PUBLISHED`.
 
-A despublicação também chama a API mockada. Após o sucesso, `journey.status` e `journey_publication.publication_status` passam para `UNPUBLISHED`, e `unpublished_date` recebe a data da operação. Em caso de falha, o backend preserva os estados e o snapshot atuais.
+A despublicação também chama essa API real. Após o sucesso, `journey.status` e `journey_publication.publication_status` passam para `UNPUBLISHED`, e `unpublished_date` recebe a data da operação. Em caso de falha, o backend preserva os estados e o snapshot atuais.
 
 Antes de desativar uma jornada, um canal ou um produto, o backend deve consultar `journey_publication` e bloquear a operação quando encontrar uma publicação `PUBLISHED` no escopo afetado. Registros `UNPUBLISHED` são preservados e não impedem a desativação.
 
@@ -605,4 +624,4 @@ Resolução real de credencial via Azure Key Vault (Workload Identity/AKS) — h
 
 # 27. Resumo Técnico
 
-O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, utiliza formulários por meio de User Tasks, possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado, eventos de auditoria sem dados sensíveis e o catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.
+O modelo físico estabelece Product → Channel → Journey como hierarquia principal. Cada jornada possui um fluxo, cujas User Tasks têm tela própria desenhada diretamente no nó (formulários do catálogo servem só como modelo de cópia opcional), possui múltiplas versões e no máximo uma publicação ativa associada à versão imutável publicada. O modelo também contempla o usuário mockado, eventos de auditoria sem dados sensíveis e o catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.

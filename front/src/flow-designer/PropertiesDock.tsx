@@ -34,8 +34,6 @@ export function PropertiesDock({
   onUpdateNode,
   onUpdateEdge,
   onDeleteNode,
-  onOpenNewForm,
-  onRefreshForms,
   journey,
 }: {
   node: WFNode | null;
@@ -48,8 +46,6 @@ export function PropertiesDock({
   onUpdateNode: (patch: Partial<WFNodeData>) => void;
   onUpdateEdge: (edgeId: string, patch: Partial<WFEdgeData>) => void;
   onDeleteNode: () => void;
-  onOpenNewForm: () => void;
-  onRefreshForms: () => void;
   journey: JourneyPanelProps;
 }) {
   const { c } = useFlowTheme();
@@ -146,11 +142,9 @@ export function PropertiesDock({
               onUpdate={onUpdateNode}
               onUpdateEdge={onUpdateEdge}
               onDelete={onDeleteNode}
-              onOpenNewForm={onOpenNewForm}
-              onRefreshForms={onRefreshForms}
             />
           ) : (
-            <JourneyPropertiesPanel {...journey} />
+            <JourneyPropertiesPanel journeyId={journeyId} {...journey} />
           )}
         </div>
       </div>

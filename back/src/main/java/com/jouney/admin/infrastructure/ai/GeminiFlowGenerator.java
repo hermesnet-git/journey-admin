@@ -3,10 +3,12 @@ package com.jouney.admin.infrastructure.ai;
 import com.jouney.admin.domain.ai.AiProvider;
 import com.jouney.admin.domain.ai.AiProviderCredentialRepository;
 import com.jouney.admin.domain.flow.AiFlowGenerator;
+import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.domain.flow.FlowValidator;
 import com.jouney.admin.domain.flow.GeneratedFlow;
 import com.jouney.admin.domain.flow.GenerationContext;
+import com.jouney.admin.domain.form.FormField;
 import com.jouney.admin.domain.form.FormRepository;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -73,10 +76,8 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
 
         String basePrompt = FlowGenerationPrompt.buildUserPrompt(context);
         String currentPrompt = basePrompt;
-        Map<UUID, List<String>> formFieldNamesByFormId = new HashMap<>();
-        for (var form : context.forms()) {
-            formFieldNamesByFormId.put(form.id(), form.fieldNames());
-        }
+        Map<String, FlowNode> existingNodesById = context.currentFlowNodes().stream()
+                .collect(Collectors.toMap(FlowNode::getId, n -> n));
 
         FlowValidationException lastViolation = null;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -99,14 +100,16 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
             if (!output.newForms().isEmpty()) {
                 onProgress.accept("Tentativa " + attempt + ": criando " + output.newForms().size() + " formulário(s) novo(s)...");
             }
-            Map<String, UUID> newFormIds = FlowGenerationPrompt.createNewForms(formRepository, output.newForms());
-            for (var newForm : output.newForms()) {
-                formFieldNamesByFormId.put(newFormIds.get(newForm.id()), FlowGenerationPrompt.variableFieldNames(newForm));
-            }
-            GeneratedFlow candidate = FlowGenerationPrompt.toDomain(output, newFormIds);
+            // Persiste os newForms como templates reutilizáveis no catálogo (efeito colateral —
+            // Form.create/save); os campos que de fato viram a tela do nó são uma cópia à parte,
+            // resolvida logo abaixo (newFormFields/existingFormFields), nunca uma referência viva.
+            FlowGenerationPrompt.createNewForms(formRepository, output.newForms());
+            Map<String, List<FormField>> newFormFields = FlowGenerationPrompt.newFormFieldsByLocalId(output.newForms());
+            Map<UUID, List<FormField>> existingFormFields = resolveExistingFormFields(output.nodes());
+            GeneratedFlow candidate = FlowGenerationPrompt.toDomain(output, newFormFields, existingFormFields, existingNodesById);
             onProgress.accept("Tentativa " + attempt + ": " + FlowGenerationPrompt.describeFlow(candidate) + " — validando...");
             try {
-                FlowValidator.validate(candidate.nodes(), candidate.connections(), formFieldNamesByFormId);
+                FlowValidator.validate(candidate.nodes(), candidate.connections());
                 onProgress.accept("Tentativa " + attempt + ": fluxo válido.");
                 return candidate;
             } catch (FlowValidationException ex) {
@@ -124,6 +127,20 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
             }
         }
         throw lastViolation;
+    }
+
+    // Campos dos formulários do catálogo que algum nó da tentativa atual referencia por formId
+    // (existente, não newFormId) — resolvidos uma vez por id distinto, copiados pro embeddedScreen
+    // do(s) nó(s) correspondentes em FlowGenerationPrompt.toDomain, nunca guardados como referência.
+    private Map<UUID, List<FormField>> resolveExistingFormFields(List<FlowGenerationPrompt.LlmNode> nodes) {
+        Map<UUID, List<FormField>> result = new HashMap<>();
+        for (var node : nodes) {
+            UUID formId = FlowGenerationPrompt.parseUuidOrNull(node.formId());
+            if (formId != null && !result.containsKey(formId)) {
+                formRepository.findById(formId).ifPresent(form -> result.put(formId, form.getFields()));
+            }
+        }
+        return result;
     }
 
     private JsonNode callGemini(List<Map<String, Object>> contents, String apiKey) {

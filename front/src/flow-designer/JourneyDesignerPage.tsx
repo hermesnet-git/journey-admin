@@ -10,11 +10,13 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
+  reconnectEdge,
   useReactFlow,
   useViewport,
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
+  type OnReconnect,
   type NodeChange,
   type EdgeChange,
 } from '@xyflow/react';
@@ -27,7 +29,7 @@ import { WorkflowNode } from './WorkflowNode';
 import { AnnotationNode } from './AnnotationNode';
 import { Palette } from './Palette';
 import { PropertiesDock } from './PropertiesDock';
-import { FormPreviewDock } from './FormPreviewDock';
+import { FormPreviewDock, DOCK_DEFAULT_HEIGHT } from './FormPreviewDock';
 import { ErrorModal } from './ErrorModal';
 import { GeneratePromptModal, type GenerateLogEntry } from './GeneratePromptModal';
 import { Toolbar } from './Toolbar';
@@ -49,6 +51,8 @@ import {
   outgoingLimitFor,
   makeAnnotation,
   isAnnotationId,
+  orderedUserTasks,
+  availableVariableOriginsAt,
   type NodeType,
   type WFNode,
   type WFEdge,
@@ -86,8 +90,11 @@ function buildFlowSnapshot(
       positionX: Math.round(n.position.x),
       positionY: Math.round(n.position.y),
       userTaskConfig:
-        n.data.formId || n.data.messageText
-          ? { formId: n.data.formId || null, messageText: n.data.messageText || null }
+        n.data.messageText || (n.data.embeddedScreen && n.data.embeddedScreen.length > 0)
+          ? {
+              messageText: n.data.messageText || null,
+              embeddedScreen: n.data.embeddedScreen ?? [],
+            }
           : null,
       connectorConfig: n.data.connectorConfig,
       startVariables: n.data.startVariables ?? null,
@@ -184,6 +191,13 @@ function DesignerInner({
   // when set, and falls back to the journey's own properties when null (e.g.
   // after a blank-canvas click).
   const [propertiesNodeId, setPropertiesNodeId] = useState<string | null>(null);
+  // Vive aqui (não dentro do FormPreviewDock) porque o dock desmonta toda vez que a seleção sai de
+  // uma User Task — um state interno perderia o redimensionamento do usuário a cada troca de nó.
+  const [dockHeight, setDockHeight] = useState(DOCK_DEFAULT_HEIGHT);
+  // "Fixar" o editor de tela: enquanto ativo, o dock continua mostrando a última User Task válida
+  // mesmo depois de selecionar outra coisa (ou nada) no canvas — ver previewNode mais abaixo.
+  const [dockPinned, setDockPinned] = useState(false);
+  const [pinnedPreviewNodeId, setPinnedPreviewNodeId] = useState<string | null>(null);
   // Client-only, purely visual: highlights the path through the flow connected to whichever node
   // is hovered or selected, dimming the rest so a busy diagram stays readable.
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -317,8 +331,8 @@ function DesignerInner({
         data: {
           name: n.name,
           description: n.description ?? '',
-          formId: n.userTaskConfig?.formId ?? null,
           messageText: n.userTaskConfig?.messageText ?? null,
+          embeddedScreen: n.userTaskConfig?.embeddedScreen ?? [],
           connectorConfig: n.connectorConfig,
           startVariables: n.startVariables ?? undefined,
         },
@@ -493,6 +507,27 @@ function DesignerInner({
       }
       pushHistory();
       setEdges((eds) => addEdge({ ...params, id: newConnectionId() }, eds));
+    },
+    [pushHistory],
+  );
+  // Arrastar a ponta de uma seta já existente pra outro nó (retarget), em vez de excluir e puxar
+  // uma nova — mesma regra de limite de saída do onConnect, só reaplicada quando a origem muda
+  // (mover só a ponta de destino nunca altera quantas saídas o nó de origem tem).
+  const onReconnect = useCallback<OnReconnect>(
+    (oldEdge, newConnection) => {
+      if (isAnnotationId(oldEdge.source)) return;
+      if (newConnection.source !== oldEdge.source) {
+        const source = nodesRef.current.find((n) => n.id === newConnection.source);
+        if (source?.type) {
+          const outCount = edgesRef.current.filter((e) => e.source === newConnection.source && e.id !== oldEdge.id).length;
+          if (outCount >= outgoingLimitFor(source.type)) return;
+        }
+      }
+      pushHistory();
+      // shouldReplaceId: false — por padrão reconnectEdge troca o id da aresta por um formato
+      // próprio da lib (xy-edge__...), que não bate com o padrão "Flow_..." que o back exige
+      // (FlowConnectionInput.connectionId, @Pattern "^Flow_.+") e quebra o salvamento.
+      setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds, { shouldReplaceId: false }));
     },
     [pushHistory],
   );
@@ -802,8 +837,11 @@ function DesignerInner({
           positionX: Math.round(n.position.x),
           positionY: Math.round(n.position.y),
           userTaskConfig:
-            n.data.formId || n.data.messageText
-              ? { formId: n.data.formId || null, messageText: n.data.messageText || null }
+            n.data.messageText || (n.data.embeddedScreen && n.data.embeddedScreen.length > 0)
+              ? {
+                  messageText: n.data.messageText || null,
+                  embeddedScreen: n.data.embeddedScreen ?? [],
+                }
               : null,
           connectorConfig: n.data.connectorConfig,
           startVariables: n.data.startVariables ?? null,
@@ -841,11 +879,24 @@ function DesignerInner({
   }
 
   const propertiesNode = nodes.find((n) => n.id === propertiesNodeId) ?? null;
-  // Preview do formulário segue a seleção diretamente (não tem gatilho/estado próprio): qualquer
-  // User Task com formulário vinculado mostra o preview assim que selecionada, e selecionar
-  // qualquer outra coisa (outro tipo de nó, ou nada) some com ele — pedido explícito do usuário.
-  const previewNode = propertiesNode?.type === 'userTask' && propertiesNode.data.formId ? propertiesNode : null;
-  const previewForm = previewNode?.data.formId ? forms.find((f) => f.formId === previewNode.data.formId) : undefined;
+  // Dock segue a seleção diretamente: qualquer User Task selecionada mostra o dock (editor de tela
+  // embutido). Exceção: canal URA não tem editor de tela (paleta vazia) — o único mecanismo dele é
+  // messageText, então só mostra o dock ali quando já existe uma mensagem configurada.
+  const isValidPreviewTarget =
+    propertiesNode?.type === 'userTask' && (activeJourney.channelType !== 'URA' || !!propertiesNode.data.messageText);
+  // Fixado (dockPinned): selecionar qualquer outra coisa some não esconde mais o dock — ele fica
+  // preso na última User Task válida (pinnedPreviewNodeId) até ser desafixado ou apagado.
+  const previewNode = isValidPreviewTarget
+    ? propertiesNode
+    : dockPinned
+      ? (nodes.find((n) => n.id === pinnedPreviewNodeId) ?? null)
+      : null;
+  const previewVariables = previewNode ? availableVariableOriginsAt(previewNode.id, nodes, edges, forms) : [];
+  const userTasks = orderedUserTasks(nodes, edges);
+
+  useEffect(() => {
+    if (isValidPreviewTarget && propertiesNode) setPinnedPreviewNodeId(propertiesNode.id);
+  }, [isValidPreviewTarget, propertiesNode?.id]);
 
   if (loading) {
     return (
@@ -877,6 +928,7 @@ function DesignerInner({
             saving={saving}
             onCancel={onClose}
             onGenerate={() => setGenerateModalOpen(true)}
+            journeyName={name}
           />
           <div className="flex-1 flex min-h-0">
             <Palette onAdd={addNodeFromPalette} onAddAnnotation={addAnnotationFromPalette} />
@@ -893,6 +945,7 @@ function DesignerInner({
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                onReconnect={onReconnect}
                 onPaneClick={onPaneClick}
                 onNodeDragStart={onNodeDragStart}
                 onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)}
@@ -948,8 +1001,26 @@ function DesignerInner({
                   </div>
                 )}
               </ReactFlow>
-              {previewNode && previewForm && (
-                <FormPreviewDock nodeName={previewNode.data.name} form={previewForm} onEdit={() => onOpenForm(previewForm.formId)} />
+              {previewNode && (
+                <FormPreviewDock
+                  nodeName={previewNode.data.name}
+                  channelType={activeJourney.channelType}
+                  journeyId={activeJourney.journeyId}
+                  nodeId={previewNode.id}
+                  embeddedScreen={previewNode.data.embeddedScreen ?? []}
+                  onEmbeddedScreenChange={(fields) => updateNodeData(previewNode.id, { embeddedScreen: fields })}
+                  onPushHistory={pushHistory}
+                  forms={forms}
+                  onRefreshForms={refreshForms}
+                  onOpenNewForm={onOpenNewForm}
+                  variables={previewVariables}
+                  userTasks={userTasks}
+                  onNavigateTask={selectOnlyNode}
+                  height={dockHeight}
+                  onHeightChange={setDockHeight}
+                  pinned={dockPinned}
+                  onPinnedChange={setDockPinned}
+                />
               )}
             </div>
             <PropertiesDock
@@ -963,8 +1034,6 @@ function DesignerInner({
               onUpdateNode={(patch) => propertiesNode && updateNodeData(propertiesNode.id, patch)}
               onUpdateEdge={updateEdgeData}
               onDeleteNode={() => propertiesNode && deleteNode(propertiesNode.id)}
-              onOpenNewForm={onOpenNewForm}
-              onRefreshForms={refreshForms}
               journey={{
                 productName: activeJourney.productName,
                 channelName: activeJourney.channelName,

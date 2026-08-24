@@ -10,17 +10,14 @@ import java.util.Set;
 import java.util.UUID;
 
 /** Mapeia só os campos usados do PublicationSnapshotRecord do admin/back
- * (GET /api/v1/journeys/{id}/publication). */
+ * (GET /api/v1/journeys/{id}/publication). Uma User Task nunca referencia um Form por id — a tela
+ * dela já vem compilada (FlowNode.embeddedScreenSdui), então não há "forms" pra resolver aqui. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record PublicationSnapshot(UUID journeyId, String journeyName, String channelType, List<FlowNode> flowNodes,
-                                   List<FlowConnection> flowConnections, List<FormSnapshot> forms) {
+                                   List<FlowConnection> flowConnections) {
 
     public Optional<FlowNode> findNode(String nodeId) {
         return flowNodes.stream().filter(n -> n.id().equals(nodeId)).findFirst();
-    }
-
-    public Optional<FormSnapshot> findForm(UUID formId) {
-        return forms.stream().filter(f -> f.id().equals(formId)).findFirst();
     }
 
     /** Nó de início do fluxo — START comum ou MESSAGE_START_EVENT (REQ-03.07.005: sempre exatamente um). */

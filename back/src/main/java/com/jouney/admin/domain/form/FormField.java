@@ -1,6 +1,8 @@
 package com.jouney.admin.domain.form;
 
+import com.jouney.admin.domain.flow.ConnectorConfig;
 import java.util.List;
+import java.util.Map;
 
 public class FormField {
 
@@ -17,11 +19,16 @@ public class FormField {
     private final String validationPattern;
     private final List<String> acceptedExtensions;
     private final Long maxFileSizeBytes;
+    private final Integer columns;
+    private final String visibleIf;
+    private final ConnectorConfig dataSource;
+    private final Map<String, Object> config;
 
     public FormField(String name, FormFieldType type, InputSubtype inputSubtype, String label, boolean required,
                       String defaultValue, String helpText, List<FormFieldOption> options, Double minValue,
                       Double maxValue, String validationPattern, List<String> acceptedExtensions,
-                      Long maxFileSizeBytes) {
+                      Long maxFileSizeBytes, Integer columns, String visibleIf, ConnectorConfig dataSource,
+                      Map<String, Object> config) {
         this.name = name;
         this.type = type;
         this.inputSubtype = inputSubtype;
@@ -35,6 +42,10 @@ public class FormField {
         this.validationPattern = validationPattern;
         this.acceptedExtensions = acceptedExtensions;
         this.maxFileSizeBytes = maxFileSizeBytes;
+        this.columns = columns;
+        this.visibleIf = visibleIf;
+        this.dataSource = dataSource;
+        this.config = config;
     }
 
     public String getName() {
@@ -87,5 +98,33 @@ public class FormField {
 
     public Long getMaxFileSizeBytes() {
         return maxFileSizeBytes;
+    }
+
+    /** Só relevante para {@link FormFieldType#SECTION} — número de colunas do grid da seção. */
+    public Integer getColumns() {
+        return columns;
+    }
+
+    /** Expressão {@code {{campo}} OP valor}, mesma sintaxe da condição de saída do Gateway (US-03.11). */
+    public String getVisibleIf() {
+        return visibleIf;
+    }
+
+    /**
+     * Só relevante para SINGLE_SELECT/MULTI_SELECT — reaproveita a mesma {@link ConnectorConfig}
+     * do conector REST de Service Task (method/url/headers/params/body/credencial), mutuamente
+     * exclusiva com {@link #options} estático.
+     */
+    public ConnectorConfig getDataSource() {
+        return dataSource;
+    }
+
+    /**
+     * Config declarativa livre dos componentes que não têm coluna tipada própria (slider
+     * min/max/step, imagem url/alt, callout variant/title/description etc.) — mesmo princípio do
+     * {@link ConnectorConfig#getConfig()}: extensível sem migração/DTO novo por tipo de componente.
+     */
+    public Map<String, Object> getConfig() {
+        return config;
     }
 }

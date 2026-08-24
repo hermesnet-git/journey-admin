@@ -58,6 +58,11 @@ export function ExecutionToolbar({ journeys, loadError, query, onQueryChange, se
             <Text size={13} color={skinVars.colors.textSecondary} truncate>
               {running.name}
             </Text>
+            {running.publishedVersionNumber != null && (
+              <Text size={11.5} color={skinVars.colors.textSecondary}>
+                · v{running.publishedVersionNumber}
+              </Text>
+            )}
           </div>
         ) : (
           <>
@@ -134,6 +139,7 @@ export function ExecutionToolbar({ journeys, loadError, query, onQueryChange, se
                       </Text>
                       <Text size={11.5} color={skinVars.colors.textSecondary}>
                         {journey.productName} · {journey.channelName}
+                        {journey.publishedVersionNumber != null && ` · v${journey.publishedVersionNumber}`}
                       </Text>
                     </button>
                   ))

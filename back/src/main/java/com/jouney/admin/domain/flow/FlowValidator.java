@@ -1,5 +1,6 @@
 package com.jouney.admin.domain.flow;
 
+import com.jouney.admin.domain.form.FormField;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,7 +10,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,11 +43,7 @@ public final class FlowValidator {
     private FlowValidator() {
     }
 
-    // formFieldNamesByFormId: for every Form referenced by a USER_TASK.formId in this flow, the
-    // names of its fields eligible as a variable (resolved by the caller — UpdateFlow, via
-    // FormRepository — since this validator stays pure domain, no repository access of its own).
-    public static void validate(List<FlowNode> nodes, List<FlowConnection> connections,
-                                 Map<UUID, List<String>> formFieldNamesByFormId) {
+    public static void validate(List<FlowNode> nodes, List<FlowConnection> connections) {
         List<String> violations = new ArrayList<>();
 
         List<FlowNode> starts = nodes.stream().filter(n -> START_TYPES.contains(n.getType())).toList();
@@ -199,7 +195,7 @@ public final class FlowValidator {
                 Set<String> usedTokens = new HashSet<>();
                 collectVariableTokens(connectorConfig.getConfig(), usedTokens);
                 if (!usedTokens.isEmpty()) {
-                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames, formFieldNamesByFormId);
+                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                     for (String token : usedTokens) {
                         if (!availableVars.contains(token)) {
                             violations.add("Nó '" + node.getName() + "' referencia variável não declarada '{{" + token
@@ -216,7 +212,7 @@ public final class FlowValidator {
                 Set<String> usedTokens = new HashSet<>();
                 collectVariableTokens(node.getMessageText(), usedTokens);
                 if (!usedTokens.isEmpty()) {
-                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames, formFieldNamesByFormId);
+                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                     for (String token : usedTokens) {
                         if (!availableVars.contains(token)) {
                             violations.add("A mensagem do nó '" + node.getName() + "' referencia variável não declarada '{{"
@@ -253,7 +249,7 @@ public final class FlowValidator {
                 if (usedTokens.isEmpty()) {
                     continue;
                 }
-                Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames, formFieldNamesByFormId);
+                Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                 for (String token : usedTokens) {
                     if (!availableVars.contains(token)) {
                         violations.add("A condição do nó GATEWAY '" + node.getName() + "' referencia variável não declarada '{{"
@@ -290,10 +286,10 @@ public final class FlowValidator {
                     }
                 }
             }
-            if (node.getType() == FlowNodeType.USER_TASK && node.getFormId() != null) {
-                for (String fieldName : formFieldNamesByFormId.getOrDefault(node.getFormId(), List.of())) {
-                    if (!seenOutputNames.add(fieldName)) {
-                        violations.add("Variável de saída '" + fieldName + "' foi declarada mais de uma vez no fluxo");
+            if (node.getType() == FlowNodeType.USER_TASK && node.getEmbeddedScreen() != null) {
+                for (FormField field : node.getEmbeddedScreen()) {
+                    if (field.getType().collectsValue() && !seenOutputNames.add(field.getName())) {
+                        violations.add("Variável de saída '" + field.getName() + "' foi declarada mais de uma vez no fluxo");
                     }
                 }
             }
@@ -402,10 +398,10 @@ public final class FlowValidator {
     // Shared by every {{name}} check (connector config, gateway condition, USER_TASK message): the
     // variables visible at `node` are the journey's startVariables, every output-mapping name
     // declared by an ancestor reachable backwards from it (REQ-03.09.013), and every field name of
-    // an ancestor USER_TASK's linked form — what the end user actually fills in becomes a process
-    // variable the same way a connector's outputMapping does.
+    // an ancestor USER_TASK's own tela desenhada — what the end user actually fills in becomes a
+    // process variable the same way a connector's outputMapping does.
     private static Set<String> availableVarsFor(FlowNode node, List<FlowNode> nodes, Map<String, List<String>> backward,
-                                                  Set<String> startVariableNames, Map<UUID, List<String>> formFieldNamesByFormId) {
+                                                  Set<String> startVariableNames) {
         Set<String> ancestorIds = bfs(node.getId(), backward);
         Set<String> availableVars = new HashSet<>(startVariableNames);
         for (FlowNode other : nodes) {
@@ -420,8 +416,12 @@ public final class FlowValidator {
                     }
                 }
             }
-            if (other.getType() == FlowNodeType.USER_TASK && other.getFormId() != null) {
-                availableVars.addAll(formFieldNamesByFormId.getOrDefault(other.getFormId(), List.of()));
+            if (other.getType() == FlowNodeType.USER_TASK && other.getEmbeddedScreen() != null) {
+                for (FormField field : other.getEmbeddedScreen()) {
+                    if (field.getType().collectsValue()) {
+                        availableVars.add(field.getName());
+                    }
+                }
             }
         }
         return availableVars;

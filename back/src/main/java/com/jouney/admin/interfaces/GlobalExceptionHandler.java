@@ -5,8 +5,10 @@ import com.jouney.admin.domain.auth.InvalidCredentialsException;
 import com.jouney.admin.domain.auth.InvalidSessionException;
 import com.jouney.admin.domain.channel.ChannelNotFoundException;
 import com.jouney.admin.domain.channel.ProductInactiveException;
+import com.jouney.admin.domain.flow.FlowNodeNotFoundException;
 import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.domain.form.DuplicateFieldNameException;
+import com.jouney.admin.domain.form.InvalidFormFieldException;
 import com.jouney.admin.domain.form.FormNotFoundException;
 import com.jouney.admin.domain.journey.ChannelInactiveException;
 import com.jouney.admin.domain.journey.JourneyInactiveException;
@@ -49,7 +51,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({ProductNotFoundException.class, ChannelNotFoundException.class,
             JourneyNotFoundException.class, FormNotFoundException.class, JourneyVersionNotFoundException.class,
-            MessagingClusterNotFoundException.class, CredentialReferenceNotFoundException.class})
+            MessagingClusterNotFoundException.class, CredentialReferenceNotFoundException.class,
+            FlowNodeNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
     }
@@ -63,7 +66,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({ProductInactiveException.class, ChannelInactiveException.class, VersionHasNoFlowException.class,
-            DuplicateFieldNameException.class})
+            DuplicateFieldNameException.class, InvalidFormFieldException.class})
     public ResponseEntity<ApiError> handleUnprocessable(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, null);
     }

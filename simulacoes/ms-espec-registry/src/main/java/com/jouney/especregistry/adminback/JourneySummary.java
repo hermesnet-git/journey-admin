@@ -6,5 +6,5 @@ import java.util.UUID;
 /** Mapeia só os campos usados do JourneyResponse do admin/back (GET /api/v1/journeys). */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record JourneySummary(UUID journeyId, String name, String description, String productName,
-                              String channelName) {
+                              String channelName, Integer publishedVersionNumber) {
 }

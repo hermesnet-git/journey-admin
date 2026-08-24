@@ -191,7 +191,7 @@ Estrutura principal da jornada; define a sequência das telas e etapas.
 START, END, USER_TASK, SERVICE_TASK, RECEIVE_TASK, MESSAGE_START_EVENT, GATEWAY
 ```
 
-Uma `USER_TASK` sem formulário associado (REQ-04.01.005) pode declarar uma mensagem de texto exibida ao usuário nessa etapa (`messageText`), podendo referenciar variáveis disponíveis naquele ponto do fluxo com a mesma sintaxe `{{nome}}` (REQ-03.09.012) — resolvida contra as variáveis reais da instância no momento da execução, não na publicação.
+Uma `USER_TASK` sem tela desenhada (`embeddedScreen` vazio, REQ-04.01.005) pode declarar uma mensagem de texto exibida ao usuário nessa etapa (`messageText`). Toda referência `{{nome}}` (REQ-03.09.012) — na mensagem ou em qualquer prop de texto de um campo da tela desenhada (rótulo, texto de ajuda, valor padrão, opções etc.) — é resolvida contra as variáveis reais da instância no momento da execução, não na publicação.
 
 ## Flow Connection
 
@@ -235,17 +235,23 @@ Connector configuration is declarative and stored with the flow snapshot. Creden
 
 # 10. User Task Configuration
 
-Par de atributos (`formId`, `messageText`) que a API expõe agrupado sob o nome `User Task Configuration` — não é uma entidade com identidade própria: pertence ao próprio `Flow Node`, dentro do mesmo documento `jsonb` do `Flow` (ver §8), e não existe fora dele (não tem id, não é criada/consultada/removida separadamente). Só é relevante para um `Flow Node` do tipo `USER_TASK`.
+Trio de atributos (`embeddedScreen`, `embeddedScreenSdui`, `messageText`) que a API expõe agrupado sob o nome `User Task Configuration` — não é uma entidade com identidade própria: pertence ao próprio `Flow Node`, dentro do mesmo documento `jsonb` do `Flow` (ver §8), e não existe fora dele (não tem id, não é criada/consultada/removida separadamente). Só é relevante para um `Flow Node` do tipo `USER_TASK`.
 
-Na versão 1.0.0, a associação é opcional: cada `USER_TASK` referencia zero ou um `Form` (`formId`). Quando ausente, `messageText` guarda a mensagem de texto exibida ao usuário nessa etapa em vez de um formulário (REQ-04.01.005) — os dois nunca coexistem com sentido.
+Na versão 1.0.0, a tela é opcional: cada `USER_TASK` pode ter uma tela desenhada diretamente no nó (`embeddedScreen`, array de `Form Field`) ou não ter nenhuma. Quando `embeddedScreen` está vazio, `messageText` guarda a mensagem de texto exibida ao usuário nessa etapa (REQ-04.01.005) — os dois nunca coexistem com sentido. `embeddedScreenSdui` só existe numa snapshot de publicação/versão: a árvore SDUI compilada de `embeddedScreen` no momento em que a jornada foi publicada (§12, Imutabilidade).
 
 ```mermaid
 flowchart LR
     USER_TASK[Flow Node · USER_TASK]
+    SCREEN[embeddedScreen]
     FORM[Form]
 
-    USER_TASK -.->|formId, opcional| FORM
+    USER_TASK --> SCREEN
+    FORM -.->|modelo de cópia, opcional| SCREEN
 ```
+
+Um `Form` do catálogo (§11) pode servir de modelo de partida ao montar `embeddedScreen` — seus campos são copiados no momento da escolha —, mas nenhuma referência é persistida entre o nó e o `Form` de origem depois disso.
+
+> **Nota de revisão (2026-08-24):** seção reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a `USER_TASK` associada a um `Form` por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o `Form` do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 
@@ -253,27 +259,31 @@ flowchart LR
 
 ## Form
 
-Formulário reutilizável associado a uma ou mais User Tasks.
+Formulário reutilizável do catálogo, usado só como modelo de partida (cópia) para a tela embutida de uma User Task — nunca referenciado por id depois da cópia.
 
 ## Form Field — Tipos da Versão 1.0.0
 
 ```text
-TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD
+SECTION, TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD, RADIO, SWITCH,
+SLIDER, RATING, STEPPER, AUTOCOMPLETE, TITLE, IMAGE, DIVIDER, CARD, CALLOUT
 ```
 
-> Nomenclatura alinhada ao domínio implementado (`FormField`/`FormFieldType`). O tipo `STATIC_CONTENT`, que existia como tipo separado, foi colapsado em `TEXT` — os dois tinham o mesmo modelo de dados e divergiam apenas na apresentação visual.
+> Nomenclatura alinhada ao domínio implementado (`FormField`/`FormFieldType`). O tipo `STATIC_CONTENT`, que existia como tipo separado, foi colapsado em `TEXT` — os dois tinham o mesmo modelo de dados e divergiam apenas na apresentação visual. `SECTION` é estrutural — agrupa os campos seguintes até a próxima seção numa grade de colunas configurável — e não coleta valor.
 
-Cada campo (`Form Field`) possui um `name` técnico, único dentro do formulário e imutável após a criação, usado como chave de referência do campo (substitui o identificador interno usado antes do refino do FT-04).
+O mesmo modelo de `Form Field` é usado tanto no catálogo (`Form.fields`) quanto na tela embutida de uma `USER_TASK` (`Flow Node.embeddedScreen`, §10). Cada campo possui um `name` técnico, usado como chave de referência. No catálogo, o `name` é único dentro do formulário e imutável após a criação. Na tela embutida, o `name` é editável a qualquer momento e sua unicidade é verificada na jornada inteira, não só na tela — mesmo espaço de nomes das variáveis de saída de integração (REQ-03.09.011).
 
-- `INPUT` possui um subtipo (texto, número, e-mail, data), com validação de formato associada (faixa mínima/máxima para número; regex/máscara para texto).
-- `SINGLE_SELECT`/`MULTI_SELECT` possuem opções como pares rótulo/valor (não apenas rótulo).
+- `INPUT` possui um subtipo (texto, número, e-mail, data), com validação de formato associada (faixa mínima/máxima para número; regex/máscara para texto); o valor padrão pode referenciar `{{nome}}` de uma variável do fluxo, resolvida em tempo de execução.
+- `SINGLE_SELECT`/`MULTI_SELECT`/`RADIO`/`AUTOCOMPLETE` possuem opções como pares rótulo/valor (não apenas rótulo). `AUTOCOMPLETE` usa opções estáticas na v1.0.0 — fonte de dados dinâmica remota é evolução futura.
 - `FILE_UPLOAD` possui configuração de extensões aceitas e tamanho máximo do arquivo.
+- `SLIDER`/`STEPPER` possuem mínimo, máximo e incremento configuráveis; `RATING` possui número máximo de estrelas configurável.
 
-Um formulário pode ser utilizado por User Tasks de jornadas diferentes. Ao publicar uma jornada, o conteúdo de cada formulário referenciado é copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras no formulário original (mesmo princípio de congelamento do versionamento de jornada). O snapshot de publicação também guarda, para cada formulário, uma representação derivada em árvore de nós no formato `[tag, props, children]` (estilo SDUI/hyperscript) — uma projeção de leitura gerada a partir do Form Field congelado, e não um formato de armazenamento do form em edição.
+Ao publicar uma jornada, a tela embutida (`embeddedScreen`) de cada User Task é copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó (mesmo princípio de congelamento do versionamento de jornada). O snapshot de publicação também guarda, para cada User Task com tela desenhada, uma representação derivada em árvore de nós no formato `[tag, props, children]` (estilo SDUI/hyperscript) — `embeddedScreenSdui` — uma projeção de leitura gerada a partir do `embeddedScreen` congelado, e não um formato de armazenamento da tela em edição. Editar um `Form` do catálogo depois de publicado não afeta jornadas já publicadas — elas nunca dependeram dele, só copiaram os campos uma vez.
 
 ## Persistência
 
-Os `Form Field` de um formulário são persistidos como um único documento `jsonb` (`Form.fields`) — não são normalizados em tabela própria, mesmo caso do `Flow` (ver §8). Cada campo não tem um id UUID próprio: sua chave real é o `name` técnico, definido pelo usuário e único apenas dentro do formulário (garantido em memória na criação/edição, não por constraint de banco).
+Os `Form Field` de um formulário são persistidos como um único documento `jsonb` (`Form.fields`); os de uma tela embutida, como parte do documento `jsonb` do próprio `Flow Node` (`embeddedScreen`, §8) — nenhum dos dois é normalizado em tabela própria. Cada campo não tem um id UUID próprio: sua chave real é o `name` técnico.
+
+> **Nota de revisão (2026-08-24):** seção reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a `USER_TASK` associada a um `Form` do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o `Form` do catálogo servindo apenas como modelo de cópia opcional — e o catálogo de tipos foi ampliado de 5 para 17 componentes para cobrir a necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de depender do motor.
 
 ---
 
@@ -281,7 +291,7 @@ Os `Form Field` de um formulário são persistidos como um único documento `jso
 
 ## Descrição
 
-Representa o snapshot de uma versão imutável enviado para a API de publicação do runtime. A chamada é mockada na versão 1.0.0 e a publicação ativa referencia uma `Journey Version`.
+Representa o snapshot de uma versão imutável enviado para a API de publicação do runtime, por uma chamada de saída real (HTTP). A publicação ativa referencia uma `Journey Version`.
 
 ## Conteúdo
 
@@ -292,9 +302,9 @@ Channel
 
 Journey
 
-Flow
+Flow (com a tela já compilada — embeddedScreenSdui — de cada User Task)
 
-Forms
+VersionNumber
 ```
 
 ## Estados Possíveis
@@ -303,9 +313,11 @@ Forms
 PUBLISHED, UNPUBLISHED
 ```
 
-Cada jornada possui no máximo uma publicação. Publicar novamente substitui o snapshot existente, sem criar histórico ou nova versão.
+Cada jornada possui no máximo uma publicação. Publicar novamente substitui o snapshot existente, sem criar histórico ou nova versão (o histórico vive em `Journey Version`, §14).
 
-Ao despublicar, o Admin Portal chama a API mockada do runtime. Somente após o retorno de sucesso, Journey e Journey Publication passam para `UNPUBLISHED`. Jornadas nunca publicadas permanecem `DRAFT`.
+Ao despublicar, o Admin Portal chama a mesma API real do runtime. Somente após o retorno de sucesso, Journey e Journey Publication passam para `UNPUBLISHED`. Jornadas nunca publicadas permanecem `DRAFT`.
+
+> **Nota de revisão (2026-08-24):** `Conteúdo` reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó, e o snapshot não carrega mais uma lista de formulários — só a tela já compilada de cada nó, mais o número da versão publicada.
 
 ---
 
@@ -414,12 +426,14 @@ erDiagram
 | Journey | Jornada específica de um canal |
 | Flow / Flow Node / Flow Connection | Estrutura visual da jornada e seus elementos |
 | Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
-| User Task Configuration | Par `formId`/`messageText` embutido num Flow Node `USER_TASK` — não é uma entidade própria |
-| Form / Form Field | Formulário e os campos que o compõem |
+| User Task Configuration | Trio `embeddedScreen`/`embeddedScreenSdui`/`messageText` embutido num Flow Node `USER_TASK` — não é uma entidade própria |
+| Form / Form Field | Formulário reutilizável do catálogo (modelo de cópia opcional) e os campos que o compõem |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
 | AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+
+> **Nota de revisão (2026-08-24):** linhas `User Task Configuration` e `Form / Form Field` reescritas — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 

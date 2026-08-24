@@ -74,8 +74,18 @@ final class FlowGenerationPrompt {
             - USER_TASK referencia um formId do catálogo (fica sem formulário, com messageText, se \
             nenhum servir), ou um newFormId apontando pra um item de newForms, ou nenhum dos três.
             - connectorType só pode ser um dos conectores habilitados informados no catálogo.
-            - Use ids locais simples e únicos por nó (ex.: "start", "n1", "end") — eles são remapeados \
-            depois, não precisam seguir nenhum formato.
+            - Use ids locais simples e únicos por nó (ex.: "start", "n1", "end") pra um nó genuinamente \
+            novo — eles são remapeados depois, não precisam seguir nenhum formato. Para um nó que já \
+            existe no "Fluxo atual" informado abaixo, USE O MESMO id que ele já tem lá (não invente um \
+            novo) — é assim que o sistema sabe que é o mesmo nó, e não uma recriação.
+            Sobre o "Fluxo atual" (quando o pedido do usuário não pedir claramente pra recomeçar do \
+            zero): trate-o como o ponto de partida, não como referência a ignorar. Um pedido aditivo ou \
+            pontual (ex.: "adicione uma tarefa para X", "mude a mensagem da tarefa Y", "adicione um \
+            campo no formulário de Z") NUNCA remove ou recria o que já existe e não tem relação com o \
+            pedido — reproduza cada nó/conexão não afetado exatamente como está (mesmo id, nome, \
+            descrição, messageText, connectorConfig, startVariables) e só adicione/altere o que o \
+            pedido pede especificamente. Só redesenhe tudo do zero quando o pedido pedir isso de forma \
+            explícita (ex.: "refaça esse fluxo", "comece de novo", "descarte o que existe").
             Sobre formulários: prefira SEMPRE reaproveitar um formulário existente do catálogo (via \
             formId) quando ele já cobrir o que a etapa precisa coletar, mesmo que os nomes dos campos \
             não batam perfeitamente. Só inclua um item novo em newForms quando genuinamente não existir \
@@ -139,7 +149,59 @@ final class FlowGenerationPrompt {
                         .append(" | campos: ").append(form.fieldNames());
             }
         }
+        sb.append(describeCurrentFlow(context));
         sb.append("\n\nPedido do usuário: ").append(context.prompt());
+        return sb.toString();
+    }
+
+    // O fluxo já desenhado antes deste pedido — o id de cada nó/conexão aqui é o id REAL (não um
+    // placeholder), reaproveitado como "id local" pra este turno: a IA repete o mesmo id quando quer
+    // manter/ajustar um nó (ver instrução no system prompt), e só inventa um id novo pra algo que
+    // está genuinamente criando. Sem isto a IA nunca via o que já existia, e todo pedido — mesmo
+    // aditivo — parecia "desenhe do zero" pra ela.
+    private static String describeCurrentFlow(GenerationContext context) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n\nFluxo atual desta jornada (ponto de partida deste pedido):");
+        if (context.currentFlowNodes().isEmpty()) {
+            sb.append(" vazio, nenhum nó desenhado ainda.");
+            return sb.toString();
+        }
+        for (FlowNode node : context.currentFlowNodes()) {
+            sb.append("\n- id=").append(node.getId()).append(" | tipo=").append(node.getType())
+                    .append(" | nome=\"").append(node.getName()).append('"');
+            if (node.getDescription() != null && !node.getDescription().isBlank()) {
+                sb.append(" | descrição=\"").append(node.getDescription()).append('"');
+            }
+            if (node.getMessageText() != null && !node.getMessageText().isBlank()) {
+                sb.append(" | messageText=\"").append(node.getMessageText()).append('"');
+            }
+            if (node.getConnectorConfig() != null) {
+                sb.append(" | connectorConfig={type=").append(node.getConnectorConfig().getConnectorType())
+                        .append(", config=").append(node.getConnectorConfig().getConfig()).append('}');
+            }
+            if (node.getStartVariables() != null && !node.getStartVariables().isEmpty()) {
+                sb.append(" | startVariables=").append(node.getStartVariables());
+            }
+            if (node.getEmbeddedScreen() != null && !node.getEmbeddedScreen().isEmpty()) {
+                sb.append(" | já tem tela desenhada com os campos: ")
+                        .append(node.getEmbeddedScreen().stream().map(FormField::getName).toList())
+                        .append(" (preservada automaticamente se você reusar o id e não informar formId/newFormId)");
+            }
+        }
+        sb.append("\nConexões atuais (sourceId -> targetId):");
+        if (context.currentFlowConnections().isEmpty()) {
+            sb.append(" nenhuma.");
+        } else {
+            for (FlowConnection c : context.currentFlowConnections()) {
+                sb.append("\n- ").append(c.getSourceNodeId()).append(" -> ").append(c.getTargetNodeId());
+                if (c.getCondition() != null && !c.getCondition().isBlank()) {
+                    sb.append(" [condição: ").append(c.getCondition()).append(']');
+                }
+                if (c.isDefault()) {
+                    sb.append(" [padrão]");
+                }
+            }
+        }
         return sb.toString();
     }
 
@@ -236,9 +298,10 @@ final class FlowGenerationPrompt {
     // Cria os newForms do LLM pelo mesmo caminho de domínio que a criação manual usa (Form.create +
     // FormRepository.save — o mesmo que CreateForm faz, sem nenhuma orquestração extra) — herda
     // DuplicateFieldNameException e qualquer regra futura de Form automaticamente, sem duplicar nada.
-    // generate_flow nunca expõe uma forma de EDITAR um formulário existente — só isto (criar novo) ou
-    // referenciar um existente pelo formId do catálogo, então "nunca alterar um formulário já
-    // associado a uma jornada" vale por construção, não por uma checagem em tempo de execução.
+    // Isto só promove o newForm a template reutilizável no catálogo; os campos que de fato viram a
+    // tela do(s) nó(s) que o referenciam são copiados à parte (ver newFormFieldsByLocalId/toDomain)
+    // — generate_flow nunca expõe uma forma de EDITAR um formulário existente nem de amarrar uma
+    // User Task a ele: só criar um novo template ou copiar os campos de um já existente.
     static Map<String, UUID> createNewForms(FormRepository formRepository, List<LlmNewForm> newForms) {
         Map<String, UUID> idsByLocalId = new LinkedHashMap<>();
         for (LlmNewForm newForm : newForms) {
@@ -262,31 +325,58 @@ final class FlowGenerationPrompt {
                 .toList();
     }
 
+    // Mesma conversão que createNewForms usa pra persistir no catálogo, reaproveitada aqui pra
+    // também copiar os campos direto no embeddedScreen do(s) nó(s) que referenciam este newForm por
+    // newFormId — o Form salvo é só o template promovido, a tela do nó é uma cópia independente.
+    static Map<String, List<FormField>> newFormFieldsByLocalId(List<LlmNewForm> newForms) {
+        Map<String, List<FormField>> result = new LinkedHashMap<>();
+        for (LlmNewForm newForm : newForms) {
+            result.put(newForm.id(), newForm.fields().stream().map(FlowGenerationPrompt::toFormField).toList());
+        }
+        return result;
+    }
+
     private static FormField toFormField(LlmFormField f) {
         InputSubtype inputSubtype = f.inputSubtype() != null && !f.inputSubtype().isBlank()
                 ? InputSubtype.valueOf(f.inputSubtype()) : null;
         List<FormFieldOption> options = f.options() == null ? List.of()
                 : f.options().stream().map(o -> new FormFieldOption(o.label(), o.value())).toList();
+        // Seções, exibição condicional, dataSource e os componentes novos (config genérica) não
+        // fazem parte do que o gerador por IA produz ainda — sempre null aqui, só existem via
+        // edição manual no form builder/editor de tela.
         return new FormField(f.name(), parseEnumOrThrow(FormFieldType.class, f.type()), inputSubtype, f.label(),
-                Boolean.TRUE.equals(f.required()), null, f.helpText(), options, null, null, null, null, null);
+                Boolean.TRUE.equals(f.required()), null, f.helpText(), options, null, null, null, null, null,
+                null, null, null, null);
     }
 
-    static GeneratedFlow toDomain(LlmFlowOutput output, Map<String, UUID> newFormIdsByLocalId) {
+    // existingFormFieldsById: campos dos formulários do catálogo que algum nó referencia por formId
+    // (resolvidos pelo caller — GeminiFlowGenerator, via FormRepository — mesmo padrão que
+    // createNewForms/newFormFieldsByLocalig usam pra newFormId).
+    // existingNodesById: o fluxo atual (mesmo que descreveCurrentFlow mostrou à IA), chaveado pelo id
+    // real — quando a IA reusa esse id pra um nó da resposta, o id/posição/tela desenhada desse nó
+    // são preservados em vez de recriados do zero (ver idsByLocalId/resolveEmbeddedScreen abaixo).
+    static GeneratedFlow toDomain(LlmFlowOutput output, Map<String, List<FormField>> newFormFieldsByLocalId,
+                                   Map<UUID, List<FormField>> existingFormFieldsById,
+                                   Map<String, FlowNode> existingNodesById) {
         Map<String, String> idsByLocalId = new HashMap<>();
         for (LlmNode node : output.nodes()) {
-            idsByLocalId.put(node.id(), FlowIds.newNodeId());
+            idsByLocalId.put(node.id(), existingNodesById.containsKey(node.id()) ? node.id() : FlowIds.newNodeId());
         }
 
         List<FlowNode> nodes = new ArrayList<>();
         int i = 0;
         for (LlmNode node : output.nodes()) {
             ConnectorConfig connectorConfig = toConnectorConfigOrNull(node.connectorConfig());
-            UUID formId = node.newFormId() != null && newFormIdsByLocalId.containsKey(node.newFormId())
-                    ? newFormIdsByLocalId.get(node.newFormId())
-                    : parseUuidOrNull(node.formId());
+            List<FormField> embeddedScreen = resolveEmbeddedScreen(node, newFormFieldsByLocalId, existingFormFieldsById,
+                    existingNodesById);
+            // Nó reaproveitado (mesmo id do fluxo atual) mantém a posição de onde já estava no canvas —
+            // só um nó genuinamente novo recebe a posição em grade calculada pelo índice.
+            FlowNode existing = existingNodesById.get(node.id());
+            int positionX = existing != null ? existing.getPositionX() : (i % 6) * 40;
+            int positionY = existing != null ? existing.getPositionY() : (i / 6) * 40;
             nodes.add(new FlowNode(idsByLocalId.get(node.id()), parseEnumOrThrow(FlowNodeType.class, node.type()),
-                    node.name(), node.description(), (i % 6) * 40, (i / 6) * 40, formId,
-                    connectorConfig, node.startVariables(), node.messageText()));
+                    node.name(), node.description(), positionX, positionY,
+                    connectorConfig, node.startVariables(), node.messageText(), embeddedScreen, null));
             i++;
         }
 
@@ -308,6 +398,26 @@ final class FlowGenerationPrompt {
                 .toList();
 
         return new GeneratedFlow(output.name(), nodes, connections);
+    }
+
+    // newFormId tem prioridade (referencia um item de newForms desta mesma geração); senão, formId
+    // aponta pra um formulário já existente no catálogo — os dois casos só copiam campos pro
+    // embeddedScreen do nó, nunca guardam uma referência viva. Sem nenhum dos dois, mas reusando o id
+    // de um nó existente, preserva a tela que esse nó já tinha desenhada à mão — generate_flow nunca
+    // teve como recriar uma tela assim (só o form builder produz), então sem este fallback ela seria
+    // perdida sempre que a IA reproduzisse o nó sem tocar no formulário.
+    private static List<FormField> resolveEmbeddedScreen(LlmNode node, Map<String, List<FormField>> newFormFieldsByLocalId,
+                                                            Map<UUID, List<FormField>> existingFormFieldsById,
+                                                            Map<String, FlowNode> existingNodesById) {
+        if (node.newFormId() != null && newFormFieldsByLocalId.containsKey(node.newFormId())) {
+            return newFormFieldsByLocalId.get(node.newFormId());
+        }
+        UUID existingFormId = parseUuidOrNull(node.formId());
+        if (existingFormId != null) {
+            return existingFormFieldsById.getOrDefault(existingFormId, List.of());
+        }
+        FlowNode existingNode = existingNodesById.get(node.id());
+        return existingNode != null && existingNode.getEmbeddedScreen() != null ? existingNode.getEmbeddedScreen() : List.of();
     }
 
     // connectorConfig é sempre opcional no domínio (FlowNode aceita null pra qualquer tipo de nó) —
@@ -332,7 +442,7 @@ final class FlowGenerationPrompt {
         }
     }
 
-    private static UUID parseUuidOrNull(String value) {
+    static UUID parseUuidOrNull(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }

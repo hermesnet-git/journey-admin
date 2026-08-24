@@ -27,7 +27,8 @@ public class FormRepositoryAdapter implements FormRepository {
                 .map(f -> new FormFieldRecord(f.getName(), f.getType(), f.getInputSubtype(), f.getLabel(),
                         f.isRequired(), f.getDefaultValue(), f.getHelpText(), f.getOptions(), f.getMinValue(),
                         f.getMaxValue(), f.getValidationPattern(), f.getAcceptedExtensions(),
-                        f.getMaxFileSizeBytes()))
+                        f.getMaxFileSizeBytes(), f.getColumns(), f.getVisibleIf(),
+                        FormFieldRecord.DataSourceRecord.from(f.getDataSource()), f.getConfig()))
                 .toList());
         FormJpaEntity entity = new FormJpaEntity(form.getId(), form.getName(), form.getDescription(), fieldsJson,
                 form.getCreatedAt(), form.getUpdatedAt());
@@ -59,7 +60,8 @@ public class FormRepositoryAdapter implements FormRepository {
         List<FormField> fields = fieldRecords.stream()
                 .map(f -> new FormField(f.name(), f.type(), f.inputSubtype(), f.label(), f.required(),
                         f.defaultValue(), f.helpText(), f.options(), f.minValue(), f.maxValue(),
-                        f.validationPattern(), f.acceptedExtensions(), f.maxFileSizeBytes()))
+                        f.validationPattern(), f.acceptedExtensions(), f.maxFileSizeBytes(), f.columns(),
+                        f.visibleIf(), f.dataSource() != null ? f.dataSource().toDomain() : null, f.config()))
                 .toList();
         return new Form(entity.getId(), entity.getName(), entity.getDescription(), fields, entity.getCreatedAt(),
                 entity.getUpdatedAt());

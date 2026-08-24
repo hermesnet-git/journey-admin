@@ -2,7 +2,6 @@ package com.jouney.especregistry.simulation;
 
 import com.jouney.especregistry.adminback.AdminBackClient;
 import com.jouney.especregistry.adminback.FlowNode;
-import com.jouney.especregistry.adminback.FormSnapshot;
 import com.jouney.especregistry.adminback.PublicationSnapshot;
 import com.jouney.especregistry.camunda.ActivityInstanceNode;
 import com.jouney.especregistry.camunda.CamundaClient;
@@ -11,9 +10,9 @@ import com.jouney.especregistry.camunda.ProcessIds;
 import com.jouney.especregistry.camunda.ProcessInstanceInfo;
 import com.jouney.especregistry.camunda.TaskInfo;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,40 +61,84 @@ public class StepResolver {
 
     private StepResponse resolveUserTask(UUID journeyId, TaskInfo task, String processInstanceId) {
         PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
-        Optional<String> formIdRaw = camundaClient.getTaskLocalVariable(task.id(), "formId");
-        if (formIdRaw.isEmpty()) {
-            // REQ-04.01.005: a USER_TASK may have no form — a display-only step (a message, maybe
-            // built from a prior integration's output). Synthesize the smallest SDUI the channel
-            // already knows how to render: a text node plus the "Avançar" button the form renderer
-            // always shows, same shape FormSduiSerializer produces for a real TEXT field.
-            FlowNode node = snapshot.findNode(task.taskDefinitionKey())
-                    .orElseThrow(() -> new IllegalStateException("Nó " + task.taskDefinitionKey() + " não encontrado no snapshot da jornada"));
+        FlowNode node = snapshot.findNode(task.taskDefinitionKey())
+                .orElseThrow(() -> new IllegalStateException("Nó " + task.taskDefinitionKey() + " não encontrado no snapshot da jornada"));
+        if (node.embeddedScreenSdui() == null || node.embeddedScreenSdui().isEmpty()) {
+            // REQ-04.01.005: a USER_TASK may have no tela desenhada — a display-only step (a
+            // message, maybe built from a prior integration's output). Synthesize the smallest SDUI
+            // the channel already knows how to render: a text node plus the "Avançar" button the
+            // form renderer always shows, same shape FormSduiSerializer produces for a real TEXT field.
             String message = resolveMessage(node, processInstanceId);
             return StepResponse.userTask(task.id(), task.taskDefinitionKey(), task.name(),
                     new FormPayload(null, node.name(), null, messageSdui(message)));
         }
-        FormSnapshot form = snapshot.findForm(UUID.fromString(formIdRaw.get()))
-                .orElseThrow(() -> new IllegalStateException("Formulário " + formIdRaw.get() + " não encontrado no snapshot da jornada"));
+        Map<String, CamundaVariable> variables = camundaClient.getProcessVariables(processInstanceId);
+        List<Object> resolvedSdui = resolveSduiNode(node.embeddedScreenSdui(), variables);
         return StepResponse.userTask(task.id(), task.taskDefinitionKey(), task.name(),
-                new FormPayload(form.id(), form.name(), form.description(), form.sdui()));
+                new FormPayload(null, node.name(), null, resolvedSdui));
     }
 
-    // Resolves {{name}} tokens in the node's messageText against this instance's current process
-    // variables; falls back to the node's own name when there's no message configured at all, so a
-    // formless User Task never renders blank.
+    // Falls back to the node's own name when there's no message configured at all, so a formless
+    // User Task never renders blank.
     private String resolveMessage(FlowNode node, String processInstanceId) {
         String text = node.messageText();
         if (text == null || text.isBlank()) {
             return node.name();
         }
-        Map<String, CamundaVariable> variables = camundaClient.getProcessVariables(processInstanceId);
+        return resolveTemplate(text, camundaClient.getProcessVariables(processInstanceId));
+    }
+
+    // Percorre a árvore SDUI inteira (label/text/defaultValue/helpText/opções... qualquer valor
+    // String em qualquer prop, de qualquer nó, inclusive dentro de ui.section) trocando {{name}} pelo
+    // valor real da instância — sem isto, uma tela desenhada de verdade (ao contrário do fallback
+    // messageText acima) chegava ao canal com o token literal, nunca resolvido.
+    @SuppressWarnings("unchecked")
+    private List<Object> resolveSduiNode(List<Object> node, Map<String, CamundaVariable> variables) {
+        String tag = (String) node.get(0);
+        Map<String, Object> props = (Map<String, Object>) node.get(1);
+        List<Object> children = (List<Object>) node.get(2);
+
+        Map<String, Object> resolvedProps = new LinkedHashMap<>();
+        props.forEach((key, value) -> resolvedProps.put(key, resolveSduiValue(value, variables)));
+
+        List<Object> resolvedChildren = new ArrayList<>();
+        for (Object child : children) {
+            resolvedChildren.add(resolveSduiNode((List<Object>) child, variables));
+        }
+        return List.of(tag, resolvedProps, resolvedChildren);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object resolveSduiValue(Object value, Map<String, CamundaVariable> variables) {
+        if (value instanceof String s) {
+            return resolveTemplate(s, variables);
+        }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> resolved = new LinkedHashMap<>();
+            map.forEach((k, v) -> resolved.put(String.valueOf(k), resolveSduiValue(v, variables)));
+            return resolved;
+        }
+        if (value instanceof List<?> list) {
+            List<Object> resolved = new ArrayList<>();
+            for (Object item : list) {
+                resolved.add(resolveSduiValue(item, variables));
+            }
+            return resolved;
+        }
+        return value;
+    }
+
+    private String resolveTemplate(String text, Map<String, CamundaVariable> variables) {
         Matcher matcher = VARIABLE_TOKEN.matcher(text);
+        if (!matcher.find()) {
+            return text;
+        }
         StringBuilder result = new StringBuilder();
-        while (matcher.find()) {
+        do {
             CamundaVariable variable = variables.get(matcher.group(1));
             String value = variable != null && variable.value() != null ? String.valueOf(variable.value()) : "";
             matcher.appendReplacement(result, Matcher.quoteReplacement(value));
-        }
+        } while (matcher.find());
         matcher.appendTail(result);
         return result.toString();
     }

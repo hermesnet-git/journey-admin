@@ -138,10 +138,10 @@ Debug completo por etapa
 
 Visualização dos dados de formulário por etapa
 
-Seções e exibição condicional em formulários
-
-Organização dinâmica de campos
+Exibição condicional em formulários (campo `visibleIf` já existe no modelo, mas não é avaliado em runtime)
 ```
+
+> **Nota de revisão (2026-08-24):** "Seções" e "Organização dinâmica de campos" saíram desta lista — implementadas nesta revisão.
 
 ---
 
@@ -173,11 +173,11 @@ Catálogo de clusters de mensageria corporativos e referências de credencial (A
 
 ## AI-Assisted Flow Generation
 
-Geração automática de um rascunho de fluxo a partir de uma descrição em linguagem natural, usando a credencial de IA do Integration Catalog. O fluxo gerado é sempre um rascunho editável, sujeito às mesmas regras de validação estrutural e à mesma revisão manual de um fluxo criado por edição direta.
+Geração automática de um rascunho de fluxo a partir de uma descrição em linguagem natural, usando a credencial de IA do Integration Catalog. O fluxo gerado é sempre um rascunho editável, sujeito às mesmas regras de validação estrutural e à mesma revisão manual de um fluxo criado por edição direta. A geração considera o fluxo já desenhado no canvas como contexto: um pedido aditivo preserva nós/conexões sem relação com o pedido; redesenhar tudo do zero só ocorre quando pedido explicitamente.
 
 ## Form
 
-Formulário utilizado por uma User Task.
+Formulário reutilizável do catálogo, usado como modelo de partida (cópia) para a tela de uma User Task — não mais referenciado por id, ver User Task Configuration.
 
 ## Execution
 
@@ -185,7 +185,9 @@ Execução real do caminho e das telas de uma jornada publicada, contra o motor 
 
 ## Journey Version
 
-Versão imutável de uma jornada, contendo o fluxo, conexões e referências aos formulários utilizados em uma determinada publicação.
+Versão imutável de uma jornada, contendo o fluxo, conexões e a tela embutida (compilada) de cada User Task numa determinada publicação.
+
+> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ## Journey Publication
 
@@ -284,8 +286,8 @@ Especificação OpenAPI
 | Receive Task | Tarefa que aguarda uma mensagem externa |
 | Message Start Event | Elemento que inicia uma jornada por mensagem externa |
 | Connector | Tipo e configuração da integração utilizada por uma tarefa |
-| User Task Configuration | Associação entre uma User Task e seu formulário |
-| Form | Formulário utilizado por User Tasks |
+| User Task Configuration | Tela embutida (`embeddedScreen`) desenhada diretamente no nó de uma User Task |
+| Form | Formulário reutilizável do catálogo, usado só como modelo de partida (cópia) para telas de User Task |
 | Form Component | Componente visual pertencente a um formulário |
 | Journey Version | Versão imutável de uma jornada |
 | Journey Publication | Snapshot de uma versão enviado para a API de publicação do runtime |
@@ -294,6 +296,8 @@ Especificação OpenAPI
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
 | AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+
+> **Nota de revisão (2026-08-24):** linhas `User Task Configuration` e `Form` reescritas — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 
@@ -306,14 +310,16 @@ Especificação OpenAPI
 | Journey | Jornada digital específica de um canal |
 | Flow | Fluxo visual |
 | User Task | Interação humana realizada durante a jornada |
-| Form | Formulário exibido em uma User Task |
+| Form | Formulário reutilizável do catálogo, usado como modelo de partida (cópia) para a tela de uma User Task |
 | Execution | Execução real da jornada publicada, contra o motor de runtime |
 | Publication | Envio do snapshot de uma versão imutável para a API de publicação do runtime |
 | Runtime | Camada responsável pela execução das jornadas |
 | ms-journey | Motor de execução que não conhece nem consulta o Admin Portal |
 | BPMN | Modelo executável utilizado pelo motor de workflow |
 | Integration Catalog | Catálogo de clusters de mensageria e referências de credencial usados pelos conectores, e da credencial de IA |
-| AI-Assisted Flow Generation | Geração de um rascunho de fluxo a partir de um prompt em linguagem natural |
+| AI-Assisted Flow Generation | Geração de um rascunho de fluxo a partir de um prompt em linguagem natural, considerando o fluxo já desenhado como contexto |
+
+> **Nota de revisão (2026-08-24):** linha `Form` reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 

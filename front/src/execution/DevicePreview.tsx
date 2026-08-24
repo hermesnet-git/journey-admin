@@ -58,7 +58,10 @@ export function DevicePreview({
                 {step.form.name}
               </Text>
             </Stack>
-            <SduiFormRenderer sdui={step.form.sdui} onSubmit={onCompleteTask} submitting={busy} />
+            {/* key=taskId: sem isto o React reaproveita a mesma instância (e o estado interno do
+                <Form> da Mística) entre User Tasks diferentes — os valores digitados na tela
+                anterior vazavam pra tela seguinte, mesmo sem nenhum campo em comum de verdade. */}
+            <SduiFormRenderer key={step.taskId} sdui={step.form.sdui} onSubmit={onCompleteTask} submitting={busy} />
           </Stack>
         )}
 

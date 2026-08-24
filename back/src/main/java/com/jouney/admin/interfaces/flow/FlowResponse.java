@@ -7,6 +7,7 @@ import com.jouney.admin.domain.flow.FlowAnnotation;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
+import com.jouney.admin.interfaces.form.FormFieldResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,8 +27,11 @@ public record FlowResponse(String flowId, UUID journeyId, String name, List<Node
                                 ConnectorConfigResponse connectorConfig, List<Map<String, Object>> startVariables) {
 
         public static NodeResponse from(FlowNode node) {
-            UserTaskConfigResponse userTaskConfig = node.getFormId() != null || node.getMessageText() != null
-                    ? new UserTaskConfigResponse(node.getFormId(), node.getMessageText())
+            boolean hasEmbeddedScreen = node.getEmbeddedScreen() != null && !node.getEmbeddedScreen().isEmpty();
+            UserTaskConfigResponse userTaskConfig = node.getMessageText() != null || hasEmbeddedScreen
+                    ? new UserTaskConfigResponse(node.getMessageText(),
+                            hasEmbeddedScreen ? node.getEmbeddedScreen().stream().map(FormFieldResponse::from).toList()
+                                    : List.of())
                     : null;
             ConnectorConfigResponse connectorConfig = node.getConnectorConfig() != null
                     ? ConnectorConfigResponse.from(node.getConnectorConfig())
@@ -38,7 +42,7 @@ public record FlowResponse(String flowId, UUID journeyId, String name, List<Node
         }
     }
 
-    public record UserTaskConfigResponse(UUID formId, String messageText) {
+    public record UserTaskConfigResponse(String messageText, List<FormFieldResponse> embeddedScreen) {
     }
 
     public record ConnectorConfigResponse(ConnectorType connectorType, Map<String, Object> config,

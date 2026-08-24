@@ -43,7 +43,7 @@ class JourneyViewAssembler {
                 .orElse(null);
         var publishedVersionId = publishedVersion != null ? publishedVersion.getId() : null;
         var publishedVersionNumber = publishedVersion != null ? publishedVersion.getVersionNumber() : null;
-        return new JourneyView(journey, product.getId(), product.getName(), channel.getName(), publishedAt,
-                publishedVersionId, publishedVersionNumber);
+        return new JourneyView(journey, product.getId(), product.getName(), channel.getName(), channel.getType(),
+                publishedAt, publishedVersionId, publishedVersionNumber);
     }
 }

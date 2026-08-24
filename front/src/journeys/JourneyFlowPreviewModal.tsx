@@ -53,7 +53,6 @@ export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Pro
       name: n.name,
       positionX: n.positionX,
       positionY: n.positionY,
-      formId: n.userTaskConfig?.formId ?? null,
       connectorConfig: n.connectorConfig
         ? { connectorType: n.connectorConfig.connectorType, config: n.connectorConfig.config }
         : null,

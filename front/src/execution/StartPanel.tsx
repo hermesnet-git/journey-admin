@@ -104,6 +104,7 @@ export function StartPanel({ journey, onStarted }: Props) {
             </Text>
             <Text size={13} color={skinVars.colors.textSecondary}>
               {journey.productName} · {journey.channelName}
+              {journey.publishedVersionNumber != null && ` · v${journey.publishedVersionNumber}`}
             </Text>
           </Stack>
 

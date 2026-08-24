@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './client';
+import type { ChannelType } from './products';
 
 export type JourneyStatus = 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED' | 'INACTIVE';
 export type JourneySort = 'CREATED_AT' | 'UPDATED_AT';
@@ -7,6 +8,7 @@ export interface Journey {
   journeyId: string;
   channelId: string;
   channelName: string;
+  channelType: ChannelType;
   productId: string;
   productName: string;
   name: string;

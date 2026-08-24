@@ -2,6 +2,7 @@ import { useFlowTheme } from './theme';
 import { PropertyGrid, PropertyRow, gridInputStyle } from './PropertyGrid';
 
 export function JourneyMetaBar({
+  journeyId,
   productName,
   channelName,
   name,
@@ -9,6 +10,7 @@ export function JourneyMetaBar({
   description,
   onDescriptionChange,
 }: {
+  journeyId: string;
   productName: string;
   channelName: string;
   name: string;
@@ -20,7 +22,12 @@ export function JourneyMetaBar({
 
   return (
     <PropertyGrid>
-      <PropertyRow label="Produto" first>
+      <PropertyRow label="ID" first>
+        <div style={{ color: c.textSecondary, fontFamily: 'monospace', fontSize: 11.5, wordBreak: 'break-all' }}>
+          {journeyId}
+        </div>
+      </PropertyRow>
+      <PropertyRow label="Produto">
         <div style={{ color: c.textSecondary }}>{productName || '—'}</div>
       </PropertyRow>
       <PropertyRow label="Canal">

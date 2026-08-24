@@ -100,6 +100,7 @@ export function Toolbar({
   saving,
   onCancel,
   onGenerate,
+  journeyName,
 }: {
   canUndo: boolean;
   canRedo: boolean;
@@ -118,6 +119,7 @@ export function Toolbar({
   saving: boolean;
   onCancel: () => void;
   onGenerate: () => void;
+  journeyName: string;
 }) {
   const { c } = useFlowTheme();
   const iconBtn =
@@ -126,7 +128,10 @@ export function Toolbar({
 
   return (
     <div className="shrink-0 border-b px-3 py-[6px] flex items-center justify-between gap-3" style={{ background: c.headerBg, borderColor: c.border }}>
-      <div className="flex items-center gap-[3px] shrink-0 ml-auto">
+      <div className="min-w-0 text-[12.5px] font-medium truncate" style={{ color: c.textPrimary }}>
+        {journeyName}
+      </div>
+      <div className="flex items-center gap-[3px] shrink-0">
         <button
           onClick={onGenerate}
           title="Gerar fluxo a partir de um prompt"

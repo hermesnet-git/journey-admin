@@ -152,6 +152,7 @@ export interface JourneySummary {
   description: string | null;
   productName: string;
   channelName: string;
+  publishedVersionNumber: number | null;
 }
 
 export type SduiNode = [tag: string, props: Record<string, unknown>, children: SduiNode[]];
@@ -213,7 +214,6 @@ export interface FlowNodeInfo {
   name: string;
   positionX: number;
   positionY: number;
-  formId: string | null;
   connectorConfig: ConnectorConfigInfo | null;
   // REQ-03.12.001: {name, type} declarations, meaningful only on the START node — variables the
   // caller must supply when starting an instance (collected by StartPanel before "Executar").

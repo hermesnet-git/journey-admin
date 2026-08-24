@@ -5,6 +5,7 @@ import com.jouney.admin.domain.flow.FlowAnnotation;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowRepository;
+import com.jouney.admin.infrastructure.persistence.form.FormFieldRecord;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,9 +28,11 @@ public class FlowRepositoryAdapter implements FlowRepository {
     public Flow save(Flow flow) {
         String nodesJson = writeJson(flow.getNodes().stream()
                 .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
-                        n.getPositionX(), n.getPositionY(), n.getFormId(),
+                        n.getPositionX(), n.getPositionY(),
                         FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()), n.getStartVariables(),
-                        n.getMessageText()))
+                        n.getMessageText(),
+                        n.getEmbeddedScreen() == null ? List.of()
+                                : n.getEmbeddedScreen().stream().map(FormFieldRecord::from).toList()))
                 .toList());
         String connectionsJson = writeJson(flow.getConnections().stream()
                 .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
@@ -59,8 +62,10 @@ public class FlowRepositoryAdapter implements FlowRepository {
                 });
         List<FlowNode> nodes = nodeRecords.stream()
                 .map(n -> new FlowNode(n.id(), n.type(), n.name(), n.description(), n.positionX(), n.positionY(),
-                        n.formId(), n.connectorConfig() != null ? n.connectorConfig().toDomain() : null,
-                        n.startVariables(), n.messageText()))
+                        n.connectorConfig() != null ? n.connectorConfig().toDomain() : null,
+                        n.startVariables(), n.messageText(),
+                        n.embeddedScreen() == null ? List.of()
+                                : n.embeddedScreen().stream().map(FormFieldRecord::toDomain).toList(), null))
                 .toList();
         List<FlowConnection> connections = connectionRecords.stream()
                 .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))

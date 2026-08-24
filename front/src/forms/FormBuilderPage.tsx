@@ -23,22 +23,28 @@ import {
   type FormInput,
 } from '../api/forms';
 
-const FIELD_TYPE_META: Record<FormFieldType, { label: string; icon: typeof Type }> = {
+// Catálogo intencionalmente menor que o FormFieldType completo — este builder é o catálogo
+// original de Formulários (mantido como estava); o editor de tela embutido no fluxo (mais rico,
+// ~17 componentes) é uma feature separada. O `as` é seguro aqui porque FIELD_TYPES (e todo `type`
+// usado neste arquivo pra CRIAR um campo novo) só é derivado destas mesmas chaves — nunca indexado
+// com um tipo de fora dela, exceto ao exibir um campo já existente (ver fallback em FieldCard, que
+// cobre um formulário criado com um tipo fora deste catálogo, ex.: promovido do editor de tela).
+const FIELD_TYPE_META = {
   TEXT: { label: 'Texto', icon: Type },
   INPUT: { label: 'Campo de entrada', icon: TextCursorInput },
   SINGLE_SELECT: { label: 'Seleção simples', icon: CircleDot },
   MULTI_SELECT: { label: 'Seleção múltipla', icon: ListChecks },
   FILE_UPLOAD: { label: 'Upload de arquivo', icon: Upload },
-};
+} as Record<FormFieldType, { label: string; icon: typeof Type }>;
 
 const FIELD_TYPES = Object.keys(FIELD_TYPE_META) as FormFieldType[];
 
-const INPUT_SUBTYPE_LABEL: Record<InputSubtype, string> = {
+const INPUT_SUBTYPE_LABEL = {
   TEXT: 'Texto',
   NUMBER: 'Número',
   EMAIL: 'E-mail',
   DATE: 'Data',
-};
+} as Record<InputSubtype, string>;
 
 function slugify(text: string): string {
   return text
@@ -285,7 +291,9 @@ function FieldCard({
   onMove: (dir: -1 | 1) => void;
 }) {
   const { colors: c } = useAppTheme();
-  const meta = FIELD_TYPE_META[field.type];
+  // Fallback pra um campo de um tipo fora deste catálogo (ex.: formulário promovido do editor de
+  // tela embutido no fluxo, que tem ~17 componentes) — sem isto, abrir esse formulário aqui quebraria.
+  const meta = FIELD_TYPE_META[field.type] ?? { label: field.type, icon: Type };
   const Icon = meta.icon;
   const isSelect = field.type === 'SINGLE_SELECT' || field.type === 'MULTI_SELECT';
   const options = field.options ?? [];
@@ -543,12 +551,12 @@ export function FormPreview({ name, description, fields }: { name: string; descr
   );
 }
 
-const INPUT_HTML_TYPE: Record<InputSubtype, string> = {
+const INPUT_HTML_TYPE = {
   TEXT: 'text',
   NUMBER: 'number',
   EMAIL: 'email',
   DATE: 'date',
-};
+} as Record<InputSubtype, string>;
 
 function FieldPreview({ field }: { field: FormField }) {
   const { colors: c } = useAppTheme();
@@ -588,7 +596,7 @@ function FieldPreview({ field }: { field: FormField }) {
       {field.type === 'INPUT' && (
         <input
           disabled
-          type={INPUT_HTML_TYPE[field.inputSubtype ?? 'TEXT']}
+          type={INPUT_HTML_TYPE[field.inputSubtype ?? 'TEXT'] ?? 'text'}
           placeholder={field.defaultValue ?? ''}
           style={inputStyle}
         />

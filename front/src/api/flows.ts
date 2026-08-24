@@ -1,4 +1,5 @@
 import { apiGet, apiPost, apiPostSse, apiPut, ApiClientError } from './client';
+import type { Form, FormField } from './forms';
 
 export type FlowNodeType = 'START' | 'USER_TASK' | 'END' | 'SERVICE_TASK' | 'RECEIVE_TASK' | 'MESSAGE_START_EVENT' | 'GATEWAY';
 export type ConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
@@ -16,9 +17,11 @@ export interface FlowNode {
   description: string | null;
   positionX: number;
   positionY: number;
-  // REQ-04.01.005: formId may be absent (a display-only step) — messageText then holds what to
-  // show instead, resolved by the simulator at execution time (may reference {{name}} tokens).
-  userTaskConfig: { formId: string | null; messageText: string | null } | null;
+  // REQ-04.01.005: embeddedScreen may be absent/empty (a display-only step) — messageText then
+  // holds what to show instead, resolved by the simulator at execution time (may reference
+  // {{name}} tokens). embeddedScreen é a tela desenhada no editor embutido do dock — nunca uma
+  // referência a um Form do catálogo, sempre uma cópia embutida no próprio nó.
+  userTaskConfig: { messageText: string | null; embeddedScreen: FormField[] } | null;
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: {name, type} declarations, meaningful only on the START node.
   startVariables: { name: string; type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' }[] | null;
@@ -109,4 +112,14 @@ export interface ConnectorTestResponse {
 
 export function testConnector(journeyId: string, nodeId: string, input: ConnectorTestInput): Promise<ConnectorTestResponse> {
   return apiPost<ConnectorTestResponse>(`/journeys/${journeyId}/flow/nodes/${nodeId}/connector-test`, input);
+}
+
+// "Salvar como formulário reutilizável" — copia embeddedScreen pra um Form novo no catálogo; não
+// altera o nó (não mexe em embeddedScreen).
+export function promoteEmbeddedScreen(
+  journeyId: string,
+  nodeId: string,
+  input: { name: string; description: string },
+): Promise<Form> {
+  return apiPost<Form>(`/journeys/${journeyId}/flow/nodes/${nodeId}/promote-form`, input);
 }

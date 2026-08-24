@@ -99,7 +99,7 @@ public class PublishJourneyVersion {
         Publication publication = Publication.create(existingPublicationId, journeyId, version.getJourneyName(),
                 version.getJourneyDescription(), version.getProductId(), version.getProductName(),
                 version.getChannelId(), version.getChannelName(), version.getChannelType(), version.getFlowNodes(),
-                version.getFlowConnections(), version.getForms(), version.getId());
+                version.getFlowConnections(), version.getId(), version.getVersionNumber());
         try {
             runtimePublicationPort.publish(publication);
         } catch (RuntimeException e) {

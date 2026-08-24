@@ -3,7 +3,6 @@ package com.jouney.admin.domain.publication;
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
-import com.jouney.admin.domain.form.Form;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -21,16 +20,16 @@ public class Publication {
     private final ChannelType channelType;
     private final List<FlowNode> flowNodes;
     private final List<FlowConnection> flowConnections;
-    private final List<Form> forms;
     private final UUID versionId;
+    private final Integer versionNumber;
     private final OffsetDateTime publishedAt;
     private final OffsetDateTime createdAt;
     private final OffsetDateTime updatedAt;
 
     public Publication(UUID id, UUID journeyId, String journeyName, String journeyDescription, UUID productId,
                         String productName, UUID channelId, String channelName, ChannelType channelType,
-                        List<FlowNode> flowNodes, List<FlowConnection> flowConnections, List<Form> forms,
-                        UUID versionId, OffsetDateTime publishedAt, OffsetDateTime createdAt,
+                        List<FlowNode> flowNodes, List<FlowConnection> flowConnections,
+                        UUID versionId, Integer versionNumber, OffsetDateTime publishedAt, OffsetDateTime createdAt,
                         OffsetDateTime updatedAt) {
         this.id = id;
         this.journeyId = journeyId;
@@ -43,8 +42,8 @@ public class Publication {
         this.channelType = channelType;
         this.flowNodes = flowNodes;
         this.flowConnections = flowConnections;
-        this.forms = forms;
         this.versionId = versionId;
+        this.versionNumber = versionNumber;
         this.publishedAt = publishedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -56,11 +55,11 @@ public class Publication {
     public static Publication create(UUID existingId, UUID journeyId, String journeyName, String journeyDescription,
                                       UUID productId, String productName, UUID channelId, String channelName,
                                       ChannelType channelType, List<FlowNode> flowNodes,
-                                      List<FlowConnection> flowConnections, List<Form> forms, UUID versionId) {
+                                      List<FlowConnection> flowConnections, UUID versionId, Integer versionNumber) {
         OffsetDateTime now = OffsetDateTime.now();
         UUID id = existingId != null ? existingId : UUID.randomUUID();
         return new Publication(id, journeyId, journeyName, journeyDescription, productId, productName, channelId,
-                channelName, channelType, flowNodes, flowConnections, forms, versionId, now, now, now);
+                channelName, channelType, flowNodes, flowConnections, versionId, versionNumber, now, now, now);
     }
 
     public UUID getId() {
@@ -107,12 +106,12 @@ public class Publication {
         return flowConnections;
     }
 
-    public List<Form> getForms() {
-        return forms;
-    }
-
     public UUID getVersionId() {
         return versionId;
+    }
+
+    public Integer getVersionNumber() {
+        return versionNumber;
     }
 
     public OffsetDateTime getPublishedAt() {

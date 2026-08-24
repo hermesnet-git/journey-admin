@@ -305,7 +305,7 @@ MESSAGE_START_EVENT → bpmn:startEvent + messageEventDefinition
 
 ## Geração de Fluxo Assistida por IA
 
-O editor permite gerar automaticamente um rascunho de fluxo a partir de um prompt em linguagem natural, usando a credencial de IA cadastrada no Domínio 11 — Integration Catalog. Um fluxo gerado que viole a validação estrutural do próprio domínio é corrigido e reenviado ao modelo de IA (retry/reparo) dentro de um número limitado de tentativas antes de ser apresentado; uma vez apresentado, o fluxo é um rascunho comum, sujeito às mesmas regras de validação e à mesma revisão manual de qualquer edição direta — a geração por IA não é um caminho de publicação separado.
+O editor permite gerar automaticamente um rascunho de fluxo a partir de um prompt em linguagem natural, usando a credencial de IA cadastrada no Domínio 11 — Integration Catalog. O pedido é enviado ao modelo junto com o fluxo já desenhado no canvas (nós, conexões e a tela embutida de cada User Task) como contexto: um pedido aditivo ou pontual não deve remover ou recriar o que não tem relação com ele — o id, a posição e a tela de um nó não afetado são preservados; redesenhar tudo do zero só ocorre quando pedido explicitamente. Um fluxo gerado que viole a validação estrutural do próprio domínio é corrigido e reenviado ao modelo de IA (retry/reparo) dentro de um número limitado de tentativas antes de ser apresentado; uma vez apresentado, o fluxo é um rascunho comum, sujeito às mesmas regras de validação e à mesma revisão manual de qualquer edição direta — a geração por IA não é um caminho de publicação separado.
 
 ## Entidades
 
@@ -323,15 +323,20 @@ Flow Connection
 
 ## Objetivo
 
-Gerenciar formulários utilizados pelas User Tasks.
+Gerenciar formulários reutilizáveis, usados como modelo de partida (cópia) para a tela embutida de uma User Task — a tela em si é desenhada diretamente no nó, no editor de fluxo (Domínio 03), não neste domínio.
+
+> **Nota de revisão (2026-08-24):** objetivo reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário deste catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário deste catálogo servindo apenas como modelo de cópia opcional.
 
 ## Componentes da Versão 1.0.0
 
 ```text
-Text, Input, SingleSelect, MultiSelect, FileUpload
+Section, Text, Input, SingleSelect, MultiSelect, FileUpload, Radio, Switch, Slider,
+Rating, Stepper, Autocomplete, Title, Image, Divider, Card, Callout
 ```
 
-`Text` absorve o antigo tipo de conteúdo estático (mesmo modelo de dados, diferença apenas de apresentação). `Input` possui subtipo (texto, número, e-mail, data) com validação de formato associada.
+`Text` absorve o antigo tipo de conteúdo estático (mesmo modelo de dados, diferença apenas de apresentação). `Input` possui subtipo (texto, número, e-mail, data) com validação de formato associada. `Section` agrupa os campos seguintes até a próxima seção em uma grade de colunas configurável. `Autocomplete` usa opções estáticas na v1.0.0 — fonte de dados dinâmica remota é evolução futura.
+
+> **Nota de revisão (2026-08-24):** catálogo ampliado de 5 para 17 componentes nesta revisão — mesma mudança que substituiu a associação por `formId` pelo desenho direto da tela no nó (`embeddedScreen`): como a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), o catálogo próprio do Admin Portal foi ampliado para cobrir a necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de depender do motor.
 
 ## Entidades
 
@@ -341,25 +346,31 @@ Form
 Form Field
 ```
 
-Cada `Form Field` possui um `name` técnico (definido pelo usuário, único no formulário, imutável após criado) como chave de referência do campo.
+Cada `Form Field` possui um `name` técnico (definido pelo usuário) como chave de referência do campo. No catálogo deste domínio, o `name` é único dentro do formulário e imutável após criado. Quando o mesmo modelo de campo é usado na tela embutida de uma User Task (Domínio 03), o `name` passa a ser editável e sua unicidade é verificada na jornada inteira, não só na tela — mesmo espaço de nomes das variáveis de saída de integração.
 
 ## Estrutura de uma User Task
 
 ```mermaid
 flowchart LR
     USER_TASK[User Task]
-    FORM[Form]
+    SCREEN[Tela embutida - embeddedScreen]
+    FORM[Form - catálogo]
 
-    USER_TASK --> FORM
+    USER_TASK --> SCREEN
+    FORM -.->|modelo de cópia, opcional| SCREEN
 ```
 
-Uma User Task pode possuir um formulário associado. Na versão 1.0.0, essa associação é opcional.
+A tela de uma User Task é desenhada diretamente no nó (`embeddedScreen`), sem nenhum vínculo persistido a um `Form`. Um formulário do catálogo pode ser usado como modelo de partida — seus campos são copiados para a tela no momento da escolha — mas nada liga o nó ao formulário de origem depois disso: editar um não afeta o outro.
+
+> **Nota de revisão (2026-08-24):** seção reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ## Imutabilidade na publicação e serialização SDUI
 
-Ao publicar uma jornada, o conteúdo de cada `Form` referenciado por suas User Tasks é copiado integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras no formulário original — o mesmo princípio de congelamento aplicado à versão da jornada (Domínio 06 — Journey Versioning). Editar um formulário depois de publicado não afeta jornadas já publicadas que o utilizam; a nova versão do formulário só passa a valer em publicações futuras.
+Ao publicar uma jornada, a tela embutida (`embeddedScreen`) de cada User Task é copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó — o mesmo princípio de congelamento aplicado à versão da jornada (Domínio 06 — Journey Versioning). Editar um formulário do catálogo depois de publicado não afeta jornadas já publicadas (elas nunca dependeram dele para começar — só copiaram os campos uma vez, na hora de desenhar a tela).
 
-O snapshot de publicação também guarda, para cada formulário, uma projeção derivada em árvore de nós no formato `[tag, props, children]` (estilo SDUI/hyperscript), gerada a partir do conteúdo congelado do `Form Field`. Essa árvore é uma saída de leitura calculada no momento da publicação; o modelo de campos continua sendo a fonte de dados editável no form builder — o front nunca edita a árvore diretamente.
+O snapshot de publicação também guarda, para cada User Task com tela desenhada, uma projeção derivada em árvore de nós no formato `[tag, props, children]` (estilo SDUI/hyperscript) — `embeddedScreenSdui` — gerada a partir da tela congelada (`embeddedScreen`) do nó. Essa árvore é uma saída de leitura calculada no momento da publicação; o modelo de campos continua sendo a fonte de dados editável no editor de fluxo — o front nunca edita a árvore diretamente.
+
+> **Nota de revisão (2026-08-24):** seção reescrita — a compilação/congelamento em SDUI descrita aqui agora se aplica à tela do próprio nó (`embeddedScreen` → `embeddedScreenSdui`), não a um `Form` externo referenciado por `formId`, pela mesma limitação da Runtime Engine já anotada acima.
 
 ---
 
@@ -423,15 +434,19 @@ flowchart LR
     CHANNEL[Channel]
     JOURNEY[Journey]
     PUBLICATION[Journey Publication]
-    RUNTIME_API[API de Publicação do Runtime<br/>mock na versão 1.0.0]
+    RUNTIME_API[API de Publicação do Runtime]
 
     PRODUCT --> CHANNEL
     CHANNEL --> JOURNEY
     JOURNEY --> PUBLICATION
-    PUBLICATION -->|chamada outbound| RUNTIME_API
+    PUBLICATION -->|chamada outbound HTTP real| RUNTIME_API
 ```
 
-Cada jornada possui no máximo uma `Journey Publication` ativa, associada a uma `Journey Version`. Uma nova publicação aponta para uma nova versão imutável e preserva as versões anteriores. Na versão 1.0.0, o retorno de sucesso do mock confirma a publicação e altera o estado da versão para `PUBLISHED`. A despublicação também chama o mock; após o sucesso, a publicação passa para `UNPUBLISHED`. Uma falha preserva os estados atuais.
+Cada jornada possui no máximo uma `Journey Publication` ativa, associada a uma `Journey Version`. Uma nova publicação aponta para uma nova versão imutável e preserva as versões anteriores. O Admin Portal realiza uma chamada de saída real (HTTP) para a API de publicação do runtime; o retorno de sucesso confirma a publicação e altera o estado da versão para `PUBLISHED`. A despublicação chama a mesma API para remover/desfazer a publicação; após o sucesso, a publicação passa para `UNPUBLISHED`. Uma falha em qualquer uma das duas chamadas propaga o erro e preserva os estados atuais.
+
+## Número da versão implantada no runtime
+
+O número da versão publicada (`Journey Version.versionNumber`) é gravado como a tag de versão do processo implantado no runtime, distinta do contador de implantação que o próprio runtime mantém internamente para aquela definição. Os dois números não são garantidos coincidir: o contador interno do runtime avança a cada implantação (mesmo sem mudança de conteúdo), enquanto `versionNumber` só avança a cada nova versão publicada pelo Admin Portal. A tela de inspeção da publicação (Domínio 02, REQ-02.10.001) e o Executor (Domínio 05) exibem `versionNumber`, não o contador interno do runtime.
 
 ---
 

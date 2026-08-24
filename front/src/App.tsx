@@ -46,9 +46,9 @@ export function App() {
 
 function AppShell() {
   const { isAuthenticated } = useAuth();
-  // Padrão escuro ao logar (pedido explícito) — sem persistência ainda (não tinha antes também: o
-  // toggle nunca sobrevivia a um reload, só o valor inicial mudou de false pra true).
-  const [dark, setDark] = useState(true);
+  // Padrão claro ao logar (pedido explícito) — sem persistência ainda (não tinha antes também: o
+  // toggle nunca sobrevivia a um reload, só o valor inicial mudava).
+  const [dark, setDark] = useState(false);
   const colors = dark ? DARK_APP_COLORS : LIGHT_APP_COLORS;
   const [skinName, setSkinName] = useState<KnownSkinName>('Blau');
   const skin = getSkinByName(skinName);

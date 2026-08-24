@@ -25,9 +25,12 @@ public class KafkaMessagePublisher {
      * controle manual ao iniciar a execução de teste (ver SimulationController.sendKafkaMessage). */
     public static final String MANUAL_KAFKA_CONTROL_VAR = "__kafkaManualControl__";
 
-    // Mesma convenção de __httpUrl__/__httpResponse__ (BpmnTransformer/SimulationController) pro
-    // lado REST: registrado como variável de processo na hora de completar a task, só pra aparecer
-    // na trilha do log de execução — nunca usado por lógica de negócio.
+    // Registrado como variável de PROCESSO (não local) na hora de completar a task, de propósito: o
+    // worker completa de forma assíncrona (fetchAndLock/complete, sem transação compartilhada com
+    // quem depois monta a trilha do log em SimulationController.trailSince), então precisa sobreviver
+    // além do escopo da própria atividade — diferente do conector REST (HttpConnectorDelegate, em
+    // ms-runtime-camunda, roda síncrono na mesma transação e grava local, sem precisar de prefixo
+    // reservado). Nunca usado por lógica de negócio, só pra aparecer na trilha do log de execução.
     public static final String KAFKA_TOPIC_VAR_PREFIX = "__kafkaTopic__";
     public static final String KAFKA_PAYLOAD_VAR_PREFIX = "__kafkaPayload__";
 
@@ -76,7 +79,8 @@ public class KafkaMessagePublisher {
     }
 
     /** Variáveis a passar no complete do external task pra essa publicação aparecer na trilha do log
-     * de execução (SimulationController.trailSince), mesma ideia do REST com __httpUrl__/__httpResponse__. */
+     * de execução (SimulationController.trailSince) — ver comentário de KAFKA_TOPIC_VAR_PREFIX acima
+     * pro motivo de precisar ser variável de processo (não local). */
     public Map<String, CamundaVariable> completionVariables(String nodeId, PublishedKafkaMessage published) {
         return Map.of(
                 KAFKA_TOPIC_VAR_PREFIX + nodeId, new CamundaVariable(published.topic(), "String"),

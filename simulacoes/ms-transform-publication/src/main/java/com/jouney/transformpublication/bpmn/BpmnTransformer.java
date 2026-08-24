@@ -40,12 +40,8 @@ import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnPlane;
 import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnShape;
 import org.camunda.bpm.model.bpmn.instance.dc.Bounds;
 import org.camunda.bpm.model.bpmn.instance.di.Waypoint;
-import org.camunda.bpm.model.bpmn.instance.camunda.CamundaConnector;
-import org.camunda.bpm.model.bpmn.instance.camunda.CamundaConnectorId;
-import org.camunda.bpm.model.bpmn.instance.camunda.CamundaEntry;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaInputOutput;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaInputParameter;
-import org.camunda.bpm.model.bpmn.instance.camunda.CamundaMap;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaOutputParameter;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.springframework.stereotype.Component;
@@ -55,8 +51,7 @@ import org.springframework.stereotype.Component;
  * for Camunda 7. The admin's flow model is a general graph since GATEWAY nodes branch into two
  * paths (REQ-03.11.001) that may later reconverge on a common node before END — so every element
  * (nodes and sequence flows) is built directly through the low-level BPMN model API instead of the
- * camunda-bpmn-model fluent chain builder, which is inherently linear/backtracking-based and has
- * no first-class support for the Connector extension element used by attachHttpConnector either.
+ * camunda-bpmn-model fluent chain builder, which is inherently linear/backtracking-based.
  *
  * BPMNDI (diagram shapes/edges) is generated straight from the Admin Portal's own node
  * positionX/positionY — the engine doesn't need it to execute, but Cockpit's process diagram view
@@ -77,13 +72,6 @@ public class BpmnTransformer {
     // connector's output parameters, or a gateway condition, read directly off process scope.
     private static final Pattern ADMIN_VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
 
-    // Reserved process variable names capturing, per REST-connector node, the URL actually called and
-    // the raw response body — the connector's own "response" local variable gets overwritten by every
-    // node that reuses it, so it can't answer "what did node X get back" once later nodes have also
-    // run. ms-espec-registry (SimulationController.trailSince) reads these same two prefixes back —
-    // keep both in sync if either changes; there's no shared module between the two services.
-    private static final String HTTP_URL_VAR_PREFIX = "__httpUrl__";
-    private static final String HTTP_RESPONSE_VAR_PREFIX = "__httpResponse__";
 
     public record Result(String processId, byte[] bpmnXml) {
     }
@@ -294,17 +282,17 @@ public class BpmnTransformer {
     }
 
     /**
-     * REST connector config gets translated into a native Camunda HTTP Connector
-     * (camunda:type="connector", connectorId "http-connector") — the call executes synchronously
-     * inside the engine, no external worker needed (the platform's premise is that generic engine
-     * capability should cover this, not a bespoke implementation). Kafka (or a node with no
-     * connector configured) keeps the external-task pattern, since this Camunda distribution has no
-     * native broker connector — a worker is still required for that case.
+     * REST connector config gets translated into a {@code camunda:delegateExpression} pointing at
+     * ms-runtime-camunda's HttpConnectorDelegate (see attachHttpConnector below for why this replaced
+     * Camunda's native http-connector) — the call still executes synchronously inside the engine, no
+     * external worker involved. Kafka (or a node with no connector configured) keeps the external-task
+     * pattern, since this Camunda distribution has no native broker connector — a worker is still
+     * required for that case.
      */
     private void attachServiceTask(BpmnModelInstance modelInstance, ServiceTask element, FlowNodeRequest node) {
         ConnectorConfigRequest connectorConfig = node.connectorConfig();
         if (connectorConfig != null && "REST".equalsIgnoreCase(connectorConfig.connectorType())) {
-            attachHttpConnector(modelInstance, element, connectorConfig, node.id());
+            attachHttpConnector(modelInstance, element, connectorConfig);
             return;
         }
         element.setCamundaType("external");
@@ -339,30 +327,38 @@ public class BpmnTransformer {
         return "${" + result + "}";
     }
 
-    private void attachHttpConnector(BpmnModelInstance modelInstance, ServiceTask element, ConnectorConfigRequest connectorConfig,
-                                      String nodeId) {
+    /**
+     * REST connector config gets translated into input/output parameters on a plain
+     * {@code camunda:delegateExpression="${httpConnectorDelegate}"} service task (ms-runtime-camunda,
+     * a Spring Boot service we own that embeds the Camunda engine — see that repo's
+     * {@code HttpConnectorDelegate}), not Camunda's native http-connector. The native connector's own
+     * "url"/"method"/"headers"/"payload"/"response" local variables never touch
+     * execution.setVariable(), so they're invisible to /history/variable-instance the instant the
+     * activity ends — confirmed live against a completed instance (queried history for those exact
+     * names, both scoped to the node's own activity instance and across the whole process instance —
+     * empty both times) — and credentialRef was never resolved into anything real either. A plain
+     * camunda:inputOutput mapping (what addInputParameter/addOutputParameter below produce) is the
+     * standard mechanism instead: genuinely local to this node's own activity instance (so multiple
+     * REST nodes reusing the same parameter names never collide), fully visible in history with no
+     * reserved __httpXxx__ variable naming needed, and our own delegate code decides exactly what
+     * happens with credentialRef.
+     */
+    private void attachHttpConnector(BpmnModelInstance modelInstance, ServiceTask element, ConnectorConfigRequest connectorConfig) {
         Map<String, Object> config = connectorConfig.config() != null ? connectorConfig.config() : Map.of();
-
-        ExtensionElements extensionElements = modelInstance.newInstance(ExtensionElements.class);
-        element.setExtensionElements(extensionElements);
-        CamundaConnector connector = extensionElements.addExtensionElement(CamundaConnector.class);
-        CamundaConnectorId connectorId = modelInstance.newInstance(CamundaConnectorId.class);
-        connectorId.setTextContent("http-connector");
-        connector.setCamundaConnectorId(connectorId);
-
-        CamundaInputOutput inputOutput = modelInstance.newInstance(CamundaInputOutput.class);
-        connector.setCamundaInputOutput(inputOutput);
+        element.setCamundaDelegateExpression("${httpConnectorDelegate}");
 
         String url = appendQueryParams(resolveVariables(asString(config.get("url"), "")), config.get("params"));
-        inputOutput.getCamundaInputParameters().add(newInputParameter(modelInstance, "url", url));
-        inputOutput.getCamundaInputParameters().add(newInputParameter(modelInstance, "method", asString(config.get("method"), "GET")));
+        addInputParameter(modelInstance, element, "url", url);
+        addInputParameter(modelInstance, element, "method", asString(config.get("method"), "GET"));
 
         // Unlike the RestClient used by the "Testar chamada" feature (REQ-03.10), which infers
-        // Content-Type automatically for a structured body, Camunda's native http-connector sends
-        // the payload as-is with no Content-Type unless one is explicitly provided — most APIs
-        // (including ms-mock-api-rest) then reject a JSON body with 415, and the output mapping's
-        // jsonPath fails against that error body instead of the real response. Default to
-        // application/json whenever there's a body, unless the admin already set their own.
+        // Content-Type automatically for a structured body, the delegate sends the payload as-is with
+        // no Content-Type unless one is explicitly provided — most APIs (including ms-mock-api-rest)
+        // then reject a JSON body with 415, and the output mapping's jsonPath fails against that error
+        // body instead of the real response. Default to application/json whenever there's a body,
+        // unless the admin already set their own. headers travels as a JSON string (like payload/body
+        // below), not a camunda:map — the delegate parses it itself, keeping every value this node
+        // captures a plain String variable, safe to round-trip through history via REST later.
         Map<String, Object> headers = new LinkedHashMap<>();
         if (config.get("headers") instanceof Map<?, ?> configuredHeaders) {
             configuredHeaders.forEach((key, value) -> headers.put(String.valueOf(key), value));
@@ -372,57 +368,27 @@ public class BpmnTransformer {
             headers.put("Content-Type", "application/json");
         }
         if (!headers.isEmpty()) {
-            CamundaInputParameter headersParam = modelInstance.newInstance(CamundaInputParameter.class);
-            headersParam.setCamundaName("headers");
-            CamundaMap map = modelInstance.newInstance(CamundaMap.class);
-            headers.forEach((key, value) -> {
-                CamundaEntry entry = modelInstance.newInstance(CamundaEntry.class);
-                entry.setCamundaKey(key);
-                entry.setTextContent(resolveVariables(String.valueOf(value)));
-                map.getCamundaEntries().add(entry);
-            });
-            headersParam.setValue(map);
-            inputOutput.getCamundaInputParameters().add(headersParam);
+            addInputParameter(modelInstance, element, "headers", resolveVariables(serialize(headers)));
         }
-
         if (config.get("body") != null) {
-            inputOutput.getCamundaInputParameters()
-                    .add(newInputParameter(modelInstance, "payload", resolveVariables(serialize(config.get("body")))));
+            addInputParameter(modelInstance, element, "payload", resolveVariables(serialize(config.get("body"))));
         }
         if (connectorConfig.credentialRef() != null) {
-            inputOutput.getCamundaInputParameters().add(newInputParameter(modelInstance, "credentialRef", connectorConfig.credentialRef()));
+            addInputParameter(modelInstance, element, "credentialRef", connectorConfig.credentialRef());
         }
 
-        // The HTTP connector binds its raw response body to the "response" local variable (as plain
-        // text, not a structured object) — each output rule reads it back with Spin's JSONPath
-        // function, no scripting required. `.element().value()` (not `.stringValue()`) reads the
-        // matched node in its real JSON type (string/number/boolean) instead of forcing String —
-        // auto-generated mappings from a real API response routinely include numeric/boolean fields,
-        // and `.stringValue()` throws SpinJsonDataFormatException the moment one of those is hit.
+        // The delegate binds the raw response body to the "response" local variable (as plain text,
+        // not a structured object) — each output rule reads it back with Spin's JSONPath function, no
+        // scripting required. `.element().value()` (not `.stringValue()`) reads the matched node in
+        // its real JSON type (string/number/boolean) instead of forcing String — auto-generated
+        // mappings from a real API response routinely include numeric/boolean fields, and
+        // `.stringValue()` throws SpinJsonDataFormatException the moment one of those is hit.
         for (Map<String, Object> rule : outputMappingOf(config)) {
             if (rule.get("name") instanceof String name && !name.isBlank() && rule.get("jsonPath") instanceof String jsonPath) {
-                CamundaOutputParameter outputParameter = modelInstance.newInstance(CamundaOutputParameter.class);
-                outputParameter.setCamundaName(name);
-                outputParameter.setTextContent("${S(response).jsonPath(\"" + jsonPath + "\").element().value()}");
-                inputOutput.getCamundaOutputParameters().add(outputParameter);
+                addOutputParameter(modelInstance, element, name,
+                        "${S(response).jsonPath(\"" + jsonPath + "\").element().value()}");
             }
         }
-
-        // Always captured (regardless of outputMapping), so the admin UI can show "what URL was
-        // called / what came back" per node even when no output variable was mapped from it — `url`
-        // already carries the same ${...} expressions the input parameter above uses, so it
-        // re-resolves to the exact same value that was actually called. Confirmed independently of
-        // the "execution doesn't exist" issue (see SimulationController/ms-espec-registry notes): that
-        // reproduces identically even with these two lines removed entirely.
-        inputOutput.getCamundaOutputParameters().add(rawOutputParameter(modelInstance, HTTP_URL_VAR_PREFIX + nodeId, url));
-        inputOutput.getCamundaOutputParameters().add(rawOutputParameter(modelInstance, HTTP_RESPONSE_VAR_PREFIX + nodeId, "${response}"));
-    }
-
-    private CamundaOutputParameter rawOutputParameter(BpmnModelInstance modelInstance, String name, String expression) {
-        CamundaOutputParameter parameter = modelInstance.newInstance(CamundaOutputParameter.class);
-        parameter.setCamundaName(name);
-        parameter.setTextContent(expression);
-        return parameter;
     }
 
     private CamundaInputParameter newInputParameter(BpmnModelInstance modelInstance, String name, String value) {

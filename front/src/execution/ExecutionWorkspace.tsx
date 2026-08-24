@@ -85,7 +85,11 @@ function describeTrailEntry(entry: TrailEntry): string {
 // qualquer entry.data.
 function trailLogData(entry: TrailEntry): Record<string, unknown> | undefined {
   if (entry.url || entry.response) {
-    return { url: entry.url, resposta: parseMaybeJson(entry.response) };
+    const data: Record<string, unknown> = { metodo: entry.method, url: entry.url };
+    if (entry.requestHeaders) data.requestHeaders = parseMaybeJson(entry.requestHeaders);
+    if (entry.requestBody) data.requestBody = parseMaybeJson(entry.requestBody);
+    data.resposta = parseMaybeJson(entry.response);
+    return data;
   }
   if (entry.kafkaTopic || entry.kafkaPayload) {
     return { topico: entry.kafkaTopic, payload: parseMaybeJson(entry.kafkaPayload) };

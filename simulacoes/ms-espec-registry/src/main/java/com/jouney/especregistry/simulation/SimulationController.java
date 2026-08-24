@@ -355,12 +355,6 @@ public class SimulationController {
     // endTime nesse ponto, e já é reportada separadamente como o passo atual.
     private static final Set<String> BOUNDARY_ACTIVITY_TYPES = Set.of("startEvent");
 
-    // Same two prefixes BpmnTransformer (ms-transform-publication) writes into process variables for
-    // every REST-connector SERVICE_TASK — keep in sync if either changes, no shared module between
-    // the two services.
-    private static final String HTTP_URL_VAR_PREFIX = "__httpUrl__";
-    private static final String HTTP_RESPONSE_VAR_PREFIX = "__httpResponse__";
-
     private List<TrailEntry> trailSince(String processInstanceId, PublicationSnapshot snapshot, Instant since) {
         List<TrailEntry> trail = new ArrayList<>();
         Map<String, CamundaVariable> variables = null;
@@ -374,18 +368,35 @@ public class SimulationController {
             }
             String url = null;
             String response = null;
+            String method = null;
+            String requestHeaders = null;
+            String requestBody = null;
             String kafkaTopic = null;
             String kafkaPayload = null;
             if ("SERVICE_TASK".equals(node.get().type())) {
-                if (variables == null) {
-                    variables = camundaClient.getProcessVariables(processInstanceId);
+                ConnectorConfig connectorConfig = node.get().connectorConfig();
+                if (connectorConfig != null && "REST".equalsIgnoreCase(connectorConfig.connectorType())) {
+                    // ms-runtime-camunda's HttpConnectorDelegate sets url/method/headers/payload/response
+                    // as ordinary local variables on this node's own activity instance (standard
+                    // camunda:inputOutput mapping, not the native http-connector — see BpmnTransformer.
+                    // attachHttpConnector for why) — genuinely scoped per node, so plain names never
+                    // collide between REST nodes, and no __httpXxx__ reserved naming is needed here.
+                    Map<String, CamundaVariable> local = camundaClient.getLocalVariablesForActivity(activity.id());
+                    url = stringValue(local.get("url"));
+                    method = stringValue(local.get("method"));
+                    requestHeaders = stringValue(local.get("headers"));
+                    requestBody = stringValue(local.get("payload"));
+                    response = stringValue(local.get("response"));
+                } else {
+                    if (variables == null) {
+                        variables = camundaClient.getProcessVariables(processInstanceId);
+                    }
+                    kafkaTopic = stringValue(variables.get(KafkaMessagePublisher.KAFKA_TOPIC_VAR_PREFIX + node.get().id()));
+                    kafkaPayload = stringValue(variables.get(KafkaMessagePublisher.KAFKA_PAYLOAD_VAR_PREFIX + node.get().id()));
                 }
-                url = stringValue(variables.get(HTTP_URL_VAR_PREFIX + node.get().id()));
-                response = stringValue(variables.get(HTTP_RESPONSE_VAR_PREFIX + node.get().id()));
-                kafkaTopic = stringValue(variables.get(KafkaMessagePublisher.KAFKA_TOPIC_VAR_PREFIX + node.get().id()));
-                kafkaPayload = stringValue(variables.get(KafkaMessagePublisher.KAFKA_PAYLOAD_VAR_PREFIX + node.get().id()));
             }
-            trail.add(new TrailEntry(node.get().id(), node.get().name(), node.get().type(), url, response, kafkaTopic, kafkaPayload));
+            trail.add(new TrailEntry(node.get().id(), node.get().name(), node.get().type(), url, response, method,
+                    requestHeaders, requestBody, kafkaTopic, kafkaPayload));
         }
         return trail;
     }

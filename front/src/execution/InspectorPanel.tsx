@@ -175,8 +175,8 @@ function VariablesTable({
   // Larguras arrastáveis (pedido do usuário: "grid pra poder aumentar e diminuir as colunas") — só
   // Nome/Valor/Tipo, a coluna de ação é sempre um ícone só, não faz sentido redimensionar.
   const [colWidths, setColWidths] = useState<number[]>(DEFAULT_VARIABLES_COL_WIDTHS);
-  // __httpUrl__/__httpResponse__ are technical, captured per node for the "Integrações" tab — not
-  // meant to read as a regular process variable here.
+  // __kafkaTopic__/__kafkaPayload__ are technical, captured per node for the Log tab — not meant to
+  // read as a regular process variable here.
   const visibleVariables = variables.filter((v) => !isInternalVariableName(v.name));
 
   if (visibleVariables.length === 0) {

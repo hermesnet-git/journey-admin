@@ -171,6 +171,11 @@ export interface TrailEntry {
   // Only set for a SERVICE_TASK with a REST connector: the URL actually called and the raw response.
   url: string | null;
   response: string | null;
+  // Method is always set alongside url; headers/body come null when the connector had none configured
+  // (e.g. a GET with no custom headers) — the log then simply omits that field, matching the request.
+  method: string | null;
+  requestHeaders: string | null;
+  requestBody: string | null;
   // Only set for a SERVICE_TASK with a Kafka connector: the topic and payload actually published.
   kafkaTopic: string | null;
   kafkaPayload: string | null;
@@ -252,24 +257,18 @@ export interface VariableEntry {
   type: string;
 }
 
-// Same two prefixes BpmnTransformer (ms-transform-publication) writes into process variables for
-// every REST-connector SERVICE_TASK (URL called / raw response, keyed per node) — technical, not
-// meant to show up as a regular process variable in the "Variáveis" tab.
-export const HTTP_URL_VAR_PREFIX = '__httpUrl__';
-export const HTTP_RESPONSE_VAR_PREFIX = '__httpResponse__';
-
-// Same idea for Kafka, written by KafkaMessagePublisher.completionVariables (ms-espec-registry) —
-// keep in sync if either changes, no shared module between front and that service.
+// Written by KafkaMessagePublisher.completionVariables (ms-espec-registry) at PROCESS scope on
+// purpose (the Kafka worker completes asynchronously, needs to communicate topic/payload back to the
+// process) — technical, not meant to show up as a regular process variable in the "Variáveis" tab.
+// REST's equivalent (url/method/headers/payload/response) never needs this: HttpConnectorDelegate
+// (ms-runtime-camunda) writes those as variables LOCAL to the node's own activity instance, which
+// ms-espec-registry's CamundaClient.getHistoricProcessVariables already filters out by scope before
+// this ever reaches the front — no reserved naming needed for REST.
 export const KAFKA_TOPIC_VAR_PREFIX = '__kafkaTopic__';
 export const KAFKA_PAYLOAD_VAR_PREFIX = '__kafkaPayload__';
 
 export function isInternalVariableName(name: string): boolean {
-  return (
-    name.startsWith(HTTP_URL_VAR_PREFIX) ||
-    name.startsWith(HTTP_RESPONSE_VAR_PREFIX) ||
-    name.startsWith(KAFKA_TOPIC_VAR_PREFIX) ||
-    name.startsWith(KAFKA_PAYLOAD_VAR_PREFIX)
-  );
+  return name.startsWith(KAFKA_TOPIC_VAR_PREFIX) || name.startsWith(KAFKA_PAYLOAD_VAR_PREFIX);
 }
 
 export function startInstance(

@@ -273,10 +273,40 @@ public class CamundaClient {
 
     /** Último valor de cada variável que a instância já teve, resolvido pela API de história —
      * ao contrário do endpoint de runtime, existe pra instância em qualquer estado, ativa ou já
-     * terminada. */
+     * terminada. Filtrado ao escopo do processo (activityInstanceId == processInstanceId, convenção
+     * do Camunda pra execução raiz): sem isso, esta consulta sem filtro de atividade também devolve
+     * variáveis LOCAIS de nós específicos (ex.: url/method/headers/payload/response que
+     * HttpConnectorDelegate grava por Service Task REST, ver {@link #getLocalVariablesForActivity})
+     * misturadas no mesmo mapa por nome — nomes genéricos o bastante pra colidir com uma variável de
+     * processo de verdade que o admin tenha criado com o mesmo nome. */
     public Map<String, CamundaVariable> getHistoricProcessVariables(String processInstanceId) {
         List<HistoricVariableInstance> list = restClient.get()
                 .uri(baseUrl + "/history/variable-instance?processInstanceId={id}", processInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricVariableInstance>>() {
+                });
+        if (list == null) {
+            return Map.of();
+        }
+        Map<String, CamundaVariable> result = new java.util.LinkedHashMap<>();
+        for (HistoricVariableInstance v : list) {
+            if (!processInstanceId.equals(v.activityInstanceId())) {
+                continue;
+            }
+            result.put(v.name(), new CamundaVariable(v.value(), v.type()));
+        }
+        return result;
+    }
+
+    /** Variáveis locais que existiram só no escopo de uma atividade específica (ex.: url/method/
+     * headers/payload/response que HttpConnectorDelegate, em ms-runtime-camunda, grava via
+     * camunda:inputOutput comum num Service Task REST) — ao contrário de {@link #getProcessVariables},
+     * que só enxerga o que ainda está (ou ficou) visível no escopo do processo. Funciona pra qualquer
+     * atividade já concluída, independente do processo ainda estar ativo ou já ter terminado, porque
+     * consulta história, não runtime. */
+    public Map<String, CamundaVariable> getLocalVariablesForActivity(String activityInstanceId) {
+        List<HistoricVariableInstance> list = restClient.get()
+                .uri(baseUrl + "/history/variable-instance?activityInstanceIdIn={id}", activityInstanceId)
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<HistoricVariableInstance>>() {
                 });

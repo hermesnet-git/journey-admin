@@ -14,7 +14,7 @@ body {
 .layout {
   display: grid;
   grid-template-columns: 340px 1fr;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .lista {
@@ -95,6 +95,7 @@ body {
 .painel {
   padding: 1.5rem;
   max-width: 720px;
+  overflow-y: auto;
 }
 
 .painel h2 {

@@ -10,9 +10,22 @@ type Endpoint = {
   descricao: string
   nota: string
   bodyExemplo?: object
+  queryExemplo?: string
 }
 
 const ENDPOINTS: Endpoint[] = [
+  {
+    metodo: 'GET',
+    path: '/v1/testdatasource/lista',
+    descricao: 'Datasource de teste (paginado)',
+    nota:
+      'Fonte de dados de teste para popular campos SINGLE_SELECT/MULTI_SELECT de um formulário SDUI ' +
+      'com um volume grande de opções (100 itens, texto pseudo-aleatório com seed fixa). Paginação por ' +
+      'cursor opaco: cada resposta traz "items" no formato {label, value} — igual ao FormFieldOption do ' +
+      'admin — e "nextCursor"; repasse esse valor no parâmetro "cursor" da próxima chamada para seguir ' +
+      'a listagem, até vir null. "limit" é opcional (padrão 20, máximo 100).',
+    queryExemplo: 'limit=20',
+  },
   {
     metodo: 'POST',
     path: '/v1/elegibilidade',
@@ -158,6 +171,7 @@ type Resultado =
 export default function App() {
   const [selecionado, setSelecionado] = useState<Endpoint>(ENDPOINTS[0])
   const [bodyTexto, setBodyTexto] = useState(() => textoInicial(ENDPOINTS[0]))
+  const [queryTexto, setQueryTexto] = useState(ENDPOINTS[0].queryExemplo ?? '')
   const [carregando, setCarregando] = useState(false)
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [urlCopiada, setUrlCopiada] = useState(false)
@@ -165,6 +179,7 @@ export default function App() {
   function selecionar(ep: Endpoint) {
     setSelecionado(ep)
     setBodyTexto(textoInicial(ep))
+    setQueryTexto(ep.queryExemplo ?? '')
     setResultado(null)
   }
 
@@ -172,6 +187,11 @@ export default function App() {
     navigator.clipboard.writeText(url)
     setUrlCopiada(true)
     setTimeout(() => setUrlCopiada(false), 1500)
+  }
+
+  function urlAtual() {
+    const query = queryTexto.trim()
+    return API_BASE + selecionado.path + (selecionado.queryExemplo !== undefined && query !== '' ? `?${query}` : '')
   }
 
   async function executar() {
@@ -183,7 +203,7 @@ export default function App() {
         init.headers = { 'Content-Type': 'application/json' }
         init.body = bodyTexto.trim() === '' ? '{}' : bodyTexto
       }
-      const res = await fetch(API_BASE + selecionado.path, init)
+      const res = await fetch(urlAtual(), init)
       const texto = await res.text()
       let corpo: unknown = texto
       try {
@@ -228,8 +248,8 @@ export default function App() {
         <p className="subtitulo">{selecionado.descricao}</p>
 
         <div className="url-box">
-          <code>{API_BASE + selecionado.path}</code>
-          <button className="link" onClick={() => copiarUrl(API_BASE + selecionado.path)}>
+          <code>{urlAtual()}</code>
+          <button className="link" onClick={() => copiarUrl(urlAtual())}>
             {urlCopiada ? 'copiado!' : 'copiar'}
           </button>
         </div>
@@ -245,6 +265,19 @@ export default function App() {
               onChange={(e) => setBodyTexto(e.target.value)}
               spellCheck={false}
               rows={8}
+            />
+          </>
+        )}
+
+        {selecionado.queryExemplo !== undefined && (
+          <>
+            <label htmlFor="query">Query string</label>
+            <textarea
+              id="query"
+              value={queryTexto}
+              onChange={(e) => setQueryTexto(e.target.value)}
+              spellCheck={false}
+              rows={1}
             />
           </>
         )}

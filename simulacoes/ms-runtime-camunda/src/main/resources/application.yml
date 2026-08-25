@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ms-runtime-camunda
+  datasource:
+    # Mesmo padrão relativo-ao-CWD que o Camunda Run usava (jdbc:h2:./camunda-h2-default/process-engine)
+    # — mas aqui o CWD é sempre o diretório deste módulo Maven (spring-boot:run/o jar executável não
+    # herdam CWD de quem invoca como o start.bat fazia), então a pegadinha de CWD errado do Camunda Run
+    # não se repete.
+    url: jdbc:h2:file:./camunda-h2-default/process-engine
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ''
+
+camunda:
+  bpm:
+    database:
+      schema-update: true
+    # Nenhum valor explícito: o starter usa FULL por padrão (documentado), mesmo nível que o Camunda
+    # Run já operava sob (confirmado ao vivo: /history/variable-instance e /history/activity-instance
+    # já respondiam com dado completo). Deixado explícito aqui só pra não depender de "o default nunca
+    # muda" silenciosamente — se algum dia isso for rebaixado, o Log/Variáveis tab quebram de novo.
+    history-level: full
+    webapp:
+      application-path: /camunda

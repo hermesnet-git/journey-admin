@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <!-- 7.24.0 é a última versão Community Edition publicada no Maven Central (confirmado
+             direto no POM do camunda-bpm-spring-boot-starter-root: "This library will not receive
+             any new versions or releases" — patches/Spring Boot 4 são só Enterprise) e ela está
+             presa ao Spring Boot 3.5.5 (camunda-parent:7.24.0, propriedade version.spring-boot) —
+             por isso este serviço NÃO acompanha o Spring Boot 4.1.0 dos outros três (admin-back/
+             ms-espec-registry/ms-transform-publication); não há acoplamento entre eles, cada um só
+             fala REST com o outro. -->
+        <version>3.5.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.jouney</groupId>
+    <artifactId>ms-runtime-camunda</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>ms-runtime-camunda</name>
+    <!-- Substitui a distribuição Camunda Run baixada à parte (fora de qualquer repo git) por um
+         serviço Spring Boot que a gente controla: mesma porta/engine-rest/webapps que o Camunda Run
+         já oferecia, mas com o process engine embutido, pra hospedar HttpConnectorDelegate como um
+         bean Spring comum — ver esse pacote pro motivo completo (histórico do motor não enxerga as
+         variáveis internas do conector nativo do Camunda, credentialRef nunca era resolvido). -->
+    <description>Motor de execução Camunda 7 embutido, com o HttpConnectorDelegate do conector REST</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <camunda.version>7.24.0</camunda.version>
+    </properties>
+
+    <dependencies>
+        <!-- Camunda espera que Spring Boot já tenha criado DataSource + PlatformTransactionManager
+             ("Default Configurations": "the primary DataSource and PlatformTransactionManager are
+             used") — a starter em si não traz isso (spring-boot-starter-data-jpa vem "optional" no
+             POM dela, não é herdado). PlatformTransactionManager só existe com spring-jdbc no
+             classpath (DataSourceTransactionManagerAutoConfiguration); JPA/Hibernate não é necessário
+             pro motor (persistência própria via MyBatis), por isso -jdbc, não -data-jpa. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.camunda.bpm.springboot</groupId>
+            <artifactId>camunda-bpm-spring-boot-starter</artifactId>
+            <version>${camunda.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.camunda.bpm.springboot</groupId>
+            <artifactId>camunda-bpm-spring-boot-starter-rest</artifactId>
+            <version>${camunda.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.camunda.bpm.springboot</groupId>
+            <artifactId>camunda-bpm-spring-boot-starter-webapp</artifactId>
+            <version>${camunda.version}</version>
+        </dependency>
+        <!-- Sem isso, deploy de qualquer processo com "${S(response).jsonPath(...)}" (outputMapping
+             do conector REST, BpmnTransformer) falha com ENGINE-01009 "Could not resolve function
+             'S'" — a distribuição Camunda Run que este serviço substitui já vinha com Spin embutido;
+             o starter mínimo não traz. As duas juntas são exigidas pro auto-configure funcionar
+             ("Configuring Spin DataFormats" na doc do Spring Boot Integration). -->
+        <dependency>
+            <groupId>org.camunda.bpm</groupId>
+            <artifactId>camunda-engine-plugin-spin</artifactId>
+            <version>${camunda.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.camunda.spin</groupId>
+            <artifactId>camunda-spin-dataformat-json-jackson</artifactId>
+            <version>${camunda.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>ms-runtime-camunda</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

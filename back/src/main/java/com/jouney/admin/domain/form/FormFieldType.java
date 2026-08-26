@@ -24,7 +24,18 @@ public enum FormFieldType {
     IMAGE,
     DIVIDER,
     CARD,
-    CALLOUT;
+    CALLOUT,
+    // Ampliação do catálogo com componentes Mística que existem tanto em web quanto em apps
+    // nativos/mobile (design system cross-platform) — só-de-apresentação (não coletam valor),
+    // mesmo espírito de TEXT/TITLE/IMAGE/CARD/CALLOUT.
+    BUTTON,
+    AVATAR,
+    BADGE,
+    TAG,
+    METER,
+    TABS,
+    CAROUSEL,
+    TABLE;
 
     /**
      * Tolerates the pre-refino EP-04 {@code STATIC_CONTENT} value when reading old, already
@@ -43,7 +54,8 @@ public enum FormFieldType {
     // nem podem ser referenciados por um visibleIf de outro campo. Único ponto de verdade — Form,
     // FlowValidator, GenerateFlow e UpdateFlow chamam isto em vez de duplicar a lista de exclusão.
     private static final Set<FormFieldType> NON_COLLECTING =
-            EnumSet.of(SECTION, TEXT, FILE_UPLOAD, TITLE, IMAGE, DIVIDER, CARD, CALLOUT);
+            EnumSet.of(SECTION, TEXT, FILE_UPLOAD, TITLE, IMAGE, DIVIDER, CARD, CALLOUT,
+                    BUTTON, AVATAR, BADGE, TAG, METER, TABS, CAROUSEL, TABLE);
 
     public boolean collectsValue() {
         return !NON_COLLECTING.contains(this);

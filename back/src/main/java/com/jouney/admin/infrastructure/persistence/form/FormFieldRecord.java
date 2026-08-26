@@ -14,7 +14,8 @@ public record FormFieldRecord(String name, FormFieldType type, InputSubtype inpu
                                List<FormFieldOption> options, Double minValue, Double maxValue,
                                String validationPattern, List<String> acceptedExtensions, Long maxFileSizeBytes,
                                Integer columns, String visibleIf, DataSourceRecord dataSource,
-                               Map<String, Object> config) {
+                               Map<String, Object> config, Integer positionX, Integer positionY, Integer width,
+                               Integer height) {
 
     // Mesmo par from/toDomain que ConnectorConfigRecord já usa — reaproveitado por quem precisa
     // serializar List<FormField> fora do Form do catálogo (ex.: FlowNode.embeddedScreen).
@@ -22,13 +23,14 @@ public record FormFieldRecord(String name, FormFieldType type, InputSubtype inpu
         return new FormFieldRecord(f.getName(), f.getType(), f.getInputSubtype(), f.getLabel(), f.isRequired(),
                 f.getDefaultValue(), f.getHelpText(), f.getOptions(), f.getMinValue(), f.getMaxValue(),
                 f.getValidationPattern(), f.getAcceptedExtensions(), f.getMaxFileSizeBytes(), f.getColumns(),
-                f.getVisibleIf(), DataSourceRecord.from(f.getDataSource()), f.getConfig());
+                f.getVisibleIf(), DataSourceRecord.from(f.getDataSource()), f.getConfig(), f.getPositionX(),
+                f.getPositionY(), f.getWidth(), f.getHeight());
     }
 
     public FormField toDomain() {
         return new FormField(name, type, inputSubtype, label, required, defaultValue, helpText, options, minValue,
                 maxValue, validationPattern, acceptedExtensions, maxFileSizeBytes, columns, visibleIf,
-                dataSource != null ? dataSource.toDomain() : null, config);
+                dataSource != null ? dataSource.toDomain() : null, config, positionX, positionY, width, height);
     }
 
     // Mesmo formato do FlowNodeRecord.ConnectorConfigRecord — dataSource reaproveita o

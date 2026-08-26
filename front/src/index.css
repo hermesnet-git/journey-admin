@@ -76,3 +76,14 @@ html, body, #root {
   background: transparent !important;
   border: none !important;
 }
+
+/* Scroll continua funcionando (arrastar/roda do mouse), só a barra visível some — usado onde a
+   barra nativa polui uma faixa fina de navegação (UserTaskNavigator) ou um card/canvas que já tem
+   seu próprio indicador de limite. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

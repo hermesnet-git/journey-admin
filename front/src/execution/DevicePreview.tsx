@@ -61,7 +61,13 @@ export function DevicePreview({
             {/* key=taskId: sem isto o React reaproveita a mesma instância (e o estado interno do
                 <Form> da Mística) entre User Tasks diferentes — os valores digitados na tela
                 anterior vazavam pra tela seguinte, mesmo sem nenhum campo em comum de verdade. */}
-            <SduiFormRenderer key={step.taskId} sdui={step.form.sdui} onSubmit={onCompleteTask} submitting={busy} />
+            <SduiFormRenderer
+              key={step.taskId}
+              sdui={step.form.sdui}
+              onSubmit={onCompleteTask}
+              submitting={busy}
+              channelType={channelType}
+            />
           </Stack>
         )}
 
@@ -144,8 +150,11 @@ export function DevicePreview({
     return <PhoneFrame>{content}</PhoneFrame>;
   }
 
+  // WEB usa posição livre numa prancheta fixa de 720px (SduiFormRenderer/WebPositionedFields) —
+  // mais larga que os 640px do container padrão, senão o conteúdo posicionado corta na lateral.
+  // Rola horizontal em vez de espremer se a janela for menor que isso.
   return (
-    <div className="max-w-[640px] mx-auto w-full">
+    <div className={channelType === 'WEB' ? 'max-w-[800px] mx-auto w-full overflow-x-auto' : 'max-w-[640px] mx-auto w-full'}>
       <Boxed>{content}</Boxed>
     </div>
   );

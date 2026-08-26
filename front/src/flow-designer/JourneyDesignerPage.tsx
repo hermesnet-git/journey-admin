@@ -951,7 +951,13 @@ function DesignerInner({
                 onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)}
                 onNodeMouseLeave={() => setHoveredNodeId(null)}
                 onBeforeDelete={onBeforeDelete}
-                deleteKeyCode={['Delete', 'Backspace']}
+                // Desligado enquanto o dock de edição de tela está aberto (previewNode) — o React
+                // Flow do editor de tela (FormScreenCanvasWeb) roda aninhado dentro desta mesma
+                // página, com seu próprio deleteKeyCode desligado de propósito; sem isto, apertar
+                // Delete enquanto o foco está num componente da tela também disparava o listener
+                // global desta instância (a de fora), apagando a User Task selecionada em vez do
+                // componente da tela.
+                deleteKeyCode={previewNode ? null : ['Delete', 'Backspace']}
                 multiSelectionKeyCode={['Control', 'Meta']}
                 selectionKeyCode={['Control', 'Meta']}
                 minZoom={0.4}
@@ -1003,7 +1009,6 @@ function DesignerInner({
               </ReactFlow>
               {previewNode && (
                 <FormPreviewDock
-                  nodeName={previewNode.data.name}
                   channelType={activeJourney.channelType}
                   journeyId={activeJourney.journeyId}
                   nodeId={previewNode.id}

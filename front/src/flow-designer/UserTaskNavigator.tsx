@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { NODE_ICON, TYPE_COLOR, type WFNode } from './model';
@@ -17,6 +18,14 @@ export function UserTaskNavigator({
   onNavigate: (nodeId: string) => void;
 }) {
   const { c } = useFlowTheme();
+  // A pílula ativa pode ficar fora da faixa visível (parcialmente atrás da setinha, ou cortada)
+  // conforme navega — sem isto, nada rolava a faixa horizontal pra acompanhar, só a cor/destaque
+  // mudavam, dando a impressão de que o navegador "se perdia".
+  const activeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+  }, [currentId]);
+
   if (tasks.length === 0) return null;
 
   const index = tasks.findIndex((t) => t.id === currentId);
@@ -39,7 +48,7 @@ export function UserTaskNavigator({
       >
         <ChevronLeft size={14} />
       </button>
-      <div className="flex-1 min-w-0 flex items-center gap-[6px] overflow-x-auto py-1">
+      <div className="no-scrollbar flex-1 min-w-0 flex items-center gap-[6px] overflow-x-auto py-1">
         {tasks.map((t, i) => {
           const active = t.id === currentId;
           return (
@@ -51,6 +60,7 @@ export function UserTaskNavigator({
                 />
               )}
               <button
+                ref={active ? activeRef : undefined}
                 onClick={() => onNavigate(t.id)}
                 title={t.data.name}
                 className="shrink-0 flex items-center gap-[6px] rounded-full pl-[6px] pr-[10px] py-[4px] border-0 cursor-pointer transition-all duration-300"

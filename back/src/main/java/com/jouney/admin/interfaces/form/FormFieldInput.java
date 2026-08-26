@@ -28,12 +28,16 @@ public record FormFieldInput(
         Integer columns,
         String visibleIf,
         DataSourceInput dataSource,
-        Map<String, Object> config) {
+        Map<String, Object> config,
+        Integer positionX,
+        Integer positionY,
+        Integer width,
+        Integer height) {
 
     public FormField toDomain() {
         return new FormField(name, type, inputSubtype, label, required, defaultValue, helpText, options, minValue,
                 maxValue, validationPattern, acceptedExtensions, maxFileSizeBytes, columns, visibleIf,
-                dataSource == null ? null : dataSource.toDomain(), config);
+                dataSource == null ? null : dataSource.toDomain(), config, positionX, positionY, width, height);
     }
 
     // Sempre REST (forms não têm o conceito de outros tipos de conector) — mesmo shape do

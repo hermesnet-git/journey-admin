@@ -71,23 +71,71 @@ export function PropertyRow({ label, first, children }: { label: string; first?:
 }
 
 // Bold category divider (Data/Layout-style object-inspector grouping) spanning the full row width.
-export function PropertyGroupHeader({ label, first }: { label: string; first?: boolean }) {
+// `collapsed`/`onToggleCollapse` são opcionais — sem eles continua um divisor estático (uso já
+// existente em PropertiesPanel.tsx), com eles vira um cabeçalho clicável tipo "Basic Setting -/+".
+export function PropertyGroupHeader({
+  label,
+  first,
+  collapsed,
+  onToggleCollapse,
+}: {
+  label: string;
+  first?: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
   const { c } = useFlowTheme();
+  const style: React.CSSProperties = {
+    padding: '3px 8px',
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: c.textSecondary,
+    background: c.hoverBg,
+    borderTop: first ? 'none' : `1px solid ${c.border}`,
+  };
+  if (!onToggleCollapse) {
+    return <div style={style}>{label}</div>;
+  }
   return (
-    <div
-      style={{
-        padding: '3px 8px',
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: 0.4,
-        textTransform: 'uppercase',
-        color: c.textSecondary,
-        background: c.hoverBg,
-        borderTop: first ? 'none' : `1px solid ${c.border}`,
-      }}
+    <button
+      onClick={onToggleCollapse}
+      style={{ ...style, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: 0, borderTop: style.borderTop, cursor: 'pointer' }}
     >
       {label}
-    </div>
+      <span style={{ fontWeight: 400 }}>{collapsed ? '+' : '−'}</span>
+    </button>
+  );
+}
+
+// Track+knob simples (sem componente de toggle pronto no projeto) — reaproveitado no lugar do
+// checkbox pra propriedades booleanas do painel de Configuração (mesmo visual de "Required Field"
+// da referência).
+export function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
+  const { c } = useFlowTheme();
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      style={{
+        width: 30,
+        height: 17,
+        borderRadius: 999,
+        border: 0,
+        padding: 2,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        background: checked ? c.accent : c.border,
+        opacity: disabled ? 0.5 : 1,
+        display: 'flex',
+        justifyContent: checked ? 'flex-end' : 'flex-start',
+        transition: 'background 0.15s',
+      }}
+    >
+      <span style={{ width: 13, height: 13, borderRadius: '50%', background: '#fff', display: 'block', transition: 'transform 0.15s' }} />
+    </button>
   );
 }
 

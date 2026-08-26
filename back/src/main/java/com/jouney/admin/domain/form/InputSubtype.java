@@ -6,5 +6,10 @@ public enum InputSubtype {
     EMAIL,
     DATE,
     PHONE,
-    PASSWORD
+    PASSWORD,
+    SEARCH,
+    INTEGER,
+    TIME,
+    PIN,
+    IBAN
 }

@@ -24,7 +24,7 @@ public record JourneyVersionResponse(UUID versionId, UUID journeyId, int version
                                 n.getPositionX(), n.getPositionY(),
                                 FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
                                 n.getStartVariables(), n.getMessageText(),
-                                PublicationSnapshotRecord.embeddedScreenSduiOf(n)))
+                                PublicationSnapshotRecord.embeddedScreenSduiOf(n, version.getChannelType())))
                         .toList(),
                 version.getFlowConnections());
         return new JourneyVersionResponse(version.getId(), version.getJourneyId(), version.getVersionNumber(),

@@ -341,12 +341,12 @@ final class FlowGenerationPrompt {
                 ? InputSubtype.valueOf(f.inputSubtype()) : null;
         List<FormFieldOption> options = f.options() == null ? List.of()
                 : f.options().stream().map(o -> new FormFieldOption(o.label(), o.value())).toList();
-        // Seções, exibição condicional, dataSource e os componentes novos (config genérica) não
-        // fazem parte do que o gerador por IA produz ainda — sempre null aqui, só existem via
-        // edição manual no form builder/editor de tela.
+        // Seções, exibição condicional, dataSource, os componentes novos (config genérica) e a
+        // posição livre de tela WEB não fazem parte do que o gerador por IA produz ainda — sempre
+        // null aqui, só existem via edição manual no form builder/editor de tela.
         return new FormField(f.name(), parseEnumOrThrow(FormFieldType.class, f.type()), inputSubtype, f.label(),
                 Boolean.TRUE.equals(f.required()), null, f.helpText(), options, null, null, null, null, null,
-                null, null, null, null);
+                null, null, null, null, null, null, null, null);
     }
 
     // existingFormFieldsById: campos dos formulários do catálogo que algum nó referencia por formId

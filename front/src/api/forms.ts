@@ -20,8 +20,29 @@ export type FormFieldType =
   | 'IMAGE'
   | 'DIVIDER'
   | 'CARD'
-  | 'CALLOUT';
-export type InputSubtype = 'TEXT' | 'NUMBER' | 'EMAIL' | 'DATE' | 'PHONE' | 'PASSWORD';
+  | 'CALLOUT'
+  // Ampliação do catálogo com componentes Mística cross-platform (web + mobile) — também
+  // só-de-apresentação, mesmo espírito de TITLE/IMAGE/CARD/CALLOUT.
+  | 'BUTTON'
+  | 'AVATAR'
+  | 'BADGE'
+  | 'TAG'
+  | 'METER'
+  | 'TABS'
+  | 'CAROUSEL'
+  | 'TABLE';
+export type InputSubtype =
+  | 'TEXT'
+  | 'NUMBER'
+  | 'EMAIL'
+  | 'DATE'
+  | 'PHONE'
+  | 'PASSWORD'
+  | 'SEARCH'
+  | 'INTEGER'
+  | 'TIME'
+  | 'PIN'
+  | 'IBAN';
 
 // Só-de-apresentação — não coletam valor de usuário, não podem ser referenciados por visibleIf de
 // outro campo. Único ponto de verdade no front, espelha FormFieldType.collectsValue() do backend.
@@ -34,6 +55,14 @@ const NON_COLLECTING_FIELD_TYPES = new Set<FormFieldType>([
   'DIVIDER',
   'CARD',
   'CALLOUT',
+  'BUTTON',
+  'AVATAR',
+  'BADGE',
+  'TAG',
+  'METER',
+  'TABS',
+  'CAROUSEL',
+  'TABLE',
 ]);
 
 export function collectsValue(type: FormFieldType): boolean {
@@ -74,6 +103,12 @@ export interface FormField {
   dataSource?: FormFieldDataSource | null;
   /** Config específica dos componentes novos (slider min/max/step, imagem url/alt, callout etc.). */
   config?: Record<string, unknown> | null;
+  /** Posição livre (x/y) e tamanho numa tela do canal WEB — null pra qualquer outro canal, que
+   * continua com o layout linear/seções de sempre. `height` nulo = altura automática pelo conteúdo. */
+  positionX?: number | null;
+  positionY?: number | null;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface Form {

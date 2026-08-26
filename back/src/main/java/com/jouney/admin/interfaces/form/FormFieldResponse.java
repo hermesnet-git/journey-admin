@@ -13,7 +13,8 @@ public record FormFieldResponse(String name, FormFieldType type, InputSubtype in
                                  List<FormFieldOption> options, Double minValue, Double maxValue,
                                  String validationPattern, List<String> acceptedExtensions, Long maxFileSizeBytes,
                                  Integer columns, String visibleIf, DataSourceResponse dataSource,
-                                 Map<String, Object> config) {
+                                 Map<String, Object> config, Integer positionX, Integer positionY, Integer width,
+                                 Integer height) {
 
     public static FormFieldResponse from(FormField field) {
         return new FormFieldResponse(field.getName(), field.getType(), field.getInputSubtype(), field.getLabel(),
@@ -21,7 +22,7 @@ public record FormFieldResponse(String name, FormFieldType type, InputSubtype in
                 field.getMinValue(), field.getMaxValue(), field.getValidationPattern(),
                 field.getAcceptedExtensions(), field.getMaxFileSizeBytes(), field.getColumns(), field.getVisibleIf(),
                 field.getDataSource() == null ? null : DataSourceResponse.from(field.getDataSource()),
-                field.getConfig());
+                field.getConfig(), field.getPositionX(), field.getPositionY(), field.getWidth(), field.getHeight());
     }
 
     public record DataSourceResponse(Map<String, Object> config, String credentialRef) {

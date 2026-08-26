@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { useFlowTheme } from './theme';
+import { WEB_CANVAS_WIDTH, MOBILE_FRAME_WIDTH } from './formScreenModel';
 import type { ChannelType } from '../api/products';
 
 const FRAME_WIDTH: Record<ChannelType, number> = {
-  WEB: 720,
-  MOBILE: 380,
+  WEB: WEB_CANVAS_WIDTH,
+  MOBILE: MOBILE_FRAME_WIDTH,
   WHATSAPP: 380,
   CONTACT_CENTER: 720,
   OTHER: 720,
@@ -15,9 +16,25 @@ const FRAME_WIDTH: Record<ChannelType, number> = {
 // usuário) — chrome de celular/navegador/chat só o suficiente pra dar contexto visual, não é uma
 // simulação fiel do canal. Reaproveitada tanto pelo canvas de edição (FormScreenCanvas) quanto
 // pelo preview somente-leitura (FormScreenPreview), pra os dois "sentirem" igual.
-export function ChannelScreenFrame({ channelType, children }: { channelType: ChannelType; children: ReactNode }) {
+export function ChannelScreenFrame({
+  channelType,
+  children,
+  width: widthOverride,
+  height,
+}: {
+  channelType: ChannelType;
+  children: ReactNode;
+  /** WEB e MOBILE têm resolução/proporção escolhível (seletores em FormScreenCanvasWeb.tsx e
+   * FormScreenCanvas.tsx) — os demais canais sempre usam a largura fixa de FRAME_WIDTH. */
+  width?: number;
+  /** Altura da resolução/proporção escolhida (WEB e MOBILE) — a "janela" mantém esse tamanho fixo;
+   * conteúdo mais alto que isso ganha scroll vertical PRÓPRIO aqui dentro, como uma tela real que
+   * passa da altura do navegador/aparelho — sem isto, a moldura crescia junto com a quantidade de
+   * componentes e parava de manter a proporção de tela de verdade. */
+  height?: number;
+}) {
   const { c } = useFlowTheme();
-  const width = FRAME_WIDTH[channelType];
+  const width = widthOverride ?? FRAME_WIDTH[channelType];
 
   if (channelType === 'MOBILE') {
     return (
@@ -28,7 +45,9 @@ export function ChannelScreenFrame({ channelType, children }: { channelType: Cha
         <div className="h-[22px] flex items-center justify-center" style={{ background: c.textPrimary }}>
           <div className="w-[70px] h-[6px] rounded-full" style={{ background: c.cardBg }} />
         </div>
-        <div className="p-4">{children}</div>
+        <div className="p-4" style={{ ...(height ? { height, overflowY: 'auto' } : null) }}>
+          {children}
+        </div>
       </div>
     );
   }
@@ -46,7 +65,21 @@ export function ChannelScreenFrame({ channelType, children }: { channelType: Cha
     );
   }
 
-  // WEB / CONTACT_CENTER / OTHER / URA — chrome de navegador (URA na prática nunca chega aqui, o
+  // WEB — sem barrinha de navegador (a prancheta do Build, FormScreenCanvasWeb.tsx, também não tem
+  // mais uma, pros dois ficarem iguais); só a moldura com borda/sombra. Sem padding: as posições
+  // x/y dos campos já são relativas ao canto 0,0 da página, igual no Build — um padding aqui
+  // estouraria a largura fixa (canvasWidth) por fora, disparando scroll horizontal à toa.
+  if (channelType === 'WEB') {
+    return (
+      <div className="mx-auto rounded-lg overflow-hidden" style={{ width, border: `1px solid ${c.border}`, boxShadow: '0 8px 24px -12px rgba(0,0,0,.25)' }}>
+        <div style={{ background: c.cardBg, ...(height ? { height, overflowY: 'auto' } : null) }}>
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  // CONTACT_CENTER / OTHER / URA — chrome de navegador genérico (URA na prática nunca chega aqui, o
   // canvas nem é montado pra esse canal sem formId).
   return (
     <div className="mx-auto rounded-lg overflow-hidden" style={{ width, border: `1px solid ${c.border}`, boxShadow: '0 8px 24px -12px rgba(0,0,0,.25)' }}>

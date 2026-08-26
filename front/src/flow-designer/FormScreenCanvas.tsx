@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -11,6 +12,11 @@ import {
   DateField,
   PhoneNumberField,
   PasswordField,
+  SearchField,
+  IntegerField,
+  TimeField,
+  PinField,
+  IbanField,
   Select,
   Checkbox,
   RadioButton,
@@ -19,16 +25,29 @@ import {
   Slider,
   Rating,
   FileUpload,
+  ButtonPrimary,
   ButtonSecondary,
+  ButtonDanger,
+  ButtonLink,
   Divider,
   NakedCard,
+  DataCard,
+  MediaCard,
   Callout,
+  Avatar,
+  Badge,
+  Tag,
+  Meter,
+  Tabs,
+  Carousel,
+  Table,
+  Image,
   Stack,
   skinVars,
 } from '@telefonica/mistica';
 import { useFlowTheme } from './theme';
 import { ChannelScreenFrame } from './ChannelScreenFrame';
-import { groupFieldsBySections, ROOT_ZONE_ID, sectionZoneId } from './formScreenModel';
+import { groupFieldsBySections, ROOT_ZONE_ID, sectionZoneId, MOBILE_SIZE_PRESETS } from './formScreenModel';
 import type { FormField, FormFieldOption } from '../api/forms';
 import type { ChannelType } from '../api/products';
 
@@ -39,6 +58,9 @@ export function FormScreenCanvas({
   dragActive,
   onSelect,
   onRemove,
+  mobileWidth,
+  mobileHeight,
+  onMobileSizeChange,
 }: {
   fields: FormField[];
   channelType: ChannelType;
@@ -47,12 +69,46 @@ export function FormScreenCanvas({
   dragActive: boolean;
   onSelect: (name: string | null) => void;
   onRemove: (name: string) => void;
+  /** Proporção do celular escolhida no seletor (só usado/mostrado quando channelType === MOBILE) —
+   * altura fixa + scroll interno, senão a moldura crescia com a quantidade de componentes e parava
+   * de parecer um celular de verdade. */
+  mobileWidth: number;
+  mobileHeight: number;
+  onMobileSizeChange: (width: number, height: number) => void;
 }) {
   const { c } = useFlowTheme();
 
   return (
-    <div onClick={() => onSelect(null)} className="flex-1 overflow-y-auto p-4" style={{ background: c.canvasBg }}>
-      <ChannelScreenFrame channelType={channelType}>
+    <div onClick={() => onSelect(null)} className="flex-1 relative overflow-y-auto p-4" style={{ background: c.canvasBg }}>
+      {channelType === 'MOBILE' && (
+        <div
+          className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-lg px-1 py-1"
+          style={{ background: c.cardBg, border: `1px solid ${c.border}` }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <select
+            value={mobileWidth}
+            onChange={(e) => {
+              const preset = MOBILE_SIZE_PRESETS.find((p) => p.width === Number(e.target.value));
+              if (preset) onMobileSizeChange(preset.width, preset.height);
+            }}
+            title="Proporção do celular"
+            className="text-[11px] font-medium rounded-md cursor-pointer"
+            style={{ border: 0, background: 'transparent', color: c.textSecondary, height: 26, padding: '0 4px' }}
+          >
+            {MOBILE_SIZE_PRESETS.map((p) => (
+              <option key={p.width} value={p.width}>
+                {p.label} · {p.width}×{p.height}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      <ChannelScreenFrame
+        channelType={channelType}
+        width={channelType === 'MOBILE' ? mobileWidth : undefined}
+        height={channelType === 'MOBILE' ? mobileHeight : undefined}
+      >
         {fields.length === 0 ? (
           // Convite permanente (não só durante o arrasto) — é o único conteúdo do canvas nesse ponto.
           <DropZone id={ROOT_ZONE_ID} active columns={1} minHeight={160}>
@@ -187,7 +243,10 @@ function SortableField({
         >
           <GripVertical size={14} />
         </button>
-        <div className="flex-1 min-w-0">
+        {/* pointerEvents:none — mesmo padrão do canvas WEB (ScreenFieldNode em
+            FormScreenCanvasWeb.tsx): isto é um builder, não o formulário sendo preenchido. Editar
+            é sempre via painel de Configuração, que abre ao selecionar. */}
+        <div className="flex-1 min-w-0" style={{ pointerEvents: 'none' }}>
           <FieldMisticaPreview field={field} />
         </div>
         <button
@@ -231,6 +290,22 @@ export function FieldMisticaPreview({ field }: { field: FormField }) {
       if (subtype === 'DATE') return <DateField name={field.name} label={field.label} optional={!field.required} fullWidth />;
       if (subtype === 'PHONE') return <PhoneNumberField name={field.name} label={field.label} optional={!field.required} fullWidth />;
       if (subtype === 'PASSWORD') return <PasswordField name={field.name} label={field.label} optional={!field.required} fullWidth />;
+      if (subtype === 'SEARCH') return <SearchField name={field.name} label={field.label} optional={!field.required} fullWidth />;
+      if (subtype === 'INTEGER') return <IntegerField name={field.name} label={field.label} optional={!field.required} fullWidth />;
+      if (subtype === 'TIME') return <TimeField name={field.name} label={field.label} optional={!field.required} fullWidth />;
+      // ponytail: PinField não é um CommonFormFieldProps como os demais (sem label/optional) — é um
+      // widget de OTP de tamanho fixo. Rótulo entra como Text separado, mesmo padrão já usado pra
+      // RADIO/SWITCH/SLIDER mais abaixo.
+      if (subtype === 'PIN')
+        return (
+          <Stack space={4}>
+            <Text size={12.5} color={skinVars.colors.textSecondary}>
+              {field.label}
+            </Text>
+            <PinField name={field.name} />
+          </Stack>
+        );
+      if (subtype === 'IBAN') return <IbanField name={field.name} label={field.label} optional={!field.required} fullWidth />;
       return <TextField name={field.name} label={field.label} optional={!field.required} fullWidth />;
     }
     case 'SINGLE_SELECT':
@@ -334,13 +409,15 @@ export function FieldMisticaPreview({ field }: { field: FormField }) {
     }
     case 'DIVIDER':
       return <Divider />;
-    case 'CARD':
-      return (
-        <NakedCard
-          title={field.label}
-          description={typeof config.description === 'string' ? config.description : undefined}
-        />
-      );
+    case 'CARD': {
+      const variant = config.variant as string | undefined;
+      const description = typeof config.description === 'string' ? config.description : undefined;
+      const imageUrl = typeof config.imageUrl === 'string' ? config.imageUrl : undefined;
+      if (variant === 'data') return <DataCard title={field.label} description={description} />;
+      if (variant === 'media')
+        return <MediaCard title={field.label} description={description} imageSrc={imageUrl} mediaAspectRatio="16:9" />;
+      return <NakedCard title={field.label} description={description} imageSrc={imageUrl} mediaAspectRatio="16:9" />;
+    }
     case 'CALLOUT': {
       const variant = config.variant === 'erro' ? 'inverse' : config.variant === 'aviso' ? 'default' : 'brand';
       return (
@@ -351,9 +428,93 @@ export function FieldMisticaPreview({ field }: { field: FormField }) {
         />
       );
     }
+    case 'BUTTON': {
+      const variant = config.variant as string | undefined;
+      const label = field.label || 'Botão';
+      if (variant === 'secondary') return <ButtonSecondary onPress={() => {}}>{label}</ButtonSecondary>;
+      if (variant === 'danger') return <ButtonDanger onPress={() => {}}>{label}</ButtonDanger>;
+      if (variant === 'link') return <ButtonLink onPress={() => {}}>{label}</ButtonLink>;
+      return <ButtonPrimary onPress={() => {}}>{label}</ButtonPrimary>;
+    }
+    case 'AVATAR': {
+      const initials = typeof config.initials === 'string' ? config.initials : undefined;
+      const src = typeof config.imageUrl === 'string' ? config.imageUrl : undefined;
+      const size = typeof config.size === 'number' ? config.size : 40;
+      return <Avatar size={size} initials={initials} src={src} />;
+    }
+    case 'BADGE':
+      return (
+        <div className="flex items-center gap-2">
+          <Text size={12.5} color={skinVars.colors.textSecondary}>
+            {field.label}
+          </Text>
+          <Badge value={typeof config.value === 'number' ? config.value : undefined} />
+        </div>
+      );
+    case 'TAG': {
+      const variant = (config.variant as TagVariant | undefined) ?? 'info';
+      return <Tag type={variant}>{field.label}</Tag>;
+    }
+    case 'METER': {
+      const meterValue = typeof config.value === 'number' ? config.value : 0;
+      const meterType = (config.type as 'linear' | 'circular' | undefined) ?? 'linear';
+      return (
+        <Stack space={4}>
+          <Text size={12.5} color={skinVars.colors.textSecondary}>
+            {field.label}
+          </Text>
+          <Meter type={meterType} values={[meterValue]} />
+        </Stack>
+      );
+    }
+    case 'TABS':
+      return <TabsPreview field={field} />;
+    case 'CAROUSEL': {
+      const items = Array.isArray(config.items) ? (config.items as CarouselItemConfig[]) : [];
+      return (
+        <Carousel
+          items={items.map((it, i) => (
+            <DataCard
+              key={i}
+              title={it.title ?? ''}
+              description={it.description}
+              asset={it.imageUrl ? <Image src={it.imageUrl} width={48} height={48} /> : undefined}
+            />
+          ))}
+          withBullets
+        />
+      );
+    }
+    case 'TABLE': {
+      const heading = Array.isArray(config.heading) ? (config.heading as { label?: string }[]).map((h) => h.label ?? '') : [];
+      const rows = Array.isArray(config.rows)
+        ? (config.rows as { cells?: string }[]).map((r) => (r.cells ?? '').split(';').map((cell) => cell.trim()))
+        : [];
+      return <Table heading={heading} content={rows} />;
+    }
     default:
       // Inalcançável: o switch já cobre todo FormFieldType (TS prova isso tipando `field` como
       // `never` aqui) — mantido só como rede de segurança contra um tipo novo esquecido no switch.
       return null;
   }
+}
+
+type TagVariant = 'promo' | 'info' | 'active' | 'inactive' | 'success' | 'warning' | 'error';
+type CarouselItemConfig = { title?: string; description?: string; imageUrl?: string };
+
+// TABS precisa de estado local (aba selecionada) — como Hooks não podem entrar num case de switch
+// condicional, isso vira um subcomponente próprio em vez de mais um `case` inline (CAROUSEL não
+// precisa disso: o componente da Mística já é não controlado).
+function TabsPreview({ field }: { field: FormField }) {
+  const config = field.config ?? {};
+  const items = Array.isArray(config.items) ? (config.items as { text?: string; content?: string }[]) : [];
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  if (items.length === 0) return null;
+  const safeIndex = Math.min(selectedIndex, items.length - 1);
+  return (
+    <Stack space={8}>
+      <Tabs selectedIndex={safeIndex} onChange={setSelectedIndex} tabs={items.map((it) => ({ text: it.text ?? '' }))} />
+      {items[safeIndex]?.content && <Text size={13.5}>{items[safeIndex].content}</Text>}
+    </Stack>
+  );
 }

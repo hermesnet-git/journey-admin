@@ -30,7 +30,8 @@ public record PublicationSnapshotRecord(UUID journeyId, String journeyName, Stri
                         .map(n -> new SnapshotFlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
                                 n.getPositionX(), n.getPositionY(),
                                 FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
-                                n.getStartVariables(), n.getMessageText(), embeddedScreenSduiOf(n)))
+                                n.getStartVariables(), n.getMessageText(),
+                                embeddedScreenSduiOf(n, publication.getChannelType())))
                         .toList(),
                 publication.getFlowConnections().stream()
                         .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
@@ -41,11 +42,11 @@ public record PublicationSnapshotRecord(UUID journeyId, String journeyName, Stri
     // Prefere o embeddedScreenSdui já calculado (nó reconstruído de uma snapshot já persistida —
     // Publication/JourneyVersion, onde embeddedScreen não sobrevive à volta); só recompila a partir
     // de embeddedScreen quando o nó vem direto de um Flow ao vivo, que nunca tem sdui pré-calculado.
-    public static List<Object> embeddedScreenSduiOf(FlowNode node) {
+    public static List<Object> embeddedScreenSduiOf(FlowNode node, ChannelType channelType) {
         if (node.getEmbeddedScreenSdui() != null) {
             return node.getEmbeddedScreenSdui();
         }
         return node.getEmbeddedScreen() == null || node.getEmbeddedScreen().isEmpty() ? null
-                : FormSduiSerializer.serialize(node.getEmbeddedScreen());
+                : FormSduiSerializer.serialize(node.getEmbeddedScreen(), channelType);
     }
 }

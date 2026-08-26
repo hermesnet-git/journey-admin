@@ -3,14 +3,23 @@ import {
   ButtonLayout,
   ButtonPrimary,
   ButtonSecondary,
+  ButtonDanger,
+  ButtonLink,
   Callout,
   Checkbox,
   Counter,
   DataCard,
+  MediaCard,
+  NakedCard,
   DateField,
   DecimalField,
   Divider,
   EmailField,
+  SearchField,
+  IntegerField,
+  TimeField,
+  PinField,
+  IbanField,
   FileItem,
   FileUpload,
   Form,
@@ -25,6 +34,13 @@ import {
   Text,
   TextField,
   Title2,
+  Avatar,
+  Badge,
+  Tag,
+  Meter,
+  Tabs,
+  Carousel,
+  Table,
   skinVars,
 } from '@telefonica/mistica';
 import type { FormValues } from '@telefonica/mistica';
@@ -34,9 +50,13 @@ interface Props {
   sdui: SduiNode;
   onSubmit: (answers: Record<string, unknown>) => void;
   submitting: boolean;
+  /** WEB usa posição livre (x/y/width já vem em cada prop, calculado pelo backend) — os demais
+   * canais mantêm o fluxo linear de sempre. */
+  channelType: string;
 }
 
 type OptionSpec = { label: string; value: string };
+type TagVariant = 'promo' | 'info' | 'active' | 'inactive' | 'success' | 'warning' | 'error';
 
 // name técnico do campo -> valor de cada campo que não se integra à coleta automática do Form da
 // Mística (só componentes baseados em CommonFormFieldProps o fazem — TextField/Select/DecimalField/
@@ -44,7 +64,7 @@ type OptionSpec = { label: string; value: string };
 // de fora disso, então cada um guarda seu valor aqui e entra no payload final na hora do submit.
 const MULTISELECT_SEPARATOR = '::';
 
-export function SduiFormRenderer({ sdui, onSubmit, submitting }: Props) {
+export function SduiFormRenderer({ sdui, onSubmit, submitting, channelType }: Props) {
   const children = (sdui[2] ?? []) as SduiNode[];
   const [extraValues, setExtraValues] = useState<Record<string, unknown>>({});
 
@@ -76,18 +96,58 @@ export function SduiFormRenderer({ sdui, onSubmit, submitting }: Props) {
   return (
     <Form onSubmit={handleFormSubmit} initialValues={initialValues}>
       <Stack space={24}>
-        {children.map((child, i) => (
-          <FieldRenderer
-            key={i}
-            node={child}
-            extraValues={extraValues}
-            onSetExtraValue={setExtraValue}
-            onToggleMultiselect={toggleMultiselect}
-          />
-        ))}
+        {channelType === 'WEB' ? (
+          <WebPositionedFields nodes={children} extraValues={extraValues} onSetExtraValue={setExtraValue} onToggleMultiselect={toggleMultiselect} />
+        ) : (
+          children.map((child, i) => (
+            <FieldRenderer
+              key={i}
+              node={child}
+              extraValues={extraValues}
+              onSetExtraValue={setExtraValue}
+              onToggleMultiselect={toggleMultiselect}
+            />
+          ))
+        )}
         <ButtonLayout align="right" primaryButton={<ButtonPrimary submit showSpinner={submitting}>Avançar</ButtonPrimary>} />
       </Stack>
     </Form>
+  );
+}
+
+// Telas WEB são posicionadas livremente (x/y/width já vêm calculados em cada prop pelo backend,
+// FormSduiSerializer.serializeWeb — inclusive a cascata de fallback pra campo legado sem posição
+// salva, então não precisa duplicar essa fórmula aqui, só ler o valor).
+function WebPositionedFields({
+  nodes,
+  extraValues,
+  onSetExtraValue,
+  onToggleMultiselect,
+}: {
+  nodes: SduiNode[];
+  extraValues: Record<string, unknown>;
+  onSetExtraValue: (name: string, value: unknown) => void;
+  onToggleMultiselect: (name: string, optionValue: string, checked: boolean) => void;
+}) {
+  const maxBottom = nodes.reduce((max, [, props]) => {
+    const y = typeof props.y === 'number' ? props.y : 0;
+    return Math.max(max, y + 40);
+  }, 0);
+  return (
+    <div style={{ position: 'relative', width: 720, minHeight: maxBottom }}>
+      {nodes.map((node, i) => {
+        const [, props] = node;
+        const x = typeof props.x === 'number' ? props.x : 40;
+        const y = typeof props.y === 'number' ? props.y : 40;
+        const width = typeof props.width === 'number' ? props.width : 320;
+        const height = typeof props.height === 'number' ? props.height : undefined;
+        return (
+          <div key={i} style={{ position: 'absolute', left: x, top: y, width, height }}>
+            <FieldRenderer node={node} extraValues={extraValues} onSetExtraValue={onSetExtraValue} onToggleMultiselect={onToggleMultiselect} />
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -156,13 +216,18 @@ function FieldRenderer({
 
   if (tag === 'ui.card') {
     const imageUrl = props.imageUrl as string | undefined;
-    return (
-      <DataCard
-        title={label}
-        description={props.description as string | undefined}
-        asset={imageUrl ? <Image src={imageUrl} width={64} height={64} /> : undefined}
-      />
-    );
+    const description = props.description as string | undefined;
+    const variant = props.variant as string | undefined;
+    if (variant === 'data')
+      return (
+        <DataCard
+          title={label}
+          description={description}
+          asset={imageUrl ? <Image src={imageUrl} width={64} height={64} /> : undefined}
+        />
+      );
+    if (variant === 'media') return <MediaCard title={label} description={description} imageSrc={imageUrl} mediaAspectRatio="16:9" />;
+    return <NakedCard title={label} description={description} imageSrc={imageUrl} mediaAspectRatio="16:9" />;
   }
 
   if (tag === 'ui.callout') {
@@ -172,6 +237,82 @@ function FieldRenderer({
     const rawVariant = props.variant as string | undefined;
     const variant = rawVariant === 'brand' || rawVariant === 'inverse' ? rawVariant : 'default';
     return <Callout title={label} description={(props.description as string | undefined) ?? ''} variant={variant} />;
+  }
+
+  if (tag === 'ui.button') {
+    const variant = props.variant as string | undefined;
+    const href = props.href as string | undefined;
+    const newTab = props.newTab === true;
+    const buttonProps = href ? { href, newTab } : { onPress: () => {} };
+    if (variant === 'secondary') return <ButtonSecondary {...buttonProps}>{label}</ButtonSecondary>;
+    if (variant === 'danger') return <ButtonDanger {...buttonProps}>{label}</ButtonDanger>;
+    if (variant === 'link') return <ButtonLink {...buttonProps}>{label}</ButtonLink>;
+    return <ButtonPrimary {...buttonProps}>{label}</ButtonPrimary>;
+  }
+
+  if (tag === 'ui.avatar') {
+    const initials = props.initials as string | undefined;
+    const src = props.imageUrl as string | undefined;
+    const size = (props.size as number | undefined) ?? 40;
+    return <Avatar size={size} initials={initials} src={src} />;
+  }
+
+  if (tag === 'ui.badge') {
+    return (
+      <Stack space={4}>
+        <Text size={13} color={skinVars.colors.textSecondary}>
+          {label}
+        </Text>
+        <Badge value={props.value as number | undefined} />
+      </Stack>
+    );
+  }
+
+  if (tag === 'ui.tag') {
+    const variant = (props.variant as TagVariant | undefined) ?? 'info';
+    return <Tag type={variant}>{label}</Tag>;
+  }
+
+  if (tag === 'ui.meter') {
+    const value = (props.value as number | undefined) ?? 0;
+    const meterType = (props.type as 'linear' | 'circular' | undefined) ?? 'linear';
+    return (
+      <Stack space={4}>
+        <Text size={13} color={skinVars.colors.textSecondary}>
+          {label}
+        </Text>
+        <Meter type={meterType} values={[value]} />
+      </Stack>
+    );
+  }
+
+  if (tag === 'ui.tabs') {
+    const items = (props.items as { text?: string; content?: string }[] | undefined) ?? [];
+    return <TabsField items={items} />;
+  }
+
+  if (tag === 'ui.carousel') {
+    const items = (props.items as { title?: string; description?: string; imageUrl?: string }[] | undefined) ?? [];
+    return (
+      <Carousel
+        items={items.map((it, i) => (
+          <DataCard
+            key={i}
+            title={it.title ?? ''}
+            description={it.description}
+            asset={it.imageUrl ? <Image src={it.imageUrl} width={48} height={48} /> : undefined}
+          />
+        ))}
+        withBullets
+      />
+    );
+  }
+
+  if (tag === 'ui.table') {
+    const heading = (props.heading as { label?: string }[] | undefined)?.map((h) => h.label ?? '') ?? [];
+    const rows =
+      (props.rows as { cells?: string }[] | undefined)?.map((r) => (r.cells ?? '').split(';').map((cell) => cell.trim())) ?? [];
+    return <Table heading={heading} content={rows} />;
   }
 
   if (tag === 'ui.section') {
@@ -219,57 +360,75 @@ function FieldRenderer({
     const pattern = props.pattern as string | undefined;
     const min = props.min as number | undefined;
     const max = props.max as number | undefined;
+    const maxLength = typeof props.maxLength === 'number' ? props.maxLength : undefined;
+    // Alinhamento do rótulo — "top" (padrão, pergunta em cima) ou "left"/"right" (lado a lado).
+    // config.labelPosition só existe pra ui.input (form builder só oferece isso pra INPUT hoje).
+    const labelPosition = (props.labelPosition as string | undefined) ?? 'top';
+    const withQuestion = (fieldEl: React.ReactNode) =>
+      labelPosition === 'left' || labelPosition === 'right' ? (
+        <div style={{ display: 'flex', flexDirection: labelPosition === 'left' ? 'row' : 'row-reverse', alignItems: 'center', gap: 12 }}>
+          <div style={{ flexShrink: 0, maxWidth: '45%' }}>{question}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>{fieldEl}</div>
+        </div>
+      ) : (
+        <Stack space={8}>
+          {question}
+          {fieldEl}
+        </Stack>
+      );
 
     if (inputType === 'email') {
-      return (
-        <Stack space={8}>
-          {question}
-          <EmailField name={name} label="E-mail" optional={optional} fullWidth />
-        </Stack>
-      );
+      return withQuestion(<EmailField name={name} label="E-mail" optional={optional} fullWidth />);
     }
     if (inputType === 'number') {
-      return (
-        <Stack space={8}>
-          {question}
-          <DecimalField
-            name={name}
-            label="Valor"
-            optional={optional}
-            fullWidth
-            validate={(value) => {
-              if (value === undefined || value === '') return undefined;
-              const n = Number(value);
-              if (min !== undefined && n < min) return `O valor mínimo é ${min}`;
-              if (max !== undefined && n > max) return `O valor máximo é ${max}`;
-              return undefined;
-            }}
-          />
-        </Stack>
-      );
-    }
-    if (inputType === 'date') {
-      return (
-        <Stack space={8}>
-          {question}
-          <DateField name={name} label="Data" optional={optional} fullWidth />
-        </Stack>
-      );
-    }
-    return (
-      <Stack space={8}>
-        {question}
-        <TextField
+      return withQuestion(
+        <DecimalField
           name={name}
-          label="Sua resposta"
+          label="Valor"
           optional={optional}
           fullWidth
           validate={(value) => {
-            if (!pattern || !value) return undefined;
-            return new RegExp(pattern).test(String(value)) ? undefined : 'Formato inválido';
+            if (value === undefined || value === '') return undefined;
+            const n = Number(value);
+            if (min !== undefined && n < min) return `O valor mínimo é ${min}`;
+            if (max !== undefined && n > max) return `O valor máximo é ${max}`;
+            return undefined;
           }}
-        />
-      </Stack>
+        />,
+      );
+    }
+    if (inputType === 'date') {
+      return withQuestion(<DateField name={name} label="Data" optional={optional} fullWidth />);
+    }
+    if (inputType === 'search') {
+      return withQuestion(<SearchField name={name} label="Buscar" optional={optional} fullWidth />);
+    }
+    if (inputType === 'integer') {
+      return withQuestion(<IntegerField name={name} label="Valor" optional={optional} fullWidth />);
+    }
+    if (inputType === 'time') {
+      return withQuestion(<TimeField name={name} label="Horário" optional={optional} fullWidth />);
+    }
+    if (inputType === 'iban') {
+      return withQuestion(<IbanField name={name} label="IBAN" optional={optional} fullWidth />);
+    }
+    if (inputType === 'pin') {
+      // ponytail: PinField não é um CommonFormFieldProps (sem label/optional) — widget de OTP de
+      // tamanho fixo, mesma adaptação já usada no preview do editor (FormScreenCanvas.tsx).
+      return withQuestion(<PinField name={name} />);
+    }
+    return withQuestion(
+      <TextField
+        name={name}
+        label="Sua resposta"
+        optional={optional}
+        fullWidth
+        maxLength={maxLength}
+        validate={(value) => {
+          if (!pattern || !value) return undefined;
+          return new RegExp(pattern).test(String(value)) ? undefined : 'Formato inválido';
+        }}
+      />,
     );
   }
 
@@ -408,4 +567,20 @@ function FieldRenderer({
   }
 
   return null;
+}
+
+// TABS precisa de estado local (aba selecionada) — Hooks não podem entrar num `if` condicional
+// dentro de FieldRenderer, então vira um subcomponente próprio (mesma solução usada no preview do
+// editor, FormScreenCanvas.tsx/TabsPreview). CAROUSEL não precisa disso: o componente da Mística
+// já é não controlado.
+function TabsField({ items }: { items: { text?: string; content?: string }[] }) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  if (items.length === 0) return null;
+  const safeIndex = Math.min(selectedIndex, items.length - 1);
+  return (
+    <Stack space={8}>
+      <Tabs selectedIndex={safeIndex} onChange={setSelectedIndex} tabs={items.map((it) => ({ text: it.text ?? '' }))} />
+      {items[safeIndex]?.content && <Text size={14}>{items[safeIndex].content}</Text>}
+    </Stack>
+  );
 }

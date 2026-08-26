@@ -1,5 +1,6 @@
 package com.jouney.admin.domain.form;
 
+import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.ConnectorConfig;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,12 +18,17 @@ public final class FormSduiSerializer {
     private FormSduiSerializer() {
     }
 
-    public static List<Object> serialize(Form form) {
-        return serialize(form.getFields());
+    public static List<Object> serialize(Form form, ChannelType channelType) {
+        return serialize(form.getFields(), channelType);
     }
 
-    // Núcleo da serialização — a sobrecarga acima é só um atalho pra Form.getFields().
-    public static List<Object> serialize(List<FormField> fields) {
+    // Núcleo da serialização — a sobrecarga acima é só um atalho pra Form.getFields(). WEB tem uma
+    // árvore bem diferente (lista achatada com posição livre, sem aninhar por SECTION) — os demais
+    // canais seguem exatamente o layout linear/seções de sempre.
+    public static List<Object> serialize(List<FormField> fields, ChannelType channelType) {
+        if (channelType == ChannelType.WEB) {
+            return serializeWeb(fields);
+        }
         List<Object> topLevel = new ArrayList<>();
         List<Object> currentSectionChildren = null;
         for (FormField field : fields) {
@@ -35,6 +41,40 @@ public final class FormSduiSerializer {
             (currentSectionChildren != null ? currentSectionChildren : topLevel).add(fieldNode);
         }
         return node("ui.form", Map.of(), topLevel);
+    }
+
+    // SECTION não existe mais na paleta de telas WEB (o agrupamento em grid de colunas não faz
+    // sentido com posição livre) — se ainda restar um marcador de uma tela criada antes desta
+    // mudança, é só ignorado aqui, sem quebrar a serialização.
+    private static List<Object> serializeWeb(List<FormField> fields) {
+        List<Object> topLevel = new ArrayList<>();
+        int index = 0;
+        for (FormField field : fields) {
+            if (field.getType() == FormFieldType.SECTION) {
+                continue;
+            }
+            List<Object> fieldNode = serializeField(field);
+            withPosition(fieldNode, field, index);
+            topLevel.add(fieldNode);
+            index++;
+        }
+        return node("ui.form", Map.of(), topLevel);
+    }
+
+    // Cascata de fallback determinística pra campos sem posição salva (telas WEB desenhadas antes
+    // desta mudança) — MESMA fórmula usada no front (formScreenModel.ts), pra o editor e a
+    // execução real nunca divergirem em como posicionam um campo legado.
+    @SuppressWarnings("unchecked")
+    private static void withPosition(List<Object> fieldNode, FormField field, int index) {
+        Map<String, Object> props = (Map<String, Object>) fieldNode.get(1);
+        props.put("x", field.getPositionX() != null ? field.getPositionX() : 40);
+        props.put("y", field.getPositionY() != null ? field.getPositionY() : 40 + index * 72);
+        props.put("width", field.getWidth() != null ? field.getWidth() : 320);
+        // height nulo = automática pelo conteúdo (não fixada) — só entra na árvore quando o usuário
+        // redimensionou explicitamente.
+        if (field.getHeight() != null) {
+            props.put("height", field.getHeight());
+        }
     }
 
     private static Map<String, Object> sectionProps(FormField field) {
@@ -68,6 +108,14 @@ public final class FormSduiSerializer {
             case DIVIDER -> "ui.divider";
             case CARD -> "ui.card";
             case CALLOUT -> "ui.callout";
+            case BUTTON -> "ui.button";
+            case AVATAR -> "ui.avatar";
+            case BADGE -> "ui.badge";
+            case TAG -> "ui.tag";
+            case METER -> "ui.meter";
+            case TABS -> "ui.tabs";
+            case CAROUSEL -> "ui.carousel";
+            case TABLE -> "ui.table";
             case SECTION -> throw new IllegalStateException("SECTION is handled by serialize(), not serializeField()");
         };
         Map<String, Object> props = switch (field.getType()) {
@@ -76,7 +124,8 @@ public final class FormSduiSerializer {
             case SINGLE_SELECT, MULTI_SELECT, RADIO, AUTOCOMPLETE -> selectProps(field);
             case FILE_UPLOAD -> uploadProps(field);
             case DIVIDER -> withConfig(new LinkedHashMap<>(), field);
-            case TITLE, IMAGE, CARD, CALLOUT -> contentProps(field);
+            case TITLE, IMAGE, CARD, CALLOUT, BUTTON, AVATAR, BADGE, TAG, METER, TABS, CAROUSEL, TABLE ->
+                    contentProps(field);
             case SWITCH -> nameProps(field);
             case SLIDER, RATING, STEPPER -> withConfig(nameProps(field), field);
             case SECTION -> throw new IllegalStateException("SECTION is handled by serialize(), not serializeField()");
@@ -141,7 +190,9 @@ public final class FormSduiSerializer {
         if (field.getValidationPattern() != null) {
             props.put("pattern", field.getValidationPattern());
         }
-        return props;
+        // labelPosition/maxLength/repeatable (campos "avançados" do form builder) vivem em
+        // field.config, mesmo princípio de withConfig — sem coluna tipada nova só pra isso.
+        return withConfig(props, field);
     }
 
     private static Map<String, Object> selectProps(FormField field) {

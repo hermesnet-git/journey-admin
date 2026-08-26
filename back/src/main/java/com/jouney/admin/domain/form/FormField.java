@@ -23,12 +23,17 @@ public class FormField {
     private final String visibleIf;
     private final ConnectorConfig dataSource;
     private final Map<String, Object> config;
+    private final Integer positionX;
+    private final Integer positionY;
+    private final Integer width;
+    private final Integer height;
 
     public FormField(String name, FormFieldType type, InputSubtype inputSubtype, String label, boolean required,
                       String defaultValue, String helpText, List<FormFieldOption> options, Double minValue,
                       Double maxValue, String validationPattern, List<String> acceptedExtensions,
                       Long maxFileSizeBytes, Integer columns, String visibleIf, ConnectorConfig dataSource,
-                      Map<String, Object> config) {
+                      Map<String, Object> config, Integer positionX, Integer positionY, Integer width,
+                      Integer height) {
         this.name = name;
         this.type = type;
         this.inputSubtype = inputSubtype;
@@ -46,6 +51,10 @@ public class FormField {
         this.visibleIf = visibleIf;
         this.dataSource = dataSource;
         this.config = config;
+        this.positionX = positionX;
+        this.positionY = positionY;
+        this.width = width;
+        this.height = height;
     }
 
     public String getName() {
@@ -126,5 +135,26 @@ public class FormField {
      */
     public Map<String, Object> getConfig() {
         return config;
+    }
+
+    /**
+     * Posição livre (x/y) e tamanho (largura/altura) do componente numa tela do canal WEB —
+     * {@code null} pra qualquer outro canal, que continua com o layout linear/seções de sempre.
+     * {@code height} nulo significa altura automática pelo conteúdo (não fixada).
+     */
+    public Integer getPositionX() {
+        return positionX;
+    }
+
+    public Integer getPositionY() {
+        return positionY;
+    }
+
+    public Integer getWidth() {
+        return width;
+    }
+
+    public Integer getHeight() {
+        return height;
     }
 }

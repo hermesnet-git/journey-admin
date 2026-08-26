@@ -43,7 +43,7 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
                                 n.getPositionX(), n.getPositionY(),
                                 FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
                                 n.getStartVariables(), n.getMessageText(),
-                                PublicationSnapshotRecord.embeddedScreenSduiOf(n)))
+                                PublicationSnapshotRecord.embeddedScreenSduiOf(n, version.getChannelType())))
                         .toList(),
                 version.getFlowConnections().stream()
                         .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),

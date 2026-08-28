@@ -1,13 +1,13 @@
 #!/bin/bash
-# Sobe front, back e os 4 serviços de simulações, cada um numa aba.
+# Sobe front, back e os 5 serviços de simulações, cada um numa aba.
 # Usa iTerm2 se estiver instalado, senão cai no Terminal.app padrão do sistema.
 # Apps React: instala node_modules se não existir. Apps Spring Boot: compila antes de rodar.
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-titles=(front back front-mock-integracoes ms-espec-registry ms-mock-api-rest ms-transform-publication)
-paths=(front back simulacoes/front-mock-integracoes simulacoes/ms-espec-registry simulacoes/ms-mock-api-rest simulacoes/ms-transform-publication)
-types=(react spring react spring spring spring)
+titles=(front back ms-runtime-camunda front-mock-integracoes ms-espec-registry ms-mock-api-rest ms-transform-publication)
+paths=(front back simulacoes/ms-runtime-camunda simulacoes/front-mock-integracoes simulacoes/ms-espec-registry simulacoes/ms-mock-api-rest simulacoes/ms-transform-publication)
+types=(react spring spring react spring spring spring)
 
 build_command() {
   local path="$1" type="$2"

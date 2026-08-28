@@ -8,6 +8,8 @@ wt.exe -w new  new-tab --suppressApplicationTitle --title "front"               
 ping -n 2 127.0.0.1 >nul
 wt.exe -w last new-tab --suppressApplicationTitle --title "back"                     cmd /k call "%~f0" --run-app "%ROOT%back" spring
 ping -n 2 127.0.0.1 >nul
+wt.exe -w last new-tab --suppressApplicationTitle --title "ms-runtime-camunda"       cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-runtime-camunda" spring
+ping -n 2 127.0.0.1 >nul
 wt.exe -w last new-tab --suppressApplicationTitle --title "front-mock-integracoes"   cmd /k call "%~f0" --run-app "%ROOT%simulacoes\front-mock-integracoes" react
 ping -n 2 127.0.0.1 >nul
 wt.exe -w last new-tab --suppressApplicationTitle --title "ms-espec-registry"        cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-espec-registry" spring

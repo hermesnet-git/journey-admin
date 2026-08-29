@@ -1,14 +1,14 @@
 import { useFlowTheme } from './theme';
 import { ChannelScreenFrame } from './ChannelScreenFrame';
-import { FieldMisticaPreview } from './FormScreenCanvas';
-import { groupFieldsBySections, resolveWebPosition, FALLBACK_ROW_HEIGHT } from './formScreenModel';
+import { SduiFieldPreview } from '../execution/SduiFormRenderer';
+import { groupFieldsBySections, resolveWebPosition, FALLBACK_ROW_HEIGHT, fieldToSduiNode } from './formScreenModel';
 import type { FormField } from '../api/forms';
 import type { ChannelType } from '../api/products';
 
-// Visão somente-leitura da tela — mesma renderização Mística que o canvas de edição
-// (FormScreenCanvas/FieldMisticaPreview), só sem a moldura de arrastar/selecionar/remover, pra dar
-// a sensação de estar olhando a tela final do canal, não o editor. WEB usa posição livre (x/y) —
-// os demais canais mantêm o agrupamento por seção de sempre.
+// Visão somente-leitura da tela — mesmo SduiFieldPreview/FieldRenderer que a execução real usa
+// (SduiFormRenderer.tsx), só sem a moldura de arrastar/selecionar/remover, pra dar a sensação de
+// estar olhando a tela final do canal, não o editor. WEB usa posição livre (x/y) — os demais canais
+// mantêm o agrupamento por seção de sempre.
 export function FormScreenPreview({
   fields,
   channelType,
@@ -49,10 +49,14 @@ export function FormScreenPreview({
                 className="flex flex-col gap-2 rounded-lg"
                 style={block.section ? { border: `1px solid ${c.border}`, background: c.hoverBg, padding: '10px 12px' } : undefined}
               >
-                {block.section && <FieldMisticaPreview field={block.section} />}
+                {block.section && (
+                  <div className="text-[12.5px] font-semibold pb-1" style={{ color: c.textPrimary, borderBottom: `1px solid ${c.border}` }}>
+                    {block.section.label}
+                  </div>
+                )}
                 <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${block.section?.columns ?? 1}, minmax(0,1fr))` }}>
                   {block.children.map((field) => (
-                    <FieldMisticaPreview key={field.name} field={field} />
+                    <SduiFieldPreview key={field.name} node={fieldToSduiNode(field)} />
                   ))}
                 </div>
               </div>
@@ -87,7 +91,7 @@ function WebPositionedPreview({ fields }: { fields: FormField[] }) {
             key={field.name}
             style={{ position: 'absolute', left: x, top: y, width, height: height ?? undefined }}
           >
-            <FieldMisticaPreview field={field} />
+            <SduiFieldPreview node={fieldToSduiNode(field)} />
           </div>
         );
       })}

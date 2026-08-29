@@ -1,0 +1,12 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: ms-journey
+
+app:
+  espec-registry:
+    base-url: http://localhost:8083
+  camunda:
+    base-url: http://localhost:8080/engine-rest

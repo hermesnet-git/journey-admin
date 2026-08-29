@@ -30,8 +30,8 @@ import {
 } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { useAppTheme } from '../shell/theme';
-import { FieldMisticaPreview } from './FormScreenCanvas';
-import { autoArrangeWeb, resolveWebPosition, FALLBACK_ROW_HEIGHT, CANVAS_SIZE_PRESETS } from './formScreenModel';
+import { SduiFieldPreview } from '../execution/SduiFormRenderer';
+import { autoArrangeWeb, resolveWebPosition, FALLBACK_ROW_HEIGHT, CANVAS_SIZE_PRESETS, fieldToSduiNode } from './formScreenModel';
 import type { FormField, FormFieldType } from '../api/forms';
 
 type ScreenNode = Node<
@@ -121,7 +121,7 @@ function ScreenFieldNode({ data, selected }: NodeProps<ScreenNode>) {
           direto no componente aqui dentro não faz sentido; editar é sempre via painel de
           Configuração (que abre sozinho ao selecionar, ver handleSelectWeb em FormPreviewDock). */}
       <div style={{ pointerEvents: 'none' }}>
-        <FieldMisticaPreview field={field} />
+        <SduiFieldPreview node={fieldToSduiNode(field)} />
       </div>
       <button
         onPointerDown={(e) => e.stopPropagation()}

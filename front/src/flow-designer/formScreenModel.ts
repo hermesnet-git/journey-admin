@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import type { ChannelType } from '../api/products';
 import type { FormField, FormFieldType } from '../api/forms';
+import type { SduiNode } from '../execution/api';
 
 // Paleta por canal (US pedido explícito: WhatsApp/URA têm capacidade muito mais limitada que
 // web/mobile — não faz sentido oferecer upload/date picker/etc. num canal que não os renderiza).
@@ -119,8 +120,10 @@ export const MOBILE_SIZE_PRESETS: { label: string; width: number; height: number
 /** Altura de fallback pra cascata (só usada quando o campo também não tem altura fixada) — também
  * reaproveitada por quem precisa estimar até onde a tela desce (FormScreenCanvasWeb.tsx,
  * FormScreenPreview.tsx), já que um campo de altura "auto" não tem altura real conhecida antes de
- * renderizar. */
-export const FALLBACK_ROW_HEIGHT = 72;
+ * renderizar. 96 (não 72) porque o preview (fieldToSduiNode + SduiFieldPreview) desenha a pergunta
+ * completa acima do campo pra INPUT/SELECT/AUTOCOMPLETE (mesma altura que a execução real usa) —
+ * 72 bastava quando o preview só mostrava o rótulo nativo da Mística, numa linha só. */
+export const FALLBACK_ROW_HEIGHT = 96;
 
 // Cascata de fallback determinística pra campos de tela WEB sem posição salva (telas desenhadas
 // antes desta mudança) — MESMA fórmula usada no backend (FormSduiSerializer.java), pra o editor,
@@ -447,6 +450,106 @@ export function groupFieldsBySections(fields: FormField[]): FieldBlock[] {
     blocks[blocks.length - 1].children.push(field);
   }
   return blocks;
+}
+
+// Espelha FormSduiSerializer.serializeField() (backend) campo a campo — o builder usa isto pra
+// alimentar o MESMO SduiFieldPreview/FieldRenderer que a execução real usa (SduiFormRenderer.tsx),
+// em vez de manter uma renderização de preview própria e separada que costuma divergir da real (foi
+// o que causou campos de tela WEB sobrepondo na execução sem sobrepor no editor). SECTION não entra
+// aqui — é estrutural, os 3 lugares que chamam isto já tratam a seção à parte via
+// groupFieldsBySections antes de mapear os filhos.
+export function fieldToSduiNode(field: FormField): SduiNode {
+  const config = field.config ?? {};
+  switch (field.type) {
+    case 'TEXT':
+      return withVisibleIf(field, ['ui.text', { text: field.label, ...(field.helpText != null ? { helpText: field.helpText } : {}) }]);
+    case 'INPUT':
+      return withVisibleIf(field, [
+        'ui.input',
+        {
+          name: field.name,
+          type: (field.inputSubtype ?? 'TEXT').toLowerCase(),
+          label: field.label,
+          required: field.required,
+          defaultValue: field.defaultValue,
+          ...(field.minValue != null ? { min: field.minValue } : {}),
+          ...(field.maxValue != null ? { max: field.maxValue } : {}),
+          ...(field.validationPattern != null ? { pattern: field.validationPattern } : {}),
+          ...config,
+        },
+      ]);
+    case 'SINGLE_SELECT':
+    case 'MULTI_SELECT':
+    case 'RADIO':
+    case 'AUTOCOMPLETE': {
+      const tag = field.type === 'SINGLE_SELECT' ? 'ui.select' : field.type === 'MULTI_SELECT' ? 'ui.multiselect' : field.type === 'RADIO' ? 'ui.radio' : 'ui.autocomplete';
+      return withVisibleIf(field, [
+        tag,
+        {
+          name: field.name,
+          label: field.label,
+          required: field.required,
+          ...(field.dataSource ? { dataSource: { config: field.dataSource.config, credentialRef: field.dataSource.credentialRef } } : { options: field.options ?? [] }),
+        },
+      ]);
+    }
+    case 'FILE_UPLOAD':
+      return withVisibleIf(field, [
+        'ui.upload',
+        {
+          name: field.name,
+          label: field.label,
+          required: field.required,
+          ...(field.acceptedExtensions != null ? { acceptedExtensions: field.acceptedExtensions } : {}),
+          ...(field.maxFileSizeBytes != null ? { maxFileSizeBytes: field.maxFileSizeBytes } : {}),
+        },
+      ]);
+    case 'DIVIDER':
+      return withVisibleIf(field, ['ui.divider', { ...config }]);
+    case 'SWITCH':
+      return withVisibleIf(field, ['ui.switch', { name: field.name, label: field.label, required: field.required }]);
+    case 'SLIDER':
+    case 'RATING':
+    case 'STEPPER': {
+      const tag = field.type === 'SLIDER' ? 'ui.slider' : field.type === 'RATING' ? 'ui.rating' : 'ui.stepper';
+      return withVisibleIf(field, [tag, { name: field.name, label: field.label, required: field.required, ...config }]);
+    }
+    case 'TITLE':
+    case 'IMAGE':
+    case 'CARD':
+    case 'CALLOUT':
+    case 'BUTTON':
+    case 'AVATAR':
+    case 'BADGE':
+    case 'TAG':
+    case 'METER':
+    case 'TABS':
+    case 'CAROUSEL':
+    case 'TABLE': {
+      const tag: Record<string, string> = {
+        TITLE: 'ui.title',
+        IMAGE: 'ui.image',
+        CARD: 'ui.card',
+        CALLOUT: 'ui.callout',
+        BUTTON: 'ui.button',
+        AVATAR: 'ui.avatar',
+        BADGE: 'ui.badge',
+        TAG: 'ui.tag',
+        METER: 'ui.meter',
+        TABS: 'ui.tabs',
+        CAROUSEL: 'ui.carousel',
+        TABLE: 'ui.table',
+      };
+      return withVisibleIf(field, [tag[field.type], { label: field.label, ...config }]);
+    }
+    case 'SECTION':
+      throw new Error('SECTION é estrutural — trate separadamente via groupFieldsBySections, não chame fieldToSduiNode nela.');
+  }
+}
+
+function withVisibleIf(field: FormField, [tag, props]: [string, Record<string, unknown>]): SduiNode {
+  if (field.visibleIf != null) props.visibleIf = field.visibleIf;
+  return [tag, props, []];
 }
 
 // Zona raiz (campos antes da 1ª seção) e uma zona por seção — cada uma com seu próprio

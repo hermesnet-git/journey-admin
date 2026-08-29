@@ -62,13 +62,17 @@ public final class FormSduiSerializer {
     }
 
     // Cascata de fallback determinística pra campos sem posição salva (telas WEB desenhadas antes
-    // desta mudança) — MESMA fórmula usada no front (formScreenModel.ts), pra o editor e a
-    // execução real nunca divergirem em como posicionam um campo legado.
+    // desta mudança) — MESMA fórmula usada no front (formScreenModel.ts/FALLBACK_ROW_HEIGHT), pra
+    // o editor e a execução real nunca divergirem em como posicionam um campo legado. 96, não 72:
+    // o preview do editor desenha a pergunta completa acima do campo (igual a execução real), então
+    // precisa da mesma folga vertical extra.
+    private static final int FALLBACK_ROW_HEIGHT = 96;
+
     @SuppressWarnings("unchecked")
     private static void withPosition(List<Object> fieldNode, FormField field, int index) {
         Map<String, Object> props = (Map<String, Object>) fieldNode.get(1);
         props.put("x", field.getPositionX() != null ? field.getPositionX() : 40);
-        props.put("y", field.getPositionY() != null ? field.getPositionY() : 40 + index * 72);
+        props.put("y", field.getPositionY() != null ? field.getPositionY() : 40 + index * FALLBACK_ROW_HEIGHT);
         props.put("width", field.getWidth() != null ? field.getWidth() : 320);
         // height nulo = automática pelo conteúdo (não fixada) — só entra na árvore quando o usuário
         // redimensionou explicitamente.

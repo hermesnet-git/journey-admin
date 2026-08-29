@@ -6,12 +6,13 @@ import {
   getLatestInstance,
   sendTestMessage,
   startInstance,
-  type FlowNodeInfo,
+  type FlowBundle,
   type InstanceResponse,
   type JourneySummary,
 } from './api';
 import { recordExecutionStart } from './auditApi';
 import { SendTestMessagePanel } from './SendTestMessagePanel';
+import { FlowDiagramViewer } from './FlowDiagramViewer';
 
 const LATEST_INSTANCE_POLL_MS = 2000;
 const LATEST_INSTANCE_MAX_ATTEMPTS = 20; // ~40s
@@ -30,8 +31,10 @@ interface Props {
 // journeyId pelo pai (ExecutionsPage), então trocar de jornada selecionada é sempre um remount
 // limpo aqui — nada de lógica de reset manual entre uma seleção e outra.
 export function StartPanel({ journey, onStarted }: Props) {
-  const [startNode, setStartNode] = useState<FlowNodeInfo | null>(null);
-  const [hasKafkaProducer, setHasKafkaProducer] = useState(false);
+  // O fluxo inteiro (não só o nó de início) fica guardado pra alimentar a prévia estrutural abaixo —
+  // antes disso ele era buscado e quase todo descartado, só pra extrair startNode/hasKafkaProducer.
+  const [flow, setFlow] = useState<FlowBundle | null>(null);
+  const [flowError, setFlowError] = useState(false);
   const [manualKafkaControl, setManualKafkaControl] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -41,23 +44,22 @@ export function StartPanel({ journey, onStarted }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    // Precisa saber o tipo do nó de início antes de decidir entre "Executar" e o painel de envio
-    // de mensagem — MESSAGE_START_EVENT não tem início manual, só uma mensagem Kafka real inicia.
     getJourneyFlow(journey.journeyId)
       .then((f) => {
-        if (cancelled) return;
-        setStartNode(f.flowNodes.find((n) => n.type === 'START' || n.type === 'MESSAGE_START_EVENT') ?? null);
-        setHasKafkaProducer(f.flowNodes.some((n) => n.type === 'SERVICE_TASK' && n.connectorConfig?.connectorType === 'KAFKA'));
+        if (!cancelled) setFlow(f);
       })
       .catch(() => {
-        if (cancelled) return;
-        setStartNode(null);
-        setHasKafkaProducer(false);
+        if (!cancelled) setFlowError(true);
       });
     return () => {
       cancelled = true;
     };
   }, [journey.journeyId]);
+
+  // Tipo do nó de início decide entre "Executar" e o painel de envio de mensagem —
+  // MESSAGE_START_EVENT não tem início manual, só uma mensagem Kafka real inicia.
+  const startNode = flow?.flowNodes.find((n) => n.type === 'START' || n.type === 'MESSAGE_START_EVENT') ?? null;
+  const hasKafkaProducer = flow?.flowNodes.some((n) => n.type === 'SERVICE_TASK' && n.connectorConfig?.connectorType === 'KAFKA') ?? false;
 
   async function handleExecute() {
     setStarting(true);
@@ -96,7 +98,7 @@ export function StartPanel({ journey, onStarted }: Props) {
 
   return (
     <div className="flex-1 min-h-0 overflow-auto flex items-start justify-center py-10 px-6">
-      <div className="w-full max-w-[520px]">
+      <div className="w-full max-w-[640px]">
         <Stack space={24}>
           <Stack space={2}>
             <Text size={18} weight="bold" color={skinVars.colors.textPrimary}>
@@ -107,6 +109,21 @@ export function StartPanel({ journey, onStarted }: Props) {
               {journey.publishedVersionNumber != null && ` · v${journey.publishedVersionNumber}`}
             </Text>
           </Stack>
+
+          {/* Prévia estrutural do fluxo antes de executar — mesmo visualizador somente-leitura da
+              aba "Fluxo da Jornada" (staticView: colorido por tipo de nó, sem trilha de execução),
+              pra não decidir "Executar" às cegas. Omitida silenciosamente se a busca falhar
+              (flowError) — o formulário abaixo continua funcionando sem ela. */}
+          {flow && flow.flowNodes.length > 0 ? (
+            <div
+              className="rounded-lg overflow-hidden"
+              style={{ height: 200, border: `1px solid ${skinVars.colors.border}` }}
+            >
+              <FlowDiagramViewer flowNodes={flow.flowNodes} flowConnections={flow.flowConnections} currentNodeId={null} visitedNodeIds={[]} staticView />
+            </div>
+          ) : !flowError && !flow ? (
+            <div className="rounded-lg animate-pulse" style={{ height: 200, background: skinVars.colors.backgroundAlternative }} />
+          ) : null}
 
           {startError && <Callout variant="default" title="Não foi possível iniciar" description={startError} />}
 

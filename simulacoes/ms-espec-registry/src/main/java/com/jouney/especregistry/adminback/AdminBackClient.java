@@ -39,6 +39,22 @@ public class AdminBackClient {
         return get("/api/v1/journeys/" + journeyId + "/publication", PublicationSnapshot.class);
     }
 
+    public List<JourneyVersionResponse> listVersions(UUID journeyId) {
+        return get("/api/v1/journeys/" + journeyId + "/versions", new ParameterizedTypeReference<List<JourneyVersionResponse>>() {
+        });
+    }
+
+    /** Snapshot de uma versão específica (imutável, sobrevive a republish) — remonta o resultado num
+     * {@link PublicationSnapshot} normal pra tudo que já usa esse tipo (FlowBundle.from, findNode
+     * etc.) funcionar sem mudança nenhuma, seja o snapshot atual ou um antigo. */
+    public PublicationSnapshot getVersionSnapshot(UUID journeyId, UUID versionId) {
+        JourneyVersionResponse version = get("/api/v1/journeys/" + journeyId + "/versions/" + versionId,
+                JourneyVersionResponse.class);
+        JourneyVersionResponse.VersionSnapshot snapshot = version.snapshot();
+        return new PublicationSnapshot(journeyId, snapshot.journeyName(), snapshot.channelType(),
+                snapshot.flowNodes(), snapshot.flowConnections());
+    }
+
     private <T> T get(String path, Class<T> type) {
         return withAuth(headers -> restClient.get().uri(properties.baseUrl() + path).headers(headers).retrieve()
                 .body(type));

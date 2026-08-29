@@ -35,7 +35,9 @@ interface SimNodeData extends Record<string, unknown> {
   frontType: NodeType;
   name: string;
   status: NodeStatus;
+  selected?: boolean;
   onShowError?: () => void;
+  onSelect?: () => void;
 }
 
 // Cores por status — mesma forma/ícone do designer (NodeShape), só a "pintura" muda conforme a
@@ -92,15 +94,29 @@ function statusStyle(status: NodeStatus, typeColor: string) {
   }
 }
 
+// Anel adicional, por cima do que o status já desenha, marcando o nó clicado — cor distinta
+// (brand) pra não ser confundido com o verde de "concluído" ou o vermelho de "erro".
+const SELECTED_RING = `0 0 0 2px ${skinVars.colors.brand}`;
+
 function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
-  const { frontType, name, status, onShowError } = data;
+  const { frontType, name, status, selected, onShowError, onSelect } = data;
   const typeColor = TYPE_COLOR[frontType];
   const dim = NODE_DIMENSIONS[frontType];
   const style = statusStyle(status, typeColor);
   const labelColor = status === 'pending' ? skinVars.colors.textSecondary : skinVars.colors.textPrimary;
+  const boxShadow = selected
+    ? [style.boxShadow !== 'none' ? style.boxShadow : null, SELECTED_RING].filter(Boolean).join(', ')
+    : style.boxShadow;
 
   return (
-    <div className="relative" style={{ width: dim.width, height: dim.height }}>
+    <div
+      className="relative"
+      // O React Flow põe `pointer-events: none` no wrapper do nó quando ele não é
+      // selecionável/arrastável (nosso caso, o diagrama continua somente-leitura pra mover/conectar) —
+      // sem isso o clique nunca chegaria aqui, mesma razão do botão de erro logo abaixo.
+      style={{ width: dim.width, height: dim.height, pointerEvents: 'auto', cursor: onSelect ? 'pointer' : undefined }}
+      onClick={onSelect}
+    >
       <Handle type="target" position={Position.Left} style={HANDLE_STYLE} />
       <NodeShape
         nodeType={frontType}
@@ -109,7 +125,7 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
         borderColor={style.borderColor}
         iconColor={style.iconColor}
         labelColor={labelColor}
-        boxShadow={style.boxShadow}
+        boxShadow={boxShadow}
         pulse={style.pulse}
         pulseColor={style.pulseColor}
         surfaceColor={skinVars.colors.backgroundContainer}
@@ -152,6 +168,10 @@ interface Props {
   // enquadramento inicial usa o `fitView` nativo do React Flow (mais confiável nesse caso, já que não
   // há uma etapa atual pra centralizar).
   staticView?: boolean;
+  // Clicar num nó pra ver seu input/output (ao vivo ou histórico) — opcional: sem onNodeSelect, os
+  // nós continuam puramente visuais, como antes.
+  selectedNodeId?: string | null;
+  onNodeSelect?: (nodeId: string | null) => void;
 }
 
 export function FlowDiagramViewer(props: Props) {
@@ -173,6 +193,8 @@ function FlowDiagramInner({
   erroredNodeName,
   erroredMessage,
   staticView,
+  selectedNodeId,
+  onNodeSelect,
 }: Props) {
   const { zoomIn, zoomOut, fitView, setCenter } = useReactFlow();
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -202,12 +224,14 @@ function FlowDiagramInner({
             frontType: BACKEND_TO_FRONT_TYPE[n.type],
             name: n.name,
             status,
+            selected: n.id === selectedNodeId,
             onShowError: status === 'error' ? onShowError : undefined,
+            onSelect: onNodeSelect ? () => onNodeSelect(n.id === selectedNodeId ? null : n.id) : undefined,
           },
         };
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flowNodes, currentNodeId, visited, erroredNodeId, erroredNodeName, erroredMessage, staticView],
+    [flowNodes, currentNodeId, visited, erroredNodeId, erroredNodeName, erroredMessage, staticView, selectedNodeId, onNodeSelect],
   );
 
   const edges: Edge[] = useMemo(

@@ -5,7 +5,8 @@ import java.util.List;
 
 public record DashboardOverviewResponse(DashboardKpisResponse kpis, List<ProcessDefinitionUsageResponse> processDefinitions,
                                          List<IncidentResponse> incidents, List<InstanceResponse> pendingInstances,
-                                         List<InstanceResponse> executingRecently, DashboardTrendResponse trend) {
+                                         List<InstanceResponse> executingRecently, List<InstanceResponse> recentInstances,
+                                         DashboardTrendResponse trend) {
 
     static DashboardOverviewResponse from(DashboardOverview overview) {
         return new DashboardOverviewResponse(
@@ -14,6 +15,7 @@ public record DashboardOverviewResponse(DashboardKpisResponse kpis, List<Process
                 overview.incidents().stream().map(IncidentResponse::from).toList(),
                 overview.pendingInstances().stream().map(InstanceResponse::from).toList(),
                 overview.executingRecently().stream().map(InstanceResponse::from).toList(),
+                overview.recentInstances().stream().map(InstanceResponse::from).toList(),
                 DashboardTrendResponse.from(overview.trend()));
     }
 }

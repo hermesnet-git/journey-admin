@@ -21,6 +21,12 @@ public record PublicationSnapshotRecord(UUID journeyId, String journeyName, Stri
     // camunda:versionTag — Camunda's own "Definition Version" is a deploy counter it manages
     // itself (see BpmnTransformer), so it never matches JourneyVersion.versionNumber; versionTag
     // is the one Cockpit field meant for an external version identifier like this.
+    // versionTag is also the de/para read BACK by ms-espec-registry's InstanceHistoryController: given
+    // an old process instance's processDefinitionId, the runtime engine's GET /process-definition/{id}
+    // returns this same versionTag, which maps straight back to journey_version.version_number — used
+    // to fetch that instance's EXACT flow snapshot via GET /journeys/{id}/versions/{versionId}
+    // (journey_version.version_snapshot is immutable per version) instead of this endpoint's always-current
+    // one, which would mislabel old instances if the journey was republished since they ran.
     public static PublicationSnapshotRecord from(Publication publication) {
         return new PublicationSnapshotRecord(
                 publication.getJourneyId(), publication.getJourneyName(), publication.getJourneyDescription(),

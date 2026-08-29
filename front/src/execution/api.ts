@@ -355,3 +355,71 @@ export function previewKafkaMessage(processInstanceId: string): Promise<unknown>
 export function getLatestInstance(journeyId: string, since: string): Promise<InstanceResponse | undefined> {
   return apiGet(`/journeys/${journeyId}/latest-instance?since=${encodeURIComponent(since)}`);
 }
+
+// --- Histórico (aba "Histórico" de Execução & Diagnóstico) ---
+// Ao contrário de tudo acima (que só funciona enquanto a instância existe no runtime do Camunda),
+// estas duas batem nas APIs de história do motor (via InstanceHistoryController do
+// ms-espec-registry) — respondem pra qualquer instância, ativa ou já terminada.
+
+export interface HistoricInstanceSummary {
+  id: string;
+  businessKey: string;
+  journeyName: string;
+  startTime: string;
+  endTime: string | null;
+  durationMillis: number | null;
+  state: string;
+}
+
+/** Um nó que a instância visitou, com o que ele recebeu/produziu — mesmo mapa de campos por tipo de
+ * nó que TrailEntry já usa pra execução ao vivo (REST: method/url/headers/body no input, response no
+ * output; Kafka: topic/payload no input; USER_TASK: respostas submetidas no input), só que
+ * estruturado como objeto em vez de campos soltos, e cobrindo a instância inteira de uma vez — não
+ * incremental feito TrailEntry. */
+export interface NodeIODetail {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  startTime: string;
+  endTime: string | null;
+  durationMillis: number | null;
+  input: Record<string, unknown> | null;
+  output: Record<string, unknown> | null;
+}
+
+export interface InstanceHistoryResponse {
+  processInstanceId: string;
+  businessKey: string;
+  journeyId: string;
+  journeyName: string;
+  versionNumber: number | null;
+  state: string;
+  startTime: string;
+  endTime: string | null;
+  durationMillis: number | null;
+  flow: FlowBundle;
+  steps: NodeIODetail[];
+}
+
+export interface InstanceHistorySearchFilters {
+  journeyId?: string;
+  businessKey?: string;
+  finished?: boolean;
+  startedFrom?: string;
+  startedTo?: string;
+}
+
+export function searchInstanceHistory(filters: InstanceHistorySearchFilters): Promise<HistoricInstanceSummary[]> {
+  const params = new URLSearchParams();
+  if (filters.journeyId) params.set('journeyId', filters.journeyId);
+  if (filters.businessKey) params.set('businessKey', filters.businessKey);
+  if (filters.finished !== undefined) params.set('finished', String(filters.finished));
+  if (filters.startedFrom) params.set('startedFrom', filters.startedFrom);
+  if (filters.startedTo) params.set('startedTo', filters.startedTo);
+  const qs = params.toString();
+  return apiGet(`/instances/search${qs ? `?${qs}` : ''}`);
+}
+
+export function getInstanceHistory(processInstanceId: string): Promise<InstanceHistoryResponse> {
+  return apiGet(`/instances/${processInstanceId}/history`);
+}

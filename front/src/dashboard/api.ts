@@ -1,6 +1,6 @@
 // Dashboard é uma funcionalidade do admin/back (não da Execução) — usa o mesmo cliente autenticado
 // do resto do portal, não o cliente à parte do ms-espec-registry.
-import { apiDelete, apiGet } from '../api/client';
+import { apiDelete, apiGet, ApiClientError } from '../api/client';
 
 export interface DashboardKpis {
   runningInstances: number;
@@ -68,6 +68,9 @@ export interface DashboardOverview {
   // achar candidatas a abandonadas; executingRecently (mais novas primeiro) é o que está rodando agora.
   pendingInstances: InstanceEntry[];
   executingRecently: InstanceEntry[];
+  // Diferente das duas acima: não filtra só ativas — são as últimas 10 de qualquer estado, o que
+  // alimenta o card "Execuções recentes" (link pra Execução & Diagnóstico).
+  recentInstances: InstanceEntry[];
   trend: DashboardTrend;
 }
 
@@ -77,4 +80,17 @@ export function getDashboardOverview(): Promise<DashboardOverview> {
 
 export function terminateInstance(processInstanceId: string): Promise<void> {
   return apiDelete<void>(`/dashboard/instances/${processInstanceId}`);
+}
+
+/** Busca por processInstanceId OU business key digitado à mão no card "Execuções recentes" (o
+ * backend tenta os dois — business key é o único identificador que a própria UI mostra em algum
+ * lugar). null (não erro) quando não acha de nenhum jeito, pra distinguir "não achei" de uma falha
+ * de verdade. */
+export async function findInstance(idOrBusinessKey: string): Promise<InstanceEntry | null> {
+  try {
+    return await apiGet<InstanceEntry>(`/dashboard/instances/${encodeURIComponent(idOrBusinessKey)}`);
+  } catch (e) {
+    if (e instanceof ApiClientError && e.status === 404) return null;
+    throw e;
+  }
 }

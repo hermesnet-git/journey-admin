@@ -13,9 +13,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -135,6 +137,54 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                 QUERY_DATE_FORMAT.format(since), limit);
     }
 
+    @Override
+    public List<HistoricInstanceSummary> recentInstances(int limit) {
+        return fetchHistoricInstances(baseUrl + "/history/process-instance?maxResults={n}&sortBy=startTime&sortOrder=desc", limit);
+    }
+
+    // 404 aqui é "esse id não existe" (usuário pode ter digitado um businessKey, não um
+    // processInstanceId), não "motor fora do ar" — trata antes de cair no call() genérico, que
+    // rewrapearia qualquer RestClientException (incluindo NotFound) como RuntimeMonitoringException
+    // com a mensagem errada.
+    @Override
+    public Optional<HistoricInstanceSummary> findInstance(String idOrBusinessKey) {
+        try {
+            HistoricProcessInstanceRaw raw = restClient.get()
+                    .uri(baseUrl + "/history/process-instance/{id}", idOrBusinessKey)
+                    .retrieve()
+                    .body(HistoricProcessInstanceRaw.class);
+            if (raw != null) {
+                return Optional.of(toSummary(raw));
+            }
+        } catch (HttpClientErrorException.NotFound e) {
+            // Não é um processInstanceId válido — tenta como businessKey abaixo.
+        } catch (RestClientException e) {
+            throw new RuntimeMonitoringException(
+                    "Motor de runtime não encontrado ou está fora do ar. Contate o administrador do sistema.", e);
+        }
+        return findByBusinessKey(idOrBusinessKey);
+    }
+
+    // businessKey como query param é ignorado silenciosamente por este motor — confirmado ao vivo
+    // (mesma armadilha documentada em ms-espec-registry/CamundaClient#searchHistoricInstances):
+    // qualquer valor, válido ou inventado, devolve a lista inteira sem filtrar. Por isso filtra em
+    // memória sobre um lote razoável, mais recentes primeiro (só roda quando a busca por id direto já
+    // deu 404, então o custo extra é aceitável — não é um caminho chamado a cada refresh do overview).
+    private Optional<HistoricInstanceSummary> findByBusinessKey(String businessKey) {
+        List<HistoricProcessInstanceRaw> raw = call(() -> restClient.get()
+                .uri(baseUrl + "/history/process-instance?maxResults=500&sortBy=startTime&sortOrder=desc")
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricProcessInstanceRaw>>() {
+                }));
+        if (raw == null) {
+            return Optional.empty();
+        }
+        return raw.stream()
+                .filter(p -> businessKey.equals(p.businessKey()))
+                .findFirst()
+                .map(RuntimeEngineMonitoringAdapter::toSummary);
+    }
+
     private List<HistoricInstanceSummary> fetchHistoricInstances(String uriTemplate, Object... uriVariables) {
         List<HistoricProcessInstanceRaw> raw = call(() -> restClient.get()
                 .uri(uriTemplate, uriVariables)
@@ -142,10 +192,12 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                 .body(new ParameterizedTypeReference<List<HistoricProcessInstanceRaw>>() {
                 }));
         if (raw == null) return List.of();
-        return raw.stream()
-                .map(p -> new HistoricInstanceSummary(p.id(), displayName(p.processDefinitionName(), p.processDefinitionKey()),
-                        p.businessKey(), parseInstant(p.startTime()), parseInstant(p.endTime()), p.durationInMillis(), p.state()))
-                .toList();
+        return raw.stream().map(RuntimeEngineMonitoringAdapter::toSummary).toList();
+    }
+
+    private static HistoricInstanceSummary toSummary(HistoricProcessInstanceRaw p) {
+        return new HistoricInstanceSummary(p.id(), displayName(p.processDefinitionName(), p.processDefinitionKey()),
+                p.businessKey(), parseInstant(p.startTime()), parseInstant(p.endTime()), p.durationInMillis(), p.state());
     }
 
     @Override

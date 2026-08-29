@@ -25,7 +25,7 @@ const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys'
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
 const CATALOG_TAB: Tab = { key: 'integracoes', title: 'Catálogo de Integrações', kind: 'catalog', closable: true };
 const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
-const EXECUCOES_TAB: Tab = { key: 'execucoes', title: 'Executar', kind: 'execution', closable: true };
+const EXECUCOES_TAB: Tab = { key: 'execucoes', title: 'Execução & Diagnóstico', kind: 'execution', closable: true };
 const AUDIT_TAB: Tab = { key: 'auditoria', title: 'Auditoria', kind: 'audit', closable: true };
 const HELP_TAB: Tab = { key: 'ajuda', title: 'Ajuda e suporte', kind: 'help', closable: true };
 const SOBRE_TAB: Tab = { key: 'sobre', title: `Sobre ${APP_VERSION}`, kind: 'sobre', closable: true };
@@ -157,6 +157,20 @@ function AppShell() {
     openFormEditTab({ openNew: true });
   }
 
+  // Cada instância clicada no card "Execuções recentes" do Dashboard ganha sua própria aba nova
+  // (chave por processInstanceId — clicar na MESMA instância de novo foca a aba já aberta em vez de
+  // duplicar, mas instâncias diferentes sempre abrem abas diferentes, nunca reaproveitam a aba
+  // "Execução & Diagnóstico" principal).
+  function openDiagnosticsTab(instance: { id: string; journeyName: string | null }) {
+    openTab({
+      key: `execucoes-diag-${instance.id}`,
+      title: `Diagnóstico · ${instance.journeyName ?? instance.id.slice(0, 8)}`,
+      kind: 'execution',
+      closable: true,
+      initialHistoryInstanceId: instance.id,
+    });
+  }
+
   const activeTab = tabs.find((t) => t.key === activeKey) ?? DASHBOARD_TAB;
   const activeNavKey =
     activeTab.kind === 'placeholder'
@@ -198,7 +212,7 @@ function AppShell() {
               {tabs.map((tab) => (
                 <div key={tab.key} className="flex-1 flex flex-col overflow-hidden" style={{ display: tab.key === activeKey ? 'flex' : 'none' }}>
                   {tab.kind === 'placeholder' && <PlaceholderPanel title={tab.title} />}
-                  {tab.kind === 'dashboard' && <DashboardPage />}
+                  {tab.kind === 'dashboard' && <DashboardPage onOpenDiagnostics={openDiagnosticsTab} />}
                   {tab.kind === 'products' && <ProductsPage />}
                   {tab.kind === 'catalog' && <CatalogPage />}
                   {tab.kind === 'journeys' && <JourneysPage onOpenForm={openForm} onOpenNewForm={openNewFormScreen} />}
@@ -209,7 +223,9 @@ function AppShell() {
                       onExit={tab.returnToKey ? () => closeFormTab(tab.key, tab.returnToKey!) : undefined}
                     />
                   )}
-                  {tab.kind === 'execution' && <ExecutionsPage active={tab.key === activeKey} />}
+                  {tab.kind === 'execution' && (
+                    <ExecutionsPage active={tab.key === activeKey} initialHistoryInstanceId={tab.initialHistoryInstanceId} />
+                  )}
                   {tab.kind === 'audit' && <AuditPage />}
                   {tab.kind === 'help' && <HelpPage />}
                   {tab.kind === 'sobre' && <SobrePage />}

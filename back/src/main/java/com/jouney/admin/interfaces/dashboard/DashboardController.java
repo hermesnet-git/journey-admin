@@ -1,6 +1,7 @@
 package com.jouney.admin.interfaces.dashboard;
 
 import com.jouney.admin.application.dashboard.GetDashboardOverview;
+import com.jouney.admin.application.dashboard.GetHistoricInstance;
 import com.jouney.admin.application.dashboard.TerminateProcessInstance;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,10 +16,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class DashboardController {
 
     private final GetDashboardOverview getDashboardOverview;
+    private final GetHistoricInstance getHistoricInstance;
     private final TerminateProcessInstance terminateProcessInstance;
 
-    public DashboardController(GetDashboardOverview getDashboardOverview, TerminateProcessInstance terminateProcessInstance) {
+    public DashboardController(GetDashboardOverview getDashboardOverview, GetHistoricInstance getHistoricInstance,
+                                TerminateProcessInstance terminateProcessInstance) {
         this.getDashboardOverview = getDashboardOverview;
+        this.getHistoricInstance = getHistoricInstance;
         this.terminateProcessInstance = terminateProcessInstance;
     }
 
@@ -26,6 +30,18 @@ public class DashboardController {
     @GetMapping("/overview")
     public DashboardOverviewResponse overview() {
         return DashboardOverviewResponse.from(getDashboardOverview.execute());
+    }
+
+    // Busca por processInstanceId OU businessKey digitado à mão no card "Execuções recentes" — 404
+    // sem corpo quando não acha de nenhum jeito (nunca "motor fora do ar", ver
+    // RuntimeEngineMonitoringAdapter#findInstance).
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
+    @GetMapping("/instances/{idOrBusinessKey}")
+    public ResponseEntity<InstanceResponse> findInstance(@PathVariable String idOrBusinessKey) {
+        return getHistoricInstance.execute(idOrBusinessKey)
+                .map(InstanceResponse::from)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     // Ação destrutiva sobre o motor de runtime — igual às outras ações administrativas do portal,

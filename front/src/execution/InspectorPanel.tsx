@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Check, ChevronDown, ChevronRight, ChevronUp, Copy, Pencil, Route, Search, Sliders, ScrollText, X } from 'lucide-react';
 import { Stack, Text, TextFieldBase, skinVars } from '@telefonica/mistica';
-import { isInternalVariableName, type FlowConnectionInfo, type FlowNodeInfo, type VariableEntry } from './api';
+import {
+  isInternalVariableName,
+  type FlowConnectionInfo,
+  type FlowNodeInfo,
+  type NodeIODetail,
+  type VariableEntry,
+} from './api';
 import { FlowDiagramViewer } from './FlowDiagramViewer';
 
 export interface LogEntry {
@@ -20,8 +26,13 @@ interface Props {
   erroredNodeId?: string | null;
   erroredNodeName?: string | null;
   erroredMessage?: string | null;
+  // Input/output de cada nó já visitado, por nodeId — ao vivo (acumulado passo a passo) ou histórico
+  // (tudo de uma vez) alimentam o mesmo mapa. Clicar num nó no Fluxo mostra a entrada dele aqui.
+  nodeIO: Record<string, NodeIODetail>;
   variables: VariableEntry[];
-  onEditVariable: (name: string, rawValue: string, type: string) => void;
+  // Ausente em modo histórico (instância já terminada — editar variável não faz sentido nela): a
+  // tabela simplesmente esconde o lápis de edição quando não há callback.
+  onEditVariable?: (name: string, rawValue: string, type: string) => void;
   log: LogEntry[];
 }
 
@@ -44,12 +55,14 @@ export function InspectorPanel({
   erroredNodeId,
   erroredNodeName,
   erroredMessage,
+  nodeIO,
   variables,
   onEditVariable,
   log,
 }: Props) {
   const [tab, setTab] = useState<TabKey>('workflow');
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const draggingRef = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -134,16 +147,27 @@ export function InspectorPanel({
         {/* Sempre montado (só escondido via CSS) — desmontar e remontar a cada troca de aba
             destruía o estado interno do React Flow (zoom/posição do pan), repondo o fluxo sempre
             centralizado no passo atual mesmo quando o usuário tinha arrastado/dado zoom manual. */}
-        <div className={tab === 'workflow' ? 'h-full' : 'hidden'}>
-          <FlowDiagramViewer
-            flowNodes={flowNodes}
-            flowConnections={flowConnections}
-            currentNodeId={currentNodeId}
-            visitedNodeIds={visitedNodeIds}
-            erroredNodeId={erroredNodeId}
-            erroredNodeName={erroredNodeName}
-            erroredMessage={erroredMessage}
-          />
+        <div className={tab === 'workflow' ? 'h-full flex' : 'hidden'}>
+          <div className="flex-1 min-w-0 h-full">
+            <FlowDiagramViewer
+              flowNodes={flowNodes}
+              flowConnections={flowConnections}
+              currentNodeId={currentNodeId}
+              visitedNodeIds={visitedNodeIds}
+              erroredNodeId={erroredNodeId}
+              erroredNodeName={erroredNodeName}
+              erroredMessage={erroredMessage}
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={setSelectedNodeId}
+            />
+          </div>
+          {selectedNodeId && (
+            <NodeDetailDrawer
+              detail={nodeIO[selectedNodeId]}
+              fallbackName={flowNodes.find((n) => n.id === selectedNodeId)?.name ?? selectedNodeId}
+              onClose={() => setSelectedNodeId(null)}
+            />
+          )}
         </div>
 
         {tab === 'variaveis' && (
@@ -158,6 +182,105 @@ export function InspectorPanel({
   );
 }
 
+const NODE_TYPE_LABEL_PT: Record<string, string> = {
+  START: 'Início',
+  USER_TASK: 'Tarefa de usuário',
+  SERVICE_TASK: 'Tarefa de serviço',
+  RECEIVE_TASK: 'Tarefa de recebimento',
+  MESSAGE_START_EVENT: 'Início por mensagem',
+  GATEWAY: 'Decisão',
+  END: 'Fim',
+};
+
+const NODE_DETAIL_DRAWER_WIDTH = 300;
+
+// Painel que abre ao clicar num nó do Fluxo (ao vivo ou histórico) — mostra o que aquele nó
+// especificamente recebeu/produziu, sem competir com as abas Variáveis/Log (que continuam sendo a
+// visão de tudo, sem filtro). `detail` vem ausente pra um nó sem input/output (START/END/GATEWAY) ou
+// ainda não resolvido no mapa nodeIO — nos dois casos mostra só o nome/tipo que dá pra inferir do
+// próprio fluxo, com um aviso no lugar dos blocos JSON.
+function NodeDetailDrawer({
+  detail,
+  fallbackName,
+  onClose,
+}: {
+  detail: NodeIODetail | undefined;
+  fallbackName: string;
+  onClose: () => void;
+}) {
+  const typeLabel = detail ? (NODE_TYPE_LABEL_PT[detail.nodeType] ?? detail.nodeType) : null;
+
+  return (
+    <div
+      className="shrink-0 h-full overflow-auto border-l"
+      style={{ width: NODE_DETAIL_DRAWER_WIDTH, borderColor: skinVars.colors.border, background: skinVars.colors.background }}
+    >
+      <div className="flex items-start justify-between gap-2 p-3 border-b" style={{ borderColor: skinVars.colors.border }}>
+        <div className="min-w-0">
+          <Text size={13} weight="medium" color={skinVars.colors.textPrimary}>
+            {detail?.nodeName ?? fallbackName}
+          </Text>
+          {typeLabel && (
+            <div className="mt-[2px]">
+              <Text size={11} color={skinVars.colors.textSecondary}>
+                {typeLabel} · {nodeDurationLabel(detail)}
+              </Text>
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          title="Fechar"
+          className="shrink-0 cursor-pointer border-0 bg-transparent"
+          style={{ color: skinVars.colors.textSecondary }}
+        >
+          <X size={15} />
+        </button>
+      </div>
+      <div className="p-3 flex flex-col gap-3">
+        {detail?.input && <JsonSection title="Entrada" data={detail.input} />}
+        {detail?.output && <JsonSection title="Saída" data={detail.output} />}
+        {!detail?.input && !detail?.output && (
+          <Text size={12.5} color={skinVars.colors.textSecondary}>
+            Sem dados de entrada/saída para esta etapa.
+          </Text>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function nodeDurationLabel(detail?: NodeIODetail): string {
+  if (!detail || detail.durationMillis == null) return detail?.endTime ? 'concluído' : 'em andamento';
+  const seconds = detail.durationMillis / 1000;
+  return seconds < 60 ? `${seconds.toFixed(1)} s` : `${(seconds / 60).toFixed(1)} min`;
+}
+
+function JsonSection({ title, data }: { title: string; data: Record<string, unknown> }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <Text size={11} weight="medium" color={skinVars.colors.textSecondary}>
+          {title.toUpperCase()}
+        </Text>
+        <CopyJsonButton data={data} />
+      </div>
+      <pre
+        className="rounded-md px-2 py-1 text-[11px] overflow-auto m-0"
+        style={{
+          background: skinVars.colors.backgroundAlternative,
+          color: skinVars.colors.textPrimary,
+          fontFamily: 'monospace',
+          maxHeight: 260,
+        }}
+      >
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    </div>
+  );
+}
+
 const VARIABLES_COL_LABELS = ['Nome', 'Valor', 'Tipo'];
 const DEFAULT_VARIABLES_COL_WIDTHS = [130, 170, 64];
 const MIN_VARIABLES_COL_WIDTH = 40;
@@ -168,7 +291,8 @@ function VariablesTable({
   onEdit,
 }: {
   variables: VariableEntry[];
-  onEdit: (name: string, rawValue: string, type: string) => void;
+  // Ausente em modo histórico — a coluna de ação fica vazia, sem o lápis de edição.
+  onEdit?: (name: string, rawValue: string, type: string) => void;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -262,13 +386,13 @@ function VariablesTable({
                     className="cursor-pointer border-0 bg-transparent"
                     style={{ color: skinVars.colors.brand }}
                     onClick={() => {
-                      onEdit(v.name, draft, v.type);
+                      onEdit?.(v.name, draft, v.type);
                       setEditing(null);
                     }}
                   >
                     <Check size={13} />
                   </button>
-                ) : (
+                ) : onEdit ? (
                   <button
                     type="button"
                     className="cursor-pointer border-0 bg-transparent"
@@ -280,7 +404,7 @@ function VariablesTable({
                   >
                     <Pencil size={12} />
                   </button>
-                )}
+                ) : null}
               </td>
             </tr>
           );

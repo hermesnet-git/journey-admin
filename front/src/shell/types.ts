@@ -11,4 +11,9 @@ export interface Tab {
   formId?: string;
   openNew?: boolean;
   returnToKey?: string;
+  // Abas 'execution' abertas a partir do Dashboard (card "Execuções recentes") já nascem em modo
+  // Histórico mostrando esta instância — cada clique ganha sua própria aba dedicada (nunca reaproveita
+  // a aba "Execução & Diagnóstico" principal), pra não atrapalhar uma execução ao vivo em andamento
+  // ali nem perder outro diagnóstico já aberto.
+  initialHistoryInstanceId?: string;
 }

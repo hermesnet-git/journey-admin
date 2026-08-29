@@ -30,6 +30,7 @@ public class GetDashboardOverview {
     private static final int TREND_MONTH_DAYS = 30;
     private static final int TREND_HOURS = 24;
     private static final int LIST_LIMIT = 25;
+    private static final int RECENT_INSTANCES_LIMIT = 10;
 
     private final RuntimeMonitoringPort monitoring;
 
@@ -70,7 +71,8 @@ public class GetDashboardOverview {
                 .toList();
 
         return new DashboardOverview(kpis, processDefinitions, incidents,
-                monitoring.oldestActiveInstances(LIST_LIMIT), monitoring.newestActiveInstances(LIST_LIMIT), trend);
+                monitoring.oldestActiveInstances(LIST_LIMIT), monitoring.newestActiveInstances(LIST_LIMIT),
+                monitoring.recentInstances(RECENT_INSTANCES_LIMIT), trend);
     }
 
     private static String resolveName(String definitionId, Map<String, String> nameByDefinitionId) {

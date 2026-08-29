@@ -93,6 +93,17 @@ public class BpmnTransformer {
         // itself per process key — it increments on every deploy, including a republish of
         // unchanged content, so it never matches the Admin Portal's JourneyVersion.versionNumber.
         // versionTag is the field Cockpit offers precisely for an external version identifier.
+        //
+        // This is also the de/para a history feature reads BACK: given a historic process instance's
+        // processDefinitionId, GET /process-definition/{id} on the runtime engine returns this same
+        // versionTag (confirmed live: "v1".."v22" across real redeploys, distinct from Camunda's own
+        // 1/2/3.. deploy counter for the same key) — strip the "v" prefix and it's exactly the
+        // journey_version.version_number that was published when that instance ran. ms-espec-registry's
+        // InstanceHistoryController uses that to fetch the EXACT flow snapshot for an old instance via
+        // admin/back's GET /journeys/{id}/versions + /versions/{versionId} (journey_version.version_snapshot
+        // is immutable per version, unlike journey_publication which is overwritten on every republish) —
+        // instead of mislabeling old instances with whatever the journey looks like today. Keep stamping
+        // this on every publish even if no other consumer inside ms-transform-publication itself reads it.
         if (request.versionNumber() != null) {
             process.setCamundaVersionTag("v" + request.versionNumber());
         }

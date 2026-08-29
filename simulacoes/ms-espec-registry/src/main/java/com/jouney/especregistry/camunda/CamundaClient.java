@@ -4,6 +4,7 @@ import com.jouney.especregistry.config.CamundaProperties;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -369,5 +370,109 @@ public class CamundaClient {
                         "processVariables", variables))
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    /** Busca instâncias históricas (qualquer estado, inclusive já terminadas) — usado pela busca da
+     * tela de Diagnóstico. {@code businessKey} como query param é ignorado silenciosamente por este
+     * motor (testado ao vivo: devolve a contagem total sem filtrar, igual pra {@code state}) — por
+     * isso é filtrado aqui em memória, depois de trazer o resultado com os parâmetros que de fato
+     * funcionam ({@code processDefinitionKeyIn}/{@code startedAfter}/{@code startedBefore}/
+     * {@code finished}/{@code unfinished}, todos confirmados ao vivo). */
+    public List<HistoricProcessInstance> searchHistoricInstances(String processDefinitionKey, String businessKey,
+            Instant startedFrom, Instant startedTo, Boolean finished, int maxResults) {
+        StringBuilder uri = new StringBuilder(baseUrl
+                + "/history/process-instance?sortBy=startTime&sortOrder=desc&maxResults=" + maxResults);
+        List<Object> vars = new ArrayList<>();
+        if (processDefinitionKey != null) {
+            uri.append("&processDefinitionKeyIn={pdk}");
+            vars.add(processDefinitionKey);
+        }
+        if (startedFrom != null) {
+            uri.append("&startedAfter={from}");
+            vars.add(HISTORY_DATE_FORMAT.format(startedFrom));
+        }
+        if (startedTo != null) {
+            uri.append("&startedBefore={to}");
+            vars.add(HISTORY_DATE_FORMAT.format(startedTo));
+        }
+        if (finished != null) {
+            uri.append(finished ? "&finished=true" : "&unfinished=true");
+        }
+        List<HistoricProcessInstance> found = restClient.get()
+                .uri(uri.toString(), vars.toArray())
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricProcessInstance>>() {
+                });
+        if (found == null) {
+            return List.of();
+        }
+        return found.stream()
+                .filter(p -> businessKey == null || businessKey.equals(p.businessKey()))
+                .toList();
+    }
+
+    public Optional<HistoricProcessInstance> getHistoricProcessInstance(String processInstanceId) {
+        try {
+            return Optional.ofNullable(restClient.get()
+                    .uri(baseUrl + "/history/process-instance/{id}", processInstanceId)
+                    .retrieve()
+                    .body(HistoricProcessInstance.class));
+        } catch (HttpClientErrorException.NotFound e) {
+            return Optional.empty();
+        }
+    }
+
+    /** Trilha completa de atividades de uma instância, do início ao fim — mesma consulta que
+     * {@link #getActivityHistorySince}, só que sem filtro de data, pra cobrir a instância inteira
+     * (viva ou já terminada), não só o que rodou desde a última ação. */
+    public List<HistoricActivityInstance> getFullActivityHistory(String processInstanceId) {
+        List<HistoricActivityInstance> list = restClient.get()
+                .uri(baseUrl + "/history/activity-instance?processInstanceId={id}&sortBy=startTime&sortOrder=asc",
+                        processInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricActivityInstance>>() {
+                });
+        return list != null ? list : List.of();
+    }
+
+    /** Valores efetivamente submetidos numa User Task (o que o usuário respondeu no form), resolvidos
+     * pela API de detalhe histórico — ao contrário de {@link #getLocalVariablesForActivity} (último
+     * valor de cada variável, pensado pro output de Service Task, que nunca muda depois de gravado),
+     * aqui interessa a atualização de variável (type=variableUpdate) ocorrida NAQUELA
+     * activityInstance, que é exatamente a resposta submetida naquele passo (confirmado ao vivo:
+     * {@code /history/detail?activityInstanceId=} devolve {@code variableName}/{@code value} de cada
+     * campo do form). */
+    public Map<String, Object> getSubmittedFormValues(String activityInstanceId) {
+        List<Map<String, Object>> details = restClient.get()
+                .uri(baseUrl + "/history/detail?activityInstanceId={id}&type=variableUpdate", activityInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                });
+        if (details == null) {
+            return Map.of();
+        }
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        for (Map<String, Object> detail : details) {
+            Object name = detail.get("variableName");
+            if (name != null) {
+                result.put(String.valueOf(name), detail.get("value"));
+            }
+        }
+        return result;
+    }
+
+    /** {@code versionTag} do process-definition, gravado pelo ms-transform-publication como
+     * {@code "v" + journey_version.version_number} (ver BpmnTransformer.transform) — sobrevive a
+     * redeploys (um deployment antigo continua consultável por id mesmo depois da chave republicar) e
+     * é o de/para que {@code InstanceHistoryController} usa pra rotular o histórico de uma instância
+     * antiga com o snapshot da versão exata que rodou, não a versão atual da jornada. */
+    public Optional<String> getProcessDefinitionVersionTag(String processDefinitionId) {
+        Map<String, Object> response = restClient.get()
+                .uri(baseUrl + "/process-definition/{id}", processDefinitionId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+        Object tag = response != null ? response.get("versionTag") : null;
+        return Optional.ofNullable(tag).map(String::valueOf);
     }
 }

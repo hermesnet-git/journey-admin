@@ -97,7 +97,7 @@ const FAQ_ITEMS: FaqItem[] = [
     topic: 'execucao',
     question: 'Como executo uma jornada para testar?',
     answer:
-      'Na tela Executar, busque a jornada publicada desejada (o número da versão v<N> aparece na listagem) e inicie a execução ali mesmo, sem trocar de tela. A pré-visualização se adapta ao canal — por exemplo, layout de dispositivo móvel para jornadas de canal App.',
+      'Na tela Execução & Diagnóstico, busque a jornada publicada desejada (o número da versão v<N> aparece na listagem) e inicie a execução ali mesmo, sem trocar de tela. A pré-visualização se adapta ao canal — por exemplo, layout de dispositivo móvel para jornadas de canal App.',
   },
   {
     topic: 'execucao',

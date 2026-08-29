@@ -18,6 +18,7 @@ import {
   type ApiCallLogEntry,
   type FlowBundle,
   type JourneySummary,
+  type NodeIODetail,
   type StepResponse,
   type TrailEntry,
   type VariableEntry,
@@ -106,6 +107,38 @@ function parseMaybeJson(value: string | null): unknown {
   }
 }
 
+// Mesmos campos que trailLogData já extrai de um TrailEntry, só que separados em input/output —
+// alimenta o drawer de detalhe do nó (InspectorPanel/NodeDetailDrawer), que usa a mesma forma
+// nodeIO tanto ao vivo (aqui, montado incrementalmente) quanto no modo Histórico (tudo de uma vez).
+// Sem timestamp por nó no fluxo ao vivo hoje (o backend só manda a trilha em si, não quando cada
+// etapa individualmente começou/terminou) — usa o instante em que o front recebeu a resposta pros
+// dois campos, então a duração fica sempre "—"/"concluído" em vez de um tempo real decorrido.
+function trailEntryToNodeIO(entry: TrailEntry): NodeIODetail {
+  const input: Record<string, unknown> = {};
+  let output: Record<string, unknown> | null = null;
+  if (entry.url || entry.response) {
+    if (entry.method) input.method = entry.method;
+    if (entry.url) input.url = entry.url;
+    if (entry.requestHeaders) input.headers = parseMaybeJson(entry.requestHeaders);
+    if (entry.requestBody) input.body = parseMaybeJson(entry.requestBody);
+    if (entry.response) output = { response: parseMaybeJson(entry.response) };
+  } else if (entry.kafkaTopic || entry.kafkaPayload) {
+    if (entry.kafkaTopic) input.topic = entry.kafkaTopic;
+    if (entry.kafkaPayload) input.payload = parseMaybeJson(entry.kafkaPayload);
+  }
+  const timestamp = now();
+  return {
+    nodeId: entry.nodeId,
+    nodeName: entry.nodeName,
+    nodeType: entry.nodeType,
+    startTime: timestamp,
+    endTime: timestamp,
+    durationMillis: null,
+    input: Object.keys(input).length > 0 ? input : null,
+    output,
+  };
+}
+
 export function ExecutionWorkspace({
   processInstanceId,
   businessKey,
@@ -136,6 +169,13 @@ export function ExecutionWorkspace({
     return ids;
   });
   const [variables, setVariables] = useState<VariableEntry[]>([]);
+  const [nodeIO, setNodeIO] = useState<Record<string, NodeIODetail>>(() => {
+    const map: Record<string, NodeIODetail> = {};
+    for (const entry of initialStep.trail) {
+      map[entry.nodeId] = trailEntryToNodeIO(entry);
+    }
+    return map;
+  });
   const [log, setLog] = useState<LogEntry[]>(() => [
     ...(initialApiLog ?? []),
     { id: 'start', time: now(), message: 'Jornada iniciada.' },
@@ -205,6 +245,7 @@ export function ExecutionWorkspace({
     for (const entry of newStep.trail) {
       setVisitedPath((prev) => (prev.includes(entry.nodeId) ? prev : [...prev, entry.nodeId]));
       appendLog(describeTrailEntry(entry), trailLogData(entry));
+      setNodeIO((prev) => ({ ...prev, [entry.nodeId]: trailEntryToNodeIO(entry) }));
     }
     if (newStep.nodeId) {
       setVisitedPath((prev) => (prev[prev.length - 1] === newStep.nodeId ? prev : [...prev, newStep.nodeId!]));
@@ -220,6 +261,22 @@ export function ExecutionWorkspace({
       const newStep = await completeTask(processInstanceId, step.taskId, answers);
       if (!newStep.errorMessage) {
         appendLog(`${capitalize(taskLabel(step.nodeType))} "${step.nodeName}" respondida.`, answers);
+        if (step.nodeId) {
+          const timestamp = now();
+          setNodeIO((prev) => ({
+            ...prev,
+            [step.nodeId!]: {
+              nodeId: step.nodeId!,
+              nodeName: step.nodeName ?? step.nodeId!,
+              nodeType: step.nodeType ?? 'USER_TASK',
+              startTime: timestamp,
+              endTime: timestamp,
+              durationMillis: null,
+              input: Object.keys(answers).length > 0 ? answers : null,
+              output: null,
+            },
+          }));
+        }
       }
       applyNewStep(newStep);
     } catch (e) {
@@ -340,6 +397,7 @@ export function ExecutionWorkspace({
         erroredNodeId={erroredNodeId}
         erroredNodeName={erroredNodeName}
         erroredMessage={erroredMessage}
+        nodeIO={nodeIO}
         variables={variables}
         onEditVariable={handleEditVariable}
         log={log}

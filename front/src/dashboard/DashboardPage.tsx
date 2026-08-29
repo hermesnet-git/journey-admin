@@ -3,19 +3,29 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  History,
   Layers,
   ListTodo,
   Loader2,
+  Pause,
   Play,
   PowerOff,
   RefreshCw,
+  Search,
   ShieldAlert,
   Trash2,
   Unplug,
 } from 'lucide-react';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ConfirmDialog } from '../products/ConfirmDialog';
-import { getDashboardOverview, terminateInstance, type DashboardOverview, type InstanceEntry, type TrendGranularity } from './api';
+import {
+  findInstance,
+  getDashboardOverview,
+  terminateInstance,
+  type DashboardOverview,
+  type InstanceEntry,
+  type TrendGranularity,
+} from './api';
 import { dailyToPoints, hourlyToPoints, HorizontalBarChart, TrendChart } from './charts';
 
 const AUTO_REFRESH_MS = 30_000;
@@ -26,7 +36,13 @@ const GRANULARITY_OPTIONS: { key: TrendGranularity; label: string; title: string
   { key: 'month', label: 'Mês', title: 'Instâncias — últimos 30 dias' },
 ];
 
-export function DashboardPage() {
+interface Props {
+  // Abre uma aba nova de "Execução & Diagnóstico" já mostrando esta instância — ver App.tsx
+  // (openDiagnosticsTab). journeyName ausente vira só o id truncado no título da aba.
+  onOpenDiagnostics: (instance: { id: string; journeyName: string | null }) => void;
+}
+
+export function DashboardPage({ onOpenDiagnostics }: Props) {
   const { colors: c } = useAppTheme();
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +57,10 @@ export function DashboardPage() {
   const [terminatingIds, setTerminatingIds] = useState<Set<string>>(new Set());
   const [confirmTargets, setConfirmTargets] = useState<string[] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [instanceSearch, setInstanceSearch] = useState('');
+  const [searchingInstance, setSearchingInstance] = useState(false);
+  const [instanceSearchError, setInstanceSearchError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -66,6 +86,30 @@ export function DashboardPage() {
     const id = setInterval(load, AUTO_REFRESH_MS);
     return () => clearInterval(id);
   }, [autoRefresh, load]);
+
+  function openRecentInstance(inst: InstanceEntry) {
+    onOpenDiagnostics({ id: inst.id, journeyName: inst.processDefinitionName });
+  }
+
+  async function handleSearchInstance() {
+    const id = instanceSearch.trim();
+    if (!id) return;
+    setSearchingInstance(true);
+    setInstanceSearchError(null);
+    try {
+      const found = await findInstance(id);
+      if (!found) {
+        setInstanceSearchError('Nenhuma instância encontrada com esse id ou business key.');
+        return;
+      }
+      setInstanceSearch('');
+      onOpenDiagnostics({ id: found.id, journeyName: found.processDefinitionName });
+    } catch (e) {
+      setInstanceSearchError(e instanceof Error ? e.message : 'Erro ao buscar instância.');
+    } finally {
+      setSearchingInstance(false);
+    }
+  }
 
   function toggleSelected(id: string) {
     setSelectedIds((prev) => {
@@ -214,6 +258,87 @@ export function DashboardPage() {
               {actionError}
             </div>
           )}
+
+          <Card
+            c={c}
+            title="Execuções recentes"
+            subtitle="Últimas 10 instâncias, de qualquer estado — clique numa linha para diagnosticar"
+            icon={History}
+            iconTone="neutral"
+            headerAction={
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search size={12.5} color={c.textMuted} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    value={instanceSearch}
+                    onChange={(e) => {
+                      setInstanceSearch(e.target.value);
+                      setInstanceSearchError(null);
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearchInstance()}
+                    placeholder="Buscar por ID ou business key..."
+                    autoComplete="off"
+                    className="h-7 w-[240px] box-border rounded-md outline-none"
+                    style={{ padding: '0 8px 0 26px', fontSize: 11.5, border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSearchInstance}
+                  disabled={searchingInstance || !instanceSearch.trim()}
+                  className="h-7 px-3 rounded-md text-[11.5px] font-semibold border-0 cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                  style={{ background: c.accentSoft, color: c.accent }}
+                >
+                  {searchingInstance ? 'Buscando...' : 'Diagnosticar'}
+                </button>
+              </div>
+            }
+          >
+            {instanceSearchError && (
+              <div className="mb-2 text-[11.5px]" style={{ color: c.danger }}>
+                {instanceSearchError}
+              </div>
+            )}
+            {overview.recentInstances.length === 0 ? (
+              <EmptyHint c={c}>Nenhuma instância executada ainda.</EmptyHint>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <tbody>
+                  {overview.recentInstances.map((inst) => (
+                    <tr
+                      key={inst.id}
+                      onClick={() => openRecentInstance(inst)}
+                      className="cursor-pointer"
+                      style={{ borderTop: `1px solid ${c.border}` }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = c.activeBg)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <td className="py-2 pl-1 pr-2 w-7">
+                        <RecentInstanceIcon state={inst.state} c={c} />
+                      </td>
+                      <td className="py-2 pr-3 min-w-0">
+                        <div className="text-[12.5px] font-medium truncate" style={{ color: c.textPrimary }}>
+                          {inst.processDefinitionName}
+                        </div>
+                        <div className="text-[11px] truncate font-mono" style={{ color: c.textMuted }}>
+                          {inst.businessKey ?? inst.id.slice(0, 8)}
+                        </div>
+                      </td>
+                      <td className="py-2 px-2 shrink-0">
+                        <InstanceStateTag state={inst.state} c={c} />
+                      </td>
+                      <td className="py-2 pl-2 text-right shrink-0 text-[11.5px]" style={{ color: c.textSecondary }}>
+                        {timeAgo(inst.startTime)}
+                      </td>
+                      <td className="py-2 pl-2 text-right shrink-0 w-[70px] text-[11.5px] tabular-nums" style={{ color: c.textMuted }}>
+                        {durationLabel(inst)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
 
           <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 1fr' }}>
             <Card
@@ -567,18 +692,33 @@ function EngineOfflinePanel({
   );
 }
 
+// Cobre os 5 estados que /history/process-instance de fato devolve (ACTIVE/COMPLETED só cobriam os
+// dois já usados por pendingInstances/executingRecently, que nunca viam os outros três — recentInstances
+// não filtra por estado, então aparecem aqui).
+const INSTANCE_STATE_META: Record<string, { label: string; tone: 'accent' | 'success' | 'neutral' }> = {
+  ACTIVE: { label: 'Ativa', tone: 'accent' },
+  COMPLETED: { label: 'Concluída', tone: 'success' },
+  EXTERNALLY_TERMINATED: { label: 'Encerrada manualmente', tone: 'neutral' },
+  INTERNALLY_TERMINATED: { label: 'Encerrada pelo motor', tone: 'neutral' },
+  SUSPENDED: { label: 'Suspensa', tone: 'neutral' },
+};
+
 function InstanceStateTag({ state, c }: { state: string; c: AppColors }) {
-  const meta =
-    state === 'ACTIVE'
-      ? { label: 'Ativa', bg: c.accentSoft, color: c.accent }
-      : state === 'COMPLETED'
-        ? { label: 'Concluída', bg: c.successSoft, color: c.success }
-        : { label: state, bg: c.chipBg, color: c.textSecondary };
+  const entry = INSTANCE_STATE_META[state];
+  const bg = entry?.tone === 'accent' ? c.accentSoft : entry?.tone === 'success' ? c.successSoft : c.chipBg;
+  const color = entry?.tone === 'accent' ? c.accent : entry?.tone === 'success' ? c.success : c.textSecondary;
   return (
-    <span className="inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-medium" style={{ background: meta.bg, color: meta.color }}>
-      {meta.label}
+    <span className="inline-flex items-center rounded-full px-[8px] py-[2px] text-[10.5px] font-medium whitespace-nowrap" style={{ background: bg, color }}>
+      {entry?.label ?? state}
     </span>
   );
+}
+
+function RecentInstanceIcon({ state, c }: { state: string; c: AppColors }) {
+  if (state === 'ACTIVE') return <Play size={13} color={c.accent} />;
+  if (state === 'COMPLETED') return <CheckCircle2 size={13} color={c.success} />;
+  if (state === 'SUSPENDED') return <Pause size={13} color={c.textMuted} />;
+  return <PowerOff size={13} color={c.textMuted} />;
 }
 
 function DashboardSkeleton({ c }: { c: AppColors }) {

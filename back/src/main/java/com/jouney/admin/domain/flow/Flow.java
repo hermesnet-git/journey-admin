@@ -35,9 +35,13 @@ public class Flow {
         return new Flow(FlowIds.newFlowId(), journeyId, "Fluxo principal", List.of(), List.of(), List.of(), now, now);
     }
 
+    // Rascunho pode ser salvo inválido de propósito (produto: salvar não deve exigir consistência
+    // estrutural) — a garantia de que só um fluxo válido vai ao ar fica inteira a cargo da
+    // publicação (PublishJourneyVersion.goLive chama FlowValidator.validate antes de ir ao ar).
+    // Quem quiser saber se o fluxo atual é consistente antes de salvar usa o botão "Validar"
+    // (POST .../flow/validate), que roda a mesma validação sem persistir nada.
     public void replace(String name, List<FlowNode> nodes, List<FlowConnection> connections,
                          List<FlowAnnotation> annotations) {
-        FlowValidator.validate(nodes, connections);
         this.name = name;
         this.nodes = nodes;
         this.connections = connections;

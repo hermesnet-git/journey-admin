@@ -33,7 +33,6 @@ import { FormPreviewDock, DOCK_DEFAULT_HEIGHT } from './FormPreviewDock';
 import { ErrorModal } from './ErrorModal';
 import { GeneratePromptModal, type GenerateLogEntry } from './GeneratePromptModal';
 import { Toolbar } from './Toolbar';
-import { validateFlow } from './validation';
 import {
   NODE_WIDTH,
   NODE_DIMENSIONS,
@@ -62,7 +61,7 @@ import {
   type EdgeShape,
 } from './model';
 import { updateJourney, type Journey } from '../api/journeys';
-import { getFlow, updateFlow, generateFlow, type Flow } from '../api/flows';
+import { getFlow, updateFlow, validateFlow, generateFlow, type Flow, type FlowUpdateInput } from '../api/flows';
 import { listForms, type Form } from '../api/forms';
 import { listClusters, listCredentials, type MessagingCluster, type CredentialReference } from '../api/messaging';
 import { ApiClientError } from '../api/client';
@@ -114,6 +113,45 @@ function buildFlowSnapshot(
       linkedNodeIds: a.data.linkedNodeIds,
     })),
   });
+}
+
+// Mesmo mapeamento WFNode/WFEdge/WFAnnotation → FlowUpdateInput usado tanto por Salvar (updateFlow)
+// quanto por Validar (validateFlow) — extraído aqui pra não duplicar a conversão duas vezes.
+function buildFlowInput(nodes: WFNode[], edges: WFEdge[], annotations: WFAnnotation[]): FlowUpdateInput {
+  return {
+    name: 'Fluxo principal',
+    nodes: nodes.map((n) => ({
+      nodeId: n.id,
+      nodeType: FRONT_TO_BACKEND_TYPE[n.type as NodeType],
+      name: n.data.name,
+      description: n.data.description || null,
+      positionX: Math.round(n.position.x),
+      positionY: Math.round(n.position.y),
+      userTaskConfig:
+        n.data.messageText || (n.data.embeddedScreen && n.data.embeddedScreen.length > 0)
+          ? {
+              messageText: n.data.messageText || null,
+              embeddedScreen: n.data.embeddedScreen ?? [],
+            }
+          : null,
+      connectorConfig: n.data.connectorConfig,
+      startVariables: n.data.startVariables ?? null,
+    })),
+    connections: edges.map((e) => ({
+      connectionId: e.id,
+      sourceNodeId: e.source,
+      targetNodeId: e.target,
+      condition: e.data?.condition ?? null,
+      isDefault: !!e.data?.isDefault,
+    })),
+    annotations: annotations.map((a) => ({
+      id: a.id,
+      text: a.data.text,
+      positionX: Math.round(a.position.x),
+      positionY: Math.round(a.position.y),
+      linkedNodeIds: a.data.linkedNodeIds,
+    })),
+  };
 }
 
 const nodeTypes = {
@@ -183,7 +221,10 @@ function DesignerInner({
   const [annotations, setAnnotations] = useState<WFAnnotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [validationStatus, setValidationStatus] = useState<'valid' | 'invalid' | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [errorTitle, setErrorTitle] = useState('Não foi possível salvar');
   const [confirmingPublishedEdit, setConfirmingPublishedEdit] = useState(false);
   const [invalidNodeIds, setInvalidNodeIds] = useState<Set<string>>(new Set());
   const [, setHistoryTick] = useState(0);
@@ -191,6 +232,12 @@ function DesignerInner({
   // when set, and falls back to the journey's own properties when null (e.g.
   // after a blank-canvas click).
   const [propertiesNodeId, setPropertiesNodeId] = useState<string | null>(null);
+  // Sinal de "acabou de nascer" pro painel de propriedades saber que deve abrir só com "Informações
+  // Gerais" expandida (Variáveis/Conector/Decisão colapsados) — um nó recém-criado não tem nada
+  // configurado ainda nessas seções, então começar tudo aberto é só ruído. É consumido uma vez
+  // (PropertiesPanel limpa via onFreshNodeConsumed) pra não recolapsar se o usuário voltar a esse
+  // nó depois de já ter configurado algo.
+  const [freshNodeId, setFreshNodeId] = useState<string | null>(null);
   // Vive aqui (não dentro do FormPreviewDock) porque o dock desmonta toda vez que a seleção sai de
   // uma User Task — um state interno perderia o redimensionamento do usuário a cada troca de nó.
   const [dockHeight, setDockHeight] = useState(DOCK_DEFAULT_HEIGHT);
@@ -545,6 +592,7 @@ function DesignerInner({
       const spot = findFreeSpot(nodesRef.current, x, y);
       const node = { ...makeNode(type, spot.x, spot.y), selected: true };
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
+      setFreshNodeId(node.id);
     },
     [pushHistory],
   );
@@ -659,6 +707,7 @@ function DesignerInner({
         selected: true,
       };
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
+      setFreshNodeId(node.id);
       setEdges((eds) => [
         ...eds,
         {
@@ -732,16 +781,19 @@ function DesignerInner({
 
   const displayNodes = useMemo(
     () =>
-      nodes.map((n) => ({
-        ...n,
-        data: {
-          ...n.data,
-          invalid: invalidNodeIds.has(n.id),
-          outgoingLimitReached:
-            !!n.type && edges.filter((e) => e.source === n.id).length >= outgoingLimitFor(n.type),
-          zoom,
-        },
-      })),
+      nodes.map((n) => {
+        const outgoing = edges.filter((e) => e.source === n.id);
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            invalid: invalidNodeIds.has(n.id),
+            outgoingLimitReached: !!n.type && outgoing.length >= outgoingLimitFor(n.type),
+            missingGatewayDefault: n.type === 'gateway' && outgoing.length >= 2 && !outgoing.some((e) => e.data?.isDefault),
+            zoom,
+          },
+        };
+      }),
     [nodes, edges, invalidNodeIds, zoom],
   );
 
@@ -785,7 +837,17 @@ function DesignerInner({
           // a gateway's outgoing path is otherwise invisible on canvas until you open its
           // properties, and the two views ended up inconsistent with each other.
           label: e.data?.isDefault ? 'padrão' : (e.data?.condition ?? undefined),
-          labelStyle: { fill: c.textSecondary, fontSize: 11 },
+          // Contorno (stroke atrás do preenchimento via paintOrder) em vez de uma caixa de fundo —
+          // dá contraste pra ler o texto sobre qualquer nó/linha que passe por baixo, sem desenhar
+          // um retângulo sólido atrás dele.
+          labelStyle: {
+            fill: c.textPrimary,
+            fontSize: 11,
+            fontWeight: 600,
+            stroke: c.canvasBg,
+            strokeWidth: 4,
+            paintOrder: 'stroke',
+          },
           labelBgStyle: { fill: 'transparent' },
           labelBgPadding: [0, 0] as [number, number],
           style: {
@@ -802,11 +864,12 @@ function DesignerInner({
   );
 
   function handleSave() {
-    const { errors: validationErrors, invalidNodeIds: invalid } = validateFlow(nodes, edges);
-    if (!name.trim()) validationErrors.push('Informe o nome da jornada.');
-    if (validationErrors.length) {
-      setInvalidNodeIds(invalid);
-      setErrors(validationErrors);
+    // Salvar não exige mais consistência estrutural (rascunho pode ficar inválido) — só a
+    // publicação garante isso agora (PublishJourneyVersion.goLive, no back). Quem quiser saber se
+    // o fluxo atual está consistente antes de publicar usa o botão "Validar" (handleValidate).
+    if (!name.trim()) {
+      setErrorTitle('Não foi possível salvar');
+      setErrors(['Informe o nome da jornada.']);
       return;
     }
 
@@ -827,40 +890,7 @@ function DesignerInner({
     setSaving(true);
     try {
       const journeyRecord = await updateJourney(activeJourney.journeyId, { name, description });
-      await updateFlow(journeyRecord.journeyId, {
-        name: 'Fluxo principal',
-        nodes: nodes.map((n) => ({
-          nodeId: n.id,
-          nodeType: FRONT_TO_BACKEND_TYPE[n.type as NodeType],
-          name: n.data.name,
-          description: n.data.description || null,
-          positionX: Math.round(n.position.x),
-          positionY: Math.round(n.position.y),
-          userTaskConfig:
-            n.data.messageText || (n.data.embeddedScreen && n.data.embeddedScreen.length > 0)
-              ? {
-                  messageText: n.data.messageText || null,
-                  embeddedScreen: n.data.embeddedScreen ?? [],
-                }
-              : null,
-          connectorConfig: n.data.connectorConfig,
-          startVariables: n.data.startVariables ?? null,
-        })),
-        connections: edges.map((e) => ({
-          connectionId: e.id,
-          sourceNodeId: e.source,
-          targetNodeId: e.target,
-          condition: e.data?.condition ?? null,
-          isDefault: !!e.data?.isDefault,
-        })),
-        annotations: annotations.map((a) => ({
-          id: a.id,
-          text: a.data.text,
-          positionX: Math.round(a.position.x),
-          positionY: Math.round(a.position.y),
-          linkedNodeIds: a.data.linkedNodeIds,
-        })),
-      });
+      await updateFlow(journeyRecord.journeyId, buildFlowInput(nodes, edges, annotations));
       setActiveJourney(journeyRecord);
       savedSnapshotRef.current = buildFlowSnapshot(name, description, nodes, edges, annotations);
       onSaved();
@@ -868,6 +898,7 @@ function DesignerInner({
       // Uma violação estrutural (422) vem com uma lista de mensagens em `details` — usar cada uma
       // como item próprio do ErrorModal em vez da mensagem única (que junta tudo com "; ") faz a
       // lista aparecer como itens separados de verdade, não um parágrafo só.
+      setErrorTitle('Não foi possível salvar');
       if (err instanceof ApiClientError && err.details?.length) {
         setErrors(err.details.map((d) => d.message));
       } else {
@@ -877,6 +908,39 @@ function DesignerInner({
       setSaving(false);
     }
   }
+
+  // Roda a mesma checagem estrutural que a publicação vai exigir (FlowValidator, no back), contra
+  // o estado atual do editor — sem persistir nada, então funciona mesmo com alterações ainda não
+  // salvas. 200 vazio = consistente (toast de sucesso); 422 traz a mesma lista de violações que
+  // Salvar mostrava antes desta mudança, agora só sob demanda aqui.
+  async function handleValidate() {
+    setValidating(true);
+    try {
+      await validateFlow(activeJourney.journeyId, buildFlowInput(nodes, edges, annotations));
+      setValidationStatus('valid');
+      showToast('Jornada consistente — nenhuma violação estrutural encontrada.', 'success');
+    } catch (err) {
+      setErrorTitle('Jornada inconsistente');
+      if (err instanceof ApiClientError && err.details?.length) {
+        // Só marca "inválida" quando o erro é mesmo uma violação estrutural (FlowValidator) — um
+        // erro de rede/servidor não confirma inconsistência nenhuma, só que a checagem falhou.
+        setValidationStatus('invalid');
+        setErrors(err.details.map((d) => d.message));
+      } else {
+        setErrors([err instanceof Error ? err.message : 'Erro ao validar jornada.']);
+      }
+    } finally {
+      setValidating(false);
+    }
+  }
+
+  // Qualquer edição no fluxo invalida o resultado da última checagem — sem isso, o ícone
+  // continuaria verde/vermelho mesmo depois do usuário mudar o desenho, mentindo sobre o estado
+  // atual (o back só sabe o que foi mandado da última vez que "Validar" rodou).
+  useEffect(() => {
+    setValidationStatus(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges, annotations]);
 
   const propertiesNode = nodes.find((n) => n.id === propertiesNodeId) ?? null;
   // Dock segue a seleção diretamente: qualquer User Task selecionada mostra o dock (editor de tela
@@ -926,6 +990,9 @@ function DesignerInner({
             onFitToScreen={() => fitView({ padding: 0.2, duration: 200 })}
             onSave={handleSave}
             saving={saving}
+            onValidate={handleValidate}
+            validating={validating}
+            validationStatus={validationStatus}
             onCancel={onClose}
             onGenerate={() => setGenerateModalOpen(true)}
             journeyName={name}
@@ -1039,6 +1106,8 @@ function DesignerInner({
               onUpdateNode={(patch) => propertiesNode && updateNodeData(propertiesNode.id, patch)}
               onUpdateEdge={updateEdgeData}
               onDeleteNode={() => propertiesNode && deleteNode(propertiesNode.id)}
+              freshNodeId={freshNodeId}
+              onFreshNodeConsumed={() => setFreshNodeId(null)}
               journey={{
                 productName: activeJourney.productName,
                 channelName: activeJourney.channelName,
@@ -1050,7 +1119,7 @@ function DesignerInner({
             />
           </div>
         </div>
-        {errors.length > 0 && <ErrorModal errors={errors} onClose={() => setErrors([])} />}
+        {errors.length > 0 && <ErrorModal errors={errors} title={errorTitle} onClose={() => setErrors([])} />}
         {generateModalOpen && (
           <GeneratePromptModal
             generating={generating}

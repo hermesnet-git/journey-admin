@@ -6,10 +6,17 @@ const BASE_URL = 'http://localhost:8083/api/v1';
 
 export class ExecutionApiError extends Error {
   status: number;
+  code?: string;
+  // Só presente quando code é SYNCHRONOUS_CHAIN_JSONPATH_FAILURE — GlobalExceptionHandler
+  // (ms-espec-registry) já roda o StartFailureDiagnostic antes de responder, então o nó/campo
+  // culpado (ou as suspeitas) chegam nesta mesma resposta de erro.
+  diagnosis?: DiagnosisResult;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: string, diagnosis?: DiagnosisResult) {
     super(message);
     this.status = status;
+    this.code = code;
+    this.diagnosis = diagnosis;
   }
 }
 
@@ -121,7 +128,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     onApiCall?.({ method, path, status: response.status, requestHeaders, requestBody });
-    throw new ExecutionApiError(response.status, body?.message ?? response.statusText);
+    throw new ExecutionApiError(response.status, body?.message ?? response.statusText, body?.code, body?.diagnosis);
   }
   onApiCall?.({ method, path, status: response.status, requestHeaders, requestBody });
   if (response.status === 204 || response.headers.get('content-length') === '0') {
@@ -269,6 +276,21 @@ export const KAFKA_PAYLOAD_VAR_PREFIX = '__kafkaPayload__';
 
 export function isInternalVariableName(name: string): boolean {
   return name.startsWith(KAFKA_TOPIC_VAR_PREFIX) || name.startsWith(KAFKA_PAYLOAD_VAR_PREFIX);
+}
+
+/** Resultado do replay (StartFailureDiagnostic, ms-espec-registry) da cadeia síncrona da jornada
+ * (Início até o primeiro checkpoint) contra as integrações REST de verdade — anexado por
+ * GlobalExceptionHandler direto na resposta de erro do POST .../instances quando ele falha com o
+ * código SYNCHRONOUS_CHAIN_JSONPATH_FAILURE, então chega já resolvido em ExecutionApiError.diagnosis. */
+export interface DiagnosisResult {
+  confirmed: boolean;
+  nodeId: string | null;
+  nodeName: string | null;
+  field: string | null;
+  jsonPath: string | null;
+  reason: string | null;
+  responseSnippet: string | null;
+  suspectNodeNames: string[];
 }
 
 export function startInstance(

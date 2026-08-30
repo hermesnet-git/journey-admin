@@ -39,7 +39,7 @@ export function LoginPage() {
             <GitBranch size={19} color="#fff" strokeWidth={2} />
           </div>
           <div className="text-[17px] font-bold" style={{ color: c.textPrimary }}>
-            Elastic Journey Admin
+            Dynamic Journey Admin
           </div>
           <Tag type="promo" small>
             Autenticação mockada (MVP)

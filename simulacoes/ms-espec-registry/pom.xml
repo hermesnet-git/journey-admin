@@ -12,7 +12,7 @@
 	<artifactId>ms-espec-registry</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>ms-espec-registry</name>
-	<description>Wrapper fino da REST API do Camunda 7 para o simulador da Elastic Journey: inicia/avança instâncias de processo e enriquece o passo atual com o formulário SDUI da User Task (buscado no Admin Portal), sem reimplementar nenhuma capacidade do próprio Camunda.</description>
+	<description>Wrapper fino da REST API do Camunda 7 para o simulador da Dynamic Journey: inicia/avança instâncias de processo e enriquece o passo atual com o formulário SDUI da User Task (buscado no Admin Portal), sem reimplementar nenhuma capacidade do próprio Camunda.</description>
 
 	<properties>
 		<java.version>21</java.version>

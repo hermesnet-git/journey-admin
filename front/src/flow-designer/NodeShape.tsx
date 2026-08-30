@@ -1,4 +1,4 @@
-import { Plug } from 'lucide-react';
+import { Plug, TriangleAlert } from 'lucide-react';
 import { NODE_DIMENSIONS, NODE_ICON, NODE_SHAPE, type NodeType } from './model';
 
 // Rótulo abaixo da forma (evento/decisão) — quebra em até 2 linhas em vez de truncar, mesma
@@ -39,6 +39,15 @@ export interface NodeShapeProps {
   // "dim" do piscar é montada concatenando alfa nela) — nunca um token/var() do tema.
   pulse?: boolean;
   pulseColor?: string;
+  // Sinaliza "algo está faltando/errado" (ex.: conector incompleto) — mesmo canto inferior-direito
+  // do badge de conector (tem prioridade sobre ele quando os dois se aplicariam, ver shape 'event').
+  // errorColor não passa por tema (NodeShape não tem contexto de tema, só recebe cores já resolvidas
+  // do chamador), mas deve ser sempre o token de erro/danger — nunca outra cor.
+  showErrorBadge?: boolean;
+  errorColor?: string;
+  // Texto do hover no badge de erro — o motivo específico (ex.: campos faltando), não um rótulo
+  // genérico, já que é exatamente onde o usuário vai passar o mouse pra entender o problema.
+  errorMessage?: string;
 }
 
 // Desenho puro da forma (círculo/losango/caixa) + ícone + badges + rótulo — única implementação,
@@ -60,6 +69,9 @@ export function NodeShape({
   connectorType,
   pulse,
   pulseColor,
+  showErrorBadge,
+  errorColor,
+  errorMessage,
 }: NodeShapeProps) {
   const shape = NODE_SHAPE[nodeType];
   const dim = NODE_DIMENSIONS[nodeType];
@@ -85,13 +97,24 @@ export function NodeShape({
         style={{ background, borderColor, borderWidth: eventBorderWidth, borderStyle: 'solid', boxShadow, ...pulseStyle }}
       >
         <Icon size={16} color={iconColor} strokeWidth={1.8} />
-        {hasConnectorBadge && (
+        {/* Um círculo pequeno só cabe um badge no canto inferior-direito — erro tem prioridade
+            sobre o badge de conector (o problema é justamente o conector, mais relevante ver isso). */}
+        {hasConnectorBadge && !showErrorBadge && (
           <div
             title={`Conector ${connectorType} associado`}
             className="absolute -bottom-[2px] -right-[2px] w-[13px] h-[13px] rounded-full flex items-center justify-center"
             style={{ background: badgeColor, border: `1.5px solid ${surfaceColor}` }}
           >
             <Plug size={7.5} color="#fff" strokeWidth={2.5} />
+          </div>
+        )}
+        {showErrorBadge && (
+          <div
+            title={errorMessage ?? 'Configuração incompleta'}
+            className="absolute -bottom-[6px] -right-[6px] w-[19px] h-[19px] rounded-full flex items-center justify-center"
+            style={{ background: errorColor, border: `2px solid ${surfaceColor}` }}
+          >
+            <TriangleAlert size={11} color="#fff" strokeWidth={2.5} />
           </div>
         )}
         {showLabel && <ShapeLabel text={name} color={labelColor} />}
@@ -121,6 +144,15 @@ export function NodeShape({
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <Icon size={15} color={iconColor} strokeWidth={2.5} />
         </div>
+        {showErrorBadge && (
+          <div
+            title={errorMessage ?? 'Configuração incompleta'}
+            className="absolute -bottom-1 -right-1 w-[19px] h-[19px] rounded-full flex items-center justify-center"
+            style={{ background: errorColor, border: `2px solid ${surfaceColor}` }}
+          >
+            <TriangleAlert size={11} color="#fff" strokeWidth={2.5} />
+          </div>
+        )}
         {showLabel && <ShapeLabel text={name} color={labelColor} />}
       </div>
     );
@@ -128,6 +160,15 @@ export function NodeShape({
 
   return (
     <div className="relative w-full h-full rounded-[12px] border" style={{ background, borderColor, boxShadow, ...pulseStyle }}>
+      {showErrorBadge && (
+        <div
+          title={errorMessage ?? 'Configuração incompleta'}
+          className="absolute -bottom-2 -right-2 w-[22px] h-[22px] rounded-full flex items-center justify-center"
+          style={{ background: errorColor, border: `2px solid ${surfaceColor}` }}
+        >
+          <TriangleAlert size={12} color="#fff" strokeWidth={2.5} />
+        </div>
+      )}
       <div className="absolute top-[7px] left-[7px] w-[22px] h-[22px] rounded-[7px] flex items-center justify-center" style={{ background: surfaceColor }}>
         <Icon size={13} color={iconColor} strokeWidth={1.8} />
         {hasConnectorBadge && (

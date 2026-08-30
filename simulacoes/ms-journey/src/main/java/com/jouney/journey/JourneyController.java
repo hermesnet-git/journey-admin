@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClientException;
 
 /**
- * Fachada real da plataforma Elastic Journey pros BFFs de canal: roda instâncias falando direto
+ * Fachada real da plataforma Dynamic Journey pros BFFs de canal: roda instâncias falando direto
  * com o engine (CamundaEngineClient), cruzando com o formulário do nó atual (EspecRegistryClient +
  * JourneyStepResolver). Nunca expõe os endpoints de debug do simulador interno do admin
  * (simulate-step, kafka manual, variáveis, histórico) — só o essencial que um canal real chamaria.

@@ -4,7 +4,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Plus, X } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
-import { NODE_META, NODE_DIMENSIONS, NODE_ICON, TYPE_COLOR, type NodeType, type WFNode } from './model';
+import { NODE_META, NODE_DIMENSIONS, NODE_ICON, TYPE_COLOR, connectorMissingFields, type NodeType, type WFNode } from './model';
 import { NodeShape } from './NodeShape';
 
 const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask', 'gateway', 'end'];
@@ -113,19 +113,29 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   const hasInput = nodeType !== 'start' && nodeType !== 'messageStartEvent';
   const hasOutput = nodeType !== 'end';
   const outgoingLimitReached = !!data.outgoingLimitReached;
-  const invalid = !!data.invalid;
   // Semantic zoom: em zoom baixo o rótulo quebrado é a primeira coisa a virar ruído ilegível — a
   // própria forma continua reconhecível sem ele, então só o texto some abaixo do limiar.
   const showLabel = (data.zoom ?? 1) >= 0.65;
   const hasConnectorBadge =
     (nodeType === 'serviceTask' || nodeType === 'receiveTask' || nodeType === 'messageStartEvent') && !!data.connectorConfig;
+  // Detecção automática, sem botão opt-in: conector sem método/URL (ou cluster/tópico/credencial)
+  // não roda de verdade, então o nó já nasce sinalizado — só pelo ícone de erro (badge). Borda/anel
+  // vermelhos foram tentados e descartados: competiam com a borda de "selecionado" (mesma cor de
+  // anel, só o matiz mudava), confundindo os dois estados quando o nó inválido também era o atual.
+  const missingConnectorFields = hasConnectorBadge ? connectorMissingFields(data.connectorConfig) : [];
+  const missingGatewayDefault = !!data.missingGatewayDefault;
+  const invalid = !!data.invalid || missingConnectorFields.length > 0 || missingGatewayDefault;
+  const invalidReason = missingConnectorFields.length > 0
+    ? `Conector incompleto — falta: ${missingConnectorFields.join(', ')}`
+    : missingGatewayDefault
+      ? 'Nenhum caminho marcado como padrão'
+      : 'Configuração incompleta';
 
-  const borderColor = invalid ? c.danger : selected ? c.accent : c.cardBorder;
-  const ringColor = invalid ? c.dangerSoft : c.accentSoft;
+  const borderColor = selected ? c.accent : c.cardBorder;
   // Resting elevation so shapes read as raised, tappable surfaces against the dotted canvas
   // instead of flat cutouts — same shadow family the selection ring stacks on top of.
   const elevation = dark ? '0 1px 3px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.25)' : '0 1px 2px rgba(15,15,20,.07), 0 1px 1px rgba(15,15,20,.04)';
-  const ring = selected || invalid ? `0 0 0 4px ${ringColor}, ${elevation}` : elevation;
+  const ring = selected ? `0 0 0 4px ${c.accentSoft}, ${elevation}` : elevation;
   // Both start-type elements are deletable so a MESSAGE_START_EVENT can replace the
   // default START (REQ-03.07.005 allows exactly one, of either type).
   const deletable = true;
@@ -137,6 +147,7 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   return (
     <div
       onDoubleClick={() => actions.onEdit(id)}
+      title={missingConnectorFields.length > 0 ? `Conector incompleto — falta: ${missingConnectorFields.join(', ')}` : undefined}
       style={{ width: dim.width, height: dim.height }}
       className="group relative cursor-grab select-none"
     >
@@ -182,6 +193,9 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
         badgeColor={c.accent}
         showLabel={showLabel}
         connectorType={hasConnectorBadge ? data.connectorConfig!.connectorType : null}
+        showErrorBadge={invalid}
+        errorColor={c.danger}
+        errorMessage={invalidReason}
       />
 
       {hasOutput && (

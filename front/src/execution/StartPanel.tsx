@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Play } from 'lucide-react';
-import { Callout, Stack, Text, TextLink, skinVars } from '@telefonica/mistica';
+import { AlertTriangle, Play } from 'lucide-react';
+import { Stack, Text, TextLink, skinVars } from '@telefonica/mistica';
 import {
+  ExecutionApiError,
   getJourneyFlow,
   getLatestInstance,
   sendTestMessage,
   startInstance,
+  type DiagnosisResult,
   type FlowBundle,
   type InstanceResponse,
   type JourneySummary,
@@ -38,6 +40,10 @@ export function StartPanel({ journey, onStarted }: Props) {
   const [manualKafkaControl, setManualKafkaControl] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  // Só presente quando startError veio de uma falha SYNCHRONOUS_CHAIN_JSONPATH_FAILURE — o backend
+  // já roda o diagnóstico (StartFailureDiagnostic) antes de responder, então isto chega pronto
+  // junto com o erro, sem nenhuma chamada extra nem opção pro usuário pedir.
+  const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   // REQ-03.12.001/003: valores digitados pro formulário de "variáveis de entrada" declaradas no nó
   // START — chave é o nome da variável, sempre string aqui (convertida pro tipo certo em handleExecute).
   const [startVariableValues, setStartVariableValues] = useState<Record<string, string>>({});
@@ -64,6 +70,7 @@ export function StartPanel({ journey, onStarted }: Props) {
   async function handleExecute() {
     setStarting(true);
     setStartError(null);
+    setDiagnosis(null);
     try {
       const variables = toStartVariablePayload(startVariables, startVariableValues);
       const instance = await startInstance(journey.journeyId, variables, manualKafkaControl);
@@ -73,6 +80,7 @@ export function StartPanel({ journey, onStarted }: Props) {
       onStarted(instance);
     } catch (e) {
       setStartError(errorMessage(e));
+      if (e instanceof ExecutionApiError && e.diagnosis) setDiagnosis(e.diagnosis);
     } finally {
       setStarting(false);
     }
@@ -119,13 +127,37 @@ export function StartPanel({ journey, onStarted }: Props) {
               className="rounded-lg overflow-hidden"
               style={{ height: 200, border: `1px solid ${skinVars.colors.border}` }}
             >
-              <FlowDiagramViewer flowNodes={flow.flowNodes} flowConnections={flow.flowConnections} currentNodeId={null} visitedNodeIds={[]} staticView />
+              <FlowDiagramViewer
+                flowNodes={flow.flowNodes}
+                flowConnections={flow.flowConnections}
+                currentNodeId={null}
+                visitedNodeIds={[]}
+                erroredNodeId={diagnosis?.confirmed ? diagnosis.nodeId : null}
+                erroredNodeName={diagnosis?.confirmed ? diagnosis.nodeName : null}
+                erroredMessage={diagnosis?.confirmed ? diagnosis.reason : null}
+                staticView
+              />
             </div>
           ) : !flowError && !flow ? (
             <div className="rounded-lg animate-pulse" style={{ height: 200, background: skinVars.colors.backgroundAlternative }} />
           ) : null}
 
-          {startError && <Callout variant="default" title="Não foi possível iniciar" description={startError} />}
+          {startError && (
+            <div
+              className="rounded-lg p-4 flex items-start gap-3"
+              style={{ background: skinVars.colors.errorLow, border: `1px solid ${skinVars.colors.error}` }}
+            >
+              <AlertTriangle size={18} color={skinVars.colors.error} className="shrink-0 mt-[1px]" />
+              <Stack space={4}>
+                <Text size={13.5} weight="medium" color={skinVars.colors.error}>
+                  Não foi possível iniciar
+                </Text>
+                <Text size={12.5} color={skinVars.colors.textPrimary}>
+                  {bannerDescription(startError, diagnosis)}
+                </Text>
+              </Stack>
+            </div>
+          )}
 
           {!isMessageStart && startVariables.length > 0 && (
             <Stack space={8}>
@@ -249,6 +281,19 @@ function inputTypeFor(type: string): string {
   if (type === 'date') return 'date';
   if (type === 'datetime') return 'datetime-local';
   return 'text';
+}
+
+// diagnosis já chega resolvido junto com o erro (GlobalExceptionHandler roda StartFailureDiagnostic
+// antes de responder) — confirmado aponta o nó certo (também destacado em vermelho no fluxo acima);
+// sem confirmação, só lista candidatos como texto, já que não há um nó único pra destacar no diagrama.
+function bannerDescription(startError: string, diagnosis: DiagnosisResult | null): string {
+  if (!diagnosis) return startError;
+  if (diagnosis.confirmed) {
+    return `Tarefa "${diagnosis.nodeName}" — ${diagnosis.reason ?? startError}`;
+  }
+  return diagnosis.suspectNodeNames.length > 0
+    ? `${startError} Tarefas candidatas antes do primeiro checkpoint: ${diagnosis.suspectNodeNames.join(', ')}.`
+    : startError;
 }
 
 function errorMessage(e: unknown): string {

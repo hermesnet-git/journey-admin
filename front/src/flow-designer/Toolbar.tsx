@@ -1,15 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, Keyboard, ChevronDown, Sparkles, PaintBucket } from 'lucide-react';
+import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, ChevronDown, Sparkles, PaintBucket, ShieldCheck } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { EDGE_SHAPE_OPTIONS, type EdgeShape } from './model';
-
-const SHORTCUTS_HINT = [
-  'Ctrl+Z — Desfazer',
-  'Ctrl+Y — Refazer',
-  'Delete — Excluir nó/conexão selecionado',
-  'Arrastar da paleta — Adicionar nó',
-  'Duplo clique no nó — Editar propriedades',
-].join('\n');
 
 // Miniature preview of each edge renderer's path shape — a native <select> can't render icons
 // inside its options, so the shape picker below is a small custom dropdown instead.
@@ -98,6 +90,9 @@ export function Toolbar({
   onFitToScreen,
   onSave,
   saving,
+  onValidate,
+  validating,
+  validationStatus,
   onCancel,
   onGenerate,
   journeyName,
@@ -117,6 +112,9 @@ export function Toolbar({
   onFitToScreen: () => void;
   onSave: () => void;
   saving: boolean;
+  onValidate: () => void;
+  validating: boolean;
+  validationStatus: 'valid' | 'invalid' | null;
   onCancel: () => void;
   onGenerate: () => void;
   journeyName: string;
@@ -179,8 +177,20 @@ export function Toolbar({
           <Maximize size={16} />
         </button>
         {divider}
-        <button className={iconBtn} style={{ color: c.textSecondary }} title={SHORTCUTS_HINT}>
-          <Keyboard size={16} />
+        <button
+          onClick={onValidate}
+          disabled={validating}
+          title={
+            validationStatus === 'valid'
+              ? 'Jornada consistente — clique para validar de novo'
+              : validationStatus === 'invalid'
+                ? 'Jornada inconsistente — clique para ver as violações'
+                : 'Validar — verificar se a jornada está estruturalmente consistente, sem salvar'
+          }
+          className={iconBtn}
+          style={{ color: validationStatus === 'valid' ? c.success : validationStatus === 'invalid' ? c.danger : c.textSecondary }}
+        >
+          <ShieldCheck size={16} />
         </button>
         {divider}
         <button

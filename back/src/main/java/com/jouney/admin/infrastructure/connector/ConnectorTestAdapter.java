@@ -83,6 +83,12 @@ public class ConnectorTestAdapter implements ConnectorTestPort {
             throw new ConnectorTestException("Connector test call to " + url + " failed: " + describeHttpError(e), e);
         } catch (RestClientException e) {
             throw new ConnectorTestException("Connector test call to " + url + " failed: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            // java.net.http.HttpRequest rejects a URI with no scheme (e.g. "localhost:8084/foo" —
+            // missing "http://") with a raw IllegalArgumentException, not a RestClientException — a
+            // misconfigured connector URL, not an application failure, so it's a 422 like the others
+            // above, not left to fall through to the generic 500 handler.
+            throw new ConnectorTestException("URL do conector inválida: " + url + " (informe o esquema, ex.: http:// ou https://)", e);
         }
     }
 

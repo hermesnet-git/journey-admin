@@ -29,10 +29,10 @@ public class MsMockApiRestApplication {
                 new MockEndpointConfig("/v1/planos/elegibilidade-upgrade", "{\"elegivel\": true}"),
                 new MockEndpointConfig("/v1/planos/trocar", "{\"status\": \"trocado\"}"),
                 new MockEndpointConfig("/v1/linhas/ativar", "{\"status\": \"ATIVA\"}"),
-                new MockEndpointConfig("/v1/iot/provisionar", "{\"quantidadeProvisionada\": 10}"),
-                new MockEndpointConfig("/v1/consultarbd", "{\"value\": false}"),
-                new MockEndpointConfig("/v1/consultarpendencia", "{\"value\": false}"),
-                new MockEndpointConfig("/v1/consultarmassiva", "{\"value\": false}"))
+                new MockEndpointConfig("/v1/iot/provisionar", "{\"quantidadeProvisionada\": 10}"))
+                // /v1/consultarbd, /v1/consultarpendencia e /v1/consultarmassiva não usam mais o
+                // H2 — viraram lógica condicional por CNPJ (ver MockApiController), sem valor fixo
+                // pra semear aqui.
                 .forEach(config -> {
                     if (!repo.existsById(config.getEndpoint())) {
                         repo.save(config);

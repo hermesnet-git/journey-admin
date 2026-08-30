@@ -7,6 +7,7 @@ import com.jouney.admin.domain.channel.Channel;
 import com.jouney.admin.domain.channel.ChannelNotFoundException;
 import com.jouney.admin.domain.channel.ChannelRepository;
 import com.jouney.admin.domain.channel.ProductInactiveException;
+import com.jouney.admin.domain.flow.FlowValidator;
 import com.jouney.admin.domain.Status;
 import com.jouney.admin.domain.journey.ChannelInactiveException;
 import com.jouney.admin.domain.journey.Journey;
@@ -93,6 +94,10 @@ public class PublishJourneyVersion {
         if (version.getFlowNodes().isEmpty()) {
             throw new VersionHasNoFlowException(version.getId());
         }
+        // Salvar não valida mais (rascunho pode ficar inconsistente) — publicar é o único ponto
+        // que garante a jornada estruturalmente válida antes de ir ao ar, tanto num publish comum
+        // quanto num republish (ambos convergem aqui).
+        FlowValidator.validate(version.getFlowNodes(), version.getFlowConnections());
 
         UUID existingPublicationId = publicationRepository.findByJourneyId(journeyId)
                 .map(Publication::getId).orElse(null);

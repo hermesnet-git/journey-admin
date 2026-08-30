@@ -12,7 +12,7 @@
 	<artifactId>ms-journey</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>ms-journey</name>
-	<description>Fachada real da plataforma Elastic Journey pros canais digitais: roda instâncias
+	<description>Fachada real da plataforma Dynamic Journey pros canais digitais: roda instâncias
 		falando direto com o motor (ms-runtime-camunda) e cruza o passo atual com o formulário SDUI
 		do nó, buscado no registro de specs (ms-espec-registry) — sem ser dono de nenhum dos dois.</description>
 

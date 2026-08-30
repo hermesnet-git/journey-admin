@@ -394,10 +394,20 @@ public class BpmnTransformer {
         // its real JSON type (string/number/boolean) instead of forcing String — auto-generated
         // mappings from a real API response routinely include numeric/boolean fields, and
         // `.stringValue()` throws SpinJsonDataFormatException the moment one of those is hit.
+        //
+        // Every field rule (anything but the "$httpStatus" sentinel below) is guarded behind
+        // "statusCode is 2xx" — since the delegate no longer throws on 4xx/5xx (REQ ajuste do
+        // ms-mock-api-rest pra boas práticas REST: 404 tem corpo diferente do 200, sem os campos de
+        // negócio), a jornada com jsonPath apontando pra um campo que só existe na resposta de sucesso
+        // faria o Spin lançar SpinJsonPathException ("No results for expression") em cima do corpo de
+        // erro e derrubar a atividade num incidente — exatamente o que resolver o 404 sem essa guarda
+        // continuaria causando. Em erro, o campo simplesmente resolve pra null em vez de estourar.
         for (Map<String, Object> rule : outputMappingOf(config)) {
             if (rule.get("name") instanceof String name && !name.isBlank() && rule.get("jsonPath") instanceof String jsonPath) {
-                addOutputParameter(modelInstance, element, name,
-                        "${S(response).jsonPath(\"" + jsonPath + "\").element().value()}");
+                String expression = "$httpStatus".equals(jsonPath)
+                        ? "${statusCode}"
+                        : "${statusCode >= 200 && statusCode < 300 ? S(response).jsonPath(\"" + jsonPath + "\").element().value() : null}";
+                addOutputParameter(modelInstance, element, name, expression);
             }
         }
     }
@@ -448,6 +458,15 @@ public class BpmnTransformer {
         if (connectorConfig.credentialRef() != null) {
             addInputParameter(modelInstance, element, "credentialRef", connectorConfig.credentialRef());
         }
+        // Único jeito do worker Kafka (ms-runtime-camunda, lê o BPMN implantado direto pela API do
+        // Camunda, nunca chama o admin/back) saber que um RECEIVE_TASK/MESSAGE_START_EVENT é
+        // especificamente Kafka e não outro conector de mensageria futuro (Event Hubs/Service Bus) —
+        // o nome do tópico sintético já carrega isso pro SERVICE_TASK external task (topicName()
+        // abaixo), mas RECEIVE_TASK/MESSAGE_START_EVENT nunca viram external task, então precisam
+        // desse sinal explícito.
+        if (connectorConfig.connectorType() != null) {
+            addInputParameter(modelInstance, element, "connectorType", connectorConfig.connectorType());
+        }
         Map<String, Object> config = connectorConfig.config();
         if (config == null) {
             return;
@@ -460,7 +479,13 @@ public class BpmnTransformer {
         }
         for (Map<String, Object> rule : outputMappingOf(config)) {
             if (rule.get("name") instanceof String name && !name.isBlank() && rule.get("jsonPath") instanceof String jsonPath) {
+                String type = rule.get("type") instanceof String t ? t : "string";
                 addInputParameter(modelInstance, element, "outputMapping." + name, jsonPath);
+                // Sem isso o worker Kafka (com.jouney.runtimecamunda.kafka) só teria name+jsonPath ao
+                // reconstruir a regra a partir do BPMN implantado — teria que assumir "string" sempre,
+                // perdendo a coerção number/boolean/date que VariableConversion.resolveOutputMapping
+                // faz hoje a partir do type declarado no admin/back.
+                addInputParameter(modelInstance, element, "outputMapping." + name + ".type", type);
                 addOutputParameter(modelInstance, element, name, "${" + name + "}");
             }
         }

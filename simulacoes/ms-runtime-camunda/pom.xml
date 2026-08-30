@@ -80,6 +80,27 @@
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- Worker do conector Kafka (com.jouney.runtimecamunda.kafka): publica/consome de verdade
+             pros SERVICE_TASK/RECEIVE_TASK/MESSAGE_START_EVENT com conector Kafka — o motor só
+             resolve REST sozinho (HttpConnectorDelegate), Kafka virava external task pendente sem
+             ninguém pra completar antes disso existir. -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+        </dependency>
+        <!-- Já vem transitivo via camunda-engine (precisa parsear/validar BPMN pra implantar), mas
+             declarado explícito porque o worker Kafka lê o BPMN implantado diretamente por esta API
+             (ReceiveTask/StartEvent/CamundaInputOutput) pra descobrir tópico de consumo — não é só
+             uso interno do engine mais. -->
+        <dependency>
+            <groupId>org.camunda.bpm.model</groupId>
+            <artifactId>camunda-bpmn-model</artifactId>
+            <version>${camunda.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

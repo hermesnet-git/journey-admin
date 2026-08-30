@@ -71,6 +71,13 @@ export function updateFlow(journeyId: string, input: FlowUpdateInput): Promise<F
   return apiPut<Flow>(`/journeys/${journeyId}/flow`, input);
 }
 
+// Roda a mesma checagem estrutural do back (FlowValidator) contra o input dado, sem persistir
+// nada — usado pelo botão "Validar" do Flow Designer pra checar o fluxo atual (mesmo com edições
+// ainda não salvas), já que salvar não exige mais consistência (só a publicação exige).
+export function validateFlow(journeyId: string, input: FlowUpdateInput): Promise<void> {
+  return apiPost<void>(`/journeys/${journeyId}/flow/validate`, input);
+}
+
 // Protótipo (FT-03 "gerar fluxo por prompt"): só preview, mesmo formato de getFlow — essa chamada
 // nunca persiste nada, o canvas só carrega o resultado como se fosse uma edição manual não salva.
 // Via SSE: o back pode levar até 3 tentativas de correção, cada uma vira um evento "progress"

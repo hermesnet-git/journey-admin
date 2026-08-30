@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, X, RefreshCw, Play, Loader2, Braces } from 'lucide-react';
+import { Plus, X, RefreshCw, Play, Loader2, Braces, Copy, Check } from 'lucide-react';
+import { IconButton, skinVars, type IconProps } from '@telefonica/mistica';
 import { useFlowTheme, type FlowColors } from './theme';
 import {
   NODE_META,
   CONNECTOR_TYPES_BY_NODE,
   BROKER_OPERATION_BY_NODE,
   MESSAGE_BROKER_TYPES,
+  connectorMissingFields,
   availableVariableRulesAt,
   availableVariableOriginsAt,
   flattenJsonToOutputMappingRules,
@@ -24,11 +26,10 @@ import {
 } from './model';
 import { Section } from './PropertiesSection';
 import { ConnectorWizard } from './ConnectorWizard';
-import { SearchSelect } from './SearchSelect';
 import type { Form } from '../api/forms';
 import { testConnector, type ConnectorTestResponse } from '../api/flows';
-import { listClusterTopics, type MessagingCluster, type CredentialReference } from '../api/messaging';
-import { PropertyGrid, PropertyRow, PropertyGroupHeader, Modal, gridInputStyle } from './PropertyGrid';
+import { type MessagingCluster, type CredentialReference } from '../api/messaging';
+import { PropertyGrid, PropertyRow, PropertyGroupHeader, gridInputStyle } from './PropertyGrid';
 import { OPERATORS_BY_TYPE, VALUE_INPUT_TYPE, parseCondition, composeCondition } from '../shared/condition';
 
 const CONNECTOR_NODE_TYPES = new Set(['serviceTask', 'receiveTask', 'messageStartEvent']);
@@ -53,86 +54,6 @@ const labelStyle = (c: FlowColors): React.CSSProperties => ({
   color: c.textSecondary,
   marginBottom: 6,
 });
-
-// A property row whose value is edited in a popup dialog instead of inline — the cell itself just
-// shows a compact read-only summary plus the "..." trigger, object-inspector style.
-function ComplexPropertyRow({
-  label,
-  summary,
-  dialogTitle,
-  children,
-}: {
-  label: string;
-  summary: string;
-  dialogTitle: string;
-  children: React.ReactNode;
-}) {
-  const { c } = useFlowTheme();
-  const [open, setOpen] = useState(false);
-  return (
-    <PropertyRow label={label}>
-      <div style={{ display: 'flex', gap: 4, width: '100%' }}>
-        <div
-          style={{
-            ...gridInputStyle(c),
-            color: c.textSecondary,
-            flex: 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            cursor: 'default',
-          }}
-        >
-          {summary}
-        </div>
-        <button
-          onClick={() => setOpen(true)}
-          title={`Editar ${label}`}
-          style={{
-            flex: '0 0 auto',
-            width: 24,
-            height: 24,
-            border: `1px solid ${c.border}`,
-            borderRadius: 4,
-            background: c.cardBg,
-            color: c.textSecondary,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 12,
-            lineHeight: 1,
-          }}
-        >
-          …
-        </button>
-      </div>
-      {open && (
-        <Modal title={dialogTitle} onClose={() => setOpen(false)}>
-          {children}
-        </Modal>
-      )}
-    </PropertyRow>
-  );
-}
-
-function jsonFieldSummary(value: unknown): string {
-  if (!value || typeof value !== 'object') return 'Vazio';
-  const n = Object.keys(value as object).length;
-  return n === 0 ? 'Vazio' : `${n} campo${n > 1 ? 's' : ''}`;
-}
-
-function headersSummary(headers: Record<string, string> | undefined): string {
-  const n = headers ? Object.keys(headers).length : 0;
-  return n === 0 ? 'Nenhum' : `${n} header${n > 1 ? 's' : ''}`;
-}
-
-function outputMappingSummary(rules: OutputMappingRule[] | undefined): string {
-  const n = rules?.length ?? 0;
-  return n === 0 ? 'Nenhuma' : `${n} variável${n > 1 ? 'is' : ''}`;
-}
 
 function MiniIconButton({
   onClick,
@@ -609,6 +530,18 @@ export function PropertiesPanel({
   onUpdate,
   onUpdateEdge,
   onDelete,
+  freshNodeId,
+  onFreshNodeConsumed,
+  generalOpen,
+  setGeneralOpen,
+  startVariablesOpen,
+  setStartVariablesOpen,
+  variablesOpen,
+  setVariablesOpen,
+  connectorOpen,
+  setConnectorOpen,
+  decisionOpen,
+  setDecisionOpen,
 }: {
   node: WFNode;
   forms: Form[];
@@ -620,13 +553,39 @@ export function PropertiesPanel({
   onUpdate: (patch: Partial<WFNodeData>) => void;
   onUpdateEdge: (edgeId: string, patch: Partial<WFEdgeData>) => void;
   onDelete: () => void;
+  // Nó recém-criado — na primeira vez que este painel mostra ele, só "Informações Gerais" nasce
+  // aberta (o resto ainda não tem nada configurado). Consumido uma vez via onFreshNodeConsumed pra
+  // não recolapsar se o usuário voltar a este nó mais tarde, já com algo configurado.
+  freshNodeId: string | null;
+  onFreshNodeConsumed: () => void;
+  // Estado de aberto/fechado de cada seção — vive em PropertiesDock (nunca desmonta ao trocar de
+  // nó ou ir pro painel da jornada) em vez de local aqui: local resetaria tudo pra aberto sempre
+  // que o usuário clicasse no fundo do canvas (troca pra JourneyPropertiesPanel, desmontando este
+  // componente) e voltasse a selecionar um nó.
+  generalOpen: boolean;
+  setGeneralOpen: (v: boolean | ((o: boolean) => boolean)) => void;
+  startVariablesOpen: boolean;
+  setStartVariablesOpen: (v: boolean | ((o: boolean) => boolean)) => void;
+  variablesOpen: boolean;
+  setVariablesOpen: (v: boolean | ((o: boolean) => boolean)) => void;
+  connectorOpen: boolean;
+  setConnectorOpen: (v: boolean | ((o: boolean) => boolean)) => void;
+  decisionOpen: boolean;
+  setDecisionOpen: (v: boolean | ((o: boolean) => boolean)) => void;
 }) {
   const { c } = useFlowTheme();
-  const [generalOpen, setGeneralOpen] = useState(true);
-  const [startVariablesOpen, setStartVariablesOpen] = useState(true);
-  const [variablesOpen, setVariablesOpen] = useState(true);
-  const [connectorOpen, setConnectorOpen] = useState(true);
-  const [decisionOpen, setDecisionOpen] = useState(true);
+
+  useEffect(() => {
+    if (node.id !== freshNodeId) return;
+    setGeneralOpen(true);
+    setStartVariablesOpen(false);
+    setVariablesOpen(false);
+    setConnectorOpen(false);
+    setDecisionOpen(false);
+    onFreshNodeConsumed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node.id, freshNodeId]);
+
   const data = node.data;
   const isConnectorNode = !!node.type && CONNECTOR_NODE_TYPES.has(node.type);
   // Computed once, shared by the "Variáveis" reference panel below e ConnectorFields (URL/
@@ -693,6 +652,7 @@ export function PropertiesPanel({
             allNodes={allNodes}
             allEdges={allEdges}
             availableRules={availableVariableRulesAt(node.id, allNodes, allEdges, forms)}
+            variableOrigins={availableVariableOriginsAt(node.id, allNodes, allEdges, forms)}
             onUpdateEdge={onUpdateEdge}
           />
         </Section>
@@ -734,12 +694,14 @@ function GatewayFields({
   allNodes,
   allEdges,
   availableRules,
+  variableOrigins,
   onUpdateEdge,
 }: {
   nodeId: string;
   allNodes: WFNode[];
   allEdges: WFEdge[];
   availableRules: OutputMappingRule[];
+  variableOrigins: VariableOrigin[];
   onUpdateEdge: (edgeId: string, patch: Partial<WFEdgeData>) => void;
 }) {
   const { c } = useFlowTheme();
@@ -778,7 +740,9 @@ function GatewayFields({
               if (!OPERATORS_BY_TYPE[nextType].some((op) => op.value === next.operator)) {
                 next.operator = OPERATORS_BY_TYPE[nextType][0].value;
               }
-              onUpdateEdge(edge.id, { condition: composeCondition(next.variable, next.operator, next.value, nextType) });
+              onUpdateEdge(edge.id, {
+                condition: composeCondition(next.variable, next.operator, next.value, nextType, next.valueIsVariable),
+              });
             }
 
             return (
@@ -814,7 +778,7 @@ function GatewayFields({
                           </option>
                         ))}
                       </select>
-                      {type === 'boolean' ? (
+                      {type === 'boolean' && !parsed.valueIsVariable ? (
                         <select
                           style={{ ...gridInputStyle(c), cursor: 'pointer', flex: 1 }}
                           value={parsed.value || 'true'}
@@ -826,12 +790,17 @@ function GatewayFields({
                       ) : (
                         <input
                           style={{ ...gridInputStyle(c), flex: 1 }}
-                          type={VALUE_INPUT_TYPE[type] ?? 'text'}
+                          type={parsed.valueIsVariable ? 'text' : (VALUE_INPUT_TYPE[type] ?? 'text')}
                           placeholder="valor"
-                          value={parsed.value}
-                          onChange={(e) => updateCondition({ value: e.target.value })}
+                          readOnly={parsed.valueIsVariable}
+                          value={parsed.valueIsVariable ? `{{${parsed.value}}}` : parsed.value}
+                          onChange={(e) => updateCondition({ value: e.target.value, valueIsVariable: false })}
                         />
                       )}
+                      <VariablePickerButton
+                        variables={variableOrigins}
+                        onInsert={(token) => updateCondition({ value: token.replace(/^\{\{\s*|\s*\}\}$/g, ''), valueIsVariable: true })}
+                      />
                     </div>
                   )}
                 </div>
@@ -851,6 +820,46 @@ export const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH']);
 // outputMapping (REQ-03.09.010) gets a dedicated editor, same reasoning as headers.
 export const OUTPUT_MAPPING_FIELD = 'outputMapping';
 
+// Resumo em prosa da configuração atual — não é mais tabela propriedade/valor (isso agora vive só
+// dentro do ConnectorWizard, o único lugar onde o conector é editado). Cada linha já junta os fatos
+// relevantes daquele aspecto (conexão, dados enviados, mapeamento) em vez de um campo por linha.
+function describeConnector(connectorConfig: ConnectorConfig, brokerOperation?: 'PRODUCE' | 'CONSUME'): string[] {
+  const cfg = connectorConfig.config ?? {};
+  const mappingCount = ((cfg[OUTPUT_MAPPING_FIELD] as OutputMappingRule[]) ?? []).length;
+  const mappingLine =
+    mappingCount > 0
+      ? `${mappingCount} variável${mappingCount > 1 ? 'is' : ''} de saída mapeada${mappingCount > 1 ? 's' : ''}`
+      : 'Nenhuma variável de saída mapeada';
+
+  if (connectorConfig.connectorType === 'REST') {
+    const method = (cfg.method as string) || null;
+    const url = (cfg.url as string) || null;
+    const headersCount = Object.keys((cfg.headers as Record<string, string>) ?? {}).length;
+    const hasBody = !!cfg.body && Object.keys(cfg.body as object).length > 0;
+    const details = [
+      headersCount > 0 ? `${headersCount} header${headersCount > 1 ? 's' : ''}` : null,
+      hasBody ? 'Body configurado' : null,
+      connectorConfig.credentialRef ? `Credencial: ${connectorConfig.credentialRef}` : null,
+    ].filter((v): v is string => !!v);
+    return [
+      method && url ? `${method} ${url}` : 'URL ainda não configurada',
+      ...(details.length > 0 ? [details.join(' · ')] : []),
+      mappingLine,
+    ];
+  }
+
+  const topicLabel = connectorConfig.connectorType === 'EVENT_HUBS' ? 'Event Hub' : 'Tópico';
+  return [
+    `${connectorConfig.connectorType}${brokerOperation ? ` · ${brokerOperation}` : ''}`,
+    `Cluster: ${(cfg.clusterId as string) || '—'} · ${topicLabel}: ${(cfg.topic as string) || '—'}`,
+    `Credencial: ${connectorConfig.credentialRef || '—'} · ${mappingLine}`,
+  ];
+}
+
+// O ConnectorWizard é o único lugar onde o conector é de fato editado — aqui só escolhe o Tipo
+// (o que existe ou não) e mostra um resumo somente-leitura do que já está configurado, com um botão
+// pra abrir o assistente. Antes havia também uma edição inline campo a campo em paralelo ao
+// assistente; duas formas de editar a mesma coisa é que gerava confusão, não a existência do resumo.
 function ConnectorFields({
   nodeType,
   connectorConfig,
@@ -873,78 +882,13 @@ function ConnectorFields({
   const { c } = useFlowTheme();
   const availableConnectors = CONNECTOR_TYPES_BY_NODE[nodeType] ?? [];
   const brokerOperation = BROKER_OPERATION_BY_NODE[nodeType];
-  const urlInputRef = useRef<HTMLInputElement>(null);
-  const isBroker = !!connectorConfig && MESSAGE_BROKER_TYPES.includes(connectorConfig.connectorType);
-  const selectedClusterId = (connectorConfig?.config?.clusterId as string) ?? null;
-  const credentialsForCluster = selectedClusterId
-    ? credentials.filter((cr) => cr.clusterId === selectedClusterId)
-    : credentials;
-  const topicLabel =
-    connectorConfig?.connectorType === 'EVENT_HUBS'
-      ? 'Nome do Event Hub'
-      : connectorConfig?.connectorType === 'SERVICE_BUS'
-        ? 'Fila/Tópico'
-        : 'Tópico';
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const missingFields = connectorMissingFields(connectorConfig);
 
   function update(patch: Partial<ConnectorConfig>) {
     const current: ConnectorConfig = connectorConfig ?? { connectorType: 'REST', config: {}, credentialRef: null };
     onUpdate({ connectorConfig: { ...current, ...patch } });
   }
-
-  function updateConfigField(key: string, value: string) {
-    update({ config: { ...(connectorConfig?.config ?? {}), [key]: value } });
-  }
-
-  function updateConfigJsonField(key: string, value: unknown) {
-    update({ config: { ...(connectorConfig?.config ?? {}), [key]: value } });
-  }
-
-  const method = (connectorConfig?.config?.method as string) ?? '';
-  const showBody = METHODS_WITH_BODY.has(method);
-
-  const outputMappingRules = (connectorConfig?.config?.[OUTPUT_MAPPING_FIELD] as OutputMappingRule[]) ?? [];
-  // Last "Testar API" response, kept around so the Mapeamento de saída dialog can show it as a
-  // reference alongside the rules — the whole reason to test is to see the shape to map from.
-  const [lastTestResponse, setLastTestResponse] = useState<ConnectorTestResponse | null>(null);
-  const [wizardOpen, setWizardOpen] = useState(false);
-
-  // Sugestão de tópicos reais do cluster escolhido (US-03.09) — cacheada por cluster pra não
-  // rebuscar ao reabrir o seletor; o campo continua aceitando digitação livre (allowCustomValue),
-  // então uma falha aqui nunca bloqueia o desenho do fluxo, só perde a sugestão.
-  const [topicsByCluster, setTopicsByCluster] = useState<Record<string, string[]>>({});
-  const [topicsLoading, setTopicsLoading] = useState(false);
-  const [topicsError, setTopicsError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isBroker || !selectedClusterId || topicsByCluster[selectedClusterId]) {
-      setTopicsError(null);
-      return;
-    }
-    let cancelled = false;
-    setTopicsLoading(true);
-    setTopicsError(null);
-    listClusterTopics(selectedClusterId)
-      .then((response) => {
-        if (cancelled) return;
-        if (response.ok) {
-          setTopicsByCluster((prev) => ({ ...prev, [selectedClusterId]: response.topics }));
-        } else {
-          setTopicsError(response.message ?? 'Não foi possível listar os tópicos do cluster.');
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setTopicsError('Não foi possível listar os tópicos do cluster (ms-espec-registry fora do ar?).');
-      })
-      .finally(() => {
-        if (!cancelled) setTopicsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBroker, selectedClusterId]);
-
-  const clusterTopics = selectedClusterId ? (topicsByCluster[selectedClusterId] ?? []) : [];
 
   return (
     <div>
@@ -978,216 +922,79 @@ function ConnectorFields({
           </select>
         </PropertyRow>
 
-        {connectorConfig && (
-          <>
-            <PropertyRow label="Assistente">
-              <button
-                type="button"
-                onClick={() => setWizardOpen(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  border: `1px solid ${c.accent}`,
-                  background: c.accentSoft,
-                  color: c.accent,
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                ✨ Configurar com assistente
-              </button>
-            </PropertyRow>
-            {wizardOpen && (
-              <ConnectorWizard
-                connectorConfig={connectorConfig}
-                variables={availableVariables}
-                clusters={clusters}
-                credentials={credentials}
-                journeyId={journeyId}
-                nodeId={nodeId}
-                onConfigUpdate={update}
-                onClose={() => setWizardOpen(false)}
-              />
-            )}
-
-            {!isBroker && (
-              <PropertyRow label="Credencial">
-                <input
-                  style={gridInputStyle(c)}
-                  value={connectorConfig.credentialRef ?? ''}
-                  onChange={(e) => update({ credentialRef: e.target.value || null })}
-                  placeholder="ex.: credential-runtime-01 (opcional)"
-                />
-              </PropertyRow>
-            )}
-
-            <PropertyGroupHeader label="Conexão" />
-            {connectorConfig.connectorType === 'REST' ? (
-              <>
-                <PropertyRow label="Método">
-                  <select
-                    style={{ ...gridInputStyle(c), cursor: 'pointer' }}
-                    value={(connectorConfig.config?.method as string) ?? ''}
-                    onChange={(e) => updateConfigField('method', e.target.value)}
-                  >
-                    <option value="">—</option>
-                    {REST_METHODS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </PropertyRow>
-                <PropertyRow label="URL">
-                  <div style={{ display: 'flex', gap: 4, width: '100%' }}>
-                    <input
-                      ref={urlInputRef}
-                      style={{ ...gridInputStyle(c), flex: 1 }}
-                      value={(connectorConfig.config?.url as string) ?? ''}
-                      onChange={(e) => updateConfigField('url', e.target.value)}
-                      placeholder="https://..."
-                    />
-                    <VariablePickerButton
-                      variables={availableVariables}
-                      onInsert={(token) =>
-                        insertTokenAtCursor(urlInputRef.current, (connectorConfig.config?.url as string) ?? '', token, (next) =>
-                          updateConfigField('url', next),
-                        )
-                      }
-                    />
-                  </div>
-                </PropertyRow>
-              </>
-            ) : (
-              <>
-                <PropertyRow label="Operação">
-                  <div style={{ color: c.textSecondary, fontSize: 12 }} title="Definida automaticamente pelo tipo de nó">
-                    {brokerOperation}
-                  </div>
-                </PropertyRow>
-                <PropertyRow label="Cluster">
-                  <SearchSelect
-                    items={clusters}
-                    getId={(cluster) => cluster.clusterId}
-                    getLabel={(cluster) => cluster.name}
-                    value={selectedClusterId}
-                    onChange={(clusterId) => {
-                      // Uma única chamada de update: `config` (clusterId) e `credentialRef` (trocar
-                      // de cluster invalida a credencial escolhida, filtrada por cluster) precisam
-                      // ir num só patch — duas chamadas separadas leriam o mesmo connectorConfig
-                      // desatualizado e a segunda sobrescreveria o clusterId que a primeira gravou.
-                      update({
-                        config: { ...(connectorConfig?.config ?? {}), clusterId: clusterId ?? '' },
-                        credentialRef: null,
-                      });
-                    }}
-                    placeholder="Nenhum cluster cadastrado"
-                    emptyLabel="Nenhum cluster encontrado — cadastre em Catálogo de Integrações"
-                  />
-                </PropertyRow>
-                <PropertyRow label="Credencial">
-                  <SearchSelect
-                    items={credentialsForCluster}
-                    getId={(cred) => cred.referenceName}
-                    getLabel={(cred) => cred.referenceName}
-                    value={connectorConfig.credentialRef}
-                    onChange={(referenceName) => update({ credentialRef: referenceName })}
-                    placeholder={selectedClusterId ? 'Nenhuma credencial cadastrada' : 'Escolha um cluster primeiro'}
-                    emptyLabel="Nenhuma credencial encontrada — cadastre em Catálogo de Integrações"
-                  />
-                </PropertyRow>
-                <PropertyRow label={topicLabel}>
-                  <div style={{ width: '100%' }}>
-                    <SearchSelect
-                      items={clusterTopics}
-                      getId={(topic) => topic}
-                      getLabel={(topic) => topic}
-                      value={(connectorConfig.config?.topic as string) ?? null}
-                      onChange={(topic) => updateConfigField('topic', topic ?? '')}
-                      allowCustomValue
-                      placeholder={
-                        !selectedClusterId
-                          ? 'Escolha um cluster primeiro'
-                          : topicsLoading
-                            ? 'Carregando tópicos...'
-                            : 'Digite ou escolha um tópico'
-                      }
-                      emptyLabel={topicsLoading ? 'Carregando…' : (topicsError ?? 'Nenhum tópico encontrado no cluster — digite um nome novo')}
-                    />
-                    {topicsError && <div style={{ fontSize: 11, color: c.danger, marginTop: 2 }}>{topicsError}</div>}
-                  </div>
-                </PropertyRow>
-              </>
-            )}
-
-            <PropertyGroupHeader label="Dados" />
-            <ComplexPropertyRow
-              label="Headers"
-              summary={headersSummary(connectorConfig.config?.headers as Record<string, string>)}
-              dialogTitle="Headers"
-            >
-              <HeadersEditor
-                headers={(connectorConfig.config?.headers as Record<string, string>) ?? {}}
-                onChange={(headers) => update({ config: { ...(connectorConfig.config ?? {}), headers } })}
-                variables={availableVariables}
-              />
-            </ComplexPropertyRow>
-
-            {connectorConfig.connectorType === 'REST' && (
-              <ComplexPropertyRow label="Params" summary={jsonFieldSummary(connectorConfig.config?.params)} dialogTitle="Parâmetros de URL (query params)">
-                <StructuredJsonEditor
-                  value={connectorConfig.config?.params}
-                  onChange={(v) => updateConfigJsonField('params', v)}
-                  variables={availableVariables}
-                />
-              </ComplexPropertyRow>
-            )}
-            {connectorConfig.connectorType === 'REST' && showBody && (
-              <ComplexPropertyRow label="Body" summary={jsonFieldSummary(connectorConfig.config?.body)} dialogTitle="Body">
-                <StructuredJsonEditor
-                  value={connectorConfig.config?.body}
-                  onChange={(v) => updateConfigJsonField('body', v)}
-                  variables={availableVariables}
-                />
-              </ComplexPropertyRow>
-            )}
-            {isBroker && (
-              <ComplexPropertyRow label="Payload" summary={jsonFieldSummary(connectorConfig.config?.payload)} dialogTitle="Payload">
-                <JsonFieldEditor value={connectorConfig.config?.payload} onChange={(v) => updateConfigJsonField('payload', v)} />
-              </ComplexPropertyRow>
-            )}
-
-            <PropertyGroupHeader label="Mapeamento" />
-            <ComplexPropertyRow label="Saída" summary={outputMappingSummary(outputMappingRules)} dialogTitle="Mapeamento de saída (variável ← JSONPath)">
-              <OutputMappingEditor
-                rules={outputMappingRules}
-                onChange={(rules) => update({ config: { ...(connectorConfig.config ?? {}), [OUTPUT_MAPPING_FIELD]: rules } })}
-                sourceResponse={lastTestResponse}
-              />
-            </ComplexPropertyRow>
-            {connectorConfig.connectorType === 'REST' && (
-              <PropertyRow label="Testar">
-                <TestConnectorButton
-                  journeyId={journeyId}
-                  nodeId={nodeId}
-                  connectorConfig={connectorConfig}
-                  onResult={setLastTestResponse}
-                  onAddOutputMappingRules={(newRules) => {
-                    const rules = (connectorConfig.config?.[OUTPUT_MAPPING_FIELD] as OutputMappingRule[]) ?? [];
-                    const existingNames = new Set(rules.map((r) => r.name));
-                    const merged = [...rules, ...newRules.filter((r) => !existingNames.has(r.name))];
-                    update({ config: { ...(connectorConfig.config ?? {}), [OUTPUT_MAPPING_FIELD]: merged } });
-                  }}
-                />
-              </PropertyRow>
-            )}
-          </>
+        {connectorConfig && missingFields.length > 0 && (
+          <div
+            style={{
+              padding: '6px 10px',
+              borderTop: `1px solid ${c.border}`,
+              background: c.dangerSoft,
+              color: c.danger,
+              fontSize: 11.5,
+              fontWeight: 600,
+            }}
+          >
+            Conector incompleto — falta: {missingFields.join(', ')}
+          </div>
         )}
       </PropertyGrid>
+
+      {connectorConfig && (
+        <>
+          <button
+            type="button"
+            onClick={() => setWizardOpen(true)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: `1px solid ${c.accent}`,
+              background: c.accentSoft,
+              color: c.accent,
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              marginBottom: 10,
+            }}
+          >
+            ⚙ Configurar conector
+          </button>
+
+          <div style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.border}`, background: c.canvasBg }}>
+            {describeConnector(connectorConfig, brokerOperation).map((line, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: 12.5,
+                  color: i === 0 ? c.textPrimary : c.textSecondary,
+                  fontWeight: i === 0 ? 600 : 400,
+                  fontFamily: i === 0 && connectorConfig.connectorType === 'REST' ? 'monospace' : undefined,
+                  marginBottom: 3,
+                  wordBreak: 'break-word',
+                }}
+              >
+                {line}
+              </div>
+            ))}
+          </div>
+
+          {wizardOpen && (
+            <ConnectorWizard
+              connectorConfig={connectorConfig}
+              variables={availableVariables}
+              clusters={clusters}
+              credentials={credentials}
+              journeyId={journeyId}
+              nodeId={nodeId}
+              onConfigUpdate={update}
+              onClose={() => setWizardOpen(false)}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1370,9 +1177,48 @@ function StartVariablesEditor({
 // before the rules instead of after (REQ: no duplicate payload display, Origem first).
 export function ResponsePreview({ response }: { response: ConnectorTestResponse | null | undefined }) {
   const { c } = useFlowTheme();
+  const [copied, setCopied] = useState(false);
+
+  async function copyJson() {
+    if (!response) return;
+    try {
+      await navigator.clipboard.writeText(formatBody(response.body));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Sem permissão de clipboard (contexto não seguro, navegador antigo) — nada a fazer além de
+      // deixar o usuário selecionar/copiar o texto manualmente, já visível no <pre> abaixo.
+    }
+  }
+
   return (
     <div>
-      <div style={labelStyle(c)}>Origem (resposta da API)</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div style={{ ...labelStyle(c), marginBottom: 0 }}>Origem (resposta da API)</div>
+        {response && (
+          <button
+            type="button"
+            onClick={copyJson}
+            title="Copiar JSON"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              border: `1px solid ${c.border}`,
+              borderRadius: 6,
+              background: c.cardBg,
+              color: copied ? c.accent : c.textSecondary,
+              padding: '3px 8px',
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? 'Copiado!' : 'Copiar'}
+          </button>
+        )}
+      </div>
       {response ? (
         <pre
           style={{
@@ -1400,6 +1246,34 @@ export function ResponsePreview({ response }: { response: ConnectorTestResponse 
   );
 }
 
+// Larguras padrão das 3 colunas redimensionáveis (px) — a 4ª (remover) fica fixa e sem handle.
+const DEFAULT_MAPPING_COL_WIDTHS = { name: 140, jsonPath: 240, type: 110 };
+type MappingColumn = keyof typeof DEFAULT_MAPPING_COL_WIDTHS;
+const MIN_MAPPING_COL_WIDTH = 60;
+// Só cabe o "x" de remover — não precisa de handle nem de espaço de sobra.
+const ACTION_COL_WIDTH = 32;
+
+// Borda sem cantos arredondados numa célula específica da grade — cada `<input>`/`<select>` some
+// dentro da própria célula (sem caixa própria) pra ler como planilha, não como formulário empilhado.
+const cellInputStyle = (c: FlowColors): React.CSSProperties => ({
+  width: '100%',
+  height: 28,
+  padding: '2px 8px',
+  border: 'none',
+  outline: 'none',
+  background: 'transparent',
+  color: c.textPrimary,
+  fontSize: 12,
+  boxSizing: 'border-box',
+});
+
+// IconButton do Mística espera um componente de ícone com a assinatura (props: IconProps) =>
+// JSX.Element — os ícones lucide-react são forwardRef, não batem estruturalmente com esse tipo,
+// então precisam desse adaptador fino em vez de serem passados direto.
+function MisticaXIcon(props: IconProps) {
+  return <X size={props.size as number | undefined} color={props.color} className={props.className} style={props.style} />;
+}
+
 export function OutputMappingEditor({
   rules,
   onChange,
@@ -1413,37 +1287,132 @@ export function OutputMappingEditor({
   hideSourcePreview?: boolean;
 }) {
   const { c } = useFlowTheme();
+  const [colWidths, setColWidths] = useState(DEFAULT_MAPPING_COL_WIDTHS);
+  const dragRef = useRef<{ col: MappingColumn; startX: number; startWidth: number } | null>(null);
 
   function commit(next: OutputMappingRule[]) {
     onChange(next);
   }
 
+  function onResizeMove(e: PointerEvent) {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const next = Math.max(MIN_MAPPING_COL_WIDTH, drag.startWidth + (e.clientX - drag.startX));
+    setColWidths((w) => ({ ...w, [drag.col]: next }));
+  }
+
+  function onResizeEnd() {
+    dragRef.current = null;
+    window.removeEventListener('pointermove', onResizeMove);
+    window.removeEventListener('pointerup', onResizeEnd);
+  }
+
+  function startResize(col: MappingColumn, e: React.PointerEvent) {
+    e.preventDefault();
+    dragRef.current = { col, startX: e.clientX, startWidth: colWidths[col] };
+    window.addEventListener('pointermove', onResizeMove);
+    window.addEventListener('pointerup', onResizeEnd);
+  }
+
+  function ResizeHandle({ col }: { col: MappingColumn }) {
+    return (
+      <div
+        onPointerDown={(e) => startResize(col, e)}
+        title="Arrastar para redimensionar"
+        style={{ position: 'absolute', top: 0, bottom: 0, right: -3, width: 6, cursor: 'col-resize', zIndex: 1 }}
+      />
+    );
+  }
+
+  // JSONPath usa minmax(...,1fr): a largura arrastada vira o mínimo, mas ela ainda estica pra
+  // preencher o diálogo inteiro — sem isso (tudo em px fixo) a tabela ficava mais estreita que o
+  // diálogo, com espaço vazio sobrando à direita em vez de acompanhar o mesmo respiro da esquerda.
+  const gridTemplateColumns = `${colWidths.name}px minmax(${colWidths.jsonPath}px, 1fr) ${colWidths.type}px ${ACTION_COL_WIDTH}px`;
+  const cellBorder = `1px solid ${c.border}`;
+
   return (
     <div style={{ width: '100%' }}>
+      <button
+        onClick={() => commit([...rules, { name: '', jsonPath: '', type: 'string' }])}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          border: 'none',
+          background: 'none',
+          padding: '4px 0',
+          marginBottom: rules.length > 0 ? 10 : 0,
+          color: c.accent,
+          fontSize: 12.5,
+          fontWeight: 600,
+          cursor: 'pointer',
+        }}
+      >
+        <Plus size={14} /> Adicionar variável de saída
+      </button>
+
       {rules.length > 0 && (
-        <PropertyGrid>
+        <div style={{ border: cellBorder, borderRadius: 6, overflow: 'hidden', width: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns, background: c.canvasBg, borderBottom: cellBorder }}>
+            {(
+              [
+                ['name', 'Nome'],
+                ['jsonPath', 'JSONPath (ex.: $.campo)'],
+                ['type', 'Tipo'],
+              ] as const
+            ).map(([col, label]) => (
+              <div
+                key={col}
+                style={{
+                  position: 'relative',
+                  padding: '6px 8px',
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: c.textSecondary,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.3,
+                  borderRight: cellBorder,
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {label}
+                <ResizeHandle col={col} />
+              </div>
+            ))}
+            <div />
+          </div>
+
           {rules.map((rule, i) => (
             <div
               key={i}
-              style={{ display: 'grid', gridTemplateColumns: '88px 1fr', minHeight: 26, borderTop: i === 0 ? 'none' : `1px solid ${c.border}` }}
+              style={{ display: 'grid', gridTemplateColumns, borderTop: i === 0 ? 'none' : cellBorder }}
             >
-              <div style={{ padding: '2px 4px', background: c.canvasBg, display: 'flex', alignItems: 'center' }}>
+              <div style={{ borderRight: cellBorder }}>
                 <input
-                  style={{ ...gridInputStyle(c), border: 'none', background: 'transparent', padding: '0 4px', fontWeight: 600 }}
+                  style={cellInputStyle(c)}
                   placeholder="nome"
                   value={rule.name}
                   onChange={(e) => commit(rules.map((r, ri) => (ri === i ? { ...r, name: e.target.value } : r)))}
                 />
               </div>
-              <div style={{ padding: '2px 6px', display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+              <div style={{ borderRight: cellBorder }}>
                 <input
-                  style={{ ...gridInputStyle(c), fontFamily: 'monospace', flex: 1 }}
+                  style={{ ...cellInputStyle(c), fontFamily: 'monospace' }}
                   placeholder="$.campo"
                   value={rule.jsonPath}
                   onChange={(e) => commit(rules.map((r, ri) => (ri === i ? { ...r, jsonPath: e.target.value } : r)))}
                 />
+              </div>
+              <div style={{ borderRight: cellBorder }}>
                 <select
-                  style={{ ...gridInputStyle(c), cursor: 'pointer', flex: '0 0 78px' }}
+                  style={{
+                    ...cellInputStyle(c),
+                    cursor: 'pointer',
+                    color: skinVars.colors.textPrimary,
+                    background: skinVars.colors.background,
+                  }}
                   title="Tipo da variável"
                   value={rule.type ?? 'string'}
                   onChange={(e) => commit(rules.map((r, ri) => (ri === i ? { ...r, type: e.target.value as VariableType } : r)))}
@@ -1454,47 +1423,20 @@ export function OutputMappingEditor({
                   <option value="date">Data</option>
                   <option value="datetime">Data e hora</option>
                 </select>
-                <button
-                  onClick={() => commit(rules.filter((_, ri) => ri !== i))}
-                  title="Remover regra"
-                  style={{
-                    flex: '0 0 auto',
-                    width: 24,
-                    height: 24,
-                    border: `1px solid ${c.border}`,
-                    borderRadius: 4,
-                    background: c.cardBg,
-                    color: c.textSecondary,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <X size={12} />
-                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconButton
+                  Icon={MisticaXIcon}
+                  type="danger"
+                  small
+                  aria-label="Remover regra"
+                  onPress={() => commit(rules.filter((_, ri) => ri !== i))}
+                />
               </div>
             </div>
           ))}
-        </PropertyGrid>
+        </div>
       )}
-      <button
-        onClick={() => commit([...rules, { name: '', jsonPath: '', type: 'string' }])}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          border: 'none',
-          background: 'none',
-          padding: '4px 0',
-          color: c.accent,
-          fontSize: 12.5,
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        <Plus size={14} /> Adicionar variável de saída
-      </button>
 
       {!hideSourcePreview && (
         <div style={{ marginTop: 12 }}>
@@ -1509,40 +1451,51 @@ export function OutputMappingEditor({
 // so the call can be resolved and tested without a real journey execution.
 const VARIABLE_TOKEN = /\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g;
 
-function tokensIn(config: Record<string, unknown> | null | undefined): string[] {
+export function tokensIn(config: Record<string, unknown> | null | undefined): string[] {
   const found = new Set<string>();
   const text = JSON.stringify(config ?? {});
   for (const match of text.matchAll(VARIABLE_TOKEN)) found.add(match[1]);
   return [...found];
 }
 
-export function TestConnectorButton({
+// Ponto único de "testar rápido e mapear" — substitui os antigos botão "Testar API" (modal à
+// parte, um clique só pra abrir e outro pra rodar) e diálogo "Saída" separado (sem ver a resposta
+// ao lado). Este passo só testa e mapeia — método/URL/headers/body já foram fechados na etapa
+// Conexão e aqui aparecem só como resumo somente-leitura, não editável de novo. Reaproveitado pelo
+// ConnectorWizard (seu último passo) também.
+export function TestAndMapPanel({
+  connectorConfig,
   journeyId,
   nodeId,
-  connectorConfig,
-  onAddOutputMappingRules,
-  onResult,
+  outputMappingRules,
+  onChangeOutputMapping,
 }: {
+  connectorConfig: ConnectorConfig;
   journeyId: string;
   nodeId: string;
-  connectorConfig: ConnectorConfig;
-  onAddOutputMappingRules: (rules: OutputMappingRule[]) => void;
-  onResult: (response: ConnectorTestResponse) => void;
+  outputMappingRules: OutputMappingRule[];
+  onChangeOutputMapping: (rules: OutputMappingRule[]) => void;
 }) {
   const { c } = useFlowTheme();
-  const [open, setOpen] = useState(false);
   const [sampleVariables, setSampleVariables] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ConnectorTestResponse | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<ConnectorTestResponse | null>(null);
   const [generatedCount, setGeneratedCount] = useState<number | null>(null);
-  const [newRule, setNewRule] = useState<OutputMappingRule>({ name: '', jsonPath: '', type: 'string' });
+  // Lado a lado (Origem/Mapeamento) espremia demais as duas colunas quando a resposta tem muitos
+  // campos — em abas, cada uma usa a largura toda do diálogo.
+  const [activeTab, setActiveTab] = useState<'mapeamento' | 'resposta'>('mapeamento');
+
+  const cfg = connectorConfig.config ?? {};
+  const method = (cfg.method as string) ?? '';
+  const url = (cfg.url as string) ?? '';
+  const headersCount = Object.keys((cfg.headers as Record<string, string>) ?? {}).length;
+  const hasBody = !!cfg.body && Object.keys(cfg.body as object).length > 0;
   const tokens = tokensIn(connectorConfig.config);
 
   async function runTest() {
-    setLoading(true);
-    setError(null);
-    setResult(null);
+    setTesting(true);
+    setTestError(null);
     setGeneratedCount(null);
     try {
       const config = connectorConfig.config ?? {};
@@ -1553,168 +1506,144 @@ export function TestConnectorButton({
         body: (config.body as Record<string, unknown>) ?? null,
         sampleVariables,
       });
-      setResult(response);
-      onResult(response);
+      setTestResult(response);
+      setActiveTab('mapeamento');
       // REQ-03.10.001: the test's whole purpose is to see the real response shape, so wire it
       // into the output mapping immediately instead of leaving the user to type each rule by hand.
       try {
-        const rules = flattenJsonToOutputMappingRules(JSON.parse(response.body));
-        if (rules.length > 0) {
-          onAddOutputMappingRules(rules);
-          setGeneratedCount(rules.length);
-        }
+        const generated = flattenJsonToOutputMappingRules(JSON.parse(response.body));
+        const existingNames = new Set(outputMappingRules.map((r) => r.name));
+        const toAdd = generated.filter((r) => !existingNames.has(r.name));
+        if (toAdd.length > 0) onChangeOutputMapping([...outputMappingRules, ...toAdd]);
+        setGeneratedCount(toAdd.length);
       } catch {
         // Non-JSON response (e.g. plain text) — nothing to flatten, mapping stays manual.
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao testar o conector');
+      setTestError(e instanceof Error ? e.message : 'Falha ao testar o conector');
     } finally {
-      setLoading(false);
+      setTesting(false);
     }
   }
 
   return (
     <div>
+      <div style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.border}`, background: c.canvasBg, marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: c.textPrimary, fontFamily: 'monospace', wordBreak: 'break-word' }}>
+          {method || '—'} {url || '(URL não configurada — volte pra etapa Conexão)'}
+        </div>
+        {(headersCount > 0 || hasBody) && (
+          <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 4 }}>
+            {[headersCount > 0 ? `${headersCount} header${headersCount > 1 ? 's' : ''}` : null, hasBody ? 'Body configurado' : null]
+              .filter(Boolean)
+              .join(' · ')}
+          </div>
+        )}
+      </div>
+
+      {tokens.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={labelStyle(c)}>Valores de exemplo para o teste</div>
+          {tokens.map((t) => (
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ fontSize: 11.5, fontFamily: 'monospace', color: c.textSecondary, flex: '0 0 auto' }}>{`{{${t}}}`}</div>
+              <input
+                style={inputStyle(c)}
+                value={sampleVariables[t] ?? ''}
+                onChange={(e) => setSampleVariables((sv) => ({ ...sv, [t]: e.target.value }))}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
       <button
-        onClick={() => setOpen(true)}
+        onClick={runTest}
+        disabled={testing || !method || !url.trim()}
+        title={!method || !url.trim() ? 'Configure Método e URL na etapa Conexão antes de testar' : undefined}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 5,
-          padding: '3px 10px',
-          height: 24,
-          borderRadius: 4,
-          border: `1px solid ${c.border}`,
-          background: c.cardBg,
-          color: c.textPrimary,
-          fontSize: 12,
-          fontWeight: 600,
-          cursor: 'pointer',
+          gap: 6,
+          padding: '8px 14px',
+          borderRadius: 8,
+          border: 'none',
+          background: c.accent,
+          color: '#fff',
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: testing || !method || !url.trim() ? 'default' : 'pointer',
+          opacity: !method || !url.trim() ? 0.55 : 1,
+          marginBottom: 14,
         }}
       >
-        <Play size={12} /> Testar API
+        {testing ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+        {testing ? 'Testando...' : 'Testar Integração'}
       </button>
 
-      {open && (
-        <Modal title="Testar API" onClose={() => setOpen(false)} width={480}>
-            {tokens.length > 0 && (
-              <div style={{ marginBottom: 12 }}>
-                <div style={labelStyle(c)}>Valores de exemplo para as variáveis usadas</div>
-                {tokens.map((t) => (
-                  <div key={t} style={{ marginBottom: 6 }}>
-                    <div style={{ fontSize: 11.5, fontFamily: 'monospace', color: c.textSecondary, marginBottom: 2 }}>{`{{${t}}}`}</div>
-                    <input
-                      style={inputStyle(c)}
-                      value={sampleVariables[t] ?? ''}
-                      onChange={(e) => setSampleVariables((prev) => ({ ...prev, [t]: e.target.value }))}
-                    />
-                  </div>
-                ))}
+      {testError && <div style={{ fontSize: 12.5, color: c.danger, marginBottom: 14 }}>Falha ao testar: {testError}</div>}
+
+      {testResult && (
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: c.textPrimary, marginBottom: 10 }}>
+          Status: {testResult.status}
+          {generatedCount !== null && generatedCount > 0 && (
+            <span style={{ color: c.accent, fontWeight: 600, marginLeft: 8 }}>
+              · {generatedCount} variável{generatedCount > 1 ? 'is' : ''} adicionada{generatedCount > 1 ? 's' : ''} automaticamente
+            </span>
+          )}
+        </div>
+      )}
+
+      {testResult ? (
+        <div>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 12, borderBottom: `1px solid ${c.border}` }}>
+            {(
+              [
+                ['mapeamento', `Mapeamento de saída${outputMappingRules.length > 0 ? ` (${outputMappingRules.length})` : ''}`],
+                ['resposta', 'Origem (resposta da API)'],
+              ] as const
+            ).map(([tab, tabLabel]) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  padding: '7px 4px',
+                  marginBottom: -1,
+                  border: 'none',
+                  borderBottom: `2px solid ${activeTab === tab ? c.accent : 'transparent'}`,
+                  background: 'none',
+                  color: activeTab === tab ? c.accent : c.textSecondary,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {tabLabel}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'resposta' ? (
+            <ResponsePreview response={testResult} />
+          ) : (
+            <>
+              <div style={{ fontSize: 11.5, color: c.textSecondary, marginBottom: 8 }}>
+                Copie o caminho da aba "Origem" (ex.: $.campo) pro JSONPath de cada variável.
               </div>
-            )}
-
-            <button
-              onClick={runTest}
-              disabled={loading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '9px 14px',
-                borderRadius: 8,
-                border: 'none',
-                background: c.accent,
-                color: '#fff',
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: loading ? 'default' : 'pointer',
-                marginBottom: 12,
-              }}
-            >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-              {loading ? 'Chamando...' : 'Executar teste'}
-            </button>
-
-            {error && <div style={{ fontSize: 12.5, color: c.danger, marginBottom: 12 }}>{error}</div>}
-
-            {result && (
-              <div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: c.textPrimary, marginBottom: 6 }}>
-                  Status: {result.status}
-                </div>
-                {generatedCount !== null && (
-                  <div style={{ fontSize: 12, color: c.accent, marginBottom: 8 }}>
-                    {generatedCount} variável{generatedCount > 1 ? 'is' : ''} de saída gerada{generatedCount > 1 ? 's' : ''} automaticamente a partir
-                    da resposta.
-                  </div>
-                )}
-                <pre
-                  style={{
-                    fontSize: 11.5,
-                    fontFamily: 'monospace',
-                    background: c.canvasBg,
-                    border: `1px solid ${c.border}`,
-                    borderRadius: 8,
-                    padding: 10,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {formatBody(result.body)}
-                </pre>
-
-                <div style={{ marginTop: 12 }}>
-                  <div style={labelStyle(c)}>Adicionar variável manualmente (além das geradas automaticamente)</div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <input
-                      style={inputStyle(c)}
-                      placeholder="nome da variável"
-                      value={newRule.name}
-                      onChange={(e) => setNewRule((r) => ({ ...r, name: e.target.value }))}
-                    />
-                    <input
-                      style={{ ...inputStyle(c), fontFamily: 'monospace' }}
-                      placeholder="$.campo"
-                      value={newRule.jsonPath}
-                      onChange={(e) => setNewRule((r) => ({ ...r, jsonPath: e.target.value }))}
-                    />
-                    <select
-                      style={{ ...inputStyle(c), cursor: 'pointer', flex: '0 0 100px' }}
-                      title="Tipo da variável"
-                      value={newRule.type ?? 'string'}
-                      onChange={(e) => setNewRule((r) => ({ ...r, type: e.target.value as VariableType }))}
-                    >
-                      <option value="string">Texto</option>
-                      <option value="number">Número</option>
-                      <option value="boolean">Booleano</option>
-                    </select>
-                    <button
-                      onClick={() => {
-                        if (!newRule.name.trim() || !newRule.jsonPath.trim()) return;
-                        onAddOutputMappingRules([newRule]);
-                        setNewRule({ name: '', jsonPath: '', type: 'string' });
-                      }}
-                      title="Adicionar ao mapeamento de saída"
-                      style={{
-                        flex: '0 0 auto',
-                        width: 34,
-                        border: `1px solid ${c.border}`,
-                        borderRadius: 8,
-                        background: c.cardBg,
-                        color: c.accent,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-        </Modal>
+              <OutputMappingEditor rules={outputMappingRules} onChange={onChangeOutputMapping} hideSourcePreview />
+            </>
+          )}
+        </div>
+      ) : (
+        <div>
+          <div style={labelStyle(c)}>Mapeamento de saída</div>
+          <div style={{ fontSize: 11.5, color: c.textSecondary, marginBottom: 8 }}>
+            Teste a integração pra gerar o mapeamento automaticamente a partir da resposta real, ou monte manualmente
+            abaixo — útil quando a integração ainda não pode ser testada a partir daqui.
+          </div>
+          <OutputMappingEditor rules={outputMappingRules} onChange={onChangeOutputMapping} hideSourcePreview />
+        </div>
       )}
     </div>
   );

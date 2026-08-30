@@ -12,17 +12,20 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Publica de verdade no tópico Kafka configurado num SERVICE_TASK — única implementação de "como
- * publicar" (resolve {{variável}}, monta headers, envia), reaproveitada tanto pelo worker automático
- * ({@link KafkaBridgeScheduler}) quanto pelo envio sob demanda/manual a partir da tela de Execução
- * (SimulationController), pra nunca ter duas lógicas divergentes de resolução de tópico/payload.
+ * Publica de verdade no tópico Kafka configurado num SERVICE_TASK — usada pelo envio sob demanda/
+ * manual a partir da tela de Execução (SimulationController). O worker automático que fazia o mesmo
+ * pro caminho real (fetchAndLock/complete de external task) foi movido pro ms-journey — tem sua
+ * própria cópia desta classe lá, porque o admin/back nunca teria por que autorizar o ms-journey a
+ * chamar de volta este serviço só pra publicar Kafka (e vice-versa, ver fronteira descrita em
+ * ej-admin-arquitetura-logica.md §16).
  */
 @Component
 public class KafkaMessagePublisher {
 
     /** Variável de processo que, quando true, tira um Service Task Kafka do piloto automático do
-     * {@link KafkaBridgeScheduler} — setada por SimulationController.start() quando o usuário liga o
-     * controle manual ao iniciar a execução de teste (ver SimulationController.sendKafkaMessage). */
+     * worker Kafka do ms-journey (mesmo nome de variável nos dois serviços, ambos apontam pro mesmo
+     * Camunda) — setada por SimulationController.start() quando o usuário liga o controle manual ao
+     * iniciar a execução de teste (ver SimulationController.sendKafkaMessage). */
     public static final String MANUAL_KAFKA_CONTROL_VAR = "__kafkaManualControl__";
 
     // Registrado como variável de PROCESSO (não local) na hora de completar a task, de propósito: o

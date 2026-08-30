@@ -444,7 +444,7 @@ export function SobrePage() {
             </span>
           </div>
           <p className="m-0 text-[13.5px] max-w-[640px]" style={{ color: c.textSecondary }}>
-            Visão executiva e estática do que está contemplado na versão 1.0.0 do Elastic Journey Admin Portal.
+            Visão executiva e estática do que está contemplado na versão 1.0.0 do Dynamic Journey Admin Portal.
           </p>
         </div>
       </div>
@@ -606,7 +606,7 @@ export function SobrePage() {
 
       <div className="flex items-center gap-[6px] mt-8 pt-4 text-[11.5px]" style={{ borderTop: `1px solid ${c.border}`, color: c.textMuted }}>
         <Info size={12} />
-        Fonte: requisitos/admin/progresso.md — Elastic Journey Admin Portal, versão 1.0.0
+        Fonte: requisitos/admin/progresso.md — Dynamic Journey Admin Portal, versão 1.0.0
       </div>
     </div>
   );

@@ -18,6 +18,8 @@ export interface FlowColors {
   cardBorder: string;
   danger: string;
   dangerSoft: string;
+  success: string;
+  successSoft: string;
 }
 
 // Ported from the wf-designer reference project's design system (Vivo purple accent).
@@ -39,6 +41,8 @@ export const LIGHT_COLORS: FlowColors = {
   cardBorder: '#e2e2e8',
   danger: '#dc2626',
   dangerSoft: 'rgba(220,38,38,0.12)',
+  success: '#15803d',
+  successSoft: '#f0fdf4',
 };
 
 export const DARK_COLORS: FlowColors = {
@@ -59,6 +63,8 @@ export const DARK_COLORS: FlowColors = {
   cardBorder: '#2c2d33',
   danger: '#f87171',
   dangerSoft: 'rgba(248,113,113,0.16)',
+  success: '#4ade80',
+  successSoft: 'rgba(74,222,128,0.14)',
 };
 
 export interface FlowTheme {

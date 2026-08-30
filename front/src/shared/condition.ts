@@ -24,17 +24,27 @@ export const OPERATORS_BY_TYPE: Record<VariableType, { value: string; label: str
 export const QUOTED_TYPES = new Set<VariableType>(['string', 'date', 'datetime']);
 export const VALUE_INPUT_TYPE: Partial<Record<VariableType, string>> = { number: 'number', date: 'date', datetime: 'datetime-local' };
 export const CONDITION_PATTERN = /^\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}\s*(==|!=|>|<)\s*(.*)$/;
+const VALUE_VARIABLE_PATTERN = /^\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}$/;
 
-export function parseCondition(condition: string | undefined): { variable: string; operator: string; value: string } {
+export function parseCondition(condition: string | undefined): { variable: string; operator: string; value: string; valueIsVariable: boolean } {
   const match = condition?.match(CONDITION_PATTERN);
-  if (!match) return { variable: '', operator: '==', value: '' };
+  if (!match) return { variable: '', operator: '==', value: '', valueIsVariable: false };
   let value = match[3].trim();
+  // A value written as {{other}} is a reference to another process variable, not a literal — must
+  // stay unquoted in the composed condition (see composeCondition) or the runtime engine compares
+  // against the literal string "other" instead of that variable's value at execution time.
+  const valueVariableMatch = value.match(VALUE_VARIABLE_PATTERN);
+  if (valueVariableMatch) return { variable: match[1], operator: match[2], value: valueVariableMatch[1], valueIsVariable: true };
   if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
-  return { variable: match[1], operator: match[2], value };
+  return { variable: match[1], operator: match[2], value, valueIsVariable: false };
 }
 
-export function composeCondition(variable: string, operator: string, value: string, type: VariableType): string {
+export function composeCondition(variable: string, operator: string, value: string, type: VariableType, valueIsVariable = false): string {
   if (!variable) return '';
+  if (valueIsVariable) {
+    if (!value) return '';
+    return `{{${variable}}} ${operator} {{${value}}}`;
+  }
   const literal = QUOTED_TYPES.has(type) ? `'${value.replace(/'/g, "\\'")}'` : value.trim() || (type === 'boolean' ? 'false' : '0');
   return `{{${variable}}} ${operator} ${literal}`;
 }

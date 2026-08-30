@@ -7,7 +7,7 @@ import {
   HeadersEditor,
   StructuredJsonEditor,
   OutputMappingEditor,
-  ResponsePreview,
+  TestAndMapPanel,
   VariablePickerButton,
   insertTokenAtCursor,
   REST_METHODS,
@@ -15,15 +15,8 @@ import {
   OUTPUT_MAPPING_FIELD,
 } from './PropertiesPanel';
 import { SearchSelect } from './SearchSelect';
-import {
-  flattenJsonToOutputMappingRules,
-  type ConnectorConfig,
-  type ConnectorType,
-  type OutputMappingRule,
-  type VariableOrigin,
-} from './model';
-import { testConnector, type ConnectorTestResponse } from '../api/flows';
-import { testCredentialConnection, type MessagingCluster, type CredentialReference } from '../api/messaging';
+import { type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin } from './model';
+import { testCredentialConnection, listClusterTopics, type MessagingCluster, type CredentialReference } from '../api/messaging';
 
 const inputStyle = (c: FlowColors): React.CSSProperties => ({
   width: '100%',
@@ -42,14 +35,6 @@ const labelStyle = (c: FlowColors): React.CSSProperties => ({
   color: c.textSecondary,
   marginBottom: 6,
 });
-
-const VARIABLE_TOKEN = /\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g;
-function tokensIn(config: Record<string, unknown> | null | undefined): string[] {
-  const found = new Set<string>();
-  const text = JSON.stringify(config ?? {});
-  for (const match of text.matchAll(VARIABLE_TOKEN)) found.add(match[1]);
-  return [...found];
-}
 
 const REST_STEPS = ['Conexão', 'Headers', 'Parâmetros & Corpo', 'Testar e Mapear'] as const;
 const BROKER_STEPS = ['Conexão', 'Payload', 'Mapear saída'] as const;
@@ -95,14 +80,6 @@ export function ConnectorWizard({
   const urlInputRef = useRef<HTMLInputElement>(null);
   const [dirty, setDirty] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
-
-  // Test state — local and inline (no nested modal), separate from TestConnectorButton/"Testar API"
-  // which keeps its own modal working exactly as-is for the inline panel.
-  const [sampleVariables, setSampleVariables] = useState<Record<string, string>>({});
-  const [testing, setTesting] = useState(false);
-  const [testError, setTestError] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<ConnectorTestResponse | null>(null);
-  const [generatedCount, setGeneratedCount] = useState<number | null>(null);
 
   // REQ-14.04.005: teste de conexão do conector de mensageria — só valida cluster+credencial,
   // nunca publica/consome mensagem real. Estado próprio, separado do teste REST acima.
@@ -159,40 +136,6 @@ export function ConnectorWizard({
   const method = (draft.config?.method as string) ?? '';
   const showBody = METHODS_WITH_BODY.has(method);
   const outputMappingRules = (draft.config?.[OUTPUT_MAPPING_FIELD] as OutputMappingRule[]) ?? [];
-  const tokens = tokensIn(draft.config);
-
-  async function runTest() {
-    setTesting(true);
-    setTestError(null);
-    setTestResult(null);
-    setGeneratedCount(null);
-    try {
-      const config = draft.config ?? {};
-      const response = await testConnector(journeyId, nodeId, {
-        method: (config.method as string) ?? 'GET',
-        url: (config.url as string) ?? '',
-        headers: (config.headers as Record<string, string>) ?? {},
-        body: (config.body as Record<string, unknown>) ?? null,
-        sampleVariables,
-      });
-      setTestResult(response);
-      try {
-        const generated = flattenJsonToOutputMappingRules(JSON.parse(response.body));
-        if (generated.length > 0) {
-          const existingNames = new Set(outputMappingRules.map((r) => r.name));
-          const merged = [...outputMappingRules, ...generated.filter((r) => !existingNames.has(r.name))];
-          updateDraftConfig(OUTPUT_MAPPING_FIELD, merged);
-          setGeneratedCount(generated.filter((r) => !existingNames.has(r.name)).length);
-        }
-      } catch {
-        // Non-JSON response — nothing to flatten, mapping stays manual below.
-      }
-    } catch (e) {
-      setTestError(e instanceof Error ? e.message : 'Falha ao testar o conector');
-    } finally {
-      setTesting(false);
-    }
-  }
 
   function renderRestStep(label: string) {
     switch (label) {
@@ -276,82 +219,13 @@ export function ConnectorWizard({
         );
       case 'Testar e Mapear':
         return (
-          <div>
-            <div style={{ fontSize: 12.5, color: c.textSecondary, marginBottom: 12 }}>
-              Execute a chamada de verdade pra ver a resposta real e gerar o mapeamento automaticamente — ou pule o
-              teste e monte o mapeamento manualmente abaixo, mesmo sem testar com sucesso.
-            </div>
-
-            {tokens.length > 0 && (
-              <div style={{ marginBottom: 12 }}>
-                <div style={labelStyle(c)}>Valores de exemplo para as variáveis usadas</div>
-                {tokens.map((t) => (
-                  <div key={t} style={{ marginBottom: 6 }}>
-                    <div style={{ fontSize: 11.5, fontFamily: 'monospace', color: c.textSecondary, marginBottom: 2 }}>{`{{${t}}}`}</div>
-                    <input
-                      style={inputStyle(c)}
-                      value={sampleVariables[t] ?? ''}
-                      onChange={(e) => setSampleVariables((sv) => ({ ...sv, [t]: e.target.value }))}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={runTest}
-              disabled={testing}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '7px 14px',
-                borderRadius: 8,
-                border: `1px solid ${c.border}`,
-                background: c.cardBg,
-                color: c.textPrimary,
-                fontSize: 12.5,
-                fontWeight: 700,
-                cursor: testing ? 'default' : 'pointer',
-                marginBottom: 14,
-              }}
-            >
-              {testing ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
-              {testing ? 'Testando...' : 'Testar chamada'}
-            </button>
-
-            {testError && (
-              <div style={{ fontSize: 12.5, color: c.danger, marginBottom: 14 }}>Falha ao testar: {testError}</div>
-            )}
-
-            {testResult && (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: c.textPrimary, marginBottom: 6 }}>
-                  Status: {testResult.status}
-                </div>
-                {generatedCount !== null && generatedCount > 0 && (
-                  <div style={{ fontSize: 12, color: c.accent, marginBottom: 8 }}>
-                    {generatedCount} variável{generatedCount > 1 ? 'is' : ''} de saída gerada{generatedCount > 1 ? 's' : ''} automaticamente a partir da
-                    resposta.
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div style={{ marginBottom: 14 }}>
-              <ResponsePreview response={testResult} />
-            </div>
-
-            <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: 14 }}>
-              <div style={labelStyle(c)}>Mapeamento de saída</div>
-              <OutputMappingEditor
-                rules={outputMappingRules}
-                onChange={(rules) => updateDraftConfig(OUTPUT_MAPPING_FIELD, rules)}
-                hideSourcePreview
-              />
-            </div>
-          </div>
+          <TestAndMapPanel
+            connectorConfig={draft}
+            journeyId={journeyId}
+            nodeId={nodeId}
+            outputMappingRules={outputMappingRules}
+            onChangeOutputMapping={(rules) => updateDraftConfig(OUTPUT_MAPPING_FIELD, rules)}
+          />
         );
       default:
         return null;
@@ -364,6 +238,44 @@ export function ConnectorWizard({
     : credentials;
   const brokerTopicLabel =
     draft.connectorType === 'EVENT_HUBS' ? 'Nome do Event Hub' : draft.connectorType === 'SERVICE_BUS' ? 'Fila/Tópico' : 'Tópico';
+
+  // Sugestão de tópicos reais do cluster escolhido (US-03.09) — cacheada por cluster pra não
+  // rebuscar ao reabrir o seletor; o campo continua aceitando digitação livre (allowCustomValue),
+  // então uma falha aqui nunca bloqueia o desenho do fluxo, só perde a sugestão.
+  const [topicsByCluster, setTopicsByCluster] = useState<Record<string, string[]>>({});
+  const [topicsLoading, setTopicsLoading] = useState(false);
+  const [topicsError, setTopicsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!brokerClusterId || topicsByCluster[brokerClusterId]) {
+      setTopicsError(null);
+      return;
+    }
+    let cancelled = false;
+    setTopicsLoading(true);
+    setTopicsError(null);
+    listClusterTopics(brokerClusterId)
+      .then((response) => {
+        if (cancelled) return;
+        if (response.ok) {
+          setTopicsByCluster((prev) => ({ ...prev, [brokerClusterId]: response.topics }));
+        } else {
+          setTopicsError(response.message ?? 'Não foi possível listar os tópicos do cluster.');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTopicsError('Não foi possível listar os tópicos do cluster (ms-espec-registry fora do ar?).');
+      })
+      .finally(() => {
+        if (!cancelled) setTopicsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brokerClusterId]);
+
+  const brokerClusterTopics = brokerClusterId ? (topicsByCluster[brokerClusterId] ?? []) : [];
 
   function renderBrokerStep(label: string) {
     switch (label) {
@@ -386,11 +298,21 @@ export function ConnectorWizard({
               />
             </div>
             <div style={labelStyle(c)}>{brokerTopicLabel}</div>
-            <input
-              style={{ ...inputStyle(c), marginBottom: 12 }}
-              value={(draft.config?.topic as string) ?? ''}
-              onChange={(e) => updateDraftConfig('topic', e.target.value)}
-            />
+            <div style={{ marginBottom: 12 }}>
+              <SearchSelect
+                items={brokerClusterTopics}
+                getId={(topic) => topic}
+                getLabel={(topic) => topic}
+                value={(draft.config?.topic as string) ?? null}
+                onChange={(topic) => updateDraftConfig('topic', topic ?? '')}
+                allowCustomValue
+                placeholder={
+                  !brokerClusterId ? 'Escolha um cluster primeiro' : topicsLoading ? 'Carregando tópicos...' : 'Digite ou escolha um tópico'
+                }
+                emptyLabel={topicsLoading ? 'Carregando…' : (topicsError ?? 'Nenhum tópico encontrado no cluster — digite um nome novo')}
+              />
+              {topicsError && <div style={{ fontSize: 11, color: c.danger, marginTop: 2 }}>{topicsError}</div>}
+            </div>
             <div style={labelStyle(c)}>Operação</div>
             <div
               style={{ ...inputStyle(c), marginBottom: 12, color: c.textSecondary }}
@@ -480,7 +402,9 @@ export function ConnectorWizard({
         style={{ width: 640, maxHeight: '80vh', overflowY: 'auto', background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 18 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: c.textPrimary }}>Assistente de configuração</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: c.textPrimary }}>
+            Assistente de configuração — Conector {connectorConfig.connectorType}
+          </div>
           <button
             type="button"
             onClick={requestClose}

@@ -35,6 +35,8 @@ export function PropertiesDock({
   onUpdateEdge,
   onDeleteNode,
   journey,
+  freshNodeId,
+  onFreshNodeConsumed,
 }: {
   node: WFNode | null;
   forms: Form[];
@@ -47,11 +49,24 @@ export function PropertiesDock({
   onUpdateEdge: (edgeId: string, patch: Partial<WFEdgeData>) => void;
   onDeleteNode: () => void;
   journey: JourneyPanelProps;
+  // Id do nó recém-criado (addNodeAt/onQuickAdd) — PropertiesPanel usa isso pra abrir só
+  // "Informações Gerais" na primeira vez que mostra esse nó específico.
+  freshNodeId: string | null;
+  onFreshNodeConsumed: () => void;
 }) {
   const { c } = useFlowTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const dragState = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  // Vive aqui, não dentro de PropertiesPanel: o dock nunca desmonta ao trocar de nó ou cair pro
+  // painel da jornada (clique no fundo do canvas), então o que o usuário abriu/fechou sobrevive a
+  // essa troca em vez de voltar tudo expandido — só PropertiesPanel remontaria e perderia isso.
+  const [generalOpen, setGeneralOpen] = useState(true);
+  const [startVariablesOpen, setStartVariablesOpen] = useState(true);
+  const [variablesOpen, setVariablesOpen] = useState(true);
+  const [connectorOpen, setConnectorOpen] = useState(true);
+  const [decisionOpen, setDecisionOpen] = useState(true);
 
   function onResizeStart(e: React.PointerEvent) {
     e.preventDefault();
@@ -142,6 +157,18 @@ export function PropertiesDock({
               onUpdate={onUpdateNode}
               onUpdateEdge={onUpdateEdge}
               onDelete={onDeleteNode}
+              freshNodeId={freshNodeId}
+              onFreshNodeConsumed={onFreshNodeConsumed}
+              generalOpen={generalOpen}
+              setGeneralOpen={setGeneralOpen}
+              startVariablesOpen={startVariablesOpen}
+              setStartVariablesOpen={setStartVariablesOpen}
+              variablesOpen={variablesOpen}
+              setVariablesOpen={setVariablesOpen}
+              connectorOpen={connectorOpen}
+              setConnectorOpen={setConnectorOpen}
+              decisionOpen={decisionOpen}
+              setDecisionOpen={setDecisionOpen}
             />
           ) : (
             <JourneyPropertiesPanel journeyId={journeyId} {...journey} />

@@ -14,6 +14,10 @@ spring:
     username: sa
     password: ''
 
+app:
+  kafka:
+    bootstrap-servers: localhost:9092
+
 camunda:
   bpm:
     database:

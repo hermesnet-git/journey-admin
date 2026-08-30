@@ -8,6 +8,7 @@ import com.jouney.admin.application.flow.UpdateFlow;
 import com.jouney.admin.domain.flow.Flow;
 import com.jouney.admin.domain.flow.FlowIds;
 import com.jouney.admin.domain.flow.FlowValidationException;
+import com.jouney.admin.domain.flow.FlowValidator;
 import com.jouney.admin.infrastructure.ai.AiRequestDeclinedException;
 import com.jouney.admin.interfaces.ApiError;
 import com.jouney.admin.interfaces.form.FormResponse;
@@ -63,6 +64,20 @@ public class FlowController {
         var connections = input.connections().stream().map(FlowConnectionInput::toDomain).toList();
         var annotations = input.annotations().stream().map(FlowAnnotationInput::toDomain).toList();
         return FlowResponse.from(updateFlow.execute(journeyId, input.name(), nodes, connections, annotations));
+    }
+
+    // Salvar não valida mais (rascunho pode ficar inconsistente até a publicação) — este endpoint
+    // roda a mesma checagem estrutural sob demanda, contra o estado atual do editor (não o que
+    // está persistido), sem tocar em FlowRepository/UpdateFlow. 200 vazio = consistente; 422 (via
+    // FlowValidationException, tratado pelo GlobalExceptionHandler) traz a mesma lista de
+    // violações que Salvar já mostrava antes desta mudança. journeyId só escopa a URL
+    // (REQ-03.10.001), a validação em si não depende de nenhum dado persistido da jornada.
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
+    @PostMapping("/validate")
+    public void validate(@PathVariable UUID journeyId, @Valid @RequestBody FlowInput input) {
+        var nodes = input.nodes().stream().map(FlowNodeInput::toDomain).toList();
+        var connections = input.connections().stream().map(FlowConnectionInput::toDomain).toList();
+        FlowValidator.validate(nodes, connections);
     }
 
     // Só preview (protótipo, FT-03): nunca toca em FlowRepository/UpdateFlow — monta um Flow

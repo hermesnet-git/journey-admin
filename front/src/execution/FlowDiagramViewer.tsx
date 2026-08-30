@@ -13,7 +13,7 @@ import {
   type NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Info, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { AlertTriangle, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { skinVars } from '@telefonica/mistica';
 import { BACKEND_TO_FRONT_TYPE, NODE_DIMENSIONS, TYPE_COLOR, type NodeType } from '../flow-designer/model';
 import { NodeShape } from '../flow-designer/NodeShape';
@@ -145,7 +145,7 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
           // nunca chega a este botão.
           style={{ background: skinVars.colors.error, color: '#fff', pointerEvents: 'auto', zIndex: 10 }}
         >
-          <Info size={13} strokeWidth={2.5} />
+          <AlertTriangle size={13} strokeWidth={2.5} />
         </button>
       )}
       <Handle type="source" position={Position.Right} style={HANDLE_STYLE} />
@@ -205,15 +205,19 @@ function FlowDiagramInner({
   const nodes: Node<SimNodeData>[] = useMemo(
     () =>
       flowNodes.map((n) => {
-        const status: NodeStatus = staticView
-          ? 'type'
-          : n.id === erroredNodeId
+        // erroredNodeId vence mesmo em staticView — é assim que a prévia de "Executar" (StartPanel)
+        // aponta o nó culpado quando o start falha (StartFailureDiagnostic), sem precisar de uma
+        // instância rodando de verdade pra ter "etapa atual"/"visitados".
+        const status: NodeStatus =
+          n.id === erroredNodeId
             ? 'error'
-            : n.id === currentNodeId
-              ? 'current'
-              : visited.has(n.id)
-                ? 'done'
-                : 'pending';
+            : staticView
+              ? 'type'
+              : n.id === currentNodeId
+                ? 'current'
+                : visited.has(n.id)
+                  ? 'done'
+                  : 'pending';
         return {
           id: n.id,
           type: 'simNode',
@@ -244,7 +248,17 @@ function FlowDiagramInner({
           source: c.sourceNodeId,
           target: c.targetNodeId,
           label: c.isDefault ? 'padrão' : (c.condition ?? undefined),
-          labelStyle: { fill: skinVars.colors.textSecondary, fontSize: 11 },
+          // Contorno (stroke atrás do preenchimento via paintOrder) em vez de uma caixa de fundo —
+          // dá contraste pra ler o texto sobre qualquer nó/linha que passe por baixo, sem desenhar
+          // um retângulo sólido atrás dele.
+          labelStyle: {
+            fill: skinVars.colors.textPrimary,
+            fontSize: 11,
+            fontWeight: 600,
+            stroke: skinVars.colors.background,
+            strokeWidth: 4,
+            paintOrder: 'stroke',
+          },
           labelBgStyle: { fill: 'transparent' },
           labelBgPadding: [0, 0] as [number, number],
           style: { stroke: color, strokeWidth: traversed ? 2 : 1.5 },
@@ -257,19 +271,21 @@ function FlowDiagramInner({
   // Centraliza a etapa atual sempre que ela muda (inclusive no primeiro carregamento), num zoom
   // fixo que deixa cada card em tamanho legível — fluxos longos (como o survey de 15 perguntas)
   // não cabem inteiros na tela, então um `fitView` do grafo inteiro encolhe demais os componentes.
-  // Na visualização estática não há "etapa atual" — o `fitView` nativo do <ReactFlow> (mais abaixo)
-  // já cuida do enquadramento inicial, com timing mais confiável que chamar fitView() num efeito.
+  // Na visualização estática (prévia de "Executar", sem instância rodando) não há "etapa atual" —
+  // o enquadramento inicial é o início do fluxo (nó START/MESSAGE_START_EVENT), e o diagnóstico de
+  // falha ao iniciar (erroredNodeId) assume assim que aparece, com prioridade sobre o início.
   useEffect(() => {
-    if (staticView) return;
-    const current = flowNodes.find((n) => n.id === currentNodeId);
-    if (!current) {
-      fitView({ padding: 0.2, duration: 300 });
+    const target = staticView
+      ? (flowNodes.find((n) => n.id === erroredNodeId) ?? flowNodes.find((n) => n.type === 'START' || n.type === 'MESSAGE_START_EVENT'))
+      : flowNodes.find((n) => n.id === currentNodeId);
+    if (!target) {
+      if (!staticView) fitView({ padding: 0.2, duration: 300 });
       return;
     }
-    const dim = NODE_DIMENSIONS[BACKEND_TO_FRONT_TYPE[current.type]];
-    setCenter(current.positionX + dim.width / 2, current.positionY + dim.height / 2, { zoom: 1, duration: 300 });
+    const dim = NODE_DIMENSIONS[BACKEND_TO_FRONT_TYPE[target.type]];
+    setCenter(target.positionX + dim.width / 2, target.positionY + dim.height / 2, { zoom: 1, duration: 300 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentNodeId, staticView]);
+  }, [currentNodeId, staticView, erroredNodeId, flowNodes]);
 
   const iconBtn =
     'w-[28px] h-[28px] rounded-md border-0 bg-transparent flex items-center justify-center cursor-pointer';
@@ -285,8 +301,6 @@ function FlowDiagramInner({
         elementsSelectable={false}
         panOnScroll
         zoomOnScroll
-        fitView={staticView}
-        fitViewOptions={{ padding: 0.2 }}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
       >

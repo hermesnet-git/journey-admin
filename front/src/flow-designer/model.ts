@@ -80,6 +80,9 @@ export interface WFNodeData extends Record<string, unknown> {
   invalid?: boolean;
   // Client-only flag: these node types may have at most one outgoing path (REQ-03.02.007/03.02.004).
   outgoingLimitReached?: boolean;
+  // Client-only: a GATEWAY needs exactly one outgoing path marked "padrão" (REQ-03.11.002) — set
+  // once it already has both outgoing edges but neither is marked default yet.
+  missingGatewayDefault?: boolean;
   // Client-only: current canvas zoom, passed down so the node can hide secondary detail (description,
   // linked-form row) when zoomed out far enough that they'd render as illegible clutter.
   zoom?: number;
@@ -171,6 +174,24 @@ export const BROKER_OPERATION_BY_NODE: Partial<Record<NodeType, 'PRODUCE' | 'CON
   messageStartEvent: 'CONSUME',
 };
 
+// Campos sem os quais o conector não roda de verdade — usado só pra sinalizar visualmente
+// (indicador "incompleto" no nó do canvas e no painel), não bloqueia salvar/publicar.
+export function connectorMissingFields(connector: ConnectorConfig | null | undefined): string[] {
+  if (!connector) return [];
+  const cfg = connector.config ?? {};
+  if (connector.connectorType === 'REST') {
+    const missing: string[] = [];
+    if (!cfg.method) missing.push('Método');
+    if (!String(cfg.url ?? '').trim()) missing.push('URL');
+    return missing;
+  }
+  const missing: string[] = [];
+  if (!cfg.clusterId) missing.push('Cluster');
+  if (!String(cfg.topic ?? '').trim()) missing.push(connector.connectorType === 'EVENT_HUBS' ? 'Event Hub' : 'Tópico');
+  if (!connector.credentialRef) missing.push('Credencial');
+  return missing;
+}
+
 // `subtitle` is short — it seeds the node's own `description` field on creation (see `makeNode`
 // below), so it has to stay editable-card-sized. `help` is the long-form explanation shown only in
 // the palette's hover hint; it never touches saved node data.
@@ -193,7 +214,7 @@ export const NODE_META: Record<NodeType, { title: string; subtitle: string; help
   serviceTask: {
     title: 'Tarefa de Serviço',
     subtitle: 'Executa uma integração externa',
-    help: 'Executa uma integração externa (REST ou Kafka) automaticamente, sem esperar nenhuma ação do usuário — por exemplo, consultar um sistema, publicar um evento ou disparar um provisionamento. O conector configurado nela define exatamente o que é chamado.',
+    help: 'Dispara uma integração sistêmica automaticamente, sem esperar nenhuma ação do usuário — pode ser síncrona, chamando uma API e aguardando a resposta antes de seguir (ex.: consultar um sistema), ou assíncrona, publicando uma mensagem num tópico/fila sem esperar retorno (ex.: notificar outro sistema de um evento). O conector configurado nela define exatamente qual integração é executada.',
   },
   receiveTask: {
     title: 'Tarefa de Recebimento',
@@ -203,7 +224,7 @@ export const NODE_META: Record<NodeType, { title: string; subtitle: string; help
   messageStartEvent: {
     title: 'Início por Mensagem',
     subtitle: 'Inicia o fluxo a partir de uma mensagem externa',
-    help: 'Inicia uma nova instância da jornada a partir de uma mensagem Kafka recebida, em vez de uma chamada direta. Substitui o "Início" tradicional quando o disparo do fluxo depende de um evento externo, como outro sistema publicando um evento.',
+    help: 'Inicia uma nova instância da jornada a partir de uma mensagem recebida num tópico/fila, em vez de uma chamada direta. Substitui o "Início" tradicional quando o disparo do fluxo depende de um evento externo, como outro sistema publicando uma mensagem.',
   },
   gateway: {
     title: 'Decisão',

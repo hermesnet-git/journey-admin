@@ -313,7 +313,7 @@ INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
   {"id":"F08_7","sourceNodeId":"N08_utb","targetNodeId":"N08_endb"}
 ]'::jsonb);
 
--- J09 — WEB — Segunda Via de Chip (REST /v1/consultarbd)
+-- J09 — WEB — Segunda Via de Chip (REST /v1/bilhetes-defeito)
 INSERT INTO journey (journey_id, channel_id, name, description, status, created_at, updated_at) VALUES
 ('20000000-0000-4000-a000-000000000009', '20000000-0000-4000-9000-000000000009', 'Segunda Via de Chip', 'Jornada média: solicitação de segunda via de chip com consulta de estoque via REST.', 'DRAFT', now(), now());
 INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
@@ -327,7 +327,7 @@ INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
      {"name":"tipoChip","type":"RADIO","label":"Tipo de chip","required":true,"options":[{"label":"Físico","value":"FISICO"},{"label":"eSIM","value":"ESIM"}],"positionX":40,"positionY":184,"width":320}
    ]},
   {"id":"N09_st","type":"SERVICE_TASK","name":"Consultar disponibilidade","description":"Verifica estoque de chip disponível","positionX":560,"positionY":300,
-   "connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/consultarbd","headers":{"Content-Type":"application/json"},"outputMapping":[{"name":"disponivel","jsonPath":"$.value","type":"boolean"}]},"credentialRef":"cred-telecom-core-api"}},
+   "connectorConfig":{"connectorType":"REST","config":{"method":"GET","url":"http://localhost:8084/v1/bilhetes-defeito","outputMapping":[{"name":"disponivel","jsonPath":"$.value","type":"boolean"}]},"credentialRef":"cred-telecom-core-api"}},
   {"id":"N09_gw","type":"GATEWAY","name":"Decisão: chip disponível?","description":"Encaminha conforme a disponibilidade","positionX":780,"positionY":300},
   {"id":"N09_uta","type":"USER_TASK","name":"Informar endereço de entrega","description":"Endereço para envio do chip","positionX":1000,"positionY":180,
    "embeddedScreen":[
@@ -349,7 +349,7 @@ INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
   {"id":"F09_7","sourceNodeId":"N09_utb","targetNodeId":"N09_endb"}
 ]'::jsonb);
 
--- J10 — MOBILE — Aumento de Franquia de Dados (REST /v1/consultarpendencia)
+-- J10 — MOBILE — Aumento de Franquia de Dados (REST /v1/pendencias-financeiras)
 INSERT INTO journey (journey_id, channel_id, name, description, status, created_at, updated_at) VALUES
 ('20000000-0000-4000-a000-000000000010', '20000000-0000-4000-9000-00000000000a', 'Aumento de Franquia de Dados', 'Jornada média: contratação de franquia extra com verificação de pendência financeira.', 'DRAFT', now(), now());
 INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
@@ -362,7 +362,7 @@ INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
      {"name":"pacoteExtra","type":"SINGLE_SELECT","label":"Pacote adicional","required":true,"options":[{"label":"1GB","value":"1GB"},{"label":"5GB","value":"5GB"},{"label":"10GB","value":"10GB"}]}
    ]},
   {"id":"N10_st","type":"SERVICE_TASK","name":"Verificar pendências","description":"Consulta pendência financeira do cliente","positionX":560,"positionY":300,
-   "connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/consultarpendencia","headers":{"Content-Type":"application/json"},"outputMapping":[{"name":"temPendencia","jsonPath":"$.value","type":"boolean"}]},"credentialRef":"cred-telecom-core-api"}},
+   "connectorConfig":{"connectorType":"REST","config":{"method":"GET","url":"http://localhost:8084/v1/pendencias-financeiras","outputMapping":[{"name":"temPendencia","jsonPath":"$.value","type":"boolean"}]},"credentialRef":"cred-telecom-core-api"}},
   {"id":"N10_gw","type":"GATEWAY","name":"Decisão: tem pendência?","description":"Encaminha conforme pendência financeira","positionX":780,"positionY":300},
   {"id":"N10_uta","type":"USER_TASK","name":"Confirmar contratação","description":"Confirmação final","positionX":1000,"positionY":180,
    "embeddedScreen":[{"name":"confirmar","type":"SWITCH","label":"Confirmo a contratação da franquia extra","required":true}]},
@@ -413,7 +413,7 @@ INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
   {"id":"F11_7","sourceNodeId":"N11_st3","targetNodeId":"N11_endb"}
 ]'::jsonb);
 
--- J12 — MOBILE — Contestação de Fatura (REST /v1/consultarmassiva)
+-- J12 — MOBILE — Contestação de Fatura (REST /v1/manutencoes-massivas)
 INSERT INTO journey (journey_id, channel_id, name, description, status, created_at, updated_at) VALUES
 ('20000000-0000-4000-a000-000000000012', '20000000-0000-4000-9000-00000000000c', 'Consulta e Contestação de Fatura', 'Jornada média: contestação de valores cobrados com checagem de cobrança em lote via REST.', 'DRAFT', now(), now());
 INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
@@ -427,7 +427,7 @@ INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
      {"name":"motivoContestacao","type":"INPUT","inputSubtype":"TEXT","label":"Motivo da contestação","required":true}
    ]},
   {"id":"N12_st","type":"SERVICE_TASK","name":"Checar cobrança em lote","description":"Verifica se o valor faz parte de uma cobrança massiva já identificada","positionX":560,"positionY":300,
-   "connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/consultarmassiva","headers":{"Content-Type":"application/json"},"outputMapping":[{"name":"cobrancaMassivaDetectada","jsonPath":"$.value","type":"boolean"}]},"credentialRef":"cred-telecom-core-api"}},
+   "connectorConfig":{"connectorType":"REST","config":{"method":"GET","url":"http://localhost:8084/v1/manutencoes-massivas","outputMapping":[{"name":"cobrancaMassivaDetectada","jsonPath":"$.value","type":"boolean"}]},"credentialRef":"cred-telecom-core-api"}},
   {"id":"N12_gw","type":"GATEWAY","name":"Decisão: cobrança massiva conhecida?","description":"Encaminha conforme a checagem","positionX":780,"positionY":300},
   {"id":"N12_uta","type":"USER_TASK","name":"Confirmar estorno automático","description":"Estorno já previsto para esse tipo de cobrança","positionX":1000,"positionY":180,
    "embeddedScreen":[{"name":"aviso","type":"CALLOUT","label":"Estorno automático já programado.","required":false,"config":{"variant":"sucesso","description":"Você será notificado quando o estorno for concluído."}}]},
@@ -706,7 +706,7 @@ INSERT INTO flow (flow_id, journey_id, name, nodes, connections) VALUES
      {"name":"telefoneContato","type":"INPUT","inputSubtype":"PHONE","label":"Telefone alternativo","required":true,"helpText":"Para contato durante o bloqueio"}
    ]},
   {"id":"N20_st1","type":"SERVICE_TASK","name":"Validar solicitação de bloqueio","description":"Verifica se a linha é elegível para bloqueio imediato","positionX":560,"positionY":300,
-   "connectorConfig":{"connectorType":"REST","config":{"method":"POST","url":"http://localhost:8084/v1/consultarbd","headers":{"Content-Type":"application/json"},"outputMapping":[{"name":"elegivelBloqueioImediato","jsonPath":"$.value","type":"boolean"}]},"credentialRef":"cred-telecom-core-api"}},
+   "connectorConfig":{"connectorType":"REST","config":{"method":"GET","url":"http://localhost:8084/v1/bilhetes-defeito","outputMapping":[{"name":"elegivelBloqueioImediato","jsonPath":"$.value","type":"boolean"}]},"credentialRef":"cred-telecom-core-api"}},
   {"id":"N20_gw","type":"GATEWAY","name":"Decisão: bloqueio imediato?","description":"Encaminha conforme a elegibilidade","positionX":780,"positionY":300},
   {"id":"N20_st2","type":"SERVICE_TASK","name":"Notificar bloqueio confirmado","description":"Publica evento de bloqueio para sistemas antifraude","positionX":1000,"positionY":180,
    "connectorConfig":{"connectorType":"KAFKA","config":{"topic":"atendimento.notificacao.concluida","payload":{"motivo":"{{motivoBloqueio}}"}},"credentialRef":"cred-telecom-kafka-cluster"}},

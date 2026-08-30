@@ -144,7 +144,7 @@ export function Sidebar({ activeKey, onNavigate }: SidebarProps) {
         </div>
         <div className="min-w-0 flex-1 flex items-center justify-between h-[30px]">
           <div className="text-[18px] font-bold tracking-[-0.02em] leading-none" style={{ color: c.textPrimary }}>
-            Elastic Journey
+            Dynamic Journey
           </div>
           <button
             onClick={() => setCollapsed(true)}

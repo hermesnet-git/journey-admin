@@ -44,15 +44,18 @@ public class SimulationController {
     private final StepResolver stepResolver;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final KafkaMessagePublisher kafkaMessagePublisher;
+    private final StartFailureDiagnostic startFailureDiagnostic;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SimulationController(AdminBackClient adminBackClient, CamundaClient camundaClient, StepResolver stepResolver,
-                                 KafkaTemplate<String, String> kafkaTemplate, KafkaMessagePublisher kafkaMessagePublisher) {
+                                 KafkaTemplate<String, String> kafkaTemplate, KafkaMessagePublisher kafkaMessagePublisher,
+                                 StartFailureDiagnostic startFailureDiagnostic) {
         this.adminBackClient = adminBackClient;
         this.camundaClient = camundaClient;
         this.stepResolver = stepResolver;
         this.kafkaTemplate = kafkaTemplate;
         this.kafkaMessagePublisher = kafkaMessagePublisher;
+        this.startFailureDiagnostic = startFailureDiagnostic;
     }
 
     @GetMapping("/journeys")
@@ -89,23 +92,35 @@ public class SimulationController {
                 .orElse(Map.of());
         if (manualKafkaControl) {
             // Setado antes do processo existir, não depois de chegar num Service Task Kafka: é o
-            // único jeito de garantir que o KafkaBridgeScheduler (roda a cada 3s, sem saber se alguém
-            // está olhando a tela de Execução) nunca publique sozinho numa instância que o usuário
-            // marcou pra controlar na mão.
+            // único jeito de garantir que o worker Kafka do ms-journey (roda a cada 3s, sem saber se
+            // alguém está olhando a tela de Execução, e aponta pro mesmo Camunda) nunca publique
+            // sozinho numa instância que o usuário marcou pra controlar na mão.
             startVariables = new LinkedHashMap<>(startVariables);
             startVariables.put(KafkaMessagePublisher.MANUAL_KAFKA_CONTROL_VAR, new CamundaVariable(Boolean.TRUE, "Boolean"));
         }
 
         // Toda instância ganha um businessKey, mesmo iniciada manualmente por aqui — é o que permite
-        // uma RECEIVE_TASK dela ser correlacionada depois via mensagem Kafka de verdade (ver
-        // KafkaBridgeScheduler/CamundaClient.findProcessInstanceByBusinessKey).
+        // uma RECEIVE_TASK dela ser correlacionada depois via mensagem Kafka de verdade (ver worker
+        // Kafka do ms-journey / CamundaClient.findProcessInstanceByBusinessKey).
         String businessKey = UUID.randomUUID().toString();
         // Same trail computation completeTask/simulateStep already do: the engine can run several
         // SERVICE_TASK/GATEWAY steps synchronously, in the same transaction as the start call itself
         // (e.g. one or more REST connectors right after START, before the first wait state) — without
         // this, those nodes never show as visited on the diagram even though they genuinely ran.
         Instant before = Instant.now();
-        String processInstanceId = camundaClient.startProcessInstance(ProcessIds.keyForJourney(journeyId), startVariables, businessKey);
+        String processInstanceId;
+        try {
+            processInstanceId = camundaClient.startProcessInstance(ProcessIds.keyForJourney(journeyId), startVariables, businessKey);
+        } catch (RestClientException ex) {
+            // Same shape GlobalExceptionHandler's isSpinJsonPathFailure recognizes for other endpoints
+            // — here, in start() itself, the snapshot/variables that produced it are still in scope,
+            // so the replay can run right away and the front gets the exact node in this one response
+            // instead of a generic message plus a second round trip.
+            if (ex.getMessage() != null && ex.getMessage().contains("SpinJsonPathException")) {
+                throw new StartFailureDiagnosedException(ex.getMessage(), startFailureDiagnostic.run(snapshot, startVariables));
+            }
+            throw ex;
+        }
         StepResponse step = stepResolver.resolve(processInstanceId).withTrail(trailSince(processInstanceId, snapshot, before));
         return new InstanceResponse(processInstanceId, businessKey, FlowBundle.from(snapshot), step, manualKafkaControl);
     }
@@ -188,9 +203,9 @@ public class SimulationController {
 
     /** Publica de verdade no tópico Kafka configurado no nó — usado pelo painel "Enviar mensagem"
      * do simulador pra testar o lado de consumo (RECEIVE_TASK/MESSAGE_START_EVENT) sem precisar de
-     * um produtor externo real. Mesmo tópico que o bridge (KafkaBridgeScheduler) já descobre e
-     * escuta sozinho — não precisa de nenhuma correlação aqui, é só publicar; o consumo acontece
-     * pelo mesmo caminho automático de sempre. */
+     * um produtor externo real. Mesmo tópico que o worker Kafka do ms-journey já descobre e escuta
+     * sozinho (aponta pro mesmo broker) — não precisa de nenhuma correlação aqui, é só publicar; o
+     * consumo acontece pelo mesmo caminho automático de sempre. */
     @PostMapping("/journeys/{journeyId}/nodes/{nodeId}/test-message")
     public void sendTestMessage(@PathVariable UUID journeyId, @PathVariable String nodeId,
                                  @RequestBody Map<String, Object> payload) {

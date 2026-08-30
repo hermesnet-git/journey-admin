@@ -77,6 +77,17 @@ html, body, #root {
   border: none !important;
 }
 
+/* Edge condition labels (Gateway) render inside the same SVG layer as the edge paths, which React
+   Flow stacks BELOW the (separate, HTML) nodes layer — so a label that runs near/under a node gets
+   visually clipped by that node's box, cutting long condition text off mid-string. Raising the
+   whole edges layer above nodes makes labels (and edge lines) draw on top instead, which is exactly
+   what's wanted for a label — edges never run through a node's interior in this diagram layout, so
+   lines drawing over node borders is not a visible regression. Used in both the flow designer
+   canvas and the read-only execution/diagnostic viewer (FlowDiagramViewer). */
+.react-flow__edges {
+  z-index: 1000;
+}
+
 /* Scroll continua funcionando (arrastar/roda do mouse), só a barra visível some — usado onde a
    barra nativa polui uma faixa fina de navegação (UserTaskNavigator) ou um card/canvas que já tem
    seu próprio indicador de limite. */

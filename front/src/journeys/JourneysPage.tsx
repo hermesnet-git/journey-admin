@@ -21,6 +21,7 @@ import { PrimaryButton, SecondaryButton, FilterDropdown, ActionsMenu, type Filte
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ToastProvider, useToast } from '../products/Toast';
 import { ConfirmDialog } from '../products/ConfirmDialog';
+import { ErrorModal } from '../flow-designer/ErrorModal';
 import { ApiClientError, reportServerError } from '../api/client';
 import {
   listJourneys,
@@ -611,6 +612,10 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
   const { showToast } = useToast();
   const [versions, setVersions] = useState<JourneyVersion[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Violação estrutural (FlowValidator) tem uma lista de causas de verdade, não uma frase — mesmo
+  // layout de janela usado pro editor ("Não foi possível salvar"/"Jornada inconsistente" no flow
+  // designer) em vez do texto único inline que os outros erros desta tela usam.
+  const [inconsistentErrors, setInconsistentErrors] = useState<string[] | null>(null);
   const [busyVersionId, setBusyVersionId] = useState<string | null>(null);
   const [publishingVersion, setPublishingVersion] = useState<JourneyVersion | null>(null);
   const [unpublishingVersion, setUnpublishingVersion] = useState<JourneyVersion | null>(null);
@@ -632,19 +637,26 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
     setPublishingVersion(null);
     setBusyVersionId(versionId);
     setError(null);
+    setInconsistentErrors(null);
     try {
       await publishJourneyVersion(journeyId, versionId);
       reload();
       onJourneyChanged();
       showToast('Versão publicada com sucesso.');
     } catch (err) {
-      // Produto/canal inativo é um erro de validação comum, mostrado inline no grid como antes. Todo
-      // o resto (RUNTIME_UNAVAILABLE, RUNTIME_DEPLOYMENT_REJECTED, ou qualquer outra falha) vai para
-      // o modal técnico — mesmo caixa de "Status HTTP/Código/Mensagem/Endpoint" com "Copiar" que um
-      // 5xx automático já mostra, só que disparada manualmente aqui porque o back usa um status < 500
-      // nesses dois casos de propósito (não são "erro inesperado da aplicação", ver
+      // Produto/canal inativo (ou fluxo vazio) é um erro de validação comum, mostrado inline no
+      // grid como antes. Violação estrutural do FlowValidator (goLive agora também valida a
+      // jornada antes de publicar) é outra causa de 422 nesse mesmo ponto — só ela vem com
+      // `details` preenchido, então dá pra distinguir e mostrar a lista de violações de verdade
+      // em vez do texto genérico de canal/produto. Todo o resto (RUNTIME_UNAVAILABLE,
+      // RUNTIME_DEPLOYMENT_REJECTED, ou qualquer outra falha) vai para o modal técnico — mesmo
+      // caixa de "Status HTTP/Código/Mensagem/Endpoint" com "Copiar" que um 5xx automático já
+      // mostra, só que disparada manualmente aqui porque o back usa um status < 500 nesses casos
+      // de propósito (não são "erro inesperado da aplicação", ver
       // PublicationAdapter/CamundaRestClient) para não acionar o próprio catch-all.
-      if (err instanceof ApiClientError && err.status === 422 && err.code !== 'RUNTIME_DEPLOYMENT_REJECTED') {
+      if (err instanceof ApiClientError && err.status === 422 && err.details?.length) {
+        setInconsistentErrors(err.details.map((d) => d.message));
+      } else if (err instanceof ApiClientError && err.status === 422 && err.code !== 'RUNTIME_DEPLOYMENT_REJECTED') {
         setError('Não é possível publicar: o produto ou o canal está inativo.');
       } else if (err instanceof ApiClientError) {
         reportServerError({
@@ -691,6 +703,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
     setRepublishingVersion(null);
     setBusyVersionId(versionId);
     setError(null);
+    setInconsistentErrors(null);
     try {
       await republishJourneyVersion(journeyId, versionId);
       reload();
@@ -698,8 +711,10 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
       showToast('Versão republicada com sucesso.');
     } catch (err) {
       // Mesma lógica de confirmPublish acima: republicar passa pelo mesmo goLive() no back
-      // (PublishJourneyVersion/RepublishJourneyVersion), então está sujeito às mesmas duas causas.
-      if (err instanceof ApiClientError && err.status === 422 && err.code !== 'RUNTIME_DEPLOYMENT_REJECTED') {
+      // (PublishJourneyVersion/RepublishJourneyVersion), então está sujeito às mesmas causas.
+      if (err instanceof ApiClientError && err.status === 422 && err.details?.length) {
+        setInconsistentErrors(err.details.map((d) => d.message));
+      } else if (err instanceof ApiClientError && err.status === 422 && err.code !== 'RUNTIME_DEPLOYMENT_REJECTED') {
         setError('Não é possível republicar: o produto ou o canal está inativo.');
       } else if (err instanceof ApiClientError) {
         reportServerError({
@@ -724,6 +739,9 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
         <p className="m-0 px-4 py-2 text-[12px]" style={{ color: c.danger }}>
           {error}
         </p>
+      )}
+      {inconsistentErrors && (
+        <ErrorModal errors={inconsistentErrors} title="Jornada inconsistente" onClose={() => setInconsistentErrors(null)} />
       )}
       {versions === null ? (
         <p className="m-0 px-4 py-3 text-[12.5px]" style={{ color: c.textSecondary }}>

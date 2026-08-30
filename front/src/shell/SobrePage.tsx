@@ -281,6 +281,83 @@ function DonutSummary() {
   );
 }
 
+// Cabeçalho clicável (chevron + ícone + título [+ conteúdo extra à direita, ex. um link]) que
+// colapsa/expande o conteúdo abaixo — mesmo padrão nas três seções "pesadas" da página (arquitetura,
+// fora do escopo, changelog), todas fechadas por padrão pra não sobrecarregar a rolagem inicial.
+function CollapsibleSection({
+  title,
+  icon,
+  headerExtra,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  headerExtra?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const { colors: c } = useAppTheme();
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${c.border}`, background: c.surface }}>
+      <div
+        className="flex items-center justify-between px-4 cursor-pointer"
+        style={{ minHeight: 48 }}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <div className="flex items-center gap-[8px] min-w-0">
+          <ChevronRight
+            size={13}
+            className="shrink-0 transition-transform"
+            style={{ color: c.textMuted, transform: open ? 'rotate(90deg)' : 'none' }}
+          />
+          {icon}
+          <h2 className="m-0 text-[14px] font-semibold truncate" style={{ color: c.textPrimary }}>
+            {title}
+          </h2>
+        </div>
+        {headerExtra && (
+          <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+            {headerExtra}
+          </div>
+        )}
+      </div>
+      {open && <div style={{ borderTop: `1px solid ${c.border}` }}>{children}</div>}
+    </div>
+  );
+}
+
+const ARCHITECTURE_URL = '/arquitetura/Arquitetura Journey Admin.html';
+
+function ArchitecturePanel() {
+  const { colors: c } = useAppTheme();
+  return (
+    <CollapsibleSection
+      title="Desenho de arquitetura"
+      icon={<Layers size={15} style={{ color: c.accent }} />}
+      headerExtra={
+        <a
+          href={ARCHITECTURE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11.5px] font-medium no-underline"
+          style={{ color: c.accent }}
+        >
+          Abrir em nova guia ↗
+        </a>
+      }
+    >
+      <iframe
+        src={ARCHITECTURE_URL}
+        title="Desenho de arquitetura"
+        style={{ width: '100%', height: 720, border: 'none', display: 'block' }}
+      />
+    </CollapsibleSection>
+  );
+}
+
 function matchesQuery(haystack: string, query: string): boolean {
   return haystack.toLowerCase().includes(query);
 }
@@ -345,19 +422,16 @@ function ChangelogPanel() {
   }, [search, c]);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-        <h2 className="m-0 flex items-center gap-[7px] text-[14px] font-semibold" style={{ color: c.textPrimary }}>
-          <History size={15} style={{ color: c.textMuted }} />
-          Changelog de progresso
-        </h2>
-        <SearchInput value={search} onChange={setSearch} placeholder="Buscar no changelog..." />
-      </div>
-      <p className="m-0 mb-4 text-[13px]" style={{ color: c.textSecondary }}>
-        Histórico de commits (branch main) mesclado com as entradas de "Changelog deste arquivo" em
-        requisitos/admin/progresso.md, em ordem cronológica.
-      </p>
-      <div className="rounded-xl p-4" style={{ border: `1px solid ${c.border}`, background: c.surface }}>
+    <CollapsibleSection
+      title="Changelog de progresso"
+      icon={<History size={15} style={{ color: c.textMuted }} />}
+      headerExtra={<SearchInput value={search} onChange={setSearch} placeholder="Buscar no changelog..." />}
+    >
+      <div className="p-4">
+        <p className="m-0 mb-4 text-[13px]" style={{ color: c.textSecondary }}>
+          Histórico de commits (branch main) mesclado com as entradas de "Changelog deste arquivo" em
+          requisitos/admin/progresso.md, em ordem cronológica.
+        </p>
         {visibleEntries.length === 0 ? (
           <p className="m-0 text-[12.5px]" style={{ color: c.textSecondary }}>
             Nenhuma entrada encontrada para essa busca.
@@ -404,7 +478,7 @@ function ChangelogPanel() {
           </div>
         )}
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }
 
@@ -574,30 +648,35 @@ export function SobrePage() {
         )}
       </div>
 
-      <div>
-        <h2 className="m-0 mb-1 text-[14px] font-semibold" style={{ color: c.textPrimary }}>
-          Fora do escopo da versão 1.0.0
-        </h2>
-        <p className="m-0 mb-4 text-[13px]" style={{ color: c.textSecondary }}>
-          Capacidades planejadas para evoluções futuras da plataforma, não contempladas nesta versão.
-        </p>
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-          {OUT_OF_SCOPE.map((group) => (
-            <div key={group.title} className="rounded-xl p-4" style={{ border: `1px solid ${c.border}`, background: c.surface }}>
-              <div className="text-[12.5px] font-semibold mb-[10px]" style={{ color: c.textPrimary }}>
-                {group.title}
-              </div>
-              <ul className="m-0 p-0 flex flex-col gap-[6px]" style={{ listStyle: 'none' }}>
-                {group.items.map((item) => (
-                  <li key={item} className="text-[12.5px] flex items-start gap-[6px]" style={{ color: c.textSecondary }}>
-                    <MinusCircle size={13} className="shrink-0 mt-[2px]" style={{ color: c.textMuted }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+      <div className="mt-8">
+        <ArchitecturePanel />
+      </div>
+
+      <div className="mt-8">
+        <CollapsibleSection title="Fora do escopo da versão 1.0.0" icon={<MinusCircle size={15} style={{ color: c.textMuted }} />}>
+          <div className="p-4">
+            <p className="m-0 mb-4 text-[13px]" style={{ color: c.textSecondary }}>
+              Capacidades planejadas para evoluções futuras da plataforma, não contempladas nesta versão.
+            </p>
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+              {OUT_OF_SCOPE.map((group) => (
+                <div key={group.title} className="rounded-xl p-4" style={{ border: `1px solid ${c.border}`, background: c.chipBg }}>
+                  <div className="text-[12.5px] font-semibold mb-[10px]" style={{ color: c.textPrimary }}>
+                    {group.title}
+                  </div>
+                  <ul className="m-0 p-0 flex flex-col gap-[6px]" style={{ listStyle: 'none' }}>
+                    {group.items.map((item) => (
+                      <li key={item} className="text-[12.5px] flex items-start gap-[6px]" style={{ color: c.textSecondary }}>
+                        <MinusCircle size={13} className="shrink-0 mt-[2px]" style={{ color: c.textMuted }} />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        </CollapsibleSection>
       </div>
 
       <div className="mt-8">

@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<!-- saved from url=(0253)https://715daa1c-c1af-49b8-a960-8db88e25737c.frame.claudeusercontent.com/_f/1788049868-04d2/?__frame_t=TRx-47K0CfeEPWy2tvWK-VF2.d92d2a10-dd9f-47b5-ac68-865e436d5be2.222f7939-c9b4-46f6-ac41-7b301edcc4b0.1788056027&__frame_v=manifest.155e997702a4b8fc.json -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!-- frame-runtime --><!--<base href="/_f/1788049868-04d2/">--><base href="."><script>window.__FRAME_PREAMBLE={"v":1,"capabilities":{"artifact":"artifact.D_F1mx8d.js","assets":"assets.8Gk803W0.js","comments":"comments.GLuHR3zP.js","db":"db.h-3sndFg.js","downloads":"downloads.C3GSvEDP.js","embed":"embed.CxGAyc-v.js","mcp":"mcp.Bvma3qD7.js","network":"network.B5UA9Su4.js","notifications":"notifications.ssU4jy7G.js","permissions":"permissions.BNySkLV5.js","room":"room.BMMoe2BY.js","sample":"sample.BW2Uysoh.js","self":"artifact.D_F1mx8d.js","user":"user.BpKav-Rf.js"},"transforms":"_transforms.DSB5x63f.js","comments":"_comments.BoakUwmM.js","translate":"_translate.5HCW4BJh.js"}</script><script>(function(){"use strict";var te=["light","dark","system"],re=/^[A-Za-z0-9_-]{1,64}$/,$=/^[a-zA-Z_:][a-zA-Z0-9_:.-]{0,127}$/,ne=new Set(["class","hidden","value","checked","style","title","alt","placeholder","lang","dir","role","tabindex","disabled","readonly","contenteditable","open","colspan","rowspan"]);function oe(e){const t=e.toLowerCase();return t.startsWith("data-")||t.startsWith("aria-")||ne.has(t)}var Be="http://www.w3.org/1999/xhtml",se="http://www.w3.org/2000/svg",ae=new Set(["script","style","iframe","noscript","noframes","noembed","xmp","plaintext","template","title","textarea","object","embed"]),ie=new Set(["script","style"]);function ce(e){const t=e.localName.toLowerCase();return e.namespaceURI==="http://www.w3.org/1999/xhtml"?!ae.has(t):e.namespaceURI===se?!ie.has(t):!1}function M(e,t){return e===t||(e===160||e===32)&&(t===160||t===32)}function le(e,t){const r=e.length,n=t.length;let s=0;for(;s<r&&s<n&&M(e.charCodeAt(s),t.charCodeAt(s));)s++;let o=0;for(;o<r-s&&o<n-s&&M(e.charCodeAt(r-1-o),t.charCodeAt(n-1-o));)o++;return{p:s,s:o}}function ue(e,t){const r=e.firstChild;if(e.childNodes.length!==1||r===null||r.nodeType!==Node.TEXT_NODE){e.textContent=t;return}const n=r.data,s=n.length,o=t.length,{p:i,s:c}=le(n,t);i===s&&c===0&&s===o||r.replaceData(i,s-i-c,t.slice(i,o-c));const h=r.data,p=e.ownerDocument.getSelection?.()??null,w=p!==null&&p.rangeCount>0&&(p.anchorNode===r||p.focusNode===r)?{anchor:p.anchorNode,anchorOffset:p.anchorOffset,focus:p.focusNode,focusOffset:p.focusOffset}:null;let m=-1,g=-1;for(let f=0;f<h.length&&f<t.length;f++){const v=h.charCodeAt(f),b=t.charCodeAt(f);v!==b&&M(v,b)&&(m<0&&(m=f),g=f)}const a=m>=0;if(a&&r.replaceData(m,g-m+1,t.slice(m,g+1)),a&&w!==null&&w.anchor!==null&&w.focus!==null)try{p.setBaseAndExtent(w.anchor,w.anchorOffset,w.focus,w.focusOffset)}catch{}}var fe=new Set(["html","head","body","frameset"]);function de(e){return e.namespaceURI==="http://www.w3.org/1999/xhtml"&&fe.has(e.localName)}function pe(e){if(e===null||typeof e!="object")return!1;const t=e;if(typeof t.target!="string"||!re.test(t.target)||t.text!==void 0&&typeof t.text!="string")return!1;if(t.attrsSet!==void 0){if(t.attrsSet===null||typeof t.attrsSet!="object")return!1;for(const[r,n]of Object.entries(t.attrsSet))if(!$.test(r)||typeof n!="string")return!1}if(t.attrsRemoved!==void 0){if(!Array.isArray(t.attrsRemoved))return!1;for(const r of t.attrsRemoved)if(typeof r!="string"||!$.test(r))return!1}return!0}function me(e,t){if(e===null||typeof e!="object")return!1;const{seq:r,elements:n}=e;if(typeof r!="number"||!Number.isSafeInteger(r)||!Array.isArray(n)||n.length===0||n.length>64)return!1;for(let s=0;s<n.length;s++)if(!t(n[s]))return!1;return!0}function he(e){return e===null||typeof e!="object"?!1:me(e.__frame_patch,pe)}function _e(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_init;return t!==null&&typeof t=="object"}function ve(e){return e!==null&&typeof e=="object"&&e.__frame_size_poke===!0}function ye(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_theme;if(t===null||typeof t!="object")return!1;const r=t.theme;return typeof r=="string"&&te.includes(r)}var A=/^[\w.-]+\.js$/;function we(e,t,r){return r?"inert":typeof t=="string"&&A.test(t)?e?[t]:"inert":e?"inert":"framed"}function ge(){return{post(e,t){parent.postMessage(e,t)},on(e){const t=r=>{r.source===parent&&e(r.data,r.origin,r.isTrusted)};return addEventListener("message",t),()=>removeEventListener("message",t)}}}function be(){return{post:()=>{},on:()=>()=>{}}}var j="__frame_scroll",Ee=150,Ae=310,Se=160,Te=3e4;function ke(){let e=0,t=!1,r=!1,n=!1,s=0,o=null;const i=l=>{try{sessionStorage.setItem(j,JSON.stringify({y:l}))}catch{}},c=()=>{if(clearTimeout(e),o===null)return;const l=o;o=null,i(l)},h=()=>{if(t){t=!1;return}r=!0,o=scrollY,clearTimeout(e),e=setTimeout(c,Ee)};try{addEventListener("scroll",h,{passive:!0}),addEventListener("pagehide",c)}catch{}const p=()=>{let l;try{l=sessionStorage.getItem(j)}catch{return null}if(l===null)return null;let _;try{_=JSON.parse(l)}catch{_=null}const d=_?.y;if(!(typeof d=="number"&&Number.isFinite(d)&&d>=0)){try{sessionStorage.removeItem(j)}catch{}return null}return d};let w=!1;const m=l=>{try{const _=scrollY;scrollTo({top:l,left:0,behavior:"instant"}),s=l,n=!0,clearTimeout(e),o=null,i(l);const d=scrollY;d!==_&&(t=!0),d!==l&&!w&&(w=!0,addEventListener("load",()=>{try{if(scrollY===d){const T=p();m(T!==null?T:s)}}catch{}},{once:!0}))}catch{}},g=()=>{try{return!!location.hash}catch{return!0}};let a=!1;const f=()=>{try{if(a||innerWidth>Ae||innerHeight>Se)return;a=!0;const l=Date.now(),_=()=>{try{removeEventListener("resize",_)}catch{}if(Date.now()-l>Te||r||g())return;const d=p();m(d!==null?d:s)};addEventListener("resize",_)}catch{}};let v=!1,b=!1;return{restore(){if(v||(v=!0,g()))return;const l=p();l!==null&&(m(l),f())},promoted(){if(b||(b=!0,g()))return;const l=p();l!==null?(m(l),f()):n&&m(s)}}}function Re(e,t,r,n){let s=null;try{s=window.trustedTypes?.createPolicy("frame-runtime",{createScriptURL:h=>h})??null}catch{}const o=window.Worker,i=o?.prototype,c=Object.freeze({Worker:o,workerOn:i?.addEventListener,workerPost:i?.postMessage,workerTerminate:i?.terminate,fetch:window.fetch.bind(window),preventDefault:Event.prototype.preventDefault,policy:s,origins:t});r(e).then(h=>h?.bootTopLevel?h.bootTopLevel(c,n):n.settle()).catch(()=>n.settle())}var De="modulepreload",Ie=function(e){return"/"+e},Ue={},Le=function(t,r,n){let s=Promise.resolve();function o(i){const c=new Event("vite:preloadError",{cancelable:!0});if(c.payload=i,window.dispatchEvent(c),!c.defaultPrevented)throw i}return s.then(i=>{for(const c of i||[])c.status==="rejected"&&o(c.reason);return t().catch(o)})},Oe=window===top,q=Object.getOwnPropertyDescriptor(window,"claude"),k=we(Oe,window.__FRAME_PREAMBLE?.topLevel,q?.writable===!1),N=typeof k=="object"&&k[0],y=N?be():ge();(function(){const e=Object.defineProperty,t=globalThis,r=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let n=0;for(let s=0;s<r.length;s++){const o=r[s];try{e(t,o,{value:void 0,writable:!1,configurable:!1})}catch{try{delete t[o]}catch{}try{e(t,o,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof t[o]=="function"&&n++}if(n&&k==="framed")try{y.post({__frame_rtc_lockdown_failed:n},"*")}catch{}})();var Pe=1e4,Y=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function X(e){for(const t of Y)if(t.endsWith(":*"))try{const r=new URL(e);if(`${r.protocol}//${r.hostname}:*`===t)return!0}catch{}else if(e===t)return!0;return!1}var R=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),B=window.__FRAME_PREAMBLE?.transforms,D=window.__FRAME_PREAMBLE?.comments,I=window.__FRAME_PREAMBLE?.translate;function S(e){return Le(()=>import("/_runtime/"+e),void 0)}function G(e,t){return{contract:e.contract,changes:new Set(e.changes??[]),flags:new Set(e.flags??[]),capabilities:e.capabilities??{},capBudgets:e.capBudgets??{},transforms:new Map,shellOrigin:t,mount:x,hooks:O,pipe:()=>({wrap:(r,n)=>(...s)=>{try{return n(...s)}catch(o){return Promise.reject(o)}}})}}var L=null,E=null;function V(e,t,r){try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!0,enumerable:!0})}catch{}}}var U=!1,O={editBefore:null,edit:null};function Ce(e,t,r=!1){const n=[];let s;if(r)try{O.editBefore?.(e)}catch{}for(const o of e.elements){const i=document.querySelector(`[data-id="${o.target}"]`);if(!i){s=o.target;break}if([...Object.keys(o.attrsSet??{}),...o.attrsRemoved??[]].some(c=>!oe(c))){s=o.target;break}if(o.text!==void 0&&(!ce(i)||de(i))){s=o.target;break}for(const[c,h]of Object.entries(o.attrsSet??{}))if(!J(i,c)){try{i.setAttribute(c,h)}catch{}Z(i,c,h)}for(const c of o.attrsRemoved??[])J(i,c)||(i.removeAttribute(c),Z(i,c,null));typeof o.text=="string"&&ue(i,o.text),n.push(o.target)}if(r)try{O.edit?.(e.seq,n,s)}catch{}if(s!==void 0){y.post({__frame_patch_miss:{seq:e.seq}},t);return}try{document.dispatchEvent(new CustomEvent("claude:edit",{detail:{seq:e.seq,targets:n}}))}catch{}}function Z(e,t,r){if(!(e instanceof HTMLInputElement))return;const n=t.toLowerCase();n==="checked"?e.checked=r!==null:n==="value"&&e.type!=="file"&&(e.value=r??"")}function J(e,t){const r=t.toLowerCase(),n=e;return r==="data-id"||(r==="value"||r==="checked")&&(n.__artifactSecret===!0||/^(password|hidden|file)$/.test(n.type??"")||/(^|\s)(cc-|one-time-code|current-password|new-password)/i.test(`${e.getAttribute("autocomplete")??""} ${n.autocomplete??""}`))}function Q(e){const t=document.documentElement;e==="light"||e==="dark"?(t.dataset.theme=e,t.style.colorScheme=e,U=!0):U&&(delete t.dataset.theme,t.style.colorScheme="",U=!1)}var P=new Map;function Me(){let e;const t={u:new Promise(r=>{e=r}),r:r=>{t.done=!0,e(r)},done:!1,nulled:!1};return t}function F(){for(const e of P.values())e.done||(e.nulled=!0,e.r(null))}var je=Object.freeze(Object.assign(Object.create(null),{call:Function.prototype.call,apply:Function.prototype.apply,bind:Function.prototype.bind})),x=(e,t)=>{const r=P.get(e);if(!r||r.done){r?.nulled&&E&&y.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:e}},E);return}const n=typeof t=="function"?Object.setPrototypeOf(t,je):Object.assign(Object.create(null),t);typeof n.then=="function"&&delete n.then,r.r(Object.freeze(n))};function ee(){const e=q?.value??{};V(window,"claude",e);for(const t of Object.keys(R)){if(e[t]!==void 0){V(e,t,e[t]);continue}P.set(t,Me())}if(e.use===void 0){const t=r=>{if(typeof r!="string"||!Object.hasOwn(R,r))return Promise.resolve(null);const n=P.get(r);return n?n.u:Promise.resolve(e[r]??null)};try{Object.defineProperty(e,"use",{value:t,writable:!0,configurable:!0,enumerable:!1})}catch{}}}if(k==="framed"){const e=B&&A.test(B)?S(B).catch(()=>{}):Promise.resolve(void 0),t=a=>{if(a.type==="auxclick"&&a.button!==1)return;const f=a.target,v=f&&f.closest?f.closest("a[href],area[href]"):null;if(!v)return;const b=v.getAttribute("href");if(!b)return;let l;try{l=new URL(b,document.baseURI)}catch{return}if((l.protocol==="http:"||l.protocol==="https:")&&l.origin!==location.origin){a.preventDefault();const _=(v.getAttribute("target")??"").toLowerCase(),d=a.type==="auxclick"||a.metaKey||a.ctrlKey||a.shiftKey||a.altKey||!["","_self","_top","_parent"].includes(_);y.post({__frame_nav:!0,url:l.href,newTab:d},"*")}};addEventListener("click",t,!0),addEventListener("auxclick",t,!0);const r={},n=a=>{a.isTrusted&&(r.pointer=!0)},s=a=>{a.isTrusted&&(r.click=!0)};addEventListener("pointermove",n,{capture:!0,passive:!0}),addEventListener("click",s,{capture:!0,passive:!0}),e.then(a=>{a?.wireNav&&(a.wireNav(),removeEventListener("click",t,!0),removeEventListener("auxclick",t,!0),removeEventListener("pointermove",n,!0),removeEventListener("click",s,!0),a.wireEngagement?.(r))});let o=null;try{o=ke()}catch{}ee();let i=null,c=null,h=0;const p=y.on((a,f)=>{X(f)&&_e(a)&&(i=a.__frame_init,E=f,p(),clearTimeout(h),c?.())});y.post({__frame_connect:!0},"*");const w=new Promise(a=>{c=a,h=setTimeout(()=>{p(),a()},Pe)}),m=document.readyState==="loading"?new Promise(a=>document.addEventListener("DOMContentLoaded",()=>a(),{once:!0})):Promise.resolve();m.then(()=>{try{o?.restore()}catch{}});const g={cb:null};y.on((a,f)=>{if(X(f)&&ve(a)){try{o?.promoted()}catch{}g.cb?.()}}),w.then(async()=>{if(!i||!E){F();return}Q(i.theme);const a=E;let f=!1,v=!1;y.on((u,z,C)=>{if(z!==a)return;ye(u)&&Q(u.__frame_theme.theme),he(u)&&Ce(u.__frame_patch,a,C);const H=u?.__fc_mode;H&&typeof H=="object"&&!f&&D&&A.test(D)&&(f=!0,S(D).then(K=>K.install?.(a,H.on===!0)).catch(()=>{}));const W=u?.__ft_cmd;W&&typeof W=="object"&&!v&&I&&A.test(I)&&(v=!0,S(I).then(K=>K.install?.(a,W)).catch(()=>{}))});const b=Object.keys(i.capabilities??{}).filter(u=>Object.hasOwn(R,u)).map(u=>[u,R[u]]).filter(u=>typeof u[1]=="string"&&A.test(u[1])),l=await Promise.allSettled(b.map(([,u])=>S(u))),_=await e,d=E;if(_?.buildBoot||y.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},d),_?.buildBoot)try{L=_.buildBoot(i,_.TRANSFORMS??{},{shellOrigin:d,mount:x,hooks:O},u=>y.post({__frame_cap_telemetry:u},d))}catch{y.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},d),L=G(i,d)}else L=G(i,d);const T=u=>y.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:u}},d),Ne=L;l.forEach((u,z)=>{const C=b[z][0];if(u.status!=="fulfilled"){T(C);return}try{u.value?.install?.(Ne)}catch{T(C)}}),F(),await m,y.post({__frame_ready:!0},E),e.then(u=>u?.installSizeReporter?.(d,g))})}else N&&(ee(),Re(N,Y,S,{settle:F,mount:x}))})();</script><!-- /frame-runtime --><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>Arquitetura Journey Admin</title>
+<style>
+:root{
+  --ink:#16232c;
+  --paper:#f2f4f5;
+  --surface:#ffffff;
+  --surface-2:#e8ebec;
+  --line:#b9c2c7;
+  --muted:#5b6b73;
+  --accent:#c8632c;
+  --accent-soft:#f4e1d2;
+  --blue:#3a6ea5;
+  --teal:#2f8577;
+  --gold:#a6822f;
+  --slate:#6b6f8a;
+  --plum:#8a4f7a;
+  --blue-tint:#e9eff6;
+  --teal-tint:#e6f1ee;
+  --gold-tint:#f7f0e1;
+  --slate-tint:#ececf1;
+  --plum-tint:#f5edf2;
+  --shadow: 0 1px 2px rgba(22,35,44,.06), 0 8px 24px -12px rgba(22,35,44,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e8edf0;
+    --paper:#10161a;
+    --surface:#171f24;
+    --surface-2:#1e272d;
+    --line:#324047;
+    --muted:#93a3ab;
+    --accent:#e2874a;
+    --accent-soft:#3a2a1e;
+    --blue:#6fa0d6;
+    --teal:#57bba8;
+    --gold:#d1ac5c;
+    --slate:#9a9fc0;
+    --plum:#c286b3;
+    --blue-tint:#1b2733;
+    --teal-tint:#182b28;
+    --gold-tint:#2a2419;
+    --slate-tint:#20232d;
+    --plum-tint:#291f28;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 28px -14px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e8edf0;
+  --paper:#10161a;
+  --surface:#171f24;
+  --surface-2:#1e272d;
+  --line:#324047;
+  --muted:#93a3ab;
+  --accent:#e2874a;
+  --accent-soft:#3a2a1e;
+  --blue:#6fa0d6;
+  --teal:#57bba8;
+  --gold:#d1ac5c;
+  --slate:#9a9fc0;
+  --plum:#c286b3;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 28px -14px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  font-size:15.5px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;}
+.page{max-width:1180px;margin:0 auto;padding:48px 28px 80px;}
+
+/* ---------- header ---------- */
+.kicker{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  font-weight:600;
+  margin:0 0 10px;
+}
+h1{
+  font-size:clamp(1.7rem,3.4vw,2.35rem);
+  font-weight:600;
+  letter-spacing:-.01em;
+  margin:0 0 14px;
+  text-wrap:balance;
+}
+h1 .mono{font-weight:500;color:var(--muted);font-size:.62em;display:block;margin-bottom:.3em;letter-spacing:0;text-transform:none;}
+.dek{
+  max-width:66ch;
+  color:var(--muted);
+  font-size:1.02rem;
+  margin:0 0 22px;
+}
+.metarow{
+  display:flex;flex-wrap:wrap;gap:10px 22px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12.5px;
+  color:var(--muted);
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  padding:12px 0;
+  margin-bottom:44px;
+}
+.metarow b{color:var(--ink);font-weight:600;}
+
+/* ---------- sections ---------- */
+section{margin-bottom:56px;}
+.section-head{margin-bottom:20px;}
+.section-head .kicker{margin-bottom:6px;}
+h2{font-size:1.4rem;font-weight:600;margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance;}
+.section-sub{color:var(--muted);max-width:70ch;margin:0;font-size:.98rem;}
+
+/* ---------- diagram ---------- */
+figure{margin:0;}
+.diagram-frame{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px 18px 10px;
+  box-shadow:var(--shadow);
+  overflow-x:auto;
+}
+svg.diagram{display:block;width:100%;height:auto;min-width:760px;}
+svg.diagram text{font-family:'IBM Plex Sans', sans-serif;fill:var(--ink);}
+svg.diagram .title{font-weight:600;font-size:13px;}
+svg.diagram .sub{font-family:'IBM Plex Mono', monospace;font-size:10px;fill:var(--muted);}
+svg.diagram .edge-label{font-size:10.6px;fill:var(--muted);}
+svg.diagram .edge-label.accent{fill:var(--accent);font-weight:600;}
+svg.diagram .node-box{fill:var(--surface);stroke:var(--line);stroke-width:1.3;}
+svg.diagram .node-box.g-blue{fill:var(--blue-tint);}
+svg.diagram .node-box.g-teal{fill:var(--teal-tint);}
+svg.diagram .node-box.g-gold{fill:var(--gold-tint);}
+svg.diagram .node-box.g-slate{fill:var(--slate-tint);}
+svg.diagram .node-box.g-plum{fill:var(--plum-tint);}
+svg.diagram .edge{stroke:var(--muted);stroke-width:1.4;fill:none;}
+svg.diagram .edge.accent{stroke:var(--accent);stroke-width:1.8;}
+svg.diagram .lbl-bg{fill:var(--surface);opacity:.92;}
+svg.diagram .world-tag{font-family:'IBM Plex Mono', monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;fill:var(--muted);}
+figcaption{
+  color:var(--muted);
+  font-size:.92rem;
+  max-width:80ch;
+  margin:14px 0 0;
+  padding:0 2px;
+}
+figcaption .accent-text{color:var(--accent);font-weight:600;}
+
+/* ---------- legend ---------- */
+.legend{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;
+  margin:14px 0 0;
+  padding:12px 18px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+.legend-title{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);font-weight:600;
+  margin-right:4px;
+}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);}
+.legend-swatch{width:13px;height:13px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.08);}
+
+/* ---------- tables ---------- */
+.world-block{margin-bottom:30px;}
+.world-title{
+  display:flex;align-items:center;gap:10px;
+  font-size:1.04rem;font-weight:600;margin:0 0 4px;
+}
+.world-stripe{width:12px;height:12px;border-radius:3px;flex:none;}
+.world-note{color:var(--muted);font-size:.9rem;margin:0 0 12px;max-width:74ch;}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:var(--shadow);}
+table{width:100%;border-collapse:collapse;font-size:13.6px;min-width:640px;}
+th,td{text-align:left;padding:11px 16px;vertical-align:top;}
+thead th{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.8px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);font-weight:600;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+tbody tr+tr td{border-top:1px solid var(--surface-2);}
+td.svc{font-weight:600;white-space:nowrap;}
+td.port{font-family:'IBM Plex Mono', monospace;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;}
+td.tech{color:var(--muted);white-space:nowrap;}
+td.resp{color:var(--ink);}
+
+/* ---------- attention cards ---------- */
+.attn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.attn-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:18px 20px;
+  box-shadow:var(--shadow);
+}
+.attn-num{
+  font-family:'IBM Plex Mono', monospace;
+  color:var(--accent);font-size:11.5px;font-weight:700;letter-spacing:.04em;
+  margin:0 0 8px;
+}
+.attn-card h3{font-size:1rem;font-weight:600;margin:0 0 8px;text-wrap:balance;}
+.attn-card p{margin:0;color:var(--muted);font-size:.92rem;}
+.attn-card code{font-family:'IBM Plex Mono', monospace;font-size:.85em;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--ink);}
+
+footer{
+  margin-top:60px;padding-top:20px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:.82rem;max-width:80ch;
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="./css2" rel="stylesheet">
+
+<div class="page">
+
+  <p class="kicker">Levantamento arquitetural · 29 ago 2026</p>
+  <h1><span class="mono">journey-admin</span>Quem fala com quem, hoje</h1>
+  <p class="dek">Mapa dos serviços implementados em <code class="mono" style="color:inherit">admin/back</code>, <code class="mono" style="color:inherit">admin/front</code> e <code class="mono" style="color:inherit">simulacoes/*</code> — portas, responsabilidade de cada peça e as integrações reais entre elas, como base para decidir os próximos ajustes de fronteira.</p>
+  <div class="metarow">
+    <span><b>13</b> serviços/apps</span>
+    <span><b>5</b> mundos funcionais</span>
+    <span>Motor comum: <b>ms-runtime-camunda</b></span>
+    <span>Vocabulário conferido contra <b>requisitos/admin/ej-admin-arquitetura-logica.md</b></span>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <p class="kicker">Mapa de serviços</p>
+      <h2>Quem fala com quem</h2>
+      <p class="section-sub">Autoria/Admin e Canais Digitais são dois caminhos de execução independentes que convergem no mesmo motor Camunda. O ms-espec-registry é a peça que atravessa os dois mundos.</p>
+    </div>
+
+    <figure>
+      <div class="diagram-frame">
+        <svg class="diagram" viewBox="0 0 1140 640" role="img" aria-label="Diagrama de arquitetura: admin-front e admin-back formam o mundo de Autoria e Publicação, que chama ms-transform-publication para publicar no motor Camunda; canal-web e canal-app com seus BFFs chamam ms-journey, que executa direto no mesmo Camunda; ms-espec-registry é a peça-ponte que serve de simulador de execução para o admin-front, fornece specs de formulário para o ms-journey e faz a bridge com Kafka; ms-mock-api-rest e front-mock-integracoes formam um sandbox de testes chamado pelo Camunda durante a execução; em laranja, a aba Execução do admin-front chama o ms-espec-registry diretamente, sem passar pelo admin-back.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"></path>
+            </marker>
+            <marker id="arrow-accent" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+            </marker>
+          </defs>
+
+          <!-- world tags -->
+          <text class="world-tag" x="10" y="16">Autoria &amp; publicação</text>
+          <text class="world-tag" x="690" y="16">Canais digitais</text>
+          <text class="world-tag" x="10" y="552">Sandbox de testes</text>
+          <text class="world-tag" x="620" y="422" text-anchor="middle">Motor &amp; infraestrutura compartilhada</text>
+
+          <!-- ================= EDGES (drawn first, under nodes) ================= -->
+          <!-- E1 admin-front -> admin-back -->
+          <line class="edge" x1="105" y1="78" x2="105" y2="140" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="80" y="102" width="80" height="14" rx="3"></rect>
+          <text class="edge-label" x="120" y="112" text-anchor="middle">CRUD autoria</text>
+
+          <!-- E2 admin-front -> ms-espec-registry (ACCENT shortcut) -->
+          <path class="edge accent" d="M 200 66 Q 420 130 460 264" marker-end="url(#arrow-accent)"></path>
+          <rect class="lbl-bg" x="272" y="102" width="128" height="14" rx="3"></rect>
+          <text class="edge-label accent" x="336" y="112" text-anchor="middle">Execução (atalho direto)</text>
+
+          <!-- E3 admin-back -> ms-transform-publication -->
+          <line class="edge" x1="105" y1="194" x2="105" y2="264" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="63" y="222" width="104" height="14" rx="3"></rect>
+          <text class="edge-label" x="115" y="232" text-anchor="middle">publica snapshot</text>
+
+          <!-- E4 admin-back <-> ms-espec-registry -->
+          <path class="edge" d="M 200 180 Q 330 180 440 300" marker-end="url(#arrow)" marker-start="url(#arrow)"></path>
+          <rect class="lbl-bg" x="252" y="188" width="98" height="14" rx="3"></rect>
+          <text class="edge-label" x="301" y="198" text-anchor="middle">specs / conexão</text>
+
+          <!-- E5 admin-back -> camunda (dashboard) -->
+          <path class="edge" d="M 200 194 Q 210 320 245 430" marker-end="url(#arrow)"></path>
+          <rect class="lbl-bg" x="130" y="360" width="112" height="14" rx="3"></rect>
+          <text class="edge-label" x="186" y="370" text-anchor="middle">dashboard (instâncias)</text>
+
+          <!-- E6 ms-transform-publication -> camunda -->
+          <line class="edge" x1="150" y1="326" x2="260" y2="430" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="150" y="392" width="82" height="14" rx="3"></rect>
+          <text class="edge-label" x="191" y="402" text-anchor="middle">deploy BPMN</text>
+
+          <!-- E7 ms-espec-registry -> camunda -->
+          <line class="edge" x1="545" y1="326" x2="545" y2="430" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="500" y="368" width="112" height="14" rx="3"></rect>
+          <text class="edge-label" x="556" y="378" text-anchor="middle">executa instância</text>
+
+          <!-- E8 ms-espec-registry -> kafka (manual/debug apenas) -->
+          <line class="edge" x1="440" y1="300" x2="410" y2="300" stroke-dasharray="4 3" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="352" y="244" width="118" height="14" rx="3"></rect>
+          <text class="edge-label" x="411" y="254" text-anchor="middle">publica manual (debug)</text>
+
+          <!-- E8b kafka <-> ms-runtime-camunda -->
+          <path class="edge" d="M 260 326 L 260 430" marker-end="url(#arrow)" marker-start="url(#arrow)"></path>
+          <rect class="lbl-bg" x="256" y="411" width="150" height="14" rx="3"></rect>
+          <text class="edge-label" x="331" y="421" text-anchor="middle">bridge Kafka (worker)</text>
+
+          <!-- E9 camunda -> ms-mock-api-rest -->
+          <line class="edge" x1="335" y1="496" x2="335" y2="560" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="290" y="518" width="132" height="14" rx="3"></rect>
+          <text class="edge-label" x="356" y="528" text-anchor="middle">SERVICE_TASK REST</text>
+
+          <!-- E10 front-mock-integracoes -> ms-mock-api-rest -->
+          <line class="edge" x1="200" y1="584" x2="240" y2="584" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="168" y="541" width="102" height="14" rx="3"></rect>
+          <text class="edge-label" x="219" y="551" text-anchor="middle">testes manuais</text>
+
+          <!-- E11 ms-journey -> ms-espec-registry -->
+          <line class="edge" x1="790" y1="295" x2="650" y2="295" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="662" y="244" width="128" height="14" rx="3"></rect>
+          <text class="edge-label" x="726" y="254" text-anchor="middle">specs de formulário</text>
+
+          <!-- E12 ms-journey -> camunda -->
+          <line class="edge" x1="895" y1="326" x2="895" y2="430" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="840" y="368" width="112" height="14" rx="3"></rect>
+          <text class="edge-label" x="896" y="378" text-anchor="middle">executa instância</text>
+
+          <!-- E13 bff-canal-web -> ms-journey -->
+          <line class="edge" x1="785" y1="194" x2="830" y2="264" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="685" y="221" width="112" height="14" rx="3"></rect>
+          <text class="edge-label" x="741" y="231" text-anchor="middle">channelType=WEB</text>
+
+          <!-- E14 bff-canal-app -> ms-journey -->
+          <line class="edge" x1="1005" y1="194" x2="960" y2="264" marker-end="url(#arrow)"></line>
+          <rect class="lbl-bg" x="958" y="221" width="112" height="14" rx="3"></rect>
+          <text class="edge-label" x="1014" y="231" text-anchor="middle">channelType=APP</text>
+
+          <!-- E15 canal-web -> bff-canal-web -->
+          <line class="edge" x1="785" y1="78" x2="785" y2="140" marker-end="url(#arrow)"></line>
+          <!-- E16 canal-app -> bff-canal-app -->
+          <line class="edge" x1="1005" y1="78" x2="1005" y2="140" marker-end="url(#arrow)"></line>
+
+          <!-- ================= NODES ================= -->
+          <!-- admin-front -->
+          <g>
+            <rect class="node-box g-blue" x="10" y="24" width="190" height="54" rx="7"></rect>
+            <rect x="10" y="24" width="4" height="54" rx="2" fill="var(--blue)"></rect>
+            <text class="title" x="26" y="47">Admin Front</text>
+            <text class="sub" x="26" y="63">:5173 · React + Vite</text>
+          </g>
+          <!-- canal-web -->
+          <g>
+            <rect class="node-box g-teal" x="690" y="24" width="190" height="54" rx="7"></rect>
+            <rect x="690" y="24" width="4" height="54" rx="2" fill="var(--teal)"></rect>
+            <text class="title" x="706" y="47">canal-web</text>
+            <text class="sub" x="706" y="63">:5176 · React + Mística</text>
+          </g>
+          <!-- canal-app -->
+          <g>
+            <rect class="node-box g-teal" x="910" y="24" width="190" height="54" rx="7"></rect>
+            <rect x="910" y="24" width="4" height="54" rx="2" fill="var(--teal)"></rect>
+            <text class="title" x="926" y="47">canal-app</text>
+            <text class="sub" x="926" y="63">:5177 · React + Mística</text>
+          </g>
+
+          <!-- admin-back -->
+          <g>
+            <rect class="node-box g-blue" x="10" y="140" width="190" height="54" rx="7"></rect>
+            <rect x="10" y="140" width="4" height="54" rx="2" fill="var(--blue)"></rect>
+            <text class="title" x="26" y="163">admin-back</text>
+            <text class="sub" x="26" y="179">:8081 · Spring Boot + PG</text>
+          </g>
+          <!-- bff-canal-web -->
+          <g>
+            <rect class="node-box g-teal" x="690" y="140" width="190" height="54" rx="7"></rect>
+            <rect x="690" y="140" width="4" height="54" rx="2" fill="var(--teal)"></rect>
+            <text class="title" x="706" y="163">bff-canal-web</text>
+            <text class="sub" x="706" y="179">:8086 · Spring Boot</text>
+          </g>
+          <!-- bff-canal-app -->
+          <g>
+            <rect class="node-box g-teal" x="910" y="140" width="190" height="54" rx="7"></rect>
+            <rect x="910" y="140" width="4" height="54" rx="2" fill="var(--teal)"></rect>
+            <text class="title" x="926" y="163">bff-canal-app</text>
+            <text class="sub" x="926" y="179">:8087 · Spring Boot</text>
+          </g>
+
+          <!-- ms-transform-publication -->
+          <g>
+            <rect class="node-box g-blue" x="10" y="264" width="190" height="62" rx="7"></rect>
+            <rect x="10" y="264" width="4" height="62" rx="2" fill="var(--blue)"></rect>
+            <text class="title" x="26" y="288">ms-transform-publication</text>
+            <text class="sub" x="26" y="304">:8082 · mock da API de</text>
+            <text class="sub" x="26" y="316">publicação do runtime</text>
+          </g>
+          <!-- kafka -->
+          <g>
+            <rect class="node-box g-slate" x="240" y="264" width="170" height="62" rx="7" stroke-dasharray="3 2"></rect>
+            <rect x="240" y="264" width="4" height="62" rx="2" fill="var(--slate)"></rect>
+            <text class="title" x="256" y="288">Kafka</text>
+            <text class="sub" x="256" y="304">:9092 · broker</text>
+            <text class="sub" x="256" y="316">(infra externa)</text>
+          </g>
+          <!-- ms-espec-registry -->
+          <g>
+            <rect class="node-box g-plum" x="440" y="264" width="210" height="62" rx="7"></rect>
+            <rect x="440" y="264" width="4" height="62" rx="2" fill="var(--plum)"></rect>
+            <text class="title" x="456" y="288">ms-espec-registry</text>
+            <text class="sub" x="456" y="304">:8083 · simulador + specs</text>
+            <text class="sub" x="456" y="316">SDUI + Kafka manual</text>
+          </g>
+          <!-- ms-journey -->
+          <g>
+            <rect class="node-box g-teal" x="790" y="264" width="210" height="62" rx="7"></rect>
+            <rect x="790" y="264" width="4" height="62" rx="2" fill="var(--teal)"></rect>
+            <text class="title" x="806" y="288">ms-journey</text>
+            <text class="sub" x="806" y="304">:8085 · fachada real de</text>
+            <text class="sub" x="806" y="316">execução por canal</text>
+          </g>
+
+          <!-- ms-runtime-camunda -->
+          <g>
+            <rect class="node-box g-slate" x="240" y="430" width="760" height="66" rx="8"></rect>
+            <rect x="240" y="430" width="4" height="66" rx="2" fill="var(--slate)"></rect>
+            <text class="title" x="620" y="458" text-anchor="middle" font-size="14">ms-runtime-camunda</text>
+            <text class="sub" x="620" y="476" text-anchor="middle">:8080 · motor BPMN — resolve REST (delegate) e Kafka (worker embutido) sozinho</text>
+          </g>
+
+          <!-- front-mock-integracoes -->
+          <g>
+            <rect class="node-box g-gold" x="10" y="560" width="190" height="48" rx="7"></rect>
+            <rect x="10" y="560" width="4" height="48" rx="2" fill="var(--gold)"></rect>
+            <text class="title" x="26" y="581">front-mock-integracoes</text>
+            <text class="sub" x="26" y="596">:5175 · painel de teste</text>
+          </g>
+          <!-- ms-mock-api-rest -->
+          <g>
+            <rect class="node-box g-gold" x="240" y="560" width="190" height="48" rx="7"></rect>
+            <rect x="240" y="560" width="4" height="48" rx="2" fill="var(--gold)"></rect>
+            <text class="title" x="256" y="581">ms-mock-api-rest</text>
+            <text class="sub" x="256" y="596">:8084 · mocks de integrações</text>
+          </g>
+        </svg>
+      </div>
+      <figcaption>Dois caminhos de execução independentes — <b>Autoria/Admin</b> (ms-transform-publication) e <b>Canais Digitais</b> (ms-journey) — chamam o mesmo <span class="mono">ms-runtime-camunda</span> sem se conhecerem entre si, como previsto pelos requisitos. O <span class="mono">ms-espec-registry</span> é a peça que atravessa os dois mundos: simula execução para o admin e fornece specs de formulário para o ms-journey. Em <span class="accent-text">laranja</span>, o único desvio dessa fronteira hoje: a aba Execução do admin-front chama o simulador direto, sem passar pelo admin-back. O motor resolve os dois conectores implementados sozinho: <b>REST</b> de forma síncrona (<span class="mono">HttpConnectorDelegate</span>) e <b>Kafka</b> por um worker embutido que lê o próprio BPMN implantado (nenhuma chamada a outro serviço) para descobrir tópicos e completar as External Tasks pendentes — o <span class="mono">ms-espec-registry</span> mantém só um atalho manual de publicação para testar o lado de consumo em debug.</figcaption>
+    </figure>
+
+    <div class="legend">
+      <span class="legend-title">Legenda</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--blue-tint);border-color:var(--blue)"></span>Autoria &amp; publicação (Admin)</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--teal-tint);border-color:var(--teal)"></span>Canais digitais</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--plum-tint);border-color:var(--plum)"></span>Peça-ponte entre os dois mundos</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--slate-tint);border-color:var(--slate)"></span>Motor &amp; infraestrutura compartilhada</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--gold-tint);border-color:var(--gold)"></span>Sandbox de testes</span>
+      <span class="legend-item"><span class="legend-swatch" style="background:var(--accent-soft);border-color:var(--accent)"></span>Fora da fronteira prevista</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="kicker">Detalhamento</p>
+      <h2>Responsabilidade de cada serviço</h2>
+      <p class="section-sub">Portas e tecnologia lidas de <span class="mono">application.yml</span>/<span class="mono">package.json</span> de cada serviço; responsabilidade descrita pelo que o código expõe hoje, não pelo que os requisitos preveem.</p>
+    </div>
+
+    <div class="world-block">
+      <p class="world-title"><span class="world-stripe" style="background:var(--blue)"></span>Autoria &amp; Publicação (Admin Portal)</p>
+      <p class="world-note">O único mundo com banco de domínio próprio (PostgreSQL). Representa hoje a "API de Publicação do Runtime" descrita nos requisitos como mock.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Serviço</th><th>Porta</th><th>Tecnologia</th><th>Responsabilidade</th></tr></thead>
+          <tbody>
+            <tr><td class="svc">admin-front</td><td class="port">5173</td><td class="tech">React 19 + Vite + @xyflow/react</td><td class="resp">Autoria visual: produtos/canais, editor de fluxo (flow-designer), catálogo de formulários, catálogo de integrações, dashboard operacional, auditoria, login.</td></tr>
+            <tr><td class="svc">admin-back</td><td class="port">8081</td><td class="tech">Spring Boot + PostgreSQL</td><td class="resp">API REST de autoria (product, channel, journey, flow, version, form, ai, messaging, dashboard, audit, auth). Único dono do banco de domínio.</td></tr>
+            <tr><td class="svc">ms-transform-publication</td><td class="port">8082</td><td class="tech">Spring Boot, sem banco</td><td class="resp">Recebe o snapshot do admin-back, transforma em BPMN e faz deploy/undeploy no Camunda — o mock da API de publicação do runtime.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="world-block">
+      <p class="world-title"><span class="world-stripe" style="background:var(--teal)"></span>Canais Digitais (execução real simulada)</p>
+      <p class="world-note">Caminho que representa a produção de verdade: canal → BFF → ms-journey → engine, sem nenhum contato com o admin.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Serviço</th><th>Porta</th><th>Tecnologia</th><th>Responsabilidade</th></tr></thead>
+          <tbody>
+            <tr><td class="svc">canal-web / canal-app</td><td class="port">5176 / 5177</td><td class="tech">React + Mística</td><td class="resp">Simulam o front de um canal real (site / app) que inicia e executa uma jornada publicada.</td></tr>
+            <tr><td class="svc">bff-canal-web / bff-canal-app</td><td class="port">8086 / 8087</td><td class="tech">Spring Boot</td><td class="resp">BFF fino por canal: fixa <span class="mono">channelType</span> (WEB/APP) e repassa a chamada para o ms-journey.</td></tr>
+            <tr><td class="svc">ms-journey</td><td class="port">8085</td><td class="tech">Spring Boot, sem banco</td><td class="resp">Fachada real de execução: fala com o motor Camunda e consulta specs de formulário no ms-espec-registry. Não conhece nem consulta o Admin Portal.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="world-block">
+      <p class="world-title"><span class="world-stripe" style="background:var(--plum)"></span>Peça-ponte</p>
+      <p class="world-note">Serviço que os dois mundos acima acabam compartilhando, cada um por um motivo diferente.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Serviço</th><th>Porta</th><th>Tecnologia</th><th>Responsabilidade</th></tr></thead>
+          <tbody>
+            <tr><td class="svc">ms-espec-registry</td><td class="port">8083</td><td class="tech">Spring Boot, sem banco</td><td class="resp">Três papéis num serviço só: (a) simulador de execução/diagnóstico usado pela aba Execução do admin-front, incluindo publicação manual no Kafka para testar RECEIVE_TASK/MESSAGE_START_EVENT sem depender do worker automático; (b) fonte de specs de formulário/variáveis consultada pelo ms-journey; (c) proxy de teste de conexão/listagem de tópicos do Integration Catalog do admin-back. O worker automático de Kafka (produtor/consumidor contínuo) mora no ms-runtime-camunda, não aqui.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="world-block">
+      <p class="world-title"><span class="world-stripe" style="background:var(--slate)"></span>Motor &amp; Infraestrutura Compartilhada</p>
+      <p class="world-note">Ponto único de convergência: tudo que executa uma jornada, executa aqui — inclusive os dois conectores hoje implementados, REST e Kafka, resolvidos pelo próprio motor.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Serviço</th><th>Porta</th><th>Tecnologia</th><th>Responsabilidade</th></tr></thead>
+          <tbody>
+            <tr><td class="svc">ms-runtime-camunda</td><td class="port">8080</td><td class="tech">Camunda BPM + H2 arquivo</td><td class="resp">Motor BPMN de fato. Hospeda as definições de processo publicadas e executa cada instância. Resolve <span class="mono">REST</span> internamente (<span class="mono">HttpConnectorDelegate</span>, síncrono) e <span class="mono">KAFKA</span> por um worker embutido (<span class="mono">KafkaConnectorWorker</span>): busca/completa as External Tasks pendentes e descobre RECEIVE_TASK/MESSAGE_START_EVENT direto no BPMN implantado (API Java do próprio engine — <span class="mono">ExternalTaskService</span>/<span class="mono">RuntimeService</span>/<span class="mono">RepositoryService</span>), sem chamar nenhum outro serviço. Event Hubs/Service Bus continuam como External Task sem worker.</td></tr>
+            <tr><td class="svc">Kafka</td><td class="port">9092</td><td class="tech">broker externo</td><td class="resp">Publicado/consumido diretamente pelo worker embutido do ms-runtime-camunda; o ms-espec-registry também publica nele, mas só sob demanda manual (painel de debug da aba Execução).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="world-block">
+      <p class="world-title"><span class="world-stripe" style="background:var(--gold)"></span>Sandbox de Testes</p>
+      <p class="world-note">Não representa domínio de negócio — substitui sistemas externos de telecom para as jornadas de teste.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Serviço</th><th>Porta</th><th>Tecnologia</th><th>Responsabilidade</th></tr></thead>
+          <tbody>
+            <tr><td class="svc">ms-mock-api-rest</td><td class="port">8084</td><td class="tech">Spring Boot + H2 arquivo</td><td class="resp">Duplo estático das integrações externas reais (elegibilidade, portabilidade, retenção, cancelamento, IoT...) chamado pelos SERVICE_TASK REST das jornadas de teste.</td></tr>
+            <tr><td class="svc">front-mock-integracoes</td><td class="port">5175</td><td class="tech">React + Vite</td><td class="resp">Painel manual de documentação e disparo dos endpoints do ms-mock-api-rest.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="kicker">Ajustes de responsabilidade</p>
+      <h2>Pontos de atenção para as próximas decisões</h2>
+      <p class="section-sub">Observações factuais sobre fronteiras que hoje funcionam por serem simulação, mas que valem uma decisão explícita antes de qualquer um desses caminhos virar produção.</p>
+    </div>
+
+    <div class="attn-grid">
+      <div class="attn-card">
+        <p class="attn-num">01</p>
+        <h3>Admin-front fura o admin-back para executar</h3>
+        <p>A aba Execução chama <code>localhost:8083</code> (ms-espec-registry) direto do navegador, sem token de sessão do admin. Funciona porque é simulação, mas contraria a fronteira dos requisitos ("o Admin Portal conhece apenas a API de publicação do runtime"). Vale decidir se isso continua sendo um atalho de debug documentado, ou se a aba de Execução passa a ser só leitura via admin-back.</p>
+      </div>
+      <div class="attn-card">
+        <p class="attn-num">02</p>
+        <h3>Dois ciclos de vida de instância duplicados</h3>
+        <p>ms-espec-registry (<code>SimulationController</code>) e ms-journey (<code>JourneyController</code> + <code>JourneyStepResolver</code>) implementam start/complete/current-step contra o mesmo Camunda de forma independente. Já compartilham o <code>FormSpecController</code> para specs — se o ms-journey vira o único runtime de verdade, vale avaliar extrair a resolução de passo para não deixar a lógica divergir entre os dois.</p>
+      </div>
+      <div class="attn-card">
+        <p class="attn-num">03</p>
+        <h3>Dashboard do admin-back fala direto com o Camunda</h3>
+        <p><code>RuntimeEngineMonitoringAdapter</code> chama <code>engine-rest:8080</code> cru para instâncias/incidentes, enquanto a publicação passa pelo ms-transform-publication. São duas portas de entrada diferentes para o mesmo runtime — se o objetivo é ter uma única fachada de runtime, o monitoramento operacional é candidato a migrar para trás dela também.</p>
+      </div>
+      <div class="attn-card">
+        <p class="attn-num">04</p>
+        <h3>ms-espec-registry ainda acumula 3 responsabilidades sem relação</h3>
+        <p>Simulador de execução, registry de specs de formulário e proxy de teste de conexão do Integration Catalog vivem no mesmo serviço (a bridge Kafka automática saiu, foi pro ms-runtime-camunda). Razoável numa fase de simulação; se o registry de specs for promovido, ele é conceitualmente parte do domínio Forms/Modeler do admin, não do runtime — vale separar por responsabilidade nesse momento.</p>
+      </div>
+      <div class="attn-card">
+        <p class="attn-num">05</p>
+        <h3>Jornada já publicada antes desta mudança não tem o <code>type</code> do outputMapping</h3>
+        <p>O worker Kafka do ms-runtime-camunda lê <code>outputMapping.&lt;name&gt;.type</code> direto do BPMN implantado (BpmnTransformer só passou a gravar isso agora) — uma jornada com RECEIVE_TASK/MESSAGE_START_EVENT Kafka publicada antes dessa mudança não tem esse input parameter e cai no default <code>string</code> ao extrair a variável de uma mensagem recebida. Republicar a jornada resolve; vale conferir se alguma das jornadas de teste existentes usa number/boolean/date nesse cenário específico.</p>
+      </div>
+      <div class="attn-card">
+        <p class="attn-num">06</p>
+        <h3>Event Hubs/Service Bus continuam sem worker</h3>
+        <p>O worker embutido no ms-runtime-camunda só trata <code>connectorType=KAFKA</code> — um SERVICE_TASK/RECEIVE_TASK/MESSAGE_START_EVENT com Event Hubs ou Service Bus (habilitados no catálogo de conectores, REQ do Journey Modeler) continua virando External Task sem ninguém para completar, mesma situação que o Kafka tinha antes desta mudança.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Vocabulário e fronteiras conferidos de forma superficial contra <span class="mono">requisitos/admin/ej-admin-arquitetura-logica.md</span> e <span class="mono">ej-admin-index.md</span>, sem comparação de gaps nem equiparação de requisitos — o objetivo deste mapa é o estado real do código em 29/08/2026, não o que falta implementar.
+  </footer>
+
+</div>
+
+</body></html>

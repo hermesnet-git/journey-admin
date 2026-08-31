@@ -11,6 +11,7 @@ import {
   type FlowBundle,
   type InstanceResponse,
   type JourneySummary,
+  type TestMessageInput,
 } from './api';
 import { recordExecutionStart } from './auditApi';
 import { SendTestMessagePanel } from './SendTestMessagePanel';
@@ -37,6 +38,9 @@ export function StartPanel({ journey, onStarted }: Props) {
   // antes disso ele era buscado e quase todo descartado, só pra extrair startNode/hasKafkaProducer.
   const [flow, setFlow] = useState<FlowBundle | null>(null);
   const [flowError, setFlowError] = useState(false);
+  // Gerado uma única vez por seleção de jornada (remount, ver comentário acima) — só serve de
+  // sugestão pro campo editável do painel de mensagem de teste do MESSAGE_START_EVENT.
+  const [suggestedCorrelationId] = useState(() => crypto.randomUUID());
   const [manualKafkaControl, setManualKafkaControl] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -86,10 +90,10 @@ export function StartPanel({ journey, onStarted }: Props) {
     }
   }
 
-  async function handleSendStartMessage(payload: Record<string, unknown>) {
+  async function handleSendStartMessage(message: TestMessageInput) {
     if (!startNode) return;
     const since = new Date().toISOString();
-    await sendTestMessage(journey.journeyId, startNode.id, payload);
+    await sendTestMessage(journey.journeyId, startNode.id, message);
     const instance = await pollForNewInstance(journey.journeyId, since);
     recordExecutionStart(journey.journeyId, journey.name, instance.processInstanceId).catch(() => {
       /* falha ao registrar auditoria não deve impedir a execução de continuar */
@@ -214,8 +218,9 @@ export function StartPanel({ journey, onStarted }: Props) {
             <Stack space={12}>
               <SendTestMessagePanel
                 topic={messageStartTopic}
-                initialPayload={{}}
-                description="Esta jornada só começa a partir de uma mensagem Kafka real — edite o payload e envie um teste para iniciar uma instância."
+                initialCorrelationId={suggestedCorrelationId}
+                initialData={{}}
+                description="Esta jornada só começa a partir de uma mensagem Kafka real — o correlationId vira o businessKey da nova instância; edite o payload e envie um teste para iniciar."
                 onSend={handleSendStartMessage}
               />
               <div className="flex justify-center">

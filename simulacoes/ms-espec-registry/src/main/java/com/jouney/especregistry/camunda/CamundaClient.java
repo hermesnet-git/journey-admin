@@ -330,13 +330,18 @@ public class CamundaClient {
                 .toBodilessEntity();
     }
 
-    /** Atividades que rodaram sozinhas (sem parar) entre {@code since} e agora — usado para revelar
-     * no simulador SERVICE_TASK/gateway/END que o motor atravessou de uma vez só numa mesma
-     * transição (ex.: verificação de elegibilidade + aplicação de troca de plano + fim), que de
-     * outra forma ficariam invisíveis por nunca aparecerem como o "passo atual". */
+    /** Atividades concluídas entre {@code since} e agora — usado para revelar no simulador
+     * SERVICE_TASK/gateway/END que o motor atravessou de uma vez só numa mesma transição (ex.:
+     * verificação de elegibilidade + aplicação de troca de plano + fim), que de outra forma
+     * ficariam invisíveis por nunca aparecerem como o "passo atual". Filtra por CONCLUSÃO
+     * (finishedAfter), não por início (startedAfter): uma Service Task Kafka vira External Task
+     * pendente assim que o motor alcança o nó — isso já conta como "iniciada" — e só é concluída bem
+     * depois (worker automático de ciclo, ou um clique manual em "Enviar mensagem"). Com
+     * startedAfter, o início dela sempre antecede a janela mais recente e ela nunca aparecia na
+     * trilha, mesmo concluindo dentro dela. */
     public List<HistoricActivityInstance> getActivityHistorySince(String processInstanceId, Instant since) {
         List<HistoricActivityInstance> list = restClient.get()
-                .uri(baseUrl + "/history/activity-instance?processInstanceId={id}&startedAfter={since}&sortBy=startTime&sortOrder=asc",
+                .uri(baseUrl + "/history/activity-instance?processInstanceId={id}&finishedAfter={since}&sortBy=startTime&sortOrder=asc",
                         processInstanceId, HISTORY_DATE_FORMAT.format(since))
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<HistoricActivityInstance>>() {

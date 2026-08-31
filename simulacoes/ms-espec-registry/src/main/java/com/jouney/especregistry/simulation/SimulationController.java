@@ -10,6 +10,7 @@ import com.jouney.especregistry.camunda.CamundaVariable;
 import com.jouney.especregistry.camunda.HistoricActivityInstance;
 import com.jouney.especregistry.camunda.ProcessIds;
 import com.jouney.especregistry.camunda.ProcessInstanceInfo;
+import com.jouney.especregistry.kafka.EventMessageDTO;
 import com.jouney.especregistry.kafka.KafkaMessagePublisher;
 import com.jouney.especregistry.kafka.PublishedKafkaMessage;
 import java.time.Instant;
@@ -204,11 +205,16 @@ public class SimulationController {
     /** Publica de verdade no tópico Kafka configurado no nó — usado pelo painel "Enviar mensagem"
      * do simulador pra testar o lado de consumo (RECEIVE_TASK/MESSAGE_START_EVENT) sem precisar de
      * um produtor externo real. Mesmo tópico que o worker Kafka do ms-journey já descobre e escuta
-     * sozinho (aponta pro mesmo broker) — não precisa de nenhuma correlação aqui, é só publicar; o
-     * consumo acontece pelo mesmo caminho automático de sempre. */
+     * sozinho (aponta pro mesmo broker). Envelopa aqui (EventMessageDTO) antes de publicar — o worker
+     * de consumo exige correlationId no envelope pra saber a qual instância correlacionar; validar
+     * isso aqui, antes de publicar, evita a mensagem ser descartada silenciosamente do outro lado. */
     @PostMapping("/journeys/{journeyId}/nodes/{nodeId}/test-message")
     public void sendTestMessage(@PathVariable UUID journeyId, @PathVariable String nodeId,
-                                 @RequestBody Map<String, Object> payload) {
+                                 @RequestBody SendTestMessageRequest request) {
+        if (request.correlationId() == null || request.correlationId().isBlank()) {
+            throw new IllegalStateException(
+                    "correlationId é obrigatório: é ele que o worker Kafka usa pra correlacionar a mensagem (ou como businessKey, se for MESSAGE_START_EVENT)");
+        }
         PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
         FlowNode node = snapshot.findNode(nodeId)
                 .orElseThrow(() -> new IllegalStateException("Nó " + nodeId + " não encontrado no snapshot da jornada"));
@@ -220,7 +226,8 @@ public class SimulationController {
         if (!(topic instanceof String topicName) || topicName.isBlank()) {
             throw new IllegalStateException("Nó " + nodeId + " não tem tópico Kafka configurado");
         }
-        kafkaTemplate.send(topicName, objectMapper.writeValueAsString(payload));
+        EventMessageDTO envelope = EventMessageDTO.wrap(request.correlationId(), request.messageName(), request.data());
+        kafkaTemplate.send(topicName, objectMapper.writeValueAsString(envelope));
     }
 
     /** Instância mais nova de uma jornada iniciada depois de {@code since} — usado pelo front pra

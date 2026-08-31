@@ -1,6 +1,6 @@
 import { CheckCircle2, Clock, Radio } from 'lucide-react';
 import { Box, Boxed, ButtonLayout, ButtonPrimary, Callout, Stack, Text, TextLink, skinVars } from '@telefonica/mistica';
-import type { ConnectorConfigInfo, StepResponse } from './api';
+import type { ConnectorConfigInfo, StepResponse, TestMessageInput } from './api';
 import { SduiFormRenderer } from './SduiFormRenderer';
 import { PhoneFrame } from './PhoneFrame';
 import { SendTestMessagePanel } from './SendTestMessagePanel';
@@ -17,7 +17,7 @@ interface Props {
   manualKafkaControl: boolean;
   onCompleteTask: (answers: Record<string, unknown>) => void;
   onSkipStep: () => void;
-  onSendTestMessage: (nodeId: string, payload: Record<string, unknown>) => Promise<void>;
+  onSendTestMessage: (nodeId: string, message: TestMessageInput) => Promise<void>;
   onSendKafkaMessage: (payload?: Record<string, unknown>) => Promise<void>;
   onPreviewKafkaMessage: () => Promise<unknown>;
 }
@@ -99,9 +99,10 @@ export function DevicePreview({
           <Stack space={12}>
             <SendTestMessagePanel
               topic={kafkaTopic}
-              initialPayload={{ businessKey }}
-              description={`${step.nodeName ?? 'Esta etapa'} espera uma mensagem real nesse tópico para seguir — edite o payload e envie um teste.`}
-              onSend={(payload) => onSendTestMessage(step.nodeId!, payload)}
+              initialCorrelationId={businessKey}
+              initialData={{}}
+              description={`${step.nodeName ?? 'Esta etapa'} espera uma mensagem real nesse tópico para seguir — o correlationId precisa ser o businessKey desta instância.`}
+              onSend={(message) => onSendTestMessage(step.nodeId!, message)}
             />
             <BypassLink onPress={onSkipStep} disabled={busy} />
           </Stack>

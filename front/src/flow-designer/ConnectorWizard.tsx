@@ -7,15 +7,17 @@ import {
   HeadersEditor,
   StructuredJsonEditor,
   OutputMappingEditor,
+  PayloadFieldsEditor,
   TestAndMapPanel,
   VariablePickerButton,
   insertTokenAtCursor,
   REST_METHODS,
   METHODS_WITH_BODY,
   OUTPUT_MAPPING_FIELD,
+  type PayloadField,
 } from './PropertiesPanel';
 import { SearchSelect } from './SearchSelect';
-import { type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin } from './model';
+import { type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin, type VariableType } from './model';
 import { testCredentialConnection, listClusterTopics, type MessagingCluster, type CredentialReference } from '../api/messaging';
 
 const inputStyle = (c: FlowColors): React.CSSProperties => ({
@@ -36,10 +38,98 @@ const labelStyle = (c: FlowColors): React.CSSProperties => ({
   marginBottom: 6,
 });
 
-const REST_STEPS = ['Conexão', 'Headers', 'Parâmetros & Corpo', 'Testar e Mapear'] as const;
-const BROKER_STEPS = ['Conexão', 'Payload', 'Mapear saída'] as const;
+function exampleValueForType(type: VariableType): unknown {
+  switch (type) {
+    case 'number':
+      return 42;
+    case 'boolean':
+      return true;
+    case 'date':
+      return '2026-08-30';
+    case 'datetime':
+      return '2026-08-30T14:30:00Z';
+    default:
+      return 'exemplo';
+  }
+}
 
-// REQ-14.05.005: Event Hubs/Service Bus reaproveitam o mesmo formato de 3 etapas do Kafka.
+// Mesma extração que o worker faz de verdade (status/code saem de dentro do corpo e viram campos de
+// topo do envelope) — só pra mostrar aqui um exemplo fiel de como a mensagem final fica.
+function splitStatusCode(data: Record<string, unknown>): { status?: unknown; code?: unknown; rest: Record<string, unknown> } {
+  const rest = { ...data };
+  const status = rest.status;
+  const code = rest.code;
+  delete rest.status;
+  delete rest.code;
+  return { status, code, rest };
+}
+
+// config.payload continua sendo o objeto plano {nome: valor} que o worker de verdade resolve e
+// envia — config.payloadFields é só a representação em linhas que a tabela edita (guarda o TIPO,
+// que payload sozinho não tem onde guardar) e fica sempre convertida de volta pra manter as duas
+// em sincronia, sem exigir nenhuma mudança no back.
+function payloadFieldsToObject(fields: PayloadField[]): Record<string, string> {
+  const obj: Record<string, string> = {};
+  fields.forEach((f) => {
+    if (f.name) obj[f.name] = f.value;
+  });
+  return obj;
+}
+
+function suggestedPayloadFields(vars: VariableOrigin[]): PayloadField[] {
+  return vars.map((v) => ({ name: v.name, value: `{{${v.name}}}`, type: v.type }));
+}
+
+function buildEnvelopePreview(payload: Record<string, unknown>, messageName: string | undefined) {
+  const { status, code, rest } = splitStatusCode(payload);
+  const payloadObj: Record<string, unknown> = {};
+  if (status !== undefined) payloadObj.status = status;
+  if (code !== undefined) payloadObj.code = code;
+  payloadObj.data = rest;
+  return {
+    correlationId: '<identificador da execução>',
+    ...(messageName ? { messageName } : {}),
+    payload: payloadObj,
+  };
+}
+
+// Painel didático, sem exigir que o usuário saiba ler JSON de cara: mostra um exemplo de como a
+// mensagem final fica, lado a lado com o que ele está configurando — em vez de só confiar que o
+// editor de campos representa fielmente o que vai ser enviado/esperado.
+function PayloadPreview({ title, note, envelope, c }: { title: string; note?: string; envelope: unknown; c: FlowColors }) {
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div style={labelStyle(c)}>{title}</div>
+      {note && <div style={{ fontSize: 11.5, color: c.textSecondary, marginBottom: 8 }}>{note}</div>}
+      <pre
+        style={{
+          fontSize: 11.5,
+          fontFamily: 'monospace',
+          background: c.canvasBg,
+          border: `1px solid ${c.border}`,
+          borderRadius: 8,
+          padding: 10,
+          margin: 0,
+          maxHeight: 220,
+          overflow: 'auto',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          color: c.textPrimary,
+        }}
+      >
+        {JSON.stringify(envelope, null, 2)}
+      </pre>
+    </div>
+  );
+}
+
+const REST_STEPS = ['Conexão', 'Headers', 'Parâmetros & Corpo', 'Testar e Mapear'] as const;
+// Um único passo de dados: pra quem produz (SERVICE_TASK) é o que sai; pra quem consome
+// (RECEIVE_TASK/MESSAGE_START_EVENT) é o que entra. Não existe mais um "Mapear saída" separado —
+// pro lado de consumo, "Escolher o que aproveitar" (dentro deste mesmo passo) É o mapeamento.
+const BROKER_STEPS = ['Conexão', 'Dados'] as const;
+
+// REQ-14.05.005: Event Hubs/Service Bus reaproveitam o mesmo formato de etapas do Kafka.
 const STEPS_BY_TYPE: Record<ConnectorType, readonly string[]> = {
   REST: REST_STEPS,
   KAFKA: BROKER_STEPS,
@@ -76,10 +166,32 @@ export function ConnectorWizard({
   const { c } = useFlowTheme();
   const steps: readonly string[] = STEPS_BY_TYPE[connectorConfig.connectorType];
   const [stepIndex, setStepIndex] = useState(0);
-  const [draft, setDraft] = useState<ConnectorConfig>(connectorConfig);
+  // "Automático" é sempre o padrão pra um conector de mensageria — cobre tanto quem produz quanto
+  // quem consome sem exigir nenhuma configuração; "customizado" é uma escolha explícita do usuário.
+  const [draft, setDraft] = useState<ConnectorConfig>(() => {
+    if (connectorConfig.connectorType === 'REST') return connectorConfig;
+    const cfg = connectorConfig.config ?? {};
+    const patch: Record<string, unknown> = {};
+    if (cfg.payloadMode === undefined) patch.payloadMode = 'GENERIC_DUMP';
+    // payloadFields é novo — se já existe um payload salvo sem essa representação em linhas
+    // (config antigo desta mesma etapa de desenvolvimento), reconstrói a tabela a partir dele em
+    // vez de abrir vazia e "perder" o que já estava configurado.
+    if (cfg.payloadFields === undefined && cfg.payload && typeof cfg.payload === 'object' && !Array.isArray(cfg.payload)) {
+      patch.payloadFields = Object.entries(cfg.payload as Record<string, unknown>).map(([name, value]) => ({
+        name,
+        value: value == null ? '' : String(value),
+        type: 'string',
+      }));
+    }
+    if (Object.keys(patch).length === 0) return connectorConfig;
+    return { ...connectorConfig, config: { ...cfg, ...patch } };
+  });
   const urlInputRef = useRef<HTMLInputElement>(null);
   const [dirty, setDirty] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  // Só relevante no passo "Dados" em modo customizado — no automático não há o que mapear, então
+  // só a aba de Preview existe (ver renderização do passo abaixo).
+  const [dataTab, setDataTab] = useState<'MAPPING' | 'PREVIEW'>('MAPPING');
 
   // REQ-14.04.005: teste de conexão do conector de mensageria — só valida cluster+credencial,
   // nunca publica/consome mensagem real. Estado próprio, separado do teste REST acima.
@@ -102,6 +214,24 @@ export function ConnectorWizard({
 
   function updateDraftConfig(key: string, value: unknown) {
     updateDraft({ config: { ...(draft.config ?? {}), [key]: value } });
+  }
+
+  // Ao trocar pra "customizado" do lado de quem produz, começa com todas as variáveis disponíveis
+  // já preenchidas (uma sugestão, não uma obrigação) — em vez de uma tabela em branco pedindo pro
+  // usuário lembrar de cor tudo que a jornada já sabe até aqui.
+  function selectPayloadMode(mode: 'GENERIC_DUMP' | 'CUSTOM') {
+    const isConsume = draft.config?.operation === 'CONSUME';
+    const existingFields = (draft.config?.payloadFields as PayloadField[] | undefined) ?? [];
+    if (mode === 'CUSTOM' && !isConsume && existingFields.length === 0) {
+      const fields = suggestedPayloadFields(variables);
+      updateDraft({
+        config: { ...(draft.config ?? {}), payloadMode: mode, payloadFields: fields, payload: payloadFieldsToObject(fields) },
+      });
+      setDataTab('MAPPING');
+      return;
+    }
+    updateDraftConfig('payloadMode', mode);
+    if (mode === 'CUSTOM') setDataTab('MAPPING');
   }
 
   function requestClose() {
@@ -295,6 +425,7 @@ export function ConnectorWizard({
                 }}
                 placeholder="Nenhum cluster cadastrado"
                 emptyLabel="Nenhum cluster encontrado — cadastre em Catálogo de Integrações"
+                inputStyle={inputStyle(c)}
               />
             </div>
             <div style={labelStyle(c)}>{brokerTopicLabel}</div>
@@ -310,6 +441,7 @@ export function ConnectorWizard({
                   !brokerClusterId ? 'Escolha um cluster primeiro' : topicsLoading ? 'Carregando tópicos...' : 'Digite ou escolha um tópico'
                 }
                 emptyLabel={topicsLoading ? 'Carregando…' : (topicsError ?? 'Nenhum tópico encontrado no cluster — digite um nome novo')}
+                inputStyle={inputStyle(c)}
               />
               {topicsError && <div style={{ fontSize: 11, color: c.danger, marginTop: 2 }}>{topicsError}</div>}
             </div>
@@ -332,6 +464,7 @@ export function ConnectorWizard({
               }}
               placeholder={brokerClusterId ? 'Nenhuma credencial cadastrada' : 'Escolha um cluster primeiro'}
               emptyLabel="Nenhuma credencial encontrada — cadastre em Catálogo de Integrações"
+              inputStyle={inputStyle(c)}
             />
 
             {draft.credentialRef && (
@@ -366,22 +499,151 @@ export function ConnectorWizard({
             )}
           </div>
         );
-      case 'Payload':
-        return (
-          <StructuredJsonEditor
-            value={draft.config?.payload}
-            onChange={(v) => updateDraftConfig('payload', v)}
-            variables={variables}
+      case 'Dados': {
+        const isConsume = draft.config?.operation === 'CONSUME';
+        const payloadMode = (draft.config?.payloadMode as string) === 'CUSTOM' ? 'CUSTOM' : 'GENERIC_DUMP';
+        const payloadFields = (draft.config?.payloadFields as PayloadField[] | undefined) ?? [];
+        // No automático não há nada pra mapear — só existe a aba de exemplo. No customizado, o
+        // usuário escolhe entre editar o mapeamento ou conferir o resultado.
+        const activeTab: 'MAPPING' | 'PREVIEW' = payloadMode === 'GENERIC_DUMP' ? 'PREVIEW' : dataTab;
+        const options = isConsume
+          ? ([
+              {
+                value: 'GENERIC_DUMP',
+                label: 'Aproveitar tudo automaticamente',
+                description:
+                  'Tudo que chegar nessa mensagem já entra na jornada, do jeito que vier. Não precisa configurar nada — é a opção recomendada.',
+              },
+              {
+                value: 'CUSTOM',
+                label: 'Escolher o que aproveitar',
+                description: 'Você escolhe quais informações da mensagem recebida quer usar na jornada, e dá um nome pra cada uma.',
+              },
+            ] as const)
+          : ([
+              {
+                value: 'GENERIC_DUMP',
+                label: 'Enviar tudo automaticamente',
+                description:
+                  'Todas as informações que a jornada já coletou até aqui são enviadas junto. Não precisa configurar nada — é a opção recomendada.',
+              },
+              {
+                value: 'CUSTOM',
+                label: 'Escolher o que enviar',
+                description: 'Você escolhe exatamente quais informações enviar, uma por uma.',
+              },
+            ] as const);
+
+        const previewNode = isConsume ? (
+          <PayloadPreview
+            c={c}
+            title="Exemplo de como a mensagem precisa chegar"
+            note={
+              payloadMode === 'CUSTOM'
+                ? 'Cada linha do mapeamento vira uma variável com o nome que você escolheu, lida de dentro de "payload.data".'
+                : 'Cada informação dentro de "data" vira uma variável do processo com esse mesmo nome, automaticamente.'
+            }
+            envelope={{
+              correlationId: '<precisa ser igual ao identificador da execução que está esperando>',
+              messageName: '<opcional>',
+              payload: {
+                status: '<opcional>',
+                code: '<opcional>',
+                data:
+                  payloadMode === 'CUSTOM' && outputMappingRules.length > 0
+                    ? Object.fromEntries(outputMappingRules.map((rule) => [rule.name, `<valor de exemplo, tipo ${rule.type}>`]))
+                    : { exemploDeCampo: 'valor de exemplo' },
+              },
+            }}
+          />
+        ) : (
+          <PayloadPreview
+            c={c}
+            title="Exemplo de como a mensagem vai ser enviada"
+            note="É exatamente esse formato que chega no outro lado — o identificador da execução é preenchido automaticamente."
+            envelope={buildEnvelopePreview(
+              payloadMode === 'GENERIC_DUMP'
+                ? Object.fromEntries(variables.map((v) => [v.name, exampleValueForType(v.type)]))
+                : payloadFieldsToObject(payloadFields),
+              variables.some((v) => v.name === 'messageName') ? '<valor atual da variável messageName>' : undefined,
+            )}
           />
         );
-      case 'Mapear saída':
+
         return (
-          <OutputMappingEditor
-            rules={outputMappingRules}
-            onChange={(rules) => updateDraftConfig(OUTPUT_MAPPING_FIELD, rules)}
-            sourceResponse={null}
-          />
+          <div>
+            <div style={labelStyle(c)}>{isConsume ? 'O que fazer com a mensagem recebida' : 'O que enviar'}</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              {options.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => selectPayloadMode(option.value)}
+                  style={{
+                    flex: 1,
+                    textAlign: 'left',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: `1px solid ${payloadMode === option.value ? c.accent : c.border}`,
+                    background: payloadMode === option.value ? c.accentSoft : c.cardBg,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, color: c.textPrimary }}>{option.label}</div>
+                  <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 2 }}>{option.description}</div>
+                </button>
+              ))}
+            </div>
+
+            {payloadMode === 'CUSTOM' && (
+              <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+                {(
+                  [
+                    ['MAPPING', 'Mapeamento'],
+                    ['PREVIEW', 'Preview'],
+                  ] as const
+                ).map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setDataTab(tab)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 999,
+                      border: `1px solid ${activeTab === tab ? c.accent : c.border}`,
+                      background: activeTab === tab ? c.accent : 'transparent',
+                      color: activeTab === tab ? '#fff' : c.textSecondary,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'MAPPING' &&
+              (isConsume ? (
+                <OutputMappingEditor
+                  rules={outputMappingRules}
+                  onChange={(rules) => updateDraftConfig(OUTPUT_MAPPING_FIELD, rules)}
+                  sourceResponse={null}
+                />
+              ) : (
+                <PayloadFieldsEditor
+                  fields={payloadFields}
+                  onChange={(fields) =>
+                    updateDraft({ config: { ...(draft.config ?? {}), payloadFields: fields, payload: payloadFieldsToObject(fields) } })
+                  }
+                />
+              ))}
+
+            {activeTab === 'PREVIEW' && previewNode}
+          </div>
         );
+      }
       default:
         return null;
     }

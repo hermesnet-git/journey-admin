@@ -38,6 +38,9 @@ export interface ApiCallLogEntry {
   // usada em cada chamada (ex.: o payload de um POST /instances), não só o resultado.
   requestHeaders?: Record<string, string>;
   requestBody?: unknown;
+  // Corpo da resposta — sem isso, um GET de polling (ex.: current-step) só mostrava "→ 200" sem
+  // nenhum jeito de ver o que voltou, mesmo quando é exatamente isso que se quer conferir.
+  responseBody?: unknown;
 }
 
 let onApiCall: ((entry: ApiCallLogEntry) => void) | null = null;
@@ -69,6 +72,7 @@ export function apiCallLogData(entry: ApiCallLogEntry): Record<string, unknown> 
   const data: Record<string, unknown> = {};
   if (entry.requestHeaders && Object.keys(entry.requestHeaders).length > 0) data.requestHeaders = entry.requestHeaders;
   if (entry.requestBody !== undefined) data.requestBody = entry.requestBody;
+  if (entry.responseBody !== undefined) data.responseBody = entry.responseBody;
   return Object.keys(data).length > 0 ? data : undefined;
 }
 
@@ -127,14 +131,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    onApiCall?.({ method, path, status: response.status, requestHeaders, requestBody });
+    onApiCall?.({ method, path, status: response.status, requestHeaders, requestBody, responseBody: body });
     throw new ExecutionApiError(response.status, body?.message ?? response.statusText, body?.code, body?.diagnosis);
   }
-  onApiCall?.({ method, path, status: response.status, requestHeaders, requestBody });
-  if (response.status === 204 || response.headers.get('content-length') === '0') {
-    return undefined as T;
-  }
-  return response.json() as Promise<T>;
+  // Lê o corpo uma única vez (stream só dá pra consumir uma vez) — o mesmo valor alimenta o retorno
+  // real da chamada e o log, em vez de um response.json() duplicado que quebraria a segunda leitura.
+  const responseBody = response.status === 204 || response.headers.get('content-length') === '0' ? undefined : await response.json();
+  onApiCall?.({ method, path, status: response.status, requestHeaders, requestBody, responseBody });
+  return responseBody as T;
 }
 
 function apiGet<T>(path: string): Promise<T> {
@@ -351,10 +355,18 @@ export function setVariable(
   return apiPut(`/instances/${processInstanceId}/variables/${encodeURIComponent(name)}`, { value, type });
 }
 
+/** Corpo de negócio + correlação do envelope de teste — correlationId é obrigatório (é o que o
+ * worker Kafka usa pra correlacionar a mensagem, ou como businessKey pra um MESSAGE_START_EVENT). */
+export interface TestMessageInput {
+  correlationId: string;
+  messageName?: string;
+  data: Record<string, unknown>;
+}
+
 /** Publica de verdade no tópico Kafka do nó — usado pelo painel "Enviar mensagem" pra testar o
  * lado de consumo (RECEIVE_TASK/MESSAGE_START_EVENT) sem precisar de um produtor externo real. */
-export function sendTestMessage(journeyId: string, nodeId: string, payload: Record<string, unknown>): Promise<void> {
-  return apiPost(`/journeys/${journeyId}/nodes/${nodeId}/test-message`, payload);
+export function sendTestMessage(journeyId: string, nodeId: string, message: TestMessageInput): Promise<void> {
+  return apiPost(`/journeys/${journeyId}/nodes/${nodeId}/test-message`, message);
 }
 
 /** Publica de verdade no tópico Kafka do Service Task atual — só funciona quando a instância foi

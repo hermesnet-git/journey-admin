@@ -1,5 +1,14 @@
-import { Plug, TriangleAlert } from 'lucide-react';
+import { Plug, Radio, TriangleAlert } from 'lucide-react';
 import { NODE_DIMENSIONS, NODE_ICON, NODE_SHAPE, type NodeType } from './model';
+
+// Cor própria por tipo de conector (badge do canto do nó) — REST fica com a cor de "chamada"
+// (recebida do chamador via badgeColor, não fixa aqui) e cada broker de mensageria ganha uma cor
+// distinta entre si, já que o ícone sozinho (Radio) não diferencia Kafka de Event Hubs/Service Bus.
+const CONNECTOR_BADGE_COLOR: Record<string, string> = {
+  KAFKA: '#ea580c',
+  EVENT_HUBS: '#0891b2',
+  SERVICE_BUS: '#db2777',
+};
 
 // Rótulo abaixo da forma (evento/decisão) — quebra em até 2 linhas em vez de truncar, mesma
 // convenção de ferramentas BPMN de mercado (bpmn.io/Camunda Modeler), onde o nome não cabe dentro
@@ -77,6 +86,19 @@ export function NodeShape({
   const dim = NODE_DIMENSIONS[nodeType];
   const Icon = NODE_ICON[nodeType];
   const hasConnectorBadge = !!connectorType;
+  // Mesmo badge de sempre, mas o ícone distingue de cara "chama uma API" (REST, tomada) de "manda/
+  // recebe mensagem" (Kafka/Event Hubs/Service Bus — qualquer conector de mensageria, mesmo ícone
+  // pros três, já que pro usuário o que importa aqui é "não é uma chamada síncrona").
+  const isMessagingConnector = hasConnectorBadge && connectorType !== 'REST';
+  const ConnectorBadgeIcon = isMessagingConnector ? Radio : Plug;
+  const connectorBadgeTitle = isMessagingConnector
+    ? `Envia/recebe mensagem (${connectorType})`
+    : 'Chama uma API (REST)';
+  // Cor própria por tipo de conector — cada broker de mensageria também precisa ser diferenciável
+  // entre si, não só de REST (a forma do ícone já distingue REST de mensageria; a cor distingue
+  // dentro da mensageria qual broker é). connectorType pode vir null (sem badge) ou algum tipo
+  // futuro ainda não mapeado — badgeColor (recebido do chamador) é o fallback nesses dois casos.
+  const connectorBadgeColor = (connectorType && CONNECTOR_BADGE_COLOR[connectorType]) || badgeColor;
   // BPMN de mercado distingue início de fim pela espessura da borda do círculo (fino = início,
   // grosso = fim), sem depender de cor pra reconhecer o papel do evento.
   const eventBorderWidth = nodeType === 'end' ? 3 : 1.75;
@@ -101,11 +123,11 @@ export function NodeShape({
             sobre o badge de conector (o problema é justamente o conector, mais relevante ver isso). */}
         {hasConnectorBadge && !showErrorBadge && (
           <div
-            title={`Conector ${connectorType} associado`}
+            title={connectorBadgeTitle}
             className="absolute -bottom-[2px] -right-[2px] w-[13px] h-[13px] rounded-full flex items-center justify-center"
-            style={{ background: badgeColor, border: `1.5px solid ${surfaceColor}` }}
+            style={{ background: connectorBadgeColor, border: `1.5px solid ${surfaceColor}` }}
           >
-            <Plug size={7.5} color="#fff" strokeWidth={2.5} />
+            <ConnectorBadgeIcon size={7.5} color="#fff" strokeWidth={2.5} />
           </div>
         )}
         {showErrorBadge && (
@@ -169,22 +191,22 @@ export function NodeShape({
           <TriangleAlert size={12} color="#fff" strokeWidth={2.5} />
         </div>
       )}
-      <div className="absolute top-[7px] left-[7px] w-[22px] h-[22px] rounded-[7px] flex items-center justify-center" style={{ background: surfaceColor }}>
-        <Icon size={13} color={iconColor} strokeWidth={1.8} />
+      <div className="absolute top-[7px] left-[7px] w-[30px] h-[30px] rounded-[9px] flex items-center justify-center" style={{ background: surfaceColor }}>
+        <Icon size={18} color={iconColor} strokeWidth={1.8} />
         {hasConnectorBadge && (
           <div
-            title={`Conector ${connectorType} associado`}
-            className="absolute -bottom-1 -right-1 w-[12px] h-[12px] rounded-full flex items-center justify-center"
-            style={{ background: badgeColor, border: `1.5px solid ${surfaceColor}` }}
+            title={connectorBadgeTitle}
+            className="absolute -bottom-1 -right-1 w-[15px] h-[15px] rounded-full flex items-center justify-center"
+            style={{ background: connectorBadgeColor, border: `1.5px solid ${surfaceColor}` }}
           >
-            <Plug size={7} color="#fff" strokeWidth={2.5} />
+            <ConnectorBadgeIcon size={8.5} color="#fff" strokeWidth={2.5} />
           </div>
         )}
       </div>
       {showLabel && (
         <div
           className="absolute inset-0 flex items-center justify-center text-center pointer-events-none"
-          style={{ padding: '26px 10px 8px 10px' }}
+          style={{ padding: '32px 10px 8px 10px' }}
         >
           <span
             className="text-[12px] font-semibold"

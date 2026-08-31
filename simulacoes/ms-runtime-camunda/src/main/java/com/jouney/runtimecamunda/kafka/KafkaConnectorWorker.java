@@ -10,9 +10,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -20,6 +18,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.camunda.bpm.engine.ExternalTaskService;
+import org.camunda.bpm.engine.MismatchingMessageCorrelationException;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.externaltask.ExternalTask;
 import org.camunda.bpm.engine.externaltask.ExternalTaskQueryBuilder;
@@ -97,7 +96,7 @@ public class KafkaConnectorWorker {
 
         ExternalTaskQueryBuilder fetchBuilder = externalTaskService.fetchAndLock(50, WORKER_ID);
         for (String topic : pendingTopics) {
-            fetchBuilder = fetchBuilder.topic(topic, 30000).variables("topic", "payload", "headers");
+            fetchBuilder = fetchBuilder.topic(topic, 30000).variables("topic", "payload", "payloadMode", "headers");
         }
         List<LockedExternalTask> locked = fetchBuilder.execute();
 
@@ -125,9 +124,26 @@ public class KafkaConnectorWorker {
         if (topic == null || topic.isBlank()) {
             throw new IllegalStateException("Tópico Kafka não configurado");
         }
-        Object rawPayload = parseJsonIfPresent(asString(task.getVariables().get("payload")));
-        Object resolvedPayload = templateResolver.resolveDeep(rawPayload, vars);
-        String payloadJson = objectMapper.writeValueAsString(resolvedPayload);
+        Object resolvedPayload;
+        // "CUSTOM" precisa ser explícito pra cair no payload configurado — qualquer outra coisa,
+        // inclusive a chave ausente (nó salvo antes desse campo existir, ou nunca reaberto no
+        // assistente), tem que se comportar como automático. O inverso (exigir "GENERIC_DUMP"
+        // explícito) faz um nó sem payloadMode nenhum publicar payload.data vazio silenciosamente,
+        // já que também não tem "payload" configurado — igual ao front, que já assume ausência de
+        // payloadMode como automático (ver ConnectorWizard.tsx).
+        if ("CUSTOM".equals(asString(task.getVariables().get("payloadMode")))) {
+            Object rawPayload = parseJsonIfPresent(asString(task.getVariables().get("payload")));
+            resolvedPayload = templateResolver.resolveDeep(rawPayload, vars);
+        } else {
+            // Réplica do ServiceBusTopic do wf-journey-v1: nenhum payload configurado, dump de toda
+            // variável de processo — exceto as reservadas deste worker (prefixo "__"), que são
+            // bookkeeping interno da tela de Execução/Diagnóstico, não dado de negócio.
+            resolvedPayload = processVariables.entrySet().stream()
+                    .filter(e -> !e.getKey().startsWith("__"))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
+        }
+        EventMessageDTO envelope = buildEnvelope(task, resolvedPayload, processVariables);
+        String payloadJson = objectMapper.writeValueAsString(envelope);
 
         ProducerRecord<String, String> record = new ProducerRecord<>(topic, task.getProcessInstanceId(), payloadJson);
         Object rawHeaders = parseJsonIfPresent(asString(task.getVariables().get("headers")));
@@ -149,6 +165,23 @@ public class KafkaConnectorWorker {
                 KAFKA_PAYLOAD_VAR_PREFIX + nodeId, payloadJson);
         externalTaskService.complete(task.getId(), WORKER_ID, completionVariables);
         log.info("Publicado no tópico Kafka pelo worker automático (nó {}, instância {})", nodeId, task.getProcessInstanceId());
+    }
+
+    /** Mesmo envelope do wf-journey-v1 ({@code EventMenssageMapper.toEventMessageDTO}): {@code status}/
+     * {@code code} saem do payload configurado no BPMN e viram campos de topo; o resto cai em
+     * {@code payload.data}. {@code correlationId} é o processInstanceId, {@code messageName} é opcional
+     * (variável de processo "messageName", se o autor da jornada tiver configurado uma). */
+    private EventMessageDTO buildEnvelope(LockedExternalTask task, Object resolvedPayload, Map<String, Object> processVariables) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        if (resolvedPayload instanceof Map<?, ?> map) {
+            map.forEach((k, v) -> data.put(String.valueOf(k), v));
+        } else if (resolvedPayload != null) {
+            data.put("value", resolvedPayload);
+        }
+        String status = asString(data.remove("status"));
+        String code = asString(data.remove("code"));
+        String messageName = asString(processVariables.get("messageName"));
+        return new EventMessageDTO(task.getProcessInstanceId(), messageName, new PayloadMessageDTO(status, code, data));
     }
 
     private void consumeTick() {
@@ -183,44 +216,72 @@ public class KafkaConnectorWorker {
     }
 
     private void consume(String jsonBody, ConsumerNode node) {
-        Map<String, Object> variables = resolveOutputMapping(jsonBody, node.outputMapping());
+        EventMessageDTO envelope;
+        try {
+            envelope = objectMapper.readValue(jsonBody, EventMessageDTO.class);
+        } catch (Exception e) {
+            log.warn("Mensagem Kafka pro nó {} (processo {}) não é um EventMessageDTO válido — ignorando: {}",
+                    node.nodeId(), node.processDefinitionKey(), e.getMessage());
+            return;
+        }
+        String correlationId = envelope.correlationId();
+        if (correlationId == null || correlationId.isBlank()) {
+            log.warn("Mensagem Kafka pro nó {} (processo {}) não tem 'correlationId' — não há como saber a qual instância correlacionar",
+                    node.nodeId(), node.processDefinitionKey());
+            return;
+        }
+
+        Map<String, Object> variables = buildVariables(envelope);
+        variables.putAll(resolveOutputMapping(jsonBody, node.outputMapping()));
 
         if ("MESSAGE_START_EVENT".equals(node.nodeType())) {
-            // Inicia direto pela definição de processo já conhecida (processDefinitionKey), sem
-            // correlacionar por nome de mensagem: "Message_<nodeId>" pode colidir entre jornadas
-            // geradas do mesmo template (mesmo id de nó), então correlacionar por nome arriscaria
-            // iniciar a jornada errada. Aqui não tem ambiguidade — já sabemos exatamente qual processo é.
-            String businessKey = extractBusinessKey(jsonBody).orElse(UUID.randomUUID().toString());
-            ProcessInstance instance = runtimeService.startProcessInstanceByKey(node.processDefinitionKey(), businessKey, variables);
+            ProcessInstance instance = runtimeService.startProcessInstanceByKey(node.processDefinitionKey(), correlationId, variables);
             log.info("Jornada iniciada por mensagem Kafka: nó {} (processo {}) -> instância {}",
                     node.nodeId(), node.processDefinitionKey(), instance.getId());
             return;
         }
 
-        // RECEIVE_TASK: resolve businessKey -> instância exata, já restrita a este processDefinitionKey,
-        // antes de correlacionar — mesmo motivo do caso acima, businessKey é o que desambigua.
-        Optional<String> businessKey = extractBusinessKey(jsonBody);
-        if (businessKey.isEmpty()) {
-            log.warn("Mensagem Kafka pro nó {} (processo {}) não tem 'businessKey' no corpo — não há como saber a qual instância correlacionar",
-                    node.nodeId(), node.processDefinitionKey());
-            return;
+        correlate(envelope.messageName(), correlationId, variables);
+        log.info("Mensagem Kafka correlacionada: nó {} (processo {}) -> correlationId {}",
+                node.nodeId(), node.processDefinitionKey(), correlationId);
+    }
+
+    /** Mesma promoção do wf-journey-v1 ({@code ServiceBusResponseListener.buildVariables}):
+     * {@code status}/{@code code} viram variáveis de processo de topo, o resto de {@code payload.data}
+     * é despejado solto (sem allowlist). */
+    private Map<String, Object> buildVariables(EventMessageDTO envelope) {
+        Map<String, Object> variables = new HashMap<>();
+        PayloadMessageDTO payload = envelope.payload();
+        if (payload != null) {
+            if (payload.status() != null) {
+                variables.put("status", payload.status());
+            }
+            if (payload.code() != null) {
+                variables.put("code", payload.code());
+            }
+            if (payload.data() != null) {
+                variables.putAll(payload.data());
+            }
         }
-        List<ProcessInstance> found = runtimeService.createProcessInstanceQuery()
-                .processDefinitionKey(node.processDefinitionKey())
-                .processInstanceBusinessKey(businessKey.get())
-                .active()
-                .list();
-        if (found.isEmpty()) {
-            log.warn("Nenhuma instância do processo {} com businessKey '{}' esperando — mensagem ignorada",
-                    node.processDefinitionKey(), businessKey.get());
-            return;
+        return variables;
+    }
+
+    /** Mesmo fallback do wf-journey-v1 ({@code ServiceBusResponseListener.correlateAndReturn}):
+     * tenta por businessKey primeiro, e só cai pro processInstanceId se não achar ninguém esperando
+     * por esse businessKey. {@code messageName} pode ser null — o Camunda correlaciona pelo evento
+     * que a instância estiver esperando, sem exigir nome. */
+    private void correlate(String messageName, String correlationId, Map<String, Object> variables) {
+        try {
+            runtimeService.createMessageCorrelation(messageName)
+                    .processInstanceBusinessKey(correlationId)
+                    .setVariables(variables)
+                    .correlate();
+        } catch (MismatchingMessageCorrelationException e) {
+            runtimeService.createMessageCorrelation(messageName)
+                    .processInstanceId(correlationId)
+                    .setVariables(variables)
+                    .correlate();
         }
-        runtimeService.createMessageCorrelation("Message_" + node.nodeId())
-                .processInstanceId(found.get(0).getId())
-                .setVariables(variables)
-                .correlate();
-        log.info("Mensagem Kafka correlacionada: nó {} (processo {}) -> instância {}",
-                node.nodeId(), node.processDefinitionKey(), found.get(0).getId());
     }
 
     private Map<String, Object> resolveOutputMapping(String jsonBody, List<OutputMappingRule> rules) {
@@ -245,15 +306,6 @@ public class KafkaConnectorWorker {
             case "number" -> raw instanceof Number n ? n.doubleValue() : Double.parseDouble(raw.toString());
             default -> raw.toString();
         };
-    }
-
-    private Optional<String> extractBusinessKey(String jsonBody) {
-        try {
-            Object value = JsonPath.read(jsonBody, "$.businessKey");
-            return value instanceof String s && !s.isBlank() ? Optional.of(s) : Optional.empty();
-        } catch (Exception e) {
-            return Optional.empty();
-        }
     }
 
     private Object parseJsonIfPresent(String json) throws Exception {

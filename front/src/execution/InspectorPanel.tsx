@@ -34,6 +34,10 @@ interface Props {
   // tabela simplesmente esconde o lápis de edição quando não há callback.
   onEditVariable?: (name: string, rawValue: string, type: string) => void;
   log: LogEntry[];
+  // Quando true, ocupa 100% da altura do pai em vez do drawer redimensionável de altura fixa — usado
+  // no Histórico, onde não há nada acima competindo por espaço (o modo Ao Vivo mantém o drawer, que
+  // fica abaixo do preview do canal e por isso precisa de altura própria/arrastável).
+  fillHeight?: boolean;
 }
 
 type TabKey = 'workflow' | 'variaveis' | 'log';
@@ -59,6 +63,7 @@ export function InspectorPanel({
   variables,
   onEditVariable,
   log,
+  fillHeight = false,
 }: Props) {
   const [tab, setTab] = useState<TabKey>('workflow');
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
@@ -100,17 +105,23 @@ export function InspectorPanel({
 
   return (
     <div
-      className="w-full shrink-0 flex flex-col min-h-0"
-      style={{ height, background: skinVars.colors.backgroundContainer, borderTop: `1px solid ${skinVars.colors.border}` }}
+      className={fillHeight ? 'w-full flex-1 min-h-0 flex flex-col' : 'w-full shrink-0 flex flex-col min-h-0'}
+      style={
+        fillHeight
+          ? { background: skinVars.colors.backgroundContainer }
+          : { height, background: skinVars.colors.backgroundContainer, borderTop: `1px solid ${skinVars.colors.border}` }
+      }
     >
-      <div
-        onMouseDown={startDrag}
-        className="w-full h-[7px] shrink-0 flex items-center justify-center cursor-ns-resize"
-        style={{ background: skinVars.colors.backgroundAlternative }}
-        title="Arraste para redimensionar"
-      >
-        <div className="w-10 h-[3px] rounded-full" style={{ background: skinVars.colors.border }} />
-      </div>
+      {!fillHeight && (
+        <div
+          onMouseDown={startDrag}
+          className="w-full h-[7px] shrink-0 flex items-center justify-center cursor-ns-resize"
+          style={{ background: skinVars.colors.backgroundAlternative }}
+          title="Arraste para redimensionar"
+        >
+          <div className="w-10 h-[3px] rounded-full" style={{ background: skinVars.colors.border }} />
+        </div>
+      )}
 
       <div className="flex shrink-0" style={{ borderBottom: `1px solid ${skinVars.colors.border}` }}>
         {TABS.map((t) => {
@@ -257,14 +268,38 @@ function nodeDurationLabel(detail?: NodeIODetail): string {
   return seconds < 60 ? `${seconds.toFixed(1)} s` : `${(seconds / 60).toFixed(1)} min`;
 }
 
+// "response"/"payload" chegam do motor como STRING contendo JSON serializado (a variável nunca foi
+// tipada como Json, só String — vale tanto pro corpo de resposta REST quanto pro envelope Kafka
+// gravado em __kafkaPayload__) — sem isso, a tela mostrava aspas escapadas (\") em vez do JSON de
+// verdade. Tenta reparsear qualquer string que pareça JSON, recursivamente, só pra exibição/cópia;
+// nunca muda o dado guardado no motor, e uma string que não é JSON de verdade sai ilesa (catch).
+function prettifyJson(value: unknown): unknown {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const looksLikeJson = (trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'));
+    if (!looksLikeJson) return value;
+    try {
+      return prettifyJson(JSON.parse(trimmed));
+    } catch {
+      return value;
+    }
+  }
+  if (Array.isArray(value)) return value.map(prettifyJson);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, prettifyJson(v)]));
+  }
+  return value;
+}
+
 function JsonSection({ title, data }: { title: string; data: Record<string, unknown> }) {
+  const pretty = useMemo(() => prettifyJson(data) as Record<string, unknown>, [data]);
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <Text size={11} weight="medium" color={skinVars.colors.textSecondary}>
           {title.toUpperCase()}
         </Text>
-        <CopyJsonButton data={data} />
+        <CopyJsonButton data={pretty} />
       </div>
       <pre
         className="rounded-md px-2 py-1 text-[11px] overflow-auto m-0"
@@ -275,14 +310,14 @@ function JsonSection({ title, data }: { title: string; data: Record<string, unkn
           maxHeight: 260,
         }}
       >
-        {JSON.stringify(data, null, 2)}
+        {JSON.stringify(pretty, null, 2)}
       </pre>
     </div>
   );
 }
 
 const VARIABLES_COL_LABELS = ['Nome', 'Valor', 'Tipo'];
-const DEFAULT_VARIABLES_COL_WIDTHS = [130, 170, 64];
+const DEFAULT_VARIABLES_COL_WIDTHS = [220, 560, 90];
 const MIN_VARIABLES_COL_WIDTH = 40;
 const VARIABLES_ACTION_COL_WIDTH = 28;
 
@@ -716,6 +751,7 @@ function LogRow({
   onToggle: () => void;
 }) {
   const hasData = !!entry.data && Object.keys(entry.data).length > 0;
+  const prettyData = useMemo(() => (entry.data ? (prettifyJson(entry.data) as Record<string, unknown>) : undefined), [entry.data]);
 
   return (
     <div
@@ -746,10 +782,10 @@ function LogRow({
               maxHeight: 220,
             }}
           >
-            {JSON.stringify(entry.data, null, 2)}
+            {JSON.stringify(prettyData, null, 2)}
           </pre>
           <div className="absolute top-1 right-1">
-            <CopyJsonButton data={entry.data!} />
+            <CopyJsonButton data={prettyData!} />
           </div>
         </div>
       )}

@@ -18,6 +18,7 @@ import {
   type ApiCallLogEntry,
   type FlowBundle,
   type JourneySummary,
+  type TestMessageInput,
   type NodeIODetail,
   type StepResponse,
   type TrailEntry,
@@ -25,6 +26,7 @@ import {
 } from './api';
 import { DevicePreview } from './DevicePreview';
 import { InspectorPanel, type LogEntry } from './InspectorPanel';
+import { SummaryField } from './HistoryWorkspace';
 
 const WAITING_POLL_MS = 2000;
 
@@ -70,13 +72,28 @@ function describeStep(step: StepResponse): string {
 // elegibilidade + gateway + aplicação de troca de plano, tudo numa única transição. Sem narrar isso
 // no log, essas etapas ficam invisíveis (nunca aparecem como "passo atual").
 const TRAIL_TYPE_LABEL: Record<string, (name: string) => string> = {
-  SERVICE_TASK: (name) => `Tarefa de serviço "${name}" executada.`,
   RECEIVE_TASK: (name) => `Tarefa de recebimento "${name}" concluída.`,
   GATEWAY: (name) => `Decisão "${name}" avaliada.`,
   END: (name) => `Etapa final "${name}" alcançada.`,
 };
 
-function describeTrailEntry(entry: TrailEntry): string {
+const CONNECTOR_TYPE_LABEL: Record<string, string> = {
+  REST: 'API REST',
+  KAFKA: 'Kafka',
+  EVENT_HUBS: 'Event Hubs',
+  SERVICE_BUS: 'Service Bus',
+};
+
+// Duas Tarefas de Serviço com o mesmo nome genérico ("Tarefa de Serviço") são indistinguíveis no log
+// sem isso — o tipo de conector entre parênteses é o que deixa claro qual delas é uma chamada REST e
+// qual é uma publicação de mensageria, sem precisar abrir o Fluxo da Jornada pra descobrir.
+function describeTrailEntry(entry: TrailEntry, connectorTypeByNodeId: Record<string, string>): string {
+  if (entry.nodeType === 'SERVICE_TASK') {
+    const connectorLabel = CONNECTOR_TYPE_LABEL[connectorTypeByNodeId[entry.nodeId]];
+    return connectorLabel
+      ? `Tarefa de serviço (${connectorLabel}) "${entry.nodeName}" executada.`
+      : `Tarefa de serviço "${entry.nodeName}" executada.`;
+  }
   const describe = TRAIL_TYPE_LABEL[entry.nodeType];
   return describe ? describe(entry.nodeName) : `Etapa "${entry.nodeName}" concluída.`;
 }
@@ -93,9 +110,22 @@ function trailLogData(entry: TrailEntry): Record<string, unknown> | undefined {
     return data;
   }
   if (entry.kafkaTopic || entry.kafkaPayload) {
-    return { topico: entry.kafkaTopic, payload: parseMaybeJson(entry.kafkaPayload) };
+    return { topico: entry.kafkaTopic, ...unwrapKafkaEnvelope(entry.kafkaPayload) };
   }
   return undefined;
+}
+
+// entry.kafkaPayload é o envelope inteiro publicado (EventMessageDTO: correlationId/messageName/
+// payload{status,data}), não só o corpo de negócio — sem isso, o log mostrava um "payload" (a chave
+// que embrulha o envelope) contendo outro "payload" dentro (o campo de mesmo nome do próprio
+// envelope), como se tivesse duplicado por engano. Estoura os campos do envelope direto no nível de
+// cima em vez de aninhar tudo debaixo de uma chave "payload" genérica.
+function unwrapKafkaEnvelope(rawPayload: string | null): Record<string, unknown> {
+  const envelope = parseMaybeJson(rawPayload);
+  if (envelope && typeof envelope === 'object' && !Array.isArray(envelope)) {
+    return envelope as Record<string, unknown>;
+  }
+  return envelope !== null && envelope !== undefined ? { mensagem: envelope } : {};
 }
 
 function parseMaybeJson(value: string | null): unknown {
@@ -124,7 +154,7 @@ function trailEntryToNodeIO(entry: TrailEntry): NodeIODetail {
     if (entry.response) output = { response: parseMaybeJson(entry.response) };
   } else if (entry.kafkaTopic || entry.kafkaPayload) {
     if (entry.kafkaTopic) input.topic = entry.kafkaTopic;
-    if (entry.kafkaPayload) input.payload = parseMaybeJson(entry.kafkaPayload);
+    Object.assign(input, unwrapKafkaEnvelope(entry.kafkaPayload));
   }
   const timestamp = now();
   return {
@@ -150,6 +180,10 @@ export function ExecutionWorkspace({
   onApiCallHandlerChange,
 }: Props) {
   const startNodeId = flow.flowNodes.find((n) => n.type === 'START')?.id;
+  const connectorTypeByNodeId: Record<string, string> = {};
+  flow.flowNodes.forEach((n) => {
+    if (n.connectorConfig) connectorTypeByNodeId[n.id] = n.connectorConfig.connectorType;
+  });
 
   const [step, setStep] = useState(initialStep);
   const [busy, setBusy] = useState(false);
@@ -182,7 +216,7 @@ export function ExecutionWorkspace({
     ...initialStep.trail.map((entry, i) => ({
       id: `start-trail-${i}`,
       time: now(),
-      message: describeTrailEntry(entry),
+      message: describeTrailEntry(entry, connectorTypeByNodeId),
       data: trailLogData(entry),
     })),
     { id: 'start-step', time: now(), message: describeStep(initialStep) },
@@ -224,7 +258,7 @@ export function ExecutionWorkspace({
     setErroredMessage(null);
   }
 
-  function applyNewStep(newStep: StepResponse) {
+  function applyNewStep(newStep: StepResponse, skipTrailNodeIds?: Set<string>) {
     setStep(newStep);
     // errorMessage é a fonte da verdade de "houve erro", não errorNodeId: a heurística que tenta
     // achar QUAL nó falhou pode não conseguir (ex.: o ramo que falhou nem chegou a rodar de novo
@@ -244,7 +278,11 @@ export function ExecutionWorkspace({
     }
     for (const entry of newStep.trail) {
       setVisitedPath((prev) => (prev.includes(entry.nodeId) ? prev : [...prev, entry.nodeId]));
-      appendLog(describeTrailEntry(entry), trailLogData(entry));
+      // Nó já narrado por quem chamou (ex.: handleSendKafkaMessage, que detalha a mensagem
+      // publicada na própria linha "gerada/enviada") — não duplica a mesma entrada aqui de novo.
+      if (!skipTrailNodeIds?.has(entry.nodeId)) {
+        appendLog(describeTrailEntry(entry, connectorTypeByNodeId), trailLogData(entry));
+      }
       setNodeIO((prev) => ({ ...prev, [entry.nodeId]: trailEntryToNodeIO(entry) }));
     }
     if (newStep.nodeId) {
@@ -309,21 +347,27 @@ export function ExecutionWorkspace({
     }
   }
 
-  async function handleSendTestMessage(nodeId: string, payload: Record<string, unknown>) {
-    await sendTestMessage(journey.journeyId, nodeId, payload);
-    appendLog(`Mensagem de teste publicada no Kafka para "${step.nodeName}".`, payload);
+  async function handleSendTestMessage(nodeId: string, message: TestMessageInput) {
+    await sendTestMessage(journey.journeyId, nodeId, message);
+    appendLog(`Mensagem de teste publicada no Kafka para "${step.nodeName}".`, { ...message });
   }
 
   async function handleSendKafkaMessage(payload?: Record<string, unknown>) {
     const nodeName = step.nodeName;
+    const nodeId = step.nodeId;
     const newStep = await sendKafkaMessage(processInstanceId, payload);
+    // "Gerar automaticamente" manda payload=undefined pro back resolver sozinho — sem isso a linha
+    // do log ficava sem nenhum dado, mesmo a mensagem tendo sido publicada de verdade. A trilha que
+    // volta com o passo já traz o tópico/envelope reais que saíram, então usa isso em vez do
+    // parâmetro (que só existe quando foi digitado manualmente).
+    const publishedEntry = nodeId ? newStep.trail.find((e) => e.nodeId === nodeId) : undefined;
     appendLog(
       payload
         ? `Mensagem Kafka enviada manualmente para "${nodeName}".`
         : `Mensagem Kafka gerada automaticamente para "${nodeName}".`,
-      payload,
+      publishedEntry ? trailLogData(publishedEntry) : payload,
     );
-    applyNewStep(newStep);
+    applyNewStep(newStep, publishedEntry ? new Set([publishedEntry.nodeId]) : undefined);
   }
 
   function handlePreviewKafkaMessage() {
@@ -371,6 +415,13 @@ export function ExecutionWorkspace({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col" style={{ background: skinVars.colors.background }}>
+      <div
+        className="shrink-0 flex items-center gap-6 px-6 py-3 border-b flex-wrap"
+        style={{ borderColor: skinVars.colors.border }}
+      >
+        <SummaryField label="Instance ID" value={processInstanceId} mono copyable />
+        <SummaryField label="Business key" value={businessKey} mono copyable />
+      </div>
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="max-w-[1040px] mx-auto px-6 py-8">
           <DevicePreview

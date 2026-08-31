@@ -50,9 +50,30 @@ public class KafkaMessagePublisher {
      * Execução com o mesmo corpo que o worker automático enviaria, em vez de abrir em branco e
      * exigir que o usuário escreva JSON do zero de memória. */
     public Object resolvePayload(ConnectorConfig connectorConfig, Map<String, CamundaVariable> rawVariables) {
-        Map<String, String> vars = stringify(rawVariables);
+        return resolveBusinessPayload(connectorConfig, rawVariables);
+    }
+
+    /** Mesma regra do worker Kafka do ms-journey (KafkaConnectorWorker.publishAndComplete): só
+     * "CUSTOM" explícito resolve o {{template}} configurado no nó; qualquer outra coisa — inclusive
+     * payloadMode ausente (nó salvo antes desse campo existir, ou nunca reaberto no assistente) —
+     * cai no automático, igual ao front (ConnectorWizard.tsx assume ausência como GENERIC_DUMP). O
+     * inverso publicaria payload.data vazio silenciosamente pra um nó sem payloadMode nem payload
+     * configurados. Réplica do ServiceBusTopic do wf-journey-v1 — dump de toda variável de processo,
+     * exceto as reservadas deste admin (prefixo "__", bookkeeping de trilha/controle manual, não
+     * dado de negócio). */
+    private Object resolveBusinessPayload(ConnectorConfig connectorConfig, Map<String, CamundaVariable> rawVariables) {
         Map<String, Object> config = connectorConfig.config() != null ? connectorConfig.config() : Map.of();
-        return resolver.resolveDeep(config.get("payload"), vars);
+        if ("CUSTOM".equals(config.get("payloadMode"))) {
+            Map<String, String> vars = stringify(rawVariables);
+            return resolver.resolveDeep(config.get("payload"), vars);
+        }
+        Map<String, Object> dump = new LinkedHashMap<>();
+        rawVariables.forEach((name, variable) -> {
+            if (!name.startsWith("__")) {
+                dump.put(name, variable.value());
+            }
+        });
+        return dump;
     }
 
     /** @param payloadOverride quando não-nulo, substitui o payload declarado no nó — é o que permite
@@ -67,8 +88,11 @@ public class KafkaMessagePublisher {
         if (topic == null || topic.isBlank()) {
             throw new IllegalStateException("Tópico Kafka não configurado");
         }
-        Object resolvedPayload = payloadOverride != null ? payloadOverride : resolver.resolveDeep(config.get("payload"), vars);
-        String payloadJson = objectMapper.writeValueAsString(resolvedPayload);
+        Object resolvedPayload = payloadOverride != null ? payloadOverride : resolveBusinessPayload(connectorConfig, rawVariables);
+        CamundaVariable messageNameVar = rawVariables.get("messageName");
+        String messageName = messageNameVar != null ? asString(messageNameVar.value()) : null;
+        EventMessageDTO envelope = EventMessageDTO.wrap(key, messageName, resolvedPayload);
+        String payloadJson = objectMapper.writeValueAsString(envelope);
 
         ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, payloadJson);
         if (config.get("headers") instanceof Map<?, ?> headers) {

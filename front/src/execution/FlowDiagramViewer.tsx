@@ -35,6 +35,7 @@ interface SimNodeData extends Record<string, unknown> {
   frontType: NodeType;
   name: string;
   status: NodeStatus;
+  connectorType?: string | null;
   selected?: boolean;
   onShowError?: () => void;
   onSelect?: () => void;
@@ -99,7 +100,7 @@ function statusStyle(status: NodeStatus, typeColor: string) {
 const SELECTED_RING = `0 0 0 2px ${skinVars.colors.brand}`;
 
 function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
-  const { frontType, name, status, selected, onShowError, onSelect } = data;
+  const { frontType, name, status, connectorType, selected, onShowError, onSelect } = data;
   const typeColor = TYPE_COLOR[frontType];
   const dim = NODE_DIMENSIONS[frontType];
   const style = statusStyle(status, typeColor);
@@ -130,6 +131,7 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
         pulseColor={style.pulseColor}
         surfaceColor={skinVars.colors.backgroundContainer}
         badgeColor={skinVars.colors.brand}
+        connectorType={connectorType}
       />
       {status === 'error' && onShowError && (
         <button
@@ -228,6 +230,7 @@ function FlowDiagramInner({
             frontType: BACKEND_TO_FRONT_TYPE[n.type],
             name: n.name,
             status,
+            connectorType: n.connectorConfig?.connectorType ?? null,
             selected: n.id === selectedNodeId,
             onShowError: status === 'error' ? onShowError : undefined,
             onSelect: onNodeSelect ? () => onNodeSelect(n.id === selectedNodeId ? null : n.id) : undefined,

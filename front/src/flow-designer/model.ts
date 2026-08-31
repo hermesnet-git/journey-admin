@@ -1,6 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
-import { Play, User, CheckCircle2, Server, Mail, X, type LucideIcon } from 'lucide-react';
+import { Play, User, CheckCircle2, Settings, Mail, X, type LucideIcon } from 'lucide-react';
 import type { FlowNodeType } from '../api/flows';
 import { collectsValue, type Form, type FormField } from '../api/forms';
 
@@ -252,7 +252,7 @@ export const NODE_ICON: Record<NodeType, LucideIcon> = {
   start: Play,
   userTask: User,
   end: CheckCircle2,
-  serviceTask: Server,
+  serviceTask: Settings,
   receiveTask: Mail,
   messageStartEvent: Mail,
   gateway: X,

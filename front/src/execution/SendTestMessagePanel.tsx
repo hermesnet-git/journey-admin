@@ -1,26 +1,46 @@
 import { useState } from 'react';
 import { ButtonLayout, ButtonPrimary, Callout, Stack, Text, skinVars } from '@telefonica/mistica';
+import type { TestMessageInput } from './api';
 
 interface Props {
   topic: string;
-  initialPayload: Record<string, unknown>;
+  initialCorrelationId: string;
+  initialData: Record<string, unknown>;
   description: string;
-  onSend: (payload: Record<string, unknown>) => Promise<void>;
+  onSend: (message: TestMessageInput) => Promise<void>;
 }
+
+const inputStyle: React.CSSProperties = {
+  fontFamily: 'monospace',
+  fontSize: 13,
+  padding: '8px 10px',
+  borderRadius: 8,
+  border: `1px solid ${skinVars.colors.border}`,
+  background: skinVars.colors.background,
+  color: skinVars.colors.textPrimary,
+};
 
 /** Publica de verdade no tópico Kafka do nó, pra testar RECEIVE_TASK/MESSAGE_START_EVENT sem
  * precisar de um produtor externo real — o consumo em si acontece pelo bridge automático de
- * sempre (KafkaBridgeScheduler), este painel só publica a mensagem. */
-export function SendTestMessagePanel({ topic, initialPayload, description, onSend }: Props) {
-  const [text, setText] = useState(() => JSON.stringify(initialPayload, null, 2));
+ * sempre (KafkaBridgeScheduler), este painel só publica a mensagem. correlationId é obrigatório:
+ * é o que o worker Kafka usa pra correlacionar a mensagem (ou como businessKey da nova instância,
+ * no caso de MESSAGE_START_EVENT) — mesmo envelope (EventMessageDTO) que o worker automático usa. */
+export function SendTestMessagePanel({ topic, initialCorrelationId, initialData, description, onSend }: Props) {
+  const [correlationId, setCorrelationId] = useState(initialCorrelationId);
+  const [messageName, setMessageName] = useState('');
+  const [text, setText] = useState(() => JSON.stringify(initialData, null, 2));
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSend() {
-    let payload: Record<string, unknown>;
+    if (!correlationId.trim()) {
+      setError('correlationId é obrigatório.');
+      return;
+    }
+    let data: Record<string, unknown>;
     try {
-      payload = JSON.parse(text);
+      data = JSON.parse(text);
     } catch {
       setError('Payload não é um JSON válido.');
       return;
@@ -28,7 +48,7 @@ export function SendTestMessagePanel({ topic, initialPayload, description, onSen
     setError(null);
     setBusy(true);
     try {
-      await onSend(payload);
+      await onSend({ correlationId: correlationId.trim(), messageName: messageName.trim() || undefined, data });
       setSent(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao enviar a mensagem.');
@@ -61,7 +81,39 @@ export function SendTestMessagePanel({ topic, initialPayload, description, onSen
 
       <Stack space={4}>
         <Text size={12.5} weight="medium" color={skinVars.colors.textSecondary}>
-          Payload (JSON)
+          correlationId (obrigatório)
+        </Text>
+        <input
+          value={correlationId}
+          onChange={(e) => {
+            setCorrelationId(e.target.value);
+            setSent(false);
+          }}
+          disabled={busy}
+          className="w-full box-border"
+          style={inputStyle}
+        />
+      </Stack>
+
+      <Stack space={4}>
+        <Text size={12.5} weight="medium" color={skinVars.colors.textSecondary}>
+          messageName (opcional)
+        </Text>
+        <input
+          value={messageName}
+          onChange={(e) => {
+            setMessageName(e.target.value);
+            setSent(false);
+          }}
+          disabled={busy}
+          className="w-full box-border"
+          style={inputStyle}
+        />
+      </Stack>
+
+      <Stack space={4}>
+        <Text size={12.5} weight="medium" color={skinVars.colors.textSecondary}>
+          Payload (JSON) — vira payload.data no envelope
         </Text>
         <textarea
           value={text}
@@ -72,16 +124,7 @@ export function SendTestMessagePanel({ topic, initialPayload, description, onSen
           rows={6}
           disabled={busy}
           className="w-full box-border"
-          style={{
-            fontFamily: 'monospace',
-            fontSize: 13,
-            padding: '8px 10px',
-            borderRadius: 8,
-            border: `1px solid ${skinVars.colors.border}`,
-            background: skinVars.colors.background,
-            color: skinVars.colors.textPrimary,
-            resize: 'vertical',
-          }}
+          style={{ ...inputStyle, resize: 'vertical' }}
         />
       </Stack>
 

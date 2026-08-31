@@ -43,6 +43,10 @@ interface Props<T> {
   // Kafka (US-03.09), que sugere tópicos reais do broker mas não pode bloquear um nome que ainda
   // não existe ou que veio de uma jornada já salva antes dessa lista existir.
   allowCustomValue?: boolean;
+  // Sobrescreve o estilo compacto de grade (gridInputStyle) padrão — usado onde este seletor aparece
+  // fora de uma linha de PropertyGrid (ex.: ConnectorWizard), pra bater com a fonte/padding dos
+  // outros campos daquela tela em vez de destoar com o visual apertado de tabela.
+  inputStyle?: React.CSSProperties;
 }
 
 // Seletor pesquisável genérico: portal pro document.body (o mesmo motivo de sempre nesse painel —
@@ -61,6 +65,7 @@ export function SearchSelect<T>({
   emptyLabel = 'Nenhum resultado encontrado',
   extraActions,
   allowCustomValue = false,
+  inputStyle,
 }: Props<T>) {
   const { c } = useFlowTheme();
   const [open, setOpen] = useState(false);
@@ -133,7 +138,7 @@ export function SearchSelect<T>({
     <div ref={containerRef} style={{ display: 'flex', gap: 4, width: '100%' }}>
       <input
         ref={inputRef}
-        style={{ ...gridInputStyle(c), cursor: 'text', flex: 1 }}
+        style={{ ...(inputStyle ?? gridInputStyle(c)), cursor: 'text', flex: 1 }}
         value={open ? query : displayValue}
         placeholder={displayValue ? undefined : (placeholder ?? 'Nenhum')}
         onFocus={openDropdown}

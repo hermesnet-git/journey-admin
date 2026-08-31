@@ -1447,6 +1447,169 @@ export function OutputMappingEditor({
   );
 }
 
+export interface PayloadField {
+  name: string;
+  value: string;
+  type: VariableType;
+}
+
+const DEFAULT_PAYLOAD_COL_WIDTHS = { name: 160, value: 260, type: 110 };
+type PayloadColumn = keyof typeof DEFAULT_PAYLOAD_COL_WIDTHS;
+
+// Editor de payload customizado (lado de quem produz uma mensagem de mensageria) com o mesmo visual
+// de tabela do OutputMappingEditor (REST/consumo) — VALOR no lugar de JSONPATH, porque aqui não
+// existe resposta nenhuma pra apontar um caminho: o valor é texto fixo ou {{variável}} da jornada.
+// TIPO é só uma dica pro preview mostrar um exemplo mais fiel — não muda como o valor é enviado.
+export function PayloadFieldsEditor({ fields, onChange }: { fields: PayloadField[]; onChange: (fields: PayloadField[]) => void }) {
+  const { c } = useFlowTheme();
+  const [colWidths, setColWidths] = useState(DEFAULT_PAYLOAD_COL_WIDTHS);
+  const dragRef = useRef<{ col: PayloadColumn; startX: number; startWidth: number } | null>(null);
+
+  function commit(next: PayloadField[]) {
+    onChange(next);
+  }
+
+  function onResizeMove(e: PointerEvent) {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const next = Math.max(MIN_MAPPING_COL_WIDTH, drag.startWidth + (e.clientX - drag.startX));
+    setColWidths((w) => ({ ...w, [drag.col]: next }));
+  }
+
+  function onResizeEnd() {
+    dragRef.current = null;
+    window.removeEventListener('pointermove', onResizeMove);
+    window.removeEventListener('pointerup', onResizeEnd);
+  }
+
+  function startResize(col: PayloadColumn, e: React.PointerEvent) {
+    e.preventDefault();
+    dragRef.current = { col, startX: e.clientX, startWidth: colWidths[col] };
+    window.addEventListener('pointermove', onResizeMove);
+    window.addEventListener('pointerup', onResizeEnd);
+  }
+
+  function ResizeHandle({ col }: { col: PayloadColumn }) {
+    return (
+      <div
+        onPointerDown={(e) => startResize(col, e)}
+        title="Arrastar para redimensionar"
+        style={{ position: 'absolute', top: 0, bottom: 0, right: -3, width: 6, cursor: 'col-resize', zIndex: 1 }}
+      />
+    );
+  }
+
+  const gridTemplateColumns = `${colWidths.name}px minmax(${colWidths.value}px, 1fr) ${colWidths.type}px ${ACTION_COL_WIDTH}px`;
+  const cellBorder = `1px solid ${c.border}`;
+
+  return (
+    <div style={{ width: '100%' }}>
+      <button
+        onClick={() => commit([...fields, { name: '', value: '', type: 'string' }])}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          border: 'none',
+          background: 'none',
+          padding: '4px 0',
+          marginBottom: fields.length > 0 ? 10 : 0,
+          color: c.accent,
+          fontSize: 12.5,
+          fontWeight: 600,
+          cursor: 'pointer',
+        }}
+      >
+        <Plus size={14} /> Adicionar campo
+      </button>
+
+      {fields.length > 0 && (
+        <div style={{ border: cellBorder, borderRadius: 6, overflow: 'hidden', width: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns, background: c.canvasBg, borderBottom: cellBorder }}>
+            {(
+              [
+                ['name', 'Nome'],
+                ['value', 'Valor (texto fixo ou {{variável}})'],
+                ['type', 'Tipo'],
+              ] as const
+            ).map(([col, label]) => (
+              <div
+                key={col}
+                style={{
+                  position: 'relative',
+                  padding: '6px 8px',
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: c.textSecondary,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.3,
+                  borderRight: cellBorder,
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {label}
+                <ResizeHandle col={col} />
+              </div>
+            ))}
+            <div />
+          </div>
+
+          {fields.map((field, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns, borderTop: i === 0 ? 'none' : cellBorder }}>
+              <div style={{ borderRight: cellBorder }}>
+                <input
+                  style={cellInputStyle(c)}
+                  placeholder="nome"
+                  value={field.name}
+                  onChange={(e) => commit(fields.map((f, fi) => (fi === i ? { ...f, name: e.target.value } : f)))}
+                />
+              </div>
+              <div style={{ borderRight: cellBorder }}>
+                <input
+                  style={{ ...cellInputStyle(c), fontFamily: 'monospace' }}
+                  placeholder="{{variavel}} ou texto fixo"
+                  value={field.value}
+                  onChange={(e) => commit(fields.map((f, fi) => (fi === i ? { ...f, value: e.target.value } : f)))}
+                />
+              </div>
+              <div style={{ borderRight: cellBorder }}>
+                <select
+                  style={{
+                    ...cellInputStyle(c),
+                    cursor: 'pointer',
+                    color: skinVars.colors.textPrimary,
+                    background: skinVars.colors.background,
+                  }}
+                  title="Tipo do valor"
+                  value={field.type ?? 'string'}
+                  onChange={(e) => commit(fields.map((f, fi) => (fi === i ? { ...f, type: e.target.value as VariableType } : f)))}
+                >
+                  <option value="string">Texto</option>
+                  <option value="number">Número</option>
+                  <option value="boolean">Booleano</option>
+                  <option value="date">Data</option>
+                  <option value="datetime">Data e hora</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconButton
+                  Icon={MisticaXIcon}
+                  type="danger"
+                  small
+                  aria-label="Remover campo"
+                  onPress={() => commit(fields.filter((_, fi) => fi !== i))}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // REQ-03.10.005: {{name}} references in the current config get an input for a sample value here,
 // so the call can be resolved and tested without a real journey execution.
 const VARIABLE_TOKEN = /\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g;

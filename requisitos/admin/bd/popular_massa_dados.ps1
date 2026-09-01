@@ -10,10 +10,6 @@ $env:PGPASSWORD = 'postgres'
 $env:PGCLIENTENCODING = 'UTF8'
 $PGDATABASE = 'journey_admin'
 
-$ApiBase = 'http://localhost:8081/api/v1'
-$ApiUser = 'admin'
-$ApiPass = 'admin'
-
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SqlFile = Join-Path $ScriptDir 'massa_de_dados_journeys.sql'
 
@@ -36,35 +32,3 @@ if ($LASTEXITCODE -ne 0) {
   exit 1
 }
 Write-Host 'Massa de dados populada.'
-
-Write-Host ''
-Write-Host "Autenticando em $ApiBase ..."
-try {
-  $login = Invoke-RestMethod -Method Post -Uri "$ApiBase/auth/login" -ContentType 'application/json' `
-    -Body (@{ username = $ApiUser; password = $ApiPass } | ConvertTo-Json)
-} catch {
-  Write-Error "Nao foi possivel autenticar no admin/back ($ApiBase) - ele esta rodando? $($_.Exception.Message)"
-  exit 1
-}
-$headers = @{ Authorization = "Bearer $($login.token)" }
-
-Write-Host 'Publicando todas as jornadas via API...'
-$ids = & $Psql -h $PGHOST -p $PGPORT -U $PGUSER -d $PGDATABASE -t -A -c 'SELECT journey_id FROM journey;'
-$ids = $ids | Where-Object { $_.Trim() -ne '' }
-
-$ok = 0
-$fail = 0
-foreach ($id in $ids) {
-  $id = $id.Trim()
-  try {
-    Invoke-RestMethod -Method Post -Uri "$ApiBase/journeys/$id/publish" -Headers $headers | Out-Null
-    $ok++
-  } catch {
-    $fail++
-    Write-Host "  Falha ao publicar $id`: $($_.Exception.Message)"
-  }
-}
-
-Write-Host ''
-Write-Host "Publicadas: $ok   Falharam: $fail   Total: $($ids.Count)"
-if ($fail -gt 0) { exit 1 }

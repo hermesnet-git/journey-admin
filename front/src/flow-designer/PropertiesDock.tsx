@@ -62,11 +62,13 @@ export function PropertiesDock({
   // Vive aqui, não dentro de PropertiesPanel: o dock nunca desmonta ao trocar de nó ou cair pro
   // painel da jornada (clique no fundo do canvas), então o que o usuário abriu/fechou sobrevive a
   // essa troca em vez de voltar tudo expandido — só PropertiesPanel remontaria e perderia isso.
+  // Só "Informações Gerais" começa aberto — Variáveis/Conector/Decisão (e qualquer seção nova que
+  // surgir aqui) começam colapsados; o usuário abre o que precisar.
   const [generalOpen, setGeneralOpen] = useState(true);
-  const [startVariablesOpen, setStartVariablesOpen] = useState(true);
-  const [variablesOpen, setVariablesOpen] = useState(true);
-  const [connectorOpen, setConnectorOpen] = useState(true);
-  const [decisionOpen, setDecisionOpen] = useState(true);
+  const [startVariablesOpen, setStartVariablesOpen] = useState(false);
+  const [variablesOpen, setVariablesOpen] = useState(false);
+  const [connectorOpen, setConnectorOpen] = useState(false);
+  const [decisionOpen, setDecisionOpen] = useState(false);
 
   function onResizeStart(e: React.PointerEvent) {
     e.preventDefault();

@@ -138,9 +138,16 @@ public class KafkaConnectorWorker {
             // Réplica do ServiceBusTopic do wf-journey-v1: nenhum payload configurado, dump de toda
             // variável de processo — exceto as reservadas deste worker (prefixo "__"), que são
             // bookkeeping interno da tela de Execução/Diagnóstico, não dado de negócio.
-            resolvedPayload = processVariables.entrySet().stream()
-                    .filter(e -> !e.getKey().startsWith("__"))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
+            // Collectors.toMap não aceita valor null (usa HashMap.merge por baixo, que lança NPE mesmo
+            // sem colisão) — uma variável de processo null (ex: campo não resolvido de um 404 de
+            // negócio) é caso normal aqui, não pode quebrar a publicação.
+            Map<String, Object> dump = new LinkedHashMap<>();
+            processVariables.forEach((key, value) -> {
+                if (!key.startsWith("__")) {
+                    dump.put(key, value);
+                }
+            });
+            resolvedPayload = dump;
         }
         EventMessageDTO envelope = buildEnvelope(task, resolvedPayload, processVariables);
         String payloadJson = objectMapper.writeValueAsString(envelope);

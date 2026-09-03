@@ -16,6 +16,7 @@ import {
   RotateCw,
   RefreshCw,
   GitCommitHorizontal,
+  PlayCircle,
 } from 'lucide-react';
 import { PrimaryButton, SecondaryButton, FilterDropdown, ActionsMenu, type FilterOption, type MenuAction } from '../products/ui';
 import { useAppTheme, type AppColors } from '../shell/theme';
@@ -114,17 +115,18 @@ function formatDate(iso: string | null): string {
 interface JourneysPageProps {
   onOpenForm: (formId: string) => void;
   onOpenNewForm: () => void;
+  onExecuteJourney: (journey: Journey) => void;
 }
 
-export function JourneysPage({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
+export function JourneysPage({ onOpenForm, onOpenNewForm, onExecuteJourney }: JourneysPageProps) {
   return (
     <ToastProvider>
-      <JourneysPageContent onOpenForm={onOpenForm} onOpenNewForm={onOpenNewForm} />
+      <JourneysPageContent onOpenForm={onOpenForm} onOpenNewForm={onOpenNewForm} onExecuteJourney={onExecuteJourney} />
     </ToastProvider>
   );
 }
 
-function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
+function JourneysPageContent({ onOpenForm, onOpenNewForm, onExecuteJourney }: JourneysPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [journeys, setJourneys] = useState<Journey[]>([]);
@@ -349,6 +351,7 @@ function JourneysPageContent({ onOpenForm, onOpenNewForm }: JourneysPageProps) {
                   onUnpublish={() => setUnpublishingJourney(j)}
                   onViewPublication={() => setViewingPublicationJourney(j)}
                   onViewFlow={() => setViewingFlowJourney(j)}
+                  onExecute={() => onExecuteJourney(j)}
                   onVersionsChanged={reload}
                 />
               ))}
@@ -489,6 +492,7 @@ function JourneyActions({
   onUnpublish,
   onViewPublication,
   onViewFlow,
+  onExecute,
 }: {
   journey: Journey;
   onEdit: () => void;
@@ -496,8 +500,12 @@ function JourneyActions({
   onUnpublish: () => void;
   onViewPublication: () => void;
   onViewFlow: () => void;
+  onExecute: () => void;
 }) {
   const actions: MenuAction[] = [
+    ...(journey.status === 'PUBLISHED'
+      ? [{ icon: PlayCircle, label: 'Executar jornada', onClick: onExecute, variant: 'success' as const }]
+      : []),
     { icon: Waypoints, label: 'Ver fluxo da jornada', onClick: onViewFlow },
     {
       icon: Pencil,
@@ -533,6 +541,7 @@ function JourneyDetailRow({
   onUnpublish,
   onViewPublication,
   onViewFlow,
+  onExecute,
   onVersionsChanged,
 }: {
   journey: Journey;
@@ -541,6 +550,7 @@ function JourneyDetailRow({
   onUnpublish: () => void;
   onViewPublication: () => void;
   onViewFlow: () => void;
+  onExecute: () => void;
   onVersionsChanged: () => void;
 }) {
   const { colors: c } = useAppTheme();
@@ -587,6 +597,7 @@ function JourneyDetailRow({
           onUnpublish={onUnpublish}
           onViewPublication={onViewPublication}
           onViewFlow={onViewFlow}
+          onExecute={onExecute}
         />
       </div>
       {open && <JourneyVersionsRows journeyId={journey.journeyId} onJourneyChanged={onVersionsChanged} />}

@@ -240,6 +240,11 @@ public class KafkaConnectorWorker {
 
         Map<String, Object> variables = buildVariables(envelope);
         variables.putAll(resolveOutputMapping(jsonBody, node.outputMapping()));
+        // Mesmas variáveis reservadas que publishAndComplete grava pro lado produtor — sem isso, a
+        // trilha de execução/histórico do admin (InstanceHistoryController.kafkaInput) não tinha de
+        // onde ler a mensagem recebida por este nó, só os campos já espalhados soltos acima.
+        variables.put(KAFKA_TOPIC_VAR_PREFIX + node.nodeId(), node.topic());
+        variables.put(KAFKA_PAYLOAD_VAR_PREFIX + node.nodeId(), jsonBody);
 
         if ("MESSAGE_START_EVENT".equals(node.nodeType())) {
             ProcessInstance instance = runtimeService.startProcessInstanceByKey(node.processDefinitionKey(), correlationId, variables);

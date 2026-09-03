@@ -33,6 +33,8 @@ Formulários
 
 Execução
 
+Diagnóstico
+
 Dashboard operacional
 
 Publicação de Jornadas
@@ -88,6 +90,8 @@ Autenticação e Autorização mockadas
 Auditoria
 
 Execução
+
+Diagnóstico
 
 Publicação de Jornadas
 
@@ -183,6 +187,10 @@ Formulário reutilizável do catálogo, usado como modelo de partida (cópia) pa
 
 Execução real do caminho e das telas de uma jornada publicada, contra o motor de runtime.
 
+## Diagnostic
+
+Investigação do comportamento de qualquer execução de jornada no motor de runtime, iniciada pelo Admin Portal ou por um canal digital, independente da tela de Execução ao vivo.
+
 ## Journey Version
 
 Versão imutável de uma jornada, contendo o fluxo, conexões e a tela embutida (compilada) de cada User Task numa determinada publicação.
@@ -247,7 +255,7 @@ Especificação OpenAPI
 
 ## Requisitos Funcionais
 
-**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo da versão 1.0.0, organizado em catorze features.
+**Arquivo:** `ej-admin-requisitos.md` — Escopo funcional completo da versão 1.0.0, organizado em quinze features.
 
 ## Arquitetura Lógica
 
@@ -312,6 +320,7 @@ Especificação OpenAPI
 | User Task | Interação humana realizada durante a jornada |
 | Form | Formulário reutilizável do catálogo, usado como modelo de partida (cópia) para a tela de uma User Task |
 | Execution | Execução real da jornada publicada, contra o motor de runtime |
+| Diagnostic | Investigação do comportamento de qualquer execução no motor de runtime, independente da tela de Execução ao vivo |
 | Publication | Envio do snapshot de uma versão imutável para a API de publicação do runtime |
 | Runtime | Camada responsável pela execução das jornadas |
 | ms-journey | Motor de execução que não conhece nem consulta o Admin Portal |
@@ -325,4 +334,4 @@ Especificação OpenAPI
 
 # 12. Resumo Executivo
 
-O Elastic Journey Admin Portal versão 1.0.0 cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários (incluindo conectores REST, Kafka, Azure Event Hubs e Azure Service Bus apoiados por um catálogo de integrações de clusters e credenciais), versionamento, execução, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).
+O Elastic Journey Admin Portal versão 1.0.0 cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários (incluindo conectores REST, Kafka, Azure Event Hubs e Azure Service Bus apoiados por um catálogo de integrações de clusters e credenciais), versionamento, execução, diagnóstico de execuções, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).

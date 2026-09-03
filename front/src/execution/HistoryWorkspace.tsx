@@ -13,7 +13,6 @@ interface Props {
 const STEP_TYPE_LABEL: Record<string, (name: string) => string> = {
   START: (name) => `Jornada iniciada em "${name}".`,
   USER_TASK: (name) => `Tarefa de usuário "${name}" concluída.`,
-  RECEIVE_TASK: (name) => `Tarefa de recebimento "${name}" concluída.`,
   GATEWAY: (name) => `Decisão "${name}" avaliada.`,
   END: (name) => `Etapa final "${name}" alcançada.`,
 };
@@ -25,15 +24,15 @@ const CONNECTOR_TYPE_LABEL: Record<string, string> = {
   SERVICE_BUS: 'Service Bus',
 };
 
-// Duas Tarefas de Serviço com o mesmo nome genérico são indistinguíveis no log sem isso — o tipo de
-// conector entre parênteses deixa claro qual é uma chamada REST e qual é uma publicação de
-// mensageria, sem precisar abrir o Fluxo da Jornada pra descobrir.
+// Duas Tarefas de Serviço/Recebimento com o mesmo nome genérico são indistinguíveis no log sem
+// isso — o tipo de conector entre parênteses deixa claro qual é uma chamada REST e qual é uma
+// publicação/consumo de mensageria, sem precisar abrir o Fluxo da Jornada pra descobrir.
 function describeHistoryStep(step: NodeIODetail, connectorTypeByNodeId: Record<string, string>): string {
-  if (step.nodeType === 'SERVICE_TASK') {
+  if (step.nodeType === 'SERVICE_TASK' || step.nodeType === 'RECEIVE_TASK') {
+    const label = step.nodeType === 'SERVICE_TASK' ? 'Tarefa de serviço' : 'Tarefa de recebimento';
+    const verb = step.nodeType === 'SERVICE_TASK' ? 'executada' : 'concluída';
     const connectorLabel = CONNECTOR_TYPE_LABEL[connectorTypeByNodeId[step.nodeId]];
-    return connectorLabel
-      ? `Tarefa de serviço (${connectorLabel}) "${step.nodeName}" executada.`
-      : `Tarefa de serviço "${step.nodeName}" executada.`;
+    return connectorLabel ? `${label} (${connectorLabel}) "${step.nodeName}" ${verb}.` : `${label} "${step.nodeName}" ${verb}.`;
   }
   const describe = STEP_TYPE_LABEL[step.nodeType];
   return describe ? describe(step.nodeName) : `Etapa "${step.nodeName}" concluída.`;
@@ -70,7 +69,7 @@ function stepLogData(step: NodeIODetail): Record<string, unknown> | undefined {
 }
 
 export const STATE_LABEL: Record<string, string> = {
-  ACTIVE: 'Ativa',
+  ACTIVE: 'Em execução',
   COMPLETED: 'Concluída',
   EXTERNALLY_TERMINATED: 'Encerrada manualmente',
   INTERNALLY_TERMINATED: 'Encerrada pelo motor',
@@ -192,11 +191,11 @@ export function SummaryField({ label, value, mono, copyable }: { label: string; 
   );
 }
 
-function formatDateTime(iso: string): string {
+export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR');
 }
 
-function formatDuration(ms: number | null): string {
+export function formatDuration(ms: number | null): string {
   if (ms == null) return '—';
   const seconds = ms / 1000;
   if (seconds < 60) return `${seconds.toFixed(1)} s`;

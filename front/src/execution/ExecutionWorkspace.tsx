@@ -72,7 +72,6 @@ function describeStep(step: StepResponse): string {
 // elegibilidade + gateway + aplicação de troca de plano, tudo numa única transição. Sem narrar isso
 // no log, essas etapas ficam invisíveis (nunca aparecem como "passo atual").
 const TRAIL_TYPE_LABEL: Record<string, (name: string) => string> = {
-  RECEIVE_TASK: (name) => `Tarefa de recebimento "${name}" concluída.`,
   GATEWAY: (name) => `Decisão "${name}" avaliada.`,
   END: (name) => `Etapa final "${name}" alcançada.`,
 };
@@ -84,15 +83,15 @@ const CONNECTOR_TYPE_LABEL: Record<string, string> = {
   SERVICE_BUS: 'Service Bus',
 };
 
-// Duas Tarefas de Serviço com o mesmo nome genérico ("Tarefa de Serviço") são indistinguíveis no log
-// sem isso — o tipo de conector entre parênteses é o que deixa claro qual delas é uma chamada REST e
-// qual é uma publicação de mensageria, sem precisar abrir o Fluxo da Jornada pra descobrir.
+// Duas Tarefas de Serviço/Recebimento com o mesmo nome genérico são indistinguíveis no log sem
+// isso — o tipo de conector entre parênteses é o que deixa claro qual delas é uma chamada REST e
+// qual é uma publicação/consumo de mensageria, sem precisar abrir o Fluxo da Jornada pra descobrir.
 function describeTrailEntry(entry: TrailEntry, connectorTypeByNodeId: Record<string, string>): string {
-  if (entry.nodeType === 'SERVICE_TASK') {
+  if (entry.nodeType === 'SERVICE_TASK' || entry.nodeType === 'RECEIVE_TASK') {
+    const label = entry.nodeType === 'SERVICE_TASK' ? 'Tarefa de serviço' : 'Tarefa de recebimento';
+    const verb = entry.nodeType === 'SERVICE_TASK' ? 'executada' : 'concluída';
     const connectorLabel = CONNECTOR_TYPE_LABEL[connectorTypeByNodeId[entry.nodeId]];
-    return connectorLabel
-      ? `Tarefa de serviço (${connectorLabel}) "${entry.nodeName}" executada.`
-      : `Tarefa de serviço "${entry.nodeName}" executada.`;
+    return connectorLabel ? `${label} (${connectorLabel}) "${entry.nodeName}" ${verb}.` : `${label} "${entry.nodeName}" ${verb}.`;
   }
   const describe = TRAIL_TYPE_LABEL[entry.nodeType];
   return describe ? describe(entry.nodeName) : `Etapa "${entry.nodeName}" concluída.`;

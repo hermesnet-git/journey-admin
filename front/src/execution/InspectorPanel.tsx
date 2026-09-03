@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronDown, ChevronRight, ChevronUp, Copy, Pencil, Route, Search, Sliders, ScrollText, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ChevronUp, Copy, GitBranch, Pencil, Plug, Route, Search, Sliders, ScrollText, X } from 'lucide-react';
 import { Stack, Text, TextFieldBase, skinVars } from '@telefonica/mistica';
 import {
   isInternalVariableName,
+  type BackendConnectorType,
+  type ConnectorConfigInfo,
   type FlowConnectionInfo,
   type FlowNodeInfo,
   type NodeIODetail,
@@ -175,6 +177,12 @@ export function InspectorPanel({
           {selectedNodeId && (
             <NodeDetailDrawer
               detail={nodeIO[selectedNodeId]}
+              flowNode={flowNodes.find((n) => n.id === selectedNodeId)}
+              flowNodes={flowNodes}
+              flowConnections={flowConnections}
+              currentNodeId={currentNodeId}
+              visitedNodeIds={visitedNodeIds}
+              variables={variables}
               fallbackName={flowNodes.find((n) => n.id === selectedNodeId)?.name ?? selectedNodeId}
               onClose={() => setSelectedNodeId(null)}
             />
@@ -203,62 +211,355 @@ const NODE_TYPE_LABEL_PT: Record<string, string> = {
   END: 'Fim',
 };
 
-const NODE_DETAIL_DRAWER_WIDTH = 300;
+const DEFAULT_DRAWER_WIDTH = 300;
+const MIN_DRAWER_WIDTH = 260;
+const MAX_DRAWER_WIDTH = 640;
+
+const CONNECTOR_TYPE_LABEL: Record<BackendConnectorType, string> = {
+  REST: 'API REST',
+  KAFKA: 'Kafka',
+  EVENT_HUBS: 'Event Hubs',
+  SERVICE_BUS: 'Service Bus',
+};
 
 // Painel que abre ao clicar num nó do Fluxo (ao vivo ou histórico) — mostra o que aquele nó
 // especificamente recebeu/produziu, sem competir com as abas Variáveis/Log (que continuam sendo a
 // visão de tudo, sem filtro). `detail` vem ausente pra um nó sem input/output (START/END/GATEWAY) ou
 // ainda não resolvido no mapa nodeIO — nos dois casos mostra só o nome/tipo que dá pra inferir do
-// próprio fluxo, com um aviso no lugar dos blocos JSON.
+// próprio fluxo, com um aviso no lugar dos blocos JSON. `flowNode` traz a configuração do conector
+// (existe pro nó independente de ele já ter sido executado ou não), usada pela seção de conector.
 function NodeDetailDrawer({
   detail,
+  flowNode,
+  flowNodes,
+  flowConnections,
+  currentNodeId,
+  visitedNodeIds,
+  variables,
   fallbackName,
   onClose,
 }: {
   detail: NodeIODetail | undefined;
+  flowNode: FlowNodeInfo | undefined;
+  flowNodes: FlowNodeInfo[];
+  flowConnections: FlowConnectionInfo[];
+  currentNodeId: string | null;
+  visitedNodeIds: string[];
+  variables: VariableEntry[];
   fallbackName: string;
   onClose: () => void;
 }) {
-  const typeLabel = detail ? (NODE_TYPE_LABEL_PT[detail.nodeType] ?? detail.nodeType) : null;
+  const [width, setWidth] = useState(DEFAULT_DRAWER_WIDTH);
+  const draggingRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const typeLabel = NODE_TYPE_LABEL_PT[detail?.nodeType ?? flowNode?.type ?? ''] ?? null;
+  const connectorConfig = flowNode?.connectorConfig ?? null;
+  const isGateway = (detail?.nodeType ?? flowNode?.type) === 'GATEWAY';
+  // Só o nó START comum declara isso (REQ-03.12.001) — MESSAGE_START_EVENT não tem início manual,
+  // a config dele é só o conector (mostrado por ConnectorConfigSection acima).
+  const startVariables = flowNode?.type === 'START' ? (flowNode.startVariables ?? []) : [];
+
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      const drag = draggingRef.current;
+      if (!drag) return;
+      const next = drag.startWidth + (drag.startX - e.clientX);
+      setWidth(Math.min(Math.max(next, MIN_DRAWER_WIDTH), MAX_DRAWER_WIDTH));
+    }
+    function onUp() {
+      if (!draggingRef.current) return;
+      draggingRef.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  function startDrag(e: React.MouseEvent) {
+    draggingRef.current = { startX: e.clientX, startWidth: width };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }
 
   return (
-    <div
-      className="shrink-0 h-full overflow-auto border-l"
-      style={{ width: NODE_DETAIL_DRAWER_WIDTH, borderColor: skinVars.colors.border, background: skinVars.colors.background }}
-    >
-      <div className="flex items-start justify-between gap-2 p-3 border-b" style={{ borderColor: skinVars.colors.border }}>
-        <div className="min-w-0">
-          <Text size={13} weight="medium" color={skinVars.colors.textPrimary}>
-            {detail?.nodeName ?? fallbackName}
-          </Text>
-          {typeLabel && (
-            <div className="mt-[2px]">
-              <Text size={11} color={skinVars.colors.textSecondary}>
-                {typeLabel} · {nodeDurationLabel(detail)}
-              </Text>
-            </div>
+    <div className="shrink-0 h-full flex" style={{ width }}>
+      {/* Alça só horizontal (col-resize) — a altura acompanha sempre o pai, nunca redimensiona
+          verticalmente, diferente do drawer de baixo (InspectorPanel) que só redimensiona vertical. */}
+      <div
+        onMouseDown={startDrag}
+        className="w-[5px] shrink-0 h-full cursor-col-resize flex items-center justify-center"
+        style={{ background: skinVars.colors.backgroundAlternative, borderLeft: `1px solid ${skinVars.colors.border}` }}
+        title="Arraste para redimensionar"
+      >
+        <div className="w-[3px] h-10 rounded-full" style={{ background: skinVars.colors.border }} />
+      </div>
+      <div className="flex-1 min-w-0 h-full overflow-auto" style={{ background: skinVars.colors.background }}>
+        <div className="flex items-start justify-between gap-2 p-3 border-b" style={{ borderColor: skinVars.colors.border }}>
+          <div className="min-w-0">
+            <Text size={13} weight="medium" color={skinVars.colors.textPrimary}>
+              {detail?.nodeName ?? fallbackName}
+            </Text>
+            {typeLabel && (
+              <div className="mt-[2px]">
+                <Text size={11} color={skinVars.colors.textSecondary}>
+                  {typeLabel} · {nodeDurationLabel(detail)}
+                </Text>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            title="Fechar"
+            className="shrink-0 cursor-pointer border-0 bg-transparent"
+            style={{ color: skinVars.colors.textSecondary }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+        <div className="p-3 flex flex-col gap-3">
+          {isGateway && flowNode && (
+            <GatewaySection
+              gatewayId={flowNode.id}
+              flowNodes={flowNodes}
+              flowConnections={flowConnections}
+              currentNodeId={currentNodeId}
+              visitedNodeIds={visitedNodeIds}
+            />
+          )}
+          {connectorConfig && <ConnectorConfigSection connectorConfig={connectorConfig} nodeType={flowNode?.type} />}
+          {startVariables.length > 0 && <StartVariablesSection startVariables={startVariables} variables={variables} />}
+          {/* Conector de tópico (Kafka/Event Hubs/Service Bus) não tem "entrada" no sentido de
+              request/response — o que entra é a própria mensagem publicada/consumida. */}
+          {detail?.input && (
+            <CollapsibleJsonSection title={connectorConfig && connectorConfig.connectorType !== 'REST' ? 'Payload da Mensagem' : 'Entrada'} data={detail.input} />
+          )}
+          {detail?.output && <CollapsibleJsonSection title="Saída" data={detail.output} />}
+          {!isGateway && !connectorConfig && startVariables.length === 0 && !detail?.input && !detail?.output && (
+            <Text size={12.5} color={skinVars.colors.textSecondary}>
+              Sem dados de entrada/saída para esta etapa.
+            </Text>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          title="Fechar"
-          className="shrink-0 cursor-pointer border-0 bg-transparent"
-          style={{ color: skinVars.colors.textSecondary }}
-        >
-          <X size={15} />
-        </button>
       </div>
-      <div className="p-3 flex flex-col gap-3">
-        {detail?.input && <JsonSection title="Entrada" data={detail.input} />}
-        {detail?.output && <JsonSection title="Saída" data={detail.output} />}
-        {!detail?.input && !detail?.output && (
-          <Text size={12.5} color={skinVars.colors.textSecondary}>
-            Sem dados de entrada/saída para esta etapa.
-          </Text>
+    </div>
+  );
+}
+
+// Lista as saídas do gateway (condição/"padrão" de cada uma) — mesmo critério de "caminho
+// percorrido" que já colore as arestas no diagrama (FlowDiagramViewer): a aresta cujo destino está
+// em `visitedNodeIds` (ou é o `currentNodeId` atual) foi a escolhida por esta decisão. Sem instância
+// (staticView) nada fica marcado como tomado — só a lista de condições configuradas.
+function GatewaySection({
+  gatewayId,
+  flowNodes,
+  flowConnections,
+  currentNodeId,
+  visitedNodeIds,
+}: {
+  gatewayId: string;
+  flowNodes: FlowNodeInfo[];
+  flowConnections: FlowConnectionInfo[];
+  currentNodeId: string | null;
+  visitedNodeIds: string[];
+}) {
+  const visited = new Set(visitedNodeIds);
+  const outgoing = flowConnections.filter((c) => c.sourceNodeId === gatewayId);
+
+  return (
+    <div>
+      <div className="flex items-center gap-[6px] mb-2">
+        <GitBranch size={12} color={skinVars.colors.textSecondary} />
+        <Text size={11} weight="medium" color={skinVars.colors.textSecondary}>
+          CONDIÇÕES DO GATEWAY
+        </Text>
+      </div>
+      {outgoing.length === 0 ? (
+        <Text size={12} color={skinVars.colors.textSecondary}>
+          Nenhuma saída configurada.
+        </Text>
+      ) : (
+        <div className="flex flex-col gap-[6px]">
+          {outgoing.map((connection) => {
+            const targetName = flowNodes.find((n) => n.id === connection.targetNodeId)?.name ?? connection.targetNodeId;
+            const taken = visited.has(connection.targetNodeId) || connection.targetNodeId === currentNodeId;
+            return (
+              <div
+                key={connection.id}
+                className="rounded-md p-2 flex flex-col gap-[2px]"
+                style={{
+                  background: taken ? skinVars.colors.successLow : skinVars.colors.backgroundAlternative,
+                  border: taken ? `1px solid ${skinVars.colors.success}` : undefined,
+                }}
+              >
+                <div className="flex items-center gap-[6px]">
+                  {taken && <Check size={12} color={skinVars.colors.success} />}
+                  <Text size={12} weight="medium" color={taken ? skinVars.colors.success : skinVars.colors.textPrimary}>
+                    → {targetName}
+                  </Text>
+                </div>
+                <Text size={11} color={skinVars.colors.textSecondary}>
+                  {connection.isDefault ? 'Caminho padrão' : (connection.condition ?? 'Sem condição')}
+                </Text>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// REST mostra método+URL sempre à mão (é o que mais importa pra diagnosticar) e detalhes
+// secundários (headers/body) resumidos em texto — a lista de headers de verdade fica junto,
+// já que "qual API está configurada" (REQ do usuário) inclui saber o que está sendo mandado, não só
+// pra onde. Kafka/Event Hubs/Service Bus mostram tópico + cluster, e "Produção"/"Consumo" conforme o
+// tipo do nó (SERVICE_TASK publica, RECEIVE_TASK consome) — mesmo tratamento pros três, só troca o
+// rótulo "Tópico"/"Event Hub".
+function ConnectorConfigSection({ connectorConfig, nodeType }: { connectorConfig: ConnectorConfigInfo; nodeType?: string }) {
+  const cfg = connectorConfig.config ?? {};
+  const typeLabel = CONNECTOR_TYPE_LABEL[connectorConfig.connectorType] ?? connectorConfig.connectorType;
+
+  return (
+    <div>
+      <div className="flex items-center gap-[6px] mb-2">
+        <Plug size={12} color={skinVars.colors.textSecondary} />
+        <Text size={11} weight="medium" color={skinVars.colors.textSecondary}>
+          CONFIGURAÇÃO DO CONECTOR
+        </Text>
+      </div>
+      <div
+        className="rounded-md p-2 flex flex-col gap-[6px]"
+        style={{ background: skinVars.colors.backgroundAlternative }}
+      >
+        <span
+          className="inline-flex items-center gap-1 rounded-full px-[8px] py-[2px] text-[10.5px] font-semibold w-fit"
+          style={{ background: skinVars.colors.background, color: skinVars.colors.brand }}
+        >
+          {typeLabel}
+        </span>
+        {connectorConfig.connectorType === 'REST' ? (
+          <RestConnectorDetails cfg={cfg} />
+        ) : (
+          <TopicConnectorDetails cfg={cfg} connectorType={connectorConfig.connectorType} nodeType={nodeType} />
         )}
       </div>
     </div>
+  );
+}
+
+// O que o nó START pede pra quem inicia a jornada (REQ-03.12.001) — mostra o valor que de fato
+// chegou pra cada uma (lido do mesmo mapa de variáveis de processo da aba Variáveis, por nome),
+// não a declaração de tipo: é isso que ajuda a diagnosticar "veio vazio"/"veio o valor errado".
+// Sem valor ainda resolvido (nó nunca visitado/instância nunca chegou a iniciar) mostra "—".
+function StartVariablesSection({
+  startVariables,
+  variables,
+}: {
+  startVariables: { name: string; type: string }[];
+  variables: VariableEntry[];
+}) {
+  const valueByName = new Map(variables.map((v) => [v.name, v.value]));
+  return (
+    <div>
+      <Text size={11} weight="medium" color={skinVars.colors.textSecondary}>
+        VARIÁVEIS DE ENTRADA
+      </Text>
+      <div
+        className="rounded-md p-2 mt-1 flex flex-col gap-[4px]"
+        style={{ background: skinVars.colors.backgroundAlternative }}
+      >
+        {startVariables.map((v) => {
+          const value = valueByName.get(v.name);
+          return (
+            <div key={v.name} className="flex items-center justify-between gap-2">
+              <span className="text-[12px] shrink-0" style={{ color: skinVars.colors.textSecondary, fontFamily: 'monospace' }}>
+                {v.name}
+              </span>
+              <span className="text-[12px] truncate" style={{ color: skinVars.colors.textPrimary }} title={value != null ? String(value) : undefined}>
+                {value != null ? String(value) : '—'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RestConnectorDetails({ cfg }: { cfg: Record<string, unknown> }) {
+  const method = (cfg.method as string) || null;
+  const url = (cfg.url as string) || null;
+  const headers = (cfg.headers as Record<string, string>) ?? {};
+  const headerEntries = Object.entries(headers);
+  const hasBody = !!cfg.body && Object.keys(cfg.body as object).length > 0;
+
+  return (
+    <>
+      <div className="text-[12px]" style={{ color: skinVars.colors.textPrimary, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+        {method && url ? `${method} ${url}` : 'URL ainda não configurada'}
+      </div>
+      {headerEntries.length > 0 && (
+        <div>
+          <Text size={10.5} color={skinVars.colors.textSecondary}>
+            HEADERS ({headerEntries.length})
+          </Text>
+          <div className="flex flex-col gap-[2px] mt-[2px]">
+            {headerEntries.map(([key, value]) => (
+              <div key={key} className="text-[11px]" style={{ color: skinVars.colors.textPrimary, fontFamily: 'monospace' }}>
+                {key}: {value}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {hasBody && (
+        <Text size={11} color={skinVars.colors.textSecondary}>
+          Body configurado
+        </Text>
+      )}
+    </>
+  );
+}
+
+// MESSAGE_START_EVENT também é consumer — a jornada só começa quando uma mensagem real chega
+// nesse tópico, mesma direção de RECEIVE_TASK, só que inicia a instância em vez de retomá-la.
+const CONSUMER_NODE_TYPES = new Set(['RECEIVE_TASK', 'MESSAGE_START_EVENT']);
+
+function TopicConnectorDetails({
+  cfg,
+  connectorType,
+  nodeType,
+}: {
+  cfg: Record<string, unknown>;
+  connectorType: BackendConnectorType;
+  nodeType?: string;
+}) {
+  const topicLabel = connectorType === 'EVENT_HUBS' ? 'Event Hub' : 'Tópico';
+  const operationLabel = nodeType ? (CONSUMER_NODE_TYPES.has(nodeType) ? 'Consumer' : 'Producer') : null;
+  const clusterId = (cfg.clusterId as string) || null;
+  const topic = (cfg.topic as string) || null;
+
+  return (
+    <>
+      {operationLabel && (
+        <Text size={11} weight="medium" color={skinVars.colors.textSecondary}>
+          {operationLabel}
+        </Text>
+      )}
+      <div className="text-[12px]" style={{ color: skinVars.colors.textPrimary, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+        {topicLabel}: {topic || '—'}
+      </div>
+      {clusterId && (
+        <div className="text-[11px]" style={{ color: skinVars.colors.textSecondary, fontFamily: 'monospace' }}>
+          Cluster: {clusterId}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -291,27 +592,41 @@ function prettifyJson(value: unknown): unknown {
   return value;
 }
 
-function JsonSection({ title, data }: { title: string; data: Record<string, unknown> }) {
+function CollapsibleJsonSection({ title, data }: { title: string; data: Record<string, unknown> }) {
+  const [open, setOpen] = useState(true);
   const pretty = useMemo(() => prettifyJson(data) as Record<string, unknown>, [data]);
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <Text size={11} weight="medium" color={skinVars.colors.textSecondary}>
-          {title.toUpperCase()}
-        </Text>
-        <CopyJsonButton data={pretty} />
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-1 border-0 bg-transparent cursor-pointer p-0"
+        >
+          {open ? (
+            <ChevronDown size={12} color={skinVars.colors.textSecondary} />
+          ) : (
+            <ChevronRight size={12} color={skinVars.colors.textSecondary} />
+          )}
+          <Text size={11} weight="medium" color={skinVars.colors.textSecondary}>
+            {title.toUpperCase()}
+          </Text>
+        </button>
+        {open && <CopyJsonButton data={pretty} />}
       </div>
-      <pre
-        className="rounded-md px-2 py-1 text-[11px] overflow-auto m-0"
-        style={{
-          background: skinVars.colors.backgroundAlternative,
-          color: skinVars.colors.textPrimary,
-          fontFamily: 'monospace',
-          maxHeight: 260,
-        }}
-      >
-        {JSON.stringify(pretty, null, 2)}
-      </pre>
+      {open && (
+        <pre
+          className="rounded-md px-2 py-1 text-[11px] overflow-auto m-0"
+          style={{
+            background: skinVars.colors.backgroundAlternative,
+            color: skinVars.colors.textPrimary,
+            fontFamily: 'monospace',
+            maxHeight: 260,
+          }}
+        >
+          {JSON.stringify(pretty, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }

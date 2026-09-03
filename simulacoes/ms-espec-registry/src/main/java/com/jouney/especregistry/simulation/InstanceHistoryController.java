@@ -56,7 +56,7 @@ public class InstanceHistoryController {
                 .searchHistoricInstances(processDefinitionKey, businessKey, startedFrom, startedTo, finished, SEARCH_MAX_RESULTS)
                 .stream()
                 .map(p -> new HistoricInstanceSummary(p.id(), p.businessKey(), p.processDefinitionName(),
-                        p.startTime(), p.endTime(), p.durationInMillis(), p.state()))
+                        p.processDefinitionVersion(), p.startTime(), p.endTime(), p.durationInMillis(), p.state()))
                 .toList();
     }
 

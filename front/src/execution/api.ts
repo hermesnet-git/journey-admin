@@ -399,6 +399,9 @@ export interface HistoricInstanceSummary {
   id: string;
   businessKey: string;
   journeyName: string;
+  // processDefinitionVersion do Camunda — usado só pra agrupar por versão de jornada na tela
+  // Diagnóstico, não é necessariamente o mesmo número da versão de negócio (versionTag).
+  version: number | null;
   startTime: string;
   endTime: string | null;
   durationMillis: number | null;
@@ -439,8 +442,18 @@ export interface InstanceHistorySearchFilters {
   journeyId?: string;
   businessKey?: string;
   finished?: boolean;
+  // Datas soltas ("AAAA-MM-DD", direto de um <input type="date">) — o backend espera um
+  // java.time.Instant completo, então viram início/fim do dia (hora local) antes de ir pra query.
   startedFrom?: string;
   startedTo?: string;
+}
+
+function startOfDayInstant(date: string): string {
+  return new Date(`${date}T00:00:00`).toISOString();
+}
+
+function endOfDayInstant(date: string): string {
+  return new Date(`${date}T23:59:59.999`).toISOString();
 }
 
 export function searchInstanceHistory(filters: InstanceHistorySearchFilters): Promise<HistoricInstanceSummary[]> {
@@ -448,8 +461,8 @@ export function searchInstanceHistory(filters: InstanceHistorySearchFilters): Pr
   if (filters.journeyId) params.set('journeyId', filters.journeyId);
   if (filters.businessKey) params.set('businessKey', filters.businessKey);
   if (filters.finished !== undefined) params.set('finished', String(filters.finished));
-  if (filters.startedFrom) params.set('startedFrom', filters.startedFrom);
-  if (filters.startedTo) params.set('startedTo', filters.startedTo);
+  if (filters.startedFrom) params.set('startedFrom', startOfDayInstant(filters.startedFrom));
+  if (filters.startedTo) params.set('startedTo', endOfDayInstant(filters.startedTo));
   const qs = params.toString();
   return apiGet(`/instances/search${qs ? `?${qs}` : ''}`);
 }

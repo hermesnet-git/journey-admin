@@ -579,6 +579,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.07.002 - A execução deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.
 #### REQ-05.07.003 - A pré-visualização da execução deve se adaptar ao canal da jornada (Web ou App), incluindo uma representação visual compatível com o canal (ex.: layout de dispositivo móvel para jornadas de canal App).
 #### REQ-05.07.004 - O sistema deve exibir o número da versão publicada da jornada (`v<N>`) tanto na lista de busca quanto no cabeçalho de uma execução em andamento.
+#### REQ-05.07.005 - O sistema deve permitir iniciar a execução de uma jornada publicada diretamente do grid de Jornadas (FT-02), abrindo uma aba de Execução dedicada já com essa jornada selecionada.
 ---
 
 ### US-05.08 Tratamento de falhas de integração
@@ -601,6 +602,22 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.09.009 - O sistema deve permitir, como alternativa manual secundária à publicação ou ao consumo Kafka real, pular qualquer etapa Kafka em espera (Service Task, Receive Task ou início por mensagem), fabricando o resultado a partir do mapeamento de saída configurado — útil quando o broker está indisponível ou para avançar rapidamente durante um teste.
 #### REQ-05.09.010 - Ao iniciar uma execução, o sistema deve permitir optar por controle manual das mensagens Kafka daquela instância, retirando suas Service Tasks Kafka do disparo automático do worker em background e exigindo publicação manual pela tela de execução.
 #### REQ-05.09.011 - Quando o controle manual estiver ativo, a tela de execução deve permitir publicar a mensagem de uma Service Task Kafka digitando o payload manualmente ou gerando-o automaticamente a partir do mesmo mapeamento que o worker automático usaria.
+---
+
+### US-05.10 Inspeção detalhada de nó
+
+> O painel de detalhe do nó descrito nesta user story é o mesmo painel de observabilidade compartilhado com a FT-15 Diagnóstico — implementado uma única vez, reaproveitado nas duas telas.
+
+#### REQ-05.10.001 - Ao selecionar uma Tarefa de Serviço ou uma Tarefa de Recebimento no Fluxo da Jornada, o painel deve apresentar a configuração do conector: tipo (API REST, Kafka, Event Hubs ou Service Bus) e, para REST, método e URL configurados, quantidade/lista de headers e indicação de body configurado; para conectores de tópico, o nome do tópico/Event Hub, o cluster associado e se a tarefa é produtora (Producer) ou consumidora (Consumer) da mensagem.
+#### REQ-05.10.002 - Ao selecionar um nó de Decisão (Gateway) no Fluxo da Jornada, o painel deve apresentar as condições de cada saída configurada (ou "Caminho padrão"), destacando visualmente qual saída foi de fato percorrida quando houver uma instância associada.
+#### REQ-05.10.003 - Ao selecionar o nó de Início, o painel deve apresentar as variáveis de entrada declaradas para a jornada com o valor que de fato foi informado na execução selecionada, não apenas o tipo declarado.
+#### REQ-05.10.004 - Ao selecionar o nó de Início por Mensagem (Message Start Event), o painel deve apresentar a configuração do conector de tópico que inicia a jornada, com o mesmo tratamento de REQ-05.10.001 (a jornada é consumidora da mensagem que a inicia).
+#### REQ-05.10.005 - As seções de entrada e saída do painel devem ser colapsáveis individualmente.
+#### REQ-05.10.006 - Para um conector de tópico (Kafka, Event Hubs ou Service Bus), a seção de entrada deve se chamar "Payload da Mensagem" em vez de "Entrada" — o que chega não é uma requisição/resposta, é a mensagem publicada ou consumida.
+#### REQ-05.10.007 - O painel de detalhe do nó deve ser redimensionável horizontalmente (largura), sem alterar sua altura.
+#### REQ-05.10.008 - O log cronológico deve indicar o tipo de conector também para uma Tarefa de Recebimento (API REST, Kafka, Event Hubs ou Service Bus), da mesma forma que já indica para uma Tarefa de Serviço.
+#### REQ-05.10.009 - Uma mensagem Kafka recebida por uma Tarefa de Recebimento ou por um Início por Mensagem deve ficar disponível para consulta (painel de detalhe do nó e log) da mesma forma que uma mensagem publicada por uma Tarefa de Serviço — cobrindo tanto o lado produtor quanto o consumidor.
+#### REQ-05.10.010 - O diagrama do fluxo deve permitir aumentar e diminuir o zoom com o scroll do mouse.
 ---
 
 <br/><br/>
@@ -946,6 +963,41 @@ empresa.
 #### REQ-14.06.001 - O sistema deve permitir cadastrar, atualizar e remover uma credencial de API de um provedor de IA (Gemini), restrito ao papel `ADMIN`.
 #### REQ-14.06.002 - A API não deve, em nenhuma resposta, retornar o valor da chave salva — apenas seu status (configurada/não configurada) e a data da última atualização.
 #### REQ-14.06.003 - Diferente do catálogo de credenciais de mensageria (REQ-14.02.003), esta credencial é armazenada em texto plano no banco de dados, como desvio deliberado e temporário do princípio de nunca persistir segredo — decisão registrada no código com pendência explícita de criptografia antes de produção.
+---
+
+<br/><br/>
+
+# FT-15 Diagnóstico
+
+## Objetivo
+
+Permitir investigar o comportamento de qualquer execução de jornada no motor de runtime — iniciada pela funcionalidade Executar do Admin Portal (FT-05) ou por um canal digital — de forma independente da tela de Execução ao vivo. Como toda execução roda contra o mesmo motor de runtime (REQ-05.04.001), o Diagnóstico enxerga as duas origens sem distinção, sem exigir nenhuma marcação adicional na instância.
+
+### US-15.01 Busca de execuções
+#### REQ-15.01.001 - O sistema deve permitir buscar execuções por jornada, por business key ou por instance ID, com o usuário escolhendo explicitamente o tipo de busca.
+#### REQ-15.01.002 - A busca por jornada deve oferecer um autocomplete das jornadas publicadas e filtrar as execuções pela jornada selecionada.
+#### REQ-15.01.003 - A busca por business key deve filtrar exatamente pelo valor informado.
+#### REQ-15.01.004 - A busca por instance ID deve levar diretamente ao detalhe da execução (US-15.03), sem passar pela listagem.
+#### REQ-15.01.005 - Ao buscar por um instance ID que não exista, o sistema deve apresentar a mensagem de erro na própria tela de busca, sem navegar para a tela de detalhe.
+#### REQ-15.01.006 - O sistema deve permitir filtrar a busca por período (data de início).
+#### REQ-15.01.007 - A tela de Diagnóstico não deve apresentar nenhuma listagem de execuções antes de uma busca ser realizada.
+---
+
+### US-15.02 Listagem de execuções
+#### REQ-15.02.001 - A listagem deve agrupar as execuções por jornada e versão por padrão, com opção de desagrupar e ver a lista plana.
+#### REQ-15.02.002 - A listagem deve permitir ordenar pela data/hora de início, de forma crescente ou decrescente.
+#### REQ-15.02.003 - Cada execução listada deve indicar seu estado (em execução, concluída ou encerrada) com destaque visual.
+#### REQ-15.02.004 - A listagem deve cobrir execuções originadas tanto pela funcionalidade Executar do Admin Portal quanto por canais digitais, sem distinção de origem entre elas.
+---
+
+### US-15.03 Detalhe de uma execução
+#### REQ-15.03.001 - Ao selecionar uma execução, o sistema deve apresentar o fluxo percorrido, as variáveis do processo e o log cronológico, reaproveitando o mesmo painel de observabilidade da Execução (FT-05 US-05.06/US-05.10).
+#### REQ-15.03.002 - O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.
+---
+
+### US-15.04 Independência da tela de Execução
+#### REQ-15.04.001 - O Diagnóstico deve ser uma funcionalidade separada da Execução, acessível por item de menu próprio.
+#### REQ-15.04.002 - A tela de Execução não deve oferecer busca ou consulta de execuções passadas — cobre apenas a execução ao vivo em andamento.
 ---
 
 <br/><br/>

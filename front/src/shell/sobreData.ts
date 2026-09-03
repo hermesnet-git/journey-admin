@@ -914,6 +914,10 @@ export const EPICS: Epic[] = [
             'REQ-05.07.004',
             'O sistema deve exibir o número da versão publicada da jornada (v<N>) tanto na lista de busca quanto no cabeçalho de uma execução em andamento.',
           ),
+          d(
+            'REQ-05.07.005',
+            'O sistema deve permitir iniciar a execução de uma jornada publicada diretamente do grid de Jornadas, abrindo uma aba de Execução dedicada já com essa jornada selecionada.',
+          ),
         ],
       },
       {
@@ -999,6 +1003,45 @@ export const EPICS: Epic[] = [
             'REQ-05.09.011',
             'Com controle manual ativo, a tela de execução deve permitir publicar a mensagem de uma Service Task Kafka digitando o payload manualmente ou gerando-o automaticamente a partir do mapeamento configurado.',
           ),
+        ],
+      },
+      {
+        code: 'US-05.10',
+        name: 'Inspeção detalhada de nó',
+        requirements: [
+          d(
+            'REQ-05.10.001',
+            'Ao selecionar uma Tarefa de Serviço ou de Recebimento, o painel deve apresentar a configuração do conector (tipo; REST: método/URL/headers/body; tópico: nome+cluster+Producer/Consumer).',
+          ),
+          {
+            code: 'REQ-05.10.002',
+            description: 'Ao selecionar um Gateway, o painel deve apresentar as condições de cada saída, destacando a percorrida.',
+            status: 'done',
+            notes: 'Sem instância associada (fluxo estático), nada aparece marcado como tomado — só as condições configuradas.',
+          },
+          {
+            code: 'REQ-05.10.003',
+            description: 'Ao selecionar o nó de Início, o painel deve apresentar as variáveis de entrada declaradas com o valor real informado na execução.',
+            status: 'done',
+            notes: 'Mostra o valor de fato submetido, não o tipo declarado; sem valor ainda resolvido, mostra "—".',
+          },
+          d('REQ-05.10.004', 'Ao selecionar o Início por Mensagem, o painel deve apresentar a configuração do conector, como Consumer.'),
+          d('REQ-05.10.005', 'As seções de entrada e saída do painel devem ser colapsáveis individualmente.'),
+          d('REQ-05.10.006', 'Para conector de tópico, a seção de entrada deve se chamar "Payload da Mensagem".'),
+          d('REQ-05.10.007', 'O painel de detalhe do nó deve ser redimensionável horizontalmente, sem alterar a altura.'),
+          d('REQ-05.10.008', 'O log cronológico deve indicar o tipo de conector também para Tarefa de Recebimento.'),
+          {
+            code: 'REQ-05.10.009',
+            description: 'Uma mensagem Kafka recebida (Receive Task ou Início por Mensagem) deve ficar disponível para consulta, como já acontece pro lado produtor.',
+            status: 'done',
+            notes: 'Bug real corrigido: o worker de consumo nunca gravava as variáveis que o painel/histórico lê, então o payload recebido sempre aparecia vazio.',
+          },
+          {
+            code: 'REQ-05.10.010',
+            description: 'O diagrama do fluxo deve permitir zoom com o scroll do mouse.',
+            status: 'done',
+            notes: 'Antes, scroll do mouse fazia pan em vez de zoom.',
+          },
         ],
       },
     ],
@@ -1625,6 +1668,66 @@ export const EPICS: Epic[] = [
       },
     ],
   },
+  {
+    code: 'FT-15',
+    name: 'Diagnóstico',
+    features: [
+      {
+        code: 'US-15.01',
+        name: 'Busca de execuções',
+        requirements: [
+          d('REQ-15.01.001', 'O sistema deve permitir buscar execuções por jornada, por business key ou por instance ID, com o usuário escolhendo explicitamente o tipo de busca.'),
+          d('REQ-15.01.002', 'A busca por jornada deve oferecer um autocomplete das jornadas publicadas e filtrar as execuções pela jornada selecionada.'),
+          d('REQ-15.01.003', 'A busca por business key deve filtrar exatamente pelo valor informado.'),
+          d('REQ-15.01.004', 'A busca por instance ID deve levar diretamente ao detalhe da execução, sem passar pela listagem.'),
+          {
+            code: 'REQ-15.01.005',
+            description: 'Ao buscar por um instance ID que não exista, o sistema deve apresentar a mensagem de erro na própria tela de busca, sem navegar para a tela de detalhe.',
+            status: 'done',
+            notes: 'Corrigido nesta sessão — antes navegava pro detalhe e mostrava o erro lá.',
+          },
+          {
+            code: 'REQ-15.01.006',
+            description: 'O sistema deve permitir filtrar a busca por período (data de início).',
+            status: 'done',
+            notes: 'Corrigido nesta sessão — o backend espera um instante completo, não só a data; a conversão pra início/fim do dia passou a ser feita antes de montar a busca.',
+          },
+          d('REQ-15.01.007', 'A tela de Diagnóstico não deve apresentar nenhuma listagem de execuções antes de uma busca ser realizada.'),
+        ],
+      },
+      {
+        code: 'US-15.02',
+        name: 'Listagem de execuções',
+        requirements: [
+          d('REQ-15.02.001', 'A listagem deve agrupar as execuções por jornada e versão por padrão, com opção de desagrupar e ver a lista plana.'),
+          d('REQ-15.02.002', 'A listagem deve permitir ordenar pela data/hora de início, de forma crescente ou decrescente.'),
+          d('REQ-15.02.003', 'Cada execução listada deve indicar seu estado (em execução, concluída ou encerrada) com destaque visual.'),
+          {
+            code: 'REQ-15.02.004',
+            description: 'A listagem deve cobrir execuções originadas tanto pela funcionalidade Executar do Admin Portal quanto por canais digitais, sem distinção de origem entre elas.',
+            status: 'done',
+            notes: 'Satisfeito por arquitetura: qualquer origem que iniciou a instância cai no mesmo motor de runtime, sem marcação de origem gravada nem necessária.',
+          },
+        ],
+      },
+      {
+        code: 'US-15.03',
+        name: 'Detalhe de uma execução',
+        requirements: [
+          d('REQ-15.03.001', 'Ao selecionar uma execução, o sistema deve apresentar o fluxo percorrido, as variáveis do processo e o log cronológico, reaproveitando o mesmo painel de observabilidade da Execução.'),
+          d('REQ-15.03.002', 'O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.'),
+        ],
+      },
+      {
+        code: 'US-15.04',
+        name: 'Independência da tela de Execução',
+        requirements: [
+          d('REQ-15.04.001', 'O Diagnóstico deve ser uma funcionalidade separada da Execução, acessível por item de menu próprio.'),
+          d('REQ-15.04.002', 'A tela de Execução não deve oferecer busca ou consulta de execuções passadas — cobre apenas a execução ao vivo em andamento.'),
+        ],
+      },
+    ],
+  },
 ];
 
 export interface OutOfScopeGroup {
@@ -1692,6 +1795,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-09-02 23:56 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Nova feature FT-15 Diagnóstico (4 USs, 15 REQs) — desmembrada da antiga tela "Execução & Diagnóstico": Diagnóstico virou funcionalidade própria (item de menu dedicado, front/src/diagnostics/DiagnosticoPage.tsx), de busca e inspeção de execuções passadas por jornada/business key/instance ID (tipo de busca explícito, listagem agrupada por jornada+versão com opção de desagrupar, ordenável por início, sem listagem antes de buscar, busca por instance ID vai direto ao detalhe e erros de "não encontrada" ficam na própria busca), cobrindo execuções tanto do Admin Portal ("Executar") quanto de canais digitais sem distinção (mesmo motor de runtime, sem marcação de origem). A tela de Execução (ExecutionsPage.tsx/ExecutionToolbar.tsx) perdeu o modo Histórico por completo — cobre só a execução ao vivo — e ganhou uma tela inicial (busca de jornada) e de configuração (StartPanel) no mesmo padrão visual da tela inicial do Diagnóstico, só trocando para o toolbar compacto quando a execução de fato começa; novo REQ-05.07.005 permite iniciar uma execução direto do grid de Jornadas ("Executar jornada" no menu de ações, só para jornadas publicadas), abrindo uma aba dedicada já com a jornada selecionada. Nova US-05.10 Inspeção detalhada de nó (10 REQs) documenta o painel de observabilidade compartilhado entre as duas telas (InspectorPanel.tsx/NodeDetailDrawer), evoluído nesta sessão: configuração do conector (REST: método/URL/headers/body; tópico: nome+cluster+Producer/Consumer) em Tarefa de Serviço/Recebimento/Início por Mensagem; condições do Gateway com o caminho de fato percorrido destacado; variáveis de entrada do nó Início com o valor real informado (não o tipo declarado); entrada/saída colapsáveis, renomeada "Payload da Mensagem" para conectores de tópico; painel redimensionável só horizontalmente (260–640px); log cronológico passou a indicar o tipo de conector também em Tarefa de Recebimento, igual já fazia em Tarefa de Serviço; zoom do diagrama por scroll do mouse (panOnScroll removido do React Flow). Bug real de backend corrigido no caminho: KafkaConnectorWorker.consume() (ms-runtime-camunda) nunca gravava as variáveis __kafkaTopic__/__kafkaPayload__ do lado consumidor (Receive Task/Início por Mensagem) — só o lado produtor gravava —, deixando o payload de mensagem recebida sempre vazio no painel/histórico; corrigido gravando as mesmas variáveis antes de correlacionar/iniciar a instância, simétrico ao lado produtor. Total: FT-05 44 → 55 REQs; FT-15 novo, 15 REQs. Progresso geral de 394/431 (91%) para 420/457 (92%, 15 features/92 USs).',
+  },
   {
     date: '2026-08-24 06:14 (não commitado)',
     source: 'progresso',

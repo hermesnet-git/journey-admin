@@ -109,7 +109,7 @@ export function StartPanel({ journey, onStarted }: Props) {
   const missingStartVariable = startVariables.some((v) => v.type !== 'boolean' && !startVariableValues[v.name]);
 
   return (
-    <div className="flex-1 min-h-0 overflow-auto flex items-start justify-center py-10 px-6">
+    <div className="flex justify-center">
       <div className="w-full max-w-[640px]">
         <Stack space={24}>
           <Stack space={2}>

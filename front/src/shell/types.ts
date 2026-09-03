@@ -1,4 +1,17 @@
-export type TabKind = 'placeholder' | 'dashboard' | 'products' | 'journeys' | 'forms' | 'execution' | 'audit' | 'help' | 'sobre' | 'catalog';
+import type { JourneySummary } from '../execution/api';
+
+export type TabKind =
+  | 'placeholder'
+  | 'dashboard'
+  | 'products'
+  | 'journeys'
+  | 'forms'
+  | 'execution'
+  | 'diagnostico'
+  | 'audit'
+  | 'help'
+  | 'sobre'
+  | 'catalog';
 
 export interface Tab {
   key: string;
@@ -11,9 +24,12 @@ export interface Tab {
   formId?: string;
   openNew?: boolean;
   returnToKey?: string;
-  // Abas 'execution' abertas a partir do Dashboard (card "Execuções recentes") já nascem em modo
-  // Histórico mostrando esta instância — cada clique ganha sua própria aba dedicada (nunca reaproveita
-  // a aba "Execução & Diagnóstico" principal), pra não atrapalhar uma execução ao vivo em andamento
-  // ali nem perder outro diagnóstico já aberto.
-  initialHistoryInstanceId?: string;
+  // Abas 'diagnostico' abertas a partir do card "Execuções recentes" do Dashboard já nascem
+  // mostrando o detalhe desta instância, em vez da busca em branco — cada clique ganha sua própria
+  // aba dedicada.
+  initialInstanceId?: string;
+  // Abas 'execution' abertas via "Executar jornada" no grid de Jornadas já nascem com essa jornada
+  // selecionada (StartPanel visível, pronta pra clicar Executar), em vez da busca em branco — cada
+  // clique ganha sua própria aba dedicada.
+  initialJourney?: JourneySummary;
 }

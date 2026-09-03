@@ -10,9 +10,11 @@ import { CatalogPage } from './catalog/CatalogPage';
 import { JourneysPage } from './journeys/JourneysPage';
 import { FormsPage } from './forms/FormsPage';
 import { ExecutionsPage } from './execution/ExecutionsPage';
+import { DiagnosticoPage } from './diagnostics/DiagnosticoPage';
 import { AuditPage } from './audit/AuditPage';
 import { AppThemeContext, LIGHT_APP_COLORS, DARK_APP_COLORS } from './shell/theme';
 import type { Tab } from './shell/types';
+import type { JourneySummary } from './execution/api';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { LoginPage } from './auth/LoginPage';
 import { HelpPage } from './shell/HelpPage';
@@ -25,7 +27,8 @@ const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys'
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
 const CATALOG_TAB: Tab = { key: 'integracoes', title: 'Catálogo de Integrações', kind: 'catalog', closable: true };
 const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
-const EXECUCOES_TAB: Tab = { key: 'execucoes', title: 'Execução & Diagnóstico', kind: 'execution', closable: true };
+const EXECUCOES_TAB: Tab = { key: 'execucoes', title: 'Execução', kind: 'execution', closable: true };
+const DIAGNOSTICO_TAB: Tab = { key: 'diagnostico', title: 'Diagnóstico', kind: 'diagnostico', closable: true };
 const AUDIT_TAB: Tab = { key: 'auditoria', title: 'Auditoria', kind: 'audit', closable: true };
 const HELP_TAB: Tab = { key: 'ajuda', title: 'Ajuda e suporte', kind: 'help', closable: true };
 const SOBRE_TAB: Tab = { key: 'sobre', title: `Sobre ${APP_VERSION}`, kind: 'sobre', closable: true };
@@ -120,6 +123,10 @@ function AppShell() {
       openTab(EXECUCOES_TAB);
       return;
     }
+    if (navKey === 'diagnostico') {
+      openTab(DIAGNOSTICO_TAB);
+      return;
+    }
     if (navKey === 'auditoria') {
       openTab(AUDIT_TAB);
       return;
@@ -157,17 +164,29 @@ function AppShell() {
     openFormEditTab({ openNew: true });
   }
 
-  // Cada instância clicada no card "Execuções recentes" do Dashboard ganha sua própria aba nova
-  // (chave por processInstanceId — clicar na MESMA instância de novo foca a aba já aberta em vez de
-  // duplicar, mas instâncias diferentes sempre abrem abas diferentes, nunca reaproveitam a aba
-  // "Execução & Diagnóstico" principal).
+  // Cada instância clicada no card "Execuções recentes" do Dashboard ganha sua própria aba nova de
+  // Diagnóstico (chave por processInstanceId — clicar na MESMA instância de novo foca a aba já aberta
+  // em vez de duplicar, mas instâncias diferentes sempre abrem abas diferentes).
   function openDiagnosticsTab(instance: { id: string; journeyName: string | null }) {
     openTab({
-      key: `execucoes-diag-${instance.id}`,
+      key: `diagnostico-${instance.id}`,
       title: `Diagnóstico · ${instance.journeyName ?? instance.id.slice(0, 8)}`,
+      kind: 'diagnostico',
+      closable: true,
+      initialInstanceId: instance.id,
+    });
+  }
+
+  // Cada jornada com "Executar" clicado no grid de Jornadas ganha sua própria aba nova de Execução,
+  // já com essa jornada selecionada (chave por journeyId — clicar na MESMA jornada de novo foca a
+  // aba já aberta em vez de duplicar).
+  function openExecuteJourneyTab(journey: JourneySummary) {
+    openTab({
+      key: `execucao-${journey.journeyId}`,
+      title: `Execução · ${journey.name}`,
       kind: 'execution',
       closable: true,
-      initialHistoryInstanceId: instance.id,
+      initialJourney: journey,
     });
   }
 
@@ -185,7 +204,9 @@ function AppShell() {
             ? 'formularios'
             : activeTab.kind === 'execution'
               ? 'execucoes'
-              : activeTab.kind === 'audit'
+              : activeTab.kind === 'diagnostico'
+                ? 'diagnostico'
+                : activeTab.kind === 'audit'
               ? 'auditoria'
               : activeTab.kind === 'help'
                 ? 'ajuda'
@@ -215,7 +236,9 @@ function AppShell() {
                   {tab.kind === 'dashboard' && <DashboardPage onOpenDiagnostics={openDiagnosticsTab} />}
                   {tab.kind === 'products' && <ProductsPage />}
                   {tab.kind === 'catalog' && <CatalogPage />}
-                  {tab.kind === 'journeys' && <JourneysPage onOpenForm={openForm} onOpenNewForm={openNewFormScreen} />}
+                  {tab.kind === 'journeys' && (
+                    <JourneysPage onOpenForm={openForm} onOpenNewForm={openNewFormScreen} onExecuteJourney={openExecuteJourneyTab} />
+                  )}
                   {tab.kind === 'forms' && (
                     <FormsPage
                       formId={tab.formId}
@@ -224,8 +247,9 @@ function AppShell() {
                     />
                   )}
                   {tab.kind === 'execution' && (
-                    <ExecutionsPage active={tab.key === activeKey} initialHistoryInstanceId={tab.initialHistoryInstanceId} />
+                    <ExecutionsPage active={tab.key === activeKey} initialJourney={tab.initialJourney} />
                   )}
+                  {tab.kind === 'diagnostico' && <DiagnosticoPage initialInstanceId={tab.initialInstanceId} />}
                   {tab.kind === 'audit' && <AuditPage />}
                   {tab.kind === 'help' && <HelpPage />}
                   {tab.kind === 'sobre' && <SobrePage />}

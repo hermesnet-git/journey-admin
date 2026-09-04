@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@telefonica/mistica/css/mistica.css'
+import '@telefonica/mistica/css/roboto.css'
 import './index.css'
 import { App } from './App'
 

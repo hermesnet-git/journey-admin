@@ -17,6 +17,8 @@ import { AlertTriangle, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { skinVars } from '@telefonica/mistica';
 import { BACKEND_TO_FRONT_TYPE, NODE_DIMENSIONS, TYPE_COLOR, type NodeType } from '../flow-designer/model';
 import { NodeShape } from '../flow-designer/NodeShape';
+import { LIGHT_COLORS, DARK_COLORS } from '../flow-designer/theme';
+import { useAppTheme } from '../shell/theme';
 import type { FlowConnectionInfo, FlowNodeInfo } from './api';
 import { ErrorDetailsModal } from './ErrorDetailsModal';
 
@@ -58,10 +60,13 @@ function statusStyle(status: NodeStatus, typeColor: string) {
         pulseColor: typeColor,
       };
     case 'done':
+      // Contorno verde marca "já passou por aqui", ícone e fundo continuam na cor do próprio tipo
+      // do componente (igual ao designer) — só o anel muda com a execução, não a identidade visual
+      // do nó. Fundo preenchido, mas com a cor do tipo (bem diluída), não verde.
       return {
-        background: skinVars.colors.successLow,
+        background: `${typeColor}26`,
         borderColor: skinVars.colors.success,
-        iconColor: skinVars.colors.success,
+        iconColor: typeColor,
         boxShadow: 'none',
         pulse: false,
       };
@@ -95,15 +100,17 @@ function statusStyle(status: NodeStatus, typeColor: string) {
   }
 }
 
-// Anel adicional, por cima do que o status já desenha, marcando o nó clicado — cor distinta
-// (brand) pra não ser confundido com o verde de "concluído" ou o vermelho de "erro".
-const SELECTED_RING = `0 0 0 2px ${skinVars.colors.brand}`;
-
 function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
   const { frontType, name, status, connectorType, selected, onShowError, onSelect } = data;
+  const { dark } = useAppTheme();
   const typeColor = TYPE_COLOR[frontType];
   const dim = NODE_DIMENSIONS[frontType];
   const style = statusStyle(status, typeColor);
+  // Mesma cor de foco do nó selecionado no canvas de Jornadas (flow-designer/theme accent) — não o
+  // skinVars.colors.brand da skin Mística ativa, que muda conforme o skin escolhido (Blau, Movistar,
+  // ...) e por isso não bate com o roxo fixo que o designer usa pra "selecionado".
+  const focusColor = dark ? DARK_COLORS.accent : LIGHT_COLORS.accent;
+  const SELECTED_RING = `0 0 0 2px ${focusColor}`;
   const labelColor = status === 'pending' ? skinVars.colors.textSecondary : skinVars.colors.textPrimary;
   const boxShadow = selected
     ? [style.boxShadow !== 'none' ? style.boxShadow : null, SELECTED_RING].filter(Boolean).join(', ')
@@ -199,6 +206,7 @@ function FlowDiagramInner({
   onNodeSelect,
 }: Props) {
   const { zoomIn, zoomOut, fitView, setCenter } = useReactFlow();
+  const { dark } = useAppTheme();
   const [showErrorModal, setShowErrorModal] = useState(false);
   const visited = useMemo(() => new Set(visitedNodeIds), [visitedNodeIds]);
 
@@ -305,6 +313,12 @@ function FlowDiagramInner({
         zoomOnScroll
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
+        // Mesmo fundo do canvas do designer de Jornadas no claro (LIGHT_COLORS.canvasBg) — sem isso
+        // o React Flow cai no próprio transparente padrão e deixa o que tiver atrás aparecer, ficando
+        // diferente do cinza do canvas de edição. --xy-background-color é a variável que a camada
+        // real de fundo (.react-flow__background) lê, não o `background` do elemento raiz (ver
+        // mesmo ajuste em JourneyDesignerPage). Escuro fica como já estava — só o claro foi pedido.
+        style={!dark ? { background: LIGHT_COLORS.canvasBg, ['--xy-background-color' as string]: LIGHT_COLORS.canvasBg } : undefined}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.4} color={skinVars.colors.border} />
       </ReactFlow>

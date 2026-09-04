@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/flow-designer/WorkflowNode.tsx"
+        ],
+        "createdAt": "2026-09-04T00:34:27.424Z",
+        "reason": "false positive: CSS border-trick triangle (transparent left/right + solid top) drawing the tooltip pointer under the payload preview card, not a side-tab accent border on a card"
+      }
+    ]
+  }
+}

@@ -67,6 +67,13 @@ export const DARK_COLORS: FlowColors = {
   successSoft: 'rgba(74,222,128,0.14)',
 };
 
+// Fundo só do diagrama de Jornadas (React Flow), não o `canvasBg` genérico acima — esse é
+// reaproveitado como "superfície recuada" em vários outros lugares (ConnectorWizard, editor de
+// tela, linhas de PropertyGrid/PropertiesPanel), então botar o roxo nele vazava pra tudo isso.
+// Modo claro não tem constante própria: usa o `canvasBg` normal (cinza bem claro), sem mudança.
+export const JOURNEY_CANVAS_BG_DARK = '#110b1c';
+export const JOURNEY_CANVAS_DOT_DARK = 'rgba(180,111,224,0.28)';
+
 export interface FlowTheme {
   dark: boolean;
   c: FlowColors;

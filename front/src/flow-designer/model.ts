@@ -1,6 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
-import { Play, User, CheckCircle2, Settings, Mail, X, type LucideIcon } from 'lucide-react';
+import { Play, UserRoundPen, CheckCircle2, Settings, Mail, Webhook, X, type LucideIcon } from 'lucide-react';
 import type { FlowNodeType } from '../api/flows';
 import { collectsValue, type Form, type FormField } from '../api/forms';
 
@@ -250,10 +250,10 @@ export const TYPE_COLOR: Record<NodeType, string> = {
 // "excluir" aqui, mesmo componente reaproveitado.
 export const NODE_ICON: Record<NodeType, LucideIcon> = {
   start: Play,
-  userTask: User,
+  userTask: UserRoundPen,
   end: CheckCircle2,
   serviceTask: Settings,
-  receiveTask: Mail,
+  receiveTask: Webhook,
   messageStartEvent: Mail,
   gateway: X,
 };
@@ -272,14 +272,17 @@ export const NODE_SHAPE: Record<NodeType, NodeShape> = {
   receiveTask: 'task',
 };
 
+// Task virou círculo (mesma família de formas de evento/gateway, ver NODE_SHAPE) — por isso
+// width===height, do tamanho do ícone/badge que carrega, não mais de uma caixa retangular com texto
+// dentro.
 export const NODE_DIMENSIONS: Record<NodeType, { width: number; height: number }> = {
-  start: { width: 44, height: 44 },
-  messageStartEvent: { width: 44, height: 44 },
-  end: { width: 44, height: 44 },
+  start: { width: 52, height: 52 },
+  messageStartEvent: { width: 52, height: 52 },
+  end: { width: 52, height: 52 },
   gateway: { width: 50, height: 50 },
-  userTask: { width: 116, height: 82 },
-  serviceTask: { width: 116, height: 82 },
-  receiveTask: { width: 116, height: 82 },
+  userTask: { width: 78, height: 78 },
+  serviceTask: { width: 78, height: 78 },
+  receiveTask: { width: 78, height: 78 },
 };
 
 // Fallback genérico pra call sites que precisam de um tamanho aproximado sem saber o tipo exato
@@ -324,6 +327,40 @@ function userTaskFormVariables(node: WFNode): { name: string; type: VariableType
   return node.data.embeddedScreen
     .filter((f) => collectsValue(f.type))
     .map((f) => ({ name: f.name, type: variableTypeForFormField(f) }));
+}
+
+export interface PayloadPreviewRow {
+  name: string;
+  type: string;
+}
+export interface PayloadPreview {
+  title: string;
+  rows: PayloadPreviewRow[];
+}
+
+// Preview flutuante no canvas (NodeShape não desenha isso — WorkflowNode que decide onde/quando
+// mostrar): um exemplo do que o nó produz, a partir de dado real já configurado — campos da tela
+// embutida (userTask) ou outputMapping do conector (as tasks/eventos que chamam integração). Nunca
+// inventa um exemplo: null quando nada foi configurado ainda, pra não sugerir um payload que não
+// existe.
+export function nodePayloadPreview(nodeType: NodeType, data: WFNodeData): PayloadPreview | null {
+  if (nodeType === 'userTask') {
+    const fields = (data.embeddedScreen ?? [])
+      .filter((f) => collectsValue(f.type))
+      .map((f) => ({ name: f.name, type: variableTypeForFormField(f) }));
+    if (fields.length === 0) return null;
+    return { title: 'Campos da tela', rows: fields.map((f) => ({ name: f.name, type: f.type })) };
+  }
+  if (nodeType === 'serviceTask' || nodeType === 'receiveTask' || nodeType === 'messageStartEvent') {
+    const raw = data.connectorConfig?.config?.outputMapping;
+    if (!Array.isArray(raw)) return null;
+    const rows = raw
+      .filter((r): r is OutputMappingRule => !!r && typeof r === 'object' && typeof (r as { name?: unknown }).name === 'string' && !!(r as { name: string }).name)
+      .map((r) => ({ name: r.name, type: r.type ?? 'string' }));
+    if (rows.length === 0) return null;
+    return { title: 'Variáveis extraídas', rows };
+  }
+  return null;
 }
 
 // REQ-03.09.013: variables available at a given node — the outputMapping names declared by every
@@ -532,21 +569,23 @@ export function initialFlowEdges(_nodes: WFNode[]): WFEdge[] {
 const RANK_SEP = 90;
 const NODE_SEP = 32;
 
-// Layered auto-layout via dagre (replaces a hand-rolled barycenter-sweep layout that was ported
+// Cópia nova a cada chamada — dagre.layout muta o próprio objeto do label (escreve x/y nele
+// direto), e NODE_DIMENSIONS[type] é a MESMA referência pra todo nó daquele tipo. Sem copiar, todo
+// nó do mesmo tipo (ex.: todas as USER_TASK) compartilha um único objeto, e a última escrita do
+// dagre vence pra todos eles — colapsando todos na mesma posição (x,y). Foi isso que fez o canvas
+// parecer "doidinho" depois de eventos/decisão pararem de usar NODE_WIDTH/NODE_HEIGHT fixos.
+function dimensionsOf(n: WFNode) {
+  return { ...(NODE_DIMENSIONS[n.type as NodeType] ?? NODE_DIMENSIONS.userTask) };
+}
+
+// Núcleo do auto-layout via dagre (replaces a hand-rolled barycenter-sweep layout that was ported
 // from the wf-designer reference project — dagre does real crossing minimization and holds up
-// better on larger, denser flows). Cada tipo usa seu próprio tamanho real (NODE_DIMENSIONS) desde
-// que eventos/decisão pararam de compartilhar a caixa larga única das tarefas.
-export function computeLayout(nodes: WFNode[], edges: WFEdge[]): WFNode[] {
+// better on larger, denser flows) — devolve só as posições calculadas, sem já aplicar nos nós, pra
+// dar pra reaproveitar tanto no layout do canvas inteiro quanto no de um subconjunto selecionado.
+function dagreLayout(nodes: WFNode[], edges: WFEdge[]): Map<string, { x: number; y: number }> {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: 'LR', nodesep: NODE_SEP, ranksep: RANK_SEP, marginx: 80, marginy: 80 });
-
-  // Cópia nova a cada chamada — dagre.layout muta o próprio objeto do label (escreve x/y nele
-  // direto), e NODE_DIMENSIONS[type] é a MESMA referência pra todo nó daquele tipo. Sem copiar,
-  // todo nó do mesmo tipo (ex.: todas as USER_TASK) compartilha um único objeto, e a última escrita
-  // do dagre vence pra todos eles — colapsando todos na mesma posição (x,y). Foi isso que fez o
-  // canvas parecer "doidinho" depois de eventos/decisão pararem de usar NODE_WIDTH/NODE_HEIGHT fixos.
-  const dimensionsOf = (n: WFNode) => ({ ...(NODE_DIMENSIONS[n.type as NodeType] ?? NODE_DIMENSIONS.userTask) });
 
   nodes.forEach((n) => g.setNode(n.id, dimensionsOf(n)));
   edges.forEach((e) => {
@@ -555,9 +594,45 @@ export function computeLayout(nodes: WFNode[], edges: WFEdge[]): WFNode[] {
 
   dagre.layout(g);
 
-  return nodes.map((n) => {
+  const positions = new Map<string, { x: number; y: number }>();
+  nodes.forEach((n) => {
     const pos = g.node(n.id);
     const dim = dimensionsOf(n);
-    return { ...n, position: { x: pos.x - dim.width / 2, y: pos.y - dim.height / 2 } };
+    positions.set(n.id, { x: pos.x - dim.width / 2, y: pos.y - dim.height / 2 });
   });
+  return positions;
+}
+
+// Layered auto-layout do canvas inteiro.
+export function computeLayout(nodes: WFNode[], edges: WFEdge[]): WFNode[] {
+  const positions = dagreLayout(nodes, edges);
+  return nodes.map((n) => ({ ...n, position: positions.get(n.id)! }));
+}
+
+function boundsCenterOf(nodes: WFNode[]): { cx: number; cy: number } {
+  const xs = nodes.map((n) => n.position.x);
+  const ys = nodes.map((n) => n.position.y);
+  const xe = nodes.map((n) => n.position.x + dimensionsOf(n).width);
+  const ye = nodes.map((n) => n.position.y + dimensionsOf(n).height);
+  return { cx: (Math.min(...xs) + Math.max(...xe)) / 2, cy: (Math.min(...ys) + Math.max(...ye)) / 2 };
+}
+
+// Auto-organiza só os nós selecionados (2+), preservando a posição de todo o resto — o grupo
+// selecionado é reorganizado internamente via dagre (só as arestas entre eles conta, arestas pra
+// fora do grupo são ignoradas) e depois recentralizado onde já estava, senão o dagre jogaria o
+// grupo pra uma origem absoluta longe do resto do fluxo.
+export function computeLayoutForSelection(nodes: WFNode[], edges: WFEdge[], selectedIds: Set<string>): WFNode[] {
+  const selectedNodes = nodes.filter((n) => selectedIds.has(n.id));
+  if (selectedNodes.length < 2) return nodes;
+  const relevantEdges = edges.filter((e) => selectedIds.has(e.source) && selectedIds.has(e.target));
+
+  const oldCenter = boundsCenterOf(selectedNodes);
+  const rawPositions = dagreLayout(selectedNodes, relevantEdges);
+  const laidOut = selectedNodes.map((n) => ({ ...n, position: rawPositions.get(n.id)! }));
+  const newCenter = boundsCenterOf(laidOut);
+  const dx = oldCenter.cx - newCenter.cx;
+  const dy = oldCenter.cy - newCenter.cy;
+
+  const finalPositions = new Map(laidOut.map((n) => [n.id, { x: n.position.x + dx, y: n.position.y + dy }]));
+  return nodes.map((n) => (finalPositions.has(n.id) ? { ...n, position: finalPositions.get(n.id)! } : n));
 }

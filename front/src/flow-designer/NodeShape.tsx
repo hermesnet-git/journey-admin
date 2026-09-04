@@ -13,15 +13,22 @@ const CONNECTOR_BADGE_COLOR: Record<string, string> = {
 // Rótulo abaixo da forma (evento/decisão) — quebra em até 2 linhas em vez de truncar, mesma
 // convenção de ferramentas BPMN de mercado (bpmn.io/Camunda Modeler), onde o nome não cabe dentro
 // da forma pequena e por isso flutua logo abaixo dela, centralizado.
-function ShapeLabel({ text, color }: { text: string; color: string }) {
+function ShapeLabel({ text, color, subtitle }: { text: string; color: string; subtitle?: string | null }) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none" style={{ top: '100%', marginTop: 6, width: 100 }}>
+    <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none" style={{ top: '100%', marginTop: 6, width: 110 }}>
       <span
-        className="text-[11px] font-semibold"
+        className="text-[11px] font-medium"
         style={{ color, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}
       >
         {text}
       </span>
+      {/* Nome do tipo de conector (REST/KAFKA/...) — mesma informação do badge do canto, só que
+          legível como texto sem precisar passar o mouse em cima do ícone pequeno. */}
+      {subtitle && (
+        <span className="block text-[9px] font-semibold uppercase mt-[1px]" style={{ color, opacity: 0.6, letterSpacing: '.03em' }}>
+          {subtitle}
+        </span>
+      )}
     </div>
   );
 }
@@ -99,9 +106,10 @@ export function NodeShape({
   // dentro da mensageria qual broker é). connectorType pode vir null (sem badge) ou algum tipo
   // futuro ainda não mapeado — badgeColor (recebido do chamador) é o fallback nesses dois casos.
   const connectorBadgeColor = (connectorType && CONNECTOR_BADGE_COLOR[connectorType]) || badgeColor;
-  // BPMN de mercado distingue início de fim pela espessura da borda do círculo (fino = início,
-  // grosso = fim), sem depender de cor pra reconhecer o papel do evento.
-  const eventBorderWidth = nodeType === 'end' ? 3 : 1.75;
+  // Mesma espessura de borda pra todo mundo (evento, gateway, task) — a diferenciação BPMN
+  // clássica de início/fim por espessura foi abandonada pra manter o contorno visualmente
+  // consistente entre todos os formatos do canvas.
+  const eventBorderWidth = 1.75;
   const pulseStyle: React.CSSProperties = pulse
     ? {
         outline: `2.5px solid ${pulseColor}`,
@@ -118,7 +126,7 @@ export function NodeShape({
         className="relative w-full h-full rounded-full flex items-center justify-center"
         style={{ background, borderColor, borderWidth: eventBorderWidth, borderStyle: 'solid', boxShadow, ...pulseStyle }}
       >
-        <Icon size={16} color={iconColor} strokeWidth={1.8} />
+        <Icon size={18} color={iconColor} strokeWidth={1.8} />
         {/* Um círculo pequeno só cabe um badge no canto inferior-direito — erro tem prioridade
             sobre o badge de conector (o problema é justamente o conector, mais relevante ver isso). */}
         {hasConnectorBadge && !showErrorBadge && (
@@ -180,49 +188,41 @@ export function NodeShape({
     );
   }
 
+  // Sempre a cor do TIPO do nó (nunca a do conector) — o anel/preenchimento identifica "que tipo de
+  // task é essa" (serviço vs. recebimento, por exemplo); o conector específico (REST/Kafka/...) já
+  // tem seu próprio badge colorido no canto. Usar a cor do conector aqui fazia uma Tarefa de Serviço
+  // com Kafka ficar com a mesma cor de uma Tarefa de Recebimento — confundia os dois tipos.
+  const ringColor = iconColor;
   return (
-    <div className="relative w-full h-full rounded-[12px] border" style={{ background, borderColor, boxShadow, ...pulseStyle }}>
-      {showErrorBadge && (
-        <div
-          title={errorMessage ?? 'Configuração incompleta'}
-          className="absolute -bottom-2 -right-2 w-[22px] h-[22px] rounded-full flex items-center justify-center"
-          style={{ background: errorColor, border: `2px solid ${surfaceColor}` }}
-        >
-          <TriangleAlert size={12} color="#fff" strokeWidth={2.5} />
-        </div>
-      )}
-      <div className="absolute top-[7px] left-[7px] w-[30px] h-[30px] rounded-[9px] flex items-center justify-center" style={{ background: surfaceColor }}>
-        <Icon size={18} color={iconColor} strokeWidth={1.8} />
-        {hasConnectorBadge && (
+    <div className="relative w-full h-full">
+      {/* Mesmo contorno de evento/início por mensagem — fino, colado na borda, mesma cor neutra
+          (borderColor: acompanha seleção, não o tipo/conector). O tipo continua identificável pelo
+          ícone e pelo badge de conector no canto. */}
+      <div
+        className="absolute inset-0 rounded-full flex items-center justify-center"
+        style={{ background, borderColor, borderWidth: 1.75, borderStyle: 'solid', boxShadow, ...pulseStyle }}
+      >
+        <Icon size={24} color={ringColor} strokeWidth={1.7} />
+        {hasConnectorBadge && !showErrorBadge && (
           <div
             title={connectorBadgeTitle}
-            className="absolute -bottom-1 -right-1 w-[15px] h-[15px] rounded-full flex items-center justify-center"
-            style={{ background: connectorBadgeColor, border: `1.5px solid ${surfaceColor}` }}
+            className="absolute -bottom-[1px] -right-[1px] w-[20px] h-[20px] rounded-full flex items-center justify-center"
+            style={{ background: connectorBadgeColor, border: `2px solid ${surfaceColor}` }}
           >
-            <ConnectorBadgeIcon size={8.5} color="#fff" strokeWidth={2.5} />
+            <ConnectorBadgeIcon size={10} color="#fff" strokeWidth={2.5} />
+          </div>
+        )}
+        {showErrorBadge && (
+          <div
+            title={errorMessage ?? 'Configuração incompleta'}
+            className="absolute -bottom-[6px] -right-[6px] w-[21px] h-[21px] rounded-full flex items-center justify-center"
+            style={{ background: errorColor, border: `2px solid ${surfaceColor}` }}
+          >
+            <TriangleAlert size={12} color="#fff" strokeWidth={2.5} />
           </div>
         )}
       </div>
-      {showLabel && (
-        <div
-          className="absolute inset-0 flex items-center justify-center text-center pointer-events-none"
-          style={{ padding: '32px 10px 8px 10px' }}
-        >
-          <span
-            className="text-[12px] font-semibold"
-            style={{
-              color: labelColor,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              wordBreak: 'break-word',
-            }}
-          >
-            {name}
-          </span>
-        </div>
-      )}
+      {showLabel && <ShapeLabel text={name} color={labelColor} subtitle={hasConnectorBadge ? connectorType : null} />}
     </div>
   );
 }

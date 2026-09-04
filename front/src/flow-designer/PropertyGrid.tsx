@@ -35,6 +35,11 @@ export const gridInputStyle = (c: FlowColors): React.CSSProperties => ({
   outline: 'none',
   boxSizing: 'border-box',
   height: 24,
+  // O anel nativo de foco do Chrome/Edge (redesign de formulários no Windows) ignora outline:none —
+  // não é um outline, é aparência nativa do controle. appearance:none devolve o visual inteiro pro
+  // nosso border/background, sem o segundo contorno claro por dentro dele.
+  WebkitAppearance: 'none',
+  appearance: 'none',
 });
 
 const ROW_HEIGHT = 26;
@@ -58,7 +63,7 @@ export function PropertyRow({ label, first, children }: { label: string; first?:
           fontSize: 11,
           fontWeight: 600,
           color: c.textSecondary,
-          background: c.canvasBg,
+          background: c.chipBg,
           display: 'flex',
           alignItems: 'center',
         }}

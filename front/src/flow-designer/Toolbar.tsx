@@ -1,5 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
-import { Undo2, Redo2, ZoomOut, ZoomIn, Maximize, Save, LayoutGrid, ChevronDown, Sparkles, PaintBucket, ShieldCheck } from 'lucide-react';
+import {
+  Undo2,
+  Redo2,
+  ZoomOut,
+  ZoomIn,
+  Maximize,
+  Save,
+  LayoutGrid,
+  ChevronDown,
+  Sparkles,
+  PaintBucket,
+  ShieldCheck,
+  AlignStartVertical,
+  AlignCenterVertical,
+  AlignEndVertical,
+  AlignStartHorizontal,
+  AlignCenterHorizontal,
+  AlignEndHorizontal,
+  AlignHorizontalDistributeCenter,
+  AlignVerticalDistributeCenter,
+} from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { EDGE_SHAPE_OPTIONS, type EdgeShape } from './model';
 
@@ -84,6 +104,9 @@ export function Toolbar({
   onEdgeShapeChange,
   nodeFill,
   onNodeFillChange,
+  selectedCount,
+  onAlign,
+  onDistribute,
   zoomPct,
   onZoomIn,
   onZoomOut,
@@ -106,6 +129,9 @@ export function Toolbar({
   onEdgeShapeChange: (shape: EdgeShape) => void;
   nodeFill: boolean;
   onNodeFillChange: (fill: boolean) => void;
+  selectedCount: number;
+  onAlign: (mode: 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom') => void;
+  onDistribute: (axis: 'horizontal' | 'vertical') => void;
   zoomPct: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -141,16 +167,50 @@ export function Toolbar({
         {divider}
         <button
           onClick={onOrganize}
-          title="Organizar objetos no canvas"
+          title={selectedCount >= 2 ? 'Organizar só os componentes selecionados' : 'Organizar todo o canvas'}
           className="h-[27px] px-[8px] rounded-lg flex items-center gap-[5px] text-[12px] font-semibold cursor-pointer"
           style={{ border: `1px solid ${c.border}`, color: c.textPrimary }}
         >
           <LayoutGrid size={14} /> Organizar
         </button>
+        {divider}
+        {(
+          [
+            { icon: AlignStartVertical, title: 'Alinhar à esquerda', action: () => onAlign('left') },
+            { icon: AlignCenterVertical, title: 'Centralizar horizontalmente', action: () => onAlign('centerX') },
+            { icon: AlignEndVertical, title: 'Alinhar à direita', action: () => onAlign('right') },
+            { icon: AlignStartHorizontal, title: 'Alinhar ao topo', action: () => onAlign('top') },
+            { icon: AlignCenterHorizontal, title: 'Centralizar verticalmente', action: () => onAlign('centerY') },
+            { icon: AlignEndHorizontal, title: 'Alinhar à base', action: () => onAlign('bottom') },
+          ] as const
+        ).map(({ icon: Icon, title, action }) => (
+          <button key={title} onClick={action} disabled={selectedCount < 2} className={iconBtn} style={{ color: c.textSecondary }} title={title}>
+            <Icon size={14} />
+          </button>
+        ))}
+        <button
+          onClick={() => onDistribute('horizontal')}
+          disabled={selectedCount < 3}
+          title="Distribuir espaçamento horizontal"
+          className={iconBtn}
+          style={{ color: c.textSecondary }}
+        >
+          <AlignHorizontalDistributeCenter size={14} />
+        </button>
+        <button
+          onClick={() => onDistribute('vertical')}
+          disabled={selectedCount < 3}
+          title="Distribuir espaçamento vertical"
+          className={iconBtn}
+          style={{ color: c.textSecondary }}
+        >
+          <AlignVerticalDistributeCenter size={14} />
+        </button>
+        {divider}
         <EdgeShapePicker value={edgeShape} onChange={onEdgeShapeChange} />
         <button
           onClick={() => onNodeFillChange(!nodeFill)}
-          title={nodeFill ? 'Nós preenchidos com a cor do tipo — clique para deixar vazios' : 'Nós vazios — clique para preencher com a cor do tipo'}
+          title="Preencher fundo dos componentes"
           className={iconBtn}
           style={{ color: nodeFill ? c.accent : c.textSecondary, background: nodeFill ? c.accentSoft : 'transparent' }}
         >

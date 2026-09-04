@@ -133,16 +133,22 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
 
   const borderColor = selected ? c.accent : c.cardBorder;
   // Resting elevation so shapes read as raised, tappable surfaces against the dotted canvas
-  // instead of flat cutouts — same shadow family the selection ring stacks on top of.
-  const elevation = dark ? '0 1px 3px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.25)' : '0 1px 2px rgba(15,15,20,.07), 0 1px 1px rgba(15,15,20,.04)';
-  const ring = selected ? `0 0 0 4px ${c.accentSoft}, ${elevation}` : elevation;
+  // instead of flat cutouts. Foco de seleção (anel sólido + brilho) somado por cima — precisa ir no
+  // boxShadow que o NodeShape aplica na FORMA de verdade (o quadrado antes de rotacionar no
+  // gateway), não num wrapper de fora: um boxShadow no wrapper não rotacionado só desenha um
+  // quadrado ao redor do losango, nunca um contorno de losango.
+  const elevation = dark ? '0 3px 10px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.3)' : '0 3px 8px rgba(15,15,20,.12), 0 1px 2px rgba(15,15,20,.06)';
+  // 2.5px = mesma espessura da linha da aresta quando selecionada/focada (JourneyDesignerPage:
+  // strokeWidth 2.5 nesse estado), pra ler como o mesmo "peso" de destaque em nó e linha.
+  const ring = selected ? `0 0 0 2.5px ${c.accent}, 0 0 14px 3px ${c.accent}55, ${elevation}` : elevation;
   // Both start-type elements are deletable so a MESSAGE_START_EVENT can replace the
   // default START (REQ-03.07.005 allows exactly one, of either type).
   const deletable = true;
-  // Leve tom de categoria em vez de um card neutro chapado — mistura 10% da cor do tipo do nó no
-  // fundo do card do tema, então continua legível/opaco nos dois temas. Opcional (toggle "Preencher"
-  // na toolbar, padrão desligado): card neutro por padrão, sem tingir o fundo.
-  const cardFill = nodeFill ? `color-mix(in srgb, ${TYPE_COLOR[nodeType]} 10%, ${c.cardBg})` : c.cardBg;
+  // Leve tom de categoria em vez de um card neutro chapado — mistura a cor do tipo do nó no fundo do
+  // card do tema, então continua legível/opaco nos dois temas. Opcional (toggle "Preencher" na
+  // toolbar, padrão desligado): card neutro por padrão, sem tingir o fundo. 18% pra ficar
+  // perceptível em evento/gateway (fundo quase branco/preto) — 10% sumia de tão sutil.
+  const cardFill = nodeFill ? `color-mix(in srgb, ${TYPE_COLOR[nodeType]} 18%, ${c.cardBg})` : c.cardBg;
 
   return (
     <div
@@ -187,7 +193,7 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
         background={cardFill}
         borderColor={borderColor}
         iconColor={TYPE_COLOR[nodeType]}
-        labelColor={c.textPrimary}
+        labelColor={c.textSecondary}
         boxShadow={ring}
         surfaceColor={c.cardBg}
         badgeColor={c.accent}

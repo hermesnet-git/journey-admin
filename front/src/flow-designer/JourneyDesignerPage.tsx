@@ -23,7 +23,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ConfirmDialog } from '../products/ConfirmDialog';
 import { WorkflowActionsContext, type WorkflowActions } from './actions-context';
-import { FlowThemeContext, DARK_COLORS, LIGHT_COLORS } from './theme';
+import { FlowThemeContext, DARK_COLORS, LIGHT_COLORS, JOURNEY_CANVAS_BG_DARK, JOURNEY_CANVAS_DOT_DARK } from './theme';
 import { useAppTheme } from '../shell/theme';
 import { WorkflowNode } from './WorkflowNode';
 import { AnnotationNode } from './AnnotationNode';
@@ -43,6 +43,7 @@ import {
   newNodeId,
   newConnectionId,
   computeLayout,
+  computeLayoutForSelection,
   findFreeSpot,
   SINGLE_OUTPUT_TYPES,
   FRONT_TO_BACKEND_TYPE,
@@ -206,6 +207,10 @@ function DesignerInner({
 }) {
   const { dark, colors: appColors } = useAppTheme();
   const c = dark ? DARK_COLORS : LIGHT_COLORS;
+  // Só o fundo do diagrama de Jornadas (não o `c.canvasBg` genérico, reaproveitado em vários outros
+  // pain​éis) — roxo no escuro, cinza claro normal no claro.
+  const journeyCanvasBg = dark ? JOURNEY_CANVAS_BG_DARK : c.canvasBg;
+  const journeyDotColor = dark ? JOURNEY_CANVAS_DOT_DARK : c.dotColor;
   const { showToast } = useToast();
 
   const [activeJourney, setActiveJourney] = useState<Journey>(journey);
@@ -729,11 +734,95 @@ function DesignerInner({
     setPropertiesNodeId(null);
   }, []);
 
+  // 2+ selecionados: organiza só o grupo (mantém o resto do canvas onde está). 0 ou 1 selecionado:
+  // organiza o canvas inteiro, comportamento de sempre.
   const organize = useCallback(() => {
     pushHistory();
-    setNodes((nds) => computeLayout(nds, edgesRef.current));
+    const selectedIds = new Set(nodesRef.current.filter((n) => n.selected).map((n) => n.id));
+    setNodes((nds) =>
+      selectedIds.size >= 2 ? computeLayoutForSelection(nds, edgesRef.current, selectedIds) : computeLayout(nds, edgesRef.current),
+    );
     requestAnimationFrame(() => fitView({ padding: 0.2, duration: 200 }));
   }, [pushHistory, fitView]);
+
+  // Mesmo padrão de alinhar/distribuir do editor de tela (FormScreenCanvasWeb) — só que operando em
+  // WFNode.position direto (não em positionX/positionY de FormField), já que aqui não tem um
+  // conceito de "campo" por trás do nó.
+  const selectedNodeIds = useMemo(() => nodes.filter((n) => n.selected).map((n) => n.id), [nodes]);
+
+  const alignSelected = useCallback(
+    (mode: 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom') => {
+      if (selectedNodeIds.length < 2) return;
+      pushHistory();
+      const boxes = selectedNodeIds.map((id) => {
+        const n = nodesRef.current.find((x) => x.id === id)!;
+        const dim = NODE_DIMENSIONS[n.type as NodeType] ?? NODE_DIMENSIONS.userTask;
+        return { id, x: n.position.x, y: n.position.y, width: dim.width, height: dim.height };
+      });
+      let target: number;
+      if (mode === 'left') target = Math.min(...boxes.map((b) => b.x));
+      else if (mode === 'right') target = Math.max(...boxes.map((b) => b.x + b.width));
+      else if (mode === 'centerX') target = boxes.reduce((s, b) => s + (b.x + b.width / 2), 0) / boxes.length;
+      else if (mode === 'top') target = Math.min(...boxes.map((b) => b.y));
+      else if (mode === 'bottom') target = Math.max(...boxes.map((b) => b.y + b.height));
+      else target = boxes.reduce((s, b) => s + (b.y + b.height / 2), 0) / boxes.length;
+
+      const byId = new Map(boxes.map((b) => [b.id, b]));
+      setNodes((nds) =>
+        nds.map((n) => {
+          const b = byId.get(n.id);
+          if (!b) return n;
+          if (mode === 'left') return { ...n, position: { ...n.position, x: Math.round(target) } };
+          if (mode === 'right') return { ...n, position: { ...n.position, x: Math.round(target - b.width) } };
+          if (mode === 'centerX') return { ...n, position: { ...n.position, x: Math.round(target - b.width / 2) } };
+          if (mode === 'top') return { ...n, position: { ...n.position, y: Math.round(target) } };
+          if (mode === 'bottom') return { ...n, position: { ...n.position, y: Math.round(target - b.height) } };
+          return { ...n, position: { ...n.position, y: Math.round(target - b.height / 2) } };
+        }),
+      );
+    },
+    [selectedNodeIds, pushHistory],
+  );
+
+  // Distribuir espaçamento igual: ordena os selecionados pelo eixo, reparte o vão entre o início do
+  // primeiro e o fim do último em partes iguais descontando as próprias larguras/alturas — só os do
+  // MEIO se movem (primeiro e último ficam onde já estavam).
+  const distributeSelected = useCallback(
+    (axis: 'horizontal' | 'vertical') => {
+      if (selectedNodeIds.length < 3) return;
+      pushHistory();
+      const boxes = selectedNodeIds
+        .map((id) => {
+          const n = nodesRef.current.find((x) => x.id === id)!;
+          const dim = NODE_DIMENSIONS[n.type as NodeType] ?? NODE_DIMENSIONS.userTask;
+          return { id, x: n.position.x, y: n.position.y, width: dim.width, height: dim.height };
+        })
+        .sort((a, b) => (axis === 'horizontal' ? a.x - b.x : a.y - b.y));
+      const first = boxes[0];
+      const last = boxes[boxes.length - 1];
+      const span = axis === 'horizontal' ? last.x + last.width - first.x : last.y + last.height - first.y;
+      const sizeSum = boxes.reduce((s, b) => s + (axis === 'horizontal' ? b.width : b.height), 0);
+      const gap = (span - sizeSum) / (boxes.length - 1);
+
+      const nextPosition = new Map<string, number>();
+      let cursor = axis === 'horizontal' ? first.x : first.y;
+      for (const b of boxes) {
+        nextPosition.set(b.id, cursor);
+        cursor += (axis === 'horizontal' ? b.width : b.height) + gap;
+      }
+
+      setNodes((nds) =>
+        nds.map((n) => {
+          const pos = nextPosition.get(n.id);
+          if (pos === undefined) return n;
+          return axis === 'horizontal'
+            ? { ...n, position: { ...n.position, x: Math.round(pos) } }
+            : { ...n, position: { ...n.position, y: Math.round(pos) } };
+        }),
+      );
+    },
+    [selectedNodeIds, pushHistory],
+  );
 
   const onUpdateAnnotationText = useCallback((annotationId: string, text: string) => {
     setAnnotations((anns) => anns.map((a) => (a.id === annotationId ? { ...a, data: { ...a.data, text } } : a)));
@@ -837,17 +926,10 @@ function DesignerInner({
           // a gateway's outgoing path is otherwise invisible on canvas until you open its
           // properties, and the two views ended up inconsistent with each other.
           label: e.data?.isDefault ? 'padrão' : (e.data?.condition ?? undefined),
-          // Contorno (stroke atrás do preenchimento via paintOrder) em vez de uma caixa de fundo —
-          // dá contraste pra ler o texto sobre qualquer nó/linha que passe por baixo, sem desenhar
-          // um retângulo sólido atrás dele.
-          labelStyle: {
-            fill: c.textPrimary,
-            fontSize: 11,
-            fontWeight: 600,
-            stroke: c.canvasBg,
-            strokeWidth: 4,
-            paintOrder: 'stroke',
-          },
+          // Texto solto sobre a linha, sem chip e sem contorno nenhum.
+          // Mesmo tratamento da legenda de tipo de conector embaixo do nome do nó (NodeShape/
+          // ShapeLabel): fonte pequena, semi-negrito, levemente espaçada e discreta (opacidade).
+          labelStyle: { fill: c.textPrimary, fillOpacity: 0.6, fontSize: 9, fontWeight: 600, letterSpacing: '0.03em' },
           labelBgStyle: { fill: 'transparent' },
           labelBgPadding: [0, 0] as [number, number],
           style: {
@@ -984,6 +1066,9 @@ function DesignerInner({
             onEdgeShapeChange={setEdgeShape}
             nodeFill={nodeFill}
             onNodeFillChange={setNodeFill}
+            selectedCount={selectedNodeIds.length}
+            onAlign={alignSelected}
+            onDistribute={distributeSelected}
             zoomPct={Math.round(zoom * 100)}
             onZoomIn={() => zoomIn({ duration: 150 })}
             onZoomOut={() => zoomOut({ duration: 150 })}
@@ -1002,6 +1087,9 @@ function DesignerInner({
             <div
               ref={wrapperRef}
               className="flex-1 relative min-w-0"
+              // Teste: Roboto (fonte padrão do Mística) só nos componentes dentro do canvas — não no
+              // resto da tela (toolbar/paleta/painel de propriedades continuam na fonte de sempre).
+              style={{ fontFamily: "'Roboto', sans-serif" }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={onDrop}
             >
@@ -1034,10 +1122,14 @@ function DesignerInner({
                 snapGrid={[16, 16]}
                 defaultEdgeOptions={{ type: edgeShape }}
                 colorMode={dark ? 'dark' : 'light'}
-                style={{ background: c.canvasBg }}
+                // A pintura de fundo real do React Flow mora na camada .react-flow__background, que
+                // lê a variável --xy-background-color (herdada por CSS custom property) — setar
+                // `background` aqui no elemento raiz só troca a cor de baixo dessa camada, invisível
+                // por trás dela.
+                style={{ background: journeyCanvasBg, ['--xy-background-color' as string]: journeyCanvasBg }}
                 proOptions={{ hideAttribution: true }}
               >
-                <Background variant={BackgroundVariant.Dots} color={c.dotColor} gap={20} size={1.2} />
+                <Background variant={BackgroundVariant.Dots} color={journeyDotColor} gap={20} size={1.2} />
                 {minimapOpen ? (
                   <>
                     <MiniMap

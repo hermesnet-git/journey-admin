@@ -8,23 +8,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Projects a {@link Form} into a hyperscript-style SDUI tree: {@code [tag, props, children]},
- * consumed by external React/Flutter rendering tools. This is a read-only projection generated
- * at publication time (REQ-04.06.002) — the field model (not this tree) remains the editable
- * source of truth in the form builder.
+ * Projects a list of {@link FormField} (a User Task's embedded screen) into a hyperscript-style
+ * SDUI tree: {@code [tag, props, children]}, consumed by external React/Flutter rendering tools.
+ * This is a read-only projection generated at publication time (REQ-04.06.002) — the field model
+ * (not this tree) remains the editable source of truth in the screen editor.
  */
 public final class FormSduiSerializer {
 
     private FormSduiSerializer() {
     }
 
-    public static List<Object> serialize(Form form, ChannelType channelType) {
-        return serialize(form.getFields(), channelType);
-    }
-
-    // Núcleo da serialização — a sobrecarga acima é só um atalho pra Form.getFields(). WEB tem uma
-    // árvore bem diferente (lista achatada com posição livre, sem aninhar por SECTION) — os demais
-    // canais seguem exatamente o layout linear/seções de sempre.
+    // WEB tem uma árvore bem diferente (lista achatada com posição livre, sem aninhar por SECTION)
+    // — os demais canais seguem exatamente o layout linear/seções de sempre.
     public static List<Object> serialize(List<FormField> fields, ChannelType channelType) {
         if (channelType == ChannelType.WEB) {
             return serializeWeb(fields);

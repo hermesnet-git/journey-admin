@@ -8,7 +8,6 @@ import { DashboardPage } from './dashboard/DashboardPage';
 import { ProductsPage } from './products/ProductsPage';
 import { CatalogPage } from './catalog/CatalogPage';
 import { JourneysPage } from './journeys/JourneysPage';
-import { FormsPage } from './forms/FormsPage';
 import { ExecutionsPage } from './execution/ExecutionsPage';
 import { DiagnosticoPage } from './diagnostics/DiagnosticoPage';
 import { AuditPage } from './audit/AuditPage';
@@ -26,7 +25,6 @@ const DASHBOARD_TAB: Tab = { key: 'dashboard', title: 'Dashboard', kind: 'dashbo
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: true };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
 const CATALOG_TAB: Tab = { key: 'integracoes', title: 'Catálogo de Integrações', kind: 'catalog', closable: true };
-const FORMS_TAB: Tab = { key: 'formularios', title: 'Formulários', kind: 'forms', closable: true };
 const EXECUCOES_TAB: Tab = { key: 'execucoes', title: 'Execução', kind: 'execution', closable: true };
 const DIAGNOSTICO_TAB: Tab = { key: 'diagnostico', title: 'Diagnóstico', kind: 'diagnostico', closable: true };
 const AUDIT_TAB: Tab = { key: 'auditoria', title: 'Auditoria', kind: 'audit', closable: true };
@@ -73,21 +71,6 @@ function AppShell() {
     setActiveKey(tab.key);
   }
 
-  // Fecha uma aba efêmera de edição de formulário (aberta via openForm/openNewFormScreen abaixo) e
-  // devolve o foco pra aba que estava ativa quando ela foi aberta — o designer de jornada, na
-  // prática, já que é o único chamador — em vez do fallback genérico "última aba restante" do
-  // closeTab.
-  function closeFormTab(key: string, returnToKey: string) {
-    setTabs((prev) => {
-      const next = prev.filter((t) => t.key !== key);
-      // returnToKey pode ela mesma ter sido fechada nesse meio tempo (ex.: o usuário fechou a aba
-      // Jornadas enquanto a aba de edição de formulário criada a partir dela ainda estava aberta) —
-      // cai no mesmo fallback "última aba restante" que o closeTab usa abaixo.
-      setActiveKey(next.some((t) => t.key === returnToKey) ? returnToKey : (next[next.length - 1]?.key ?? 'dashboard'));
-      return next;
-    });
-  }
-
   function closeTab(key: string) {
     setTabs((prev) => {
       const next = prev.filter((t) => t.key !== key);
@@ -115,10 +98,6 @@ function AppShell() {
       openTab(JOURNEYS_TAB);
       return;
     }
-    if (navKey === 'formularios') {
-      openTab(FORMS_TAB);
-      return;
-    }
     if (navKey === 'execucoes') {
       openTab(EXECUCOES_TAB);
       return;
@@ -140,28 +119,6 @@ function AppShell() {
       return;
     }
     openTab({ key: `nav-${navKey}`, title: NAV_LABELS[navKey], kind: 'placeholder', closable: true });
-  }
-
-  // Só é aberto de dentro do designer de jornada (formulário vinculado a uma User Task, ou "novo
-  // formulário"). Reaproveita a aba Formulários se ela estiver livre; se o usuário já tiver aberto
-  // ali navegando/editando outra coisa, cria uma aba dedicada em vez de mexer na que já existe.
-  function openFormEditTab(data: { formId?: string; openNew?: boolean }) {
-    const returnToKey = activeKey;
-    const reuseSlot = !tabs.some((t) => t.key === FORMS_TAB.key);
-    openTab({
-      ...FORMS_TAB,
-      key: reuseSlot ? FORMS_TAB.key : `formularios-${Date.now()}`,
-      ...data,
-      returnToKey,
-    });
-  }
-
-  function openForm(formId: string) {
-    openFormEditTab({ formId });
-  }
-
-  function openNewFormScreen() {
-    openFormEditTab({ openNew: true });
   }
 
   // Cada instância clicada no card "Execuções recentes" do Dashboard ganha sua própria aba nova de
@@ -200,8 +157,6 @@ function AppShell() {
           ? 'produtos'
           : activeTab.kind === 'catalog'
             ? 'integracoes'
-            : activeTab.kind === 'forms'
-            ? 'formularios'
             : activeTab.kind === 'execution'
               ? 'execucoes'
               : activeTab.kind === 'diagnostico'
@@ -237,14 +192,7 @@ function AppShell() {
                   {tab.kind === 'products' && <ProductsPage />}
                   {tab.kind === 'catalog' && <CatalogPage />}
                   {tab.kind === 'journeys' && (
-                    <JourneysPage onOpenForm={openForm} onOpenNewForm={openNewFormScreen} onExecuteJourney={openExecuteJourneyTab} />
-                  )}
-                  {tab.kind === 'forms' && (
-                    <FormsPage
-                      formId={tab.formId}
-                      openNew={tab.openNew}
-                      onExit={tab.returnToKey ? () => closeFormTab(tab.key, tab.returnToKey!) : undefined}
-                    />
+                    <JourneysPage onExecuteJourney={openExecuteJourneyTab} />
                   )}
                   {tab.kind === 'execution' && (
                     <ExecutionsPage active={tab.key === activeKey} initialJourney={tab.initialJourney} />

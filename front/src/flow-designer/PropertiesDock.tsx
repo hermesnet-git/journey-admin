@@ -4,7 +4,6 @@ import { useFlowTheme } from './theme';
 import { PropertiesPanel } from './PropertiesPanel';
 import { JourneyPropertiesPanel } from './JourneyPropertiesPanel';
 import type { WFNode, WFEdge, WFNodeData, WFEdgeData } from './model';
-import type { Form } from '../api/forms';
 import type { MessagingCluster, CredentialReference } from '../api/messaging';
 
 const MIN_WIDTH = 280;
@@ -25,7 +24,6 @@ interface JourneyPanelProps {
 // expand button) and resizable by dragging its left edge — width only.
 export function PropertiesDock({
   node,
-  forms,
   clusters,
   credentials,
   allNodes,
@@ -39,7 +37,6 @@ export function PropertiesDock({
   onFreshNodeConsumed,
 }: {
   node: WFNode | null;
-  forms: Form[];
   clusters: MessagingCluster[];
   credentials: CredentialReference[];
   allNodes: WFNode[];
@@ -150,7 +147,6 @@ export function PropertiesDock({
           {node ? (
             <PropertiesPanel
               node={node}
-              forms={forms}
               clusters={clusters}
               credentials={credentials}
               allNodes={allNodes}

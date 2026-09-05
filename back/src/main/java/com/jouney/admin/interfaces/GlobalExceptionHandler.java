@@ -7,9 +7,6 @@ import com.jouney.admin.domain.channel.ChannelNotFoundException;
 import com.jouney.admin.domain.channel.ProductInactiveException;
 import com.jouney.admin.domain.flow.FlowNodeNotFoundException;
 import com.jouney.admin.domain.flow.FlowValidationException;
-import com.jouney.admin.domain.form.DuplicateFieldNameException;
-import com.jouney.admin.domain.form.InvalidFormFieldException;
-import com.jouney.admin.domain.form.FormNotFoundException;
 import com.jouney.admin.domain.journey.ChannelInactiveException;
 import com.jouney.admin.domain.journey.JourneyInactiveException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
@@ -50,7 +47,7 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler({ProductNotFoundException.class, ChannelNotFoundException.class,
-            JourneyNotFoundException.class, FormNotFoundException.class, JourneyVersionNotFoundException.class,
+            JourneyNotFoundException.class, JourneyVersionNotFoundException.class,
             MessagingClusterNotFoundException.class, CredentialReferenceNotFoundException.class,
             FlowNodeNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException ex, HttpServletRequest request) {
@@ -65,8 +62,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }
 
-    @ExceptionHandler({ProductInactiveException.class, ChannelInactiveException.class, VersionHasNoFlowException.class,
-            DuplicateFieldNameException.class, InvalidFormFieldException.class})
+    @ExceptionHandler({ProductInactiveException.class, ChannelInactiveException.class, VersionHasNoFlowException.class})
     public ResponseEntity<ApiError> handleUnprocessable(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, null);
     }

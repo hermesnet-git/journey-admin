@@ -8,13 +8,9 @@ import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.domain.flow.FlowValidator;
 import com.jouney.admin.domain.flow.GeneratedFlow;
 import com.jouney.admin.domain.flow.GenerationContext;
-import com.jouney.admin.domain.form.FormField;
-import com.jouney.admin.domain.form.FormRepository;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,15 +43,12 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
-    private final FormRepository formRepository;
     private final AiProviderCredentialRepository credentialRepository;
     private final String model;
 
-    public GeminiFlowGenerator(ObjectMapper objectMapper, FormRepository formRepository,
-                                AiProviderCredentialRepository credentialRepository,
+    public GeminiFlowGenerator(ObjectMapper objectMapper, AiProviderCredentialRepository credentialRepository,
                                 @Value("${gemini.model:gemini-3.6-flash}") String model) {
         this.objectMapper = objectMapper;
-        this.formRepository = formRepository;
         this.credentialRepository = credentialRepository;
         this.model = model;
         this.restClient = FlowGenerationPrompt.timeoutedRestClientBuilder()
@@ -97,16 +90,7 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
             } catch (Exception ex) {
                 throw new AiGenerationException("Resposta da IA em formato inesperado: " + ex.getMessage(), ex);
             }
-            if (!output.newForms().isEmpty()) {
-                onProgress.accept("Tentativa " + attempt + ": criando " + output.newForms().size() + " formulário(s) novo(s)...");
-            }
-            // Persiste os newForms como templates reutilizáveis no catálogo (efeito colateral —
-            // Form.create/save); os campos que de fato viram a tela do nó são uma cópia à parte,
-            // resolvida logo abaixo (newFormFields/existingFormFields), nunca uma referência viva.
-            FlowGenerationPrompt.createNewForms(formRepository, output.newForms());
-            Map<String, List<FormField>> newFormFields = FlowGenerationPrompt.newFormFieldsByLocalId(output.newForms());
-            Map<UUID, List<FormField>> existingFormFields = resolveExistingFormFields(output.nodes());
-            GeneratedFlow candidate = FlowGenerationPrompt.toDomain(output, newFormFields, existingFormFields, existingNodesById);
+            GeneratedFlow candidate = FlowGenerationPrompt.toDomain(output, existingNodesById);
             onProgress.accept("Tentativa " + attempt + ": " + FlowGenerationPrompt.describeFlow(candidate) + " — validando...");
             try {
                 FlowValidator.validate(candidate.nodes(), candidate.connections());
@@ -127,20 +111,6 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
             }
         }
         throw lastViolation;
-    }
-
-    // Campos dos formulários do catálogo que algum nó da tentativa atual referencia por formId
-    // (existente, não newFormId) — resolvidos uma vez por id distinto, copiados pro embeddedScreen
-    // do(s) nó(s) correspondentes em FlowGenerationPrompt.toDomain, nunca guardados como referência.
-    private Map<UUID, List<FormField>> resolveExistingFormFields(List<FlowGenerationPrompt.LlmNode> nodes) {
-        Map<UUID, List<FormField>> result = new HashMap<>();
-        for (var node : nodes) {
-            UUID formId = FlowGenerationPrompt.parseUuidOrNull(node.formId());
-            if (formId != null && !result.containsKey(formId)) {
-                formRepository.findById(formId).ifPresent(form -> result.put(formId, form.getFields()));
-            }
-        }
-        return result;
     }
 
     private JsonNode callGemini(List<Map<String, Object>> contents, String apiKey) {

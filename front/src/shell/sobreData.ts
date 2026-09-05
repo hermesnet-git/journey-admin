@@ -648,13 +648,6 @@ export const EPICS: Epic[] = [
         code: 'US-04.01',
         name: 'Form builder',
         requirements: [
-          d('REQ-04.01.001', 'O sistema deve permitir criar formulários.'),
-          d('REQ-04.01.002', 'O sistema deve permitir editar formulários.'),
-          d('REQ-04.01.003', 'O sistema deve permitir remover formulários.'),
-          d(
-            'REQ-04.01.004',
-            'O sistema deve permitir usar um formulário do catálogo como modelo de partida ao desenhar a tela de uma User Task (cópia dos campos, sem vínculo persistido).',
-          ),
           {
             code: 'REQ-04.01.005',
             description:
@@ -663,12 +656,8 @@ export const EPICS: Epic[] = [
             notes: 'Ver REQ-05.02.005 para a resolução dessas variáveis na tela de execução.',
           },
           d(
-            'REQ-04.01.006',
-            'No editor de tela embutido, o sistema deve permitir importar campos de um formulário existente do catálogo e, separadamente, salvar a tela atual como um novo formulário reutilizável.',
-          ),
-          d(
             'REQ-04.01.007',
-            'No catálogo de formulários, cada campo deve possuir um name técnico único dentro do formulário e imutável após criado. Na tela embutida de uma User Task, o name é editável a qualquer momento, com unicidade verificada na jornada inteira.',
+            'Na tela embutida de uma User Task, o name técnico de cada campo é editável a qualquer momento, com unicidade verificada na jornada inteira.',
           ),
         ],
       },
@@ -708,20 +697,6 @@ export const EPICS: Epic[] = [
           d('REQ-04.02.020', 'O sistema deve suportar divisor visual (DIVIDER).'),
           d('REQ-04.02.021', 'O sistema deve suportar card de conteúdo (CARD).'),
           d('REQ-04.02.022', 'O sistema deve suportar aviso (CALLOUT).'),
-        ],
-      },
-      {
-        code: 'US-04.03',
-        name: 'Reutilização',
-        requirements: [
-          d(
-            'REQ-04.03.001',
-            'O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia) para telas de User Tasks em múltiplas jornadas.',
-          ),
-          d(
-            'REQ-04.03.002',
-            'O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia) para telas de múltiplas User Tasks.',
-          ),
         ],
       },
       {
@@ -1795,6 +1770,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-09-05 00:24 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Remoção do catálogo de Formulários (FT-04): o CRUD de formulários reutilizáveis (/api/v1/forms, tela "Formulários" do portal admin) foi removido — desde a mudança arquitetural de 2026-08-24 (ver linha abaixo) ele havia virado só um atalho de cópia opcional sobre o editor de tela embutido (embeddedScreen), que é quem permanece como fonte de verdade da tela de uma User Task. REQ-04.01.001/002/003/004/006 e toda a US-04.03 (REQ-04.03.001/002) marcados removido; REQ-04.01.007 reescrito removendo a cláusula sobre o catálogo. Geração de fluxo por IA (FlowGenerationPrompt/GeminiFlowGenerator) deixou de listar/criar formulários do catálogo (formId/newFormId/newForms saíram do schema da tool) — uma User Task gerada por IA agora só nasce com messageText ou preserva a tela de um nó reaproveitado. JourneyVersion.forms/JourneySnapshotFactory (campo morto desde 2026-08-24) removidos junto. FormField/FormFieldType/FormSduiSerializer (modelo da tela embutida, usado na publicação) não foram tocados. Migration V7__drop_form_catalog.sql derruba a tabela form. Total do FT-04: 37 → 30 REQs. Progresso geral de 420/457 (92%) para 413/450 (92%).',
+  },
   {
     date: '2026-09-02 23:56 (não commitado)',
     source: 'progresso',

@@ -11,9 +11,8 @@ export interface DropdownRect {
   bottom?: number;
 }
 
-// Mesma lógica de posicionamento de FormSearchSelect (PropertiesPanel.tsx) — lê a posição atual do
-// input na tela e escolhe o lado (abaixo/acima) com mais espaço, sem piso mínimo de altura, pra não
-// estourar a borda de uma janela curta.
+// Lê a posição atual do input na tela e escolhe o lado (abaixo/acima) com mais espaço, sem piso
+// mínimo de altura, pra não estourar a borda de uma janela curta.
 export function computeDropdownRect(input: HTMLElement): DropdownRect {
   const r = input.getBoundingClientRect();
   const margin = 8;
@@ -51,9 +50,8 @@ interface Props<T> {
 
 // Seletor pesquisável genérico: portal pro document.body (o mesmo motivo de sempre nesse painel —
 // o container do PropertiesDock recorta qualquer popover mais alto que a fresta lateral), reabre
-// posição no scroll/resize em vez de fechar, abre por foco ou mousedown. Generalização de
-// FormSearchSelect (PropertiesPanel.tsx) parametrizada por {id, label} em vez de acoplada a Form —
-// usada pelos seletores de cluster/credencial do catálogo (FT-14).
+// posição no scroll/resize em vez de fechar, abre por foco ou mousedown. Parametrizado por
+// {id, label} — usado pelos seletores de cluster/credencial do catálogo (FT-14).
 export function SearchSelect<T>({
   items,
   getId,

@@ -1,6 +1,3 @@
-import { apiGet, apiPost, apiPut, apiDelete } from './client';
-import type { ConnectorTestInput, ConnectorTestResponse } from './flows';
-
 export type FormFieldType =
   | 'TEXT'
   | 'INPUT'
@@ -111,46 +108,3 @@ export interface FormField {
   height?: number | null;
 }
 
-export interface Form {
-  formId: string;
-  name: string;
-  description: string | null;
-  fields: FormField[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface FormInput {
-  name: string;
-  description: string;
-  fields: FormField[];
-}
-
-export function listForms(params: { q?: string } = {}): Promise<Form[]> {
-  const query = new URLSearchParams();
-  if (params.q) query.set('q', params.q);
-  const qs = query.toString();
-  return apiGet<Form[]>(`/forms${qs ? `?${qs}` : ''}`);
-}
-
-export function getForm(formId: string): Promise<Form> {
-  return apiGet<Form>(`/forms/${formId}`);
-}
-
-export function createForm(input: FormInput): Promise<Form> {
-  return apiPost<Form>('/forms', input);
-}
-
-export function updateForm(formId: string, input: FormInput): Promise<Form> {
-  return apiPut<Form>(`/forms/${formId}`, input);
-}
-
-export function deleteForm(formId: string): Promise<void> {
-  return apiDelete<void>(`/forms/${formId}`);
-}
-
-// US-03.10-like test call, desacoplado de journey/node (formulário não pertence a um nó de fluxo)
-// — mesmo backend (SSRF guard, timeout, limite de resposta) do teste de conector REST do flow.
-export function testDataSourceConnector(input: ConnectorTestInput): Promise<ConnectorTestResponse> {
-  return apiPost<ConnectorTestResponse>('/forms/datasource-test', input);
-}

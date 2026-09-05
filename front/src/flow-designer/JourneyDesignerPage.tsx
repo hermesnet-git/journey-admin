@@ -63,7 +63,6 @@ import {
 } from './model';
 import { updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow, validateFlow, generateFlow, type Flow, type FlowUpdateInput } from '../api/flows';
-import { listForms, type Form } from '../api/forms';
 import { listClusters, listCredentials, type MessagingCluster, type CredentialReference } from '../api/messaging';
 import { ApiClientError } from '../api/client';
 import { useToast } from '../products/Toast';
@@ -176,18 +175,14 @@ export function JourneyDesignerPage({
   journey,
   onClose,
   onSaved,
-  onOpenForm,
-  onOpenNewForm,
 }: {
   journey: Journey;
   onClose: () => void;
   onSaved: () => void;
-  onOpenForm: (formId: string) => void;
-  onOpenNewForm: () => void;
 }) {
   return (
     <ReactFlowProvider>
-      <DesignerInner journey={journey} onClose={onClose} onSaved={onSaved} onOpenForm={onOpenForm} onOpenNewForm={onOpenNewForm} />
+      <DesignerInner journey={journey} onClose={onClose} onSaved={onSaved} />
     </ReactFlowProvider>
   );
 }
@@ -196,14 +191,10 @@ function DesignerInner({
   journey,
   onClose,
   onSaved,
-  onOpenForm,
-  onOpenNewForm,
 }: {
   journey: Journey;
   onClose: () => void;
   onSaved: () => void;
-  onOpenForm: (formId: string) => void;
-  onOpenNewForm: () => void;
 }) {
   const { dark, colors: appColors } = useAppTheme();
   const c = dark ? DARK_COLORS : LIGHT_COLORS;
@@ -216,7 +207,6 @@ function DesignerInner({
   const [activeJourney, setActiveJourney] = useState<Journey>(journey);
   const [name, setName] = useState(journey.name);
   const [description, setDescription] = useState(journey.description ?? '');
-  const [forms, setForms] = useState<Form[]>([]);
   const [clusters, setClusters] = useState<MessagingCluster[]>([]);
   const [credentials, setCredentials] = useState<CredentialReference[]>([]);
   const [nodes, setNodes] = useState<WFNode[]>(() => initialFlowNodes());
@@ -357,16 +347,8 @@ function DesignerInner({
     [getViewport, setViewport],
   );
 
-  const refreshForms = useCallback(() => {
-    listForms().then(setForms);
-  }, []);
-
-  useEffect(() => {
-    refreshForms();
-  }, [refreshForms]);
-
-  // Catálogo de clusters/credenciais (FT-14) — carregado uma vez; diferente de forms, não é criado
-  // inline a partir do designer de fluxo, então não precisa de um refresh acionável pelo usuário.
+  // Catálogo de clusters/credenciais (FT-14) — carregado uma vez, não é criado inline a partir do
+  // designer de fluxo, então não precisa de um refresh acionável pelo usuário.
   useEffect(() => {
     listClusters().then(setClusters);
     listCredentials().then(setCredentials);
@@ -858,14 +840,12 @@ function DesignerInner({
       },
       onQuickAdd,
       onDelete: deleteNode,
-      onOpenForm,
-      getForm: (formId) => forms.find((f) => f.formId === formId),
       onUpdateAnnotationText,
       onDeleteAnnotation,
       onUnlinkAnnotation,
       getNodeName: (nodeId) => nodesRef.current.find((n) => n.id === nodeId)?.data.name,
     }),
-    [onQuickAdd, selectOnlyNode, deleteNode, onOpenForm, forms, onUpdateAnnotationText, onDeleteAnnotation, onUnlinkAnnotation],
+    [onQuickAdd, selectOnlyNode, deleteNode, onUpdateAnnotationText, onDeleteAnnotation, onUnlinkAnnotation],
   );
 
   const displayNodes = useMemo(
@@ -1037,7 +1017,7 @@ function DesignerInner({
     : dockPinned
       ? (nodes.find((n) => n.id === pinnedPreviewNodeId) ?? null)
       : null;
-  const previewVariables = previewNode ? availableVariableOriginsAt(previewNode.id, nodes, edges, forms) : [];
+  const previewVariables = previewNode ? availableVariableOriginsAt(previewNode.id, nodes, edges) : [];
   const userTasks = orderedUserTasks(nodes, edges);
 
   useEffect(() => {
@@ -1169,14 +1149,10 @@ function DesignerInner({
               {previewNode && (
                 <FormPreviewDock
                   channelType={activeJourney.channelType}
-                  journeyId={activeJourney.journeyId}
                   nodeId={previewNode.id}
                   embeddedScreen={previewNode.data.embeddedScreen ?? []}
                   onEmbeddedScreenChange={(fields) => updateNodeData(previewNode.id, { embeddedScreen: fields })}
                   onPushHistory={pushHistory}
-                  forms={forms}
-                  onRefreshForms={refreshForms}
-                  onOpenNewForm={onOpenNewForm}
                   variables={previewVariables}
                   userTasks={userTasks}
                   onNavigateTask={selectOnlyNode}
@@ -1189,7 +1165,6 @@ function DesignerInner({
             </div>
             <PropertiesDock
               node={propertiesNode}
-              forms={forms}
               clusters={clusters}
               credentials={credentials}
               allNodes={nodes}

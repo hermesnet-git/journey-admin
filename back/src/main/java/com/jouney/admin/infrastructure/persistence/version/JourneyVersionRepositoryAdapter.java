@@ -2,7 +2,6 @@ package com.jouney.admin.infrastructure.persistence.version;
 
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
-import com.jouney.admin.domain.form.Form;
 import com.jouney.admin.domain.version.JourneyVersion;
 import com.jouney.admin.domain.version.JourneyVersionRepository;
 import com.jouney.admin.domain.version.VersionStatus;
@@ -101,7 +100,7 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
                 entity.getStatus(), entity.getDescription(), entity.getCreatedBy(), entity.getCreatedAt(),
                 entity.getPublishedAt(), record.journeyName(), record.journeyDescription(), record.productId(),
                 record.productName(), record.channelId(), record.channelName(), record.channelType(), flowNodes,
-                flowConnections, List.<Form>of());
+                flowConnections);
     }
 
     private String writeJson(Object value) {

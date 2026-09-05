@@ -421,7 +421,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 ---
 
 ### US-03.16 Editor de tela embutido no editor de fluxo
-#### REQ-03.16.001 - Ao selecionar, no canvas, uma `USER_TASK`, o editor deve exibir automaticamente um dock ancorado à base do canvas com o editor da tela embutida do nó (`embeddedScreen`), desenhada diretamente ali — sem depender de associação a um formulário do catálogo (REQ-04.01.004) —, sem exigir uma ação dedicada de clique.
+#### REQ-03.16.001 - Ao selecionar, no canvas, uma `USER_TASK`, o editor deve exibir automaticamente um dock ancorado à base do canvas com o editor da tela embutida do nó (`embeddedScreen`), desenhada diretamente ali, sem exigir uma ação dedicada de clique.
 
 > **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
@@ -449,22 +449,19 @@ Permitir a criação de formulários reutilizáveis que sirvam como modelo de pa
 ---
 
 ### US-04.01 Form builder
-#### REQ-04.01.001 - O sistema deve permitir criar formulários.
-#### REQ-04.01.002 - O sistema deve permitir editar formulários.
-#### REQ-04.01.003 - O sistema deve permitir remover formulários.
-#### REQ-04.01.004 - O sistema deve permitir usar um formulário do catálogo como modelo de partida ao desenhar a tela de uma User Task: os campos do formulário são copiados para a tela do nó (`embeddedScreen`) no momento da escolha, sem manter nenhum vínculo persistido entre o nó e o formulário de origem — alterar o formulário depois não afeta telas já copiadas dele, e vice-versa.
 
-> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+> **Removida (2026-09-05):** o catálogo de formulários reutilizáveis (CRUD `/api/v1/forms`, tela "Formulários" do portal admin) foi removido. Ele havia se tornado, desde a nota de revisão de 2026-08-24 abaixo, só um atalho de cópia opcional sobre o editor de tela embutido de uma User Task (`embeddedScreen`, US-03.16) — que é quem permanece como fonte de verdade da tela de uma User Task. REQ-04.01.001 a 004 e 006 foram removidos com o catálogo; REQ-04.01.005 e 007 permanecem (não dependiam do catálogo).
+
+#### ~~REQ-04.01.001~~ - ~~O sistema deve permitir criar formulários.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.01.002~~ - ~~O sistema deve permitir editar formulários.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.01.003~~ - ~~O sistema deve permitir remover formulários.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.01.004~~ - ~~O sistema deve permitir usar um formulário do catálogo como modelo de partida ao desenhar a tela de uma User Task: os campos do formulário são copiados para a tela do nó (`embeddedScreen`) no momento da escolha, sem manter nenhum vínculo persistido entre o nó e o formulário de origem — alterar o formulário depois não afeta telas já copiadas dele, e vice-versa.~~ *(removido em 2026-09-05)*
 
 #### REQ-04.01.005 - O sistema deve permitir manter uma User Task sem nenhuma tela desenhada; nesse caso, o sistema deve permitir configurar uma mensagem exibida ao usuário, com suporte a interpolação de variáveis do fluxo pela sintaxe `{{nome}}`, resolvida com os valores reais da execução no momento em que a tarefa é apresentada.
 
-> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+#### ~~REQ-04.01.006~~ - ~~No editor de tela embutido de uma User Task (US-03.16), o sistema deve permitir importar os campos de um formulário existente do catálogo como ponto de partida (cópia, sem vínculo persistido) e, separadamente, salvar a tela atualmente desenhada no nó como um novo formulário reutilizável no catálogo.~~ *(removido em 2026-09-05)*
 
-#### REQ-04.01.006 - No editor de tela embutido de uma User Task (US-03.16), o sistema deve permitir importar os campos de um formulário existente do catálogo como ponto de partida (cópia, sem vínculo persistido) e, separadamente, salvar a tela atualmente desenhada no nó como um novo formulário reutilizável no catálogo.
-
-> **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
-
-#### REQ-04.01.007 - No catálogo de formulários reutilizáveis, cada campo deve possuir um `name` técnico, definido pelo usuário, único dentro do formulário e imutável após a criação do campo; o `name` substitui o identificador interno anteriormente usado para referenciar o campo. Na tela embutida de uma User Task (US-03.16), a mesma regra de nome técnico se aplica com duas diferenças: o `name` é editável a qualquer momento (não só na criação), e a unicidade é verificada na jornada inteira, não só na tela do nó — ver REQ-03.09.011.
+#### REQ-04.01.007 - Na tela embutida de uma User Task (US-03.16), cada campo deve possuir um `name` técnico, definido pelo usuário, editável a qualquer momento, com unicidade verificada na jornada inteira (não só na tela do nó) — ver REQ-03.09.011.
 ---
 
 ### US-04.02 Componentes
@@ -496,10 +493,11 @@ Permitir a criação de formulários reutilizáveis que sirvam como modelo de pa
 ---
 
 ### US-04.03 Reutilização
-#### REQ-04.03.001 - O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia dos campos) para telas de User Tasks em múltiplas jornadas — sem manter vínculo persistido entre a tela copiada e o formulário de origem.
-#### REQ-04.03.002 - O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia dos campos) para telas de múltiplas User Tasks, inclusive dentro da mesma jornada — sem manter vínculo persistido entre as telas copiadas e o formulário de origem, nem entre si.
 
-> **Nota de revisão (2026-08-24):** requisitos reescritos — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+> **Removida (2026-09-05):** user story inteira removida junto com o catálogo de formulários reutilizáveis — ver nota em US-04.01.
+
+#### ~~REQ-04.03.001~~ - ~~O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia dos campos) para telas de User Tasks em múltiplas jornadas — sem manter vínculo persistido entre a tela copiada e o formulário de origem.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.03.002~~ - ~~O sistema deve permitir usar um formulário do catálogo como ponto de partida (cópia dos campos) para telas de múltiplas User Tasks, inclusive dentro da mesma jornada — sem manter vínculo persistido entre as telas copiadas e o formulário de origem, nem entre si.~~ *(removido em 2026-09-05)*
 
 ---
 

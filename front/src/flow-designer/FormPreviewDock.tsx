@@ -8,7 +8,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { ChevronDown, ChevronUp, Import, Maximize2, Minimize2, Pin, PinOff, Save, type LucideIcon } from 'lucide-react';
+import { ChevronDown, ChevronUp, Maximize2, Minimize2, Pin, PinOff, type LucideIcon } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { FormFieldPalette } from './FormFieldPalette';
 import { FormScreenCanvas } from './FormScreenCanvas';
@@ -17,7 +17,6 @@ import { FormScreenLayersPanel } from './FormScreenLayersPanel';
 import { FormScreenPreview } from './FormScreenPreview';
 import { FormFieldConfigPanel } from './FormFieldConfigPanel';
 import { UserTaskNavigator } from './UserTaskNavigator';
-import { FormSearchSelect } from './PropertiesPanel';
 import {
   CHANNEL_PALETTE,
   COMPONENT_META,
@@ -29,16 +28,13 @@ import {
   makeFormField,
   resolveWebPosition,
 } from './formScreenModel';
-import { promoteEmbeddedScreen } from '../api/flows';
-import { useToast } from '../products/Toast';
 import type { WFNode, VariableOrigin } from './model';
 import { collectsValue } from '../api/forms';
-import type { Form, FormField, FormFieldType } from '../api/forms';
+import type { FormField, FormFieldType } from '../api/forms';
 import type { ChannelType } from '../api/products';
 
 interface Props {
   channelType: ChannelType;
-  journeyId: string;
   nodeId: string;
   embeddedScreen: FormField[];
   onEmbeddedScreenChange: (fields: FormField[]) => void;
@@ -46,11 +42,6 @@ interface Props {
    * (adicionar/remover/reordenar/importar), não em edição de propriedade (mesma convenção de
    * Nome/Descrição do nó, que também não empilha história por tecla digitada). */
   onPushHistory: () => void;
-  /** Catálogo de formulários salvos — usado só como ponto de partida opcional ("importar"), nunca
-   * como referência viva: escolher um copia os campos pro embeddedScreen, sem guardar o id. */
-  forms: Form[];
-  onRefreshForms: () => void;
-  onOpenNewForm: () => void;
   /** Variáveis do fluxo disponíveis até este nó — repassadas pro painel de configuração inserir em
    * campos de texto. */
   variables: VariableOrigin[];
@@ -101,20 +92,6 @@ function DragChip({ label, Icon }: { label: string; Icon: LucideIcon }) {
   );
 }
 
-// Garante nome único dentro do embeddedScreen ao importar campos de um formulário do catálogo —
-// só entra em ação em colisão de verdade (reimportar o mesmo formulário, ou um nome que já existe
-// no rascunho atual); preserva o nome original do campo importado sempre que possível.
-function dedupedFieldName(name: string, taken: Set<string>): string {
-  if (!taken.has(name)) return name;
-  let i = 1;
-  let candidate = `${name}_${i}`;
-  while (taken.has(candidate)) {
-    i += 1;
-    candidate = `${name}_${i}`;
-  }
-  return candidate;
-}
-
 // Resolução da prancheta (WEB) escolhida no seletor — persiste só neste navegador, por User Task
 // (decisão explícita do usuário: sem migração de backend por enquanto). Falha silenciosa se
 // localStorage estiver indisponível (modo privado/quota) — cai no padrão de sempre.
@@ -158,18 +135,13 @@ function loadMobileSize(nodeId: string): { width: number; height: number } {
 // paleta/PropertiesDock). Segue a seleção diretamente (ver previewNode em JourneyDesignerPage):
 // aparece assim que uma User Task é selecionada, some ao selecionar qualquer outra coisa (a menos
 // que fixado, ver pinButton). Editor de tela embutido (paleta + canvas arrastável + configuração)
-// sobre embeddedScreen, o próprio FlowNode — formulários do catálogo servem só como ponto de
-// partida opcional ("Importar formulário" no rodapé, copia os campos, nunca guarda referência).
+// sobre embeddedScreen, o próprio FlowNode.
 export function FormPreviewDock({
   channelType,
-  journeyId,
   nodeId,
   embeddedScreen,
   onEmbeddedScreenChange,
   onPushHistory,
-  forms,
-  onRefreshForms,
-  onOpenNewForm,
   variables,
   userTasks,
   onNavigateTask,
@@ -179,14 +151,10 @@ export function FormPreviewDock({
   onPinnedChange,
 }: Props) {
   const { c } = useFlowTheme();
-  const { showToast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [mode, setMode] = useState<ScreenMode>('edit');
-  const [footerAction, setFooterAction] = useState<'import' | 'promote' | null>(null);
-  const [promoteName, setPromoteName] = useState('');
-  const [savingPromote, setSavingPromote] = useState(false);
   const [activeDrag, setActiveDrag] = useState<
     { source: 'palette'; fieldType: FormFieldType } | { source: 'canvas'; field: FormField } | null
   >(null);
@@ -363,39 +331,6 @@ export function FormPreviewDock({
     onEmbeddedScreenChange(embeddedScreen.map((f) => (f.name === selectedField.name ? { ...f, ...patch } : f)));
   }
 
-  // "Importar formulário" — só copia os campos pro rascunho local (ponto de partida), nunca guarda
-  // o id do formulário nem cria vínculo nenhum. Nomes que colidirem com o que já existe no
-  // embeddedScreen ganham sufixo (ex.: reimportar o mesmo formulário duas vezes).
-  function handleImportForm(formId: string | null) {
-    const form = forms.find((f) => f.formId === formId);
-    if (!form) return;
-    onPushHistory();
-    const taken = new Set(embeddedScreen.map((f) => f.name));
-    const imported = form.fields.map((f) => {
-      const name = dedupedFieldName(f.name, taken);
-      taken.add(name);
-      return { ...f, name };
-    });
-    onEmbeddedScreenChange([...embeddedScreen, ...imported]);
-    setFooterAction(null);
-  }
-
-  async function handlePromote() {
-    if (!promoteName.trim()) return;
-    setSavingPromote(true);
-    try {
-      await promoteEmbeddedScreen(journeyId, nodeId, { name: promoteName.trim(), description: '' });
-      showToast('Formulário salvo no catálogo.', 'success');
-      setFooterAction(null);
-      setPromoteName('');
-      onRefreshForms();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Erro ao salvar formulário', 'error');
-    } finally {
-      setSavingPromote(false);
-    }
-  }
-
   // Fixa o dock nesta User Task — selecionar outro tipo de nó (ou nada) no canvas deixa de
   // escondê-lo enquanto isto estiver ativo.
   const pinButton = (
@@ -549,69 +484,6 @@ export function FormPreviewDock({
     </div>
   );
 
-  const footer = (
-    <div className="shrink-0 px-6 py-[10px]" style={{ borderTop: `1px solid ${c.border}` }}>
-      {footerAction === 'import' ? (
-        <div className="flex items-center gap-2 w-full">
-          <div className="flex-1">
-            <FormSearchSelect forms={forms} value={null} onChange={handleImportForm} onRefresh={onRefreshForms} onOpenNew={onOpenNewForm} />
-          </div>
-          <button
-            onClick={() => setFooterAction(null)}
-            className="text-[12.5px] border-0 bg-transparent cursor-pointer"
-            style={{ color: c.textSecondary }}
-          >
-            Cancelar
-          </button>
-        </div>
-      ) : footerAction === 'promote' ? (
-        <div className="flex items-center gap-2 w-full">
-          <input
-            autoFocus
-            value={promoteName}
-            onChange={(e) => setPromoteName(e.target.value)}
-            placeholder="Nome do formulário"
-            className="flex-1 rounded-md border px-2 py-[6px] text-[12.5px]"
-            style={{ borderColor: c.border, background: c.cardBg, color: c.textPrimary }}
-          />
-          <button
-            onClick={handlePromote}
-            disabled={savingPromote || !promoteName.trim()}
-            className="text-[12.5px] font-semibold border-0 bg-transparent cursor-pointer disabled:opacity-50"
-            style={{ color: c.accent }}
-          >
-            Salvar
-          </button>
-          <button
-            onClick={() => setFooterAction(null)}
-            className="text-[12.5px] border-0 bg-transparent cursor-pointer"
-            style={{ color: c.textSecondary }}
-          >
-            Cancelar
-          </button>
-        </div>
-      ) : (
-        <div className="w-full flex items-center justify-between gap-3">
-          <button
-            onClick={() => setFooterAction('import')}
-            className="flex items-center gap-[6px] text-[12.5px] font-semibold border-0 bg-transparent cursor-pointer"
-            style={{ color: c.accent }}
-          >
-            <Import size={12} /> Importar formulário
-          </button>
-          <button
-            onClick={() => setFooterAction('promote')}
-            disabled={embeddedScreen.length === 0}
-            className="flex items-center gap-[6px] text-[12.5px] font-semibold border-0 bg-transparent cursor-pointer disabled:opacity-40"
-            style={{ color: c.accent }}
-          >
-            <Save size={12} /> Salvar como formulário reutilizável
-          </button>
-        </div>
-      )}
-    </div>
-  );
-
   if (expanded) {
     return (
       <div
@@ -620,7 +492,6 @@ export function FormPreviewDock({
       >
         {navigatorRow}
         {body}
-        {footer}
       </div>
     );
   }
@@ -681,7 +552,6 @@ export function FormPreviewDock({
         </div>
       </div>
       {body}
-      {footer}
     </div>
   );
 }

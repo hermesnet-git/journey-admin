@@ -10,7 +10,7 @@ import { NodeShape } from './NodeShape';
 const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask', 'gateway', 'end'];
 
 // A lista de opções virou portal pro document.body (position: fixed, coordenadas a partir do
-// getBoundingClientRect do próprio botão gatilho) — mesma técnica do dropdown do FormSearchSelect,
+// getBoundingClientRect do próprio botão gatilho) — mesma técnica do dropdown de SearchSelect.tsx,
 // pelo mesmo motivo: esse botão fica dentro do canvas do próprio React Flow, que recorta qualquer
 // coisa que tente ultrapassar seus limites, então um nó perto da borda do canvas tinha seu popup
 // renderizado parcialmente atrás do painel de propriedades (sempre aberto) em vez de por cima dele.

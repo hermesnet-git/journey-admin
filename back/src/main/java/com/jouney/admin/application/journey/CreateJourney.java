@@ -60,11 +60,11 @@ public class CreateJourney {
         Journey journey = journeyRepository.save(Journey.create(channelId, name, description));
         flowRepository.save(Flow.initial(journey.getId()));
 
-        // REQ-06.02.001: every journey is born with an initial DRAFT version (empty flow/forms,
-        // matching the flow just created above).
+        // REQ-06.02.001: every journey is born with an initial DRAFT version (empty flow, matching
+        // the flow just created above).
         JourneyVersion initialVersion = JourneyVersion.createDraft(journey.getId(), 1, null, createdBy,
                 journey.getName(), journey.getDescription(), product.getId(), product.getName(), channel.getId(),
-                channel.getName(), channel.getType(), List.of(), List.of(), List.of());
+                channel.getName(), channel.getType(), List.of(), List.of());
         journeyVersionRepository.save(initialVersion);
 
         recordAuditEvent.record("JOURNEY_CREATE", "JOURNEY", journey.getId(), AuditResult.SUCCESS);

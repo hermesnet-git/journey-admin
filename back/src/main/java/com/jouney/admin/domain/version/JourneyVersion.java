@@ -3,14 +3,13 @@ package com.jouney.admin.domain.version;
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
-import com.jouney.admin.domain.form.Form;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * A point-in-time snapshot of a journey's flow/forms/product/channel data (EP-06). Each journey
- * has one or more versions; exactly one may be PUBLISHED at a time.
+ * A point-in-time snapshot of a journey's flow/product/channel data (EP-06). Each journey has one
+ * or more versions; exactly one may be PUBLISHED at a time.
  */
 public class JourneyVersion {
 
@@ -32,13 +31,12 @@ public class JourneyVersion {
     private ChannelType channelType;
     private List<FlowNode> flowNodes;
     private List<FlowConnection> flowConnections;
-    private List<Form> forms;
 
     public JourneyVersion(UUID id, UUID journeyId, int versionNumber, VersionStatus status, String description,
                            UUID createdBy, OffsetDateTime createdAt, OffsetDateTime publishedAt, String journeyName,
                            String journeyDescription, UUID productId, String productName, UUID channelId,
                            String channelName, ChannelType channelType, List<FlowNode> flowNodes,
-                           List<FlowConnection> flowConnections, List<Form> forms) {
+                           List<FlowConnection> flowConnections) {
         this.id = id;
         this.journeyId = journeyId;
         this.versionNumber = versionNumber;
@@ -56,17 +54,16 @@ public class JourneyVersion {
         this.channelType = channelType;
         this.flowNodes = flowNodes;
         this.flowConnections = flowConnections;
-        this.forms = forms;
     }
 
     public static JourneyVersion createDraft(UUID journeyId, int versionNumber, String description, UUID createdBy,
                                               String journeyName, String journeyDescription, UUID productId,
                                               String productName, UUID channelId, String channelName,
                                               ChannelType channelType, List<FlowNode> flowNodes,
-                                              List<FlowConnection> flowConnections, List<Form> forms) {
+                                              List<FlowConnection> flowConnections) {
         return new JourneyVersion(UUID.randomUUID(), journeyId, versionNumber, VersionStatus.DRAFT, description,
                 createdBy, OffsetDateTime.now(), null, journeyName, journeyDescription, productId, productName,
-                channelId, channelName, channelType, flowNodes, flowConnections, forms);
+                channelId, channelName, channelType, flowNodes, flowConnections);
     }
 
     // Keeps a DRAFT in sync with the journey's live flow as it's edited (REQ-06.02.009): unlike
@@ -74,7 +71,7 @@ public class JourneyVersion {
     // just with fresher content. Only DRAFT may be replaced this way; other statuses stay immutable.
     public void replaceContent(String journeyName, String journeyDescription, UUID productId, String productName,
                                 UUID channelId, String channelName, ChannelType channelType,
-                                List<FlowNode> flowNodes, List<FlowConnection> flowConnections, List<Form> forms) {
+                                List<FlowNode> flowNodes, List<FlowConnection> flowConnections) {
         if (status != VersionStatus.DRAFT) {
             throw new IllegalStateException("Only a DRAFT version's content can be replaced: " + id);
         }
@@ -87,7 +84,6 @@ public class JourneyVersion {
         this.channelType = channelType;
         this.flowNodes = flowNodes;
         this.flowConnections = flowConnections;
-        this.forms = forms;
     }
 
     public void publish() {
@@ -172,9 +168,5 @@ public class JourneyVersion {
 
     public List<FlowConnection> getFlowConnections() {
         return flowConnections;
-    }
-
-    public List<Form> getForms() {
-        return forms;
     }
 }

@@ -2,7 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
 import { Play, UserRoundPen, CheckCircle2, Settings, Mail, Webhook, X, type LucideIcon } from 'lucide-react';
 import type { FlowNodeType } from '../api/flows';
-import { collectsValue, type Form, type FormField } from '../api/forms';
+import { collectsValue, type FormField } from '../api/forms';
 
 export type NodeType = 'start' | 'userTask' | 'end' | 'serviceTask' | 'receiveTask' | 'messageStartEvent' | 'gateway';
 export type ConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
@@ -369,7 +369,7 @@ export function nodePayloadPreview(nodeType: NodeType, data: WFNodeData): Payloa
 // ancestor of every node) — keeping each rule's declared type (REQ-03.11.003) instead of just the
 // name, used by the gateway condition picker to offer the right operators and value input per
 // variable.
-export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges: WFEdge[], _forms: Form[]): OutputMappingRule[] {
+export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges: WFEdge[]): OutputMappingRule[] {
   const backward = new Map<string, string[]>();
   nodes.forEach((n) => backward.set(n.id, []));
   edges.forEach((e) => backward.get(e.target)?.push(e.source));
@@ -446,7 +446,7 @@ function originLabelFor(node: WFNode): string {
 // Same ancestor set as availableVariablesAt/availableVariableRulesAt, but carrying where each
 // variable comes from — used by the "Variáveis" reference panel and the field-level variable
 // picker (VariablePickerButton) to group instead of showing one flat list.
-export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edges: WFEdge[], _forms: Form[]): VariableOrigin[] {
+export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edges: WFEdge[]): VariableOrigin[] {
   const backward = new Map<string, string[]>();
   nodes.forEach((n) => backward.set(n.id, []));
   edges.forEach((e) => backward.get(e.target)?.push(e.source));

@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPostSse, apiPut, ApiClientError } from './client';
-import type { Form, FormField } from './forms';
+import type { FormField } from './forms';
 
 export type FlowNodeType = 'START' | 'USER_TASK' | 'END' | 'SERVICE_TASK' | 'RECEIVE_TASK' | 'MESSAGE_START_EVENT' | 'GATEWAY';
 export type ConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
@@ -119,14 +119,4 @@ export interface ConnectorTestResponse {
 
 export function testConnector(journeyId: string, nodeId: string, input: ConnectorTestInput): Promise<ConnectorTestResponse> {
   return apiPost<ConnectorTestResponse>(`/journeys/${journeyId}/flow/nodes/${nodeId}/connector-test`, input);
-}
-
-// "Salvar como formulário reutilizável" — copia embeddedScreen pra um Form novo no catálogo; não
-// altera o nó (não mexe em embeddedScreen).
-export function promoteEmbeddedScreen(
-  journeyId: string,
-  nodeId: string,
-  input: { name: string; description: string },
-): Promise<Form> {
-  return apiPost<Form>(`/journeys/${journeyId}/flow/nodes/${nodeId}/promote-form`, input);
 }

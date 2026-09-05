@@ -34,7 +34,6 @@ tags:
   - name: Channels
   - name: Journeys
   - name: Flows
-  - name: Forms
   - name: Publications
   - name: Authentication
   - name: Versions
@@ -817,139 +816,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PublicationSnapshot'
 
-  /forms:
-    get:
-      tags: [Forms]
-      summary: List forms
-      operationId: listForms
-      parameters:
-        - name: q
-          in: query
-          schema:
-            type: string
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Form list
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Form'
-    post:
-      tags: [Forms]
-      summary: Create form
-      operationId: createForm
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FormInput'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '201':
-          description: Form created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Form'
-
-  /forms/{formId}:
-    get:
-      tags: [Forms]
-      summary: Get form
-      operationId: getForm
-      parameters:
-        - $ref: '#/components/parameters/FormId'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Form found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Form'
-    put:
-      tags: [Forms]
-      summary: Update form
-      operationId: updateForm
-      parameters:
-        - $ref: '#/components/parameters/FormId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FormInput'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Form updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Form'
-    delete:
-      tags: [Forms]
-      summary: Delete unused form
-      operationId: deleteForm
-      parameters:
-        - $ref: '#/components/parameters/FormId'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '204':
-          description: Form deleted
+  # /forms e /forms/{formId} (catálogo de formulários reutilizáveis, tag Forms) removidos em
+  # 2026-09-05 junto com a feature FT-04/US-04.01 — ver ej-admin-requisitos.md.
 
   /publications:
     get:
@@ -1150,14 +1018,6 @@ components:
 
     JourneyId:
       name: journeyId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-
-    FormId:
-      name: formId
       in: path
       required: true
       schema:
@@ -1668,63 +1528,23 @@ components:
             example: Node_f47ac10b-58cc-4372-a567-0e02b2c3d479
           description: FlowNode ids in the same flow this note is visually tied to (dashed line in the editor). Informational only.
 
-    FormInput:
-      type: object
-      required: [name, fields]
-      properties:
-        name:
-          type: string
-          maxLength: 150
-        description:
-          type: string
-          maxLength: 500
-        fields:
-          type: array
-          items:
-            $ref: '#/components/schemas/FormField'
-
-    # Nota de revisão (2026-08-24): descrição reescrita — a Runtime Engine só suporta um conjunto
-    # básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um
-    # formulário do catálogo por formId; a tela passou a ser desenhada diretamente no nó
-    # (FlowNode.userTaskConfig.embeddedScreen), com este formulário servindo apenas como modelo de
-    # cópia opcional — nunca referenciado por uma User Task depois da cópia.
-    Form:
-      description: >
-        No code, no status: a form is identified only by formId. Never referenced by a
-        User Task — serves only as an optional copy-in template when drawing a User
-        Task's embedded screen (FlowNode.userTaskConfig.embeddedScreen); editing a form
-        afterward never affects screens already copied from it.
-      allOf:
-        - $ref: '#/components/schemas/FormInput'
-        - type: object
-          required: [formId, createdAt, updatedAt]
-          properties:
-            formId:
-              type: string
-              format: uuid
-            createdAt:
-              type: string
-              format: date-time
-            updatedAt:
-              type: string
-              format: date-time
-
+    # FormInput/Form (catálogo de formulários reutilizáveis) removidos em 2026-09-05 junto com
+    # FT-04/US-04.01 — ver ej-admin-requisitos.md. FormField abaixo permanece: é a forma persistida
+    # de um item de FlowNode.userTaskConfig.embeddedScreen, não do catálogo removido.
     FormField:
       type: object
       description: >
         Not a standalone resource — the persisted shape of one item in
-        Form.fields (JSONB array). There is no displayOrder: presentation
-        order is the field's own position in the array, not a stored column.
+        FlowNode.userTaskConfig.embeddedScreen (JSONB array). There is no displayOrder:
+        presentation order is the field's own position in the array, not a stored column.
       required: [name, fieldType]
       properties:
         name:
           type: string
           maxLength: 80
           description: >
-            Chave técnica do campo, definida pelo usuário. No catálogo de formulários
-            (Form.fields), única dentro do formulário e imutável após a criação. Na tela
-            embutida de uma User Task (FlowNode.userTaskConfig.embeddedScreen), editável
-            a qualquer momento, com unicidade verificada na jornada inteira (REQ-03.09.011).
+            Chave técnica do campo, definida pelo usuário, editável a qualquer momento,
+            com unicidade verificada na jornada inteira (REQ-03.09.011).
         fieldType:
           type: string
           enum: [SECTION, TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD, RADIO,

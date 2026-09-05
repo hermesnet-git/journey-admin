@@ -1,0 +1,68 @@
+{
+  "kind": "collectionType",
+  "collectionName": "sdui_snapshots",
+  "info": {
+    "singularName": "sdui-snapshot",
+    "pluralName": "sdui-snapshots",
+    "displayName": "SDUI Snapshot",
+    "description": "Snapshot imutável de tela SDUI publicado pelo Elastic Journey (catálogo v1, seção 15). O Strapi só armazena e distribui; não define nem reinterpreta o contrato."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "journeyId": {
+      "type": "string",
+      "required": true
+    },
+    "screenId": {
+      "type": "string",
+      "required": true
+    },
+    "revision": {
+      "type": "integer",
+      "required": true,
+      "min": 1
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["published", "deprecated"],
+      "required": true,
+      "default": "published"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "required": true
+    },
+    "catalogVersion": {
+      "type": "string",
+      "required": true
+    },
+    "publishedAt_source": {
+      "type": "datetime",
+      "required": true,
+      "description": "publishedAt do envelope SDUI (seção 14.1) — nome próprio pra não colidir com o publishedAt nativo do Strapi, desligado via draftAndPublish:false"
+    },
+    "supportedTargets": {
+      "type": "json",
+      "required": true,
+      "description": "Array de alvos, ex.: [\"react.web\",\"react.mobile\",\"flutter.web\",\"flutter.mobile\"]"
+    },
+    "minRendererVersion": {
+      "type": "json",
+      "required": true,
+      "description": "Mapa alvo -> versão mínima do renderer, ex.: {\"react.web\":\"1.2.0\"}"
+    },
+    "integrityHash": {
+      "type": "string",
+      "required": true,
+      "description": "Hash de integridade do JSON do snapshot (SHA-256), calculado pelo ms-espec-registry ao gravar (admin/back nunca fala com o Strapi direto)"
+    },
+    "root": {
+      "type": "json",
+      "required": true,
+      "description": "Árvore de nó ui.screen completa (id/type/version/props/bindings/events/visibility/children), imutável após publicação"
+    }
+  }
+}

@@ -8,7 +8,7 @@ import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
 import com.jouney.admin.domain.flow.GeneratedFlow;
 import com.jouney.admin.domain.flow.GenerationContext;
-import com.jouney.admin.domain.form.FormField;
+import com.jouney.admin.domain.sdui.SduiNode;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -122,7 +122,7 @@ final class FlowGenerationPrompt {
             sb.append(" — ").append(context.journeyDescription());
         }
         sb.append("\nProduto: ").append(context.productName());
-        sb.append("\nCanal: ").append(context.channelName()).append(" (").append(context.channelType()).append(")");
+        sb.append("\nCanal: ").append(context.channelType());
         sb.append("\nConectores habilitados: ").append(context.enabledConnectors());
         sb.append(describeCurrentFlow(context));
         sb.append("\n\nPedido do usuário: ").append(context.prompt());
@@ -157,10 +157,8 @@ final class FlowGenerationPrompt {
             if (node.getStartVariables() != null && !node.getStartVariables().isEmpty()) {
                 sb.append(" | startVariables=").append(node.getStartVariables());
             }
-            if (node.getEmbeddedScreen() != null && !node.getEmbeddedScreen().isEmpty()) {
-                sb.append(" | já tem tela desenhada com os campos: ")
-                        .append(node.getEmbeddedScreen().stream().map(FormField::getName).toList())
-                        .append(" (preservada automaticamente se você reusar o id)");
+            if (node.getEmbeddedScreenRoot() != null) {
+                sb.append(" | já tem tela desenhada (preservada automaticamente se você reusar o id)");
             }
         }
         sb.append("\nConexões atuais (sourceId -> targetId):");
@@ -255,7 +253,7 @@ final class FlowGenerationPrompt {
         int i = 0;
         for (LlmNode node : output.nodes()) {
             ConnectorConfig connectorConfig = toConnectorConfigOrNull(node.connectorConfig());
-            List<FormField> embeddedScreen = resolveEmbeddedScreen(node, existingNodesById);
+            SduiNode embeddedScreenRoot = resolveEmbeddedScreen(node, existingNodesById);
             // Nó reaproveitado (mesmo id do fluxo atual) mantém a posição de onde já estava no canvas —
             // só um nó genuinamente novo recebe a posição em grade calculada pelo índice.
             FlowNode existing = existingNodesById.get(node.id());
@@ -263,7 +261,7 @@ final class FlowGenerationPrompt {
             int positionY = existing != null ? existing.getPositionY() : (i / 6) * 40;
             nodes.add(new FlowNode(idsByLocalId.get(node.id()), parseEnumOrThrow(FlowNodeType.class, node.type()),
                     node.name(), node.description(), positionX, positionY,
-                    connectorConfig, node.startVariables(), node.messageText(), embeddedScreen, null));
+                    connectorConfig, node.startVariables(), node.messageText(), embeddedScreenRoot));
             i++;
         }
 
@@ -290,9 +288,9 @@ final class FlowGenerationPrompt {
     // generate_flow nunca cria/edita a tela embutida de uma User Task — reusando o id de um nó
     // existente, a tela que ele já tinha desenhada à mão é preservada; um nó genuinamente novo nasce
     // sem tela (só messageText).
-    private static List<FormField> resolveEmbeddedScreen(LlmNode node, Map<String, FlowNode> existingNodesById) {
+    private static SduiNode resolveEmbeddedScreen(LlmNode node, Map<String, FlowNode> existingNodesById) {
         FlowNode existingNode = existingNodesById.get(node.id());
-        return existingNode != null && existingNode.getEmbeddedScreen() != null ? existingNode.getEmbeddedScreen() : List.of();
+        return existingNode != null ? existingNode.getEmbeddedScreenRoot() : null;
     }
 
     // connectorConfig é sempre opcional no domínio (FlowNode aceita null pra qualquer tipo de nó) —

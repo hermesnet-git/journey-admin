@@ -42,6 +42,10 @@ export function StartPanel({ journey, onStarted }: Props) {
   // sugestão pro campo editável do painel de mensagem de teste do MESSAGE_START_EVENT.
   const [suggestedCorrelationId] = useState(() => crypto.randomUUID());
   const [manualKafkaControl, setManualKafkaControl] = useState(false);
+  // Jornada pode atender vários canais agora — o simulador precisa saber qual pra injetar
+  // session.channel/{{channel}} do jeito certo (Gateway e visibilidade condicional variam por
+  // canal); só mostra o seletor quando há mais de um, senão usa o único direto.
+  const [channelType, setChannelType] = useState(() => journey.channelTypes[0] ?? '');
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   // Só presente quando startError veio de uma falha SYNCHRONOUS_CHAIN_JSONPATH_FAILURE — o backend
@@ -77,7 +81,7 @@ export function StartPanel({ journey, onStarted }: Props) {
     setDiagnosis(null);
     try {
       const variables = toStartVariablePayload(startVariables, startVariableValues);
-      const instance = await startInstance(journey.journeyId, variables, manualKafkaControl);
+      const instance = await startInstance(journey.journeyId, channelType, variables, manualKafkaControl);
       recordExecutionStart(journey.journeyId, journey.name, instance.processInstanceId).catch(() => {
         /* falha ao registrar auditoria não deve impedir a execução de continuar */
       });
@@ -117,7 +121,7 @@ export function StartPanel({ journey, onStarted }: Props) {
               {journey.name}
             </Text>
             <Text size={13} color={skinVars.colors.textSecondary}>
-              {journey.productName} · {journey.channelName}
+              {journey.productName} · {journey.channelTypes.join(', ')}
               {journey.publishedVersionNumber != null && ` · v${journey.publishedVersionNumber}`}
             </Text>
           </Stack>
@@ -161,6 +165,33 @@ export function StartPanel({ journey, onStarted }: Props) {
                 </Text>
               </Stack>
             </div>
+          )}
+
+          {journey.channelTypes.length > 1 && (
+            <Stack space={8}>
+              <Text size={12.5} weight="medium" color={skinVars.colors.textSecondary}>
+                Canal desta execução
+              </Text>
+              <select
+                value={channelType}
+                onChange={(e) => setChannelType(e.target.value)}
+                className="w-full box-border"
+                style={{
+                  fontSize: 13,
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${skinVars.colors.border}`,
+                  background: skinVars.colors.background,
+                  color: skinVars.colors.textPrimary,
+                }}
+              >
+                {journey.channelTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </Stack>
           )}
 
           {!isMessageStart && startVariables.length > 0 && (

@@ -1,14 +1,20 @@
 import { apiGet, apiPost, apiPut } from './client';
 
 export type Status = 'ACTIVE' | 'INACTIVE';
-export type ChannelType = 'WEB' | 'MOBILE' | 'WHATSAPP' | 'URA' | 'CONTACT_CENTER' | 'OTHER';
+export type ChannelType = 'WEB' | 'MOBILE' | 'WHATSAPP';
+
+export const CHANNEL_TYPE_LABELS: Record<ChannelType, string> = {
+  WEB: 'Web',
+  MOBILE: 'Mobile',
+  WHATSAPP: 'WhatsApp',
+};
 
 export interface Product {
   productId: string;
   name: string;
   description: string | null;
   status: Status;
-  channelNames: string[];
+  channelTypes: ChannelType[];
   createdAt: string;
   updatedAt: string;
 }
@@ -16,24 +22,7 @@ export interface Product {
 export interface ProductInput {
   name: string;
   description: string;
-}
-
-export interface Channel {
-  channelId: string;
-  productId: string;
-  name: string;
-  description: string | null;
-  type: ChannelType;
-  status: Status;
-  journeyCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ChannelInput {
-  name: string;
-  description: string;
-  type: ChannelType;
+  channelTypes: ChannelType[];
 }
 
 export function listProducts(params: { q?: string; status?: Status } = {}): Promise<Product[]> {
@@ -42,6 +31,10 @@ export function listProducts(params: { q?: string; status?: Status } = {}): Prom
   if (params.status) query.set('status', params.status);
   const qs = query.toString();
   return apiGet<Product[]>(`/products${qs ? `?${qs}` : ''}`);
+}
+
+export function getProduct(productId: string): Promise<Product> {
+  return apiGet<Product>(`/products/${productId}`);
 }
 
 export function createProduct(input: ProductInput): Promise<Product> {
@@ -58,32 +51,4 @@ export function deactivateProduct(productId: string): Promise<void> {
 
 export function activateProduct(productId: string): Promise<void> {
   return apiPost<void>(`/products/${productId}/activate`);
-}
-
-export function listChannels(
-  productId: string,
-  params: { q?: string; type?: ChannelType; status?: Status } = {},
-): Promise<Channel[]> {
-  const query = new URLSearchParams();
-  if (params.q) query.set('q', params.q);
-  if (params.type) query.set('type', params.type);
-  if (params.status) query.set('status', params.status);
-  const qs = query.toString();
-  return apiGet<Channel[]>(`/products/${productId}/channels${qs ? `?${qs}` : ''}`);
-}
-
-export function createChannel(productId: string, input: ChannelInput): Promise<Channel> {
-  return apiPost<Channel>(`/products/${productId}/channels`, input);
-}
-
-export function updateChannel(channelId: string, input: ChannelInput): Promise<Channel> {
-  return apiPut<Channel>(`/channels/${channelId}`, input);
-}
-
-export function deactivateChannel(channelId: string): Promise<void> {
-  return apiPost<void>(`/channels/${channelId}/deactivate`);
-}
-
-export function activateChannel(channelId: string): Promise<void> {
-  return apiPost<void>(`/channels/${channelId}/activate`);
 }

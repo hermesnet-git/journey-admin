@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPostSse, apiPut, ApiClientError } from './client';
-import type { FormField } from './forms';
+import type { SduiNode } from '../sdui/model';
 
 export type FlowNodeType = 'START' | 'USER_TASK' | 'END' | 'SERVICE_TASK' | 'RECEIVE_TASK' | 'MESSAGE_START_EVENT' | 'GATEWAY';
 export type ConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
@@ -17,11 +17,11 @@ export interface FlowNode {
   description: string | null;
   positionX: number;
   positionY: number;
-  // REQ-04.01.005: embeddedScreen may be absent/empty (a display-only step) — messageText then
-  // holds what to show instead, resolved by the simulator at execution time (may reference
-  // {{name}} tokens). embeddedScreen é a tela desenhada no editor embutido do dock — nunca uma
-  // referência a um Form do catálogo, sempre uma cópia embutida no próprio nó.
-  userTaskConfig: { messageText: string | null; embeddedScreen: FormField[] } | null;
+  // REQ-04.01.005: embeddedScreenRoot may be absent (a display-only step) — messageText then holds
+  // what to show instead, resolved by the simulator at execution time (may reference {{name}}
+  // tokens). embeddedScreenRoot é a raiz da árvore SDUI (catálogo corporativo v1) desenhada no
+  // editor embutido do dock — sempre um único ui.screen.
+  userTaskConfig: { messageText: string | null; embeddedScreenRoot: SduiNode | null } | null;
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: {name, type} declarations, meaningful only on the START node.
   startVariables: { name: string; type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' }[] | null;

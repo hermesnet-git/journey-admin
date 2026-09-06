@@ -2,6 +2,10 @@ package com.jouney.especregistry.simulation;
 
 import com.jouney.especregistry.adminback.FlowNode;
 import com.jouney.especregistry.camunda.CamundaVariable;
+import com.jouney.especregistry.sdui.ResolutionContext;
+import com.jouney.especregistry.sdui.SduiBindingResolver;
+import com.jouney.especregistry.sdui.SduiEvent;
+import com.jouney.especregistry.sdui.SduiNode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,89 +13,102 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Extraído de StepResolver: resolve {{variável}} dentro de uma árvore SDUI ([tag, props,
- * children]) contra um mapa de variáveis já em mãos, sem nenhuma dependência do Camunda/instância
- * em execução — reaproveitado tanto pelo StepResolver (que já tem processInstanceId e busca as
- * variáveis sozinho) quanto pelo FormSpecController (que recebe as variáveis prontas no corpo da
- * requisição, sem noção de instância). */
+/** Resolve `{{namespace.path}}` (interpolação somente-leitura em texto, seção 8) e o binding
+ * `value` (pré-preenchimento) de uma árvore SDUI objeto — sucessor do resolver de tupla
+ * [tag,props,children]. Reaproveitado tanto pelo StepResolver (que já tem processInstanceId)
+ * quanto pelo FormSpecController (que recebe as variáveis prontas no corpo da requisição).
+ *
+ * Filosofia mantida do resolver anterior: back resolve, front só renderiza — o valor do binding
+ * `value` é escrito em `props.value` (chave sintética, fora do propsSchema autorado), assim o
+ * front (SduiNodeRenderer.tsx) não precisa entender bindings, só ler o valor já pronto. */
 public final class SduiTemplateResolver {
 
-    private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
+    // Token com namespace (form.nome) ou legado sem namespace ({{nome}}, ainda usado por messageText
+    // de USER_TASK — sintaxe REQ-03.09.012, não faz parte do binding namespace-aware do catálogo SDUI).
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z_][\\w.]*)\\s*\\}\\}");
 
     private SduiTemplateResolver() {
     }
 
-    /** Mesma lógica de StepResolver.resolveMessage, mas recebendo o mapa de variáveis já pronto em
-     * vez de um processInstanceId — usada pelo FormSpecController, que não conhece instância. */
     public static String resolveMessage(FlowNode node, Map<String, CamundaVariable> variables) {
         String text = node.messageText();
         if (text == null || text.isBlank()) {
             return node.name();
         }
-        return resolveTemplate(text, variables);
+        return resolveTemplate(text, variables, ResolutionContext.fromProcessVariables(variables));
     }
 
-    @SuppressWarnings("unchecked")
-    public static List<Object> resolveSduiNode(List<Object> node, Map<String, CamundaVariable> variables) {
-        String tag = (String) node.get(0);
-        Map<String, Object> props = (Map<String, Object>) node.get(1);
-        List<Object> children = (List<Object>) node.get(2);
-
+    public static SduiNode resolveSduiNode(SduiNode node, Map<String, CamundaVariable> variables, ResolutionContext ctx) {
         Map<String, Object> resolvedProps = new LinkedHashMap<>();
-        props.forEach((key, value) -> resolvedProps.put(key, resolveSduiValue(value, variables)));
-
-        List<Object> resolvedChildren = new ArrayList<>();
-        for (Object child : children) {
-            resolvedChildren.add(resolveSduiNode((List<Object>) child, variables));
+        if (node.props() != null) {
+            node.props().forEach((key, value) -> resolvedProps.put(key, resolveValue(value, variables, ctx)));
         }
-        return List.of(tag, resolvedProps, resolvedChildren);
+        if (node.bindings() != null && node.bindings().get("value") != null) {
+            Object resolved = SduiBindingResolver.resolve(node.bindings().get("value").path(), variables, ctx);
+            if (resolved != null) {
+                resolvedProps.put("value", resolved);
+            }
+        }
+        List<SduiNode> resolvedChildren = node.children() == null ? null
+                : node.children().stream().map(child -> resolveSduiNode(child, variables, ctx)).toList();
+        return new SduiNode(node.id(), node.type(), node.version(), resolvedProps, node.bindings(), node.events(),
+                node.visibility(), resolvedChildren);
     }
 
     @SuppressWarnings("unchecked")
-    private static Object resolveSduiValue(Object value, Map<String, CamundaVariable> variables) {
+    private static Object resolveValue(Object value, Map<String, CamundaVariable> variables, ResolutionContext ctx) {
         if (value instanceof String s) {
-            return resolveTemplate(s, variables);
+            return resolveTemplate(s, variables, ctx);
         }
         if (value instanceof Map<?, ?> map) {
             Map<String, Object> resolved = new LinkedHashMap<>();
-            map.forEach((k, v) -> resolved.put(String.valueOf(k), resolveSduiValue(v, variables)));
+            map.forEach((k, v) -> resolved.put(String.valueOf(k), resolveValue(v, variables, ctx)));
             return resolved;
         }
         if (value instanceof List<?> list) {
             List<Object> resolved = new ArrayList<>();
             for (Object item : list) {
-                resolved.add(resolveSduiValue(item, variables));
+                resolved.add(resolveValue(item, variables, ctx));
             }
             return resolved;
         }
         return value;
     }
 
-    public static String resolveTemplate(String text, Map<String, CamundaVariable> variables) {
-        Matcher matcher = VARIABLE_TOKEN.matcher(text);
+    public static String resolveTemplate(String text, Map<String, CamundaVariable> variables, ResolutionContext ctx) {
+        Matcher matcher = PLACEHOLDER.matcher(text);
         if (!matcher.find()) {
             return text;
         }
         StringBuilder result = new StringBuilder();
         do {
-            CamundaVariable variable = variables.get(matcher.group(1));
-            String value = variable != null && variable.value() != null ? String.valueOf(variable.value()) : "";
-            matcher.appendReplacement(result, Matcher.quoteReplacement(value));
+            String token = matcher.group(1);
+            Object resolved = token.indexOf('.') >= 0
+                    ? SduiBindingResolver.resolve(token, variables, ctx)
+                    : legacyLookup(token, variables);
+            String replacement = resolved != null ? String.valueOf(resolved) : "";
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
         } while (matcher.find());
         matcher.appendTail(result);
         return result.toString();
     }
 
-    public static List<Object> messageSdui(String message) {
-        List<Object> textNode = new ArrayList<>(3);
-        textNode.add("ui.text");
-        textNode.add(Map.of("text", message));
-        textNode.add(List.of());
+    // {{nome}} sem namespace — sintaxe legada de messageText (REQ-03.09.012), continua batendo
+    // direto no nome da variável Camunda, sem passar por SduiBindingResolver.
+    private static String legacyLookup(String name, Map<String, CamundaVariable> variables) {
+        CamundaVariable variable = variables.get(name);
+        return variable != null && variable.value() != null ? String.valueOf(variable.value()) : "";
+    }
 
-        List<Object> form = new ArrayList<>(3);
-        form.add("ui.form");
-        form.add(Map.of());
-        form.add(List.of(textNode));
-        return form;
+    /** Sintetiza a menor tela SDUI válida pra uma USER_TASK sem tela desenhada (REQ-04.01.005): um
+     * texto com a mensagem e um botão "Avançar" com ação action.submit — equivalente ao antigo
+     * "ui.form com ui.text + botão implícito", mas agora o botão precisa estar na árvore de verdade
+     * (o catálogo não tem mais submit implícito de framework). */
+    public static SduiNode messageSdui(String message) {
+        SduiNode text = new SduiNode("message-text", "ui.text", "1.0", Map.of("text", message), null, null, null, List.of());
+        SduiNode button = new SduiNode("message-continue", "ui.button", "1.0",
+                Map.of("label", "Avançar", "variant", "primary"), null,
+                Map.of("onPress", new SduiEvent("action.submit", Map.of())), null, List.of());
+        return new SduiNode("message-screen", "ui.screen", "1.0", Map.of(), null, null, null, List.of(text, button));
     }
 }

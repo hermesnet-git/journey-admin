@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Plus, X } from 'lucide-react';
@@ -105,7 +105,11 @@ function QuickAdd({ nodeId }: { nodeId: string }) {
   );
 }
 
-export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
+// Memoizado com comparação por valor (não por referência) dos campos usados no render: o
+// JourneyDesignerPage reconstrói `data` de TODOS os nós a cada render (displayNodes usa
+// `nodes.map(...)`), inclusive durante o próprio arraste de um nó — sem isso, arrastar um nó
+// redesenhava o card de cada nó do canvas a cada frame, travando o drag em fluxos maiores.
+export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   const nodeType = type as NodeType;
   const actions = useWorkflowActions();
   const { c, dark, nodeFill } = useFlowTheme();
@@ -226,4 +230,17 @@ export function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
       )}
     </div>
   );
-}
+},
+(prev, next) =>
+  prev.id === next.id &&
+  prev.selected === next.selected &&
+  prev.type === next.type &&
+  prev.data.name === next.data.name &&
+  prev.data.zoom === next.data.zoom &&
+  prev.data.invalid === next.data.invalid &&
+  prev.data.outgoingLimitReached === next.data.outgoingLimitReached &&
+  prev.data.missingGatewayDefault === next.data.missingGatewayDefault &&
+  prev.data.connectorConfig === next.data.connectorConfig &&
+  prev.data.messageText === next.data.messageText &&
+  prev.data.embeddedScreenRoot === next.data.embeddedScreenRoot,
+);

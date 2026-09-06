@@ -14,25 +14,43 @@ Este documento descreve o modelo de dados conceitual do Elastic Journey Admin Po
 
 # 2. Princípios de Modelagem
 
-## 2.1 Product como Agrupador de Canais
+## 2.1 Product Declara seus Tipos de Canal
 
-Um Product representa um produto ou serviço digital e agrupa seus canais de atendimento.
+Um Product representa um produto ou serviço digital e declara diretamente um conjunto não vazio de
+tipos de canal (`WEB`, `MOBILE`, `WHATSAPP`) pelos quais suas jornadas podem ficar disponíveis.
+Canal não é uma entidade com cadastro próprio — é um valor de domínio fixo (Seção 6).
 
-Um Product não pode ser desativado enquanto alguma jornada de seus canais possuir publicação ativa.
+Um Product não pode ser desativado enquanto alguma de suas jornadas possuir publicação ativa.
 
-## 2.2 Jornada Específica por Canal
+## 2.2 Jornada Associada a um Subconjunto de Tipos de Canal do Produto
 
-Cada Journey pertence a exatamente um Channel. Jornadas de canais diferentes possuem definições independentes.
+Cada Journey pertence diretamente a um Product e declara um subconjunto não vazio dos tipos de
+canal habilitados por esse produto — nunca um tipo fora do que o produto permite. Uma jornada pode
+atender mais de um tipo de canal ao mesmo tempo, com o mesmo fluxo e as mesmas telas; o tipo de
+canal que inicia cada execução fica disponível como variável de processo (Seção 9) para caminhos de
+Gateway e regras de visibilidade condicional diferentes por canal (Seção 11).
 
-Um Channel não pode ser desativado enquanto alguma de suas jornadas possuir publicação ativa. Uma Journey também deve ser despublicada antes de ser desativada.
+Uma Journey deve ser despublicada antes de ser desativada.
 
 ## 2.3 Identidade Administrativa
 
-Product, Channel e Journey possuem códigos para identificação e pesquisa no Admin Portal. Esses códigos integram o snapshot publicado, mas não são utilizados pelo runtime para consultar o domínio administrativo.
+Product e Journey possuem códigos para identificação e pesquisa no Admin Portal. Esses códigos
+integram o snapshot publicado, mas não são utilizados pelo runtime para consultar o domínio
+administrativo.
+
+> **Nota de revisão (2026-09-06):** Seções 2.1/2.2 reescritas e Channel removido da lista de
+> entidades com código próprio — canal deixou de ser uma entidade cadastrável (CRUD com
+> nome/descrição/status por produto) e virou um valor de domínio fixo (Seção 6); Product e Journey
+> passaram a declarar `channelTypes` diretamente, como coleção de valores, não mais uma relação
+> para outra tabela.
 
 ## 2.4 Publicação como Snapshot
 
 A publicação preserva a definição da versão da jornada no momento da publicação, incluindo produto, canal, fluxo e formulários. Cada jornada possui no máximo uma publicação ativa, associada a uma versão imutável.
+
+## 2.5 Modelos predefinidos de jornada
+
+Um `Journey Template` é uma definição de sistema, versionada no código do backend e sem identidade persistida no banco. Ao ser escolhido na criação, produz um novo `Flow` com identificadores próprios; a partir desse momento, a cópia pertence exclusivamente à jornada e não mantém vínculo vivo com o modelo de origem.
 
 ## 2.5 Desacoplamento do Motor BPM
 
@@ -57,24 +75,25 @@ A execução de uma jornada publicada roda inteiramente contra o motor de runtim
 ```mermaid
 flowchart TD
     PRODUCT[Product]
-    CHANNEL[Channel]
     JOURNEY[Journey]
     FLOW[Flow]
-    FORMS[Forms]
+    COMPONENTS[Component Registry]
     VERSION[Journey Version]
     PUBLICATION[Journey Publication]
     USER[User / Role]
     AUDIT[Audit Event]
 
-    PRODUCT --> CHANNEL
-    CHANNEL --> JOURNEY
+    PRODUCT --> JOURNEY
     JOURNEY --> FLOW
     JOURNEY --> VERSION
     JOURNEY --> PUBLICATION
     USER --> AUDIT
     VERSION --> AUDIT
-    FLOW --> FORMS
+    FLOW --> COMPONENTS
 ```
+
+`Channel Type` (Seção 6) não aparece no diagrama acima por não ser uma entidade — é um valor de
+domínio fixo declarado como atributo (coleção) tanto de `Product` quanto de `Journey`.
 
 ---
 
@@ -82,15 +101,15 @@ flowchart TD
 
 | Entidade | Descrição |
 |----------|-----------|
-| Product | Produto ou serviço digital que agrupa canais |
-| Channel | Aplicação ou interface de atendimento de um produto |
-| Journey | Jornada específica de um canal |
+| Product | Produto ou serviço digital que declara os tipos de canal habilitados para suas jornadas |
+| Journey | Workflow associado a um produto e a um subconjunto dos tipos de canal desse produto |
+| Journey Template | Esqueleto de fluxo predefinido, copiado na criação e não persistido como entidade própria |
 | Flow | Estrutura visual da jornada |
 | Flow Node | Elemento posicionado no canvas: Start, Message Start Event, User Task, Service Task, Receive Task, Gateway ou End |
 | Flow Connection | Conexão entre nós do fluxo |
 | Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
-| Form | Formulário reutilizável utilizado por User Tasks |
-| Form Field | Campo pertencente a um formulário |
+| Component Registry | Catálogo corporativo de componentes SDUI (Component Definition) disponíveis para compor telas |
+| Sdui Node | Nó da árvore de tela de uma User Task, referenciando um componente do Component Registry |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Journey Version | Versão imutável de uma jornada |
 | User / Role | Identidade autenticada e papel de autorização |
@@ -110,42 +129,30 @@ Representa um produto ou serviço digital. Exemplo: Vivo+.
 ## Informações Principais
 
 ```text
-Código, Nome, Descrição, Status
-```
-
-## Cardinalidade
-
-```text
-Product 1 → 0..N Channel
+Código, Nome, Descrição, Status, Tipos de Canal habilitados (não vazio)
 ```
 
 ---
 
-# 6. Channel
+# 6. Channel Type
 
 ## Descrição
 
-Representa uma aplicação ou interface de atendimento pertencente a um produto.
+Valor de domínio fixo que representa o meio de atendimento digital pelo qual uma jornada pode ficar
+disponível para o cliente. Não é uma entidade com identidade, cadastro ou ciclo de vida próprio —
+substitui a antiga entidade `Channel` (CRUD com nome/descrição/status por produto).
 
-## Tipos Suportados
-
-```text
-WEB, MOBILE, WHATSAPP, URA, CONTACT_CENTER, OTHER
-```
-
-## Informações Principais
+## Valores Suportados
 
 ```text
-Produto, Código, Nome, Tipo, Status, Descrição
+WEB, MOBILE, WHATSAPP
 ```
 
-## Cardinalidade
+## Uso
 
-```text
-Channel 1 → 0..N Journey
-
-Channel N → 1 Product
-```
+`Product` declara um conjunto não vazio de `Channel Type` que habilita para suas jornadas. `Journey`
+declara um subconjunto não vazio dos `Channel Type` do seu `Product`. Ambos como coleção de valores
+(sem identidade própria, sem chave estrangeira) — nunca uma referência a linha de outra tabela.
 
 ---
 
@@ -153,12 +160,12 @@ Channel N → 1 Product
 
 ## Descrição
 
-Representa um workflow específico de um canal.
+Representa um workflow associado a um produto e a um subconjunto dos tipos de canal desse produto.
 
 ## Informações Principais
 
 ```text
-Canal, Código, Nome, Descrição, Status
+Produto, Tipos de Canal (não vazio, subconjunto do produto), Código, Nome, Descrição, Status
 ```
 
 ## Responsabilidades
@@ -168,12 +175,13 @@ Agrupar o fluxo e registrar execuções e a publicação atual.
 ## Cardinalidade
 
 ```text
-Journey N → 1 Channel
+Journey N → 1 Product
 
 Journey 1 → 1 Flow
 ```
 
-O produto da jornada é determinado pelo produto do canal associado.
+O tipo de canal que inicia cada execução é informado pelo chamador e validado contra os tipos
+habilitados da jornada (Seção 9) — nunca derivado de uma entidade Channel, que não existe mais.
 
 Uma Journey somente pode ser removida fisicamente quando nunca tiver possuído uma Journey Publication. Quando houver registro de publicação, a Journey pode apenas ser desativada e sua publicação deve ser preservada.
 
@@ -191,7 +199,9 @@ Estrutura principal da jornada; define a sequência das telas e etapas.
 START, END, USER_TASK, SERVICE_TASK, RECEIVE_TASK, MESSAGE_START_EVENT, GATEWAY
 ```
 
-Uma `USER_TASK` sem tela desenhada (`embeddedScreen` vazio, REQ-04.01.005) pode declarar uma mensagem de texto exibida ao usuário nessa etapa (`messageText`). Toda referência `{{nome}}` (REQ-03.09.012) — na mensagem ou em qualquer prop de texto de um campo da tela desenhada (rótulo, texto de ajuda, valor padrão, opções etc.) — é resolvida contra as variáveis reais da instância no momento da execução, não na publicação.
+Uma `USER_TASK` sem tela desenhada (`embeddedScreenRoot` ausente, REQ-04.01.005) pode declarar uma mensagem de texto exibida ao usuário nessa etapa (`messageText`). Toda referência `{{nome}}`/`{{namespace.path}}` (REQ-03.09.012, seção 8 do contrato SDUI) — na mensagem ou em qualquer prop de texto de um nó da tela desenhada — é resolvida contra as variáveis reais da instância no momento da execução, não na publicação.
+
+Um `GATEWAY` pode referenciar a variável reservada `channel` em sua condição — injetada automaticamente pelo tipo de canal informado ao iniciar a instância (Seção 7), nunca declarável pelo usuário — permitindo caminhos diferentes por tipo de canal sem nenhum mecanismo novo no motor de runtime.
 
 ## Flow Connection
 
@@ -215,7 +225,7 @@ Na publicação, a runtime traduz este `Flow` para uma definição de processo B
 | `FlowNode.nodeId` | `Node_<uuid>` | `id` de elementos BPMN de início, tarefa, espera ou término |
 | `FlowConnection.connectionId` | `Flow_<uuid>` | `id` de `<bpmn:sequenceFlow>` |
 
-Os demais identificadores do domínio (`productId`, `channelId`, `journeyId`, `formId`, etc.) nunca aparecem no XML BPMN gerado e permanecem UUID puro — o prefixo é aplicado apenas onde a restrição do XML exige. `FlowAnnotation.id` também recebe um prefixo fixo (`Annotation_<uuid>`) por convenção de legibilidade, mas nunca por exigência do XML — uma anotação nunca é enviada ao `ms-transform-publication` nem vira elemento BPMN.
+Os demais identificadores do domínio (`productId`, `journeyId`, `formId`, etc.) nunca aparecem no XML BPMN gerado e permanecem UUID puro — o prefixo é aplicado apenas onde a restrição do XML exige. `FlowAnnotation.id` também recebe um prefixo fixo (`Annotation_<uuid>`) por convenção de legibilidade, mas nunca por exigência do XML — uma anotação nunca é enviada ao `ms-transform-publication` nem vira elemento BPMN.
 
 ---
 
@@ -235,55 +245,92 @@ Connector configuration is declarative and stored with the flow snapshot. Creden
 
 # 10. User Task Configuration
 
-Trio de atributos (`embeddedScreen`, `embeddedScreenSdui`, `messageText`) que a API expõe agrupado sob o nome `User Task Configuration` — não é uma entidade com identidade própria: pertence ao próprio `Flow Node`, dentro do mesmo documento `jsonb` do `Flow` (ver §8), e não existe fora dele (não tem id, não é criada/consultada/removida separadamente). Só é relevante para um `Flow Node` do tipo `USER_TASK`.
+Par de atributos (`embeddedScreenRoot`, `messageText`) que a API expõe agrupado sob o nome `User Task Configuration` — não é uma entidade com identidade própria: pertence ao próprio `Flow Node`, dentro do mesmo documento `jsonb` do `Flow` (ver §8), e não existe fora dele (não tem id, não é criada/consultada/removida separadamente). Só é relevante para um `Flow Node` do tipo `USER_TASK`.
 
-Na versão 1.0.0, a tela é opcional: cada `USER_TASK` pode ter uma tela desenhada diretamente no nó (`embeddedScreen`, array de `Form Field`) ou não ter nenhuma. Quando `embeddedScreen` está vazio, `messageText` guarda a mensagem de texto exibida ao usuário nessa etapa (REQ-04.01.005) — os dois nunca coexistem com sentido. `embeddedScreenSdui` só existe numa snapshot de publicação/versão: a árvore SDUI compilada de `embeddedScreen` no momento em que a jornada foi publicada (§12, Imutabilidade).
+Na versão 1.0.0, a tela é opcional: cada `USER_TASK` pode ter uma tela desenhada diretamente no nó (`embeddedScreenRoot`, raiz de uma árvore de `Sdui Node`, §11) ou não ter nenhuma. Quando `embeddedScreenRoot` está ausente, `messageText` guarda a mensagem de texto exibida ao usuário nessa etapa (REQ-04.01.005) — os dois nunca coexistem com sentido. Diferente do modelo anterior, não existe mais uma árvore "compilada" separada para publicação: a mesma árvore de `embeddedScreenRoot` é copiada tal como está para o snapshot de publicação/versão (§12, Imutabilidade).
 
 ```mermaid
 flowchart LR
     USER_TASK[Flow Node · USER_TASK]
-    SCREEN[embeddedScreen]
-    FORM[Form]
+    SCREEN[embeddedScreenRoot · Sdui Node]
+    REGISTRY[Component Registry]
 
     USER_TASK --> SCREEN
-    FORM -.->|modelo de cópia, opcional| SCREEN
+    SCREEN -.->|type + version| REGISTRY
 ```
 
-Um `Form` do catálogo (§11) pode servir de modelo de partida ao montar `embeddedScreen` — seus campos são copiados no momento da escolha —, mas nenhuma referência é persistida entre o nó e o `Form` de origem depois disso.
+Cada `Sdui Node` da árvore referencia um componente do `Component Registry` (§11) por `type`+`version` — uma referência por valor dentro do documento JSONB, nunca uma chave estrangeira relacional. Diferente do antigo `Form` do catálogo, o Component Registry não é copiado pra dentro da tela: ele só descreve o que É PERMITIDO usar; a validação de publicação (FT-04, US-04.13) rejeita qualquer `type`+`version` que não exista lá.
 
+> **Nota de revisão (2026-09-05):** seção reescrita — `embeddedScreen` (array de `Form Field`) e `embeddedScreenSdui` (árvore compilada) substituídos por `embeddedScreenRoot` (árvore de `Sdui Node` nativa, sem projeção/compilação separada) — ver `ej-admin-requisitos.md` FT-04. Nota de 2026-08-24 mantida abaixo por histórico.
+>
 > **Nota de revisão (2026-08-24):** seção reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a `USER_TASK` associada a um `Form` por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o `Form` do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 
-# 11. Form e Form Field
+# 11. Componente SDUI e Component Registry
 
-## Form
+> **Reformulação (2026-09-05):** substitui por completo a antiga seção "Form e Form Field" —
+> catálogo de Formulários e modelo de campo plano removidos (ver `ej-admin-requisitos.md` FT-04).
 
-Formulário reutilizável do catálogo, usado só como modelo de partida (cópia) para a tela embutida de uma User Task — nunca referenciado por id depois da cópia.
+## Component Registry
 
-## Form Field — Tipos da Versão 1.0.0
+Fonte de verdade operacional do catálogo SDUI corporativo v1 (`requisitos/admin/sdui/
+elastic-journey-sdui-component-catalog-v1.md`) — descreve o que o Form Builder pode compor numa
+tela e o que cada alvo de renderização consegue exibir. Persistido em tabela própria
+(`component_definition`, modelo físico §11), não uma lista fixa em código. Identificado pela
+combinação `type` (ex.: `ui.textInput`) + `version` (ex.: `1.0`).
 
-```text
-SECTION, TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD, RADIO, SWITCH,
-SLIDER, RATING, STEPPER, AUTOCOMPLETE, TITLE, IMAGE, DIVIDER, CARD, CALLOUT
-```
+Cada componente declara: `status` (experimental/estável/depreciado/indisponível), `level`
+(camada de complexidade) e `category` (conteúdo/layout/entrada/ação/feedback), se aceita filhos,
+o schema de suas propriedades configuráveis (`Prop Descriptor`: nome, tipo de valor, obrigatoriedade,
+valor padrão), os eventos que pode disparar, e sua compatibilidade por alvo de renderização
+(`Target Support`: status + versão mínima de renderizador, por `react.web`/`react.mobile`/
+`flutter.web`/`flutter.mobile`). Remover um componente nunca apaga o registro — marca `status =
+indisponível`, preservando a referência de telas já publicadas.
 
-> Nomenclatura alinhada ao domínio implementado (`FormField`/`FormFieldType`). O tipo `STATIC_CONTENT`, que existia como tipo separado, foi colapsado em `TEXT` — os dois tinham o mesmo modelo de dados e divergiam apenas na apresentação visual. `SECTION` é estrutural — agrupa os campos seguintes até a próxima seção numa grade de colunas configurável — e não coleta valor.
+Catálogo v1 traz 19 tipos `ui.*` (ex.: `ui.screen`, `ui.container`, `ui.stack`, `ui.card`,
+`ui.text`, `ui.image`, `ui.textInput`, `ui.select`, `ui.checkbox`, `ui.datePicker`, `ui.button`,
+`ui.alert` — lista completa no documento do contrato acima), substituindo os 17 tipos fixos
+(`FormFieldType`) do modelo anterior. Vários tipos antigos sem equivalente direto no catálogo v1
+(`MULTI_SELECT`, `FILE_UPLOAD`, `RADIO`, `SLIDER`, `RATING`, `STEPPER`, `AUTOCOMPLETE`, `AVATAR`,
+`BADGE`, `TAG`, `TABS`, `CAROUSEL`, `TABLE`) foram deliberadamente deixados de fora — perda de
+capacidade aceita explicitamente ao adotar o catálogo corporativo.
 
-O mesmo modelo de `Form Field` é usado tanto no catálogo (`Form.fields`) quanto na tela embutida de uma `USER_TASK` (`Flow Node.embeddedScreen`, §10). Cada campo possui um `name` técnico, usado como chave de referência. No catálogo, o `name` é único dentro do formulário e imutável após a criação. Na tela embutida, o `name` é editável a qualquer momento e sua unicidade é verificada na jornada inteira, não só na tela — mesmo espaço de nomes das variáveis de saída de integração (REQ-03.09.011).
+## Sdui Node — Árvore de Tela
 
-- `INPUT` possui um subtipo (texto, número, e-mail, data), com validação de formato associada (faixa mínima/máxima para número; regex/máscara para texto); o valor padrão pode referenciar `{{nome}}` de uma variável do fluxo, resolvida em tempo de execução.
-- `SINGLE_SELECT`/`MULTI_SELECT`/`RADIO`/`AUTOCOMPLETE` possuem opções como pares rótulo/valor (não apenas rótulo). `AUTOCOMPLETE` usa opções estáticas na v1.0.0 — fonte de dados dinâmica remota é evolução futura.
-- `FILE_UPLOAD` possui configuração de extensões aceitas e tamanho máximo do arquivo.
-- `SLIDER`/`STEPPER` possuem mínimo, máximo e incremento configuráveis; `RATING` possui número máximo de estrelas configurável.
+Estrutura recursiva que representa a tela de uma User Task — substitui por completo o antigo `Form
+Field` (lista plana). Cada nó tem: `id` (único dentro da tela), `type`+`version` (referenciando um
+componente do Component Registry), `props` (configuração conforme o schema do componente),
+`bindings` (vínculo de dados por namespace — `form`/`data`/`session`/`route`/`computed`), `events`
+(evento → ação de um conjunto fechado) e `visibility` (condição de exibição — igualdade/diferença
+contra um valor, ou "está em"/"não está em" uma lista, usado sobretudo para condicionar um
+componente a um subconjunto dos tipos de canal da jornada via `session.channel`), além de `children`
+quando o componente aceita filhos. A raiz da árvore de uma tela é sempre um único nó `ui.screen`;
+a profundidade de aninhamento não é limitada.
 
-Ao publicar uma jornada, a tela embutida (`embeddedScreen`) de cada User Task é copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó (mesmo princípio de congelamento do versionamento de jornada). O snapshot de publicação também guarda, para cada User Task com tela desenhada, uma representação derivada em árvore de nós no formato `[tag, props, children]` (estilo SDUI/hyperscript) — `embeddedScreenSdui` — uma projeção de leitura gerada a partir do `embeddedScreen` congelado, e não um formato de armazenamento da tela em edição. Editar um `Form` do catálogo depois de publicado não afeta jornadas já publicadas — elas nunca dependeram dele, só copiaram os campos uma vez.
+O identificador técnico de um campo que coleta valor (antes `Form Field.name`) deixou de ser um
+atributo próprio: é o sufixo do binding de leitura-e-escrita no namespace `form` (`form.<nome>`),
+com unicidade continuando verificada na jornada inteira, mesmo espaço de nomes das variáveis de
+saída de integração (REQ-03.09.011). Também deixou de existir "valor padrão" estático — o valor
+inicial de um componente vem da resolução do seu vínculo de dados em tempo de execução.
+
+Ao publicar uma jornada, a árvore de tela (`embeddedScreenRoot`) de cada User Task é copiada
+integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do
+nó (mesmo princípio de congelamento do versionamento de jornada) — sem etapa de compilação ou
+projeção intermediária: a árvore publicada é a mesma árvore editada. O pacote de publicação
+(§12 e FT-04 US-04.14) também calcula, a partir dos componentes usados na árvore, os alvos de
+renderização compatíveis e a versão mínima de renderizador exigida por alvo, e é enviado a um
+repositório de especificação corporativo (Strapi via `ms-espec-registry`) — nunca ao runtime de
+fluxo diretamente. Editar um componente do Registry depois de uma tela publicada não afeta telas já
+publicadas — elas referenciam `type`+`version`, e uma nova versão do componente não altera o que já
+foi congelado.
 
 ## Persistência
 
-Os `Form Field` de um formulário são persistidos como um único documento `jsonb` (`Form.fields`); os de uma tela embutida, como parte do documento `jsonb` do próprio `Flow Node` (`embeddedScreen`, §8) — nenhum dos dois é normalizado em tabela própria. Cada campo não tem um id UUID próprio: sua chave real é o `name` técnico.
-
-> **Nota de revisão (2026-08-24):** seção reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a `USER_TASK` associada a um `Form` do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o `Form` do catálogo servindo apenas como modelo de cópia opcional — e o catálogo de tipos foi ampliado de 5 para 17 componentes para cobrir a necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de depender do motor.
+Os `Sdui Node` de uma tela são persistidos como parte do documento `jsonb` do próprio `Flow Node`
+(`embeddedScreenRoot`, §8) — sem tabela própria, mesmo espírito do modelo anterior. Já o Component
+Registry É uma tabela relacional própria (`component_definition`) — diferença central em relação ao
+antigo catálogo de Formulários, que também era só um documento JSONB.
 
 ---
 
@@ -298,11 +345,11 @@ Representa o snapshot de uma versão imutável enviado para a API de publicaçã
 ```text
 Product
 
-Channel
+Tipos de Canal da Journey (subconjunto dos tipos do Product)
 
 Journey
 
-Flow (com a tela já compilada — embeddedScreenSdui — de cada User Task)
+Flow (com a árvore de tela — embeddedScreenRoot — de cada User Task)
 
 VersionNumber
 ```
@@ -371,20 +418,21 @@ Diferente de `Credential Reference`, esta entidade armazena o valor do segredo �
 
 | Origem | Destino | Cardinalidade |
 |--------|---------|---------------|
-| Product | Channel | 1:N |
-| Channel | Journey | 1:N |
+| Product | Journey | 1:N |
 | Journey | Flow | 1:1 |
 | Flow | Flow Node | 1:N |
 | Flow | Flow Connection | 1:N |
 | Flow | Flow Annotation | 1:N |
 | Flow Annotation | Flow Node | N:M |
-| Flow Node | Form | N:0..1 |
-| Form | Form Field | 1:N |
 | Journey | Journey Publication | 1:0..1 |
 | Journey | Journey Version | 1:N |
 | Journey Version | Journey Publication | 1:0..1 |
 | User | Audit Event | 1:N |
 | Messaging Cluster | Credential Reference | 1:N |
+
+`Sdui Node` (dentro de `embeddedScreenRoot` de um `Flow Node`) referencia um `Component
+Definition` do Component Registry por `type`+`version` — uma referência por valor dentro do
+documento JSONB, não uma cardinalidade relacional (por isso fora da tabela acima), ver §11.
 
 ---
 
@@ -392,17 +440,13 @@ Diferente de `Credential Reference`, esta entidade armazena o valor do segredo �
 
 ```mermaid
 erDiagram
-    PRODUCT ||--o{ CHANNEL : contains
-    CHANNEL ||--o{ JOURNEY : owns
+    PRODUCT ||--o{ JOURNEY : owns
 
     JOURNEY ||--|| FLOW : owns
     FLOW ||--o{ FLOW_NODE : contains
     FLOW ||--o{ FLOW_CONNECTION : contains
     FLOW ||--o{ FLOW_ANNOTATION : annotates
     FLOW_ANNOTATION }o--o{ FLOW_NODE : links_to
-
-    FLOW_NODE }o--o| FORM : may_reference
-    FORM ||--o{ FORM_FIELD : contains
 
     JOURNEY ||--o| JOURNEY_PUBLICATION : publishes
     JOURNEY ||--o{ JOURNEY_VERSION : versions
@@ -421,22 +465,29 @@ erDiagram
 
 | Conceito | Descrição |
 |----------|-----------|
-| Product | Produto ou serviço digital |
-| Channel | Aplicação ou interface de atendimento de um produto |
-| Journey | Jornada específica de um canal |
+| Product | Produto ou serviço digital que declara os tipos de canal habilitados para suas jornadas |
+| Channel Type | Valor de domínio fixo (`WEB`/`MOBILE`/`WHATSAPP`) — não é uma entidade cadastrável |
+| Journey | Workflow associado a um produto e a um subconjunto dos tipos de canal desse produto |
 | Flow / Flow Node / Flow Connection | Estrutura visual da jornada e seus elementos |
 | Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
-| User Task Configuration | Trio `embeddedScreen`/`embeddedScreenSdui`/`messageText` embutido num Flow Node `USER_TASK` — não é uma entidade própria |
-| Form / Form Field | Formulário reutilizável do catálogo (modelo de cópia opcional) e os campos que o compõem |
+| User Task Configuration | Trio `embeddedScreenRoot`/`messageText` embutido num Flow Node `USER_TASK` — não é uma entidade própria |
+| Component Registry / Sdui Node | Catálogo de componentes SDUI disponíveis (tabela própria) e os nós da árvore de tela que instanciam esses componentes |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
 | AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
 
+> **Nota de revisão (2026-09-06):** linha `Channel` (entidade) substituída por `Channel Type`
+> (valor de domínio fixo) — canal deixou de ser um CRUD e passou a ser declarado diretamente como
+> atributo de `Product`/`Journey`. Linha `Journey` reescrita — não pertence mais a um canal
+> específico, e sim a um produto e a um subconjunto de tipos de canal desse produto.
+>
+> **Nota de revisão (2026-09-05):** linha `Form / Form Field` substituída por `Component Registry / Sdui Node` e `User Task Configuration` atualizada — a tela de uma User Task passou a ser uma árvore de nós SDUI (`embeddedScreenRoot`) que referenciam componentes de um catálogo mantido em tabela própria (Component Registry), publicada por um envelope canônico no repositório de especificação corporativo; não existe mais formulário do catálogo como modelo de cópia.
+>
 > **Nota de revisão (2026-08-24):** linhas `User Task Configuration` e `Form / Form Field` reescritas — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 
 # 18. Resumo Conceitual
 
-O modelo conceitual parte de Product, que agrupa Channels. Cada Channel possui Journeys independentes, e cada Journey agrega fluxo e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, eventos de auditoria registram operações relevantes sem dados sensíveis, e um catálogo de clusters de mensageria e referências de credencial dá suporte aos conectores de mensageria configurados no fluxo.
+O modelo conceitual parte de Product, que declara os tipos de canal habilitados para suas jornadas. Cada Journey pertence a um Product e a um subconjunto não vazio desses tipos de canal, e agrega fluxo e múltiplas versões. No máximo uma versão pode estar publicada por jornada; a publicação preserva seu snapshot imutável. Usuários e papéis controlam o acesso, eventos de auditoria registram operações relevantes sem dados sensíveis, e um catálogo de clusters de mensageria e referências de credencial dá suporte aos conectores de mensageria configurados no fluxo.

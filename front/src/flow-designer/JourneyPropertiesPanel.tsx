@@ -2,15 +2,17 @@ import { useState } from 'react';
 import { useFlowTheme } from './theme';
 import { Section } from './PropertiesSection';
 import { JourneyMetaBar } from './JourneyMetaBar';
+import type { ChannelType } from '../api/products';
 
 // Content only — PropertiesDock owns the panel chrome. Shown whenever no
 // node is targeted: the canvas background represents the journey itself, so
 // the dock falls back to the journey's own data (name/description/product/
-// channel) instead of a node's.
+// channel types) instead of a node's.
 export function JourneyPropertiesPanel({
   journeyId,
   productName,
-  channelName,
+  channelTypes,
+  onEditChannels,
   name,
   onNameChange,
   description,
@@ -18,7 +20,8 @@ export function JourneyPropertiesPanel({
 }: {
   journeyId: string;
   productName: string;
-  channelName: string;
+  channelTypes: ChannelType[];
+  onEditChannels: () => void;
   name: string;
   onNameChange: (value: string) => void;
   description: string;
@@ -34,7 +37,8 @@ export function JourneyPropertiesPanel({
         <JourneyMetaBar
           journeyId={journeyId}
           productName={productName}
-          channelName={channelName}
+          channelTypes={channelTypes}
+          onEditChannels={onEditChannels}
           name={name}
           onNameChange={onNameChange}
           description={description}

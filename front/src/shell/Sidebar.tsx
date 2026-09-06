@@ -16,6 +16,7 @@ import {
   Info,
   LogOut,
   Plug,
+  Blocks,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAppTheme } from './theme';
@@ -48,7 +49,10 @@ const NAV_ITEMS: NavItem[] = [
     key: 'configuracoes',
     label: 'Configurações',
     icon: <Settings size={16} />,
-    children: [{ key: 'integracoes', label: 'Integrações', icon: <Plug size={14} /> }],
+    children: [
+      { key: 'integracoes', label: 'Integrações', icon: <Plug size={14} /> },
+      { key: 'componentes-sdui', label: 'Componentes SDUI', icon: <Blocks size={14} /> },
+    ],
   },
 ];
 

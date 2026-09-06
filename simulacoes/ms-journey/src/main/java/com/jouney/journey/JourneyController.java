@@ -8,7 +8,7 @@ import com.jouney.journey.especregistry.EspecRegistryClient;
 import com.jouney.journey.especregistry.FlowBundle;
 import com.jouney.journey.especregistry.JourneySummary;
 import com.jouney.journey.especregistry.StepResponse;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,17 +44,9 @@ public class JourneyController {
 
     @GetMapping("/journeys")
     public List<JourneySummary> journeys(@RequestParam String channelType) {
-        // ponytail: N+1 (1 GET /journeys + 1 GET /flow por jornada) pra descobrir o channelType
-        // técnico de cada uma, que só existe em FlowBundle — aceitável pro catálogo pequeno de uma
-        // simulação. Upgrade se crescer: cache de channelType por journeyId.
-        List<JourneySummary> result = new ArrayList<>();
-        for (JourneySummary journey : espec.listJourneys()) {
-            FlowBundle flow = espec.getFlow(journey.journeyId());
-            if (channelType.equalsIgnoreCase(flow.channelType())) {
-                result.add(journey.withChannelType(flow.channelType()));
-            }
-        }
-        return result;
+        return espec.listJourneys().stream()
+                .filter(journey -> journey.channelTypes().stream().anyMatch(channelType::equalsIgnoreCase))
+                .toList();
     }
 
     @GetMapping("/journeys/{journeyId}/flow")
@@ -63,8 +55,14 @@ public class JourneyController {
     }
 
     @PostMapping("/journeys/{journeyId}/instances")
-    public InstanceResponse start(@PathVariable UUID journeyId, @RequestBody(required = false) Map<String, Object> variables) {
-        Map<String, CamundaVariable> startVariables = espec.convertStartVariables(journeyId, variables);
+    public InstanceResponse start(@PathVariable UUID journeyId, @RequestParam String channelType,
+                                   @RequestBody(required = false) Map<String, Object> variables) {
+        Map<String, CamundaVariable> startVariables = new LinkedHashMap<>(
+                espec.convertStartVariables(journeyId, variables));
+        // Vira variável de processo real, igual ao simulador interno do admin (SimulationController)
+        // — {{channel}} funciona em condição de Gateway e session.channel resolve na tela sem
+        // nenhuma mudança na engine, o canal real só precisa declarar de onde está chamando.
+        startVariables.put("channel", new CamundaVariable(channelType, "String"));
         String businessKey = UUID.randomUUID().toString();
         String processInstanceId = engineClient.startProcessInstance(ProcessIds.keyForJourney(journeyId), startVariables, businessKey);
         StepResponse step = stepResolver.resolve(processInstanceId);

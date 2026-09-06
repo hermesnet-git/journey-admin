@@ -54,21 +54,9 @@ export const EPICS: Epic[] = [
           d('REQ-01.01.001', 'O sistema deve permitir cadastrar produtos.'),
           d('REQ-01.01.002', 'O sistema deve permitir editar produtos.'),
           d('REQ-01.01.003', 'O sistema deve permitir consultar produtos.'),
-          d('REQ-01.01.004', 'O sistema deve permitir desativar produtos.'),
-          d('REQ-01.01.005', 'Cada produto deve possuir identificador único (productId), nome, descrição opcional e status.'),
-        ],
-      },
-      {
-        code: 'US-01.02',
-        name: 'Gestão de canais',
-        requirements: [
-          d('REQ-01.02.001', 'O sistema deve permitir cadastrar canais dentro de um produto.'),
-          d('REQ-01.02.002', 'O sistema deve permitir editar canais.'),
-          d('REQ-01.02.003', 'O sistema deve permitir consultar canais.'),
-          d('REQ-01.02.004', 'O sistema deve permitir desativar canais.'),
-          d('REQ-01.02.005', 'Todo canal deve pertencer a exatamente um produto.'),
-          d('REQ-01.02.006', 'Cada canal deve possuir identificador único (channelId), nome, descrição opcional, tipo e status.'),
-          d('REQ-01.02.007', 'O sistema deve suportar os tipos de canal WEB, MOBILE, WHATSAPP, URA, CONTACT_CENTER e OTHER.'),
+          d('REQ-01.01.004', 'O sistema deve permitir desativar e reativar produtos.'),
+          d('REQ-01.01.005', 'Cada produto deve possuir identificador único (productId), nome, descrição obrigatória e status.'),
+          d('REQ-01.01.006', 'Cada produto deve declarar um conjunto não vazio de tipos de canal (WEB, MOBILE, WHATSAPP) pelos quais suas jornadas podem ficar disponíveis.'),
         ],
       },
       {
@@ -77,22 +65,16 @@ export const EPICS: Epic[] = [
         requirements: [
           d('REQ-01.03.001', 'O sistema deve permitir pesquisar produtos por nome.'),
           d('REQ-01.03.002', 'O sistema deve permitir filtrar produtos por status.'),
-          d('REQ-01.03.003', 'O sistema deve permitir listar os canais de um produto.'),
-          d('REQ-01.03.004', 'O sistema deve permitir pesquisar canais por nome.'),
-          d('REQ-01.03.005', 'O sistema deve permitir filtrar canais por produto, tipo e status.'),
-          d('REQ-01.03.006', 'O sistema deve exibir a quantidade de canais associados a cada produto.'),
-          d('REQ-01.03.007', 'O sistema deve exibir a quantidade de jornadas associadas a cada canal.'),
+          d('REQ-01.03.006', 'O sistema deve exibir os tipos de canal habilitados de cada produto na listagem.'),
         ],
       },
       {
         code: 'US-01.04',
         name: 'Integridade e ciclo de vida',
         requirements: [
-          d('REQ-01.04.001', 'A desativação de um produto não deve remover seus canais, jornadas ou publicações existentes.'),
-          d('REQ-01.04.002', 'A desativação de um canal não deve remover suas jornadas ou publicações existentes.'),
-          d('REQ-01.04.003', 'O sistema deve impedir a criação e a publicação de jornadas quando o produto ou o canal estiver inativo.'),
-          d('REQ-01.04.004', 'O sistema deve impedir a desativação de um produto enquanto qualquer jornada de seus canais possuir publicação ativa.'),
-          d('REQ-01.04.005', 'O sistema deve impedir a desativação de um canal enquanto qualquer uma de suas jornadas possuir publicação ativa.'),
+          d('REQ-01.04.001', 'A desativação de um produto não deve remover suas jornadas ou publicações existentes.'),
+          d('REQ-01.04.003', 'O sistema deve impedir a criação e a publicação de jornadas quando o produto estiver inativo.'),
+          d('REQ-01.04.004', 'O sistema deve impedir a desativação de um produto enquanto qualquer uma de suas jornadas possuir publicação ativa.'),
         ],
       },
     ],
@@ -135,8 +117,8 @@ export const EPICS: Epic[] = [
           d('REQ-02.02.002', 'O sistema deve permitir definir descrição para a jornada.'),
           d('REQ-02.02.003', 'Cada jornada deve possuir identificador único (journeyId).'),
           d('REQ-02.02.004', 'O identificador da jornada é gerado pelo sistema e não é editável pelo usuário.'),
-          d('REQ-02.02.005', 'Toda jornada deve estar associada a exatamente um canal.'),
-          d('REQ-02.02.006', 'O sistema deve identificar o produto da jornada a partir do canal associado.'),
+          d('REQ-02.02.005', 'Toda jornada deve estar associada a um subconjunto não vazio dos tipos de canal (WEB, MOBILE, WHATSAPP) habilitados pelo seu produto.'),
+          d('REQ-02.02.006', 'Toda jornada deve declarar diretamente o produto ao qual pertence; seus tipos de canal nunca incluem um valor fora do que o produto habilita.'),
         ],
       },
       {
@@ -145,7 +127,7 @@ export const EPICS: Epic[] = [
         requirements: [
           d('REQ-02.03.001', 'O sistema deve permitir pesquisar jornadas por nome.'),
           d('REQ-02.03.002', 'O sistema deve permitir filtrar jornadas por produto.'),
-          d('REQ-02.03.003', 'O sistema deve permitir filtrar jornadas por canal.'),
+          d('REQ-02.03.003', 'O sistema deve permitir filtrar jornadas por tipo de canal.'),
           d('REQ-02.03.004', 'O sistema deve permitir ordenar jornadas por data de criação.'),
           d('REQ-02.03.005', 'O sistema deve permitir ordenar jornadas por data de alteração.'),
           partial(
@@ -160,13 +142,45 @@ export const EPICS: Epic[] = [
         ],
       },
       {
+        code: 'US-02.04',
+        name: 'Modelos de jornada',
+        requirements: [
+          d('REQ-02.04.001', 'Ao criar uma jornada, o sistema deve permitir que o usuário escolha entre iniciar com o fluxo em branco ou usar um modelo de jornada predefinido.'),
+          {
+            code: 'REQ-02.04.002',
+            description: 'O sistema deve listar os modelos disponíveis com identificador estável, nome e descrição; no piloto da versão 1.0.0, deve oferecer o modelo aprovacao-pedido ("Aprovação de Pedido").',
+            status: 'done',
+            notes: 'Catálogo fixo, sem CRUD no piloto.',
+          },
+          d('REQ-02.04.003', 'O modelo escolhido deve preencher somente o fluxo. Nome, descrição, produto e canais da nova jornada devem ser sempre os valores informados pelo usuário.'),
+          {
+            code: 'REQ-02.04.004',
+            description: 'Cada uso de um modelo deve gerar novos identificadores de fluxo, nós e conexões, sem compartilhar identidade ou estado mutável entre jornadas.',
+            status: 'done',
+            notes: 'Coberto por JourneyTemplateTest.',
+          },
+          {
+            code: 'REQ-02.04.005',
+            description: 'A criação da jornada, do fluxo escolhido e da versão inicial DRAFT deve ocorrer numa única transação; o snapshot da versão 1 deve conter exatamente os mesmos nós e conexões do fluxo criado.',
+            status: 'done',
+            notes: 'Coberto por CreateJourneyTest.',
+          },
+          {
+            code: 'REQ-02.04.006',
+            description: 'Um modelo é um esqueleto editável e pode deixar configurações dependentes do contexto — tela, condição, endpoint ou credencial — para o autor completar. O fluxo resultante permanece sujeito às mesmas regras de validação e publicação de qualquer rascunho.',
+            status: 'done',
+            notes: 'A saída "Reprovação" nasce como padrão; a condição da saída "Aprovação" deve ser configurada pelo autor.',
+          },
+        ],
+      },
+      {
         code: 'US-02.05',
         name: 'Jornadas específicas por canal',
         requirements: [
-          d('REQ-02.05.001', 'O sistema deve permitir criar jornadas distintas para diferentes canais do mesmo produto.'),
+          d('REQ-02.05.001', 'O sistema deve permitir criar jornadas distintas para diferentes tipos de canal do mesmo produto.'),
           d('REQ-02.05.002', 'Cada jornada deve possuir definição independente de fluxo e formulários.'),
           d('REQ-02.05.003', 'Alterações realizadas em uma jornada não devem modificar automaticamente jornadas de outros canais.'),
-          d('REQ-02.05.004', 'O sistema deve exibir o produto e o canal durante toda a edição da jornada.'),
+          d('REQ-02.05.004', 'O sistema deve exibir o produto e os tipos de canal durante toda a edição da jornada.'),
           d(
             'REQ-02.05.005',
             'O painel de propriedades do editor de fluxo deve exibir o identificador (UUID) da jornada, somente leitura, quando nenhum nó estiver selecionado.',
@@ -193,7 +207,7 @@ export const EPICS: Epic[] = [
           d('REQ-02.07.001', 'O sistema deve indicar se uma jornada está publicada.'),
           d('REQ-02.07.002', 'O sistema deve indicar a data da publicação.'),
           d('REQ-02.07.003', 'O sistema deve indicar o produto associado à publicação.'),
-          d('REQ-02.07.004', 'O sistema deve indicar o canal associado à publicação.'),
+          d('REQ-02.07.004', 'O sistema deve indicar os tipos de canal associados à publicação.'),
         ],
       },
       {
@@ -203,7 +217,7 @@ export const EPICS: Epic[] = [
           d('REQ-02.08.001', 'O sistema deve permitir listar jornadas publicadas.'),
           d('REQ-02.08.002', 'O sistema deve permitir pesquisar jornadas publicadas.'),
           d('REQ-02.08.003', 'O sistema deve permitir filtrar jornadas publicadas por produto.'),
-          d('REQ-02.08.004', 'O sistema deve permitir filtrar jornadas publicadas por canal.'),
+          d('REQ-02.08.004', 'O sistema deve permitir filtrar jornadas publicadas por tipo de canal.'),
         ],
       },
       {
@@ -213,7 +227,7 @@ export const EPICS: Epic[] = [
           d('REQ-02.09.001', 'O Admin Portal deve iniciar a publicação por meio de uma chamada de saída para a API de publicação do runtime.'),
           d(
             'REQ-02.09.002',
-            'A chamada deve enviar a definição completa da jornada, incluindo produto, canal e o fluxo com a tela embutida (já compilada) de cada User Task.',
+            'A chamada deve enviar a definição completa da jornada, incluindo produto, tipos de canal e o fluxo com a tela embutida (já compilada) de cada User Task.',
           ),
           d(
             'REQ-02.09.003',
@@ -235,7 +249,7 @@ export const EPICS: Epic[] = [
         requirements: [
           d(
             'REQ-02.10.001',
-            'Para uma jornada com publicação ativa (PUBLISHED), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo — com a árvore SDUI já compilada da tela de cada User Task), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".',
+            'Para uma jornada com publicação ativa (PUBLISHED), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, tipos de canal, fluxo — com a árvore SDUI já compilada da tela de cada User Task), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".',
           ),
         ],
       },
@@ -243,7 +257,7 @@ export const EPICS: Epic[] = [
   },
   {
     code: 'FT-03',
-    name: 'Modelagem Visual',
+    name: 'Modelagem Visual de Workflows',
     features: [
       {
         code: 'US-03.01',
@@ -514,6 +528,10 @@ export const EPICS: Epic[] = [
             'REQ-03.11.008',
             'Cada variável de saída deve possuir um tipo declarado (texto, número, booleano, data ou data e hora), inferido automaticamente ao gerar o mapeamento a partir de uma resposta real ou escolhido manualmente. O editor da condição do gateway deve oferecer só os operadores compatíveis com o tipo e um campo de valor no formato correspondente.',
           ),
+          d(
+            'REQ-03.11.009',
+            'A condição do gateway pode referenciar a variável reservada channel — injetada automaticamente pelo tipo de canal que inicia a instância, nunca declarável pelo usuário no nó START.',
+          ),
         ],
       },
       {
@@ -642,7 +660,7 @@ export const EPICS: Epic[] = [
   },
   {
     code: 'FT-04',
-    name: 'Formulários (SDUI)',
+    name: 'Catálogo Server Driven UI (SDUI)',
     features: [
       {
         code: 'US-04.01',
@@ -653,64 +671,30 @@ export const EPICS: Epic[] = [
             description:
               'O sistema deve permitir manter uma User Task sem tela desenhada; nesse caso, o sistema deve permitir configurar uma mensagem exibida ao usuário, com suporte a {{nome}} resolvido pelos valores reais da execução.',
             status: 'done',
-            notes: 'Ver REQ-05.02.005 para a resolução dessas variáveis na tela de execução.',
+            notes: 'A mensagem sem tela agora sintetiza uma tela real com texto e um botão de avançar, em vez de um comportamento implícito do framework.',
           },
           d(
             'REQ-04.01.007',
-            'Na tela embutida de uma User Task, o name técnico de cada campo é editável a qualquer momento, com unicidade verificada na jornada inteira.',
+            'Na tela embutida de uma User Task, cada campo que coleta valor deve possuir um identificador técnico editável a qualquer momento, com unicidade verificada na jornada inteira.',
           ),
-        ],
-      },
-      {
-        code: 'US-04.02',
-        name: 'Componentes',
-        requirements: [
-          d('REQ-04.02.001', 'O sistema deve suportar componente de texto (absorve o antigo tipo de conteúdo estático).'),
-          d('REQ-04.02.002', 'O sistema deve suportar campo de entrada.'),
-          d('REQ-04.02.003', 'O sistema deve suportar seleção simples.'),
-          d('REQ-04.02.004', 'O sistema deve suportar seleção múltipla.'),
-          d('REQ-04.02.005', 'O sistema deve suportar upload de arquivo.'),
-          d('REQ-04.02.007', 'O campo INPUT deve suportar subtipos: texto, número, e-mail e data.'),
-          d(
-            'REQ-04.02.008',
-            'O sistema deve permitir validação de formato por subtipo de INPUT (min/max para número; regex/máscara para texto).',
-          ),
-          d(
-            'REQ-04.02.009',
-            'As opções de seleção simples/múltipla devem ser pares rótulo/valor, não apenas rótulo.',
-          ),
-          d('REQ-04.02.010', 'O upload de arquivo deve permitir configurar extensões aceitas e tamanho máximo.'),
-          d('REQ-04.02.011', 'O sistema deve suportar seção estrutural (SECTION), agrupando os campos seguintes em uma grade de colunas configurável.'),
-          d('REQ-04.02.012', 'O sistema deve suportar botões de opção (RADIO).'),
-          d('REQ-04.02.013', 'O sistema deve suportar interruptor sim/não (SWITCH).'),
-          d('REQ-04.02.014', 'O sistema deve suportar escala numérica (SLIDER).'),
-          d('REQ-04.02.015', 'O sistema deve suportar avaliação por estrelas (RATING).'),
-          d('REQ-04.02.016', 'O sistema deve suportar contador numérico (STEPPER).'),
-          {
-            code: 'REQ-04.02.017',
-            description: 'O sistema deve suportar busca com sugestão (AUTOCOMPLETE).',
-            status: 'done',
-            notes: 'Opções estáticas na v1.0.0 — fonte de dados dinâmica remota é evolução futura.',
-          },
-          d('REQ-04.02.018', 'O sistema deve suportar título (TITLE).'),
-          d('REQ-04.02.019', 'O sistema deve suportar imagem (IMAGE).'),
-          d('REQ-04.02.020', 'O sistema deve suportar divisor visual (DIVIDER).'),
-          d('REQ-04.02.021', 'O sistema deve suportar card de conteúdo (CARD).'),
-          d('REQ-04.02.022', 'O sistema deve suportar aviso (CALLOUT).'),
         ],
       },
       {
         code: 'US-04.04',
         name: 'Configuração',
         requirements: [
-          d('REQ-04.04.001', 'O usuário deve poder definir campos obrigatórios.'),
+          {
+            code: 'REQ-04.04.001',
+            description: 'O usuário deve poder definir campos obrigatórios.',
+            status: 'done',
+            notes: 'Obrigatoriedade agora é uma propriedade declarada no catálogo de componentes, não uma coluna fixa do modelo de campo.',
+          },
           {
             code: 'REQ-04.04.002',
-            description: 'O usuário deve poder definir valores padrão, podendo referenciar {{nome}} de uma variável do fluxo.',
+            description: 'O usuário deve poder associar um valor inicial a um componente.',
             status: 'done',
-            notes: 'O valor resolvido pré-preenche o campo na execução, permanecendo editável.',
+            notes: 'Não existe mais "valor padrão" estático definido pelo autor da tela — o valor inicial vem da resolução do vínculo de dados em tempo de execução.',
           },
-          d('REQ-04.04.003', 'O usuário deve poder definir textos de ajuda.'),
         ],
       },
       {
@@ -725,14 +709,157 @@ export const EPICS: Epic[] = [
         code: 'US-04.06',
         name: 'Imutabilidade e serialização para publicação',
         requirements: [
-          d(
-            'REQ-04.06.001',
-            'Ao publicar uma jornada, a tela embutida de cada User Task deve ser copiada/compilada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó.',
-          ),
-          d(
-            'REQ-04.06.002',
-            'O snapshot de publicação deve conter, para cada User Task com tela desenhada, uma representação em árvore [tag, props, children] (SDUI), derivada da tela congelada do nó.',
-          ),
+          {
+            code: 'REQ-04.06.001',
+            description: 'Ao publicar uma jornada, a tela embutida de cada User Task deve ser copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó.',
+            status: 'done',
+            notes: 'Não existe mais etapa de "compilação" — a árvore publicada é exatamente a mesma árvore editada no Form Builder.',
+          },
+        ],
+      },
+      {
+        code: 'US-04.07',
+        name: 'Catálogo de Componentes (Component Registry)',
+        requirements: [
+          d('REQ-04.07.001', 'O sistema deve manter um catálogo de componentes disponíveis para compor telas, persistido em tabela própria, não mais uma lista fixa em código.'),
+          d('REQ-04.07.002', 'Cada componente do catálogo deve ser identificado pela combinação de tipo e versão, únicas entre si.'),
+          d('REQ-04.07.003', 'Cada componente deve declarar um status: experimental, estável, depreciado ou indisponível.'),
+          d('REQ-04.07.004', 'Cada componente deve declarar um nível de complexidade e uma categoria, usados para organizar a paleta do editor.'),
+          d('REQ-04.07.005', 'Cada componente deve declarar se aceita filhos (componente de layout) ou é uma folha que não aceita.'),
+          d('REQ-04.07.006', 'Cada componente deve declarar o schema de suas propriedades configuráveis: nome, tipo de valor, obrigatoriedade e valor padrão.'),
+          d('REQ-04.07.007', 'Cada componente deve declarar quais eventos pode disparar, dentre o conjunto de ações permitidas.'),
+          {
+            code: 'REQ-04.07.008',
+            description: 'Cada componente deve declarar sua compatibilidade por alvo de renderização, incluindo a versão mínima de renderizador exigida em cada alvo.',
+            status: 'done',
+            notes: 'O catálogo inicial só marca a renderização web como suportada de fato — os demais alvos (mobile) constam como planejados, ainda sem renderizador.',
+          },
+          {
+            code: 'REQ-04.07.009',
+            description: 'O sistema deve disponibilizar uma tela de administração do catálogo, com listagem, criação, edição e remoção.',
+            status: 'done',
+            notes: 'Implementada, ainda não testada visualmente pelo usuário.',
+          },
+          d('REQ-04.07.010', 'A leitura do catálogo deve ser permitida a qualquer papel autenticado; criar, editar e remover devem ser restritos ao papel de administrador.'),
+          d('REQ-04.07.011', 'Remover um componente do catálogo não deve apagar seu registro — deve marcá-lo como indisponível, preservando a referência para telas já publicadas que o utilizem.'),
+          d('REQ-04.07.012', 'O sistema deve prover, desde a primeira instalação, um catálogo inicial com os componentes do contrato corporativo de referência.'),
+        ],
+      },
+      {
+        code: 'US-04.08',
+        name: 'Estrutura da árvore de tela',
+        requirements: [
+          d('REQ-04.08.001', 'A tela de uma User Task deve ser representada por uma árvore de nós, não mais por uma lista plana de campos.'),
+          d('REQ-04.08.002', 'Cada nó da árvore deve possuir um identificador único dentro da tela, um tipo e uma versão correspondentes a um componente do catálogo.'),
+          d('REQ-04.08.003', 'Cada nó deve poder conter propriedades de configuração, conforme o schema declarado pelo componente correspondente no catálogo.'),
+          d('REQ-04.08.004', 'Cada nó deve poder conter um vínculo de dados, eventos associados a ações e uma regra de visibilidade condicional.'),
+          d('REQ-04.08.005', 'Um nó só deve poder conter filhos se o componente correspondente aceitar filhos; a profundidade de aninhamento não deve ser limitada.'),
+          d('REQ-04.08.006', 'A raiz da árvore de uma tela deve ser sempre um único nó do tipo contêiner de tela.'),
+          d('REQ-04.08.007', 'A árvore editada no Form Builder deve ser a mesma árvore publicada — não deve existir etapa de compilação ou projeção intermediária entre o que o usuário desenha e o que é publicado.'),
+        ],
+      },
+      {
+        code: 'US-04.09',
+        name: 'Editor de componentes',
+        requirements: [
+          d('REQ-04.09.001', 'O sistema deve exibir uma paleta de componentes disponíveis para inserção, agrupada por categoria, alimentada pelo catálogo.'),
+          d('REQ-04.09.002', 'O usuário deve poder inserir um componente da paleta na árvore da tela por arrastar-e-soltar.'),
+          d('REQ-04.09.003', 'O sistema deve permitir soltar um componente somente dentro de outro que aceite filhos.'),
+          {
+            code: 'REQ-04.09.004',
+            description: 'O usuário deve poder mover um componente já inserido para dentro de outro contêiner compatível, preservando seus filhos.',
+            status: 'done',
+            notes: 'Soltar sempre insere no fim dos filhos do alvo — reordenar por posição fina dentro do mesmo nível é feito pelo painel de camadas (ver requisito abaixo).',
+          },
+          d('REQ-04.09.005', 'O sistema não deve permitir mover um componente para dentro de si mesmo ou de um de seus próprios descendentes.'),
+          d('REQ-04.09.006', 'O usuário deve poder remover um componente da árvore; remover um contêiner deve remover também seus filhos.'),
+          d('REQ-04.09.007', 'O sistema deve exibir um painel de camadas com a estrutura hierárquica da árvore, permitindo selecionar, reordenar entre irmãos e remover a partir dele.'),
+          d('REQ-04.09.008', 'O usuário deve poder editar as propriedades do componente selecionado num painel dedicado, com o campo de entrada apropriado ao tipo de cada propriedade declarada pelo catálogo.'),
+          d('REQ-04.09.009', 'No modo de construção da tela, os componentes não devem aceitar digitação de valores reais — não é o formulário sendo preenchido, é uma prancheta de montagem.'),
+          d('REQ-04.09.010', 'O sistema deve oferecer um modo de pré-visualização que renderiza a árvore como seria apresentada ao usuário final, alternável a qualquer momento com o modo de construção.'),
+        ],
+      },
+      {
+        code: 'US-04.10',
+        name: 'Vínculo de dados',
+        requirements: [
+          d('REQ-04.10.001', 'O usuário deve poder associar o valor de um componente a um caminho identificado por um namespace e um nome dentro desse namespace.'),
+          d('REQ-04.10.002', 'O vínculo deve poder ser configurado como leitura-e-escrita ou somente leitura.'),
+          d('REQ-04.10.003', 'Um componente sem vínculo configurado não deve gerar variável de processo nem ser considerado no envio do formulário.'),
+          {
+            code: 'REQ-04.10.004',
+            description: 'Ao configurar um vínculo de leitura-e-escrita no namespace de variável do fluxo, o sistema deve sugerir os nomes de variável já conhecidos até aquele ponto do fluxo.',
+            status: 'done',
+            notes: 'Sugestão disponível para os namespaces de variável do fluxo e de dado somente leitura — os demais namespaces não têm fonte de sugestão neste editor.',
+          },
+          d('REQ-04.10.005', 'O nome técnico de um campo que coleta valor passa a ser o nome usado no vínculo de leitura-e-escrita do namespace de variável do fluxo; sua unicidade deve continuar sendo verificada na jornada inteira.'),
+        ],
+      },
+      {
+        code: 'US-04.11',
+        name: 'Ações e eventos',
+        requirements: [
+          d('REQ-04.11.001', 'O usuário deve poder associar um evento disparado por um componente a uma ação, escolhida dentre um conjunto fechado definido pelo sistema.'),
+          d('REQ-04.11.002', 'Os eventos oferecidos para configuração num componente devem se limitar aos eventos que aquele componente realmente dispara.'),
+          d('REQ-04.11.003', 'Cada ação deve permitir configurar parâmetros próprios.'),
+          {
+            code: 'REQ-04.11.004',
+            description: 'Um componente não deve poder disparar uma ação fora do conjunto fechado do sistema — isso deve ser impedido na validação estrutural.',
+            status: 'done',
+            notes: 'Validado tanto na publicação quanto na resolução da tela em tempo de execução.',
+          },
+        ],
+      },
+      {
+        code: 'US-04.12',
+        name: 'Visibilidade condicional',
+        requirements: [
+          d('REQ-04.12.001', 'O usuário deve poder condicionar a exibição de um componente a uma comparação entre um valor do contexto de dados e um valor informado.'),
+          d('REQ-04.12.002', 'As comparações suportadas devem incluir, no mínimo, igualdade e diferença.'),
+          {
+            code: 'REQ-04.12.003',
+            description: 'Um componente sem condição de visibilidade configurada deve ser sempre exibido.',
+            status: 'done',
+            notes: 'A avaliação ao vivo no simulador de execução ainda só cobre valores do próprio formulário controlados localmente — gap conhecido, registrado no código.',
+          },
+          d('REQ-04.12.004', 'As comparações também devem suportar "está em"/"não está em" uma lista de valores, usado para condicionar um componente a um subconjunto dos tipos de canal da jornada (session.channel).'),
+        ],
+      },
+      {
+        code: 'US-04.13',
+        name: 'Validação estrutural',
+        requirements: [
+          d('REQ-04.13.001', 'O sistema não deve permitir publicar uma jornada cuja árvore de alguma tela tenha identificador de componente duplicado.'),
+          d('REQ-04.13.002', 'O sistema não deve permitir publicar uma jornada que use, em alguma tela, um tipo de componente não encontrado no catálogo.'),
+          d('REQ-04.13.003', 'O sistema não deve permitir publicar uma jornada que use, em alguma tela, um componente marcado como indisponível no catálogo.'),
+          d('REQ-04.13.004', 'O sistema não deve permitir publicar uma jornada em que um componente tenha filhos sem que seu tipo aceite filhos.'),
+          d('REQ-04.13.005', 'O sistema não deve permitir publicar uma jornada com um vínculo de dados cujo namespace não seja um dos namespaces reconhecidos.'),
+          d('REQ-04.13.006', 'O sistema não deve permitir publicar uma jornada com um evento associado a uma ação fora do conjunto fechado.'),
+          d('REQ-04.13.007', 'Ao rejeitar a publicação, o sistema deve informar todas as violações encontradas, não só a primeira.'),
+          d('REQ-04.13.008', 'O sistema não deve permitir publicar uma jornada em que, para algum dos tipos de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo.'),
+        ],
+      },
+      {
+        code: 'US-04.14',
+        name: 'Publicação e repositório de especificação corporativo',
+        requirements: [
+          d('REQ-04.14.001', 'Ao publicar uma jornada, o sistema deve gerar, para cada tela desenhada, um pacote de publicação identificando a jornada, a tela e o número de revisão.'),
+          d('REQ-04.14.002', 'O pacote deve indicar os alvos de renderização compatíveis com a tela, calculados pela interseção dos alvos suportados por todos os componentes usados na árvore.'),
+          d('REQ-04.14.003', 'O pacote deve indicar, para cada alvo compatível, a versão mínima de renderizador exigida, calculada como a maior entre as exigidas pelos componentes usados.'),
+          {
+            code: 'REQ-04.14.004',
+            description: 'O sistema deve enviar o pacote de publicação a um serviço de repositório de especificação corporativo, responsável por armazenar e distribuir versões publicadas.',
+            status: 'done',
+            notes: 'Fluxo completo implementado (admin → repositório de especificação → Strapi), mas ainda não testado fim a fim contra uma instância real do Strapi.',
+          },
+          {
+            code: 'REQ-04.14.005',
+            description: 'Uma nova publicação da mesma tela nunca deve sobrescrever uma revisão já publicada — deve gerar uma revisão nova, marcando a anterior como substituída.',
+            status: 'done',
+            notes: 'Não testado contra uma instância real do Strapi.',
+          },
+          d('REQ-04.14.006', 'Em execução, a tela apresentada ao usuário final deve ser sempre lida da última revisão publicada no repositório de especificação corporativo, nunca do estado em edição no Form Builder.'),
+          d('REQ-04.14.007', 'O restante da resolução de uma jornada em execução não depende do repositório de especificação corporativo e deve continuar funcionando independentemente dele.'),
         ],
       },
     ],
@@ -806,6 +933,10 @@ export const EPICS: Epic[] = [
           d(
             'REQ-05.04.003',
             'As integrações Kafka referenciadas pelas jornadas devem executar contra um broker Kafka real, com publicação e consumo de mensagens efetivos.',
+          ),
+          d(
+            'REQ-05.04.004',
+            'Toda instância deve ser iniciada informando um tipo de canal, validado contra os tipos habilitados na jornada publicada; o motor deve receber esse valor como variável de processo reservada channel.',
           ),
         ],
       },
@@ -881,7 +1012,7 @@ export const EPICS: Epic[] = [
           {
             code: 'REQ-05.07.003',
             description:
-              'A pré-visualização da execução deve se adaptar ao canal da jornada (Web ou App), incluindo uma representação visual compatível com o canal (ex.: layout de dispositivo móvel para jornadas de canal App).',
+              'A pré-visualização da execução deve se adaptar ao tipo de canal escolhido para a instância, incluindo uma representação visual compatível (ex.: layout de dispositivo móvel para MOBILE).',
             status: 'done',
             notes: 'Mística não tem componente de moldura de dispositivo pronto; construído à mão.',
           },
@@ -892,6 +1023,10 @@ export const EPICS: Epic[] = [
           d(
             'REQ-05.07.005',
             'O sistema deve permitir iniciar a execução de uma jornada publicada diretamente do grid de Jornadas, abrindo uma aba de Execução dedicada já com essa jornada selecionada.',
+          ),
+          d(
+            'REQ-05.07.006',
+            'Quando a jornada tiver mais de um tipo de canal habilitado, o sistema deve permitir escolher qual tipo simular antes de iniciar; com um único tipo, deve usá-lo automaticamente.',
           ),
         ],
       },
@@ -1238,6 +1373,27 @@ export const EPICS: Epic[] = [
           d('REQ-08.04.002', 'O sistema deve permitir filtrar eventos por usuário, ação, recurso, resultado e período.'),
           d('REQ-08.04.003', 'O sistema deve permitir pesquisar eventos por recurso ou correlação.'),
           d('REQ-08.04.004', 'O sistema deve apresentar os eventos em ordem cronológica e com paginação.'),
+        ],
+      },
+      {
+        code: 'US-08.05',
+        name: 'Integração com SIEM',
+        requirements: [
+          todo('REQ-08.05.001', 'O sistema deve permitir configurar o envio dos eventos de auditoria a uma ferramenta de SIEM corporativa, habilitável e desabilitável por ambiente sem alteração de código.'),
+          todo('REQ-08.05.002', 'O sistema deve exportar cada evento de auditoria em um formato padrão de mercado (ex.: CEF, ou JSON estruturado equivalente), preservando os campos mínimos já exigidos para o evento local.'),
+          todo('REQ-08.05.003', 'O sistema deve transportar os eventos ao SIEM por um canal padrão de mercado — Syslog (RFC 5424) sobre TCP, ou endpoint HTTP/HTTPS.'),
+          todo('REQ-08.05.004', 'A comunicação com o SIEM deve ser cifrada em trânsito (TLS).'),
+          todo('REQ-08.05.005', 'A integração deve se autenticar perante o SIEM, com credencial configurável por ambiente, nunca embutida em código-fonte.'),
+          todo('REQ-08.05.006', 'O timestamp de cada evento exportado deve ser expresso em UTC, formato ISO 8601.'),
+          todo('REQ-08.05.007', 'O envio ao SIEM deve ser assíncrono, sem bloquear a operação nem a gravação do registro local.'),
+          todo('REQ-08.05.008', 'Uma falha/indisponibilidade do SIEM não pode impedir, atrasar ou reverter a operação de negócio nem o registro local.'),
+          todo('REQ-08.05.009', 'O sistema deve reter temporariamente os eventos não entregues e reenviá-los quando a conectividade voltar, com política de limite/descarte documentada.'),
+          todo('REQ-08.05.010', 'Falha de entrega ao SIEM deve virar log técnico, sem gerar evento de auditoria recursivo.'),
+          todo('REQ-08.05.011', 'O sistema deve prover teste de conectividade com o SIEM configurado, sob demanda de um administrador.'),
+          todo('REQ-08.05.012', 'Todo evento de auditoria deve ser elegível por padrão; o sistema deve permitir filtrar por categoria/severidade o que é de fato encaminhado.'),
+          todo('REQ-08.05.013', 'Eventos de indício de ataque/abuso (login malsucedido repetido, acesso negado repetido, alteração de papel/credencial) devem ser sempre elegíveis, independente do filtro.'),
+          todo('REQ-08.05.014', 'Eventos exportados não devem conter senha, token, segredo ou credencial sensível (mesma regra de proteção do registro local).'),
+          todo('REQ-08.05.015', 'Cada evento exportado deve identificar o sistema de origem e um identificador de correlação.'),
         ],
       },
     ],
@@ -1740,16 +1896,15 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
   {
     title: 'Jornadas e Versionamento',
     items: [
-      'Clonagem de jornadas entre canais',
+      'Clonagem de jornadas entre tipos de canal',
       'Templates de jornadas',
       'Biblioteca de componentes de formulário',
       'Comparação (diff) visual entre versões de uma jornada',
     ],
   },
   {
-    title: 'Formulários Avançados (SDUI)',
+    title: 'Catálogo Server Driven UI (SDUI)',
     items: [
-      'Exibição condicional (campo visibleIf já existe no modelo, mas não é avaliado em runtime)',
       'Formulários multi-etapas (wizard)',
       'Fontes de dados dinâmicas - $dataSource e estratégia de prefetch no servidor ou no cliente',
       'Paginação de opções carregadas dinamicamente',
@@ -1770,6 +1925,30 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-09-06 04:15 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Requisitos novos da jornada multicanal (nunca documentados) + correção de contagem pré-existente do FT-02. A capacidade de jornada com múltiplos tipos de canal (implementada em sessão anterior) nunca tinha ganhado REQ — corrigido: REQ-02.02.005/006 reescritos (jornada associada a um subconjunto não vazio dos tipos do produto, produto declarado diretamente, não mais derivado de um canal); REQ-03.11.009 novo (US-03.11, Gateway) — variável reservada channel, injetada automaticamente pelo canal que inicia a instância, nunca declarável pelo usuário; REQ-04.12.004 novo (US-04.12, Visibilidade) — regras in/notIn de SduiVisibility sobre session.channel; REQ-04.13.008 novo (US-04.13, Validação) — rejeita publicar uma tela sem nenhum componente visível para algum dos tipos de canal da jornada; REQ-05.04.004 novo (US-05.04) — toda instância exige ?channel=, validado contra os tipos da jornada, injetado como variável de processo; REQ-05.07.003 reescrito (não cita mais "Web ou App", adapta ao tipo escolhido) e REQ-05.07.006 novo — seletor de canal na tela de Executar quando a jornada tem mais de um tipo habilitado. Also corrigidos REQ-02.03.003/02.07.004/02.08.004/02.09.002/02.10.001 (citavam "canal" no singular). De quebra, achada e corrigida uma divergência de contagem do FT-02 que já existia antes desta sessão: o resumo geral registrava 44 REQs/42 concluídos, mas a seção detalhada sempre teve 50 linhas/48 concluídos (mesmo padrão de erro já corrigido antes para outras features) — o resumo por feature já estava com o valor certo (50/48/96%) antes desta entrada, só o total geral abaixo não refletia. Total FT-03: 96 → 97 REQs; FT-04: 62 → 64 REQs; FT-05: 55 → 57 REQs; total geral: 491 → 496 REQs, 439 → 444 concluídos (90%), 101 → 102 USs (contagem de User Stories também estava desatualizada).',
+  },
+  {
+    date: '2026-09-06 03:42 (não commitado)',
+    source: 'progresso',
+    summary:
+      'FT-01 reformulada: canal deixa de ser CRUD e vira domínio fixo (WEB/MOBILE/WHATSAPP). US-01.02 Gestão de canais removida por completo (7 REQs) — não existe mais entidade Channel/tabela channel; produto passa a declarar diretamente um conjunto não vazio de tipos de canal (REQ-01.01.006, novo), validado contra product_channel_type/journey_channel_type (V16__product_channel_type.sql, substitui channel/journey_channel). US-01.03 perdeu os REQs de busca/filtro/contagem de canal (não fazem mais sentido sem CRUD); REQ-01.03.006 reescrito para "exibir os tipos de canal habilitados de cada produto". US-01.04 perdeu os REQs de desativação de canal (canal não tem mais status); REQ-01.04.001/003/004 reescritos removendo a menção a canal como entidade própria. Jornada também passou de channelIds: Set<UUID> para channelTypes: Set<ChannelType> (subconjunto dos tipos do produto) — mesmo modelo simplificado, aplicado em cascata em admin/back, ms-espec-registry, ms-journey e admin/front (não documentado aqui: é a mesma mudança de FT-02, adiada para quando a feature de jornadas multicanal for reformulada em conjunto). Total FT-01: 24 → 12 REQs; total geral: 497 → 491 REQs (12 removidos), 445 → 439 concluídos, 101 USs.',
+  },
+  {
+    date: '2026-09-05 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Cascata de documentação da reformulação SDUI pelos 6 documentos restantes. Sem mudança de código nem de status de REQ — só consistência terminológica com a linha acima. ej-admin-openapi.yaml: FormField removido, SduiNode/SduiBinding/SduiEvent/SduiVisibility/ComponentDefinition/PropDescriptor/TargetSupport adicionados; embeddedScreen/embeddedScreenSdui → embeddedScreenRoot; endpoints /component-registry novos. ej-admin-modelo-dados-fisico.md: §11/§12 reescritos (component_definition real + shape de SduiNode); user_task_config/snapshot corrigidos pros campos novos. ej-admin-modelo-dados-conceitual.md: §11 reescrito (Component Registry + Sdui Node), glossários e diagrama ER atualizados. ej-admin-dicionario-dados.md: entradas Form/FormField substituídas por ComponentDefinition/SduiNode. ej-admin-arquitetura-logica.md: domínio "Forms Management" renomeado "SDUI Catalog Management", reescrito por completo (Component Registry, validação estrutural, cálculo de alvos/versão mínima na publicação). ej-admin-index.md: nomes de FT-03/FT-04 alinhados, "Exibição condicional" saiu de Fora do Escopo (implementada como US-04.12), glossários atualizados. Todos os REQs/campos removidos preservam nota de revisão histórica, nunca apagados.',
+  },
+  {
+    date: '2026-09-05 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Reformulação do catálogo SDUI (FT-03/FT-04) e nova US-08.05 (SIEM). FT-03 renomeada "Modelagem Visual" → "Modelagem Visual de Workflows" (só título). FT-04 renomeada "Formulários (SDUI)" → "Catálogo Server Driven UI (SDUI)": US-04.02 (17 tipos de campo fixos, 22 REQs) removida, substituída por US-04.07 Catálogo de Componentes (Component Registry em tabela, component_definition, migrations V12/V13/V14); nova US-04.08 Estrutura da árvore de tela (domain/sdui/SduiNode substitui FormField[]/domain/form por inteiro); nova US-04.09 Editor de componentes (paleta/canvas recursivo/camadas dirigidos pelo catálogo); nova US-04.10 Vínculo de dados (bindings por namespace form/data/session/route/computed, substitui o antigo name/defaultValue de campo); nova US-04.11 Ações e eventos (6 ações fechadas); nova US-04.12 Visibilidade condicional (substitui visibleIf, nunca avaliado em runtime); nova US-04.13 Validação estrutural; nova US-04.14 Publicação e repositório de especificação corporativo (envelope canônico até o Strapi via ms-espec-registry, FormSpecController/StepResolver passam a ler de lá). REQ-04.04.003 (texto de ajuda) e REQ-04.06.002 (tupla [tag,props,children]) removidos, sem equivalente no catálogo v1. Perda de capacidade aceita: 13 tipos de campo antigos sem equivalente direto; canal WEB perde posição livre. Não testado visualmente nem contra Strapi real (sem token de API ainda) — ver [[project_sdui_catalog_v1_reformulacao]] (memória da sessão). Total FT-04: 30 → 60 REQs. Nova US-08.05 Integração com SIEM (FT-08), não iniciada — 15 REQs de controles essenciais de mercado (formato CEF/JSON, transporte Syslog/HTTP(S), TLS, confiabilidade de entrega, filtragem com exceção pra indício de ataque). Total FT-08: 22 → 37 REQs. Progresso geral de 413/450 (92%) para 443/495 (89% — o percentual cai porque a nova US-08.05 entra inteira como todo, não por regressão de nada já feito).',
+  },
   {
     date: '2026-09-05 00:24 (não commitado)',
     source: 'progresso',
@@ -2098,6 +2277,150 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-09-05 13:19',
+    source: 'git',
+    summary: 'Remoção completa dos projetos de simulação de canais digitais (react/canal-app, canal-web, bff-canal-app, bff-canal-web).',
+  },
+  {
+    date: '2026-09-05 00:55',
+    source: 'git',
+    summary: 'Ajustes de configuração.',
+  },
+  {
+    date: '2026-09-05 00:50',
+    source: 'git',
+    summary: 'Ajustes de configuração.',
+  },
+  {
+    date: '2026-09-05 00:44',
+    source: 'git',
+    summary: 'Remoção do catálogo de Formulários reutilizáveis do portal admin.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-04 23:57',
+    source: 'git',
+    summary: 'Novo serviço ms-strapi (repositório de especificação de telas SDUI).',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-04 00:08',
+    source: 'git',
+    summary: 'Reformulação visual do canvas de Jornadas: nós circulares, tema Vivo, alinhamento e organização por seleção.',
+    epics: ['FT-03'],
+  },
+  {
+    date: '2026-09-03 00:01',
+    source: 'git',
+    summary: 'Diagnóstico separado de Execução em tela própria, com busca por instância/business key e inspeção detalhada de nó; corrigido bug de payload vazio no worker Kafka consumidor.',
+    epics: ['FT-15', 'FT-05'],
+  },
+  {
+    date: '2026-09-02 00:43',
+    source: 'git',
+    summary: 'Ajustes na edição de jornadas.',
+    epics: ['FT-02'],
+  },
+  {
+    date: '2026-09-02 00:25',
+    source: 'git',
+    summary: 'Corrigido NPE no worker Kafka causado por variável de processo nula; script de massa de dados reescrito para reset completo e reprodutível do ambiente.',
+    epics: ['FT-05'],
+  },
+  {
+    date: '2026-09-02 00:25',
+    source: 'git',
+    summary: 'Remoção do arquivo de banco de dados versionado por engano do repositório.',
+  },
+  {
+    date: '2026-09-01 00:12',
+    source: 'git',
+    summary: 'Ajuste da massa de dados de teste.',
+  },
+  {
+    date: '2026-08-31 00:38',
+    source: 'git',
+    summary: 'Envelope padrão para mensagens Kafka (producer/consumer) e modo "Tópico genérico"; melhorias de diagnóstico e log na tela de Execução (Instance ID, reparse de payload, diferenciação visual por tipo de conector).',
+    epics: ['FT-05', 'FT-03'],
+  },
+  {
+    date: '2026-08-30 04:50',
+    source: 'git',
+    summary: 'Ajustes no desenho de arquitetura.',
+  },
+  {
+    date: '2026-08-30 04:18',
+    source: 'git',
+    summary: 'Desenho de arquitetura (documentação).',
+  },
+  {
+    date: '2026-08-30 04:16',
+    source: 'git',
+    summary: 'Implementação do conector Kafka para processos BPMN: producer/consumer, resolução de variáveis nas mensagens e diagnóstico de falha de início síncrono.',
+    epics: ['FT-03', 'FT-05'],
+  },
+  {
+    date: '2026-08-30 04:16',
+    source: 'git',
+    summary: 'Atualização do arquivo de banco de dados do motor de processo (Camunda).',
+  },
+  {
+    date: '2026-08-28 23:05',
+    source: 'git',
+    summary: 'Implementação da simulação de canais React (Web e App).',
+  },
+  {
+    date: '2026-08-28 21:07',
+    source: 'git',
+    summary: 'Base para o histórico de execuções: consulta de instância histórica por processo/business key, tela de workspace de histórico e card de execuções recentes do dashboard.',
+    epics: ['FT-05', 'FT-13'],
+  },
+  {
+    date: '2026-08-27 22:06',
+    source: 'git',
+    summary: 'Ajustes na integração com o motor de runtime (Camunda).',
+  },
+  {
+    date: '2026-08-27 22:05',
+    source: 'git',
+    summary: 'Ajustes no nó de início (Start) do fluxo.',
+    epics: ['FT-03'],
+  },
+  {
+    date: '2026-08-26 01:12',
+    source: 'git',
+    summary: 'Reformulação do form builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-08-25 05:00',
+    source: 'git',
+    summary: 'Ajuste de .gitignore e remoção de artefatos de build (target/) versionados por engano do ms-runtime-camunda.',
+  },
+  {
+    date: '2026-08-25 04:59',
+    source: 'git',
+    summary: 'Atualização do README.',
+  },
+  {
+    date: '2026-08-25 04:56',
+    source: 'git',
+    summary: 'Novo microsserviço ms-runtime-camunda.',
+    epics: ['FT-05'],
+  },
+  {
+    date: '2026-08-24 08:37',
+    source: 'git',
+    summary: 'Conector REST migrado do connector nativo do Camunda para um delegate próprio, corrigindo a visibilidade no log de execução e a resolução de credencial.',
+    epics: ['FT-03', 'FT-05'],
+  },
+  {
+    date: '2026-08-24 06:22',
+    source: 'git',
+    summary: 'Mudança arquitetural: formId removido da User Task, substituído por embeddedScreen/embeddedScreenSdui desenhado direto no FlowNode; catálogo de componentes ampliado de 5 para 17 tipos, com editor de tela embutido drag-and-drop completo.',
+    epics: ['FT-03', 'FT-04'],
+  },
   {
     date: '2026-08-23 18:21',
     source: 'git',

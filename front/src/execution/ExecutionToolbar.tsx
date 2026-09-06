@@ -98,7 +98,7 @@ export function JourneySearchBox({ journeys, loadError, query, onQueryChange, se
       q.length === 0 ||
       j.name.toLowerCase().includes(q) ||
       j.productName.toLowerCase().includes(q) ||
-      j.channelName.toLowerCase().includes(q),
+      j.channelTypes.some((t) => t.toLowerCase().includes(q)),
   );
 
   return (
@@ -173,7 +173,7 @@ export function JourneySearchBox({ journeys, loadError, query, onQueryChange, se
                   {journey.name}
                 </Text>
                 <Text size={11.5} color={skinVars.colors.textSecondary}>
-                  {journey.productName} · {journey.channelName}
+                  {journey.productName} · {journey.channelTypes.join(', ')}
                   {journey.publishedVersionNumber != null && ` · v${journey.publishedVersionNumber}`}
                 </Text>
               </button>

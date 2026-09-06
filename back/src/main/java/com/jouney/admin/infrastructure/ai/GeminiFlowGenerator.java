@@ -2,6 +2,8 @@ package com.jouney.admin.infrastructure.ai;
 
 import com.jouney.admin.domain.ai.AiProvider;
 import com.jouney.admin.domain.ai.AiProviderCredentialRepository;
+import com.jouney.admin.domain.componentregistry.ComponentDefinition;
+import com.jouney.admin.domain.componentregistry.ComponentDefinitionRepository;
 import com.jouney.admin.domain.flow.AiFlowGenerator;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowValidationException;
@@ -44,12 +46,15 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final AiProviderCredentialRepository credentialRepository;
+    private final ComponentDefinitionRepository componentDefinitionRepository;
     private final String model;
 
     public GeminiFlowGenerator(ObjectMapper objectMapper, AiProviderCredentialRepository credentialRepository,
+                                ComponentDefinitionRepository componentDefinitionRepository,
                                 @Value("${gemini.model:gemini-3.6-flash}") String model) {
         this.objectMapper = objectMapper;
         this.credentialRepository = credentialRepository;
+        this.componentDefinitionRepository = componentDefinitionRepository;
         this.model = model;
         this.restClient = FlowGenerationPrompt.timeoutedRestClientBuilder()
                 .baseUrl("https://generativelanguage.googleapis.com").build();
@@ -71,6 +76,8 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
         String currentPrompt = basePrompt;
         Map<String, FlowNode> existingNodesById = context.currentFlowNodes().stream()
                 .collect(Collectors.toMap(FlowNode::getId, n -> n));
+        Map<String, ComponentDefinition> componentRegistry = componentDefinitionRepository.findAll().stream()
+                .collect(Collectors.toMap(ComponentDefinition::key, d -> d));
 
         FlowValidationException lastViolation = null;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -93,7 +100,7 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
             GeneratedFlow candidate = FlowGenerationPrompt.toDomain(output, existingNodesById);
             onProgress.accept("Tentativa " + attempt + ": " + FlowGenerationPrompt.describeFlow(candidate) + " — validando...");
             try {
-                FlowValidator.validate(candidate.nodes(), candidate.connections());
+                FlowValidator.validate(candidate.nodes(), candidate.connections(), componentRegistry);
                 onProgress.accept("Tentativa " + attempt + ": fluxo válido.");
                 return candidate;
             } catch (FlowValidationException ex) {

@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jouney.especregistry.adminback.ConnectorConfig;
 import com.jouney.especregistry.camunda.CamundaVariable;
+import com.jouney.especregistry.sdui.SduiNode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ public final class VariableConversion {
     private VariableConversion() {
     }
 
-    public static Map<String, CamundaVariable> fromAnswers(List<Object> sdui, Map<String, Object> answers) {
+    public static Map<String, CamundaVariable> fromAnswers(SduiNode sdui, Map<String, Object> answers) {
         Map<String, SduiForm.FieldSpec> specs = SduiForm.fields(sdui).stream()
                 .collect(Collectors.toMap(SduiForm.FieldSpec::name, f -> f, (a, b) -> a));
         Map<String, CamundaVariable> variables = new HashMap<>();
@@ -39,12 +40,12 @@ public final class VariableConversion {
     }
 
     private static CamundaVariable convertAnswer(SduiForm.FieldSpec spec, Object raw) {
-        if (spec != null && "ui.input".equals(spec.tag()) && "number".equals(spec.inputType())) {
+        if (spec != null && "ui.textInput".equals(spec.type())
+                && ("number".equals(spec.inputMode()) || "decimal".equals(spec.inputMode()))) {
             return new CamundaVariable(Double.valueOf(raw.toString()), "Double");
         }
-        if (spec != null && "ui.multiselect".equals(spec.tag()) && raw instanceof List<?> list) {
-            String joined = list.stream().map(String::valueOf).collect(Collectors.joining(","));
-            return new CamundaVariable(joined, "String");
+        if (spec != null && "ui.checkbox".equals(spec.type())) {
+            return new CamundaVariable(Boolean.valueOf(raw.toString()), "Boolean");
         }
         return new CamundaVariable(raw.toString(), "String");
     }

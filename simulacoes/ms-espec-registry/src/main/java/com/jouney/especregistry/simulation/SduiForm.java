@@ -1,35 +1,36 @@
 package com.jouney.especregistry.simulation;
 
+import com.jouney.especregistry.sdui.SduiBinding;
+import com.jouney.especregistry.sdui.SduiNode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-/** Lê o tipo de cada campo diretamente da árvore SDUI ([tag, props, children]) do formulário —
- * a mesma árvore que o simulador renderiza, sem precisar buscar o FormField "cru" separado. */
+/** Lê os campos de entrada de uma árvore SDUI objeto pelo binding `value` — o nome técnico é a
+ * parte final do path (`form.<nome>`, mesma convenção de FlowValidator.java no admin/back), não
+ * mais um `props.name` posicional da tupla antiga. */
 public final class SduiForm {
 
     private SduiForm() {
     }
 
-    public record FieldSpec(String name, String tag, String inputType) {
+    public record FieldSpec(String name, String type, String inputMode) {
     }
 
-    public static List<FieldSpec> fields(List<Object> sdui) {
-        if (sdui == null || sdui.size() < 3 || !(sdui.get(2) instanceof List<?> children)) {
-            return List.of();
-        }
+    public static List<FieldSpec> fields(SduiNode root) {
         List<FieldSpec> result = new ArrayList<>();
-        for (Object child : children) {
-            if (!(child instanceof List<?> node) || node.size() < 2 || !(node.get(1) instanceof Map<?, ?> props)) {
-                continue;
-            }
-            Object name = props.get("name");
-            if (name == null) {
-                continue; // ui.text é só informativo, não tem "name"
-            }
-            String inputType = props.get("type") instanceof String s ? s : null;
-            result.add(new FieldSpec(String.valueOf(name), String.valueOf(node.get(0)), inputType));
-        }
+        collect(root, result);
         return result;
+    }
+
+    private static void collect(SduiNode node, List<FieldSpec> acc) {
+        SduiBinding valueBinding = node.bindings() != null ? node.bindings().get("value") : null;
+        if (valueBinding != null && valueBinding.path() != null && valueBinding.path().startsWith("form.")) {
+            String name = valueBinding.path().substring("form.".length());
+            String inputMode = node.props() != null && node.props().get("inputMode") instanceof String s ? s : null;
+            acc.add(new FieldSpec(name, node.type(), inputMode));
+        }
+        if (node.children() != null) {
+            node.children().forEach(child -> collect(child, acc));
+        }
     }
 }

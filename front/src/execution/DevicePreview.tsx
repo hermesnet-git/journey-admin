@@ -1,7 +1,7 @@
 import { CheckCircle2, Clock, Radio } from 'lucide-react';
 import { Box, Boxed, ButtonLayout, ButtonPrimary, Callout, Stack, Text, TextLink, skinVars } from '@telefonica/mistica';
 import type { ConnectorConfigInfo, StepResponse, TestMessageInput } from './api';
-import { SduiFormRenderer } from './SduiFormRenderer';
+import { SduiNodeRenderer } from './SduiNodeRenderer';
 import { PhoneFrame } from './PhoneFrame';
 import { SendTestMessagePanel } from './SendTestMessagePanel';
 import { KafkaManualSendPanel } from './KafkaManualSendPanel';
@@ -61,13 +61,7 @@ export function DevicePreview({
             {/* key=taskId: sem isto o React reaproveita a mesma instância (e o estado interno do
                 <Form> da Mística) entre User Tasks diferentes — os valores digitados na tela
                 anterior vazavam pra tela seguinte, mesmo sem nenhum campo em comum de verdade. */}
-            <SduiFormRenderer
-              key={step.taskId}
-              sdui={step.form.sdui}
-              onSubmit={onCompleteTask}
-              submitting={busy}
-              channelType={channelType}
-            />
+            <SduiNodeRenderer key={step.taskId} sdui={step.form.sdui} onSubmit={onCompleteTask} submitting={busy} />
           </Stack>
         )}
 
@@ -151,9 +145,9 @@ export function DevicePreview({
     return <PhoneFrame>{content}</PhoneFrame>;
   }
 
-  // WEB usa posição livre numa prancheta fixa de 720px (SduiFormRenderer/WebPositionedFields) —
-  // mais larga que os 640px do container padrão, senão o conteúdo posicionado corta na lateral.
-  // Rola horizontal em vez de espremer se a janela for menor que isso.
+  // WEB usa uma moldura mais larga (800px) que os 640px padrão — telas SDUI desenhadas com
+  // ui.stack horizontal/ui.container largo (catálogo v1) têm mais espaço pra respirar. Rola
+  // horizontal em vez de espremer se a janela for menor que isso.
   return (
     <div className={channelType === 'WEB' ? 'max-w-[800px] mx-auto w-full overflow-x-auto' : 'max-w-[640px] mx-auto w-full'}>
       <Boxed>{content}</Boxed>

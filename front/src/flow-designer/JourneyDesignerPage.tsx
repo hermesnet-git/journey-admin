@@ -32,6 +32,7 @@ import { PropertiesDock } from './PropertiesDock';
 import { FormPreviewDock, DOCK_DEFAULT_HEIGHT } from './FormPreviewDock';
 import { ErrorModal } from './ErrorModal';
 import { GeneratePromptModal, type GenerateLogEntry } from './GeneratePromptModal';
+import { EditJourneyChannelsModal } from '../journeys/EditJourneyChannelsModal';
 import { Toolbar } from './Toolbar';
 import {
   NODE_WIDTH,
@@ -89,10 +90,10 @@ function buildFlowSnapshot(
       positionX: Math.round(n.position.x),
       positionY: Math.round(n.position.y),
       userTaskConfig:
-        n.data.messageText || (n.data.embeddedScreen && n.data.embeddedScreen.length > 0)
+        n.data.messageText || n.data.embeddedScreenRoot
           ? {
               messageText: n.data.messageText || null,
-              embeddedScreen: n.data.embeddedScreen ?? [],
+              embeddedScreenRoot: n.data.embeddedScreenRoot ?? null,
             }
           : null,
       connectorConfig: n.data.connectorConfig,
@@ -128,10 +129,10 @@ function buildFlowInput(nodes: WFNode[], edges: WFEdge[], annotations: WFAnnotat
       positionX: Math.round(n.position.x),
       positionY: Math.round(n.position.y),
       userTaskConfig:
-        n.data.messageText || (n.data.embeddedScreen && n.data.embeddedScreen.length > 0)
+        n.data.messageText || n.data.embeddedScreenRoot
           ? {
               messageText: n.data.messageText || null,
-              embeddedScreen: n.data.embeddedScreen ?? [],
+              embeddedScreenRoot: n.data.embeddedScreenRoot ?? null,
             }
           : null,
       connectorConfig: n.data.connectorConfig,
@@ -366,7 +367,7 @@ function DesignerInner({
           name: n.name,
           description: n.description ?? '',
           messageText: n.userTaskConfig?.messageText ?? null,
-          embeddedScreen: n.userTaskConfig?.embeddedScreen ?? [],
+          embeddedScreenRoot: n.userTaskConfig?.embeddedScreenRoot ?? null,
           connectorConfig: n.connectorConfig,
           startVariables: n.startVariables ?? undefined,
         },
@@ -408,6 +409,7 @@ function DesignerInner({
   }, [journey, fitViewLeftAligned, mapFlowToState]);
 
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [channelsModalOpen, setChannelsModalOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generateLog, setGenerateLog] = useState<GenerateLogEntry[]>([]);
 
@@ -1006,10 +1008,8 @@ function DesignerInner({
 
   const propertiesNode = nodes.find((n) => n.id === propertiesNodeId) ?? null;
   // Dock segue a seleção diretamente: qualquer User Task selecionada mostra o dock (editor de tela
-  // embutido). Exceção: canal URA não tem editor de tela (paleta vazia) — o único mecanismo dele é
-  // messageText, então só mostra o dock ali quando já existe uma mensagem configurada.
-  const isValidPreviewTarget =
-    propertiesNode?.type === 'userTask' && (activeJourney.channelType !== 'URA' || !!propertiesNode.data.messageText);
+  // embutido).
+  const isValidPreviewTarget = propertiesNode?.type === 'userTask';
   // Fixado (dockPinned): selecionar qualquer outra coisa some não esconde mais o dock — ele fica
   // preso na última User Task válida (pinnedPreviewNodeId) até ser desafixado ou apagado.
   const previewNode = isValidPreviewTarget
@@ -1023,6 +1023,10 @@ function DesignerInner({
   useEffect(() => {
     if (isValidPreviewTarget && propertiesNode) setPinnedPreviewNodeId(propertiesNode.id);
   }, [isValidPreviewTarget, propertiesNode?.id]);
+  // Memoizado: sem isso, o objeto era recriado a cada render (inclusive nos dezenas de renders por
+  // segundo que o próprio arraste de um nó dispara via onNodesChange), e todo nó que consome esse
+  // contexto (useFlowTheme) reage à mudança de referência mesmo memoizado — Context ignora React.memo.
+  const flowTheme = useMemo(() => ({ dark, c, nodeFill }), [dark, c, nodeFill]);
 
   if (loading) {
     return (
@@ -1033,7 +1037,7 @@ function DesignerInner({
   }
 
   return (
-    <FlowThemeContext.Provider value={{ dark, c, nodeFill }}>
+    <FlowThemeContext.Provider value={flowTheme}>
       <WorkflowActionsContext.Provider value={actions}>
         <div className="flex-1 flex flex-col overflow-hidden">
           <Toolbar
@@ -1098,8 +1102,6 @@ function DesignerInner({
                 minZoom={0.4}
                 maxZoom={1.6}
                 connectionRadius={30}
-                snapToGrid
-                snapGrid={[16, 16]}
                 defaultEdgeOptions={{ type: edgeShape }}
                 colorMode={dark ? 'dark' : 'light'}
                 // A pintura de fundo real do React Flow mora na camada .react-flow__background, que
@@ -1148,10 +1150,10 @@ function DesignerInner({
               </ReactFlow>
               {previewNode && (
                 <FormPreviewDock
-                  channelType={activeJourney.channelType}
+                  channelTypes={activeJourney.channelTypes}
                   nodeId={previewNode.id}
-                  embeddedScreen={previewNode.data.embeddedScreen ?? []}
-                  onEmbeddedScreenChange={(fields) => updateNodeData(previewNode.id, { embeddedScreen: fields })}
+                  embeddedScreenRoot={previewNode.data.embeddedScreenRoot ?? null}
+                  onEmbeddedScreenRootChange={(root) => updateNodeData(previewNode.id, { embeddedScreenRoot: root })}
                   onPushHistory={pushHistory}
                   variables={previewVariables}
                   userTasks={userTasks}
@@ -1177,7 +1179,8 @@ function DesignerInner({
               onFreshNodeConsumed={() => setFreshNodeId(null)}
               journey={{
                 productName: activeJourney.productName,
-                channelName: activeJourney.channelName,
+                channelTypes: activeJourney.channelTypes,
+                onEditChannels: () => setChannelsModalOpen(true),
                 name,
                 onNameChange: setName,
                 description,
@@ -1186,6 +1189,16 @@ function DesignerInner({
             />
           </div>
         </div>
+        {channelsModalOpen && (
+          <EditJourneyChannelsModal
+            journey={activeJourney}
+            onClose={() => setChannelsModalOpen(false)}
+            onUpdated={(updated) => {
+              setActiveJourney(updated);
+              setChannelsModalOpen(false);
+            }}
+          />
+        )}
         {errors.length > 0 && <ErrorModal errors={errors} title={errorTitle} onClose={() => setErrors([])} />}
         {generateModalOpen && (
           <GeneratePromptModal

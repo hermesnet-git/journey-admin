@@ -2,7 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
 import { Play, UserRoundPen, CheckCircle2, Settings, Mail, Webhook, X, type LucideIcon } from 'lucide-react';
 import type { FlowNodeType } from '../api/flows';
-import { collectsValue, type FormField } from '../api/forms';
+import { collectFormVariableNames, type SduiNode } from '../sdui/model';
 
 export type NodeType = 'start' | 'userTask' | 'end' | 'serviceTask' | 'receiveTask' | 'messageStartEvent' | 'gateway';
 export type ConnectorType = 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS';
@@ -69,10 +69,9 @@ export interface WFNodeData extends Record<string, unknown> {
   // shows this message instead of a form — may reference {{name}} tokens (REQ-03.09.012 syntax),
   // resolved by the simulator at execution time.
   messageText?: string | null;
-  // Tela desenhada no editor embutido do dock (FormPreviewDock) — campos copiados de um formulário
-  // do catálogo (só como ponto de partida) ou desenhados do zero. Nunca uma referência viva a um
-  // Form: escolher um formulário salvo copia os campos pra cá, não guarda o id em lugar nenhum.
-  embeddedScreen?: FormField[];
+  // Raiz da árvore SDUI (catálogo corporativo v1) desenhada no editor embutido do dock
+  // (FormPreviewDock/SduiScreenEditor) — sempre um único ui.screen, null quando não há tela.
+  embeddedScreenRoot?: SduiNode | null;
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: only meaningful on the START node.
   startVariables?: StartVariable[];
@@ -300,33 +299,19 @@ export const EDGE_SHAPE_OPTIONS: { value: EdgeShape; label: string }[] = [
   { value: 'straight', label: 'Reta direta' },
 ];
 
-// Os campos de formulário de uma User Task são o que o usuário final realmente preenche — essas
-// respostas viram variáveis de processo do mesmo jeito que o outputMapping de um conector, então um
-// nó downstream deveria poder referenciá-las também. TEXT (só texto exibido, não coleta nada) e
-// FILE_UPLOAD (referência a um arquivo, não algo que caiba numa mensagem/condição) são os dois
-// tipos de campo sem nada a oferecer aqui.
+// Os componentes de entrada de uma tela SDUI de User Task são o que o usuário final realmente
+// preenche — essas respostas viram variáveis de processo do mesmo jeito que o outputMapping de um
+// conector, então um nó downstream deveria poder referenciá-las também. O nome da variável é a
+// parte final do binding `value.path = "form.<nome>"` (mesma convenção do backend, ver
+// FlowValidator.java) — componentes de conteúdo/ação/feedback não têm binding de valor, não entram.
 //
-// Sem tratamento de deduplicação/colisão aqui de propósito: se dois campos alcançáveis tiverem o
-// mesmo nome (mesmo formulário reusado duas vezes, ou dois formulários usando "cpf" por exemplo),
-// os dois aparecem na lista normalmente. Colocar um prefixo no token (formularioA.cpf) foi cogitado
-// e descartado — só estaria correto se o motor de runtime realmente gravasse o valor submetido sob
-// essa chave prefixada, o que este portal não tem como confirmar (resolução de variável em runtime
-// está fora do seu domínio). Em vez disso, o backend rejeita a colisão direto no salvamento
-// (FlowValidator, REQ-03.09.011 estendido pra campos de formulário) — a mesma nota sobre escopo
-// (fluxo todo vs. restrito por alcançabilidade) está lá.
-export function variableTypeForFormField(field: FormField): VariableType {
-  if (field.type === 'INPUT') {
-    if (field.inputSubtype === 'NUMBER') return 'number';
-    if (field.inputSubtype === 'DATE') return 'date';
-  }
-  return 'string';
-}
-
+// Sem tipo declarado por componente (ao contrário do antigo InputSubtype NUMBER/DATE): o catálogo
+// SDUI não modela isso no binding em si — todo campo de tela entra como 'string' aqui. Sem
+// tratamento de deduplicação/colisão de propósito, mesma nota de sempre (FlowValidator rejeita a
+// colisão direto no salvamento, REQ-03.09.011).
 function userTaskFormVariables(node: WFNode): { name: string; type: VariableType }[] {
-  if (node.type !== 'userTask' || !node.data.embeddedScreen) return [];
-  return node.data.embeddedScreen
-    .filter((f) => collectsValue(f.type))
-    .map((f) => ({ name: f.name, type: variableTypeForFormField(f) }));
+  if (node.type !== 'userTask' || !node.data.embeddedScreenRoot) return [];
+  return collectFormVariableNames(node.data.embeddedScreenRoot).map((name) => ({ name, type: 'string' as VariableType }));
 }
 
 export interface PayloadPreviewRow {
@@ -345,11 +330,9 @@ export interface PayloadPreview {
 // existe.
 export function nodePayloadPreview(nodeType: NodeType, data: WFNodeData): PayloadPreview | null {
   if (nodeType === 'userTask') {
-    const fields = (data.embeddedScreen ?? [])
-      .filter((f) => collectsValue(f.type))
-      .map((f) => ({ name: f.name, type: variableTypeForFormField(f) }));
-    if (fields.length === 0) return null;
-    return { title: 'Campos da tela', rows: fields.map((f) => ({ name: f.name, type: f.type })) };
+    const names = data.embeddedScreenRoot ? collectFormVariableNames(data.embeddedScreenRoot) : [];
+    if (names.length === 0) return null;
+    return { title: 'Campos da tela', rows: names.map((name) => ({ name, type: 'string' })) };
   }
   if (nodeType === 'serviceTask' || nodeType === 'receiveTask' || nodeType === 'messageStartEvent') {
     const raw = data.connectorConfig?.config?.outputMapping;
@@ -383,7 +366,10 @@ export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges:
     queue.push(...(backward.get(id) ?? []));
   }
 
-  const rules: OutputMappingRule[] = [];
+  // "channel" é implícito — o ms-espec-registry injeta o canal declarado ao iniciar a instância
+  // como variável de processo real, sem o autor precisar declarar nada no nó START (mesma regra
+  // do FlowValidator no admin/back).
+  const rules: OutputMappingRule[] = [{ name: 'channel', jsonPath: '', type: 'string' }];
   nodes.forEach((n) => {
     if (n.type === 'start') {
       (n.data.startVariables ?? []).forEach((v) => v.name && rules.push({ name: v.name, jsonPath: '', type: v.type }));
@@ -460,7 +446,9 @@ export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edge
     queue.push(...(backward.get(id) ?? []));
   }
 
-  const origins: VariableOrigin[] = [];
+  const origins: VariableOrigin[] = [
+    { name: 'channel', type: 'string', sourceNodeId: '', sourceLabel: 'Canal da execução' },
+  ];
   nodes.forEach((n) => {
     if (n.type === 'start') {
       (n.data.startVariables ?? []).forEach((v) => {

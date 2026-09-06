@@ -1,0 +1,121 @@
+import { useFlowTheme } from '../flow-designer/theme';
+import { gridInputStyle } from '../flow-designer/PropertyGrid';
+import type { VariableOrigin } from '../flow-designer/model';
+import type { ChannelType } from '../api/products';
+import type { SduiVisibility } from './model';
+import { NamespacePathInput, splitPath } from './BindingsEditor';
+
+// equals/notEquals: único shape que a seção 14.2 do catálogo exemplifica. in/notIn: extensão
+// pontual pra "visível nestes canais" (lista de valores) — continua uma regra só, não lógica
+// booleana composta.
+const RULES = [
+  { value: 'equals', label: 'Igual a' },
+  { value: 'notEquals', label: 'Diferente de' },
+  { value: 'in', label: 'Está entre' },
+  { value: 'notIn', label: 'Não está entre' },
+];
+
+const CHANNEL_VISIBILITY_PATH = 'session.channel';
+
+function selectedChannelsFrom(visibility: SduiVisibility | null, channelTypes: ChannelType[]): ChannelType[] {
+  if (visibility?.path !== CHANNEL_VISIBILITY_PATH || !Array.isArray(visibility.value)) {
+    return channelTypes; // nenhuma restrição de canal configurada ainda — atalho começa com tudo marcado
+  }
+  const value = visibility.value as string[];
+  return visibility.rule === 'notIn' ? channelTypes.filter((t) => !value.includes(t)) : channelTypes.filter((t) => value.includes(t));
+}
+
+/** Edita `node.visibility` (seção 6/14.2: `{rule,path,value}`) — condição declarativa de exibição,
+ * substitui o antigo `visibleIf` em string ({{campo}} OP valor). */
+export function VisibilityEditor({
+  visibility,
+  variables,
+  channelTypes,
+  onChange,
+}: {
+  visibility: SduiVisibility | null;
+  variables: VariableOrigin[];
+  channelTypes: ChannelType[];
+  onChange: (visibility: SduiVisibility | null) => void;
+}) {
+  const { c } = useFlowTheme();
+  const { namespace, suffix } = splitPath(visibility?.path);
+  const selectedChannels = selectedChannelsFrom(visibility, channelTypes);
+
+  function toggleChannel(type: ChannelType) {
+    const next = selectedChannels.includes(type) ? selectedChannels.filter((t) => t !== type) : [...selectedChannels, type];
+    onChange(next.length === channelTypes.length ? null : { rule: 'in', path: CHANNEL_VISIBILITY_PATH, value: next });
+  }
+
+  return (
+    <div className="p-2 flex flex-col gap-[6px]">
+      <div className="text-[11.5px]" style={{ color: c.textSecondary }}>
+        Este componente pode ficar escondido até que um valor do contexto de dados atenda a uma
+        condição.
+      </div>
+
+      {channelTypes.length > 1 && (
+        <div className="flex flex-col gap-[4px] p-2 rounded-md" style={{ background: c.cardBg, border: `1px solid ${c.border}` }}>
+          <div className="text-[11px] font-medium" style={{ color: c.textSecondary }}>
+            Atalho: visível nestes canais
+          </div>
+          {channelTypes.map((type) => (
+            <label key={type} className="flex items-center gap-[6px] text-[12px]" style={{ color: c.textPrimary, cursor: 'pointer' }}>
+              <input type="checkbox" checked={selectedChannels.includes(type)} onChange={() => toggleChannel(type)} />
+              {type}
+            </label>
+          ))}
+        </div>
+      )}
+
+      <label className="flex items-center gap-[4px] text-[11.5px]" style={{ color: c.textSecondary, cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={!visibility}
+          onChange={(e) => onChange(e.target.checked ? null : { rule: 'equals', path: 'form.', value: '' })}
+        />
+        Sempre visível (sem condição)
+      </label>
+      {visibility && (
+        <>
+          <NamespacePathInput
+            namespace={namespace}
+            suffix={suffix}
+            variables={variables}
+            onChange={(ns, s) => onChange({ ...visibility, path: `${ns}.${s}` })}
+          />
+          <div className="flex gap-1">
+            <select
+              style={{ ...gridInputStyle(c), cursor: 'pointer', flex: 1 }}
+              value={visibility.rule}
+              onChange={(e) => onChange({ ...visibility, rule: e.target.value })}
+            >
+              {RULES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+            {visibility.rule === 'in' || visibility.rule === 'notIn' ? (
+              <input
+                style={{ ...gridInputStyle(c), flex: 1 }}
+                placeholder="valores, separados por vírgula"
+                value={Array.isArray(visibility.value) ? (visibility.value as string[]).join(', ') : ''}
+                onChange={(e) =>
+                  onChange({ ...visibility, value: e.target.value.split(',').map((v) => v.trim()).filter(Boolean) })
+                }
+              />
+            ) : (
+              <input
+                style={{ ...gridInputStyle(c), flex: 1 }}
+                placeholder="valor"
+                value={typeof visibility.value === 'string' ? visibility.value : String(visibility.value ?? '')}
+                onChange={(e) => onChange({ ...visibility, value: e.target.value })}
+              />
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

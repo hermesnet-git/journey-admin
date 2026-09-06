@@ -3,9 +3,9 @@ package com.jouney.admin.application.journey;
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.journey.Journey;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
-public record JourneyView(Journey journey, UUID productId, String productName, String channelName,
-                           ChannelType channelType, OffsetDateTime publishedAt, UUID publishedVersionId,
-                           Integer publishedVersionNumber) {
+public record JourneyView(Journey journey, UUID productId, String productName, List<ChannelType> channelTypes,
+                           OffsetDateTime publishedAt, UUID publishedVersionId, Integer publishedVersionNumber) {
 }

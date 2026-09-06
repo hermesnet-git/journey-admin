@@ -64,14 +64,20 @@ const GROUP_MODE_OPTIONS: FilterOption[] = [
   { value: 'none', label: 'Sem agrupamento' },
 ];
 
+// Jornada pode atender vários canais agora — listagem/agrupamento/ordenação mostram os tipos
+// unidos por vírgula, mesmo tratamento textual dado em qualquer outra tela deste portal.
+function channelNamesOf(j: Journey): string {
+  return j.channelTypes.join(', ');
+}
+
 function groupKeyFor(j: Journey, mode: GroupMode): string {
   switch (mode) {
     case 'product':
       return j.productName;
     case 'productChannel':
-      return `${j.productName} · ${j.channelName}`;
+      return `${j.productName} · ${channelNamesOf(j)}`;
     case 'channel':
-      return j.channelName;
+      return channelNamesOf(j);
     case 'none':
       return '';
   }
@@ -86,7 +92,7 @@ function compareJourneys(a: Journey, b: Journey, field: SortField): number {
     case 'name':
       return a.name.localeCompare(b.name, 'pt-BR');
     case 'channelName':
-      return a.channelName.localeCompare(b.channelName, 'pt-BR');
+      return channelNamesOf(a).localeCompare(channelNamesOf(b), 'pt-BR');
     case 'status':
       return a.status.localeCompare(b.status, 'pt-BR');
     case 'updatedAt':
@@ -573,7 +579,7 @@ function JourneyDetailRow({
           </div>
         </div>
         <span className="truncate text-[12.5px]" style={{ color: c.textSecondary }}>
-          {journey.channelName}
+          {channelNamesOf(journey)}
         </span>
         <div className="flex items-center gap-[6px]">
           <JourneyStatusTag status={journey.status} />

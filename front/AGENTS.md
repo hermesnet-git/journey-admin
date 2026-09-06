@@ -2,6 +2,13 @@
 
 Instruções para agentes de IA (Claude Code, GitHub Copilot, Codex etc.) trabalhando neste projeto.
 
+## Fase atual: protótipo
+
+- Não criar, alterar nem complementar testes automatizados durante esta fase.
+- Não executar testes existentes.
+- Build e lint podem ser executados normalmente para validar o protótipo.
+- Os testes serão planejados em uma etapa posterior pelo usuário.
+
 ## Stack
 
 - React + TypeScript + Vite
@@ -9,7 +16,7 @@ Instruções para agentes de IA (Claude Code, GitHub Copilot, Codex etc.) trabal
 - Mística (`@telefonica/mistica`) — design system usado para botões (`ButtonPrimary`/`ButtonSecondary`/`ButtonLink`), tags e o `ThemeContextProvider` (ver `src/App.tsx`)
 - `@xyflow/react` (React Flow) — usado no flow-designer
 
-Build: `npm run build` (roda `tsc -b && vite build`). Rode sempre após alterações para pegar erros de tipo.
+Build: `npm run build` (roda `tsc -b && vite build`). Pode ser executado após alterações para verificar tipos e bundle, sem executar testes.
 
 ## Tema (claro/escuro)
 

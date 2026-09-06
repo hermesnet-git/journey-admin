@@ -7,8 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import com.jouney.especregistry.sdui.SduiActionValidationException;
+import com.jouney.especregistry.sdui.StrapiSnapshotException;
 import com.jouney.especregistry.simulation.StartFailureDiagnosedException;
 import com.jouney.especregistry.simulation.SynchronousChainUnsupportedException;
+import com.jouney.especregistry.simulation.UnsupportedChannelException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.RestClientException;
@@ -46,6 +49,31 @@ public class GlobalExceptionHandler {
                 + "jornada) tentou ler, pelo Mapeamento de Saída, um campo que a resposta real não trouxe.");
         body.put("diagnosis", ex.diagnosis());
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
+    }
+
+    // Tela publicada com ação fora do Action Registry — nunca chega ao canal (regra "falha
+    // previsível", seção 3 do catálogo). 422: conteúdo da própria jornada, não indisponibilidade de
+    // infraestrutura (mesmo raciocínio de handleSynchronousChainUnsupported vs. RestClientException).
+    @ExceptionHandler(SduiActionValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleSduiActionValidation(SduiActionValidationException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", OffsetDateTime.now().toString());
+        body.put("status", HttpStatus.UNPROCESSABLE_CONTENT.value());
+        body.put("code", "SDUI_ACTION_INVALID");
+        body.put("message", ex.getMessage());
+        body.put("violations", ex.violations());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(body);
+    }
+
+    @ExceptionHandler(UnsupportedChannelException.class)
+    public ResponseEntity<Map<String, Object>> handleUnsupportedChannel(UnsupportedChannelException ex) {
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, "UNSUPPORTED_CHANNEL", ex.getMessage());
+    }
+
+    @ExceptionHandler(StrapiSnapshotException.class)
+    public ResponseEntity<Map<String, Object>> handleStrapiSnapshot(StrapiSnapshotException ex) {
+        log.error("Chamada ao Strapi (snapshots SDUI) falhou", ex);
+        return build(HttpStatus.BAD_GATEWAY, "STRAPI_UNAVAILABLE", ex.getMessage());
     }
 
     @ExceptionHandler(RestClientException.class)

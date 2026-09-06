@@ -7,6 +7,7 @@ import { PlaceholderPanel } from './shell/PlaceholderPanel';
 import { DashboardPage } from './dashboard/DashboardPage';
 import { ProductsPage } from './products/ProductsPage';
 import { CatalogPage } from './catalog/CatalogPage';
+import { ComponentCatalogPage } from './sdui/ComponentCatalogPage';
 import { JourneysPage } from './journeys/JourneysPage';
 import { ExecutionsPage } from './execution/ExecutionsPage';
 import { DiagnosticoPage } from './diagnostics/DiagnosticoPage';
@@ -25,6 +26,7 @@ const DASHBOARD_TAB: Tab = { key: 'dashboard', title: 'Dashboard', kind: 'dashbo
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: true };
 const PRODUCTS_TAB: Tab = { key: 'produtos', title: 'Produtos', kind: 'products', closable: true };
 const CATALOG_TAB: Tab = { key: 'integracoes', title: 'Catálogo de Integrações', kind: 'catalog', closable: true };
+const COMPONENT_CATALOG_TAB: Tab = { key: 'componentes-sdui', title: 'Catálogo de Componentes', kind: 'component-catalog', closable: true };
 const EXECUCOES_TAB: Tab = { key: 'execucoes', title: 'Execução', kind: 'execution', closable: true };
 const DIAGNOSTICO_TAB: Tab = { key: 'diagnostico', title: 'Diagnóstico', kind: 'diagnostico', closable: true };
 const AUDIT_TAB: Tab = { key: 'auditoria', title: 'Auditoria', kind: 'audit', closable: true };
@@ -94,6 +96,10 @@ function AppShell() {
       openTab(CATALOG_TAB);
       return;
     }
+    if (navKey === 'componentes-sdui') {
+      openTab(COMPONENT_CATALOG_TAB);
+      return;
+    }
     if (navKey === 'jornadas') {
       openTab(JOURNEYS_TAB);
       return;
@@ -157,6 +163,8 @@ function AppShell() {
           ? 'produtos'
           : activeTab.kind === 'catalog'
             ? 'integracoes'
+            : activeTab.kind === 'component-catalog'
+              ? 'componentes-sdui'
             : activeTab.kind === 'execution'
               ? 'execucoes'
               : activeTab.kind === 'diagnostico'
@@ -191,6 +199,7 @@ function AppShell() {
                   {tab.kind === 'dashboard' && <DashboardPage onOpenDiagnostics={openDiagnosticsTab} />}
                   {tab.kind === 'products' && <ProductsPage />}
                   {tab.kind === 'catalog' && <CatalogPage />}
+                  {tab.kind === 'component-catalog' && <ComponentCatalogPage />}
                   {tab.kind === 'journeys' && (
                     <JourneysPage onExecuteJourney={openExecuteJourneyTab} />
                   )}

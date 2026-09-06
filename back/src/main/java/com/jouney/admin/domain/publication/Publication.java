@@ -15,9 +15,7 @@ public class Publication {
     private final String journeyDescription;
     private final UUID productId;
     private final String productName;
-    private final UUID channelId;
-    private final String channelName;
-    private final ChannelType channelType;
+    private final List<ChannelType> channelTypes;
     private final List<FlowNode> flowNodes;
     private final List<FlowConnection> flowConnections;
     private final UUID versionId;
@@ -27,19 +25,16 @@ public class Publication {
     private final OffsetDateTime updatedAt;
 
     public Publication(UUID id, UUID journeyId, String journeyName, String journeyDescription, UUID productId,
-                        String productName, UUID channelId, String channelName, ChannelType channelType,
-                        List<FlowNode> flowNodes, List<FlowConnection> flowConnections,
-                        UUID versionId, Integer versionNumber, OffsetDateTime publishedAt, OffsetDateTime createdAt,
-                        OffsetDateTime updatedAt) {
+                        String productName, List<ChannelType> channelTypes, List<FlowNode> flowNodes,
+                        List<FlowConnection> flowConnections, UUID versionId, Integer versionNumber,
+                        OffsetDateTime publishedAt, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.journeyId = journeyId;
         this.journeyName = journeyName;
         this.journeyDescription = journeyDescription;
         this.productId = productId;
         this.productName = productName;
-        this.channelId = channelId;
-        this.channelName = channelName;
-        this.channelType = channelType;
+        this.channelTypes = channelTypes;
         this.flowNodes = flowNodes;
         this.flowConnections = flowConnections;
         this.versionId = versionId;
@@ -53,13 +48,13 @@ public class Publication {
     // null on first publish for the journey. versionId is null for the legacy (version-unaware)
     // publish flow, and set to the journey_version that was published via the EP-06 flow.
     public static Publication create(UUID existingId, UUID journeyId, String journeyName, String journeyDescription,
-                                      UUID productId, String productName, UUID channelId, String channelName,
-                                      ChannelType channelType, List<FlowNode> flowNodes,
-                                      List<FlowConnection> flowConnections, UUID versionId, Integer versionNumber) {
+                                      UUID productId, String productName, List<ChannelType> channelTypes,
+                                      List<FlowNode> flowNodes, List<FlowConnection> flowConnections, UUID versionId,
+                                      Integer versionNumber) {
         OffsetDateTime now = OffsetDateTime.now();
         UUID id = existingId != null ? existingId : UUID.randomUUID();
-        return new Publication(id, journeyId, journeyName, journeyDescription, productId, productName, channelId,
-                channelName, channelType, flowNodes, flowConnections, versionId, versionNumber, now, now, now);
+        return new Publication(id, journeyId, journeyName, journeyDescription, productId, productName, channelTypes,
+                flowNodes, flowConnections, versionId, versionNumber, now, now, now);
     }
 
     public UUID getId() {
@@ -86,16 +81,8 @@ public class Publication {
         return productName;
     }
 
-    public UUID getChannelId() {
-        return channelId;
-    }
-
-    public String getChannelName() {
-        return channelName;
-    }
-
-    public ChannelType getChannelType() {
-        return channelType;
+    public List<ChannelType> getChannelTypes() {
+        return channelTypes;
     }
 
     public List<FlowNode> getFlowNodes() {

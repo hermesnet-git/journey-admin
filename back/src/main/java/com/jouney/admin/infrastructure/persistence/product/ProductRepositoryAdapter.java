@@ -21,7 +21,8 @@ public class ProductRepositoryAdapter implements ProductRepository {
     @Override
     public Product save(Product product) {
         ProductJpaEntity entity = new ProductJpaEntity(product.getId(), product.getName(),
-                product.getDescription(), product.getStatus(), product.getCreatedAt(), product.getUpdatedAt());
+                product.getDescription(), product.getStatus(), product.getChannelTypes(), product.getCreatedAt(),
+                product.getUpdatedAt());
         return toDomain(jpaRepository.save(entity));
     }
 
@@ -45,6 +46,6 @@ public class ProductRepositoryAdapter implements ProductRepository {
 
     private static Product toDomain(ProductJpaEntity entity) {
         return new Product(entity.getId(), entity.getName(), entity.getDescription(),
-                entity.getStatus(), entity.getCreatedAt(), entity.getUpdatedAt());
+                entity.getStatus(), entity.getChannelTypes(), entity.getCreatedAt(), entity.getUpdatedAt());
     }
 }

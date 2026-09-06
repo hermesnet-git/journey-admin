@@ -1,6 +1,12 @@
 package com.jouney.admin.domain.flow;
 
-import com.jouney.admin.domain.form.FormField;
+import com.jouney.admin.domain.channel.ChannelType;
+import com.jouney.admin.domain.componentregistry.ComponentDefinition;
+import com.jouney.admin.domain.componentregistry.ComponentStatus;
+import com.jouney.admin.domain.sdui.SduiBinding;
+import com.jouney.admin.domain.sdui.SduiEvent;
+import com.jouney.admin.domain.sdui.SduiNode;
+import com.jouney.admin.domain.sdui.SduiVisibility;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,10 +46,34 @@ public final class FlowValidator {
     // REQ-03.09.012: {{name}} references in connectorConfig fields (url, headers, body/payload).
     private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
 
+    // Seção 8 do catálogo SDUI: os 5 namespaces de binding permitidos.
+    private static final Set<String> VALID_BINDING_NAMESPACES =
+            Set.of("form.", "data.", "session.", "route.", "computed.");
+    // Seção 9 do catálogo SDUI: as 6 ações do Action Registry.
+    private static final Set<String> VALID_SDUI_ACTIONS = Set.of("action.submit", "action.navigate",
+            "action.openUrl", "action.setValue", "action.track", "action.dismiss");
+    // equals/notEquals: seção 14.2 do catálogo (único shape exemplificado). in/notIn: extensão
+    // pontual pra suportar "visível nestes canais" (lista de valores) sem virar lógica booleana
+    // composta — continua uma única regra, só que contra um conjunto de valores em vez de um só.
+    private static final Set<String> VALID_VISIBILITY_RULES = Set.of("equals", "notEquals", "in", "notIn");
+    // Nome de variável de processo reservado: injetado pelo ms-espec-registry a partir do canal
+    // declarado ao iniciar a instância (?channel=...) — nunca declarado pelo usuário no nó START.
+    private static final String CHANNEL_VARIABLE = "channel";
+
     private FlowValidator() {
     }
 
-    public static void validate(List<FlowNode> nodes, List<FlowConnection> connections) {
+    public static void validate(List<FlowNode> nodes, List<FlowConnection> connections,
+                                 Map<String, ComponentDefinition> componentRegistry) {
+        validate(nodes, connections, componentRegistry, List.of());
+    }
+
+    // channelTypes: tipos de canal da jornada sendo publicada — usado só pra checar que nenhuma
+    // tela fica sem nenhum componente visível para algum deles (validateChannelVisibilityCoverage).
+    // Vazio (ex.: validação de rascunho/preview, antes de a jornada ter canal resolvido) pula essa
+    // checagem — o resto da validação estrutural continua idêntico.
+    public static void validate(List<FlowNode> nodes, List<FlowConnection> connections,
+                                 Map<String, ComponentDefinition> componentRegistry, List<ChannelType> channelTypes) {
         List<String> violations = new ArrayList<>();
 
         List<FlowNode> starts = nodes.stream().filter(n -> START_TYPES.contains(n.getType())).toList();
@@ -69,7 +99,11 @@ public final class FlowValidator {
         // variables the caller (canal digital/BFF) must supply when starting an instance. Computed
         // once, up front, since START is trivially an ancestor of every other node in a valid flow —
         // no need to recompute per-node like outputMapping's ancestor scan below.
-        Set<String> startVariableNames = new HashSet<>();
+        // "channel" sempre disponível, mesmo sem nenhum startVariables declarado — o
+        // ms-espec-registry injeta o canal que iniciou a instância como variável de processo real
+        // (ver REQ da jornada multicanal), então {{channel}} pode ser referenciado em condição de
+        // Gateway/connectorConfig/messageText do mesmo jeito que qualquer outra variável.
+        Set<String> startVariableNames = new HashSet<>(Set.of(CHANNEL_VARIABLE));
         for (FlowNode node : nodes) {
             List<Map<String, Object>> declared = node.getStartVariables();
             if (declared == null || declared.isEmpty()) {
@@ -84,6 +118,11 @@ public final class FlowValidator {
                 Object type = declaration.get("type");
                 if (!(name instanceof String s) || s.isBlank()) {
                     violations.add("Nó START '" + node.getName() + "' tem uma entrada de startVariables sem um nome válido");
+                    continue;
+                }
+                if (CHANNEL_VARIABLE.equals(s)) {
+                    violations.add("Nó START '" + node.getName()
+                            + "' não pode declarar a variável 'channel' — é um nome reservado, injetado automaticamente pelo canal que inicia a instância");
                     continue;
                 }
                 if (!(type instanceof String t) || !VALID_VARIABLE_TYPES.contains(t)) {
@@ -205,6 +244,10 @@ public final class FlowValidator {
                 }
             }
 
+            if (node.getType() == FlowNodeType.USER_TASK) {
+                validateEmbeddedScreen(node, componentRegistry, channelTypes, violations);
+            }
+
             // Mirrors REQ-03.09.014 for the display-only message of a formless USER_TASK: any
             // {{name}} it references must also be declared by some reachable ancestor, same rule as
             // a connector field — otherwise the channel would show a literal "{{...}}" at runtime.
@@ -286,10 +329,10 @@ public final class FlowValidator {
                     }
                 }
             }
-            if (node.getType() == FlowNodeType.USER_TASK && node.getEmbeddedScreen() != null) {
-                for (FormField field : node.getEmbeddedScreen()) {
-                    if (field.getType().collectsValue() && !seenOutputNames.add(field.getName())) {
-                        violations.add("Variável de saída '" + field.getName() + "' foi declarada mais de uma vez no fluxo");
+            if (node.getType() == FlowNodeType.USER_TASK && node.getEmbeddedScreenRoot() != null) {
+                for (String variableName : formVariableNames(node.getEmbeddedScreenRoot())) {
+                    if (!seenOutputNames.add(variableName)) {
+                        violations.add("Variável de saída '" + variableName + "' foi declarada mais de uma vez no fluxo");
                     }
                 }
             }
@@ -416,12 +459,8 @@ public final class FlowValidator {
                     }
                 }
             }
-            if (other.getType() == FlowNodeType.USER_TASK && other.getEmbeddedScreen() != null) {
-                for (FormField field : other.getEmbeddedScreen()) {
-                    if (field.getType().collectsValue()) {
-                        availableVars.add(field.getName());
-                    }
-                }
+            if (other.getType() == FlowNodeType.USER_TASK && other.getEmbeddedScreenRoot() != null) {
+                availableVars.addAll(formVariableNames(other.getEmbeddedScreenRoot()));
             }
         }
         return availableVars;
@@ -448,6 +487,162 @@ public final class FlowValidator {
             map.values().forEach(v -> collectVariableTokens(v, tokens));
         } else if (value instanceof List<?> list) {
             list.forEach(v -> collectVariableTokens(v, tokens));
+        }
+    }
+
+    // Estrutura da árvore SDUI da tela embutida (catálogo corporativo v1): id únicos, type+version
+    // existe no Component Registry e não é REMOVED, children só sob nó com allowsChildren=true,
+    // namespace de binding válido, ação de evento é uma das 6 do Action Registry. Raiz precisa ser
+    // ui.screen (seção 14.1: "root deve conter exatamente um ui.screen").
+    private static void validateEmbeddedScreen(FlowNode node, Map<String, ComponentDefinition> componentRegistry,
+                                                 List<ChannelType> channelTypes, List<String> violations) {
+        SduiNode root = node.getEmbeddedScreenRoot();
+        if (root == null) {
+            return;
+        }
+        if (!"ui.screen".equals(root.type())) {
+            violations.add("A tela do nó '" + node.getName() + "' deve ter raiz do tipo ui.screen (encontrado '"
+                    + root.type() + "')");
+        }
+        validateSduiNode(node, root, componentRegistry, new HashSet<>(), violations);
+        if (!channelTypes.isEmpty()) {
+            validateChannelVisibilityCoverage(node, root, componentRegistry, channelTypes, violations);
+        }
+    }
+
+    // Garante que, para cada canal da jornada, sobre pelo menos um componente de conteúdo real
+    // (folha, não contêiner vazio) visível na tela — evita publicar uma tela que na prática fica em
+    // branco pra algum canal por causa de uma combinação de regras de visibilidade mal configurada.
+    private static void validateChannelVisibilityCoverage(FlowNode ownerNode, SduiNode root,
+                                                            Map<String, ComponentDefinition> componentRegistry,
+                                                            List<ChannelType> channelTypes, List<String> violations) {
+        for (ChannelType channelType : channelTypes) {
+            if (!hasVisibleLeafContent(root, componentRegistry, channelType.name())) {
+                violations.add("A tela do nó '" + ownerNode.getName()
+                        + "' fica sem nenhum componente visível para o canal " + channelType);
+            }
+        }
+    }
+
+    // Poda qualquer nó (e a subárvore inteira dele) cuja visibility exclua o canal; só conta como
+    // conteúdo real um nó folha (sem allowsChildren) que sobreviva à poda — um contêiner vazio não
+    // conta como "tela com conteúdo".
+    private static boolean hasVisibleLeafContent(SduiNode node, Map<String, ComponentDefinition> componentRegistry,
+                                                  String channelType) {
+        if (!isVisibleForChannel(node.visibility(), channelType)) {
+            return false;
+        }
+        ComponentDefinition definition = componentRegistry.get(node.type() + "@" + node.version());
+        boolean isContainer = definition != null && definition.isAllowsChildren();
+        if (!isContainer) {
+            return true;
+        }
+        if (node.children() == null) {
+            return false;
+        }
+        return node.children().stream().anyMatch(child -> hasVisibleLeafContent(child, componentRegistry, channelType));
+    }
+
+    // Só avalia uma regra que referencie session.channel — qualquer outro path (form/data/etc.)
+    // depende de dado de execução que não existe em tempo de design, então é tratado como sempre
+    // visível aqui (permissivo, erra pro lado de não bloquear publicação por falso positivo).
+    private static boolean isVisibleForChannel(SduiVisibility visibility, String channelType) {
+        if (visibility == null || !"session.channel".equals(visibility.path())) {
+            return true;
+        }
+        Object value = visibility.value();
+        return switch (visibility.rule()) {
+            case "equals" -> channelType.equals(value);
+            case "notEquals" -> !channelType.equals(value);
+            case "in" -> value instanceof List<?> list && list.contains(channelType);
+            case "notIn" -> !(value instanceof List<?> list && list.contains(channelType));
+            default -> true;
+        };
+    }
+
+    private static void validateSduiNode(FlowNode ownerNode, SduiNode sduiNode,
+                                          Map<String, ComponentDefinition> componentRegistry, Set<String> seenIds,
+                                          List<String> violations) {
+        if (sduiNode.id() == null || sduiNode.id().isBlank()) {
+            violations.add("A tela do nó '" + ownerNode.getName() + "' tem um componente sem id");
+        } else if (!seenIds.add(sduiNode.id())) {
+            violations.add("A tela do nó '" + ownerNode.getName() + "' tem o id '" + sduiNode.id() + "' duplicado");
+        }
+
+        ComponentDefinition definition = componentRegistry.get(sduiNode.type() + "@" + sduiNode.version());
+        if (definition == null) {
+            violations.add("A tela do nó '" + ownerNode.getName() + "' usa o tipo '" + sduiNode.type() + "@"
+                    + sduiNode.version() + "', não encontrado no Component Registry");
+        } else if (definition.getStatus() == ComponentStatus.REMOVED) {
+            violations.add("A tela do nó '" + ownerNode.getName() + "' usa o componente '" + sduiNode.type()
+                    + "', removido do catálogo");
+        }
+
+        List<SduiNode> children = sduiNode.children();
+        if (children != null && !children.isEmpty() && definition != null && !definition.isAllowsChildren()) {
+            violations.add("O componente '" + sduiNode.id() + "' (" + sduiNode.type() + ") não aceita filhos, na tela do nó '"
+                    + ownerNode.getName() + "'");
+        }
+
+        if (sduiNode.bindings() != null) {
+            for (SduiBinding binding : sduiNode.bindings().values()) {
+                if (binding.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(binding.path()::startsWith)) {
+                    violations.add("O componente '" + sduiNode.id() + "' tem um binding com path inválido: '"
+                            + binding.path() + "', na tela do nó '" + ownerNode.getName() + "'");
+                }
+            }
+        }
+        if (sduiNode.events() != null) {
+            for (SduiEvent event : sduiNode.events().values()) {
+                if (event.action() == null || !VALID_SDUI_ACTIONS.contains(event.action())) {
+                    violations.add("O componente '" + sduiNode.id() + "' referencia uma ação inválida: '"
+                            + event.action() + "', na tela do nó '" + ownerNode.getName() + "'");
+                }
+            }
+        }
+        SduiVisibility visibility = sduiNode.visibility();
+        if (visibility != null) {
+            if (visibility.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(visibility.path()::startsWith)) {
+                violations.add("O componente '" + sduiNode.id() + "' tem uma visibilidade com path inválido: '"
+                        + visibility.path() + "', na tela do nó '" + ownerNode.getName() + "'");
+            }
+            if (visibility.rule() == null || !VALID_VISIBILITY_RULES.contains(visibility.rule())) {
+                violations.add("O componente '" + sduiNode.id() + "' tem uma visibilidade com regra inválida: '"
+                        + visibility.rule() + "', na tela do nó '" + ownerNode.getName() + "'");
+            }
+        }
+
+        if (children != null) {
+            for (SduiNode child : children) {
+                validateSduiNode(ownerNode, child, componentRegistry, seenIds, violations);
+            }
+        }
+    }
+
+    // Nome de variável de processo de um campo de tela SDUI: parte final de um binding
+    // value.path = "form.<nome>" (mesma convenção que o ms-espec-registry usa em runtime pra
+    // resolver respostas de formulário em CamundaVariable) — equivalente ao antigo
+    // FormFieldType.collectsValue() + FormField.getName().
+    private static Set<String> formVariableNames(SduiNode root) {
+        Set<String> names = new HashSet<>();
+        collectFormVariableNames(root, names);
+        return names;
+    }
+
+    private static void collectFormVariableNames(SduiNode node, Set<String> names) {
+        if (node == null) {
+            return;
+        }
+        if (node.bindings() != null) {
+            SduiBinding valueBinding = node.bindings().get("value");
+            if (valueBinding != null && valueBinding.path() != null && valueBinding.path().startsWith("form.")) {
+                names.add(valueBinding.path().substring("form.".length()));
+            }
+        }
+        if (node.children() != null) {
+            for (SduiNode child : node.children()) {
+                collectFormVariableNames(child, names);
+            }
         }
     }
 

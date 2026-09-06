@@ -1,22 +1,27 @@
 package com.jouney.admin.domain.journey;
 
+import com.jouney.admin.domain.channel.ChannelType;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class Journey {
 
     private final UUID id;
-    private final UUID channelId;
+    private final UUID productId;
+    private Set<ChannelType> channelTypes;
     private String name;
     private String description;
     private JourneyStatus status;
     private final OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
-    public Journey(UUID id, UUID channelId, String name, String description, JourneyStatus status,
-                   OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+    public Journey(UUID id, UUID productId, Set<ChannelType> channelTypes, String name, String description,
+                   JourneyStatus status, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
-        this.channelId = channelId;
+        this.productId = productId;
+        this.channelTypes = new LinkedHashSet<>(channelTypes);
         this.name = name;
         this.description = description;
         this.status = status;
@@ -24,15 +29,30 @@ public class Journey {
         this.updatedAt = updatedAt;
     }
 
-    public static Journey create(UUID channelId, String name, String description) {
+    public static Journey create(UUID productId, Set<ChannelType> channelTypes, String name, String description) {
+        requireNonEmpty(channelTypes);
         OffsetDateTime now = OffsetDateTime.now();
-        return new Journey(UUID.randomUUID(), channelId, name, description, JourneyStatus.DRAFT, now, now);
+        return new Journey(UUID.randomUUID(), productId, channelTypes, name, description, JourneyStatus.DRAFT, now, now);
     }
 
     public void update(String name, String description) {
         this.name = name;
         this.description = description;
         this.updatedAt = OffsetDateTime.now();
+    }
+
+    // A jornada agora pode atender vários tipos de canal do mesmo produto — nunca fica sem
+    // nenhum (requireNonEmpty), senão não haveria como ela ser executada por canal algum.
+    public void updateChannels(Set<ChannelType> channelTypes) {
+        requireNonEmpty(channelTypes);
+        this.channelTypes = new LinkedHashSet<>(channelTypes);
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    private static void requireNonEmpty(Set<ChannelType> channelTypes) {
+        if (channelTypes == null || channelTypes.isEmpty()) {
+            throw new JourneyChannelsEmptyException();
+        }
     }
 
     public void deactivate() {
@@ -54,8 +74,12 @@ public class Journey {
         return id;
     }
 
-    public UUID getChannelId() {
-        return channelId;
+    public UUID getProductId() {
+        return productId;
+    }
+
+    public Set<ChannelType> getChannelTypes() {
+        return Set.copyOf(channelTypes);
     }
 
     public String getName() {

@@ -1,8 +1,6 @@
 package com.jouney.admin.infrastructure.persistence.publication;
 
 import com.jouney.admin.domain.channel.ChannelType;
-import com.jouney.admin.domain.flow.FlowNode;
-import com.jouney.admin.domain.form.FormSduiSerializer;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.infrastructure.persistence.flow.FlowConnectionRecord;
 import com.jouney.admin.infrastructure.persistence.flow.FlowNodeRecord;
@@ -10,9 +8,8 @@ import java.util.List;
 import java.util.UUID;
 
 public record PublicationSnapshotRecord(UUID journeyId, String journeyName, String journeyDescription,
-                                         UUID productId, String productName, UUID channelId, String channelName,
-                                         ChannelType channelType, Integer versionNumber,
-                                         List<SnapshotFlowNodeRecord> flowNodes,
+                                         UUID productId, String productName, List<ChannelType> channelTypes,
+                                         Integer versionNumber, List<FlowNodeRecord> flowNodes,
                                          List<FlowConnectionRecord> flowConnections) {
 
     // Shared by the outbound call to the runtime's publication API (PublicationAdapter) and by
@@ -30,29 +27,17 @@ public record PublicationSnapshotRecord(UUID journeyId, String journeyName, Stri
     public static PublicationSnapshotRecord from(Publication publication) {
         return new PublicationSnapshotRecord(
                 publication.getJourneyId(), publication.getJourneyName(), publication.getJourneyDescription(),
-                publication.getProductId(), publication.getProductName(), publication.getChannelId(),
-                publication.getChannelName(), publication.getChannelType(), publication.getVersionNumber(),
+                publication.getProductId(), publication.getProductName(), publication.getChannelTypes(),
+                publication.getVersionNumber(),
                 publication.getFlowNodes().stream()
-                        .map(n -> new SnapshotFlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
+                        .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
                                 n.getPositionX(), n.getPositionY(),
                                 FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
-                                n.getStartVariables(), n.getMessageText(),
-                                embeddedScreenSduiOf(n, publication.getChannelType())))
+                                n.getStartVariables(), n.getMessageText(), n.getEmbeddedScreenRoot()))
                         .toList(),
                 publication.getFlowConnections().stream()
                         .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
                                 c.isDefault()))
                         .toList());
-    }
-
-    // Prefere o embeddedScreenSdui já calculado (nó reconstruído de uma snapshot já persistida —
-    // Publication/JourneyVersion, onde embeddedScreen não sobrevive à volta); só recompila a partir
-    // de embeddedScreen quando o nó vem direto de um Flow ao vivo, que nunca tem sdui pré-calculado.
-    public static List<Object> embeddedScreenSduiOf(FlowNode node, ChannelType channelType) {
-        if (node.getEmbeddedScreenSdui() != null) {
-            return node.getEmbeddedScreenSdui();
-        }
-        return node.getEmbeddedScreen() == null || node.getEmbeddedScreen().isEmpty() ? null
-                : FormSduiSerializer.serialize(node.getEmbeddedScreen(), channelType);
     }
 }

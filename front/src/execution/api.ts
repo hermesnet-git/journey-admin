@@ -162,11 +162,12 @@ export interface JourneySummary {
   name: string;
   description: string | null;
   productName: string;
-  channelName: string;
+  channelTypes: string[];
   publishedVersionNumber: number | null;
 }
 
-export type SduiNode = [tag: string, props: Record<string, unknown>, children: SduiNode[]];
+export type { SduiNode } from '../sdui/model';
+import type { SduiNode } from '../sdui/model';
 
 export interface FormPayload {
   id: string;
@@ -245,7 +246,7 @@ export interface FlowConnectionInfo {
 }
 
 export interface FlowBundle {
-  channelType: 'WEB' | 'MOBILE' | string;
+  channelTypes: string[];
   flowNodes: FlowNodeInfo[];
   flowConnections: FlowConnectionInfo[];
 }
@@ -299,11 +300,13 @@ export interface DiagnosisResult {
 
 export function startInstance(
   journeyId: string,
+  channel: string,
   variables?: Record<string, unknown>,
   manualKafkaControl?: boolean,
 ): Promise<InstanceResponse> {
-  const qs = manualKafkaControl ? '?manualKafkaControl=true' : '';
-  return apiPost(`/journeys/${journeyId}/instances${qs}`, variables);
+  const params = new URLSearchParams({ channel });
+  if (manualKafkaControl) params.set('manualKafkaControl', 'true');
+  return apiPost(`/journeys/${journeyId}/instances?${params.toString()}`, variables);
 }
 
 /** Diagrama da jornada sem iniciar instância — usado só pra descobrir o tipo do nó de início antes

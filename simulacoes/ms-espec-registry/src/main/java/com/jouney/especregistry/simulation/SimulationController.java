@@ -74,6 +74,7 @@ public class SimulationController {
 
     @PostMapping("/journeys/{journeyId}/instances")
     public InstanceResponse start(@PathVariable UUID journeyId,
+                                   @RequestParam String channel,
                                    @RequestParam(defaultValue = "false") boolean manualKafkaControl,
                                    @RequestBody(required = false) Map<String, Object> variables) {
         // Iniciar por chave funciona igual para START e MESSAGE_START_EVENT (sem correlação de
@@ -83,14 +84,21 @@ public class SimulationController {
         // Já para um START comum (REQ-03.12.003), as variáveis vêm de verdade do chamador
         // (canal digital/BFF) — validadas e coercionadas contra o que o nó START declarou.
         PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+        // Jornada multicanal: quem inicia a instância declara de qual canal ela vem, validado
+        // contra os tipos de canal que a jornada de fato atende — vira variável de processo real
+        // logo abaixo, então {{channel}} funciona em condição de Gateway sem nada especial na engine.
+        if (!snapshot.channelTypes().contains(channel)) {
+            throw new UnsupportedChannelException(channel, snapshot.channelTypes());
+        }
         // Catches a journey published before FlowValidator (admin/back) started rejecting this shape
         // at save time — fails clearly here instead of crashing the engine (SynchronousChainCheck).
         SynchronousChainCheck.verify(snapshot);
-        Map<String, CamundaVariable> startVariables = snapshot.findStartNode()
+        Map<String, CamundaVariable> startVariables = new LinkedHashMap<>(snapshot.findStartNode()
                 .map(node -> "MESSAGE_START_EVENT".equals(node.type())
                         ? VariableConversion.fabricateFromOutputMapping(node.connectorConfig())
                         : VariableConversion.fromDeclaredVariables(variables, node.startVariables()))
-                .orElse(Map.of());
+                .orElse(Map.of()));
+        startVariables.put("channel", new CamundaVariable(channel, "String"));
         if (manualKafkaControl) {
             // Setado antes do processo existir, não depois de chegar num Service Task Kafka: é o
             // único jeito de garantir que o worker Kafka do ms-journey (roda a cada 3s, sem saber se

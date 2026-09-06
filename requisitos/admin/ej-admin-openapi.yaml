@@ -3,10 +3,10 @@ openapi: 3.0.3
 info:
   title: Elastic Journey Admin Portal API
   description: >
-    API do Elastic Journey Admin Portal para gestão de produtos, canais,
-    jornadas específicas por canal, fluxos, formulários, execuções
-    e publicações. A publicação aciona uma API externa mockada na versão 1.0.0;
-    este contrato descreve somente a API do Admin Portal.
+    API do Elastic Journey Admin Portal para gestão de produtos (e dos tipos de
+    canal que cada um habilita), jornadas multicanal, fluxos, formulários,
+    execuções e publicações. A publicação aciona uma API externa mockada na
+    versão 1.0.0; este contrato descreve somente a API do Admin Portal.
   version: 1.0.0
 
 servers:
@@ -31,8 +31,8 @@ security:
 
 tags:
   - name: Products
-  - name: Channels
   - name: Journeys
+  - name: Journey Templates
   - name: Flows
   - name: Publications
   - name: Authentication
@@ -348,180 +348,6 @@ paths:
         '200':
           description: Product reactivated
 
-  /products/{productId}/channels:
-    get:
-      tags: [Channels]
-      summary: List channels by product
-      operationId: listChannelsByProduct
-      parameters:
-        - $ref: '#/components/parameters/ProductId'
-        - name: q
-          in: query
-          schema:
-            type: string
-        - name: type
-          in: query
-          schema:
-            $ref: '#/components/schemas/ChannelType'
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [ACTIVE, INACTIVE]
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Channel list
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Channel'
-    post:
-      tags: [Channels]
-      summary: Create channel for product
-      operationId: createChannel
-      parameters:
-        - $ref: '#/components/parameters/ProductId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChannelInput'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '201':
-          description: Channel created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Channel'
-
-  /channels/{channelId}:
-    get:
-      tags: [Channels]
-      summary: Get channel
-      operationId: getChannel
-      parameters:
-        - $ref: '#/components/parameters/ChannelId'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Channel found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Channel'
-    put:
-      tags: [Channels]
-      summary: Update channel
-      operationId: updateChannel
-      parameters:
-        - $ref: '#/components/parameters/ChannelId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChannelInput'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Channel updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Channel'
-
-  /channels/{channelId}/deactivate:
-    post:
-      tags: [Channels]
-      summary: Deactivate channel
-      description: Returns 409 while any journey under the channel has a PUBLISHED publication.
-      operationId: deactivateChannel
-      parameters:
-        - $ref: '#/components/parameters/ChannelId'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Channel deactivated
-
-  /channels/{channelId}/activate:
-    post:
-      tags: [Channels]
-      summary: Reactivate channel
-      operationId: activateChannel
-      parameters:
-        - $ref: '#/components/parameters/ChannelId'
-      responses:
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '200':
-          description: Channel reactivated
-
   /journeys:
     get:
       tags: [Journeys]
@@ -533,11 +359,10 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: channelId
+        - name: channelType
           in: query
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/ChannelType'
         - name: q
           in: query
           schema:
@@ -568,7 +393,7 @@ paths:
                   $ref: '#/components/schemas/Journey'
     post:
       tags: [Journeys]
-      summary: Create journey for channel
+      summary: Create journey
       operationId: createJourney
       requestBody:
         required: true
@@ -597,6 +422,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Journey'
+
+  /journey-templates:
+    get:
+      tags: [Journey Templates]
+      summary: List predefined journey templates
+      operationId: listJourneyTemplates
+      responses:
+        '200':
+          description: Available journey templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JourneyTemplate'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /journeys/{journeyId}:
     get:
@@ -781,14 +627,104 @@ paths:
               schema:
                 $ref: '#/components/schemas/ConnectorTestResponse'
 
+  # Component Registry (US-04.07, novo em 2026-09-05) — catálogo de componentes SDUI que o Form
+  # Builder pode usar numa tela (ver SduiNode/ComponentDefinition acima).
+  /component-registry:
+    get:
+      tags: [ComponentRegistry]
+      summary: List all components in the catalog (REQ-04.07.009/010)
+      operationId: listComponentDefinitions
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: All components, including REMOVED ones (kept for historical screens).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComponentDefinition'
+    post:
+      tags: [ComponentRegistry]
+      summary: Create a new component (REQ-04.07.001/002, ADMIN only)
+      operationId: createComponentDefinition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComponentDefinition'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A component with the same type+version already exists.
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComponentDefinition'
+
+  /component-registry/{id}:
+    put:
+      tags: [ComponentRegistry]
+      summary: Update a component (ADMIN only)
+      operationId: updateComponentDefinition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComponentDefinition'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComponentDefinition'
+    delete:
+      tags: [ComponentRegistry]
+      summary: Mark a component as REMOVED (REQ-04.07.011, ADMIN only) — never deletes the row.
+      operationId: deleteComponentDefinition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '204':
+          description: Marked REMOVED
+
   /journeys/{journeyId}/publication:
     get:
       tags: [Journeys]
       summary: Get the journey's active publication snapshot (REQ-02.10.001)
       description: >
         Returns the exact JSON sent to the runtime's publication API for the journey's
-        currently active (PUBLISHED) publication — product, channel, flow (each User
-        Task's screen already compiled into embeddedScreenSdui) and the published
+        currently active (PUBLISHED) publication — product, channel types, flow (each User
+        Task's screen as its published SduiNode tree, embeddedScreenRoot) and the published
         versionNumber. Only available while the journey is PUBLISHED; the record itself
         is preserved after unpublishing, but not exposed here.
       operationId: getJourneyPublication
@@ -830,11 +766,10 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: channelId
+        - name: channelType
           in: query
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/ChannelType'
         - name: q
           in: query
           schema:
@@ -1008,14 +943,6 @@ components:
         type: string
         format: uuid
 
-    ChannelId:
-      name: channelId
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-
     JourneyId:
       name: journeyId
       in: path
@@ -1153,13 +1080,19 @@ components:
 
     ProductInput:
       type: object
-      required: [name, description]
+      required: [name, description, channelTypes]
       properties:
         name:
           type: string
           maxLength: 150
         description:
           type: string
+        channelTypes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ChannelType'
 
     Product:
       allOf:
@@ -1173,8 +1106,6 @@ components:
             status:
               type: string
               enum: [ACTIVE, INACTIVE]
-            channelCount:
-              type: integer
             createdAt:
               type: string
               format: date-time
@@ -1182,56 +1113,46 @@ components:
               type: string
               format: date-time
 
+    # Valor de domínio fixo — não é uma entidade cadastrável, não tem CRUD nem status próprio.
+    # Substitui a antiga entidade Channel (channelId/name/status por produto, 6 tipos incluindo
+    # URA/CONTACT_CENTER/OTHER) — ver ej-admin-requisitos.md FT-01.
     ChannelType:
       type: string
-      enum: [WEB, MOBILE, WHATSAPP, URA, CONTACT_CENTER, OTHER]
-
-    ChannelInput:
-      type: object
-      required: [name, description, type]
-      properties:
-        name:
-          type: string
-          maxLength: 100
-        description:
-          type: string
-        type:
-          $ref: '#/components/schemas/ChannelType'
-
-    Channel:
-      allOf:
-        - $ref: '#/components/schemas/ChannelInput'
-        - type: object
-          required: [channelId, productId, status, createdAt, updatedAt]
-          properties:
-            channelId:
-              type: string
-              format: uuid
-            productId:
-              type: string
-              format: uuid
-            status:
-              type: string
-              enum: [ACTIVE, INACTIVE]
-            journeyCount:
-              type: integer
-            createdAt:
-              type: string
-              format: date-time
-            updatedAt:
-              type: string
-              format: date-time
+      enum: [WEB, MOBILE, WHATSAPP]
 
     JourneyCreateInput:
       type: object
-      required: [channelId, name, description]
+      required: [productId, channelTypes, name, description]
       properties:
-        channelId:
+        productId:
           type: string
           format: uuid
+        channelTypes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ChannelType'
         name:
           type: string
           maxLength: 200
+        description:
+          type: string
+        templateId:
+          type: string
+          maxLength: 100
+          description: Stable id from GET /journey-templates. Omit to create a blank flow.
+
+    JourneyTemplate:
+      type: object
+      required: [templateId, name, description]
+      properties:
+        templateId:
+          type: string
+          example: aprovacao-pedido
+        name:
+          type: string
+          example: Aprovação de Pedido
         description:
           type: string
 
@@ -1249,16 +1170,17 @@ components:
       allOf:
         - $ref: '#/components/schemas/JourneyUpdateInput'
         - type: object
-          required: [journeyId, channelId, channelName, productId, productName, status, createdAt, updatedAt]
+          required: [journeyId, channelTypes, productId, productName, status, createdAt, updatedAt]
           properties:
             journeyId:
               type: string
               format: uuid
-            channelId:
-              type: string
-              format: uuid
-            channelName:
-              type: string
+            channelTypes:
+              type: array
+              minItems: 1
+              uniqueItems: true
+              items:
+                $ref: '#/components/schemas/ChannelType'
             productId:
               type: string
               format: uuid
@@ -1286,7 +1208,7 @@ components:
         These three identifiers are therefore generated as a fixed prefix
         + UUID (Process_<uuid>, Node_<uuid>, Flow_<uuid> respectively), never
         a bare UUID. All other entity identifiers in this API (productId,
-        channelId, journeyId, formId, ...) never appear inside generated BPMN
+        journeyId, formId, ...) never appear inside generated BPMN
         XML and remain plain UUIDs. annotations are canvas-only notes, never
         translated to BPMN and never embedded with a runtime-facing id.
       required: [flowId, journeyId, name, nodes, connections, annotations]
@@ -1335,21 +1257,19 @@ components:
         connectorConfig:
           $ref: '#/components/schemas/IntegrationTaskConfig'
 
-    # Nota de revisão (2026-08-24): reescrito — a Runtime Engine só suporta um conjunto básico de
-    # tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do
-    # catálogo por formId; a tela passou a ser desenhada diretamente no nó (embeddedScreen), com o
-    # formulário do catálogo servindo apenas como modelo de cópia opcional (não modelado aqui — a
-    # cópia acontece no cliente/no momento da escolha, nunca vira uma referência persistida).
+    # Nota de revisão (2026-09-05): embeddedScreen (lista de FormField) substituído por
+    # embeddedScreenRoot (SduiNode único) — catálogo SDUI corporativo v1, ver ej-admin-requisitos.md
+    # FT-04. A árvore editada aqui é a mesma árvore publicada, sem etapa de compilação.
     UserTaskConfig:
       type: object
       properties:
-        embeddedScreen:
+        embeddedScreenRoot:
           description: >
-            Tela desenhada diretamente no nó — vazia/ausente quando a User Task não tem tela
-            (nesse caso, messageText é usado). Nunca coexiste com sentido junto de messageText.
-          type: array
-          items:
-            $ref: '#/components/schemas/FormField'
+            Raiz da árvore de tela (SduiNode) desenhada diretamente no nó — ausente quando a
+            User Task não tem tela (nesse caso, messageText é usado). Nunca coexiste com
+            sentido junto de messageText. Sempre um único nó do tipo ui.screen.
+          $ref: '#/components/schemas/SduiNode'
+          nullable: true
         messageText:
           type: string
 
@@ -1528,78 +1448,182 @@ components:
             example: Node_f47ac10b-58cc-4372-a567-0e02b2c3d479
           description: FlowNode ids in the same flow this note is visually tied to (dashed line in the editor). Informational only.
 
-    # FormInput/Form (catálogo de formulários reutilizáveis) removidos em 2026-09-05 junto com
-    # FT-04/US-04.01 — ver ej-admin-requisitos.md. FormField abaixo permanece: é a forma persistida
-    # de um item de FlowNode.userTaskConfig.embeddedScreen, não do catálogo removido.
-    FormField:
+    # FormField (modelo de campo plano do catálogo SDUI anterior) removido em 2026-09-05, junto com
+    # US-04.02 — ver ej-admin-requisitos.md FT-04. Substituído por SduiNode (árvore recursiva) +
+    # ComponentDefinition (Component Registry, schema mais abaixo).
+    SduiNode:
       type: object
       description: >
-        Not a standalone resource — the persisted shape of one item in
-        FlowNode.userTaskConfig.embeddedScreen (JSONB array). There is no displayOrder:
-        presentation order is the field's own position in the array, not a stored column.
-      required: [name, fieldType]
+        Nó da árvore de tela do catálogo SDUI corporativo v1 — substitui por completo o antigo
+        FormField (lista plana) e a tupla [tag, props, children]. A raiz de uma tela é sempre um
+        único SduiNode do tipo "ui.screen"; type+version devem existir no Component Registry.
+      required: [id, type, version]
+      properties:
+        id:
+          type: string
+          description: >
+            Identificador único dentro da tela — para um componente que coleta valor, também
+            usado como sufixo do binding de leitura-e-escrita no namespace form (REQ-04.10.005).
+        type:
+          type: string
+          example: ui.textInput
+          description: Tipo do componente, correspondente a ComponentDefinition.type no Component Registry.
+        version:
+          type: string
+          example: "1.0"
+        props:
+          type: object
+          additionalProperties: true
+          description: Configuração estática do componente, conforme o propsSchema declarado pelo ComponentDefinition correspondente.
+        bindings:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SduiBinding'
+          description: 'Hoje só a chave "value" é usada (REQ-04.10.001/002).'
+        events:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SduiEvent'
+          description: Chave = nome do evento (ex. onPress, onChange), restrito aos eventos que o ComponentDefinition declara.
+        visibility:
+          $ref: '#/components/schemas/SduiVisibility'
+          nullable: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/SduiNode'
+          description: Presente só quando o componente aceita filhos (ComponentDefinition.allowsChildren); profundidade não limitada.
+
+    SduiBinding:
+      type: object
+      required: [path, mode]
+      properties:
+        path:
+          type: string
+          example: form.customerEmail
+          description: 'namespace.resto — namespace ∈ {form, data, session, route, computed} (REQ-04.10.001).'
+        mode:
+          type: string
+          enum: [oneWay, twoWay]
+
+    SduiEvent:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [action.submit, action.navigate, action.openUrl, action.setValue, action.track, action.dismiss]
+        params:
+          type: object
+          additionalProperties: true
+
+    SduiVisibility:
+      type: object
+      required: [rule, path]
+      properties:
+        rule:
+          type: string
+          enum: [equals, notEquals, in, notIn]
+          description: >
+            equals/notEquals compare against a scalar value. in/notIn (added 2026-09-06)
+            compare against a list value — used mainly for path session.channel, to
+            condition a component on a subset of the journey's channel types.
+        path:
+          type: string
+        value: {}
+
+    # Component Registry (US-04.07) — fonte de verdade do que o Form Builder pode compor numa tela.
+    # Persistido em tabela (component_definition), não mais uma lista fixa em código.
+    ComponentDefinition:
+      type: object
+      required: [type, version, status, level, category, allowsChildren]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          type: string
+          example: ui.textInput
+        version:
+          type: string
+          example: "1.0"
+        status:
+          type: string
+          enum: [EXPERIMENTAL, STABLE, DEPRECATED, REMOVED]
+        level:
+          type: integer
+          minimum: 0
+          maximum: 4
+        category:
+          type: string
+          enum: [CONTENT, LAYOUT, INPUT, ACTION, FEEDBACK]
+        allowsChildren:
+          type: boolean
+        allowedChildTypes:
+          type: array
+          items:
+            type: string
+          description: Vazio = qualquer tipo de filho permitido.
+        propsSchema:
+          type: array
+          items:
+            $ref: '#/components/schemas/PropDescriptor'
+        events:
+          type: array
+          items:
+            type: string
+        supportedTargets:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/TargetSupport'
+          description: 'Chaves: react.web, react.mobile, flutter.web, flutter.mobile.'
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+
+    PropDescriptor:
+      type: object
+      required: [name, kind, required]
       properties:
         name:
           type: string
-          maxLength: 80
-          description: >
-            Chave técnica do campo, definida pelo usuário, editável a qualquer momento,
-            com unicidade verificada na jornada inteira (REQ-03.09.011).
-        fieldType:
+        kind:
           type: string
-          enum: [SECTION, TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD, RADIO,
-                 SWITCH, SLIDER, RATING, STEPPER, AUTOCOMPLETE, TITLE, IMAGE, DIVIDER,
-                 CARD, CALLOUT]
-        inputSubtype:
-          type: string
-          enum: [TEXT, NUMBER, EMAIL, DATE]
-          description: Aplicável apenas quando fieldType = INPUT.
-        label:
-          type: string
-        helpText:
-          type: string
+          enum: [TEXT, NUMBER, BOOLEAN, ENUM, TOKEN, OPTIONS_LIST, VALIDATION_LIST]
         required:
           type: boolean
-        defaultValue:
+        defaultValue: {}
+        tokenGroup:
           type: string
-        options:
+          nullable: true
+          description: Só relevante quando kind = TOKEN (ex. color, spacing — seção 10 do contrato).
+        enumValues:
           type: array
-          description: Aplicável a SINGLE_SELECT/MULTI_SELECT/RADIO/AUTOCOMPLETE.
           items:
-            type: object
-            required: [label, value]
-            properties:
-              label:
-                type: string
-              value:
-                type: string
-        columns:
-          type: integer
-          description: Aplicável apenas quando fieldType = SECTION — número de colunas da grade que agrupa os campos seguintes até a próxima seção.
-        visibleIf:
+            type: string
+          nullable: true
+
+    TargetSupport:
+      type: object
+      required: [status, minRendererVersion]
+      properties:
+        status:
           type: string
-          description: >
-            Expressão de exibição condicional. Modelada e validada, mas ainda não
-            avaliada em tempo de execução (fora do escopo da v1.0.0).
-        dataSource:
-          $ref: '#/components/schemas/IntegrationTaskConfig'
-          description: >
-            Aplicável apenas quando fieldType = AUTOCOMPLETE — mesma forma de
-            IntegrationTaskConfig, pensada para popular opções por busca remota. Ainda não
-            resolvida em tempo de execução — opções estáticas por enquanto (fora do
-            escopo da v1.0.0).
-        configuration:
-          type: object
-          additionalProperties: true
-          description: Configuração adicional por tipo/subtipo — validação de formato (min/max para NUMBER, regex/máscara para TEXT) e regras de arquivo (extensões aceitas, tamanho máximo) para FILE_UPLOAD; min/max/step de SLIDER/STEPPER; contagem de RATING; url/alt de IMAGE; variant/description de CALLOUT etc.
+          enum: [SUPPORTED, PLANNED, UNSUPPORTED]
+        minRendererVersion:
+          type: string
+          example: 1.0.0
 
-    # Nota de revisão (2026-08-24): fieldType ampliado de 5 para 17 valores, e columns/visibleIf/
-    # dataSource adicionados nesta revisão — mesma mudança que substituiu a associação por formId
-    # pelo desenho direto da tela no nó: como a Runtime Engine só suporta um conjunto básico de
-    # tipos de campo nativos (~5-6), o catálogo próprio do Admin Portal foi ampliado para cobrir a
-    # necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de
-    # depender do motor.
-
+    # Nota de revisão (2026-09-05): embeddedScreenSdui (árvore compilada) substituído por
+    # embeddedScreenRoot em SnapshotFlowNode — a mesma árvore de SduiNode editada no Form
+    # Builder, sem etapa de compilação separada. Nota de 2026-08-24 mantida abaixo por histórico.
+    #
     # Nota de revisão (2026-08-24): "forms"/PublicationSnapshotForm removidos, "versionNumber"
     # adicionado, e flowNodes passou a referenciar SnapshotFlowNode (não mais FlowNode) nesta
     # revisão — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6),
@@ -1612,8 +1636,8 @@ components:
         Exact JSON sent to the runtime's publication API (REQ-02.09.002) and exposed
         read-only for inspection (REQ-02.10.001). Same shape for both purposes — one
         mapping, one source of truth.
-      required: [journeyId, journeyName, productId, productName, channelId, channelName,
-                 channelType, flowNodes, flowConnections]
+      required: [journeyId, journeyName, productId, productName, channelTypes,
+                 flowNodes, flowConnections]
       properties:
         journeyId:
           type: string
@@ -1627,13 +1651,12 @@ components:
           format: uuid
         productName:
           type: string
-        channelId:
-          type: string
-          format: uuid
-        channelName:
-          type: string
-        channelType:
-          $ref: '#/components/schemas/ChannelType'
+        channelTypes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ChannelType'
         versionNumber:
           description: >
             Número da versão publicada — também gravado como tag de versão do processo
@@ -1649,11 +1672,10 @@ components:
           items:
             $ref: '#/components/schemas/FlowConnection'
 
-    # Forma compilada/congelada de um nó dentro de uma snapshot de publicação/versão — diferente do
-    # FlowNode do editor ao vivo (GET/PUT /flow): sem embeddedScreen (a lista crua de campos só
-    # importa pra editar), com embeddedScreenSdui (a árvore já compilada, o que o runtime de fato
-    # consome pra renderizar a tela de uma User Task). Sem userTaskConfig aninhado — este shape é
-    # plano.
+    # Forma congelada de um nó dentro de uma snapshot de publicação/versão — mesmo shape de
+    # embeddedScreenRoot do editor ao vivo (GET/PUT /flow): desde 2026-09-05 não existe mais
+    # compilação/projeção separada, a árvore congelada aqui é a mesma árvore editada. Sem
+    # userTaskConfig aninhado — este shape é plano.
     SnapshotFlowNode:
       type: object
       required: [nodeId, nodeType, name]
@@ -1679,23 +1701,17 @@ components:
             type: object
         messageText:
           type: string
-        embeddedScreenSdui:
-          description: >
-            Hyperscript-style render tree [tag, props, children], compiled from the node's
-            embeddedScreen at publish time (REQ-04.06.002) — present only when the User
-            Task has a screen drawn. Heterogeneous tuple structure, not modeled field-by-
-            field here.
-          type: array
-          items: {}
+        embeddedScreenRoot:
+          $ref: '#/components/schemas/SduiNode'
+          nullable: true
+          description: Presente só quando a User Task tem tela desenhada (REQ-04.08.007).
 
     JourneySnapshot:
       type: object
-      required: [product, channel, journey, flow]
+      required: [product, journey, flow]
       properties:
         product:
           $ref: '#/components/schemas/Product'
-        channel:
-          $ref: '#/components/schemas/Channel'
         journey:
           $ref: '#/components/schemas/Journey'
         flow:
@@ -1707,7 +1723,6 @@ components:
         - publicationId
         - journeyId
         - productCode
-        - channelCode
         - journeyCode
         - publicationStatus
         - journeySnapshot
@@ -1719,8 +1734,6 @@ components:
           type: string
           format: uuid
         productCode:
-          type: string
-        channelCode:
           type: string
         journeyCode:
           type: string

@@ -9,6 +9,6 @@ import java.util.List;
 // numa jornada nova) — sem isto, todo pedido parecia "desenhe do zero" pra IA, mesmo um aditivo como
 // "adicione uma tarefa", porque ela nunca via o que já existia (ver FlowGenerationPrompt).
 public record GenerationContext(String prompt, String journeyName, String journeyDescription, String productName,
-                                 String channelName, ChannelType channelType, List<ConnectorType> enabledConnectors,
+                                 ChannelType channelType, List<ConnectorType> enabledConnectors,
                                  List<FlowNode> currentFlowNodes, List<FlowConnection> currentFlowConnections) {
 }

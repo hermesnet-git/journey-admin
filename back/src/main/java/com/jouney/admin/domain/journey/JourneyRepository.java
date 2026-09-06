@@ -1,5 +1,6 @@
 package com.jouney.admin.domain.journey;
 
+import com.jouney.admin.domain.channel.ChannelType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,5 +13,5 @@ public interface JourneyRepository {
 
     void deleteById(UUID id);
 
-    List<Journey> search(UUID productId, UUID channelId, String query, JourneyStatus status, JourneySort sort);
+    List<Journey> search(UUID productId, ChannelType channelType, String query, JourneyStatus status, JourneySort sort);
 }

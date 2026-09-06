@@ -1,8 +1,5 @@
 package com.jouney.admin.application.flow;
 
-import com.jouney.admin.domain.channel.Channel;
-import com.jouney.admin.domain.channel.ChannelNotFoundException;
-import com.jouney.admin.domain.channel.ChannelRepository;
 import com.jouney.admin.domain.flow.AiFlowGenerator;
 import com.jouney.admin.domain.flow.ConnectorType;
 import com.jouney.admin.domain.flow.Flow;
@@ -35,16 +32,13 @@ import org.springframework.stereotype.Service;
 public class GenerateFlow {
 
     private final JourneyRepository journeyRepository;
-    private final ChannelRepository channelRepository;
     private final ProductRepository productRepository;
     private final FlowRepository flowRepository;
     private final AiFlowGenerator aiFlowGenerator;
 
-    public GenerateFlow(JourneyRepository journeyRepository, ChannelRepository channelRepository,
-                         ProductRepository productRepository, FlowRepository flowRepository,
-                         AiFlowGenerator aiFlowGenerator) {
+    public GenerateFlow(JourneyRepository journeyRepository, ProductRepository productRepository,
+                         FlowRepository flowRepository, AiFlowGenerator aiFlowGenerator) {
         this.journeyRepository = journeyRepository;
-        this.channelRepository = channelRepository;
         this.productRepository = productRepository;
         this.flowRepository = flowRepository;
         this.aiFlowGenerator = aiFlowGenerator;
@@ -53,10 +47,11 @@ public class GenerateFlow {
     public GeneratedFlow execute(UUID journeyId, String prompt, Consumer<String> onProgress) {
         Journey journey = journeyRepository.findById(journeyId)
                 .orElseThrow(() -> new JourneyNotFoundException(journeyId));
-        Channel channel = channelRepository.findById(journey.getChannelId())
-                .orElseThrow(() -> new ChannelNotFoundException(journey.getChannelId()));
-        Product product = productRepository.findById(channel.getProductId())
-                .orElseThrow(() -> new ProductNotFoundException(channel.getProductId()));
+        Product product = productRepository.findById(journey.getProductId())
+                .orElseThrow(() -> new ProductNotFoundException(journey.getProductId()));
+        // Jornada pode atender vários tipos de canal agora — a IA só usa um como dica de tom/
+        // formato no prompt, não precisa ser exaustiva; o primeiro da lista já basta.
+        var channelType = journey.getChannelTypes().iterator().next();
 
         var enabledConnectors = Arrays.stream(ConnectorType.values()).filter(ConnectorType::isEnabled).toList();
 
@@ -65,7 +60,7 @@ public class GenerateFlow {
         List<FlowConnection> currentConnections = flow != null ? flow.getConnections() : List.of();
 
         var context = new GenerationContext(prompt, journey.getName(), journey.getDescription(), product.getName(),
-                channel.getName(), channel.getType(), enabledConnectors, currentNodes, currentConnections);
+                channelType, enabledConnectors, currentNodes, currentConnections);
         return aiFlowGenerator.generate(context, onProgress);
     }
 }

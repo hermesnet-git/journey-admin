@@ -1,9 +1,11 @@
 package com.jouney.admin.interfaces.flow;
 
+import com.jouney.admin.application.componentregistry.ListComponentDefinitions;
 import com.jouney.admin.application.flow.GenerateFlow;
 import com.jouney.admin.application.flow.GetFlow;
 import com.jouney.admin.application.flow.TestConnector;
 import com.jouney.admin.application.flow.UpdateFlow;
+import com.jouney.admin.domain.componentregistry.ComponentDefinition;
 import com.jouney.admin.domain.flow.Flow;
 import com.jouney.admin.domain.flow.FlowIds;
 import com.jouney.admin.domain.flow.FlowValidationException;
@@ -13,7 +15,9 @@ import com.jouney.admin.interfaces.ApiError;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -37,13 +41,19 @@ public class FlowController {
     private final UpdateFlow updateFlow;
     private final TestConnector testConnector;
     private final GenerateFlow generateFlow;
+    private final ListComponentDefinitions listComponentDefinitions;
 
     public FlowController(GetFlow getFlow, UpdateFlow updateFlow, TestConnector testConnector,
-                           GenerateFlow generateFlow) {
+                           GenerateFlow generateFlow, ListComponentDefinitions listComponentDefinitions) {
         this.getFlow = getFlow;
         this.updateFlow = updateFlow;
         this.testConnector = testConnector;
         this.generateFlow = generateFlow;
+        this.listComponentDefinitions = listComponentDefinitions;
+    }
+
+    private Map<String, ComponentDefinition> loadComponentRegistry() {
+        return listComponentDefinitions.execute().stream().collect(Collectors.toMap(ComponentDefinition::key, d -> d));
     }
 
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
@@ -72,7 +82,7 @@ public class FlowController {
     public void validate(@PathVariable UUID journeyId, @Valid @RequestBody FlowInput input) {
         var nodes = input.nodes().stream().map(FlowNodeInput::toDomain).toList();
         var connections = input.connections().stream().map(FlowConnectionInput::toDomain).toList();
-        FlowValidator.validate(nodes, connections);
+        FlowValidator.validate(nodes, connections, loadComponentRegistry());
     }
 
     // Só preview (protótipo, FT-03): nunca toca em FlowRepository/UpdateFlow — monta um Flow

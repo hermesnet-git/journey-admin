@@ -8,11 +8,11 @@ import {
   updateProduct,
   deactivateProduct,
   activateProduct,
+  CHANNEL_TYPE_LABELS,
   type Product,
   type ProductInput,
 } from '../api/products';
 import { ProductFormModal } from './ProductFormModal';
-import { ProductChannelsPage } from './ProductChannelsPage';
 import { ConfirmDialog } from './ConfirmDialog';
 import { ApiClientError } from '../api/client';
 import { ToastProvider, useToast } from './Toast';
@@ -42,8 +42,6 @@ function ProductsPageContent() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
   const [editingProduct, setEditingProduct] = useState<Product | 'new' | null>(null);
-  const [dualProductId, setDualProductId] = useState<string | null>(null);
-  const [newChannelRequest, setNewChannelRequest] = useState<{ productId: string; token: number } | null>(null);
   const [deactivatingProduct, setDeactivatingProduct] = useState<Product | null>(null);
 
   const reload = useCallback(async () => {
@@ -111,13 +109,6 @@ function ProductsPageContent() {
     }
   }
 
-  function handleNewChannel(productId: string) {
-    setDualProductId(productId);
-    setNewChannelRequest((current) => ({ productId, token: (current?.token ?? 0) + 1 }));
-  }
-
-  const selectedProduct = filtered.find((p) => p.productId === dualProductId) ?? filtered[0] ?? null;
-
   return (
     <div className="flex-1 overflow-auto p-[32px_40px] box-border">
       <div className="mb-6">
@@ -126,13 +117,12 @@ function ProductsPageContent() {
         </h1>
         <p className="m-0 text-[13.5px] max-w-[720px]" style={{ color: c.textSecondary }}>
           Produtos organizam suas jornadas por linha de negócio; canais definem por qual meio de
-          atendimento (Web, Mobile, WhatsApp, URA, Contact Center) essas jornadas ficam disponíveis
-          para o cliente. Crie um produto para agrupar essas jornadas e um canal para cada meio de
-          atendimento em que elas devem rodar.
+          atendimento (Web, Mobile, WhatsApp) essas jornadas ficam disponíveis para o cliente. Crie
+          um produto e escolha os canais em que suas jornadas devem rodar.
         </p>
       </div>
 
-      <div className="mb-[18px]">
+      <div className="mb-[18px] flex items-center justify-between gap-3 flex-wrap">
         <div className="relative w-[240px]">
           <Search size={15} className="absolute left-[10px] top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: c.textMuted }} />
           <input
@@ -144,63 +134,37 @@ function ProductsPageContent() {
             style={{ border: `1px solid ${c.border}`, background: c.surface, color: c.textPrimary }}
           />
         </div>
+        <div className="flex items-center gap-2">
+          <FilterDropdown
+            label="Status"
+            options={STATUS_OPTIONS}
+            value={statusFilter}
+            onChange={(v) => setStatusFilter(v as StatusFilter)}
+          />
+          <PrimaryButton onClick={() => setEditingProduct('new')}>
+            <Plus size={14} /> Novo produto
+          </PrimaryButton>
+        </div>
       </div>
 
       {error && <p className="text-[13px]" style={{ color: c.danger }}>{error}</p>}
 
-      <div className="flex gap-5 items-start">
-        <div className="flex-[3] min-w-0 rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-          <div className="flex items-center justify-end gap-2 px-3 py-2 border-b flex-wrap" style={{ borderColor: c.border, background: c.bg }}>
-            <FilterDropdown
-              label="Status"
-              options={STATUS_OPTIONS}
-              value={statusFilter}
-              onChange={(v) => setStatusFilter(v as StatusFilter)}
-            />
-            <PrimaryButton onClick={() => setEditingProduct('new')}>
-              <Plus size={14} /> Novo produto
-            </PrimaryButton>
-          </div>
-          <div className="p-4">
-            {loading ? (
-              <div className="flex flex-col gap-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-[52px] rounded-lg animate-pulse" style={{ background: c.skeletonBg }} />
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <EmptyState hasProducts={products.length > 0} onCreate={() => setEditingProduct('new')} />
-            ) : (
-              <ProductsTable
-                products={filtered}
-                selectedId={selectedProduct?.productId ?? null}
-                onSelect={(p) => setDualProductId(p.productId)}
-                onEdit={setEditingProduct}
-                onDeactivate={setDeactivatingProduct}
-                onActivate={handleActivate}
-              />
-            )}
-          </div>
+      {loading ? (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-[52px] rounded-lg animate-pulse" style={{ background: c.skeletonBg }} />
+          ))}
         </div>
-
-        {!loading && selectedProduct && (
-          <div className="flex-[2] min-w-0 rounded-2xl overflow-hidden" style={{ background: c.surface, border: `1px solid ${c.border}` }}>
-            <div className="flex items-center justify-end px-3 py-2 border-b" style={{ borderColor: c.border, background: c.bg }}>
-              <PrimaryButton onClick={() => handleNewChannel(selectedProduct.productId)}>
-                <Plus size={14} /> Novo canal
-              </PrimaryButton>
-            </div>
-            <div className="p-4">
-              <ProductChannelsPage
-                key={selectedProduct.productId}
-                product={selectedProduct}
-                openNewSignal={newChannelRequest?.productId === selectedProduct.productId ? newChannelRequest.token : undefined}
-                onOpenNewConsumed={() => setNewChannelRequest(null)}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState hasProducts={products.length > 0} onCreate={() => setEditingProduct('new')} />
+      ) : (
+        <ProductsTable
+          products={filtered}
+          onEdit={setEditingProduct}
+          onDeactivate={setDeactivatingProduct}
+          onActivate={handleActivate}
+        />
+      )}
 
       {editingProduct && (
         <ProductFormModal
@@ -213,7 +177,7 @@ function ProductsPageContent() {
       {deactivatingProduct && (
         <ConfirmDialog
           title="Desativar produto"
-          message={`Tem certeza que deseja desativar "${deactivatingProduct.name}"? Os canais e o histórico associados não serão removidos.`}
+          message={`Tem certeza que deseja desativar "${deactivatingProduct.name}"? O histórico associado não será removido.`}
           confirmLabel="Desativar"
           onConfirm={confirmDeactivate}
           onCancel={() => setDeactivatingProduct(null)}
@@ -254,15 +218,11 @@ function EmptyState({ hasProducts, onCreate }: { hasProducts: boolean; onCreate:
 
 function ProductsTable({
   products,
-  selectedId,
-  onSelect,
   onEdit,
   onDeactivate,
   onActivate,
 }: {
   products: Product[];
-  selectedId: string | null;
-  onSelect: (p: Product) => void;
   onEdit: (p: Product) => void;
   onDeactivate: (p: Product) => void;
   onActivate: (p: Product) => void;
@@ -277,27 +237,15 @@ function ProductsTable({
           <tr style={{ background: c.bg }}>
             <th className="text-left px-4 py-2 text-[11.5px] font-semibold border-b" style={thStyle}>Produto</th>
             <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(90)}>Status</th>
-            <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(64)}>Canais</th>
+            <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(140)}>Canais</th>
             <th className="text-left whitespace-nowrap px-4 py-2 text-[11.5px] font-semibold border-b" style={narrow(48)}>Ações</th>
           </tr>
         </thead>
         <tbody>
           {products.map((p, i) => {
-            const selected = p.productId === selectedId;
             const borderBottom = i === products.length - 1 ? 'none' : `1px solid ${c.border}`;
             return (
-              <tr
-                key={p.productId}
-                className="cursor-pointer"
-                style={{ background: selected ? c.accentSoft : 'transparent' }}
-                onClick={() => onSelect(p)}
-                onMouseEnter={(e) => {
-                  if (!selected) e.currentTarget.style.background = c.hoverBg;
-                }}
-                onMouseLeave={(e) => {
-                  if (!selected) e.currentTarget.style.background = 'transparent';
-                }}
-              >
+              <tr key={p.productId}>
                 <td className="align-middle px-4 py-2" style={{ borderBottom }}>
                   <div className="text-[13.5px] font-semibold truncate" style={{ color: c.textPrimary }}>
                     {p.name}
@@ -314,10 +262,10 @@ function ProductsTable({
                 <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom }}>
                   <span className="inline-flex items-center gap-[4px]" style={{ color: c.textSecondary }}>
                     <Boxes size={12} />
-                    {p.channelNames.length}
+                    {(p.channelTypes ?? []).map((t) => CHANNEL_TYPE_LABELS[t]).join(', ') || '—'}
                   </span>
                 </td>
-                <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom }} onClick={(e) => e.stopPropagation()}>
+                <td className="whitespace-nowrap align-middle px-4 py-2" style={{ borderBottom }}>
                   <ActionsMenu
                     label="Ações do produto"
                     actions={[

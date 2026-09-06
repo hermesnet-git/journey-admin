@@ -2,14 +2,14 @@ package com.jouney.admin.application.version;
 
 import com.jouney.admin.application.audit.RecordAuditEvent;
 import com.jouney.admin.application.publication.RuntimePublicationPort;
+import com.jouney.admin.application.publication.SduiScreenPublicationPort;
 import com.jouney.admin.domain.audit.AuditResult;
-import com.jouney.admin.domain.channel.Channel;
-import com.jouney.admin.domain.channel.ChannelNotFoundException;
-import com.jouney.admin.domain.channel.ChannelRepository;
 import com.jouney.admin.domain.channel.ProductInactiveException;
+import com.jouney.admin.domain.componentregistry.ComponentDefinition;
+import com.jouney.admin.domain.componentregistry.ComponentDefinitionRepository;
 import com.jouney.admin.domain.flow.FlowValidator;
-import com.jouney.admin.domain.Status;
-import com.jouney.admin.domain.journey.ChannelInactiveException;
+import com.jouney.admin.domain.flow.SduiEnvelopeBuilder;
+import com.jouney.admin.domain.flow.SduiScreenEnvelope;
 import com.jouney.admin.domain.journey.Journey;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyRepository;
@@ -24,12 +24,14 @@ import com.jouney.admin.domain.version.JourneyVersionRepository;
 import com.jouney.admin.domain.version.VersionHasNoFlowException;
 import com.jouney.admin.domain.version.VersionNotDraftException;
 import com.jouney.admin.domain.version.VersionStatus;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
- * Publishes a DRAFT journey version (REQ-06.04): validates channel/product/flow like the legacy
+ * Publishes a DRAFT journey version (REQ-06.04): validates product/flow like the legacy
  * {@link com.jouney.admin.application.publication.PublishJourney}, sends the version's own
  * snapshot to the runtime, then marks whichever version was previously PUBLISHED as UNPUBLISHED —
  * preserving its snapshot (only its status changes). The core of this (everything past the DRAFT check) is
@@ -40,25 +42,28 @@ import org.springframework.stereotype.Service;
 public class PublishJourneyVersion {
 
     private final JourneyRepository journeyRepository;
-    private final ChannelRepository channelRepository;
     private final ProductRepository productRepository;
     private final JourneyVersionRepository journeyVersionRepository;
     private final PublicationRepository publicationRepository;
     private final RuntimePublicationPort runtimePublicationPort;
     private final RecordAuditEvent recordAuditEvent;
+    private final ComponentDefinitionRepository componentDefinitionRepository;
+    private final SduiScreenPublicationPort sduiScreenPublicationPort;
 
-    public PublishJourneyVersion(JourneyRepository journeyRepository, ChannelRepository channelRepository,
-                                  ProductRepository productRepository,
+    public PublishJourneyVersion(JourneyRepository journeyRepository, ProductRepository productRepository,
                                   JourneyVersionRepository journeyVersionRepository,
                                   PublicationRepository publicationRepository,
-                                  RuntimePublicationPort runtimePublicationPort, RecordAuditEvent recordAuditEvent) {
+                                  RuntimePublicationPort runtimePublicationPort, RecordAuditEvent recordAuditEvent,
+                                  ComponentDefinitionRepository componentDefinitionRepository,
+                                  SduiScreenPublicationPort sduiScreenPublicationPort) {
         this.journeyRepository = journeyRepository;
-        this.channelRepository = channelRepository;
         this.productRepository = productRepository;
         this.journeyVersionRepository = journeyVersionRepository;
         this.publicationRepository = publicationRepository;
         this.runtimePublicationPort = runtimePublicationPort;
         this.recordAuditEvent = recordAuditEvent;
+        this.componentDefinitionRepository = componentDefinitionRepository;
+        this.sduiScreenPublicationPort = sduiScreenPublicationPort;
     }
 
     public JourneyVersion execute(UUID journeyId, UUID versionId) {
@@ -79,12 +84,6 @@ public class PublishJourneyVersion {
         Journey journey = journeyRepository.findById(journeyId)
                 .orElseThrow(() -> new JourneyNotFoundException(journeyId));
 
-        Channel channel = channelRepository.findById(version.getChannelId())
-                .orElseThrow(() -> new ChannelNotFoundException(version.getChannelId()));
-        if (channel.getStatus() != Status.ACTIVE) {
-            throw new ChannelInactiveException(channel.getId());
-        }
-
         Product product = productRepository.findById(version.getProductId())
                 .orElseThrow(() -> new ProductNotFoundException(version.getProductId()));
         if (!product.isActive()) {
@@ -97,16 +96,22 @@ public class PublishJourneyVersion {
         // Salvar não valida mais (rascunho pode ficar inconsistente) — publicar é o único ponto
         // que garante a jornada estruturalmente válida antes de ir ao ar, tanto num publish comum
         // quanto num republish (ambos convergem aqui).
-        FlowValidator.validate(version.getFlowNodes(), version.getFlowConnections());
+        Map<String, ComponentDefinition> componentRegistry = componentDefinitionRepository.findAll().stream()
+                .collect(Collectors.toMap(ComponentDefinition::key, d -> d));
+        FlowValidator.validate(version.getFlowNodes(), version.getFlowConnections(), componentRegistry,
+                version.getChannelTypes());
 
         UUID existingPublicationId = publicationRepository.findByJourneyId(journeyId)
                 .map(Publication::getId).orElse(null);
         Publication publication = Publication.create(existingPublicationId, journeyId, version.getJourneyName(),
                 version.getJourneyDescription(), version.getProductId(), version.getProductName(),
-                version.getChannelId(), version.getChannelName(), version.getChannelType(), version.getFlowNodes(),
-                version.getFlowConnections(), version.getId(), version.getVersionNumber());
+                version.getChannelTypes(), version.getFlowNodes(), version.getFlowConnections(), version.getId(),
+                version.getVersionNumber());
+        List<SduiScreenEnvelope> sduiEnvelopes = SduiEnvelopeBuilder.buildAll(journeyId, version.getVersionNumber(),
+                version.getFlowNodes(), componentRegistry);
         try {
             runtimePublicationPort.publish(publication);
+            sduiScreenPublicationPort.publish(sduiEnvelopes);
         } catch (RuntimeException e) {
             recordAuditEvent.record(auditAction, "JOURNEY_VERSION", version.getId(), AuditResult.FAILURE,
                     Map.of("status", previousStatus), Map.of("error", errorMessage(e)));

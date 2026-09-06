@@ -15,15 +15,63 @@
 | Métrica | Valor |
 |---|---|
 | Total de Features (FT) | 15 |
-| Total de User Stories (US) | 92 |
-| Total de Requisitos (REQ) | 450 |
-| Concluídos (`done`) | 413 |
+| Total de User Stories (US) | 102 |
+| Total de Requisitos (REQ) | 496 |
+| Concluídos (`done`) | 444 |
 | Em andamento (`in_progress`) | 4 |
-| Não iniciados (`todo`) | 31 |
+| Não iniciados (`todo`) | 46 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
-| % Concluído | 92% |
+| % Concluído | 90% |
 
+> **Reformulação (FT-03/FT-04, 2026-09-05): catálogo SDUI corporativo implementado; FT-03 renomeada.**
+> FT-03 "Modelagem Visual" renomeada para "Modelagem Visual de Workflows" (título, sem mudança de
+> REQs). FT-04 renomeada de "Formulários (SDUI)" para "Catálogo Server Driven UI (SDUI)" e
+> reformulada por completo: a lista fixa de 17 tipos de campo (US-04.02, 22 REQs) foi removida e
+> substituída por um Component Registry persistido em tabela (US-04.07, `component_definition`,
+> migrations `V12`/`V13`/`V14`); a tela de uma User Task deixou de ser `FormField[]` plano e passou
+> a ser uma árvore de nós real `{id,type,version,props,bindings,events,visibility,children}`
+> (US-04.08, `domain/sdui/SduiNode` no admin/back — `domain/form/` removido por inteiro); o editor
+> ganhou paleta/canvas recursivo/camadas dirigidos pelo catálogo (US-04.09), e três editores
+> estruturados novos que antes só existiam como texto livre: vínculo de dados por namespace
+> (US-04.10), ações/eventos de um conjunto fechado (US-04.11) e visibilidade condicional (US-04.12,
+> substitui o `visibleIf` que nunca foi avaliado em runtime). Publicação ganhou validação estrutural
+> contra o catálogo (US-04.13) e passou a gerar um pacote com compatibilidade calculada por alvo de
+> renderização, enviado a um repositório de especificação corporativo — Strapi via
+> `ms-espec-registry` (US-04.14); `FormSpecController`/`StepResolver` no `ms-espec-registry` passam
+> a ler a árvore da tela publicada de lá, não mais do admin/back. Perda de capacidade aceita
+> explicitamente: `MULTI_SELECT`/`FILE_UPLOAD`/`RADIO`/`SLIDER`/`RATING`/`STEPPER`/`AUTOCOMPLETE`/
+> `AVATAR`/`BADGE`/`TAG`/`TABS`/`CAROUSEL`/`TABLE` sem equivalente no catálogo v1; canal WEB perde
+> posição livre (x/y), passa a usar `ui.stack`/`ui.container` como os demais canais. **Não testado
+> visualmente pelo usuário** (D&D recursivo, publicação, Catálogo de Componentes) nem contra um
+> Strapi real (token de API ainda não gerado) — ver [[project_sdui_catalog_v1_reformulacao]]. Total
+> FT-04: 30 → 60 REQs (22 removidos junto com US-04.02, 1 removido em US-04.04, 1 em US-04.06, 55
+> novos); total geral: 450 → 480 REQs antes da adição de FT-08 abaixo.
+>
+> **Nova US-02.04 Modelos de jornada (2026-09-06): piloto implementado.** A criação aceita um
+> `templateId` opcional e continua compatível com o canvas em branco quando ausente. O backend é a
+> fonte canônica do catálogo, instancia IDs BPMN-safe novos e grava jornada, fluxo e versão 1
+> `DRAFT` na mesma transação. O frontend lista os modelos dentro da modal “Nova jornada”. O piloto
+> contém somente `aprovacao-pedido`, como esqueleto editável; configurações contextuais continuam a
+> cargo do autor. FT-02: 44 → 50 REQs, concluídos: 42 → 48; total geral: 485 → 491 REQs e 433 → 439
+> concluídos.
+>
+> **Nova US-08.05 Integração com SIEM (FT-08), não iniciada.** 15 REQs cobrindo os controles
+> essenciais de mercado para envio de eventos de auditoria a uma ferramenta de SIEM corporativa:
+> formato padrão (CEF/JSON estruturado) e transporte padrão (Syslog RFC 5424 ou HTTP/HTTPS),
+> segurança do canal (TLS, credencial configurável), confiabilidade de entrega (assíncrono, retry,
+> buffer local, falha do SIEM nunca bloqueia a operação nem o registro local), observabilidade da
+> própria integração (teste de conectividade, log técnico de falha sem recursão), filtragem
+> configurável por categoria/severidade com exceção obrigatória para eventos de indício de
+> ataque/abuso, e a mesma política de dados sensíveis já aplicada ao registro local (US-08.03).
+> Nenhum REQ tem código associado ainda. Total FT-08: 22 → 37 REQs; total geral: 480 → 495 REQs, 413
+> → 443 concluídos (89%).
+>
+> **Correção de contagem (2026-09-05):** o total de requisitos do FT-04 estava divergente entre
+> este resumo (60) e a seção detalhada (62 REQs ativos, contando as 14 User Stories da FT-04
+> reformulada linha a linha). Ajustado para 62, refletido no total geral: 497 REQs, 445 concluídos
+> (90%).
+>
 > **Remoção (FT-04, 2026-09-05): catálogo de Formulários removido do portal admin.** Escopo removido: back-end `domain/application/infrastructure/interfaces/form` (entidade `Form`, CRUD `/api/v1/forms`, migration `V7__drop_form_catalog.sql` derruba a tabela `form`) e front-end `front/src/forms/` (`FormsPage`/`FormBuilderPage`), `api/forms.ts` (funções de catálogo — os tipos `FormField`/`FormFieldType` compartilhados com a tela embutida permanecem), item "Formulários" da sidebar. Também removidos os pontos de acoplamento: ações "Importar formulário"/"Salvar como formulário reutilizável" e endpoint `promote-form` em `FormPreviewDock.tsx`/`FlowController`; a geração de fluxo por IA (`FlowGenerationPrompt`/`GeminiFlowGenerator`) deixou de listar/criar formulários do catálogo (`formId`/`newFormId`/`newForms` saíram do schema da tool) — uma User Task gerada por IA agora só nasce com `messageText` ou preserva a tela de um nó reaproveitado, nunca cria uma tela nova sozinha. O campo `forms`/`JourneyVersion.getForms()` (sempre vazio desde a mudança arquitetural de 2026-08-24, ver nota abaixo) foi removido junto, assim como `JourneySnapshotFactory`. Motivo: o catálogo era só um atalho de cópia opcional sobre o editor de tela embutido (`embeddedScreen`), que já é a fonte de verdade da tela de uma User Task desde 2026-08-24 — mantê-lo como tela própria do admin não trazia benefício e ainda exigia manter a IA ciente de dois sistemas de formulário. `FormField`/`FormFieldType`/`FormSduiSerializer` (o modelo da tela embutida em si, usado na publicação) não foram tocados. REQ-04.01.001/002/003/004/006 e toda a US-04.03 (REQ-04.03.001/002) marcados `removido` (deixam de contar no total); REQ-04.01.007 reescrito removendo a cláusula sobre o catálogo. Total do FT-04: 37 → 30 REQs; total geral: 457 → 450 REQs, 420 → 413 concluídos.
 >
 > **FT-15 Diagnóstico nova (4 USs, 15 REQs), FT-05 ganhou US-05.10 (10 REQs) e REQ-05.07.005:** a tela de Execução & Diagnóstico foi desmembrada — Diagnóstico virou uma funcionalidade própria (menu dedicado), de busca e inspeção de execuções passadas por jornada/business key/instance ID (com tipo de busca explícito, listagem agrupada por versão, ordenável por início, sem listagem antes de buscar), cobrindo execuções tanto do Admin Portal quanto de canais digitais sem distinção (mesmo motor de runtime). US-05.10 documenta o painel de observabilidade compartilhado entre as duas telas: configuração de conector (REST/tópico) em Tarefa de Serviço/Recebimento/Início por Mensagem, condições do Gateway com caminho percorrido, variáveis de entrada do Início com valor real, entrada/saída colapsáveis ("Payload da Mensagem" para tópicos), painel redimensionável horizontalmente, log indicando conector em Tarefa de Recebimento e zoom por scroll no diagrama. REQ-05.07.005 (novo) permite iniciar uma execução direto do grid de Jornadas. Total: FT-05 44 → 55 REQs; FT-15 novo, 15 REQs.
@@ -58,14 +106,14 @@
 
 | FT | Nome | REQs | Concluídos | % |
 |---|---|---:|---:|---:|
-| FT-01 | Gestão de Produtos e Canais | 24 | 24 | 100% |
-| FT-02 | Gestão de Jornadas | 44 | 42 | 95% (1 in_progress) |
-| FT-03 | Modelagem Visual | 96 | 96 | 100% |
-| FT-04 | Formulários (SDUI) | 30 | 30 | 100% |
-| FT-05 | Execução | 55 | 55 | 100% |
+| FT-01 | Gestão de Produtos e Canais | 12 | 12 | 100% |
+| FT-02 | Gestão de Jornadas | 50 | 48 | 96% (1 in_progress) |
+| FT-03 | Modelagem Visual de Workflows | 97 | 97 | 100% |
+| FT-04 | Catálogo Server Driven UI (SDUI) | 64 | 64 | 100% |
+| FT-05 | Execução | 57 | 57 | 100% |
 | FT-06 | Versionamento de jornadas | 42 | 42 | 100% |
 | FT-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
-| FT-08 | Auditoria | 22 | 21 | 95% (1 n/a) |
+| FT-08 | Auditoria | 37 | 21 | 57% (1 n/a, 15 todo) |
 | FT-09 | Ajuda e Suporte | 5 | 5 | 100% |
 | FT-10 | Observabilidade | 12 | 11 | 92% (1 in_progress) |
 | FT-11 | Testes | 12 | 0 | 0% |
@@ -85,20 +133,9 @@
 | [x] | REQ-01.01.001 | O sistema deve permitir cadastrar produtos. | done | back: `POST /api/v1/products`; front: `ProductsPage` (botão "Novo produto") | |
 | [x] | REQ-01.01.002 | O sistema deve permitir editar produtos. | done | back: `PUT /api/v1/products/{id}`; front: `ProductsPage` (ação "Editar") | |
 | [x] | REQ-01.01.003 | O sistema deve permitir consultar produtos. | done | back: `GET /api/v1/products`, `GET /api/v1/products/{id}`; front: `ProductsPage` | |
-| [x] | REQ-01.01.004 | O sistema deve permitir desativar produtos. | done | back: `POST /api/v1/products/{id}/deactivate`; front: `ProductsPage` (ação "Desativar") | |
-| [x] | REQ-01.01.005 | Cada produto deve possuir identificador único (`productId`), nome, descrição opcional e status. | done | back: `Product` domain + `V1__create_product.sql` (`product_id UUID PRIMARY KEY`) | |
-
-### US-01.02 Gestão de canais
-
-| # | REQ | Descrição | Status | Evidência | Notas |
-|---|---|---|---|---|---|
-| [x] | REQ-01.02.001 | O sistema deve permitir cadastrar canais dentro de um produto. | done | back: `POST /api/v1/products/{id}/channels`; front: `ProductChannelsPage` (botão "Novo canal") | |
-| [x] | REQ-01.02.002 | O sistema deve permitir editar canais. | done | back: `PUT /api/v1/channels/{id}`; front: `ProductChannelsPage` (ação "Editar") | |
-| [x] | REQ-01.02.003 | O sistema deve permitir consultar canais. | done | back: `GET /api/v1/channels/{id}`, `GET /api/v1/products/{id}/channels`; front: `ProductChannelsPage` | |
-| [x] | REQ-01.02.004 | O sistema deve permitir desativar canais. | done | back: `POST /api/v1/channels/{id}/deactivate`; front: `ProductChannelsPage` (ação "Desativar") | |
-| [x] | REQ-01.02.005 | Todo canal deve pertencer a exatamente um produto. | done | back: `channel.product_id NOT NULL` + FK (`V2__create_channel.sql`) | |
-| [x] | REQ-01.02.006 | Cada canal deve possuir identificador único (`channelId`), nome, descrição opcional, tipo e status. | done | back: `channel_id UUID PRIMARY KEY` (`V2__create_channel.sql`) + `Channel` domain | |
-| [x] | REQ-01.02.007 | O sistema deve suportar os tipos de canal `WEB`, `MOBILE`, `WHATSAPP`, `URA`, `CONTACT_CENTER` e `OTHER`. | done | back: `ChannelType` enum + CHECK constraint; front: `ChannelFormModal` (Select) | |
+| [x] | REQ-01.01.004 | O sistema deve permitir desativar e reativar produtos. | done | back: `POST /api/v1/products/{id}/deactivate`, `POST /api/v1/products/{id}/activate`; front: `ProductsPage` (ações "Desativar"/"Ativar") | |
+| [x] | REQ-01.01.005 | Cada produto deve possuir identificador único (`productId`), nome, descrição obrigatória e status. | done | back: `Product` domain (`ProductInput.description` `@NotBlank`) + `V1__create_product.sql` (`product_id UUID PRIMARY KEY`) | |
+| [x] | REQ-01.01.006 | Cada produto deve declarar um conjunto não vazio de tipos de canal (`WEB`, `MOBILE`, `WHATSAPP`) pelos quais suas jornadas podem ficar disponíveis. | done | back: `Product.channelTypes` (`requireNonEmpty` → `ProductChannelTypesEmptyException`) + `product_channel_type` (`V16__product_channel_type.sql`); front: `ProductFormModal` (`ChannelTypeChecklist`) | canal deixou de ser um CRUD (`Channel` entity) e virou domínio fixo — ver nota arquitetural abaixo |
 
 ### US-01.03 Catálogo e descoberta
 
@@ -106,21 +143,15 @@
 |---|---|---|---|---|---|
 | [x] | REQ-01.03.001 | O sistema deve permitir pesquisar produtos por nome. | done | back: `GET /api/v1/products?q=`; front: campo de busca em `ProductsPage` | |
 | [x] | REQ-01.03.002 | O sistema deve permitir filtrar produtos por status. | done | back: `GET /api/v1/products?status=`; front: filtro de status em `ProductsPage` | |
-| [x] | REQ-01.03.003 | O sistema deve permitir listar os canais de um produto. | done | back: `GET /api/v1/products/{id}/channels`; front: `ProductChannelsPage` | |
-| [x] | REQ-01.03.004 | O sistema deve permitir pesquisar canais por nome. | done | back: `GET /api/v1/products/{id}/channels?q=`; front: campo de busca em `ProductChannelsPage` | |
-| [x] | REQ-01.03.005 | O sistema deve permitir filtrar canais por produto, tipo e status. | done | back: `?type=&status=` no mesmo endpoint; front: filtros em `ProductChannelsPage` | |
-| [x] | REQ-01.03.006 | O sistema deve exibir a quantidade de canais associados a cada produto. | done | back: `ProductView.channelCount`; front: coluna "Canais" em `ProductsPage` | |
-| [x] | REQ-01.03.007 | O sistema deve exibir a quantidade de jornadas associadas a cada canal. | done | back: `ChannelView.journeyCount` via `JourneyCountPort` → `JourneyCountAdapter` (`countByChannelId` real via JPA); front: coluna "Jornadas" | |
+| [x] | REQ-01.03.006 | O sistema deve exibir os tipos de canal habilitados de cada produto na listagem. | done | back: `ProductView.channelTypes`; front: coluna "Canais" em `ProductsPage` (`CHANNEL_TYPE_LABELS`) | |
 
 ### US-01.04 Integridade e ciclo de vida
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-01.04.001 | A desativação de um produto não deve remover seus canais, jornadas ou publicações existentes. | done | back: `DeactivateProduct` apenas altera `status`, sem exclusão | |
-| [x] | REQ-01.04.002 | A desativação de um canal não deve remover suas jornadas ou publicações existentes. | done | back: `DeactivateChannel` apenas altera `status`, sem exclusão | |
-| [x] | REQ-01.04.003 | O sistema deve impedir a criação e a publicação de jornadas quando o produto ou o canal estiver inativo. | done | back: `CreateJourney` (criação) e `PublishJourney` (publicação) validam canal e produto ativos (`ChannelInactiveException`/`ProductInactiveException`, 422) | |
-| [x] | REQ-01.04.004 | O sistema deve impedir a desativação de um produto enquanto qualquer jornada de seus canais possuir publicação ativa. | done | back: `DeactivateProduct` + `ActivePublicationPort` real (`JourneyPublicationStatusAdapter.existsForProduct`) | testado via curl: 409 com jornada `PUBLISHED`, 200 após despublicar |
-| [x] | REQ-01.04.005 | O sistema deve impedir a desativação de um canal enquanto qualquer uma de suas jornadas possuir publicação ativa. | done | back: `DeactivateChannel` + `ActivePublicationPort` real (`JourneyPublicationStatusAdapter.existsForChannel`) | testado via curl: 409 com jornada `PUBLISHED`, 200 após despublicar |
+| [x] | REQ-01.04.001 | A desativação de um produto não deve remover suas jornadas ou publicações existentes. | done | back: `DeactivateProduct` apenas altera `status`, sem exclusão | |
+| [x] | REQ-01.04.003 | O sistema deve impedir a criação e a publicação de jornadas quando o produto estiver inativo. | done | back: `CreateJourney`/`PublishJourneyVersion` validam produto ativo (`ProductInactiveException`, 422) | |
+| [x] | REQ-01.04.004 | O sistema deve impedir a desativação de um produto enquanto qualquer uma de suas jornadas possuir publicação ativa. | done | back: `DeactivateProduct` + `ActivePublicationPort` real (`JourneyPublicationStatusAdapter.existsForProduct`) | testado via curl: 409 com jornada `PUBLISHED`, 200 após despublicar |
 
 ---
 
@@ -147,8 +178,8 @@
 | [x] | REQ-02.02.002 | O sistema deve permitir definir descrição para a jornada. | done | back: `Journey.description`; front: campo "Descrição" | |
 | [x] | REQ-02.02.003 | Cada jornada deve possuir identificador único (`journeyId`). | done | back: `journey_id UUID PRIMARY KEY` (`V3__create_journey.sql`) | |
 | [x] | REQ-02.02.004 | O identificador da jornada é gerado pelo sistema e não é editável pelo usuário. | done | back: `Journey.create` gera `UUID.randomUUID()`; não exposto como campo editável | |
-| [x] | REQ-02.02.005 | Toda jornada deve estar associada a exatamente um canal. | done | back: `channel_id NOT NULL` + FK (`V3__create_journey.sql`) | |
-| [x] | REQ-02.02.006 | O sistema deve identificar o produto da jornada a partir do canal associado. | done | back: `JourneyViewAssembler` resolve produto via `Channel.productId`; front: exibido em todo lugar | |
+| [x] | REQ-02.02.005 | Toda jornada deve estar associada a um subconjunto não vazio dos tipos de canal habilitados pelo seu produto. | done | back: `Journey.channelTypes` (`journey_channel_type`, `V16__product_channel_type.sql`) + `JourneyChannelValidation` | |
+| [x] | REQ-02.02.006 | Toda jornada deve declarar diretamente o produto ao qual pertence; seus tipos de canal nunca incluem um valor fora do que o produto habilita. | done | back: `Journey.productId` direto; `JourneyChannelValidation.validate(productId, product.getChannelTypes(), requested)` roda em `CreateJourney`/`UpdateJourneyChannels` | |
 
 ### US-02.03 Pesquisa
 
@@ -156,25 +187,36 @@
 |---|---|---|---|---|---|
 | [x] | REQ-02.03.001 | O sistema deve permitir pesquisar jornadas por nome. | done | back: filtro `q` client-side no momento (lista completa retornada); front: busca em `JourneysPage` | |
 | [x] | REQ-02.03.002 | O sistema deve permitir filtrar jornadas por produto. | done | back: `GET /api/v1/journeys?productId=`; front: `FilterDropdown` "Produto" | |
-| [x] | REQ-02.03.003 | O sistema deve permitir filtrar jornadas por canal. | done | back: `GET /api/v1/journeys?channelId=`; front: `FilterDropdown` "Canal" | |
+| [x] | REQ-02.03.003 | O sistema deve permitir filtrar jornadas por tipo de canal. | done | back: `GET /api/v1/journeys?channelType=` (`root.join("channelTypes")`); front: `FilterDropdown` "Canal" | |
 | [x] | REQ-02.03.004 | O sistema deve permitir ordenar jornadas por data de criação. | done | back: `?sort=CREATED_AT`; front: `FilterDropdown` "Ordenar" → "Criadas recentemente" | |
 | [x] | REQ-02.03.005 | O sistema deve permitir ordenar jornadas por data de alteração. | done | back: `?sort=UPDATED_AT` (padrão); front: "Alteradas recentemente" | |
 | [~] | REQ-02.03.006 | O sistema deve permitir agrupar a listagem de jornadas por produto, por produto e canal, por canal, ou sem agrupamento algum. | in_progress | `JourneysPage.tsx` — agrupamento por produto implementado (`groupedByProduct`, cabeçalho de grupo com contagem) | Falta o seletor de modo de agrupamento (produto+canal, somente canal, sem agrupamento) — hoje só existe o agrupamento por produto, fixo |
 | [ ] | REQ-02.03.007 | O sistema deve permitir ordenar a listagem de jornadas, em ordem crescente ou decrescente, pelos campos jornada (nome), canal, status ou data de atualização. | todo | | Não há UI de ordenação por coluna hoje — `listJourneys()` aceita `sort` no client da API, mas `JourneysPage.tsx` nunca o passa |
 
+### US-02.04 Modelos de jornada
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-02.04.001 | Permitir escolher entre fluxo em branco e modelo predefinido ao criar a jornada. | done | front: `NewJourneyModal`; back: `JourneyCreateInput.templateId` | |
+| [x] | REQ-02.04.002 | Listar modelos por identificador, nome e descrição; piloto com “Aprovação de Pedido”. | done | `GET /api/v1/journey-templates`; `PredefinedJourneyTemplateCatalog` | Catálogo fixo, sem CRUD no piloto. |
+| [x] | REQ-02.04.003 | Aplicar o modelo somente ao fluxo, preservando metadados informados pelo usuário. | done | `CreateJourney` usa o modelo apenas ao criar `Flow` | |
+| [x] | REQ-02.04.004 | Gerar identificadores novos em cada instanciação. | done | `JourneyTemplate.instantiate` usa `FlowIds` para Flow, nós e conexões | Coberto por `JourneyTemplateTest`. |
+| [x] | REQ-02.04.005 | Persistir jornada, fluxo e versão inicial coerentes numa única transação. | done | `CreateJourney.execute` com `@Transactional`; `JourneyVersion` nasce dos nós/conexões do Flow persistido | Coberto por `CreateJourneyTest`. |
+| [x] | REQ-02.04.006 | Tratar o modelo como esqueleto editável, sujeito à validação normal. | done | modelo não preenche tela, condição contextual ou conectores; editor abre o Flow criado normalmente | A saída “Reprovação” nasce como padrão; a condição da saída “Aprovação” deve ser configurada pelo autor. |
+
 ### US-02.05 Jornadas específicas por canal
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-02.05.001 | O sistema deve permitir criar jornadas distintas para diferentes canais do mesmo produto. | done | back: cada `Journey` pertence a um único `channel_id`, sem restrição entre canais do mesmo produto | |
+| [x] | REQ-02.05.001 | O sistema deve permitir criar jornadas distintas para diferentes tipos de canal do mesmo produto. | done | back: `Journey.channelTypes` é livre por jornada, sem restrição de exclusividade entre jornadas do mesmo produto | |
 | [x] | REQ-02.05.002 | Cada jornada deve possuir definição independente de fluxo e formulários. | done | back: `flow.journey_id UNIQUE` — um `Flow` por jornada; `FlowNode.embeddedScreen` é desenhado direto no nó (sem `formId`), sem acoplamento entre jornadas | satisfeito desde FT-03/FT-04; evidência atualizada nesta sessão (2026-08-24) — `formId` não existe mais |
 | [x] | REQ-02.05.005 | O painel de propriedades do editor de fluxo deve exibir o identificador (UUID) da jornada, somente leitura, quando nenhum nó estiver selecionado. | done | front: `JourneyPropertiesPanel.tsx`/`JourneyMetaBar.tsx` — linha "ID" monoespaçada, exibida quando `node` é `null` em `PropertiesDock.tsx` | requisito novo nesta sessão (2026-08-24) |
 | [x] | REQ-02.05.003 | Alterações realizadas em uma jornada não devem modificar automaticamente jornadas de outros canais. | done | back: cada `Flow` é uma linha isolada por `journey_id`; `UpdateFlow` só afeta o `flow` da própria jornada | satisfeito desde FT-03 |
-| [x] | REQ-02.05.004 | O sistema deve exibir o produto e o canal durante toda a edição da jornada. | done | front: breadcrumb "Produto › Canal" nos cards/linhas e no modal de edição | |
+| [x] | REQ-02.05.004 | O sistema deve exibir o produto e os tipos de canal durante toda a edição da jornada. | done | front: breadcrumb "Produto · Web, Mobile" (`channelTypes.join(', ')`) nos cards/linhas e no modal de edição | |
 
 ---
 
-## FT-03 Modelagem Visual
+## FT-03 Modelagem Visual de Workflows
 
 ### US-03.01 Flow designer
 
@@ -184,7 +226,7 @@
 | [x] | REQ-03.01.002 | O sistema deve suportar eventos de término. | done | back: `FlowNodeType.END`; front: `NODE_META.end`, `Palette` | |
 | [x] | REQ-03.01.003 | O sistema deve suportar User Tasks. | done | back: `FlowNodeType.USER_TASK`; front: `NODE_META.userTask`, `Palette` | |
 | [x] | REQ-03.01.004 | Cada fluxo deve possuir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um nó `END`. | done | back: `FlowValidator.validate` (contagem de `starts` == 1, `ends` >= 1); front: `validation.ts` (mesma regra) | ajustado de "exatamente um END" para "ao menos um END": um `GATEWAY` (US-03.11) pode ramificar o fluxo em caminhos que terminam em `END`s distintos, sem reconvergir |
-| [x] | REQ-03.01.005 | Ao criar uma jornada, o sistema deve iniciar seu fluxo apenas com o nó `START`, cabendo ao usuário adicionar o nó `END` e os demais elementos antes de salvar. | done | back: `Flow.initial` (`domain/flow/Flow.java`) agora persiste só o nó `START`, sem `END`/conexão; front: `initialFlowNodes`/`initialFlowEdges` (`model.ts`) idem para o estado local antes do load | corrigido: `Flow.initial` criava `START`+`END` já conectados; validação de salvamento (`validateFlow`/`FlowValidator`) exige exatamente um `END` antes de permitir salvar |
+| [x] | REQ-03.01.005 | Uma jornada em branco deve iniciar sem elementos; uma jornada criada por modelo deve iniciar com uma cópia independente do esqueleto escolhido. | done | back: `Flow.initial` cria canvas vazio; `JourneyTemplate.instantiate` cria a cópia selecionada; front: `initialFlowNodes`/`initialFlowEdges` vazios e carregamento normal do Flow persistido | Revisado pela US-02.04. |
 
 ### US-03.02 Conexões
 
@@ -302,6 +344,7 @@
 | [x] | REQ-03.11.006 | O gateway deve possuir ao menos uma entrada e exatamente duas saídas na versão 1.0.0; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição. | done | back: `FlowValidator` (`case GATEWAY`); front: `validation.ts` espelha a mesma regra | testado via publicação real e execução no motor de runtime (curl), ambos os caminhos A e B confirmados |
 | [x] | REQ-03.11.007 | Na publicação, o gateway deve ser traduzido para um `exclusiveGateway` BPMN nativo, com cada `sequenceFlow` de saída carregando a expressão de condição correspondente (ou marcado como fluxo padrão), avaliado pelo próprio motor do runtime. | done | `ms-transform-publication`: `BpmnTransformer` reescrito para construir o grafo via API de baixo nível do `camunda-bpmn-model` (não mais um "chain" linear), gerando `exclusiveGateway`/`sequenceFlow` com `conditionExpression` (`${...}`) e `default` | testado ponta a ponta: publicação real + execução no motor de runtime confirmando os dois caminhos (condição verdadeira → Tarefa A; condição falsa → saída padrão → Tarefa B) |
 | [x] | REQ-03.11.008 | Cada variável de saída deve possuir um tipo declarado (texto, número, booleano, data ou data e hora), inferido automaticamente ao gerar o mapeamento a partir de uma resposta real ou escolhido manualmente. O editor da condição do gateway deve oferecer só os operadores compatíveis com o tipo e um campo de valor no formato correspondente. | done | front: `OutputMappingRule.type` (`model.ts`); `flattenJsonToOutputMappingRules` infere o tipo (`typeof`, mais regex ISO 8601 para data/data e hora); seletor de tipo manual em `OutputMappingEditor` e no formulário de "Testar API"; `GatewayFields` filtra operadores por `OPERATORS_BY_TYPE` e troca o input de valor (`number`/`date`/`datetime-local`/combo verdadeiro-falso) conforme o tipo | variáveis salvas antes dessa mudança (sem `type`) continuam funcionando, tratadas como `string` por padrão |
+| [x] | REQ-03.11.009 | A condição do gateway pode referenciar a variável reservada `channel`, injetada automaticamente pelo tipo de canal que inicia a instância, nunca declarável pelo usuário no nó START. | done | back: `FlowValidator.CHANNEL_VARIABLE` — sempre presente em `startVariableNames`, rejeita (422) qualquer `startVariables`/`outputMapping` que declare o nome `channel`; `SimulationController.start()`/`JourneyController.start()` (ms-espec-registry/ms-journey) injetam a variável real a partir do `?channel=` recebido | requisito novo desta sessão — cobre a jornada multicanal (US-02.02/FT-05) |
 
 ### US-03.12 Variáveis de entrada da jornada
 
@@ -359,9 +402,17 @@
 | [x] | REQ-03.17.005 | Ao concluir a geração, o canvas deve reposicionar automaticamente a visualização do fluxo gerado. | done | front: `handleGenerate` chama `fitViewLeftAligned()` (REQ-03.05.005) ao final | |
 | [x] | REQ-03.17.006 | A geração deve considerar o fluxo já desenhado no canvas (nós, conexões e tela embutida de cada User Task) como contexto — pedido aditivo/pontual não deve remover ou recriar o que não tem relação com ele; id, posição e tela de um nó não afetado devem ser preservados. | done | back: `GenerateFlow.execute` lê `FlowRepository`/passa `currentFlowNodes`/`currentFlowConnections` em `GenerationContext`; `FlowGenerationPrompt.buildUserPrompt`/`SYSTEM_PROMPT` instrui a IA a reusar id de nó existente; `toDomain` preserva id/posição/`embeddedScreen` de um nó cujo id bate com um já existente | requisito novo nesta sessão (2026-08-24) — antes a IA nunca via o fluxo atual, e todo pedido (mesmo aditivo) zerava a jornada |
 
-## FT-04 Formulários (SDUI)
+## FT-04 Catálogo Server Driven UI (SDUI)
 
-> US-04.01 (catálogo de formulários reutilizáveis, CRUD `/api/v1/forms`) foi removida do portal admin em 2026-09-05 — ver nota de remoção no topo deste documento. O restante do FT-04 (tipos de campo, validação, dataSource, SDUI de publicação) descreve o modelo de tela embutida (`embeddedScreen`) de uma User Task, que permanece implementado.
+> **Reformulação completa (2026-09-05):** FT-04 renomeada de "Formulários (SDUI)" — a lista fixa de
+> 17 tipos de campo (US-04.02) e a serialização em tupla (REQ-04.06.002) foram substituídas por um
+> catálogo de componentes em tabela (Component Registry, US-04.07) e uma árvore de nós real
+> (US-04.08), com editor recursivo (US-04.09), vínculo de dados (US-04.10), ações/eventos (US-04.11),
+> visibilidade condicional (US-04.12), validação estrutural (US-04.13) e publicação com envelope
+> canônico até um repositório de especificação corporativo — Strapi via `ms-espec-registry`
+> (US-04.14). Ver nota de changelog no topo deste documento pra motivo/impacto completo. US-04.01
+> (catálogo de formulários reutilizáveis) segue removida desde 2026-09-05 cedo, antes desta
+> reformulação — ver nota de remoção correspondente no topo do documento.
 
 ### US-04.01 Form builder
 
@@ -370,37 +421,40 @@
 | [~] | ~~REQ-04.01.001~~ | ~~O sistema deve permitir criar formulários.~~ | removido | | catálogo de Formulários (CRUD `/api/v1/forms`, `FormsPage`/`FormBuilderPage`) removido em 2026-09-05 — ver nota de remoção no topo deste documento; não conta mais no total de requisitos |
 | [~] | ~~REQ-04.01.002~~ | ~~O sistema deve permitir editar formulários.~~ | removido | | idem REQ-04.01.001 |
 | [~] | ~~REQ-04.01.003~~ | ~~O sistema deve permitir remover formulários.~~ | removido | | idem REQ-04.01.001 |
-| [~] | ~~REQ-04.01.004~~ | ~~O sistema deve permitir usar um formulário do catálogo como modelo de partida ao desenhar a tela de uma User Task (cópia dos campos, sem vínculo persistido).~~ | removido | | idem REQ-04.01.001 — o editor de tela embutido (`FormScreenCanvas.tsx`) continua existindo, só o atalho "Importar formulário" do catálogo saiu |
-| [x] | REQ-04.01.005 | O sistema deve permitir manter uma User Task sem tela desenhada, com uma mensagem configurável exibida ao usuário, suportando `{{nome}}` resolvido em tempo de execução. | done | front: editor de tela embutido, tela vazia = `messageText` livre; back: `FlowNode.messageText`; `ms-espec-registry`: `StepResolver.resolveUserTask`/`resolveMessage`/`resolveSduiNode` sintetizam a árvore SDUI já com os tokens `{{nome}}` resolvidos via `camundaClient.getProcessVariables` — agora inclusive dentro de uma tela real desenhada, não só na mensagem | ver REQ-05.02.005; reescrito nesta sessão (2026-08-24) |
-| [~] | ~~REQ-04.01.006~~ | ~~No editor de tela embutido, o sistema deve permitir importar campos de um formulário existente do catálogo e, separadamente, salvar a tela atual como um novo formulário reutilizável.~~ | removido | | idem REQ-04.01.001 — endpoint `POST /journeys/{id}/flow/nodes/{nodeId}/promote-form` e ações "Importar formulário"/"Salvar como formulário reutilizável" de `FormPreviewDock.tsx` removidos junto |
-| [x] | REQ-04.01.007 | Na tela embutida de uma User Task, o `name` técnico de cada campo é editável a qualquer momento, com unicidade verificada na jornada inteira (REQ-03.09.011). | done | back: `FormField.name`; `FlowValidator` valida unicidade na jornada inteira pra campos de `embeddedScreen`; front: campo "Nome técnico" editável com validação em `FormFieldConfigPanel.tsx` | validação de formato + unicidade cross-node adicionada em 2026-08-24; cláusula sobre unicidade no catálogo removida em 2026-09-05 junto com o catálogo de Formulários |
+| [~] | ~~REQ-04.01.004~~ | ~~O sistema deve permitir usar um formulário do catálogo como modelo de partida ao desenhar a tela de uma User Task (cópia dos campos, sem vínculo persistido).~~ | removido | | idem REQ-04.01.001 |
+| [x] | REQ-04.01.005 | O sistema deve permitir manter uma User Task sem tela desenhada, com uma mensagem configurável exibida ao usuário, suportando `{{nome}}` resolvido em tempo de execução. | done | front: `SduiScreenEditor.tsx` (tela vazia = `messageText` livre); back: `FlowNode.messageText`; `ms-espec-registry`: `StepResolver.resolveUserTask`/`SduiTemplateResolver.resolveMessage`/`messageSdui` — mensagem sem tela agora sintetiza um `ui.screen` de verdade com `ui.text` + `ui.button` (`action.submit`), não mais um "form" implícito | `messageSdui` reescrito em 2026-09-05 pro nó-objeto — o botão "Avançar" precisa existir na árvore agora, não é mais implícito do framework |
+| [~] | ~~REQ-04.01.006~~ | ~~No editor de tela embutido, o sistema deve permitir importar campos de um formulário existente do catálogo e, separadamente, salvar a tela atual como um novo formulário reutilizável.~~ | removido | | idem REQ-04.01.001 |
+| [x] | REQ-04.01.007 | Na tela embutida de uma User Task, cada campo que coleta valor deve possuir um identificador técnico editável a qualquer momento, com unicidade verificada na jornada inteira (REQ-03.09.011). | done | back: `SduiBinding.path` (`form.<nome>`), `FlowValidator.collectFormVariableNames`; `ms-espec-registry`: `SduiForm.fields`/`VariableConversion.fromAnswers` leem o mesmo nome do binding; front: `BindingsEditor.tsx` (namespace `form` + sufixo) | reescrito em 2026-09-05 — não existe mais `FormField.name`; o identificador é o sufixo do binding de valor (ver US-04.10) |
 
 ### US-04.02 Componentes
 
+> **Removida (2026-09-05):** a lista fixa de 17 tipos de campo foi substituída pelo Component
+> Registry em tabela (US-04.07) — todos os REQs abaixo mantêm o texto histórico, riscados.
+
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-04.02.001 | O sistema deve suportar componente de texto. | done | back: `FormFieldType.TEXT`; front: `FIELD_TYPE_META.TEXT`, renderizado como rótulo/parágrafo no preview | absorve o antigo `STATIC_CONTENT` (ver REQ-04.02.006) |
-| [x] | REQ-04.02.002 | O sistema deve suportar campo de entrada. | done | back: `FormFieldType.INPUT`; front: renderizado como `<input>` no preview | subtipo suportado, ver REQ-04.02.007 |
-| [x] | REQ-04.02.003 | O sistema deve suportar seleção simples. | done | back: `FormFieldType.SINGLE_SELECT`; front: editor de opções + preview `<select>` | opções como pares rótulo/valor, ver REQ-04.02.009 |
-| [x] | REQ-04.02.004 | O sistema deve suportar seleção múltipla. | done | back: `FormFieldType.MULTI_SELECT`; front: editor de opções + preview checkboxes | opções como pares rótulo/valor, ver REQ-04.02.009 |
-| [x] | REQ-04.02.005 | O sistema deve suportar upload de arquivo. | done | back: `FormFieldType.FILE_UPLOAD`; front: preview `<input type="file">` | regra de extensão/tamanho suportada, ver REQ-04.02.010 |
-| [~] | ~~REQ-04.02.006~~ | ~~O sistema deve suportar conteúdo estático.~~ | removido | | colapsado em `TEXT` (REQ-04.02.001); não conta mais no total de requisitos |
-| [x] | REQ-04.02.007 | O campo `INPUT` deve suportar subtipos: texto, número, e-mail e data. | done | back: `InputSubtype` (TEXT/NUMBER/EMAIL/DATE), `FormField.inputSubtype`; front: seletor "Subtipo" em `FieldCard`, `<input type>` correspondente no preview | |
-| [x] | REQ-04.02.008 | O sistema deve permitir validação de formato por subtipo de `INPUT` (min/max para número; regex/máscara para texto). | done | back: `FormField.minValue`/`maxValue`/`validationPattern`; front: campos "Mínimo"/"Máximo" (subtipo `NUMBER`) e "Expressão regular" (subtipo `TEXT`) em `FieldCard` | testado via curl: form com `age` (`min:0,max:120`) criado e publicado com sucesso |
-| [x] | REQ-04.02.009 | As opções de seleção simples/múltipla devem ser pares rótulo/valor, não apenas rótulo. | done | back: `FormFieldOption(label,value)` (substitui `List<String>`); front: editor de opções com dois campos (rótulo/valor) em `FieldCard` | leitura retrocompatível de opções antigas (string simples) via `FormFieldOption.LegacyDeserializer`, para não quebrar publicações já existentes |
-| [x] | REQ-04.02.010 | O upload de arquivo deve permitir configurar extensões aceitas e tamanho máximo. | done | back: `FormField.acceptedExtensions`/`maxFileSizeBytes`; front: campos "Extensões aceitas" e "Tamanho máximo (MB)" em `FieldCard`, `accept` aplicado no preview | testado via curl: campo `document` com `[".pdf",".jpg"]` e `5242880` bytes |
-| [x] | REQ-04.02.011 | O sistema deve suportar seção estrutural (`SECTION`), agrupando os campos seguintes em uma grade de colunas configurável. | done | back: `FormFieldType.SECTION`, `FormField.columns`; front: `FormScreenCanvas.tsx` (grid `gridTemplateColumns`), `SduiFormRenderer.tsx` renderiza e recursa nos filhos da seção | requisito novo nesta sessão (2026-08-24), documentando o editor de tela embutido já implementado |
-| [x] | REQ-04.02.012 | O sistema deve suportar botões de opção (`RADIO`). | done | back: `FormFieldType.RADIO`; front: `RadioGroup`/`RadioButton` (Mística) em `SduiFormRenderer.tsx` | requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.013 | O sistema deve suportar interruptor sim/não (`SWITCH`). | done | back: `FormFieldType.SWITCH`; front: `Switch` (Mística) | requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.014 | O sistema deve suportar escala numérica (`SLIDER`). | done | back: `FormFieldType.SLIDER`; front: `Slider` (Mística) | requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.015 | O sistema deve suportar avaliação por estrelas (`RATING`). | done | back: `FormFieldType.RATING`; front: `Rating` (Mística) | requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.016 | O sistema deve suportar contador numérico (`STEPPER`). | done | back: `FormFieldType.STEPPER`; front: `Counter` (Mística) | requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.017 | O sistema deve suportar busca com sugestão (`AUTOCOMPLETE`). | done | back: `FormFieldType.AUTOCOMPLETE`; front: renderizado como `Select` com opções estáticas | fonte de dados dinâmica remota fora do escopo (v1.0.0); requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.018 | O sistema deve suportar título (`TITLE`). | done | back: `FormFieldType.TITLE`; front: `Title2` (Mística) | requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.019 | O sistema deve suportar imagem (`IMAGE`). | done | back: `FormFieldType.IMAGE`; front: `Image` (Mística) | requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.020 | O sistema deve suportar divisor visual (`DIVIDER`). | done | back: `FormFieldType.DIVIDER`; front: `Divider` (Mística) | requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.021 | O sistema deve suportar card de conteúdo (`CARD`). | done | back: `FormFieldType.CARD`; front: `DataCard` (Mística) | requisito novo nesta sessão (2026-08-24) |
-| [x] | REQ-04.02.022 | O sistema deve suportar aviso (`CALLOUT`). | done | back: `FormFieldType.CALLOUT`; front: `Callout` (Mística) | requisito novo nesta sessão (2026-08-24); variantes `info`/`aviso`/`erro` da config caem em `default` — Mística só tem `default`/`brand`/`inverse` |
+| [~] | ~~REQ-04.02.001~~ | ~~O sistema deve suportar componente de texto.~~ | removido | | substituído por `ui.text` no Component Registry (US-04.07) |
+| [~] | ~~REQ-04.02.002~~ | ~~O sistema deve suportar campo de entrada.~~ | removido | | substituído por `ui.textInput` |
+| [~] | ~~REQ-04.02.003~~ | ~~O sistema deve suportar seleção simples.~~ | removido | | substituído por `ui.select` |
+| [~] | ~~REQ-04.02.004~~ | ~~O sistema deve suportar seleção múltipla.~~ | removido | | sem equivalente direto no catálogo v1 — perda de capacidade aceita explicitamente pelo usuário (2026-09-05) |
+| [~] | ~~REQ-04.02.005~~ | ~~O sistema deve suportar upload de arquivo.~~ | removido | | sem equivalente direto no catálogo v1 — perda de capacidade aceita |
+| [~] | ~~REQ-04.02.006~~ | ~~O sistema deve suportar conteúdo estático.~~ | removido | | já removido em 2026-08-24 (colapsado em `TEXT`) |
+| [~] | ~~REQ-04.02.007~~ | ~~O campo `INPUT` deve suportar subtipos: texto, número, e-mail e data.~~ | removido | | substituído por `ui.textInput.inputMode` (text/email/tel/number/decimal/url) |
+| [~] | ~~REQ-04.02.008~~ | ~~O sistema deve permitir validação de formato por subtipo de `INPUT`.~~ | removido | | substituído por `ui.textInput.validation` (lista de regras) |
+| [~] | ~~REQ-04.02.009~~ | ~~As opções de seleção simples/múltipla devem ser pares rótulo/valor.~~ | removido | | substituído por `ui.select.options` (mesmo formato rótulo/valor) |
+| [~] | ~~REQ-04.02.010~~ | ~~O upload de arquivo deve permitir configurar extensões aceitas e tamanho máximo.~~ | removido | | sem equivalente no catálogo v1 — perda de capacidade aceita |
+| [~] | ~~REQ-04.02.011~~ | ~~O sistema deve suportar seção estrutural (`SECTION`).~~ | removido | | substituído por `ui.stack`/`ui.container` (aninhamento real via árvore, US-04.08) |
+| [~] | ~~REQ-04.02.012~~ | ~~O sistema deve suportar botões de opção (`RADIO`).~~ | removido | | sem equivalente no catálogo v1 — perda de capacidade aceita |
+| [~] | ~~REQ-04.02.013~~ | ~~O sistema deve suportar interruptor sim/não (`SWITCH`).~~ | removido | | substituído por `ui.checkbox` |
+| [~] | ~~REQ-04.02.014~~ | ~~O sistema deve suportar escala numérica (`SLIDER`).~~ | removido | | sem equivalente no catálogo v1 — perda de capacidade aceita |
+| [~] | ~~REQ-04.02.015~~ | ~~O sistema deve suportar avaliação por estrelas (`RATING`).~~ | removido | | sem equivalente no catálogo v1 — perda de capacidade aceita |
+| [~] | ~~REQ-04.02.016~~ | ~~O sistema deve suportar contador numérico (`STEPPER`).~~ | removido | | sem equivalente no catálogo v1 — perda de capacidade aceita |
+| [~] | ~~REQ-04.02.017~~ | ~~O sistema deve suportar busca com sugestão (`AUTOCOMPLETE`).~~ | removido | | sem equivalente no catálogo v1 — perda de capacidade aceita |
+| [~] | ~~REQ-04.02.018~~ | ~~O sistema deve suportar título (`TITLE`).~~ | removido | | substituído por `ui.text` com token de tipografia de destaque |
+| [~] | ~~REQ-04.02.019~~ | ~~O sistema deve suportar imagem (`IMAGE`).~~ | removido | | substituído por `ui.image` |
+| [~] | ~~REQ-04.02.020~~ | ~~O sistema deve suportar divisor visual (`DIVIDER`).~~ | removido | | substituído por `ui.divider` |
+| [~] | ~~REQ-04.02.021~~ | ~~O sistema deve suportar card de conteúdo (`CARD`).~~ | removido | | substituído por `ui.card` — agora contêiner de filhos livres, não título/descrição/imagem fixos |
+| [~] | ~~REQ-04.02.022~~ | ~~O sistema deve suportar aviso (`CALLOUT`).~~ | removido | | substituído por `ui.alert` |
 
 ### US-04.03 Reutilização
 
@@ -415,23 +469,127 @@
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-04.04.001 | O usuário deve poder definir campos obrigatórios. | done | back: `FormField.required`; front: checkbox "Campo obrigatório" em `FieldCard` | |
-| [x] | REQ-04.04.002 | O usuário deve poder definir valores padrão, podendo referenciar `{{nome}}` de uma variável do fluxo. | done | back: `FormField.defaultValue`; front: campo "Valor padrão" em `FieldCard`; `ms-espec-registry`: `StepResolver.resolveSduiValue` resolve `{{nome}}` dentro de `defaultValue`; `SduiFormRenderer.tsx` usa o valor resolvido como `initialValues` do campo (editável) | não aplicável a `TEXT`/`FILE_UPLOAD`/campos de seleção; pré-preenchimento via `{{nome}}` adicionado nesta sessão (2026-08-24) |
-| [x] | REQ-04.04.003 | O usuário deve poder definir textos de ajuda. | done | back: `FormField.helpText`; front: campo "Texto de ajuda" em `FieldCard`, exibido no preview | |
+| [x] | REQ-04.04.001 | O usuário deve poder definir campos obrigatórios. | done | back: `PropDescriptor.required` (schema do componente no Registry); front: `SduiPropertiesPanel.tsx`/`PropField` (kind `BOOLEAN`, `ToggleSwitch`) edita `props.required` por instância | reescrito em 2026-09-05 — obrigatoriedade agora é uma propriedade declarada no catálogo, não uma coluna fixa do modelo de campo |
+| [x] | REQ-04.04.002 | O usuário deve poder associar um valor inicial a um componente. | done | back: convenção `props.value` resolvido a partir do binding (`ms-espec-registry`: `SduiTemplateResolver.resolveSduiNode`); front: `execution/SduiNodeRenderer.tsx` (`initialValueOf`) | reescrito em 2026-09-05 — não existe mais "valor padrão" estático definido pelo autor; o valor inicial vem da resolução do vínculo de dados em runtime (US-04.10) |
+| [~] | ~~REQ-04.04.003~~ | ~~O usuário deve poder definir textos de ajuda.~~ | removido | | nenhum componente do catálogo corporativo de referência declara propriedade de texto de ajuda; fora do escopo do catálogo v1 |
 
 ### US-04.05 Preview
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-04.05.001 | O sistema deve permitir visualizar o formulário durante a edição. | done | front: painel "Preview" fixo em `FormBuilderPage` (`FormPreview`) | |
-| [x] | REQ-04.05.002 | O preview deve refletir alterações em tempo real. | done | front: `FormPreview` renderiza diretamente o state `fields` da própria página, sem etapa de sincronização | |
+| [x] | REQ-04.05.001 | O sistema deve permitir visualizar o formulário durante a edição. | done | front: `FormPreviewDock.tsx` (alternância Build/Preview), Preview renderiza via `execution/SduiNodeRenderer.tsx` | |
+| [x] | REQ-04.05.002 | O preview deve refletir alterações em tempo real. | done | front: Preview lê o mesmo state `embeddedScreenRoot` do Build, sem etapa de sincronização | |
 
 ### US-04.06 Imutabilidade e serialização para publicação
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-04.06.001 | Ao publicar uma jornada, a tela embutida (`embeddedScreen`) de cada User Task deve ser copiada/compilada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó. | done | back: `PublicationSnapshotRecord.embeddedScreenSduiOf`/`PublicationRepositoryAdapter`/`JourneyVersionRepositoryAdapter` compilam `embeddedScreen` → `embeddedScreenSdui` e persistem no JSON da publicação/versão | reescrito nesta sessão (2026-08-24) — `SnapshotFormRecord` removido, não existe mais "formulário referenciado" |
-| [x] | REQ-04.06.002 | O snapshot de publicação deve conter, para cada User Task com tela desenhada, uma representação em árvore `[tag, props, children]` (SDUI), derivada da tela congelada (`embeddedScreen`) do nó. | done | back: `FormSduiSerializer.serialize` gera a árvore (17 tags — `ui.section`/`ui.text`/`ui.input`/`ui.select`/`ui.multiselect`/`ui.upload`/`ui.radio`/`ui.switch`/`ui.slider`/`ui.rating`/`ui.stepper`/`ui.autocomplete`/`ui.title`/`ui.image`/`ui.divider`/`ui.card`/`ui.callout`); campo `embeddedScreenSdui` em `SnapshotFlowNodeRecord` | reescrito nesta sessão (2026-08-24) — agora por nó (`SnapshotFlowNodeRecord`), não por formulário (`SnapshotFormRecord`, removido) |
+| [x] | REQ-04.06.001 | Ao publicar uma jornada, a tela embutida de cada User Task deve ser copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó. | done | back: `PublicationSnapshotRecord.from`/`PublicationRepositoryAdapter`/`JourneyVersionRepositoryAdapter` copiam `FlowNode.embeddedScreenRoot` pro JSON da publicação/versão | renomeado em 2026-09-05 pra `embeddedScreenRoot` — não existe mais etapa de "compilação" (`FormSduiSerializer` removido); a árvore publicada é a mesma árvore editada |
+| [~] | ~~REQ-04.06.002~~ | ~~O snapshot de publicação deve conter... uma representação em árvore de nós no formato `[tag, props, children]`...~~ | removido | | substituído pelo pacote de publicação com envelope canônico (US-04.14) — `SduiEnvelopeBuilder`/`SduiScreenEnvelope` |
+
+### US-04.07 Catálogo de Componentes (Component Registry)
+
+> **Nova (2026-09-05).** Reaproveita o mesmo padrão de camadas de `domain/ai/AiProviderCredential`
+> (domínio + porta de repositório + migration + JPA + application + interfaces REST).
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.07.001 | O sistema deve manter um catálogo de componentes disponíveis para compor telas, persistido em tabela própria, não mais uma lista fixa em código. | done | back: `domain/componentregistry/ComponentDefinition`; migration `V12__component_registry.sql` (tabela `component_definition`) | |
+| [x] | REQ-04.07.002 | Cada componente do catálogo deve ser identificado pela combinação de tipo e versão, únicas entre si. | done | back: `ComponentDefinition.type`/`version`, `UNIQUE(type, version)` na migration; `ComponentDefinition.key()` | |
+| [x] | REQ-04.07.003 | Cada componente deve declarar um status: experimental, estável, depreciado ou indisponível. | done | back: `ComponentStatus` (EXPERIMENTAL/STABLE/DEPRECATED/REMOVED) | |
+| [x] | REQ-04.07.004 | Cada componente deve declarar um nível de complexidade e uma categoria, usados para organizar a paleta do editor. | done | back: `ComponentDefinition.level`/`category` (`ComponentCategory`: CONTENT/LAYOUT/INPUT/ACTION/FEEDBACK); front: `sdui/SduiComponentPalette.tsx` agrupa por categoria | |
+| [x] | REQ-04.07.005 | Cada componente deve declarar se aceita filhos ou é uma folha que não aceita. | done | back: `ComponentDefinition.allowsChildren` | |
+| [x] | REQ-04.07.006 | Cada componente deve declarar o schema de suas propriedades configuráveis. | done | back: `PropDescriptor` (name/kind/required/defaultValue/tokenGroup/enumValues), `PropKind` (TEXT/NUMBER/BOOLEAN/ENUM/TOKEN/OPTIONS_LIST/VALIDATION_LIST) | |
+| [x] | REQ-04.07.007 | Cada componente deve declarar quais eventos pode disparar. | done | back: `ComponentDefinition.events` (lista de nomes de evento) | |
+| [x] | REQ-04.07.008 | Cada componente deve declarar sua compatibilidade por alvo de renderização, incluindo versão mínima. | done | back: `TargetSupport(status,minRendererVersion)`, `RenderTarget.ALL` (react.web/react.mobile/flutter.web/flutter.mobile) | seed inicial marca só `react.web` como `SUPPORTED` — único renderer real hoje; os outros 3 alvos como `PLANNED` |
+| [x] | REQ-04.07.009 | O sistema deve disponibilizar uma tela de administração do catálogo, com listagem, criação, edição e remoção. | done | front: `sdui/ComponentCatalogPage.tsx` + `sdui/ComponentDefinitionFormModal.tsx`, menu Configurações > Componentes SDUI | não testado visualmente pelo usuário ainda |
+| [x] | REQ-04.07.010 | A leitura do catálogo deve ser permitida a qualquer papel autenticado; escrita restrita a administrador. | done | back: `interfaces/componentregistry/ComponentDefinitionController` (`@PreAuthorize`) | |
+| [x] | REQ-04.07.011 | Remover um componente não deve apagar seu registro — deve marcá-lo como indisponível. | done | back: `DeleteComponentDefinition.execute` → `ComponentDefinition.markRemoved()` (nunca `DELETE` de linha) | |
+| [x] | REQ-04.07.012 | O sistema deve prover, desde a primeira instalação, um catálogo inicial com os componentes do contrato corporativo de referência. | done | back: migration `V13__seed_component_catalog_v1.sql` (19 componentes `ui.*`) | |
+
+### US-04.08 Estrutura da árvore de tela
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.08.001 | A tela de uma User Task deve ser representada por uma árvore de nós, não mais por uma lista plana de campos. | done | back: `domain/sdui/SduiNode`; `FlowNode.embeddedScreenRoot: SduiNode` | `domain/form/` (FormField/FormFieldType/FormFieldOption/InputSubtype/FormSduiSerializer) removido por inteiro |
+| [x] | REQ-04.08.002 | Cada nó deve possuir identificador único na tela, tipo e versão correspondentes a um componente do catálogo. | done | back: `SduiNode(id,type,version,...)` | |
+| [x] | REQ-04.08.003 | Cada nó deve poder conter propriedades conforme o schema do componente. | done | back: `SduiNode.props: Map<String,Object>` | |
+| [x] | REQ-04.08.004 | Cada nó deve poder conter vínculo de dados, eventos e visibilidade condicional. | done | back: `SduiNode.bindings`(`SduiBinding`)/`events`(`SduiEvent`)/`visibility`(`SduiVisibility`) | |
+| [x] | REQ-04.08.005 | Um nó só deve conter filhos se o componente aceitar filhos; profundidade de aninhamento não limitada. | done | back: `FlowValidator.validateSduiNode` (checa `allowsChildren` antes de aceitar `children`); front: `SduiTreeCanvas.tsx`/`sdui/model.ts` (`insertNode`/`moveNode` recursivos, sem limite de profundidade) | |
+| [x] | REQ-04.08.006 | A raiz da árvore deve ser sempre um único nó do tipo contêiner de tela. | done | back: `FlowValidator.validateEmbeddedScreen` (rejeita raiz que não seja `ui.screen`) | |
+| [x] | REQ-04.08.007 | A árvore editada deve ser a mesma árvore publicada, sem compilação/projeção intermediária. | done | back: `embeddedScreenRoot` é o mesmo valor em editor e snapshot (sem `FormSduiSerializer`) | |
+
+### US-04.09 Editor de componentes
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.09.001 | O sistema deve exibir uma paleta de componentes agrupada por categoria, alimentada pelo catálogo. | done | front: `sdui/SduiComponentPalette.tsx` (agrupa por `ComponentDefinition.category`, busca por nome) | |
+| [x] | REQ-04.09.002 | O usuário deve poder inserir um componente da paleta na árvore por arrastar-e-soltar. | done | front: `sdui/SduiScreenEditor.tsx` (`DndContext`/`handleDragEnd` → `insertNode`) | dnd-kit puro (`useDraggable`/`useDroppable`), sem `@dnd-kit/sortable` |
+| [x] | REQ-04.09.003 | O sistema deve permitir soltar um componente só dentro de outro que aceite filhos. | done | front: `SduiScreenEditor.handleDragEnd` só chama `insertNode` se `targetDefinition.allowsChildren`; `SduiTreeCanvas.tsx` só registra `useDroppable` em containers | |
+| [x] | REQ-04.09.004 | O usuário deve poder mover um componente para dentro de outro contêiner compatível. | done | front: `sdui/model.ts` (`moveNode`) | soltar sempre insere no fim dos filhos do alvo — sem reordenar por posição fina dentro de um nível (ver REQ-04.09.007 pra isso) |
+| [x] | REQ-04.09.005 | O sistema não deve permitir mover um componente para dentro de si mesmo ou de um descendente. | done | front: `SduiScreenEditor.handleDragEnd` (`collectIds` do subtree do nó arrastado, rejeita se o alvo estiver nele) | |
+| [x] | REQ-04.09.006 | O usuário deve poder remover um componente; remover um contêiner remove os filhos. | done | front: `sdui/model.ts` (`removeNode`, recursivo) | |
+| [x] | REQ-04.09.007 | O sistema deve exibir um painel de camadas com a hierarquia, permitindo selecionar, reordenar entre irmãos e remover. | done | front: `sdui/SduiLayersPanel.tsx` (`moveWithinSiblings` pra subir/descer) | |
+| [x] | REQ-04.09.008 | O usuário deve poder editar as propriedades do componente selecionado, com campo apropriado por tipo. | done | front: `sdui/SduiPropertiesPanel.tsx`/`PropField` (TEXT/NUMBER/BOOLEAN/ENUM/TOKEN/OPTIONS_LIST/VALIDATION_LIST) | |
+| [x] | REQ-04.09.009 | No modo de construção, os componentes não devem aceitar digitação de valores reais. | done | front: `sdui/SduiTreeCanvas.tsx` renderiza só ícone+rótulo por nó, nunca o campo real | corrige regressão do sistema anterior (canvas antigo reaproveitava o renderer interativo direto na edição) |
+| [x] | REQ-04.09.010 | O sistema deve oferecer um modo de pré-visualização alternável com o de construção. | done | front: `FormPreviewDock.tsx` (abas Build/Preview) | |
+
+### US-04.10 Vínculo de dados
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.10.001 | O usuário deve poder associar o valor de um componente a um caminho por namespace e nome. | done | front: `sdui/BindingsEditor.tsx` (`NamespacePathInput`, `BINDING_NAMESPACES` = form/data/session/route/computed) | |
+| [x] | REQ-04.10.002 | O vínculo deve poder ser leitura-e-escrita ou somente leitura. | done | back: `SduiBinding.mode` (oneWay/twoWay) | |
+| [x] | REQ-04.10.003 | Um componente sem vínculo não deve gerar variável de processo nem entrar no envio. | done | `ms-espec-registry`: `SduiForm.fields` só coleta nós com `bindings.value` presente | |
+| [x] | REQ-04.10.004 | Ao configurar vínculo no namespace de variável do fluxo, o sistema deve sugerir nomes já conhecidos. | done | front: `BindingsEditor.tsx` (`<datalist>` alimentada por `VariableOrigin[]`) | só form/data têm sugestão — session/route/computed não têm fonte de sugestão neste admin |
+| [x] | REQ-04.10.005 | O identificador técnico do campo é o nome usado no vínculo `form.*`, com unicidade na jornada inteira. | done | back: `FlowValidator.collectFormVariableNames`; `ms-espec-registry`: `SduiForm.fields`/`VariableConversion.fromAnswers` (mesma convenção `form.<nome>`) | |
+
+### US-04.11 Ações e eventos
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.11.001 | O usuário deve poder associar um evento a uma ação de um conjunto fechado. | done | front: `sdui/EventsEditor.tsx` (`SDUI_ACTIONS`: action.submit/navigate/openUrl/setValue/track/dismiss) | |
+| [x] | REQ-04.11.002 | Os eventos oferecidos devem se limitar aos que o componente realmente dispara. | done | front: `EventsEditor` recebe `availableEvents` de `ComponentDefinition.events` | |
+| [x] | REQ-04.11.003 | Cada ação deve permitir configurar parâmetros próprios. | done | front: `EventsEditor.tsx` (`ParamsRows`, pares chave/valor livres) | |
+| [x] | REQ-04.11.004 | Um componente não deve disparar ação fora do conjunto fechado. | done | back: `FlowValidator.validateSduiNode` (`VALID_SDUI_ACTIONS`); `ms-espec-registry`: `sdui/ActionRegistry.validate` | validado nos dois lados: publicação (admin/back) e resolução em runtime (ms-espec-registry) |
+
+### US-04.12 Visibilidade condicional
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.12.001 | O usuário deve poder condicionar a exibição a uma comparação com o contexto de dados. | done | back: `SduiVisibility(rule,path,value)`; front: `sdui/VisibilityEditor.tsx` | |
+| [x] | REQ-04.12.002 | As comparações suportadas devem incluir igualdade e diferença. | done | front: `VisibilityEditor.tsx` (`RULES`: equals/notEquals) | |
+| [x] | REQ-04.12.003 | Um componente sem condição configurada deve ser sempre exibido. | done | front: `execution/SduiNodeRenderer.tsx` (`evaluateVisibility` retorna `true` quando `visibility == null`) | avaliação ao vivo no simulador só cobre o namespace `form` contra valores controlados localmente (checkbox/textarea) — gap documentado em código (`ponytail:`) |
+| [x] | REQ-04.12.004 | As comparações também devem suportar "está em"/"não está em" uma lista de valores, usado para condicionar um componente a um subconjunto dos tipos de canal da jornada (`session.channel`). | done | back: `SduiVisibility` — regras `in`/`notIn` (`value` como lista), avaliadas por `FlowValidator.isVisibleForChannel` contra `session.channel`; front: `VisibilityEditor.tsx` oferece as duas regras com seletor de múltiplos tipos de canal quando o path é `session.channel` | requisito novo desta sessão |
+
+### US-04.13 Validação estrutural
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.13.001 | Rejeitar publicação com identificador de componente duplicado na tela. | done | back: `FlowValidator.validateSduiNode` (`seenIds`) | |
+| [x] | REQ-04.13.002 | Rejeitar publicação com tipo de componente não encontrado no catálogo. | done | back: `FlowValidator.validateSduiNode` (busca no `componentRegistry` por `type@version`) | |
+| [x] | REQ-04.13.003 | Rejeitar publicação com componente marcado indisponível. | done | back: `FlowValidator.validateSduiNode` (`ComponentStatus.REMOVED`) | |
+| [x] | REQ-04.13.004 | Rejeitar publicação com filho sob componente que não aceita filhos. | done | back: `FlowValidator.validateSduiNode` (`!definition.isAllowsChildren()`) | |
+| [x] | REQ-04.13.005 | Rejeitar publicação com vínculo de namespace desconhecido. | done | back: `FlowValidator.VALID_BINDING_NAMESPACES` | |
+| [x] | REQ-04.13.006 | Rejeitar publicação com evento associado a ação fora do conjunto fechado. | done | back: `FlowValidator.VALID_SDUI_ACTIONS` | |
+| [x] | REQ-04.13.007 | Informar todas as violações encontradas, não só a primeira. | done | back: `FlowValidationException` acumula `violations` numa lista antes de lançar | mesmo mecanismo já usado pelo resto de `FlowValidator` |
+| [x] | REQ-04.13.008 | Rejeitar publicação quando, para algum tipo de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo. | done | back: `FlowValidator.validateChannelVisibilityCoverage`/`hasVisibleLeafContent`, chamado por `validateSduiTree` para cada `ChannelType` da jornada sendo publicada | requisito novo desta sessão |
+
+### US-04.14 Publicação e repositório de especificação corporativo
+
+> Fluxo completo implementado (admin/back → `ms-espec-registry` → Strapi), mas **não testado fim a
+> fim** — falta gerar o token de API do Strapi (`STRAPI_API_TOKEN`) e confirmar contra uma instância
+> real. Ver [[project_sdui_catalog_v1_reformulacao]] pra detalhes de gaps.
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.14.001 | Ao publicar, gerar um pacote por tela identificando jornada, tela e revisão. | done | back: `domain/flow/SduiScreenEnvelope`, `SduiEnvelopeBuilder.buildAll` | |
+| [x] | REQ-04.14.002 | O pacote deve indicar alvos compatíveis, calculados pela interseção dos componentes usados. | done | back: `SduiEnvelopeBuilder` (interseção de `supportedTargets` com status `SUPPORTED`) | |
+| [x] | REQ-04.14.003 | O pacote deve indicar, por alvo, a versão mínima de renderizador (a maior exigida). | done | back: `SduiEnvelopeBuilder.compareVersions` (comparação numérica major.minor.patch) | |
+| [x] | REQ-04.14.004 | Enviar o pacote a um serviço de repositório de especificação corporativo. | done | back: `application/publication/SduiScreenPublicationPort` + `infrastructure/publication/EspecRegistrySduiAdapter` (`POST /api/v1/sdui-snapshots`), chamado em `PublishJourneyVersion.goLive()` | reaproveita a property `app.espec-registry.base-url` já existente |
+| [x] | REQ-04.14.005 | Nova publicação da mesma tela nunca sobrescreve — gera revisão nova, marca a anterior substituída. | done | `ms-espec-registry`: `sdui/StrapiSnapshotRepository.save` (busca revisão anterior, marca `status=deprecated`, só então grava a nova) | não testado contra Strapi real — ver aviso da US |
+| [x] | REQ-04.14.006 | Em execução, a tela deve ser lida sempre da última revisão publicada, nunca do estado em edição. | done | `ms-espec-registry`: `simulation/StepResolver.resolveUserTask`/`FormSpecController` leem via `SnapshotRepository.findLatestPublished(journeyId, screenId=node.id())` | `FlowNode.embeddedScreenRoot` (mirror do admin/back) virou só sinalizador `hasEmbeddedScreen()` — a árvore de verdade não trafega mais por ali |
+| [x] | REQ-04.14.007 | O resto da resolução de uma jornada (mensagens, integrações, decisões) não depende do repositório de especificação corporativo. | done | `ms-espec-registry`: `StepResolver`/`FormSpecController` continuam usando `AdminBackClient.getPublicationSnapshot` pra tudo que não é a árvore da tela | decisão de escopo explícita — o catálogo SDUI não assume a responsabilidade do resto do motor de fluxo |
 
 ---
 
@@ -473,6 +631,7 @@ A execução roda contra o motor de runtime real: `ms-espec-registry` (`simulaco
 | [x] | REQ-05.04.001 | O sistema deve executar a jornada publicada contra o motor de runtime real, não um motor simplificado interno ao Admin Portal. | done | `ms-espec-registry` (`CamundaClient.java`) chama a REST API real do Camunda 7 (`engine-rest`), a mesma que `ms-transform-publication` usa para implantar | Exige jornada publicada — ver ajuste no Objetivo da feature em `ej-admin-requisitos.md` |
 | [x] | REQ-05.04.002 | Na versão 1.0.0, as integrações REST externas referenciadas pelas jornadas devem ser emuladas por um serviço de mock dedicado, já que não há sistemas de terceiros reais disponíveis. | done | `ms-mock-api-rest` (`simulacoes/ms-mock-api-rest`) — 10 endpoints estáticos, um por chamada REST real usada na massa de dados de teste | |
 | [x] | REQ-05.04.003 | As integrações Kafka referenciadas pelas jornadas devem executar contra um broker Kafka real, com publicação e consumo de mensagens efetivos. | done | `KafkaBridgeScheduler.java` (`ms-espec-registry`) — `@Scheduled` único que produz (fetchAndLock em lote + `KafkaTemplate.send`) e consome (`KafkaConsumer` inscrito nos tópicos descobertos), contra um broker Kafka 4.3.1 local (KRaft) | Verificado ao vivo publicando/consumindo mensagem real em ambos os sentidos |
+| [x] | REQ-05.04.004 | Toda instância deve ser iniciada informando um tipo de canal, validado contra os tipos habilitados na jornada publicada; o motor deve receber esse valor como variável de processo reservada `channel`. | done | back: `SimulationController.start()` (ms-espec-registry) e `JourneyController.start()` (ms-journey) exigem `?channel=`, rejeitam com `UnsupportedChannelException` se fora de `snapshot.channelTypes()`, e injetam `startVariables.put("channel", ...)` antes de iniciar a instância no motor | requisito novo desta sessão |
 
 ### US-05.05 Etapas de integração
 
@@ -499,9 +658,10 @@ A execução roda contra o motor de runtime real: `ms-espec-registry` (`simulaco
 |---|---|---|---|---|---|
 | [x] | REQ-05.07.001 | O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado. | done | `JourneySearch.tsx` — dropdown lista todas as jornadas ao focar o campo, com rolagem (até 360px de altura), filtrando conforme o texto digitado; sem limite de resultados | Comportamento revisado: a versão anterior deste requisito (`sem exigir listar todas de uma vez`) foi trocada a pedido do usuário — ver changelog |
 | [x] | REQ-05.07.002 | A execução deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas. | done | `ExecutionsPage.tsx` troca `JourneySearch` ↔ `ExecutionWorkspace` por estado local, sem rota/navegação | |
-| [x] | REQ-05.07.003 | A pré-visualização da execução deve se adaptar ao canal da jornada (Web ou App), incluindo uma representação visual compatível com o canal (ex.: layout de dispositivo móvel para jornadas de canal App). | done | `DevicePreview.tsx` — canal `MOBILE` renderiza dentro de `PhoneFrame.tsx` (moldura de celular); `WEB` renderiza num card largo | Mística não tem componente de moldura de dispositivo pronto; construído à mão |
+| [x] | REQ-05.07.003 | A pré-visualização da execução deve se adaptar ao tipo de canal escolhido para a instância, incluindo uma representação visual compatível (ex.: layout de dispositivo móvel para `MOBILE`). | done | `DevicePreview.tsx` — tipo `MOBILE` renderiza dentro de `PhoneFrame.tsx` (moldura de celular); `WEB`/`WHATSAPP` renderizam num card largo | Mística não tem componente de moldura de dispositivo pronto; construído à mão |
 | [x] | REQ-05.07.004 | O sistema deve exibir o número da versão publicada da jornada (`v<N>`) tanto na lista de busca quanto no cabeçalho de uma execução em andamento. | done | back: `JourneyResponse.publishedVersionNumber` (já existente) espelhado em `ms-espec-registry` (`JourneySummary.publishedVersionNumber`); front: `ExecutionToolbar.tsx` — "· vN" no item da busca e no cabeçalho de execução; `StartPanel.tsx` — mesma exibição na tela de início | requisito novo nesta sessão (2026-08-24) |
 | [x] | REQ-05.07.005 | O sistema deve permitir iniciar a execução de uma jornada publicada diretamente do grid de Jornadas, abrindo uma aba de Execução dedicada já com essa jornada selecionada. | done | front: `JourneysPage.tsx` — ação "Executar jornada" (`JourneyActions`, só para jornadas `PUBLISHED`) chama `onExecuteJourney`; `App.tsx` (`openExecuteJourneyTab`) abre uma aba nova (`kind: 'execution'`, chave por `journeyId`) com `initialJourney`; `ExecutionsPage.tsx` semeia `selected`/`query` a partir dele, pulando direto pro `StartPanel` | requisito novo nesta sessão |
+| [x] | REQ-05.07.006 | Quando a jornada tiver mais de um tipo de canal habilitado, o sistema deve permitir escolher qual tipo simular antes de iniciar; com um único tipo, deve usá-lo automaticamente. | done | front: `StartPanel.tsx` — seletor de canal exibido só quando `journey.channelTypes.length > 1` (`channelType` inicializado com `journey.channelTypes[0]`), enviado a `startInstance(journeyId, channelType, ...)` | requisito novo desta sessão |
 
 ### US-05.08 Tratamento de falhas de integração
 
@@ -570,7 +730,7 @@ A execução roda contra o motor de runtime real: `ms-espec-registry` (`simulaco
 | [x] | REQ-02.07.001 | O sistema deve indicar se uma jornada está publicada. | done | back: `JourneyResponse.status`; front: `JourneyStatusTag` | |
 | [x] | REQ-02.07.002 | O sistema deve indicar a data da publicação. | done | back: `JourneyResponse.publishedAt` (via `JourneyViewAssembler` + `PublicationRepository`); front: "Publicada em ..." em `JourneyCard`/`JourneyRow` | |
 | [x] | REQ-02.07.003 | O sistema deve indicar o produto associado à publicação. | done | front: `journey.productName` já exibido em todo lugar da listagem (produto é imutável por jornada) | |
-| [x] | REQ-02.07.004 | O sistema deve indicar o canal associado à publicação. | done | front: `journey.channelName` já exibido em todo lugar da listagem | |
+| [x] | REQ-02.07.004 | O sistema deve indicar os tipos de canal associados à publicação. | done | front: `journey.channelTypes.join(', ')` já exibido em todo lugar da listagem | |
 
 ### US-02.08 Catálogo de publicações
 
@@ -579,7 +739,7 @@ A execução roda contra o motor de runtime real: `ms-espec-registry` (`simulaco
 | [x] | REQ-02.08.001 | O sistema deve permitir listar jornadas publicadas. | done | back/front: mesma listagem de Jornadas, filtro de status "Publicadas" — sem menu novo, por decisão de produto | |
 | [x] | REQ-02.08.002 | O sistema deve permitir pesquisar jornadas publicadas. | done | front: campo de busca de `JourneysPage`, combinável com o filtro "Publicadas" | |
 | [x] | REQ-02.08.003 | O sistema deve permitir filtrar jornadas publicadas por produto. | done | back: `GET /api/v1/journeys?productId=&status=PUBLISHED`; front: `FilterDropdown` "Produto" | |
-| [x] | REQ-02.08.004 | O sistema deve permitir filtrar jornadas publicadas por canal. | done | back: `GET /api/v1/journeys?channelId=&status=PUBLISHED`; front: `FilterDropdown` "Canal" | |
+| [x] | REQ-02.08.004 | O sistema deve permitir filtrar jornadas publicadas por tipo de canal. | done | back: `GET /api/v1/journeys?channelType=&status=PUBLISHED`; front: `FilterDropdown` "Canal" | |
 
 ---
 
@@ -590,7 +750,7 @@ A execução roda contra o motor de runtime real: `ms-espec-registry` (`simulaco
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
 | [x] | REQ-02.09.001 | O Admin Portal deve iniciar a publicação por meio de uma chamada de saída para a API de publicação do runtime. | done | back: `PublishJourney`/`UnpublishJourney` chamam `RuntimePublicationPort` (`PublicationAdapter`, chamada HTTP real via `RestClient`) | |
-| [x] | REQ-02.09.002 | A chamada deve enviar a definição completa da jornada, incluindo produto, canal e o fluxo com a tela embutida (já compilada) de cada User Task. | done | back: `Publication` (passada para `RuntimePublicationPort.publish`) carrega jornada, produto, canal, `FlowNode`/`FlowConnection` — cada nó com `embeddedScreenSdui` já compilado, sem lista de formulários | reescrito nesta sessão (2026-08-24) — `forms` removido do snapshot enviado |
+| [x] | REQ-02.09.002 | A chamada deve enviar a definição completa da jornada, incluindo produto, tipos de canal e o fluxo com a tela embutida (já compilada) de cada User Task. | done | back: `Publication` (passada para `RuntimePublicationPort.publish`) carrega jornada, produto, `channelTypes`, `FlowNode`/`FlowConnection` — cada nó com `embeddedScreenSdui` já compilado, sem lista de formulários | |
 | [x] | REQ-02.09.003 | O Admin Portal deve realizar uma chamada de saída real (HTTP) para a API de publicação do runtime. Após sucesso, substitui o snapshot anterior e altera o estado da jornada para `PUBLISHED`; em caso de falha, o erro propaga e nenhum estado é alterado. | done | back: `PublicationAdapter.publish` faz `POST` real via `RestClient`; falhas de rede/HTTP lançam `RuntimePublicationException` (mapeada para 502 `RUNTIME_UNAVAILABLE`), e `PublishJourney` só persiste `Publication`/`journey.publish()` depois da chamada não lançar | Deixou de ser mock: testado via curl ponta a ponta publicando de fato no runtime configurado |
 | [x] | REQ-02.09.004 | Ao despublicar, o Admin Portal deve chamar a API de publicação do runtime para remover/desfazer a publicação. Após sucesso, jornada e publicação assumem `UNPUBLISHED`; em caso de falha, os estados atuais são preservados. | done | back: `PublicationAdapter.unpublish` faz `DELETE` real via `RestClient`; falha lança `RuntimePublicationException` (502); `UnpublishJourney` só chama `journey.unpublish()`/`save` após a chamada não lançar | Deixou de ser mock: testado via curl ponta a ponta despublicando de fato no runtime configurado; jornada assume `UNPUBLISHED` (registro preservado, ver REQ-02.06.004) |
 | [x] | REQ-02.09.005 | Ao publicar, o número da versão publicada deve ser gravado como a tag de versão do processo implantado no runtime, distinta do contador de implantação que o próprio runtime mantém internamente. | done | back: `BpmnTransformer` (`ms-transform-publication`) — grava a tag de versão do processo implantado (`"v" + request.versionNumber()`); `PublicationSnapshotRecord`/`PublicationSnapshotRequest.versionNumber` (novo campo) leva o número até lá | requisito novo nesta sessão (2026-08-24) — a tela de inspeção do runtime mostrava só o contador interno de implantação, sem jeito de saber qual versão do Admin Portal estava publicada |
@@ -766,6 +926,29 @@ Observação: a ocultação de botões de criar/editar por papel não foi replic
 | [x] | REQ-08.04.004 | O sistema deve apresentar os eventos em ordem cronológica e com paginação. | done | back: `Pageable`, ordenado por `occurred_at DESC`; front: paginação de 20 registros por página | |
 
 Observação: os registros não armazenam senhas, tokens, segredos ou outros dados sensíveis (REQ-08.03.003/004).
+
+### US-08.05 Integração com SIEM
+
+> **Nova (2026-09-05), não iniciada** — envio dos eventos de auditoria a uma ferramenta de SIEM
+> corporativa (formato/transporte padrão de mercado). Nenhum REQ desta US tem código associado ainda.
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [ ] | REQ-08.05.001 | O sistema deve permitir configurar o envio dos eventos de auditoria a uma ferramenta de SIEM corporativa, habilitável e desabilitável por ambiente sem alteração de código. | todo | | |
+| [ ] | REQ-08.05.002 | O sistema deve exportar cada evento de auditoria em um formato padrão de mercado (ex.: CEF, ou JSON estruturado equivalente), preservando os campos mínimos já exigidos para o evento local. | todo | | |
+| [ ] | REQ-08.05.003 | O sistema deve transportar os eventos ao SIEM por um canal padrão de mercado — Syslog (RFC 5424) sobre TCP, ou endpoint HTTP/HTTPS. | todo | | |
+| [ ] | REQ-08.05.004 | A comunicação com o SIEM deve ser cifrada em trânsito (TLS). | todo | | |
+| [ ] | REQ-08.05.005 | A integração deve se autenticar perante o SIEM, com credencial configurável por ambiente, nunca embutida em código-fonte. | todo | | |
+| [ ] | REQ-08.05.006 | O timestamp de cada evento exportado deve ser expresso em UTC, formato ISO 8601. | todo | | |
+| [ ] | REQ-08.05.007 | O envio ao SIEM deve ser assíncrono, sem bloquear a operação nem a gravação do registro local. | todo | | |
+| [ ] | REQ-08.05.008 | Uma falha/indisponibilidade do SIEM não pode impedir, atrasar ou reverter a operação de negócio nem o registro local. | todo | | |
+| [ ] | REQ-08.05.009 | O sistema deve reter temporariamente os eventos não entregues e reenviá-los quando a conectividade voltar, com política de limite/descarte documentada. | todo | | |
+| [ ] | REQ-08.05.010 | Falha de entrega ao SIEM deve virar log técnico, sem gerar evento de auditoria recursivo. | todo | | |
+| [ ] | REQ-08.05.011 | O sistema deve prover teste de conectividade com o SIEM configurado, sob demanda de um administrador. | todo | | |
+| [ ] | REQ-08.05.012 | Todo evento de auditoria deve ser elegível por padrão; o sistema deve permitir filtrar por categoria/severidade o que é de fato encaminhado. | todo | | |
+| [ ] | REQ-08.05.013 | Eventos de indício de ataque/abuso (login malsucedido repetido, acesso negado repetido, alteração de papel/credencial) devem ser sempre elegíveis, independente do filtro. | todo | | |
+| [ ] | REQ-08.05.014 | Eventos exportados não devem conter senha, token, segredo ou credencial sensível (mesma regra de REQ-08.03.003/004). | todo | | |
+| [ ] | REQ-08.05.015 | Cada evento exportado deve identificar o sistema de origem e um identificador de correlação. | todo | | |
 
 ## FT-09 Ajuda e Suporte
 
@@ -1126,6 +1309,10 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 
 | Data/Hora | Alteração |
 |---|---|
+| 2026-09-06 04:15 (não commitado) | **Requisitos novos da jornada multicanal (nunca documentados) + correção de contagem pré-existente do FT-02.** A capacidade de jornada com múltiplos tipos de canal (implementada em sessão anterior) nunca tinha ganhado REQ — corrigido: REQ-02.02.005/006 reescritos (jornada associada a um subconjunto não vazio dos tipos do produto, produto declarado diretamente, não mais derivado de um canal); REQ-03.11.009 novo (US-03.11, Gateway) — variável reservada `channel`, injetada automaticamente pelo canal que inicia a instância, nunca declarável pelo usuário; REQ-04.12.004 novo (US-04.12, Visibilidade) — regras `in`/`notIn` de `SduiVisibility` sobre `session.channel`; REQ-04.13.008 novo (US-04.13, Validação) — rejeita publicar uma tela sem nenhum componente visível para algum dos tipos de canal da jornada; REQ-05.04.004 novo (US-05.04) — toda instância exige `?channel=`, validado contra os tipos da jornada, injetado como variável de processo; REQ-05.07.003 reescrito (não cita mais "Web ou App", adapta ao tipo escolhido) e REQ-05.07.006 novo — seletor de canal na tela de Executar quando a jornada tem mais de um tipo habilitado. Also corrigidos REQ-02.03.003/02.07.004/02.08.004/02.09.002/02.10.001 (citavam "canal" no singular). De quebra, achada e corrigida uma divergência de contagem do FT-02 que já existia antes desta sessão: o resumo geral registrava 44 REQs/42 concluídos, mas a seção detalhada sempre teve 50 linhas/48 concluídos (mesmo padrão de erro já corrigido antes para outras features) — o resumo por feature já estava com o valor certo (50/48/96%) antes desta entrada, só o total geral abaixo não refletia. Total FT-03: 96 → 97 REQs; FT-04: 62 → 64 REQs; FT-05: 55 → 57 REQs; total geral: 491 → 496 REQs, 439 → 444 concluídos (90%), 101 → 102 USs (contagem de User Stories também estava desatualizada). |
+| 2026-09-06 03:42 (não commitado) | **FT-01 reformulada: canal deixa de ser CRUD e vira domínio fixo (WEB/MOBILE/WHATSAPP).** US-01.02 Gestão de canais removida por completo (7 REQs) — não existe mais entidade `Channel`/tabela `channel`; produto passa a declarar diretamente um conjunto não vazio de tipos de canal (REQ-01.01.006, novo), validado contra `product_channel_type`/`journey_channel_type` (`V16__product_channel_type.sql`, substitui `channel`/`journey_channel`). US-01.03 perdeu os REQs de busca/filtro/contagem de canal (não fazem mais sentido sem CRUD); REQ-01.03.006 reescrito para "exibir os tipos de canal habilitados de cada produto". US-01.04 perdeu os REQs de desativação de canal (canal não tem mais status); REQ-01.04.001/003/004 reescritos removendo a menção a canal como entidade própria. Jornada também passou de `channelIds: Set<UUID>` para `channelTypes: Set<ChannelType>` (subconjunto dos tipos do produto) — mesmo modelo simplificado, aplicado em cascata em `admin/back`, `ms-espec-registry`, `ms-journey` e `admin/front` (não documentado aqui: é a mesma mudança de FT-02, adiada para quando a feature de jornadas multicanal for reformulada em conjunto). Total FT-01: 24 → 12 REQs; total geral: 497 → 491 REQs (12 removidos), 445 → 439 concluídos, 101 USs. |
+| 2026-09-05 (não commitado) | **Cascata de documentação da reformulação SDUI pelos 6 documentos restantes.** Sem mudança de código nem de status de REQ — só consistência terminológica com a linha acima. `ej-admin-openapi.yaml`: `FormField` removido, `SduiNode`/`SduiBinding`/`SduiEvent`/`SduiVisibility`/`ComponentDefinition`/`PropDescriptor`/`TargetSupport` adicionados; `embeddedScreen`/`embeddedScreenSdui` → `embeddedScreenRoot`; endpoints `/component-registry` novos. `ej-admin-modelo-dados-fisico.md`: §11/§12 reescritos (`component_definition` real + shape de `SduiNode`); `user_task_config`/snapshot corrigidos pros campos novos. `ej-admin-modelo-dados-conceitual.md`: §11 reescrito (Component Registry + Sdui Node), glossários e diagrama ER atualizados. `ej-admin-dicionario-dados.md`: entradas `Form`/`FormField` substituídas por `ComponentDefinition`/`SduiNode`. `ej-admin-arquitetura-logica.md`: domínio "Forms Management" renomeado "SDUI Catalog Management", reescrito por completo (Component Registry, validação estrutural, cálculo de alvos/versão mínima na publicação). `ej-admin-index.md`: nomes de FT-03/FT-04 alinhados, "Exibição condicional" saiu de Fora do Escopo (implementada como US-04.12), glossários atualizados. Todos os REQs/campos removidos preservam nota de revisão histórica, nunca apagados. |
+| 2026-09-05 (não commitado) | **Reformulação do catálogo SDUI (FT-03/FT-04) e nova US-08.05 (SIEM).** FT-03 renomeada "Modelagem Visual" → "Modelagem Visual de Workflows" (só título). FT-04 renomeada "Formulários (SDUI)" → "Catálogo Server Driven UI (SDUI)": US-04.02 (17 tipos de campo fixos, 22 REQs) removida, substituída por US-04.07 Catálogo de Componentes (Component Registry em tabela, `component_definition`, migrations `V12`/`V13`/`V14`); nova US-04.08 Estrutura da árvore de tela (`domain/sdui/SduiNode` substitui `FormField[]`/`domain/form` por inteiro); nova US-04.09 Editor de componentes (paleta/canvas recursivo/camadas dirigidos pelo catálogo); nova US-04.10 Vínculo de dados (bindings por namespace form/data/session/route/computed, substitui o antigo `name`/`defaultValue` de campo); nova US-04.11 Ações e eventos (6 ações fechadas); nova US-04.12 Visibilidade condicional (substitui `visibleIf`, nunca avaliado em runtime); nova US-04.13 Validação estrutural; nova US-04.14 Publicação e repositório de especificação corporativo (envelope canônico até o Strapi via `ms-espec-registry`, `FormSpecController`/`StepResolver` passam a ler de lá). REQ-04.04.003 (texto de ajuda) e REQ-04.06.002 (tupla `[tag,props,children]`) removidos, sem equivalente no catálogo v1. Perda de capacidade aceita: 13 tipos de campo antigos sem equivalente direto; canal WEB perde posição livre. Não testado visualmente nem contra Strapi real (sem token de API ainda) — ver `[[project_sdui_catalog_v1_reformulacao]]` (memória da sessão). Total FT-04: 30 → 60 REQs. Nova US-08.05 Integração com SIEM (FT-08), não iniciada — 15 REQs de controles essenciais de mercado (formato CEF/JSON, transporte Syslog/HTTP(S), TLS, confiabilidade de entrega, filtragem com exceção pra indício de ataque). Total FT-08: 22 → 37 REQs. Progresso geral de 413/450 (92%) para 443/495 (89% — o percentual cai porque a nova US-08.05 entra inteira como `todo`, não por regressão de nada já feito). |
 | 2026-09-05 00:24 (não commitado) | **Remoção do catálogo de Formulários (FT-04):** o CRUD de formulários reutilizáveis (`/api/v1/forms`, tela "Formulários" do portal admin) foi removido — desde a mudança arquitetural de 2026-08-24 (ver linha abaixo) ele havia virado só um atalho de cópia opcional sobre o editor de tela embutido (`embeddedScreen`), que é quem permanece como fonte de verdade da tela de uma User Task. REQ-04.01.001/002/003/004/006 e toda a US-04.03 (REQ-04.03.001/002) marcados `removido`; REQ-04.01.007 reescrito removendo a cláusula sobre o catálogo. Geração de fluxo por IA (`FlowGenerationPrompt`/`GeminiFlowGenerator`) deixou de listar/criar formulários do catálogo (`formId`/`newFormId`/`newForms` saíram do schema da tool) — uma User Task gerada por IA agora só nasce com `messageText` ou preserva a tela de um nó reaproveitado. `JourneyVersion.forms`/`JourneySnapshotFactory` (campo morto desde 2026-08-24) removidos junto. `FormField`/`FormFieldType`/`FormSduiSerializer` (modelo da tela embutida, usado na publicação) não foram tocados. Migration `V7__drop_form_catalog.sql` derruba a tabela `form`. Total do FT-04: 37 → 30 REQs. Progresso geral de 420/457 (92%) para 413/450 (92%). |
 | 2026-09-02 23:56 (não commitado) | **Nova feature FT-15 Diagnóstico** (4 USs, 15 REQs) — desmembrada da antiga tela "Execução & Diagnóstico": Diagnóstico virou funcionalidade própria (item de menu dedicado, `front/src/diagnostics/DiagnosticoPage.tsx`), de busca e inspeção de execuções passadas por jornada/business key/instance ID (tipo de busca explícito, listagem agrupada por jornada+versão com opção de desagrupar, ordenável por início, sem listagem antes de buscar, busca por instance ID vai direto ao detalhe e erros de "não encontrada" ficam na própria busca), cobrindo execuções tanto do Admin Portal ("Executar") quanto de canais digitais sem distinção (mesmo motor de runtime, sem marcação de origem). A tela de Execução (`ExecutionsPage.tsx`/`ExecutionToolbar.tsx`) perdeu o modo Histórico por completo — cobre só a execução ao vivo — e ganhou uma tela inicial (busca de jornada) e de configuração (`StartPanel`) no mesmo padrão visual da tela inicial do Diagnóstico, só trocando para o toolbar compacto quando a execução de fato começa; novo REQ-05.07.005 permite iniciar uma execução direto do grid de Jornadas ("Executar jornada" no menu de ações, só para jornadas publicadas), abrindo uma aba dedicada já com a jornada selecionada. **Nova US-05.10 Inspeção detalhada de nó** (10 REQs) documenta o painel de observabilidade compartilhado entre as duas telas (`InspectorPanel.tsx`/`NodeDetailDrawer`), evoluído nesta sessão: configuração do conector (REST: método/URL/headers/body; tópico: nome+cluster+Producer/Consumer) em Tarefa de Serviço/Recebimento/Início por Mensagem; condições do Gateway com o caminho de fato percorrido destacado; variáveis de entrada do nó Início com o valor real informado (não o tipo declarado); entrada/saída colapsáveis, renomeada "Payload da Mensagem" para conectores de tópico; painel redimensionável só horizontalmente (260–640px); log cronológico passou a indicar o tipo de conector também em Tarefa de Recebimento, igual já fazia em Tarefa de Serviço; zoom do diagrama por scroll do mouse (`panOnScroll` removido do React Flow). Bug real de backend corrigido no caminho: `KafkaConnectorWorker.consume()` (`ms-runtime-camunda`) nunca gravava as variáveis `__kafkaTopic__`/`__kafkaPayload__` do lado consumidor (Receive Task/Início por Mensagem) — só o lado produtor gravava —, deixando o payload de mensagem recebida sempre vazio no painel/histórico; corrigido gravando as mesmas variáveis antes de correlacionar/iniciar a instância, simétrico ao lado produtor. Total: FT-05 44 → 55 REQs; FT-15 novo, 15 REQs. Progresso geral de 394/431 (91%) para 420/457 (92%, 15 features/92 USs). |
 | 2026-08-24 06:14 (não commitado) | Mudança arquitetural: `formId` associado à User Task removido, substituído por `embeddedScreen`/`embeddedScreenSdui` desenhado direto no `FlowNode` — motivada pela Runtime Engine só suportar um conjunto básico de tipos de campo nativos (~5-6), o que sempre exigiu o Admin Portal resolver a tela sozinho (SDUI) e tornava a associação por `formId` só um vínculo sem função real. `Form`/`FormField` (catálogo "Formulários") viraram modelo de cópia opcional (`FormPreviewDock.tsx` — "Importar formulário"/"Salvar como formulário reutilizável"), nunca mais referência persistida; catálogo de tipos de campo ampliado de 5 para 17 (REQ-04.02.011 a 022 novos: `SECTION`, `RADIO`, `SWITCH`, `SLIDER`, `RATING`, `STEPPER`, `AUTOCOMPLETE`, `TITLE`, `IMAGE`, `DIVIDER`, `CARD`, `CALLOUT`), com editor de tela embutido drag-and-drop completo (`FormFieldPalette.tsx`/`FormScreenCanvas.tsx`/`FormFieldConfigPanel.tsx`, dnd-kit, componentes reais da Mística) — US-03.16 renomeada ("Editor de tela embutido no editor de fluxo") e upgradada de `in_progress` pra `done` (REQ-03.16.001/002). Nome técnico do campo (REQ-04.01.007) passou a ser editável na tela embutida (antes só no catálogo), com validação de formato e unicidade na jornada inteira (REQ-03.09.011 explicitado, front passou a checar cross-node na hora de criar/renomear, não só o back no salvar). Publicação: `forms` removido do snapshot enviado ao runtime e da inspeção (REQ-02.09.002/REQ-02.10.001/REQ-06.02.004); `Publication.forms` (campo morto no domínio, nunca mais serializado) removido do código. Novo REQ-02.09.005: número da versão publicada gravado como tag de versão do processo implantado no runtime, distinta do contador de implantação interno (que incrementa a cada deploy, mesmo sem mudança de conteúdo) — exibido também no Executor, tanto na busca quanto durante a execução (REQ-05.07.004 novo). Bugs reais corrigidos no caminho: `{{variavel}}` não era resolvido dentro de uma tela real desenhada, só funcionava no caso sem tela (`StepResolver.resolveSduiNode`, REQ-05.02.005 ampliado); `defaultValue` com `{{variavel}}` passou a pré-preencher o campo de verdade, editável (REQ-04.04.002); variáveis da aba Execuções não apareciam depois do "Fim" porque o endpoint de runtime responde 500 (não 404/vazio) pra instância já terminada — `CamundaClient.getProcessVariables` ganhou fallback pra API de história; estado de formulário vazava de uma User Task pra outra no Executor por falta de `key` no componente (React reaproveitava a instância); geração de fluxo por IA sempre recriava a jornada do zero, mesmo em pedido aditivo, por nunca receber o fluxo atual como contexto (REQ-03.17.006 novo — `GenerateFlow`/`FlowGenerationPrompt` agora preservam id/posição/tela de nós não afetados). Sem relação com a mudança acima: id da jornada exibido somente-leitura no painel de Propriedades sem nó selecionado (REQ-02.05.005 novo); conexão do editor de fluxo agora reconecta arrastando a ponta pra outro nó, sem excluir e redesenhar (`reconnectEdge`, REQ-03.02.003). Documentação sincronizada em todos os documentos de requisitos/modelo de dados/arquitetura/OpenAPI, com nota de revisão citando a causa raiz em cada trecho reescrito. Progresso geral de 376/415 (91%) para 394/431 (91%, FT-03 fecha 100%). |

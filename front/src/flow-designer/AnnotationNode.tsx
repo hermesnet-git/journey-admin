@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { StickyNote, X, Link2, Link2Off } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
@@ -16,7 +16,9 @@ const PALETTE = {
   dark: { bg: '#4a3a10', fold: '#5c4913', ring: 'rgba(202,138,4,0.32)', text: '#fef3c7', textSoft: '#d1a53d' },
 };
 
-export function AnnotationNode({ id, data, selected }: NodeProps<WFAnnotation>) {
+// Mesmo motivo do WorkflowNode: memoizado por valor pra não redesenhar todas as anotações a cada
+// frame do arraste de qualquer nó do canvas (displayAnnotations também recria `data` a cada render).
+export const AnnotationNode = memo(function AnnotationNode({ id, data, selected }: NodeProps<WFAnnotation>) {
   const actions = useWorkflowActions();
   const { dark } = useFlowTheme();
   const p = dark ? PALETTE.dark : PALETTE.light;
@@ -126,4 +128,11 @@ export function AnnotationNode({ id, data, selected }: NodeProps<WFAnnotation>) 
       />
     </div>
   );
-}
+},
+(prev, next) =>
+  prev.id === next.id &&
+  prev.selected === next.selected &&
+  prev.data.text === next.data.text &&
+  prev.data.zoom === next.data.zoom &&
+  prev.data.linkedNodeIds === next.data.linkedNodeIds,
+);

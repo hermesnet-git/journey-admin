@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Modal } from './Modal';
 import { Field, TextInput, TextArea, PrimaryButton, SecondaryButton, ErrorBanner } from './ui';
-import type { Product, ProductInput } from '../api/products';
+import { ChannelTypeChecklist } from './ChannelTypeChecklist';
+import type { ChannelType, Product, ProductInput } from '../api/products';
+
+const ALL_CHANNEL_TYPES: ChannelType[] = ['WEB', 'MOBILE', 'WHATSAPP'];
 
 interface ProductFormModalProps {
   product: Product | null;
@@ -12,6 +15,7 @@ interface ProductFormModalProps {
 export function ProductFormModal({ product, onClose, onSubmit }: ProductFormModalProps) {
   const [name, setName] = useState(product?.name ?? '');
   const [description, setDescription] = useState(product?.description ?? '');
+  const [channelTypes, setChannelTypes] = useState<ChannelType[]>(product?.channelTypes ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +23,7 @@ export function ProductFormModal({ product, onClose, onSubmit }: ProductFormModa
     setSaving(true);
     setError(null);
     try {
-      await onSubmit({ name, description });
+      await onSubmit({ name, description, channelTypes });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar produto');
       setSaving(false);
@@ -34,7 +38,7 @@ export function ProductFormModal({ product, onClose, onSubmit }: ProductFormModa
       footer={
         <>
           <SecondaryButton onClick={onClose}>Cancelar</SecondaryButton>
-          <PrimaryButton onClick={submit} loading={saving} disabled={!name || !description}>
+          <PrimaryButton onClick={submit} loading={saving} disabled={!name || !description || channelTypes.length === 0}>
             {product ? 'Salvar alterações' : 'Criar produto'}
           </PrimaryButton>
         </>
@@ -53,6 +57,9 @@ export function ProductFormModal({ product, onClose, onSubmit }: ProductFormModa
         </Field>
         <Field label="Descrição">
           <TextArea value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+        <Field label="Canais" helperText="As jornadas deste produto poderão ser expostas nos canais marcados.">
+          <ChannelTypeChecklist options={ALL_CHANNEL_TYPES} selected={channelTypes} onChange={setChannelTypes} />
         </Field>
         {error && <ErrorBanner>{error}</ErrorBanner>}
       </form>

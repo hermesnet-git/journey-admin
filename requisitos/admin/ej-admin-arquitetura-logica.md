@@ -8,7 +8,7 @@
 
 # 1. Objetivo
 
-Este documento descreve a arquitetura lógica do Elastic Journey Admin Portal, incluindo cadastro de produtos e canais, autoria de jornadas específicas por canal, execução e publicação.
+Este documento descreve a arquitetura lógica do Elastic Journey Admin Portal, incluindo cadastro de produtos e seus tipos de canal habilitados, autoria de jornadas multicanal, execução e publicação.
 
 ---
 
@@ -31,13 +31,13 @@ O Admin Portal é a camada de administração e autoria. Ao publicar, envia o sn
 ```text
 Catálogo de Produtos e Canais
 
-Gestão de Jornadas por Canal
+Gestão de Jornadas Multicanal
 
-Modelagem Visual de Fluxos
+Modelagem Visual de Workflows
 
 Geração de Fluxo Assistida por IA
 
-Gestão de Formulários
+Catálogo Server Driven UI (SDUI)
 
 Execução
 
@@ -111,7 +111,7 @@ Grupo Administração
 Grupo Autoria
   02. Journey Management
   03. Journey Modeler
-  04. Forms Management
+  04. SDUI Catalog Management
   05. Execution
 
 Grupo Publicação
@@ -134,11 +134,11 @@ Grupo Observabilidade Técnica
 
 | Domínio | Grupo | Responsabilidade |
 |---------|-------|------------------|
-| Product & Channel Management | Administração | Gestão de produtos e seus canais |
+| Product & Channel Management | Administração | Gestão de produtos e dos tipos de canal que cada um habilita |
 | Integration Catalog | Administração | Catálogo de clusters de mensageria corporativos e referências de credencial usados pelos conectores das jornadas |
-| Journey Management | Autoria | Ciclo de vida das jornadas específicas por canal |
+| Journey Management | Autoria | Ciclo de vida das jornadas, cada uma associada a um subconjunto dos tipos de canal do seu produto |
 | Journey Modeler | Autoria | Construção visual dos fluxos |
-| Forms Management | Autoria | Gestão de formulários SDUI |
+| SDUI Catalog Management | Autoria | Manutenção do catálogo de componentes SDUI (Component Registry) e da estrutura da árvore de nós que compõe a tela de uma User Task |
 | Execution | Autoria | Execução das jornadas |
 | Publication Management | Publicação | Manutenção do snapshot da versão publicada e chamada outbound para a API do runtime |
 | Authentication & Authorization | Governança de Acesso | Autenticação mockada por provedor externo e autorização por papéis |
@@ -155,7 +155,7 @@ flowchart TD
     CATALOG[Product & Channel Management]
     JOURNEY[Journey Management]
     MODELER[Journey Modeler]
-    FORMS[Forms Management]
+    SDUI[SDUI Catalog Management]
     EXECUTION[Execution]
     PUBLICATION[Publication Management]
     INTEGCATALOG[Integration Catalog]
@@ -163,8 +163,8 @@ flowchart TD
 
     CATALOG --> JOURNEY
     JOURNEY --> MODELER
-    MODELER --> FORMS
-    FORMS --> PUBLICATION
+    MODELER --> SDUI
+    SDUI --> PUBLICATION
     PUBLICATION --> EXECUTION
     PUBLICATION --> RUNTIME_API
     MODELER -.->|referencia cluster/credencial| INTEGCATALOG
@@ -173,7 +173,7 @@ flowchart TD
 
 ## Interpretação
 
-O usuário cadastra um produto e seus canais, cria uma jornada para um canal específico, modela o fluxo e os formulários — configurando conectores de mensageria a partir do catálogo de integrações quando aplicável —, publica seu snapshot por meio da API do runtime mockada na versão 1.0.0 e então executa a jornada contra o motor de runtime.
+O usuário cadastra um produto com os tipos de canal que deseja habilitar, cria uma jornada para um subconjunto desses tipos, modela o fluxo e compõe a tela de cada User Task a partir do catálogo de componentes SDUI — configurando conectores de mensageria a partir do catálogo de integrações quando aplicável —, publica seu snapshot por meio da API do runtime mockada na versão 1.0.0 e então executa a jornada contra o motor de runtime, informando qual tipo de canal está simulando.
 
 Observability (domínio 10) é transversal a todos os domínios acima — instrumenta toda requisição de API e toda transação de persistência independentemente do domínio de negócio envolvido — e por isso não aparece como um nó no fluxo.
 
@@ -183,41 +183,44 @@ Observability (domínio 10) é transversal a todos os domínios acima — instru
 
 ## Objetivo
 
-Gerenciar produtos e seus canais de atendimento.
+Gerenciar produtos e os tipos de canal que cada um habilita para suas jornadas. Canal é um valor de
+domínio fixo, não uma entidade com cadastro próprio.
 
 ## Responsabilidades
 
 ```text
 Cadastrar, editar, consultar e desativar produtos
 
-Cadastrar, editar, consultar e desativar canais
+Declarar, na criação/edição de um produto, um conjunto não vazio de tipos de canal habilitados
 
-Associar cada canal a exatamente um produto
-
-Pesquisar e filtrar produtos e canais
+Pesquisar e filtrar produtos
 ```
 
-A desativação de um produto ou canal deve ser bloqueada com `409` enquanto existir qualquer jornada descendente com publicação `PUBLISHED`. O usuário deve despublicar essas jornadas antes de repetir a operação.
+A desativação de um produto deve ser bloqueada com `409` enquanto existir qualquer jornada
+descendente com publicação `PUBLISHED`. O usuário deve despublicar essas jornadas antes de repetir
+a operação.
 
 ## Entidades
 
 ```text
 Product
-
-Channel
 ```
 
 ## Tipos de Canal
 
 ```text
-WEB, MOBILE, WHATSAPP, URA, CONTACT_CENTER, OTHER
+WEB, MOBILE, WHATSAPP
 ```
 
 ## Cardinalidade
 
 ```text
-Product 1 → 0..N Channel
+Product 1 → N Channel Type (coleção de valores — product_channel_type, não uma tabela relacional)
 ```
+
+> **Nota de revisão (2026-09-06):** domínio reescrito — `Channel` deixou de ser uma entidade
+> cadastrável (CRUD com nome/descrição/status por produto, incluindo os tipos `URA`/`CONTACT_CENTER`/
+> `OTHER`) e virou um valor de domínio fixo com só 3 tipos, declarado diretamente pelo produto.
 
 ---
 
@@ -227,22 +230,25 @@ Product 1 → 0..N Channel
 
 ## Objetivo
 
-Gerenciar o ciclo de vida das jornadas específicas por canal.
+Gerenciar o ciclo de vida das jornadas, cada uma associada a um produto e a um subconjunto dos
+tipos de canal desse produto.
 
 ## Responsabilidades
 
 ```text
 Criar, editar e consultar jornadas
 
+Listar modelos predefinidos e usá-los como ponto de partida opcional na criação
+
 Remover fisicamente somente jornadas nunca publicadas
 
 Desativar jornadas que possuam ou tenham possuído publicação, preservando o registro publicado
 
-Associar cada jornada a exatamente um canal
+Associar cada jornada a um subconjunto não vazio dos tipos de canal habilitados pelo seu produto
 
-Identificar a jornada por código único dentro do canal
+Identificar a jornada por código único
 
-Pesquisar e ordenar jornadas por produto e canal
+Pesquisar e ordenar jornadas por produto e tipo de canal
 ```
 
 Uma jornada com publicação `PUBLISHED` deve ser despublicada antes de sua desativação. A existência de um registro `UNPUBLISHED` não impede a desativação.
@@ -256,12 +262,22 @@ Journey
 ## Cardinalidade
 
 ```text
-Channel 1 → 0..N Journey
+Product 1 → N Journey
 
-Journey 1 → 1 Channel
+Journey 1 → N Channel Type (coleção de valores — journey_channel_type, subconjunto do produto)
 ```
 
-Jornadas de canais diferentes são independentes e podem possuir quantidades distintas de telas e etapas.
+Jornadas com tipos de canal diferentes são independentes e podem possuir quantidades distintas de
+telas e etapas; uma mesma jornada pode atender mais de um tipo de canal ao mesmo tempo, com o mesmo
+fluxo e as mesmas telas — o tipo de canal que inicia cada execução fica disponível como variável de
+processo reservada (`channel`) para caminhos de Gateway e visibilidade condicional diferentes por
+canal (Domínio 03/04).
+
+> **Nota de revisão (2026-09-06):** domínio reescrito — jornada deixou de pertencer a exatamente um
+> `Channel` (entidade removida) e passou a declarar diretamente um subconjunto dos tipos de canal
+> do seu produto.
+
+Os modelos de jornada são definições de sistema versionadas no backend, não registros editáveis no banco. O frontend consulta somente seus metadados e envia o `templateId` opcional no mesmo `POST` que cria a jornada. O backend instancia novos identificadores para o fluxo, os nós e as conexões e persiste Jornada, Flow e versão inicial `DRAFT` na mesma transação. Sem `templateId`, preserva-se a criação em branco.
 
 ---
 
@@ -289,7 +305,7 @@ Conectores catalogados e desabilitados: GraphQL, SOAP, Database, Webhook
 Drag and Drop, Zoom, Pan, Undo, Redo
 ```
 
-Uma nova jornada inicia com `START → END`. O editor pode configurar o elemento inicial como `START` ou `MESSAGE_START_EVENT`, preservando exatamente um elemento inicial, ao menos um `END` e um caminho contínuo entre eles. Um `GATEWAY` (US-03.11) ramifica o fluxo em dois caminhos condicionais que podem terminar em `END`s distintos, sem precisar reconvergir antes do fim. Service Tasks executam integrações externas e Receive Tasks aguardam mensagens em instâncias já iniciadas. O runtime traduz esses elementos para BPMN e executa os conectores habilitados.
+Uma jornada criada em branco inicia com o canvas vazio; quando criada a partir de um modelo, inicia com uma cópia independente do esqueleto escolhido. O editor pode configurar o elemento inicial como `START` ou `MESSAGE_START_EVENT`, preservando exatamente um elemento inicial, ao menos um `END` e um caminho contínuo entre eles antes da publicação. Um `GATEWAY` (US-03.11) ramifica o fluxo em dois caminhos condicionais que podem terminar em `END`s distintos, sem precisar reconvergir antes do fim. Service Tasks executam integrações externas e Receive Tasks aguardam mensagens em instâncias já iniciadas. O runtime traduz esses elementos para BPMN e executa os conectores habilitados.
 
 ## Conectores de Integração
 
@@ -319,58 +335,57 @@ Flow Connection
 
 ---
 
-# 12. Domínio 04 — Forms Management
+# 12. Domínio 04 — SDUI Catalog Management
+
+> **Reformulação (2026-09-05):** substitui por completo o antigo domínio "Forms Management"
+> (catálogo de Formulários reutilizáveis e modelo de campo plano — ver `ej-admin-requisitos.md`
+> FT-04).
 
 ## Objetivo
 
-Gerenciar formulários reutilizáveis, usados como modelo de partida (cópia) para a tela embutida de uma User Task — a tela em si é desenhada diretamente no nó, no editor de fluxo (Domínio 03), não neste domínio.
+Manter o catálogo corporativo de componentes SDUI (Component Registry) e a estrutura da árvore de nós (`Sdui Node`) que compõe a tela embutida de uma User Task — a árvore em si é editada diretamente no nó, no editor de fluxo (Domínio 03), consultando este domínio para saber o que é permitido usar.
 
-> **Nota de revisão (2026-08-24):** objetivo reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário deste catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário deste catálogo servindo apenas como modelo de cópia opcional.
-
-## Componentes da Versão 1.0.0
+## Responsabilidades
 
 ```text
-Section, Text, Input, SingleSelect, MultiSelect, FileUpload, Radio, Switch, Slider,
-Rating, Stepper, Autocomplete, Title, Image, Divider, Card, Callout
+Manter o catálogo de componentes disponíveis (Component Registry): listar, criar, editar e remover (soft-delete)
+
+Prover, desde a primeira instalação, o catálogo inicial com os componentes do contrato corporativo de referência
+
+Validar, na publicação, que toda árvore de tela referencia apenas componentes existentes e não indisponíveis no catálogo
+
+Calcular, na publicação, a interseção de alvos de renderização suportados por todos os componentes usados numa tela, e a versão mínima de renderizador exigida por alvo
+
+Impedir estrutura inválida: id duplicado, filhos num componente que não aceita filhos, vínculo de dados fora dos namespaces reconhecidos, evento associado a ação fora do conjunto fechado do sistema
 ```
-
-`Text` absorve o antigo tipo de conteúdo estático (mesmo modelo de dados, diferença apenas de apresentação). `Input` possui subtipo (texto, número, e-mail, data) com validação de formato associada. `Section` agrupa os campos seguintes até a próxima seção em uma grade de colunas configurável. `Autocomplete` usa opções estáticas na v1.0.0 — fonte de dados dinâmica remota é evolução futura.
-
-> **Nota de revisão (2026-08-24):** catálogo ampliado de 5 para 17 componentes nesta revisão — mesma mudança que substituiu a associação por `formId` pelo desenho direto da tela no nó (`embeddedScreen`): como a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), o catálogo próprio do Admin Portal foi ampliado para cobrir a necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de depender do motor.
 
 ## Entidades
 
 ```text
-Form
+Component Definition
 
-Form Field
+Sdui Node
 ```
 
-Cada `Form Field` possui um `name` técnico (definido pelo usuário) como chave de referência do campo. No catálogo deste domínio, o `name` é único dentro do formulário e imutável após criado. Quando o mesmo modelo de campo é usado na tela embutida de uma User Task (Domínio 03), o `name` passa a ser editável e sua unicidade é verificada na jornada inteira, não só na tela — mesmo espaço de nomes das variáveis de saída de integração.
+`Component Definition` é uma tabela própria, identificada pela combinação `type`+`version`. `Sdui Node` não é uma entidade com tabela própria: é a estrutura recursiva persistida dentro de `Flow Node.embeddedScreenRoot` (Domínio 03) — cada nó referencia um `Component Definition` por valor (`type`+`version`), nunca por chave estrangeira relacional.
 
 ## Estrutura de uma User Task
 
 ```mermaid
 flowchart LR
     USER_TASK[User Task]
-    SCREEN[Tela embutida - embeddedScreen]
-    FORM[Form - catálogo]
+    SCREEN[Tela embutida - embeddedScreenRoot]
+    REGISTRY[Component Registry]
 
     USER_TASK --> SCREEN
-    FORM -.->|modelo de cópia, opcional| SCREEN
+    SCREEN -.->|type + version| REGISTRY
 ```
 
-A tela de uma User Task é desenhada diretamente no nó (`embeddedScreen`), sem nenhum vínculo persistido a um `Form`. Um formulário do catálogo pode ser usado como modelo de partida — seus campos são copiados para a tela no momento da escolha — mas nada liga o nó ao formulário de origem depois disso: editar um não afeta o outro.
+A tela de uma User Task é uma árvore de `Sdui Node` desenhada diretamente no nó (`embeddedScreenRoot`). O Component Registry nunca é copiado para dentro da tela — só descreve o que é permitido usar; a validação estrutural na publicação rejeita qualquer `type`+`version` que não exista nele ou que esteja marcado como indisponível.
 
-> **Nota de revisão (2026-08-24):** seção reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+## Imutabilidade na publicação
 
-## Imutabilidade na publicação e serialização SDUI
-
-Ao publicar uma jornada, a tela embutida (`embeddedScreen`) de cada User Task é copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó — o mesmo princípio de congelamento aplicado à versão da jornada (Domínio 06 — Journey Versioning). Editar um formulário do catálogo depois de publicado não afeta jornadas já publicadas (elas nunca dependeram dele para começar — só copiaram os campos uma vez, na hora de desenhar a tela).
-
-O snapshot de publicação também guarda, para cada User Task com tela desenhada, uma projeção derivada em árvore de nós no formato `[tag, props, children]` (estilo SDUI/hyperscript) — `embeddedScreenSdui` — gerada a partir da tela congelada (`embeddedScreen`) do nó. Essa árvore é uma saída de leitura calculada no momento da publicação; o modelo de campos continua sendo a fonte de dados editável no editor de fluxo — o front nunca edita a árvore diretamente.
-
-> **Nota de revisão (2026-08-24):** seção reescrita — a compilação/congelamento em SDUI descrita aqui agora se aplica à tela do próprio nó (`embeddedScreen` → `embeddedScreenSdui`), não a um `Form` externo referenciado por `formId`, pela mesma limitação da Runtime Engine já anotada acima.
+Ao publicar uma jornada, a árvore `embeddedScreenRoot` de cada User Task é copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras na tela do nó — o mesmo princípio de congelamento aplicado à versão da jornada (Domínio 06 — Publication Management). Diferente do modelo anterior, não existe etapa de compilação/projeção separada: a mesma árvore editada no editor de fluxo é a árvore publicada. Editar um componente do catálogo depois de publicado não afeta jornadas já publicadas — a validação só se aplica no momento de uma nova publicação.
 
 ---
 
@@ -413,7 +428,7 @@ Despublicar jornada por uma chamada outbound para a API do runtime
 
 Consultar publicações
 
-Filtrar publicações por produto e canal
+Filtrar publicações por produto e tipo de canal
 
 Substituir o snapshot anterior quando a jornada for publicada novamente
 
@@ -431,13 +446,11 @@ Journey Publication
 ```mermaid
 flowchart LR
     PRODUCT[Product]
-    CHANNEL[Channel]
     JOURNEY[Journey]
     PUBLICATION[Journey Publication]
     RUNTIME_API[API de Publicação do Runtime]
 
-    PRODUCT --> CHANNEL
-    CHANNEL --> JOURNEY
+    PRODUCT --> JOURNEY
     JOURNEY --> PUBLICATION
     PUBLICATION -->|chamada outbound HTTP real| RUNTIME_API
 ```
@@ -454,23 +467,21 @@ O número da versão publicada (`Journey Version.versionNumber`) é gravado como
 
 ```mermaid
 flowchart TD
-    PRODUCT[Cadastrar Produto]
-    CHANNEL[Cadastrar Canal]
-    JOURNEY[Criar Jornada para o Canal]
+    PRODUCT[Cadastrar Produto com seus Tipos de Canal]
+    JOURNEY[Criar Jornada para um Subconjunto dos Tipos]
     FLOW[Modelar Fluxo]
-    FORMS[Configurar Formulários]
+    SDUI[Compor Tela SDUI]
     PUBLISH[Publicar]
     EXECUTE[Executar]
 
-    PRODUCT --> CHANNEL
-    CHANNEL --> JOURNEY
+    PRODUCT --> JOURNEY
     JOURNEY --> FLOW
-    FLOW --> FORMS
-    FORMS --> PUBLISH
+    FLOW --> SDUI
+    SDUI --> PUBLISH
     PUBLISH --> EXECUTE
 ```
 
-Cada jornada é isolada por canal. Os códigos de produto, canal e jornada pertencem ao domínio administrativo e são incluídos no snapshot, mas não formam um contrato de consulta pelo runtime.
+Os códigos de produto e jornada pertencem ao domínio administrativo e são incluídos no snapshot, mas não formam um contrato de consulta pelo runtime; o tipo de canal que inicia cada execução é informado como parâmetro (Domínio 05), não é um código administrativo próprio.
 
 ---
 
@@ -478,7 +489,7 @@ Cada jornada é isolada por canal. Os códigos de produto, canal e jornada perte
 
 O Admin Portal conhece apenas a API de publicação fornecida pela camada de runtime. O ms-journey não conhece o Admin Portal e não acessa suas APIs ou seu modelo de dados. A transformação da jornada publicada para o formato executável (motor de execução do fluxo) permanece fora do domínio administrativo.
 
-Exceção pontual: a árvore de renderização SDUI (`[tag, props, children]`) de cada formulário é gerada pelo próprio Admin Portal no momento da publicação (Domínio 04 — Forms Management), pois é uma projeção direta do modelo de campos que o Admin já possui — não uma transformação executada pelo runtime.
+Exceção pontual: o pacote de publicação de cada tela (envelope canônico com jornada, tela, revisão, alvos de renderização compatíveis e versão mínima de renderizador por alvo) é montado pelo próprio Admin Portal no momento da publicação (Domínio 04 — SDUI Catalog Management) a partir da árvore `Sdui Node` que ele já possui e enviado ao repositório de especificação corporativo — não uma transformação executada pelo motor de runtime.
 
 Mesmo princípio se aplica ao teste de conexão do catálogo de integrações (Domínio 11): o Admin Portal nunca resolve credencial nem abre conexão com um cluster de mensageria diretamente — delega ao componente de runtime responsável por isso, que é o único a acessar o cofre de segredos corporativo e o broker de verdade.
 
@@ -503,14 +514,14 @@ flowchart TD
     CATALOG[Product & Channel Management]
     JOURNEY[Journey Management]
     MODELER[Journey Modeler]
-    FORMS[Forms Management]
+    SDUI[SDUI Catalog Management]
     PUBLICATION[Publication Management]
     EXECUTION[Execution]
 
     CATALOG --> JOURNEY
     JOURNEY --> MODELER
-    MODELER --> FORMS
-    FORMS --> PUBLICATION
+    MODELER --> SDUI
+    SDUI --> PUBLICATION
     PUBLICATION --> EXECUTION
 ```
 
@@ -637,16 +648,16 @@ O Admin Portal nunca acessa o cofre de segredos nem o broker diretamente (mesmo 
 
 | Artefato | Descrição |
 |----------|-----------|
-| Product | Produto ou serviço digital |
-| Channel | Aplicação ou interface de atendimento de um produto |
-| Journey | Jornada específica de um canal |
+| Product | Produto ou serviço digital que declara os tipos de canal habilitados para suas jornadas |
+| Channel Type | Valor de domínio fixo (`WEB`/`MOBILE`/`WHATSAPP`) — não é uma entidade cadastrável |
+| Journey | Workflow associado a um produto e a um subconjunto dos tipos de canal desse produto |
 | Flow | Estrutura visual da jornada |
 | Flow Node | Elemento do fluxo: Start, End ou User Task |
 | Flow Connection | Conexão entre nós do fluxo |
 | Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
-| User Task Configuration | Associação entre uma User Task e seu formulário |
-| Form | Formulário utilizado por User Tasks |
-| Form Component | Componente visual de um formulário |
+| User Task Configuration | Árvore de tela SDUI (`embeddedScreenRoot`) ou mensagem de etapa embutida numa User Task |
+| Component Definition | Componente do catálogo corporativo SDUI (Component Registry), identificado por `type`+`version` |
+| Sdui Node | Nó da árvore que compõe a tela de uma User Task, referenciando um Component Definition |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault, usada por um conector de mensageria |
@@ -656,4 +667,4 @@ O Admin Portal nunca acessa o cofre de segredos nem o broker diretamente (mesmo 
 
 # 21. Resumo Arquitetural
 
-O Elastic Journey Admin Portal versão 1.0.0 é composto por onze domínios lógicos. A arquitetura parte do cadastro de produtos, canais e do catálogo de integrações (clusters de mensageria, referências de credencial e credencial de IA), mantém jornadas independentes por canal, permite modelar fluxos manualmente ou gerar um rascunho assistido por IA, autentica usuários por um provedor externo mockado, versiona jornadas, registra auditoria e publica uma versão imutável por meio de uma chamada mockada para a futura API do runtime. Observability instrumenta, de forma transversal, todos os domínios de negócio com log técnico de API e de transações de persistência.
+O Elastic Journey Admin Portal versão 1.0.0 é composto por onze domínios lógicos. A arquitetura parte do cadastro de produtos (cada um declarando seus tipos de canal habilitados) e do catálogo de integrações (clusters de mensageria, referências de credencial e credencial de IA), mantém jornadas associadas a um subconjunto desses tipos de canal, permite modelar fluxos manualmente ou gerar um rascunho assistido por IA, compõe a tela de cada User Task a partir do catálogo corporativo de componentes SDUI (Component Registry), autentica usuários por um provedor externo mockado, versiona jornadas, registra auditoria e publica uma versão imutável por meio de uma chamada mockada para a futura API do runtime. Observability instrumenta, de forma transversal, todos os domínios de negócio com log técnico de API e de transações de persistência.

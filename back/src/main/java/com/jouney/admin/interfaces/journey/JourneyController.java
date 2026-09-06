@@ -5,10 +5,12 @@ import com.jouney.admin.application.journey.DeleteJourney;
 import com.jouney.admin.application.journey.FindJourneys;
 import com.jouney.admin.application.journey.GetJourney;
 import com.jouney.admin.application.journey.UpdateJourney;
+import com.jouney.admin.application.journey.UpdateJourneyChannels;
 import com.jouney.admin.application.publication.GetPublicationSnapshot;
 import com.jouney.admin.application.publication.PublishJourney;
 import com.jouney.admin.application.publication.UnpublishJourney;
 import com.jouney.admin.domain.auth.AuthenticatedUser;
+import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.journey.JourneySort;
 import com.jouney.admin.domain.journey.JourneyStatus;
 import com.jouney.admin.infrastructure.persistence.publication.PublicationSnapshotRecord;
@@ -35,6 +37,7 @@ public class JourneyController {
 
     private final CreateJourney createJourney;
     private final UpdateJourney updateJourney;
+    private final UpdateJourneyChannels updateJourneyChannels;
     private final GetJourney getJourney;
     private final FindJourneys findJourneys;
     private final DeleteJourney deleteJourney;
@@ -42,11 +45,13 @@ public class JourneyController {
     private final UnpublishJourney unpublishJourney;
     private final GetPublicationSnapshot getPublicationSnapshot;
 
-    public JourneyController(CreateJourney createJourney, UpdateJourney updateJourney, GetJourney getJourney,
+    public JourneyController(CreateJourney createJourney, UpdateJourney updateJourney,
+                              UpdateJourneyChannels updateJourneyChannels, GetJourney getJourney,
                               FindJourneys findJourneys, DeleteJourney deleteJourney, PublishJourney publishJourney,
                               UnpublishJourney unpublishJourney, GetPublicationSnapshot getPublicationSnapshot) {
         this.createJourney = createJourney;
         this.updateJourney = updateJourney;
+        this.updateJourneyChannels = updateJourneyChannels;
         this.getJourney = getJourney;
         this.findJourneys = findJourneys;
         this.deleteJourney = deleteJourney;
@@ -58,11 +63,11 @@ public class JourneyController {
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping
     public List<JourneyResponse> list(@RequestParam(required = false) UUID productId,
-                                       @RequestParam(required = false) UUID channelId,
+                                       @RequestParam(required = false) ChannelType channelType,
                                        @RequestParam(required = false) String q,
                                        @RequestParam(required = false) JourneyStatus status,
                                        @RequestParam(required = false, defaultValue = "UPDATED_AT") JourneySort sort) {
-        return findJourneys.execute(productId, channelId, q, status, sort).stream()
+        return findJourneys.execute(productId, channelType, q, status, sort).stream()
                 .map(JourneyResponse::from).toList();
     }
 
@@ -70,8 +75,8 @@ public class JourneyController {
     @PostMapping
     public ResponseEntity<JourneyResponse> create(@Valid @RequestBody JourneyCreateInput input,
                                                    @AuthenticationPrincipal AuthenticatedUser currentUser) {
-        var journey = createJourney.execute(input.channelId(), input.name(), input.description(),
-                currentUser.userId());
+        var journey = createJourney.execute(input.productId(), input.channelTypes(), input.name(), input.description(),
+                input.templateId(), currentUser.userId());
         return ResponseEntity.status(HttpStatus.CREATED).body(JourneyResponse.from(getJourney.execute(journey.getId())));
     }
 
@@ -85,6 +90,13 @@ public class JourneyController {
     @PutMapping("/{journeyId}")
     public JourneyResponse update(@PathVariable UUID journeyId, @Valid @RequestBody JourneyUpdateInput input) {
         updateJourney.execute(journeyId, input.name(), input.description());
+        return JourneyResponse.from(getJourney.execute(journeyId));
+    }
+
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
+    @PutMapping("/{journeyId}/channels")
+    public JourneyResponse updateChannels(@PathVariable UUID journeyId, @Valid @RequestBody JourneyChannelsInput input) {
+        updateJourneyChannels.execute(journeyId, input.channelTypes());
         return JourneyResponse.from(getJourney.execute(journeyId));
     }
 

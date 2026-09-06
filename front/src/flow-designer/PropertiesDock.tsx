@@ -5,6 +5,7 @@ import { PropertiesPanel } from './PropertiesPanel';
 import { JourneyPropertiesPanel } from './JourneyPropertiesPanel';
 import type { WFNode, WFEdge, WFNodeData, WFEdgeData } from './model';
 import type { MessagingCluster, CredentialReference } from '../api/messaging';
+import type { ChannelType } from '../api/products';
 
 const MIN_WIDTH = 280;
 const MAX_WIDTH = 560;
@@ -12,7 +13,8 @@ const DEFAULT_WIDTH = 340;
 
 interface JourneyPanelProps {
   productName: string;
-  channelName: string;
+  channelTypes: ChannelType[];
+  onEditChannels: () => void;
   name: string;
   onNameChange: (value: string) => void;
   description: string;

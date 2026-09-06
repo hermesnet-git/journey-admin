@@ -14,7 +14,7 @@ import java.util.UUID;
 public record JourneyVersionResponse(UUID versionId, int versionNumber, VersionSnapshot snapshot) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record VersionSnapshot(String journeyName, String channelType, List<FlowNode> flowNodes,
+    public record VersionSnapshot(String journeyName, List<String> channelTypes, List<FlowNode> flowNodes,
                                    List<FlowConnection> flowConnections) {
     }
 }

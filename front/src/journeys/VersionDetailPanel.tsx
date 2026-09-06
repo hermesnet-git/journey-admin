@@ -21,7 +21,10 @@ export function VersionDetailPanel({ version }: VersionDetailPanelProps) {
       onClick={(e) => e.stopPropagation()}
     >
       <Field label="Produto" value={snapshot.productName} />
-      <Field label="Canal" value={`${snapshot.channelName} (${snapshot.channelType})`} />
+      <Field
+        label="Canais"
+        value={snapshot.channelTypes.join(', ')}
+      />
       <Field label="Criado por" value={version.createdBy} />
       <Field label="Criado em" value={formatDateTime(version.createdAt)} />
       <Field label="Publicado em" value={formatDateTime(version.publishedAt)} />

@@ -1,11 +1,10 @@
 package com.jouney.admin.infrastructure.persistence.journey;
 
+import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.journey.Journey;
 import com.jouney.admin.domain.journey.JourneyRepository;
 import com.jouney.admin.domain.journey.JourneySort;
 import com.jouney.admin.domain.journey.JourneyStatus;
-import com.jouney.admin.infrastructure.persistence.channel.ChannelJpaEntity;
-import jakarta.persistence.criteria.Subquery;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,8 +23,9 @@ public class JourneyRepositoryAdapter implements JourneyRepository {
 
     @Override
     public Journey save(Journey journey) {
-        JourneyJpaEntity entity = new JourneyJpaEntity(journey.getId(), journey.getChannelId(), journey.getName(),
-                journey.getDescription(), journey.getStatus(), journey.getCreatedAt(), journey.getUpdatedAt());
+        JourneyJpaEntity entity = new JourneyJpaEntity(journey.getId(), journey.getProductId(),
+                journey.getChannelTypes(), journey.getName(), journey.getDescription(), journey.getStatus(),
+                journey.getCreatedAt(), journey.getUpdatedAt());
         return toDomain(jpaRepository.save(entity));
     }
 
@@ -40,21 +40,20 @@ public class JourneyRepositoryAdapter implements JourneyRepository {
     }
 
     @Override
-    public List<Journey> search(UUID productId, UUID channelId, String query, JourneyStatus status, JourneySort sort) {
+    public List<Journey> search(UUID productId, ChannelType channelType, String query, JourneyStatus status,
+                                 JourneySort sort) {
         Specification<JourneyJpaEntity> spec = Specification.allOf();
         if (status != null) {
             spec = spec.and((root, cq, cb) -> cb.equal(root.get("status"), status));
         }
-        if (channelId != null) {
-            spec = spec.and((root, cq, cb) -> cb.equal(root.get("channelId"), channelId));
+        if (channelType != null) {
+            spec = spec.and((root, cq, cb) -> {
+                cq.distinct(true);
+                return cb.equal(root.join("channelTypes"), channelType);
+            });
         }
         if (productId != null) {
-            spec = spec.and((root, cq, cb) -> {
-                Subquery<UUID> subquery = cq.subquery(UUID.class);
-                var channelRoot = subquery.from(ChannelJpaEntity.class);
-                subquery.select(channelRoot.get("id")).where(cb.equal(channelRoot.get("productId"), productId));
-                return root.get("channelId").in(subquery);
-            });
+            spec = spec.and((root, cq, cb) -> cb.equal(root.get("productId"), productId));
         }
         if (query != null && !query.isBlank()) {
             String like = "%" + query.toLowerCase() + "%";
@@ -67,7 +66,7 @@ public class JourneyRepositoryAdapter implements JourneyRepository {
     }
 
     private static Journey toDomain(JourneyJpaEntity entity) {
-        return new Journey(entity.getId(), entity.getChannelId(), entity.getName(), entity.getDescription(),
-                entity.getStatus(), entity.getCreatedAt(), entity.getUpdatedAt());
+        return new Journey(entity.getId(), entity.getProductId(), entity.getChannelTypes(), entity.getName(),
+                entity.getDescription(), entity.getStatus(), entity.getCreatedAt(), entity.getUpdatedAt());
     }
 }

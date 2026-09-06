@@ -6,6 +6,4 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface JourneyJpaRepository extends JpaRepository<JourneyJpaEntity, UUID>,
         JpaSpecificationExecutor<JourneyJpaEntity> {
-
-    long countByChannelId(UUID channelId);
 }

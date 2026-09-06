@@ -18,6 +18,8 @@ Os logs técnicos de observabilidade (requisições de API e transações de per
 
 A execução de uma jornada publicada roda inteiramente contra o motor de runtime, acompanhada em tempo real pelo frontend — não existe um agregado ExecutionRun/ExecutionStep/ExecutionResult persistido pelo Admin Portal, e por isso essas entradas não aparecem neste dicionário. O único registro que sobrevive no banco do Admin Portal é um Audit Event genérico (`EXECUTION_START`) marcando que uma execução foi iniciada.
 
+Os modelos predefinidos de jornada também não possuem tabela nem identidade persistida. São definições de sistema versionadas no backend; ao serem usados, seus nós e conexões são copiados com novos identificadores para o `Flow` da jornada e para o snapshot inicial de `JourneyVersion`.
+
 # 2. Convenções
 
 ## Tipos de Dados
@@ -49,34 +51,26 @@ Não — Campo opcional
 | Name | VARCHAR(150) | Sim | Nome do produto. Exemplo: `Vivo+` |
 | Description | TEXT | Sim | Descrição do produto |
 | Status | VARCHAR(20) | Sim | `ACTIVE` ou `INACTIVE` |
+| ChannelTypes | VARCHAR(20)[] | Sim | Conjunto não vazio de tipos de canal habilitados (`product_channel_type`) |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
 ---
 
-# 4. Channel
+# 4. Channel Type
 
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| ChannelId | UUID | Sim | Identificador único do canal |
-| ProductId | UUID | Sim | Produto ao qual o canal pertence |
-| Name | VARCHAR(100) | Sim | Nome do canal |
-| Type | VARCHAR(30) | Sim | Tipo do canal |
-| Status | VARCHAR(20) | Sim | `ACTIVE` ou `INACTIVE` |
-| Description | TEXT | Sim | Descrição do canal |
-| CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
-| UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
-
-## Valores de Type
+Valor de domínio fixo — não é uma entidade própria, não possui `Id`/`CreatedAt`/`UpdatedAt`. Usado
+como coleção de valores tanto em `Product.ChannelTypes` quanto em `Journey.ChannelTypes`.
 
 ```text
 WEB
 MOBILE
 WHATSAPP
-URA
-CONTACT_CENTER
-OTHER
 ```
+
+> **Nota de revisão (2026-09-06):** substitui a antiga entidade `Channel` (`ChannelId`/`ProductId`/
+> `Name`/`Type`/`Status`/`Description`, com CRUD próprio) — canal deixou de ter cadastro e virou um
+> valor de domínio fixo, reduzido de 6 para 3 tipos (`URA`/`CONTACT_CENTER`/`OTHER` removidos).
 
 ---
 
@@ -85,14 +79,19 @@ OTHER
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | JourneyId | UUID | Sim | Identificador único da jornada |
-| ChannelId | UUID | Sim | Canal específico da jornada |
+| ProductId | UUID | Sim | Produto ao qual a jornada pertence |
+| ChannelTypes | VARCHAR(20)[] | Sim | Subconjunto não vazio dos tipos de canal habilitados pelo produto (`journey_channel_type`) |
 | Name | VARCHAR(200) | Sim | Nome da jornada |
 | Description | TEXT | Sim | Descrição da jornada |
 | Status | VARCHAR(20) | Sim | `DRAFT`, `PUBLISHED`, `UNPUBLISHED` ou `INACTIVE` |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
-O produto da jornada é obtido por meio de `Channel.ProductId`.
+`ProductId` é um campo direto da jornada — não é mais obtido através de um canal associado.
+
+> **Nota de revisão (2026-09-06):** `ChannelId` removido, substituído por `ChannelTypes` (subconjunto
+> dos tipos do produto) e `ProductId` promovido a campo direto (antes só derivado via
+> `Channel.ProductId`).
 
 ---
 
@@ -125,13 +124,14 @@ Cada jornada possui no máximo um fluxo.
 | PositionX | INTEGER | Não | Coordenada horizontal no canvas |
 | PositionY | INTEGER | Não | Coordenada vertical no canvas |
 | StartVariables | JSONB | Não | Lista `{ name, type }` — só em nós `START`; variáveis que o canal digital/BFF deve fornecer ao iniciar uma instância (REQ-03.12.001) |
-| MessageText | TEXT | Não | Só em `USER_TASK` sem tela desenhada (`EmbeddedScreen` vazio, via `UserTaskConfig`) — mensagem exibida ao usuário nessa etapa, podendo referenciar `{{nome}}`, resolvida em tempo de execução (REQ-04.01.005) |
-| EmbeddedScreen | JSONB | Não | Só em `USER_TASK` — array de `FormField` (§11) desenhado diretamente no nó, editável no editor de fluxo (via `UserTaskConfig`) |
-| EmbeddedScreenSdui | JSONB | Não | Só presente numa snapshot de publicação/versão (nunca no fluxo ao vivo do editor) — árvore `[tag, props, children]` compilada de `EmbeddedScreen` no momento da publicação (via `UserTaskConfig`) |
+| MessageText | TEXT | Não | Só em `USER_TASK` sem tela desenhada (`EmbeddedScreenRoot` ausente, via `UserTaskConfig`) — mensagem exibida ao usuário nessa etapa, podendo referenciar `{{nome}}`, resolvida em tempo de execução (REQ-04.01.005) |
+| EmbeddedScreenRoot | JSONB | Não | Só em `USER_TASK` — raiz de uma árvore de `SduiNode` (§11) desenhada diretamente no nó, editável no editor de fluxo (via `UserTaskConfig`); a mesma árvore editada é a publicada, sem etapa de compilação |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
 `FlowNode` não é uma tabela própria: é a forma de cada item do array `Flow.Nodes` (JSONB, §6). `NodeId` é a chave dentro do array, não uma PK de banco.
+
+> **Nota de revisão (2026-09-05):** `EmbeddedScreen` (array de `FormField`) e `EmbeddedScreenSdui` (árvore compilada) substituídos por um único `EmbeddedScreenRoot` (`SduiNode`, catálogo SDUI corporativo v1) — ver `ej-admin-requisitos.md` FT-04. Nota de 2026-08-24 mantida abaixo por histórico.
 
 > **Nota de revisão (2026-08-24):** `EmbeddedScreen`/`EmbeddedScreenSdui` adicionados e `MessageText` reescrito nesta revisão — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó.
 
@@ -181,61 +181,48 @@ Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da 
 
 ---
 
-# 10. Form
+# 10. ComponentDefinition (Component Registry)
+
+> **Reformulação (2026-09-05):** substitui por completo as antigas entradas `Form`/`FormField`
+> (catálogo de Formulários e modelo de campo plano removidos — ver `ej-admin-requisitos.md` FT-04).
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
-| FormId | UUID | Sim | Identificador do formulário |
-| Name | VARCHAR(150) | Sim | Nome do formulário |
-| Description | VARCHAR(500) | Não | Descrição do formulário |
-| Fields | JSONB | Sim | Array de `FormField` (§11) — persistência real dos campos, sem tabela própria |
+| ComponentDefinitionId | UUID | Sim | Identificador técnico da linha — não é a chave de negócio |
+| Type | VARCHAR(60) | Sim | Tipo do componente no catálogo SDUI corporativo v1 (ex.: `ui.textInput`); combinado com `Version`, é a chave de negócio, única na tabela |
+| Version | VARCHAR(20) | Sim | Versão do componente (ex.: `1.0`) |
+| Status | VARCHAR(20) | Sim | `EXPERIMENTAL`, `STABLE`, `DEPRECATED` ou `REMOVED` |
+| Level | INTEGER | Sim | Camada de complexidade do componente (0 a 4) |
+| Category | VARCHAR(20) | Sim | `CONTENT`, `LAYOUT`, `INPUT`, `ACTION` ou `FEEDBACK` — usada para agrupar a paleta do editor |
+| AllowsChildren | BOOLEAN | Sim | Indica se o componente aceita nós filhos (contêiner) ou é uma folha |
+| AllowedChildTypes | JSONB | Não | Lista de `type`s de filho permitidos, quando `AllowsChildren` restringe a um subconjunto |
+| PropsSchema | JSONB | Sim | Lista de `PropDescriptor` (§11) — schema das propriedades configuráveis do componente |
+| Events | JSONB | Sim | Lista dos eventos que o componente pode disparar, dentre o conjunto fechado de ações (US-04.11) |
+| SupportedTargets | JSONB | Sim | Mapa alvo de renderização → `TargetSupport` (status + versão mínima de renderizador), por `react.web`/`react.mobile`/`flutter.web`/`flutter.mobile` |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
-Não há `Code` nem `Status`: um formulário não tem código técnico próprio nem ciclo de ativo/inativo — é identificado só pelo `FormId`. Um `Form` nunca é referenciado por uma User Task; serve só como modelo de partida (cópia dos campos) ao desenhar a tela de um nó (`FlowNode.EmbeddedScreen`, §7/§12) — nada liga o nó ao `FormId` de origem depois da cópia.
-
-> **Nota de revisão (2026-08-24):** parágrafo reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó (`EmbeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
+Tabela real (`component_definition`), não um documento JSONB dentro de outra entidade. Remover um componente (via tela de administração do catálogo) nunca apaga a linha — marca `Status = REMOVED`, preservando a referência para telas já publicadas que o utilizem. O catálogo é semeado, desde a primeira instalação, com os 19 componentes `ui.*` do contrato corporativo de referência (`requisitos/admin/sdui/elastic-journey-sdui-component-catalog-v1.md`).
 
 ---
 
-# 11. FormField
+# 11. SduiNode
+
+> **Reformulação (2026-09-05):** substitui por completo a antiga entrada `FormField` (lista plana
+> de campos) — ver `ej-admin-requisitos.md` FT-04.
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
-| Name | VARCHAR(80) | Sim | Chave técnica do campo: definida pelo usuário. No catálogo (`Form.Fields`), única dentro do formulário e imutável após criada. Na tela embutida de uma User Task (`FlowNode.EmbeddedScreen`), editável a qualquer momento, com unicidade verificada na jornada inteira (REQ-03.09.011) — mesmo espaço de nomes das variáveis de saída de integração. Substitui o antigo identificador interno gerado pelo sistema. |
-| FormId | UUID | Não | Formulário ao qual pertence — presente só quando o campo vive em `Form.Fields` (catálogo); ausente/irrelevante quando o campo vive em `FlowNode.EmbeddedScreen` (tela embutida) |
-| FieldType | VARCHAR(50) | Sim | Tipo do campo |
-| InputSubtype | VARCHAR(20) | Não | Subtipo de entrada, aplicável apenas quando `FieldType = INPUT` |
-| Label | VARCHAR(200) | Não | Rótulo apresentado ao usuário |
-| HelpText | TEXT | Não | Texto de ajuda |
-| Required | BOOLEAN | Sim | Indica preenchimento obrigatório |
-| DefaultValue | TEXT | Não | Valor padrão; pode referenciar `{{nome}}` de uma variável do fluxo, resolvida em tempo de execução e usada para pré-preencher o campo (editável) |
-| Columns | INTEGER | Não | Só em `FieldType = SECTION` — número de colunas da grade que agrupa os campos seguintes até a próxima seção |
-| VisibleIf | TEXT | Não | Expressão de exibição condicional; modelada e validada, mas ainda não avaliada em tempo de execução (fora do escopo da v1.0.0, seção 5) |
-| DataSource | JSONB | Não | Só em `FieldType = AUTOCOMPLETE` — mesma forma de `IntegrationTaskConfig` (§9), pensada para popular opções por busca remota; ainda não resolvida em tempo de execução — opções estáticas por enquanto (fora do escopo da v1.0.0, seção 5) |
-| Configuration | JSONB | Não | Configuração específica do campo: opções `{label, value}` (`SINGLE_SELECT`/`MULTI_SELECT`/`RADIO`/`AUTOCOMPLETE`), validação de formato (min/max para `NUMBER`, regex/máscara para `TEXT`), regras de arquivo aceito — extensões e tamanho máximo — (`FILE_UPLOAD`), e configuração livre dos componentes novos (`min`/`max`/`step` de `SLIDER`/`STEPPER`, contagem de `RATING`, `url`/`alt` de `IMAGE`, `variant`/`description` de `CALLOUT` etc.) |
+| Id | VARCHAR | Sim | Identificador único dentro da tela; quando o nó coleta valor, é o mesmo nome usado no vínculo de dados de leitura-e-escrita do namespace `form` (REQ-04.10.005), com unicidade verificada na jornada inteira |
+| Type | VARCHAR | Sim | Tipo do componente referenciado, combinado com `Version` — deve existir no `ComponentDefinition` (§10) correspondente |
+| Version | VARCHAR | Sim | Versão do componente referenciado |
+| Props | JSONB | Não | Configuração do nó, conforme o `PropsSchema` declarado pelo componente no Registry |
+| Bindings | JSONB | Não | Vínculo de dados por namespace (`form`/`data`/`session`/`route`/`computed`) e caminho, com modo leitura-e-escrita ou somente leitura |
+| Events | JSONB | Não | Mapa evento → ação, restrito ao conjunto fechado de ações do sistema (US-04.11) |
+| Visibility | JSONB | Não | Condição de exibição do nó, comparando um valor do contexto de dados a um valor informado; ausente significa sempre visível |
+| Children | JSONB | Não | Lista de `SduiNode` filhos, presente apenas quando o componente referenciado aceita filhos |
 
-## Valores de FieldType
-
-```text
-SECTION, TEXT, INPUT, SINGLE_SELECT, MULTI_SELECT, FILE_UPLOAD, RADIO, SWITCH,
-SLIDER, RATING, STEPPER, AUTOCOMPLETE, TITLE, IMAGE, DIVIDER, CARD, CALLOUT
-```
-
-> `STATIC_CONTENT` foi colapsado em `TEXT` (mesmo modelo de dados, diferença apenas de apresentação visual).
-
-`FormField` não é uma tabela própria: é a forma de cada item do array `Form.Fields` (JSONB, §10) ou de `FlowNode.EmbeddedScreen` (JSONB, §7). Não existe `DisplayOrder`: a ordem de exibição é a própria ordem do campo no array, não uma coluna armazenada.
-
-> **Nota de revisão (2026-08-24):** `FieldType` ampliado de 5 para 17 valores, e as colunas `Columns`/`VisibleIf`/`DataSource` adicionadas nesta revisão — mesma mudança que substituiu a associação por `FormId` pelo desenho direto da tela no nó: como a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), o catálogo próprio do Admin Portal foi ampliado para cobrir a necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de depender do motor.
-
-## Valores de InputSubtype (quando FieldType = INPUT)
-
-```text
-TEXT
-NUMBER
-EMAIL
-DATE
-```
+Estrutura recursiva sem tabela própria: é o shape de cada nó dentro da árvore persistida em `FlowNode.EmbeddedScreenRoot` (JSONB, §7). A raiz da árvore de uma tela é sempre um único `SduiNode` do tipo `ui.screen`; a profundidade de aninhamento não é limitada. Não existe `DisplayOrder`: a ordem de exibição é a própria posição do nó no array `Children` do pai, não uma coluna armazenada. Não existe mais valor padrão estático — o valor inicial de um nó vem da resolução do seu `Bindings` em tempo de execução (US-04.10).
 
 ---
 
@@ -244,13 +231,14 @@ DATE
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | NodeId | UUID | Sim | Nó `USER_TASK` configurado |
-| EmbeddedScreen | JSONB | Não | Tela desenhada diretamente no nó — array de `FormField` (§11), editável no editor de fluxo |
-| EmbeddedScreenSdui | JSONB | Não | Só presente numa snapshot de publicação/versão — árvore `[tag, props, children]` compilada de `EmbeddedScreen` no momento da publicação (§4, Imutabilidade) |
-| MessageText | TEXT | Não | Mensagem exibida ao usuário quando `EmbeddedScreen` está vazio (REQ-04.01.005) |
+| EmbeddedScreenRoot | JSONB | Não | Tela desenhada diretamente no nó — raiz de uma árvore de `SduiNode` (§11), editável no editor de fluxo; a mesma árvore editada é a publicada, sem etapa de compilação |
+| MessageText | TEXT | Não | Mensagem exibida ao usuário quando `EmbeddedScreenRoot` está ausente (REQ-04.01.005) |
 
-Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, a configuração desenha uma tela diretamente no nó (`EmbeddedScreen`) **ou** declara uma mensagem de etapa sem tela — os dois nunca coexistem com sentido (se `EmbeddedScreen` não estiver vazio, `MessageText` é ignorado). Um formulário do catálogo (§10) pode servir de modelo de partida ao montar `EmbeddedScreen`, mas nada é persistido ligando o nó ao formulário de origem — a cópia dos campos é o único rastro dessa escolha.
+Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, a configuração desenha uma tela diretamente no nó (`EmbeddedScreenRoot`) **ou** declara uma mensagem de etapa sem tela — os dois nunca coexistem com sentido (se `EmbeddedScreenRoot` estiver presente, `MessageText` é ignorado). Não existe mais formulário do catálogo como modelo de partida — cada `SduiNode` da árvore referencia um componente do `ComponentDefinition` (§10) por `Type`+`Version`.
 
-`UserTaskConfig` não é uma tabela própria nem um sub-documento separado: `EmbeddedScreen`/`EmbeddedScreenSdui`/`MessageText` são atributos do próprio item de `Flow.Nodes` (JSONB, §6-7) — presentes mesmo em nós que não são `USER_TASK`, mas só têm sentido nesse tipo.
+`UserTaskConfig` não é uma tabela própria nem um sub-documento separado: `EmbeddedScreenRoot`/`MessageText` são atributos do próprio item de `Flow.Nodes` (JSONB, §6-7) — presentes mesmo em nós que não são `USER_TASK`, mas só têm sentido nesse tipo.
+
+> **Nota de revisão (2026-09-05):** `EmbeddedScreen`/`EmbeddedScreenSdui` substituídos por um único `EmbeddedScreenRoot` (`SduiNode`, catálogo SDUI corporativo v1) — ver `ej-admin-requisitos.md` FT-04. Nota de 2026-08-24 mantida abaixo por histórico.
 
 > **Nota de revisão (2026-08-24):** seção reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó (`EmbeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
@@ -268,13 +256,15 @@ Na versão 1.0.0, a publicação ativa deve referenciar uma `JourneyVersion`. Ve
 | PublicationStatus | VARCHAR(30) | Sim | `PUBLISHED` ou `UNPUBLISHED` |
 | PublicationDate | TIMESTAMPTZ | Não | Data da publicação |
 | UnpublishedDate | TIMESTAMPTZ | Não | Data da despublicação |
-| JourneySnapshot | JSONB | Sim | Cópia de Product, Channel, Journey e Flow (com a tela já compilada — `EmbeddedScreenSdui` — de cada User Task) e do `VersionNumber` da versão publicada |
+| JourneySnapshot | JSONB | Sim | Cópia de Product, ChannelTypes, Journey e Flow (com a árvore de tela — `EmbeddedScreenRoot` — de cada User Task) e do `VersionNumber` da versão publicada |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação do registro |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última substituição do snapshot |
 
 Cada jornada possui no máximo uma publicação ativa, associada a uma `JourneyVersion`. Uma nova publicação aponta para uma nova versão e preserva os snapshots anteriores após o retorno de sucesso da chamada real (HTTP) à API de publicação do runtime.
 
 Na despublicação, Journey e JourneyPublication passam para `UNPUBLISHED` somente após o retorno de sucesso dessa mesma chamada. Uma jornada nunca publicada utiliza o estado `DRAFT`.
+
+> **Nota de revisão (2026-09-05):** `EmbeddedScreenSdui` (árvore compilada) substituído por `EmbeddedScreenRoot` — a mesma árvore de `SduiNode` editada no Form Builder, sem etapa de compilação separada.
 
 > **Nota de revisão (2026-08-24):** `JourneySnapshot` reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó, e o snapshot não carrega mais uma lista de formulários — só a tela já compilada de cada nó.
 
@@ -388,17 +378,19 @@ Entidade isolada, sem chave estrangeira. Diferente de `CredentialReference`, arm
 | Conceito | Descrição |
 |----------|-----------|
 | Product | Produto ou serviço digital |
-| Channel | Aplicação ou interface de atendimento de um produto |
-| Journey | Jornada específica de um canal |
+| Channel Type | Valor de domínio fixo (`WEB`/`MOBILE`/`WHATSAPP`) — não é uma entidade cadastrável |
+| Journey | Workflow associado a um produto e a um subconjunto dos tipos de canal desse produto |
 | Flow / FlowNode / FlowConnection / FlowAnnotation | Estrutura visual da jornada e suas notas de documentação |
 | IntegrationTaskConfig | Configuração de integração e conector de uma Service Task, Receive Task ou Message Start Event |
 | ConnectorType | Tipo de conector habilitado ou catalogado como desabilitado |
-| UserTaskConfig | Tela embutida (`EmbeddedScreen`/`EmbeddedScreenSdui`) desenhada diretamente no nó de uma User Task |
-| Form / FormField | Formulário reutilizável do catálogo (modelo de cópia opcional) e campos que o compõem |
+| UserTaskConfig | Tela embutida (`EmbeddedScreenRoot`) desenhada diretamente no nó de uma User Task |
+| ComponentDefinition / SduiNode | Catálogo de componentes SDUI disponíveis (Component Registry) e os nós da árvore de tela que instanciam esses componentes |
 | JourneyPublication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | MessagingCluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | CredentialReference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
 | AiProviderCredential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+
+> **Nota de revisão (2026-09-05):** linha `Form / FormField` substituída por `ComponentDefinition / SduiNode` e `UserTaskConfig` atualizada — a tela de uma User Task passou a ser uma árvore de `SduiNode` (`EmbeddedScreenRoot`) que referenciam componentes de um catálogo mantido em tabela própria; não existe mais formulário do catálogo como modelo de cópia. Nota de 2026-08-24 mantida abaixo por histórico.
 
 > **Nota de revisão (2026-08-24):** linhas `UserTaskConfig` e `Form / FormField` reescritas — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `FormId`; a tela passou a ser desenhada diretamente no nó (`EmbeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
@@ -406,4 +398,4 @@ Entidade isolada, sem chave estrangeira. Diferente de `CredentialReference`, arm
 
 # 21. Resumo
 
-O dicionário descreve a hierarquia Product → Channel → Journey, o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual, formulários e publicação de jornadas específicas por canal, e do catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.
+O dicionário descreve a hierarquia Product → Journey (com tipos de canal declarados como atributo em ambos), o versionamento imutável, a identidade mockada e os eventos de auditoria, além dos campos necessários para modelagem visual de workflows, o catálogo SDUI (Component Registry e árvore de nós) e publicação de jornadas multicanal, e do catálogo de integrações (clusters de mensageria e referências de credencial) usado pelos conectores do fluxo.

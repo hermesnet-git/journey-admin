@@ -27,12 +27,6 @@ public class JourneyPublicationStatusAdapter implements ActivePublicationPort, H
     }
 
     @Override
-    public boolean existsForChannel(UUID channelId) {
-        return journeyRepository.search(null, channelId, null, null, null).stream()
-                .anyMatch(j -> j.getStatus() == JourneyStatus.PUBLISHED);
-    }
-
-    @Override
     public boolean existsForJourney(UUID journeyId) {
         return journeyRepository.findById(journeyId)
                 .map(j -> j.getStatus() == JourneyStatus.PUBLISHED)

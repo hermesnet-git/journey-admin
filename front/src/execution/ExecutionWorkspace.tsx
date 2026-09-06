@@ -424,7 +424,10 @@ export function ExecutionWorkspace({
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="max-w-[1040px] mx-auto px-6 py-8">
           <DevicePreview
-            channelType={flow.channelType}
+            // Jornada pode ter vários canais agora; a prévia só precisa de um pra escolher a
+            // moldura (telefone vs. navegador) — usa o primeiro, sem rastrear qual foi o canal
+            // escolhido de fato ao iniciar esta instância (StartPanel).
+            channelType={flow.channelTypes[0] ?? 'WEB'}
             step={step}
             busy={busy}
             connectorConfig={waitingConnectorConfig}

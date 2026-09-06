@@ -2,8 +2,6 @@ package com.jouney.admin.interfaces.flow;
 
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
-import com.jouney.admin.domain.form.FormField;
-import com.jouney.admin.interfaces.form.FormFieldInput;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,11 +24,9 @@ public record FlowNodeInput(
 
     public FlowNode toDomain() {
         String messageText = userTaskConfig != null ? userTaskConfig.messageText() : null;
-        List<FormField> embeddedScreen = userTaskConfig != null && userTaskConfig.embeddedScreen() != null
-                ? userTaskConfig.embeddedScreen().stream().map(FormFieldInput::toDomain).toList()
-                : List.of();
+        var embeddedScreenRoot = userTaskConfig != null ? userTaskConfig.embeddedScreenRoot() : null;
         return new FlowNode(nodeId, nodeType, name, description, positionX, positionY,
                 connectorConfig != null ? connectorConfig.toDomain() : null, startVariables, messageText,
-                embeddedScreen, null);
+                embeddedScreenRoot);
     }
 }

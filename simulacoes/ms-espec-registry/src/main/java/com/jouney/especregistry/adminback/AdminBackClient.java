@@ -51,7 +51,7 @@ public class AdminBackClient {
         JourneyVersionResponse version = get("/api/v1/journeys/" + journeyId + "/versions/" + versionId,
                 JourneyVersionResponse.class);
         JourneyVersionResponse.VersionSnapshot snapshot = version.snapshot();
-        return new PublicationSnapshot(journeyId, snapshot.journeyName(), snapshot.channelType(),
+        return new PublicationSnapshot(journeyId, snapshot.journeyName(), snapshot.channelTypes(),
                 snapshot.flowNodes(), snapshot.flowConnections());
     }
 

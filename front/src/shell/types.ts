@@ -10,7 +10,8 @@ export type TabKind =
   | 'audit'
   | 'help'
   | 'sobre'
-  | 'catalog';
+  | 'catalog'
+  | 'component-catalog';
 
 export interface Tab {
   key: string;

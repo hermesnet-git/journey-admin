@@ -40,25 +40,22 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
     private Publication toDomain(PublicationJpaEntity entity) {
         PublicationSnapshotRecord record = readJson(entity.getSnapshot());
 
-        // O nó reconstruído a partir da snapshot nunca carrega embeddedScreen (só existia na
-        // snapshot como a árvore já compilada) — mas carrega embeddedScreenSdui: GetPublicationSnapshot
-        // (REQ-02.10.001, inspeção do JSON pela admin UI) monta a resposta rechamando
-        // PublicationSnapshotRecord.from(publication) em cima disto, e sem isto aqui a tela sumiria
-        // dessa inspeção mesmo já tendo sido publicada corretamente.
+        // GetPublicationSnapshot (REQ-02.10.001, inspeção do JSON pela admin UI) monta a resposta
+        // rechamando PublicationSnapshotRecord.from(publication) em cima disto — sem repassar
+        // embeddedScreenRoot aqui, a tela sumiria dessa inspeção mesmo já tendo sido publicada.
         List<FlowNode> flowNodes = record.flowNodes().stream()
                 .map(n -> new FlowNode(n.id(), n.type(), n.name(), n.description(), n.positionX(), n.positionY(),
                         n.connectorConfig() != null ? n.connectorConfig().toDomain() : null,
-                        n.startVariables(), n.messageText(), List.of(), n.embeddedScreenSdui()))
+                        n.startVariables(), n.messageText(), n.embeddedScreenRoot()))
                 .toList();
         List<FlowConnection> flowConnections = record.flowConnections().stream()
                 .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
                 .toList();
 
         return new Publication(entity.getId(), entity.getJourneyId(), record.journeyName(),
-                record.journeyDescription(), record.productId(), record.productName(), record.channelId(),
-                record.channelName(), record.channelType(), flowNodes, flowConnections,
-                entity.getVersionId(), record.versionNumber(), entity.getPublishedAt(), entity.getCreatedAt(),
-                entity.getUpdatedAt());
+                record.journeyDescription(), record.productId(), record.productName(), record.channelTypes(),
+                flowNodes, flowConnections, entity.getVersionId(), record.versionNumber(), entity.getPublishedAt(),
+                entity.getCreatedAt(), entity.getUpdatedAt());
     }
 
     private String writeJson(Object value) {

@@ -13,7 +13,7 @@ const FAQ_ITEMS: FaqItem[] = [
     topic: 'produtos',
     question: 'Como cadastro um produto e seus canais?',
     answer:
-      'Na tela Produtos, use "Novo produto" para criar o produto e, dentro dele, adicione os canais de atendimento (WEB, MOBILE, WHATSAPP, URA, CONTACT_CENTER ou OTHER).',
+      'Na tela Produtos, use "Novo produto" e marque os canais de atendimento (Web, Mobile, WhatsApp) em que as jornadas desse produto poderão rodar.',
   },
   {
     topic: 'produtos',

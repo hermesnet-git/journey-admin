@@ -1,5 +1,6 @@
 package com.jouney.admin.application.journey;
 
+import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.journey.JourneyRepository;
 import com.jouney.admin.domain.journey.JourneySort;
 import com.jouney.admin.domain.journey.JourneyStatus;
@@ -18,9 +19,9 @@ public class FindJourneys {
         this.assembler = assembler;
     }
 
-    public List<JourneyView> execute(UUID productId, UUID channelId, String query, JourneyStatus status,
+    public List<JourneyView> execute(UUID productId, ChannelType channelType, String query, JourneyStatus status,
                                       JourneySort sort) {
-        return journeyRepository.search(productId, channelId, query, status, sort).stream()
+        return journeyRepository.search(productId, channelType, query, status, sort).stream()
                 .map(assembler::assemble)
                 .toList();
     }

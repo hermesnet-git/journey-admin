@@ -147,8 +147,10 @@ modifica automaticamente a outra.
 
 ## Objetivo
 
-Permitir o gerenciamento dos produtos e dos canais através dos quais suas
-jornadas serão disponibilizadas.
+Permitir o gerenciamento dos produtos, que organizam jornadas por linha de
+negócio e declaram os canais digitais (Web, Mobile, WhatsApp) pelos quais
+essas jornadas podem ficar disponíveis para o cliente. Canal é um valor de
+domínio fixo, não uma entidade com cadastro próprio.
 
 
 
@@ -159,33 +161,19 @@ jornadas serão disponibilizadas.
 #### REQ-01.01.003 - O sistema deve permitir consultar produtos.
 #### REQ-01.01.004 - O sistema deve permitir desativar e reativar produtos.
 #### REQ-01.01.005 - Cada produto deve possuir identificador único (`productId`), nome, descrição obrigatória e status.
-
-### US-01.02 Gestão de canais
-#### REQ-01.02.001 - O sistema deve permitir cadastrar canais dentro de um produto.
-#### REQ-01.02.002 - O sistema deve permitir editar canais.
-#### REQ-01.02.003 - O sistema deve permitir consultar canais.
-#### REQ-01.02.004 - O sistema deve permitir desativar e reativar canais.
-#### REQ-01.02.005 - Todo canal deve pertencer a exatamente um produto.
-#### REQ-01.02.006 - Cada canal deve possuir identificador único (`channelId`), nome, descrição obrigatória, tipo e status.
-#### REQ-01.02.007 - O sistema deve suportar os tipos de canal `WEB`, `MOBILE`, `WHATSAPP`, `URA`, `CONTACT_CENTER` e `OTHER`.
+#### REQ-01.01.006 - Cada produto deve declarar um conjunto não vazio de tipos de canal (`WEB`, `MOBILE`, `WHATSAPP`) pelos quais suas jornadas podem ficar disponíveis.
 
 
 ### US-01.03 Catálogo e descoberta
 #### REQ-01.03.001 - O sistema deve permitir pesquisar produtos por nome.
 #### REQ-01.03.002 - O sistema deve permitir filtrar produtos por status.
-#### REQ-01.03.003 - O sistema deve permitir listar os canais de um produto.
-#### REQ-01.03.004 - O sistema deve permitir pesquisar canais por nome.
-#### REQ-01.03.005 - O sistema deve permitir filtrar canais por produto, tipo e status.
-#### REQ-01.03.006 - O sistema deve exibir a quantidade de canais associados a cada produto.
-#### REQ-01.03.007 - O sistema deve exibir a quantidade de jornadas associadas a cada canal.
+#### REQ-01.03.006 - O sistema deve exibir os tipos de canal habilitados de cada produto na listagem.
 
 
 ### US-01.04 Integridade e ciclo de vida
-#### REQ-01.04.001 - A desativação de um produto não deve remover seus canais, jornadas ou publicações existentes.
-#### REQ-01.04.002 - A desativação de um canal não deve remover suas jornadas ou publicações existentes.
-#### REQ-01.04.003 - O sistema deve impedir a criação e a publicação de jornadas quando o produto ou o canal estiver inativo.
-#### REQ-01.04.004 - O sistema deve impedir a desativação de um produto enquanto qualquer jornada de seus canais possuir publicação ativa.
-#### REQ-01.04.005 - O sistema deve impedir a desativação de um canal enquanto qualquer uma de suas jornadas possuir publicação ativa.
+#### REQ-01.04.001 - A desativação de um produto não deve remover suas jornadas ou publicações existentes.
+#### REQ-01.04.003 - O sistema deve impedir a criação e a publicação de jornadas quando o produto estiver inativo.
+#### REQ-01.04.004 - O sistema deve impedir a desativação de um produto enquanto qualquer uma de suas jornadas possuir publicação ativa.
 
 <br/>
 
@@ -212,22 +200,26 @@ canais de um produto.
 #### REQ-02.02.002 - O sistema deve exigir uma descrição para a jornada.
 #### REQ-02.02.003 - Cada jornada deve possuir identificador único (`journeyId`).
 #### REQ-02.02.004 - O identificador da jornada é gerado pelo sistema e não é editável pelo usuário.
-#### REQ-02.02.005 - Toda jornada deve estar associada a exatamente um canal.
-#### REQ-02.02.006 - O sistema deve identificar o produto da jornada a partir do canal associado.
+#### REQ-02.02.005 - Toda jornada deve estar associada a um subconjunto não vazio dos tipos de canal (`WEB`, `MOBILE`, `WHATSAPP`) habilitados pelo seu produto.
+#### REQ-02.02.006 - Toda jornada deve declarar diretamente o produto ao qual pertence; seus tipos de canal nunca incluem um valor fora do que o produto habilita (validado na criação e a cada edição dos tipos de canal da jornada).
 
 
 ### US-02.03 Pesquisa
 #### REQ-02.03.001 - O sistema deve permitir pesquisar jornadas por nome.
 #### REQ-02.03.002 - O sistema deve permitir filtrar jornadas por produto.
-#### REQ-02.03.003 - O sistema deve permitir filtrar jornadas por canal.
+#### REQ-02.03.003 - O sistema deve permitir filtrar jornadas por tipo de canal.
 #### REQ-02.03.004 - O sistema deve permitir ordenar jornadas por data de criação.
 #### REQ-02.03.005 - O sistema deve permitir ordenar jornadas por data de alteração.
 #### REQ-02.03.006 - O sistema deve permitir agrupar a listagem de jornadas por produto, por produto e canal, por canal, ou sem agrupamento algum.
 #### REQ-02.03.007 - O sistema deve permitir ordenar a listagem de jornadas, em ordem crescente ou decrescente, pelos campos jornada (nome), canal, status ou data de atualização.
 
-
-Fora do escopo da versão 1.0.0. Esta capacidade permanece registrada como evolução
-futura e não faz parte dos requisitos entregáveis desta versão.
+### US-02.04 Modelos de jornada
+#### REQ-02.04.001 - Ao criar uma jornada, o sistema deve permitir que o usuário escolha entre iniciar com o fluxo em branco ou usar um modelo de jornada predefinido.
+#### REQ-02.04.002 - O sistema deve listar os modelos disponíveis com identificador estável, nome e descrição; no piloto da versão 1.0.0, deve oferecer o modelo `aprovacao-pedido` (“Aprovação de Pedido”).
+#### REQ-02.04.003 - O modelo escolhido deve preencher somente o fluxo. Nome, descrição, produto e canais da nova jornada devem ser sempre os valores informados pelo usuário.
+#### REQ-02.04.004 - Cada uso de um modelo deve gerar novos identificadores de fluxo, nós e conexões, sem compartilhar identidade ou estado mutável entre jornadas.
+#### REQ-02.04.005 - A criação da jornada, do fluxo escolhido e da versão inicial `DRAFT` deve ocorrer numa única transação; o snapshot da versão 1 deve conter exatamente os mesmos nós e conexões do fluxo criado.
+#### REQ-02.04.006 - Um modelo é um esqueleto editável e pode deixar configurações dependentes do contexto — tela, condição, endpoint ou credencial — para o autor completar. O fluxo resultante permanece sujeito às mesmas regras de validação e publicação de qualquer rascunho.
 
 ### US-02.05 Jornadas específicas por canal
 #### REQ-02.05.001 - O sistema deve permitir criar jornadas distintas para diferentes canais do mesmo produto.
@@ -248,7 +240,7 @@ futura e não faz parte dos requisitos entregáveis desta versão.
 #### REQ-02.07.001 - O sistema deve indicar se uma jornada esta publicada.
 #### REQ-02.07.002 - O sistema deve indicar a data da publicacao.
 #### REQ-02.07.003 - O sistema deve indicar o produto associado a publicacao.
-#### REQ-02.07.004 - O sistema deve indicar o canal associado a publicacao.
+#### REQ-02.07.004 - O sistema deve indicar os tipos de canal associados a publicacao.
 ---
 
 ### US-02.08 Catálogo de publicações
@@ -260,7 +252,7 @@ futura e não faz parte dos requisitos entregáveis desta versão.
 
 ### US-02.09 Publicação no runtime
 #### REQ-02.09.001 - O Admin Portal deve iniciar a publicacao por meio de uma chamada de saida para a API de publicacao do runtime.
-#### REQ-02.09.002 - A chamada deve enviar a definição completa da jornada, incluindo produto, canal e o fluxo com a tela embutida (já compilada) de cada User Task.
+#### REQ-02.09.002 - A chamada deve enviar a definição completa da jornada, incluindo produto, tipos de canal e o fluxo com a tela embutida (já compilada) de cada User Task.
 
 > **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional. O snapshot enviado ao runtime não carrega mais uma lista de formulários — só a tela já compilada de cada nó.
 
@@ -270,14 +262,14 @@ futura e não faz parte dos requisitos entregáveis desta versão.
 ---
 
 ### US-02.10 Inspeção da publicação
-#### REQ-02.10.001 - Para uma jornada com publicação ativa (`PUBLISHED`), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, canal, fluxo — incluindo a árvore SDUI já compilada da tela de cada User Task), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".
+#### REQ-02.10.001 - Para uma jornada com publicação ativa (`PUBLISHED`), o sistema deve permitir visualizar o JSON completo enviado à API de publicação do runtime (produto, tipos de canal, fluxo — incluindo a árvore SDUI já compilada da tela de cada User Task), por meio de uma ação na listagem de jornadas ao lado de "Editar" e "Excluir".
 
 > **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional. O snapshot inspecionado aqui não carrega mais uma lista de formulários — só a árvore SDUI já compilada de cada nó.
 ---
 
 <br/>
 
-# FT-03 Modelagem Visual
+# FT-03 Modelagem Visual de Workflows
 
 ## Objetivo
 
@@ -290,7 +282,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.01.002 - O sistema deve suportar eventos de término.
 #### REQ-03.01.003 - O sistema deve suportar User Tasks, Service Tasks e Receive Tasks.
 #### REQ-03.01.004 - Cada fluxo deve possuir exatamente um elemento inicial (`START` ou `MESSAGE_START_EVENT`) e ao menos um nó `END`; um `GATEWAY` (US-03.11) pode ramificar o fluxo em caminhos que terminam em nós `END` distintos, em vez de reconvergir num único fim.
-#### REQ-03.01.005 - Ao criar uma jornada, o sistema deve iniciar seu fluxo apenas com o elemento inicial `START`, cabendo ao usuário adicionar o nó `END` e os demais elementos antes de salvar.
+#### REQ-03.01.005 - Ao criar uma jornada em branco, o sistema deve iniciar seu canvas sem elementos. Quando o usuário escolher um modelo predefinido (US-02.04), o fluxo deve iniciar com uma cópia independente do esqueleto desse modelo.
 ---
 
 ### US-03.02 Conexões
@@ -388,6 +380,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.11.006 - O gateway deve possuir ao menos uma entrada e exatamente duas saídas na versão 1.0.0; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição.
 #### REQ-03.11.007 - Na publicação, o gateway deve ser traduzido para um `exclusiveGateway` BPMN nativo, com cada `sequenceFlow` de saída carregando a expressão de condição correspondente (ou marcado como fluxo padrão), avaliado pelo próprio motor do runtime — sem necessidade de implementação especializada (worker), no mesmo princípio do conector REST nativo (US-03.09).
 #### REQ-03.11.008 - Cada variável de saída (REQ-03.09.010) deve possuir um tipo declarado — texto, número, booleano, data ou data e hora — inferido automaticamente ao gerar o mapeamento a partir de uma resposta real (REQ-03.10.001) ou escolhido manualmente pelo usuário. O editor da condição do gateway deve oferecer apenas os operadores compatíveis com o tipo da variável escolhida (texto/booleano: igual/diferente; número/data/data e hora: igual/diferente/maior que/menor que) e um campo de valor no formato correspondente (numérico, seletor verdadeiro/falso, ou seletor de data/data e hora).
+#### REQ-03.11.009 - A condição do gateway pode referenciar a variável reservada `channel` — injetada automaticamente pelo tipo de canal que inicia a instância (REQ-05.04.004), nunca declarável pelo usuário no nó START — permitindo que o fluxo siga caminhos diferentes conforme o tipo de canal (`WEB`, `MOBILE`, `WHATSAPP`).
 ---
 
 ### US-03.12 Variáveis de entrada da jornada
@@ -440,11 +433,11 @@ Permitir a construção visual do fluxo específico de cada jornada.
 
 <br/><br/>
 
-# FT-04 Formulários (SDUI)
+# FT-04 Catálogo Server Driven UI (SDUI)
 
 ## Objetivo
 
-Permitir a criação de formulários reutilizáveis que sirvam como modelo de partida (cópia) para o desenho da tela de uma User Task — tela essa desenhada diretamente no editor de fluxo (ver US-03.16), não mais vinculada por referência ao formulário de origem.
+Permitir que a tela de uma User Task seja composta a partir de um catálogo corporativo de componentes server-driven UI (SDUI), com vínculos de dados, ações e visibilidade condicional configuráveis visualmente, e publicada de forma auditável e portável entre canais.
 
 ---
 
@@ -461,32 +454,38 @@ Permitir a criação de formulários reutilizáveis que sirvam como modelo de pa
 
 #### ~~REQ-04.01.006~~ - ~~No editor de tela embutido de uma User Task (US-03.16), o sistema deve permitir importar os campos de um formulário existente do catálogo como ponto de partida (cópia, sem vínculo persistido) e, separadamente, salvar a tela atualmente desenhada no nó como um novo formulário reutilizável no catálogo.~~ *(removido em 2026-09-05)*
 
-#### REQ-04.01.007 - Na tela embutida de uma User Task (US-03.16), cada campo deve possuir um `name` técnico, definido pelo usuário, editável a qualquer momento, com unicidade verificada na jornada inteira (não só na tela do nó) — ver REQ-03.09.011.
+#### REQ-04.01.007 - Na tela embutida de uma User Task (US-03.16), cada campo que coleta valor deve possuir um identificador técnico, editável a qualquer momento, com unicidade verificada na jornada inteira (não só na tela do nó) — ver REQ-03.09.011.
+
+> **Nota de revisão (2026-09-05):** o campo já não guarda um atributo `name` próprio — o identificador técnico passou a ser o nome usado no vínculo de dados de leitura-e-escrita (US-04.10, REQ-04.10.005). A unicidade na jornada inteira permanece obrigatória.
+
 ---
 
 ### US-04.02 Componentes
-#### REQ-04.02.001 - O sistema deve suportar componente de texto (`TEXT`), que também cobre o uso anteriormente coberto por um tipo de conteúdo estático separado.
-#### REQ-04.02.002 - O sistema deve suportar campo de entrada (`INPUT`).
-#### REQ-04.02.003 - O sistema deve suportar seleção simples.
-#### REQ-04.02.004 - O sistema deve suportar seleção múltipla.
-#### REQ-04.02.005 - O sistema deve suportar upload de arquivo.
-#### ~~REQ-04.02.006~~ - ~~O sistema deve suportar conteúdo estático.~~ **Removido**: o tipo `STATIC_CONTENT` foi colapsado em `TEXT` (REQ-04.02.001); os dois tipos tinham o mesmo modelo de dados e divergiam apenas no estilo visual de apresentação.
-#### REQ-04.02.007 - O campo `INPUT` deve suportar subtipos de entrada: texto livre, número, e-mail e data.
-#### REQ-04.02.008 - O sistema deve permitir configurar validação de formato por subtipo de `INPUT`: faixa mínima/máxima para o subtipo número; expressão regular/máscara para o subtipo texto.
-#### REQ-04.02.009 - As opções de campos de seleção simples e múltipla devem ser definidas como pares rótulo/valor (não apenas um rótulo), permitindo que o valor técnico persistido seja diferente do texto exibido ao usuário.
-#### REQ-04.02.010 - O campo de upload de arquivo deve permitir configurar as extensões de arquivo aceitas e o tamanho máximo do arquivo.
-#### REQ-04.02.011 - O sistema deve suportar um componente estrutural de seção (`SECTION`), que agrupa os campos seguintes até a próxima seção (ou o fim da lista) em uma grade com número de colunas configurável.
-#### REQ-04.02.012 - O sistema deve suportar botões de opção (`RADIO`), com o mesmo modelo de opções rótulo/valor de seleção simples (REQ-04.02.009).
-#### REQ-04.02.013 - O sistema deve suportar interruptor sim/não (`SWITCH`).
-#### REQ-04.02.014 - O sistema deve suportar escala numérica (`SLIDER`), com mínimo, máximo e incremento configuráveis.
-#### REQ-04.02.015 - O sistema deve suportar avaliação por estrelas (`RATING`), com o número máximo de estrelas configurável.
-#### REQ-04.02.016 - O sistema deve suportar contador numérico com incremento/decremento (`STEPPER`), com mínimo, máximo e incremento configuráveis.
-#### REQ-04.02.017 - O sistema deve suportar busca com sugestão (`AUTOCOMPLETE`), com o mesmo modelo de opções rótulo/valor de seleção simples (REQ-04.02.009) — fonte de dados dinâmica remota permanece fora do escopo (seção 5).
-#### REQ-04.02.018 - O sistema deve suportar título (`TITLE`), um componente de conteúdo somente-apresentação.
-#### REQ-04.02.019 - O sistema deve suportar imagem (`IMAGE`), configurável por URL e texto alternativo.
-#### REQ-04.02.020 - O sistema deve suportar divisor visual (`DIVIDER`), sem configuração própria.
-#### REQ-04.02.021 - O sistema deve suportar card de conteúdo (`CARD`), com título, descrição e imagem opcionais.
-#### REQ-04.02.022 - O sistema deve suportar aviso (`CALLOUT`), com título, descrição e variante visual configuráveis.
+
+> **Removida (2026-09-05):** a lista fixa de 17 tipos de campo foi substituída por um catálogo de componentes consultável e mantível (US-04.07), com descrição detalhada de propriedades, eventos e compatibilidade por alvo — não mais um enum fechado em código.
+
+#### ~~REQ-04.02.001~~ - ~~O sistema deve suportar componente de texto (`TEXT`), que também cobre o uso anteriormente coberto por um tipo de conteúdo estático separado.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.002~~ - ~~O sistema deve suportar campo de entrada (`INPUT`).~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.003~~ - ~~O sistema deve suportar seleção simples.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.004~~ - ~~O sistema deve suportar seleção múltipla.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.005~~ - ~~O sistema deve suportar upload de arquivo.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.006~~ - ~~O sistema deve suportar conteúdo estático.~~ **Removido**: o tipo `STATIC_CONTENT` foi colapsado em `TEXT` (REQ-04.02.001); os dois tipos tinham o mesmo modelo de dados e divergiam apenas no estilo visual de apresentação. *(removido em 2026-09-05, junto com o restante da US)*
+#### ~~REQ-04.02.007~~ - ~~O campo `INPUT` deve suportar subtipos de entrada: texto livre, número, e-mail e data.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.008~~ - ~~O sistema deve permitir configurar validação de formato por subtipo de `INPUT`: faixa mínima/máxima para o subtipo número; expressão regular/máscara para o subtipo texto.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.009~~ - ~~As opções de campos de seleção simples e múltipla devem ser definidas como pares rótulo/valor (não apenas um rótulo), permitindo que o valor técnico persistido seja diferente do texto exibido ao usuário.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.010~~ - ~~O campo de upload de arquivo deve permitir configurar as extensões de arquivo aceitas e o tamanho máximo do arquivo.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.011~~ - ~~O sistema deve suportar um componente estrutural de seção (`SECTION`), que agrupa os campos seguintes até a próxima seção (ou o fim da lista) em uma grade com número de colunas configurável.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.012~~ - ~~O sistema deve suportar botões de opção (`RADIO`), com o mesmo modelo de opções rótulo/valor de seleção simples (REQ-04.02.009).~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.013~~ - ~~O sistema deve suportar interruptor sim/não (`SWITCH`).~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.014~~ - ~~O sistema deve suportar escala numérica (`SLIDER`), com mínimo, máximo e incremento configuráveis.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.015~~ - ~~O sistema deve suportar avaliação por estrelas (`RATING`), com o número máximo de estrelas configurável.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.016~~ - ~~O sistema deve suportar contador numérico com incremento/decremento (`STEPPER`), com mínimo, máximo e incremento configuráveis.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.017~~ - ~~O sistema deve suportar busca com sugestão (`AUTOCOMPLETE`), com o mesmo modelo de opções rótulo/valor de seleção simples (REQ-04.02.009) — fonte de dados dinâmica remota permanece fora do escopo (seção 5).~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.018~~ - ~~O sistema deve suportar título (`TITLE`), um componente de conteúdo somente-apresentação.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.019~~ - ~~O sistema deve suportar imagem (`IMAGE`), configurável por URL e texto alternativo.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.020~~ - ~~O sistema deve suportar divisor visual (`DIVIDER`), sem configuração própria.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.021~~ - ~~O sistema deve suportar card de conteúdo (`CARD`), com título, descrição e imagem opcionais.~~ *(removido em 2026-09-05)*
+#### ~~REQ-04.02.022~~ - ~~O sistema deve suportar aviso (`CALLOUT`), com título, descrição e variante visual configuráveis.~~ *(removido em 2026-09-05)*
 
 > **Nota de revisão (2026-08-24):** tipos REQ-04.02.011 a REQ-04.02.022 adicionados nesta revisão — mesma mudança que substituiu a associação por `formId` pelo desenho direto da tela no nó (`embeddedScreen`): como a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), o catálogo próprio do Admin Portal foi ampliado para cobrir a necessidade real de telas ricas, resolvida inteiramente pelo Admin Portal (SDUI) em vez de depender do motor.
 
@@ -503,18 +502,123 @@ Permitir a criação de formulários reutilizáveis que sirvam como modelo de pa
 
 ### US-04.04 Configuração
 #### REQ-04.04.001 - O usuário deve poder definir campos obrigatórios.
+
+> **Nota de revisão (2026-09-05):** obrigatoriedade deixou de ser uma coluna fixa do modelo de campo — passou a ser uma propriedade como outra qualquer, declarada no schema do componente no catálogo (REQ-04.07.006) e configurada por instância no editor (REQ-04.09.008).
+
 #### REQ-04.04.002 - O usuário deve poder definir valores padrão.
-#### REQ-04.04.003 - O usuário deve poder definir textos de ajuda.
+
+> **Nota de revisão (2026-09-05):** não existe mais "valor padrão" estático definido pelo autor da tela — o valor inicial de um componente vem da resolução do seu vínculo de dados em tempo de execução (US-04.10).
+
+#### ~~REQ-04.04.003~~ - ~~O usuário deve poder definir textos de ajuda.~~ *(removido em 2026-09-05)* — nenhum componente do catálogo corporativo de referência declara uma propriedade de texto de ajuda; fora do escopo do catálogo v1.
+
+---
+
 ### US-04.05 Preview
-#### REQ-04.05.001 - O sistema deve permitir visuali zar o formulário durante a edição.
+#### REQ-04.05.001 - O sistema deve permitir visualizar o formulário durante a edição.
 #### REQ-04.05.002 - O preview deve refletir alterações em tempo real.
+
 ---
 
 ### US-04.06 Imutabilidade e serialização para publicação
-#### REQ-04.06.001 - Ao publicar uma jornada, a tela embutida (`embeddedScreen`) de cada User Task da versão publicada deve ser compilada e copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras feitas na tela do nó (mesmo princípio de congelamento aplicado à versão da jornada no FT-06).
-#### REQ-04.06.002 - O snapshot de publicação deve conter, para cada User Task com tela desenhada, uma representação em árvore de nós no formato `[tag, props, children]` (estilo hyperscript/SDUI) — `embeddedScreenSdui` — derivada da tela congelada (`embeddedScreen`) do nó no momento da publicação. Essa árvore é uma projeção de leitura gerada a partir do modelo de campos; o modelo de campos (não a árvore) continua sendo a fonte de dados editável no editor de fluxo.
+#### REQ-04.06.001 - Ao publicar uma jornada, a tela embutida de cada User Task da versão publicada deve ser copiada integralmente para o snapshot da publicação, tornando-se imutável a alterações futuras feitas na tela do nó (mesmo princípio de congelamento aplicado à versão da jornada no FT-06).
+
+> **Nota de revisão (2026-09-05):** o campo passou a se chamar `embeddedScreenRoot`, e não existe mais uma etapa de "compilação" — a árvore congelada no snapshot é exatamente a mesma árvore editada no Form Builder (REQ-04.08.007).
+
+#### ~~REQ-04.06.002~~ - ~~O snapshot de publicação deve conter, para cada User Task com tela desenhada, uma representação em árvore de nós no formato `[tag, props, children]` (estilo hyperscript/SDUI) — `embeddedScreenSdui` — derivada da tela congelada (`embeddedScreen`) do nó no momento da publicação. Essa árvore é uma projeção de leitura gerada a partir do modelo de campos; o modelo de campos (não a árvore) continua sendo a fonte de dados editável no editor de fluxo.~~ *(removido em 2026-09-05)* — substituído pelo pacote de publicação com envelope canônico (US-04.14).
 
 > **Nota de revisão (2026-08-24):** requisitos reescritos — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional. A compilação/congelamento em SDUI descrita aqui agora se aplica à tela do próprio nó, não a um formulário externo referenciado.
+
+---
+
+### US-04.07 Catálogo de Componentes (Component Registry)
+
+> **Nova (2026-09-05):** substitui a lista fixa de tipos de campo (antiga US-04.02) por um catálogo consultável e mantível, alinhado ao contrato SDUI corporativo.
+
+#### REQ-04.07.001 - O sistema deve manter um catálogo de componentes disponíveis para compor telas, persistido em tabela própria, não mais uma lista fixa em código.
+#### REQ-04.07.002 - Cada componente do catálogo deve ser identificado pela combinação de tipo e versão, únicas entre si.
+#### REQ-04.07.003 - Cada componente deve declarar um status: experimental, estável, depreciado ou indisponível.
+#### REQ-04.07.004 - Cada componente deve declarar um nível de complexidade e uma categoria (conteúdo, layout, entrada, ação ou feedback), usados para organizar a paleta do editor.
+#### REQ-04.07.005 - Cada componente deve declarar se aceita filhos (componente de layout) ou é uma folha que não aceita.
+#### REQ-04.07.006 - Cada componente deve declarar o schema de suas propriedades configuráveis: nome, tipo de valor (texto, número, booleano, enumeração, token semântico, lista de opções ou lista de regras de validação), obrigatoriedade e valor padrão.
+#### REQ-04.07.007 - Cada componente deve declarar quais eventos pode disparar, dentre o conjunto de ações permitidas (US-04.11).
+#### REQ-04.07.008 - Cada componente deve declarar sua compatibilidade por alvo de renderização, incluindo a versão mínima de renderizador exigida em cada alvo.
+#### REQ-04.07.009 - O sistema deve disponibilizar uma tela de administração do catálogo, com listagem, criação, edição e remoção.
+#### REQ-04.07.010 - A leitura do catálogo deve ser permitida a qualquer papel autenticado; criar, editar e remover devem ser restritos ao papel de administrador.
+#### REQ-04.07.011 - Remover um componente do catálogo não deve apagar seu registro — deve marcá-lo como indisponível, preservando a referência para telas já publicadas que o utilizem.
+#### REQ-04.07.012 - O sistema deve prover, desde a primeira instalação, um catálogo inicial com os componentes do contrato corporativo de referência.
+
+---
+
+### US-04.08 Estrutura da árvore de tela
+#### REQ-04.08.001 - A tela de uma User Task deve ser representada por uma árvore de nós, não mais por uma lista plana de campos.
+#### REQ-04.08.002 - Cada nó da árvore deve possuir um identificador único dentro da tela, um tipo e uma versão correspondentes a um componente do catálogo (US-04.07).
+#### REQ-04.08.003 - Cada nó deve poder conter propriedades de configuração, conforme o schema declarado pelo componente correspondente no catálogo.
+#### REQ-04.08.004 - Cada nó deve poder conter um vínculo de dados (US-04.10), eventos associados a ações (US-04.11) e uma regra de visibilidade condicional (US-04.12).
+#### REQ-04.08.005 - Um nó só deve poder conter filhos se o componente correspondente aceitar filhos (REQ-04.07.005); a profundidade de aninhamento não deve ser limitada.
+#### REQ-04.08.006 - A raiz da árvore de uma tela deve ser sempre um único nó do tipo contêiner de tela.
+#### REQ-04.08.007 - A árvore editada no Form Builder deve ser a mesma árvore publicada — não deve existir etapa de compilação ou projeção intermediária entre o que o usuário desenha e o que é publicado.
+
+---
+
+### US-04.09 Editor de componentes
+#### REQ-04.09.001 - O sistema deve exibir uma paleta de componentes disponíveis para inserção, agrupada por categoria, alimentada pelo catálogo — nunca uma lista fixa em código.
+#### REQ-04.09.002 - O usuário deve poder inserir um componente da paleta na árvore da tela por arrastar-e-soltar.
+#### REQ-04.09.003 - O sistema deve permitir soltar um componente somente dentro de outro que aceite filhos (REQ-04.07.005); uma tentativa de soltar num alvo incompatível não deve ser aceita.
+#### REQ-04.09.004 - O usuário deve poder mover um componente já inserido para dentro de outro contêiner compatível, preservando seus filhos.
+#### REQ-04.09.005 - O sistema não deve permitir mover um componente para dentro de si mesmo ou de um de seus próprios descendentes.
+#### REQ-04.09.006 - O usuário deve poder remover um componente da árvore; remover um contêiner deve remover também seus filhos.
+#### REQ-04.09.007 - O sistema deve exibir um painel de camadas com a estrutura hierárquica da árvore, permitindo selecionar, reordenar entre irmãos e remover a partir dele.
+#### REQ-04.09.008 - O usuário deve poder editar as propriedades do componente selecionado num painel dedicado, com o campo de entrada apropriado ao tipo de cada propriedade declarada pelo catálogo.
+#### REQ-04.09.009 - No modo de construção da tela, os componentes não devem aceitar digitação de valores reais — não é o formulário sendo preenchido, é uma prancheta de montagem.
+#### REQ-04.09.010 - O sistema deve oferecer um modo de pré-visualização que renderiza a árvore como seria apresentada ao usuário final, alternável a qualquer momento com o modo de construção.
+
+---
+
+### US-04.10 Vínculo de dados
+#### REQ-04.10.001 - O usuário deve poder associar o valor de um componente a um caminho identificado por um namespace (variável do fluxo preenchível, dado somente-leitura, contexto de sessão, parâmetro de navegação ou valor derivado) e um nome dentro desse namespace.
+#### REQ-04.10.002 - O vínculo deve poder ser configurado como leitura-e-escrita ou somente leitura.
+#### REQ-04.10.003 - Um componente sem vínculo configurado não deve gerar variável de processo nem ser considerado no envio do formulário.
+#### REQ-04.10.004 - Ao configurar um vínculo de leitura-e-escrita no namespace de variável do fluxo, o sistema deve sugerir os nomes de variável já conhecidos até aquele ponto do fluxo.
+#### REQ-04.10.005 - O nome técnico de um campo que coleta valor passa a ser o nome usado no vínculo de leitura-e-escrita do namespace de variável do fluxo; sua unicidade deve continuar sendo verificada na jornada inteira, não só na tela do nó.
+
+---
+
+### US-04.11 Ações e eventos
+#### REQ-04.11.001 - O usuário deve poder associar um evento disparado por um componente a uma ação, escolhida dentre um conjunto fechado definido pelo sistema: enviar formulário, navegar, abrir URL, definir valor, registrar telemetria ou dispensar.
+#### REQ-04.11.002 - Os eventos oferecidos para configuração num componente devem se limitar aos eventos que aquele componente, conforme declarado no catálogo (REQ-04.07.007), realmente dispara.
+#### REQ-04.11.003 - Cada ação deve permitir configurar parâmetros próprios (ex.: rota de destino, URL, caminho e valor a definir, nome do evento de telemetria).
+#### REQ-04.11.004 - Um componente não deve poder disparar uma ação fora do conjunto fechado do sistema — isso deve ser impedido na validação estrutural (US-04.13).
+
+---
+
+### US-04.12 Visibilidade condicional
+#### REQ-04.12.001 - O usuário deve poder condicionar a exibição de um componente a uma comparação entre um valor do contexto de dados (mesmos namespaces de US-04.10) e um valor informado.
+#### REQ-04.12.002 - As comparações suportadas devem incluir, no mínimo, igualdade e diferença.
+#### REQ-04.12.003 - Um componente sem condição de visibilidade configurada deve ser sempre exibido.
+#### REQ-04.12.004 - As comparações também devem suportar "está em"/"não está em" uma lista de valores — usado para condicionar um componente a um subconjunto dos tipos de canal da jornada (`session.channel`), sem exigir uma regra por tipo de canal.
+
+---
+
+### US-04.13 Validação estrutural
+#### REQ-04.13.001 - O sistema não deve permitir publicar uma jornada cuja árvore de alguma tela tenha identificador de componente duplicado.
+#### REQ-04.13.002 - O sistema não deve permitir publicar uma jornada que use, em alguma tela, um tipo de componente não encontrado no catálogo.
+#### REQ-04.13.003 - O sistema não deve permitir publicar uma jornada que use, em alguma tela, um componente marcado como indisponível no catálogo (REQ-04.07.011).
+#### REQ-04.13.004 - O sistema não deve permitir publicar uma jornada em que um componente tenha filhos sem que seu tipo aceite filhos (REQ-04.07.005).
+#### REQ-04.13.005 - O sistema não deve permitir publicar uma jornada com um vínculo de dados cujo namespace não seja um dos namespaces reconhecidos (US-04.10).
+#### REQ-04.13.006 - O sistema não deve permitir publicar uma jornada com um evento associado a uma ação fora do conjunto fechado (US-04.11).
+#### REQ-04.13.007 - Ao rejeitar a publicação, o sistema deve informar todas as violações encontradas, não só a primeira.
+#### REQ-04.13.008 - O sistema não deve permitir publicar uma jornada em que, para algum dos tipos de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo — considerando as regras de visibilidade condicionadas a `session.channel` (REQ-04.12.004).
+
+---
+
+### US-04.14 Publicação e repositório de especificação corporativo
+#### REQ-04.14.001 - Ao publicar uma jornada, o sistema deve gerar, para cada tela desenhada, um pacote de publicação identificando a jornada, a tela e o número de revisão.
+#### REQ-04.14.002 - O pacote deve indicar os alvos de renderização compatíveis com a tela, calculados pela interseção dos alvos suportados por todos os componentes usados na árvore (REQ-04.07.008) — nunca uma lista fixa.
+#### REQ-04.14.003 - O pacote deve indicar, para cada alvo compatível, a versão mínima de renderizador exigida, calculada como a maior entre as exigidas pelos componentes usados.
+#### REQ-04.14.004 - O sistema deve enviar o pacote de publicação a um serviço de repositório de especificação corporativo, responsável por armazenar e distribuir versões publicadas.
+#### REQ-04.14.005 - Uma nova publicação da mesma tela nunca deve sobrescrever uma revisão já publicada — deve gerar uma revisão nova, marcando a anterior como substituída.
+#### REQ-04.14.006 - Em execução, a tela apresentada ao usuário final deve ser sempre lida da última revisão publicada no repositório de especificação corporativo, nunca do estado em edição no Form Builder.
+#### REQ-04.14.007 - O restante da resolução de uma jornada em execução (mensagens, integrações, decisões de fluxo) não depende do repositório de especificação corporativo e deve continuar funcionando independentemente dele.
 
 ---
 
@@ -555,6 +659,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.04.001 - O sistema deve executar a jornada publicada contra o motor de runtime real, não um motor simplificado interno ao Admin Portal.
 #### REQ-05.04.002 - Na versão 1.0.0, as integrações REST externas referenciadas pelas jornadas devem ser emuladas por um serviço de mock dedicado, já que não há sistemas de terceiros reais disponíveis.
 #### REQ-05.04.003 - As integrações Kafka referenciadas pelas jornadas devem executar contra um broker Kafka real, com publicação e consumo de mensagens efetivos.
+#### REQ-05.04.004 - Toda instância deve ser iniciada informando um tipo de canal, validado contra os tipos de canal habilitados na jornada publicada (422 se não for um deles). O motor de runtime deve injetar esse valor como variável de processo reservada (`channel`), disponível para condição de gateway (REQ-03.11.009) e visibilidade condicional (REQ-04.12.004) sem exigir configuração adicional no motor.
 ---
 
 ### US-05.05 Etapas de integração
@@ -575,9 +680,10 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 ### US-05.07 Seleção e apresentação
 #### REQ-05.07.001 - O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado.
 #### REQ-05.07.002 - A execução deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.
-#### REQ-05.07.003 - A pré-visualização da execução deve se adaptar ao canal da jornada (Web ou App), incluindo uma representação visual compatível com o canal (ex.: layout de dispositivo móvel para jornadas de canal App).
+#### REQ-05.07.003 - A pré-visualização da execução deve se adaptar ao tipo de canal escolhido para a instância (REQ-05.04.004), incluindo uma representação visual compatível (ex.: layout de dispositivo móvel para `MOBILE`).
 #### REQ-05.07.004 - O sistema deve exibir o número da versão publicada da jornada (`v<N>`) tanto na lista de busca quanto no cabeçalho de uma execução em andamento.
 #### REQ-05.07.005 - O sistema deve permitir iniciar a execução de uma jornada publicada diretamente do grid de Jornadas (FT-02), abrindo uma aba de Execução dedicada já com essa jornada selecionada.
+#### REQ-05.07.006 - Quando a jornada tiver mais de um tipo de canal habilitado, o sistema deve permitir escolher qual tipo simular antes de iniciar a execução; com um único tipo habilitado, o sistema deve usá-lo automaticamente, sem exigir escolha do usuário.
 ---
 
 ### US-05.08 Tratamento de falhas de integração
@@ -742,6 +848,30 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-08.04.002 - O sistema deve permitir filtrar eventos por usuário, ação, recurso, resultado e período.
 #### REQ-08.04.003 - O sistema deve permitir pesquisar eventos por recurso ou correlação.
 #### REQ-08.04.004 - O sistema deve apresentar os eventos em ordem cronológica e com paginação.
+
+### US-08.05 Integração com SIEM
+
+> **Nova (2026-09-05), não iniciada.** Cobre o envio dos eventos já registrados (US-08.01/US-08.02)
+> a uma ferramenta de SIEM (Security Information and Event Management) corporativa, seguindo os
+> padrões de formato/transporte/segurança de mercado (CEF/Syslog RFC 5424, controles de log e
+> monitoramento equivalentes aos exigidos por ISO 27001/SOC 2/PCI-DSS) — não um formato proprietário
+> deste sistema.
+
+#### REQ-08.05.001 - O sistema deve permitir configurar o envio dos eventos de auditoria (US-08.01/US-08.02) a uma ferramenta de SIEM corporativa, habilitável e desabilitável por ambiente sem alteração de código.
+#### REQ-08.05.002 - O sistema deve exportar cada evento de auditoria em um formato padrão de mercado reconhecido por ferramentas de SIEM (ex.: CEF — Common Event Format —, ou um JSON estruturado equivalente), preservando os campos mínimos já exigidos para o evento local (REQ-08.01.002 a 006).
+#### REQ-08.05.003 - O sistema deve transportar os eventos ao SIEM por um canal padrão de mercado — Syslog (RFC 5424) sobre TCP, ou um endpoint HTTP/HTTPS de recebimento — configurável conforme a ferramenta de destino.
+#### REQ-08.05.004 - A comunicação com o SIEM deve ser cifrada em trânsito (TLS); a integração não deve operar em texto plano.
+#### REQ-08.05.005 - A integração deve se autenticar perante o SIEM (token, certificado ou credencial equivalente), com a credencial configurável por ambiente e nunca embutida em código-fonte.
+#### REQ-08.05.006 - O timestamp de cada evento exportado deve ser expresso em UTC, no formato ISO 8601, permitindo correlação cronológica confiável com outros sistemas monitorados pelo mesmo SIEM.
+#### REQ-08.05.007 - O envio de eventos ao SIEM deve ser assíncrono, sem bloquear ou atrasar a operação que originou o evento nem a gravação do registro de auditoria local — a fonte de verdade do evento é sempre o registro local (US-08.01), nunca a entrega ao SIEM.
+#### REQ-08.05.008 - Uma falha ou indisponibilidade do SIEM não pode impedir, atrasar ou reverter a operação de negócio que originou o evento, nem impedir seu registro local.
+#### REQ-08.05.009 - O sistema deve reter temporariamente (fila ou buffer local) os eventos não entregues durante uma indisponibilidade do SIEM, reenviando-os automaticamente quando a conectividade for restabelecida, com uma política documentada de limite e descarte caso o volume acumulado exceda a capacidade prevista.
+#### REQ-08.05.010 - Uma falha de entrega ao SIEM deve ser registrada em log técnico da própria aplicação, sem gerar um novo evento de auditoria recursivo para essa falha.
+#### REQ-08.05.011 - O sistema deve prover um mecanismo de teste de conectividade com o SIEM configurado, verificável sob demanda por um administrador.
+#### REQ-08.05.012 - Por padrão, todo evento de auditoria já registrado (US-08.02) deve ser elegível para envio ao SIEM; o sistema deve permitir filtrar quais categorias ou níveis de severidade são efetivamente encaminhados, para controlar volume sem deixar de registrar localmente os eventos filtrados.
+#### REQ-08.05.013 - Eventos que representem indício de ataque ou abuso — múltiplas tentativas de login malsucedidas, múltiplos acessos negados por falta de permissão, alteração de papel/permissão de usuário, alteração ou remoção de credencial — devem ser sempre elegíveis para envio ao SIEM, independentemente do filtro de severidade configurado (REQ-08.05.012).
+#### REQ-08.05.014 - Os eventos exportados ao SIEM devem seguir a mesma política de dados do registro local: nenhuma senha, token, segredo ou credencial sensível deve trafegar para o SIEM (mesma regra de REQ-08.03.003/004).
+#### REQ-08.05.015 - O sistema deve identificar, em cada evento exportado, o sistema de origem (nome e ambiente do Admin Portal) e um identificador de correlação, permitindo que o SIEM associe eventos deste sistema aos de outros sistemas corporativos monitorados.
 
 # FT-09 Ajuda e Suporte
 
@@ -1030,19 +1160,19 @@ Edição visual de expressões compostas (grupos de condições aninhados)
 ## Jornadas e Versionamento
 
 ```text
-Clonagem de jornadas entre canais
-Templates de jornadas
+Clonagem de jornadas entre tipos de canal
 Biblioteca de componentes de formulário
 Comparação (diff) visual entre versões de uma jornada
 ```
 
-## Formulários Avançados (SDUI)
+## Catálogo Server Driven UI (SDUI)
 
 ```text
-Exibição condicional (campo visibleIf já existe no modelo, mas não é avaliado em runtime)
 Formulários multi-etapas (wizard)
 Fontes de dados dinâmicas - $dataSource e estratégia de prefetch no servidor ou no cliente
 Paginação de opções carregadas dinamicamente
 ```
 
 > **Nota de revisão (2026-08-24):** "Seções" e "Organização dinâmica de campos" saíram desta lista — implementadas nesta revisão (REQ-04.02.011, US-03.16).
+>
+> **Nota de revisão (2026-09-05):** "Exibição condicional" saiu desta lista — implementada nesta revisão como visibilidade condicional de componente (US-04.12), avaliada em runtime. A seção inteira foi renomeada de "Formulários Avançados (SDUI)" pra acompanhar o novo nome da FT-04 (Catálogo Server Driven UI).

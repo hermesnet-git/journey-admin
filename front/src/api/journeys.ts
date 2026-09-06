@@ -6,11 +6,9 @@ export type JourneySort = 'CREATED_AT' | 'UPDATED_AT';
 
 export interface Journey {
   journeyId: string;
-  channelId: string;
-  channelName: string;
-  channelType: ChannelType;
   productId: string;
   productName: string;
+  channelTypes: ChannelType[];
   name: string;
   description: string | null;
   status: JourneyStatus;
@@ -22,7 +20,15 @@ export interface Journey {
 }
 
 export interface JourneyCreateInput {
-  channelId: string;
+  productId: string;
+  channelTypes: ChannelType[];
+  name: string;
+  description: string;
+  templateId?: string;
+}
+
+export interface JourneyTemplate {
+  templateId: string;
   name: string;
   description: string;
 }
@@ -33,11 +39,11 @@ export interface JourneyUpdateInput {
 }
 
 export function listJourneys(
-  params: { productId?: string; channelId?: string; q?: string; status?: JourneyStatus; sort?: JourneySort } = {},
+  params: { productId?: string; channelType?: ChannelType; q?: string; status?: JourneyStatus; sort?: JourneySort } = {},
 ): Promise<Journey[]> {
   const query = new URLSearchParams();
   if (params.productId) query.set('productId', params.productId);
-  if (params.channelId) query.set('channelId', params.channelId);
+  if (params.channelType) query.set('channelType', params.channelType);
   if (params.q) query.set('q', params.q);
   if (params.status) query.set('status', params.status);
   if (params.sort) query.set('sort', params.sort);
@@ -49,8 +55,16 @@ export function createJourney(input: JourneyCreateInput): Promise<Journey> {
   return apiPost<Journey>('/journeys', input);
 }
 
+export function listJourneyTemplates(): Promise<JourneyTemplate[]> {
+  return apiGet<JourneyTemplate[]>('/journey-templates');
+}
+
 export function updateJourney(journeyId: string, input: JourneyUpdateInput): Promise<Journey> {
   return apiPut<Journey>(`/journeys/${journeyId}`, input);
+}
+
+export function updateJourneyChannels(journeyId: string, channelTypes: ChannelType[]): Promise<Journey> {
+  return apiPut<Journey>(`/journeys/${journeyId}/channels`, { channelTypes });
 }
 
 export function deleteJourney(journeyId: string): Promise<void> {

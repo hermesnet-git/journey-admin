@@ -11,10 +11,11 @@ import java.util.UUID;
 
 /** Mapeia só os campos usados do PublicationSnapshotRecord do admin/back
  * (GET /api/v1/journeys/{id}/publication). Uma User Task nunca referencia um Form por id — a tela
- * dela já vem compilada (FlowNode.embeddedScreenSdui), então não há "forms" pra resolver aqui. */
+ * dela é lida do Strapi (snapshot publicado) via SnapshotRepository, não daqui — então não há
+ * "forms" pra resolver neste record. */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record PublicationSnapshot(UUID journeyId, String journeyName, String channelType, List<FlowNode> flowNodes,
-                                   List<FlowConnection> flowConnections) {
+public record PublicationSnapshot(UUID journeyId, String journeyName, List<String> channelTypes,
+                                   List<FlowNode> flowNodes, List<FlowConnection> flowConnections) {
 
     public Optional<FlowNode> findNode(String nodeId) {
         return flowNodes.stream().filter(n -> n.id().equals(nodeId)).findFirst();

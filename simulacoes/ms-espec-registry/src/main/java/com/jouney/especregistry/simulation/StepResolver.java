@@ -9,6 +9,10 @@ import com.jouney.especregistry.camunda.CamundaVariable;
 import com.jouney.especregistry.camunda.ProcessIds;
 import com.jouney.especregistry.camunda.ProcessInstanceInfo;
 import com.jouney.especregistry.camunda.TaskInfo;
+import com.jouney.especregistry.sdui.ActionRegistry;
+import com.jouney.especregistry.sdui.ResolutionContext;
+import com.jouney.especregistry.sdui.SduiNode;
+import com.jouney.especregistry.sdui.SnapshotRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -17,19 +21,22 @@ import org.springframework.stereotype.Component;
 /**
  * Função central reaproveitada por start/complete/simulate: dado um processInstanceId, descobre o
  * que o simulador deve mostrar agora — uma User Task com seu formulário SDUI, um passo
- * SERVICE_TASK/RECEIVE_TASK aguardando "Simular conclusão", ou o fim do processo. A resolução de
- * {{variável}} dentro da árvore SDUI em si vive em SduiTemplateResolver (extraído pra ser
- * reaproveitado também pelo FormSpecController, que não tem processInstanceId).
+ * SERVICE_TASK/RECEIVE_TASK aguardando "Simular conclusão", ou o fim do processo. O resto do fluxo
+ * (nome/tipo do nó, messageText, conectores) continua vindo do admin/back — só a árvore da tela de
+ * uma User Task com tela desenhada vem do Strapi (snapshot publicado, seção 15 do catálogo), via
+ * SnapshotRepository (journeyId + screenId=node.id()).
  */
 @Component
 public class StepResolver {
 
     private final CamundaClient camundaClient;
     private final AdminBackClient adminBackClient;
+    private final SnapshotRepository snapshotRepository;
 
-    public StepResolver(CamundaClient camundaClient, AdminBackClient adminBackClient) {
+    public StepResolver(CamundaClient camundaClient, AdminBackClient adminBackClient, SnapshotRepository snapshotRepository) {
         this.camundaClient = camundaClient;
         this.adminBackClient = adminBackClient;
+        this.snapshotRepository = snapshotRepository;
     }
 
     public StepResponse resolve(String processInstanceId) {
@@ -56,19 +63,23 @@ public class StepResolver {
         PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
         FlowNode node = snapshot.findNode(task.taskDefinitionKey())
                 .orElseThrow(() -> new IllegalStateException("Nó " + task.taskDefinitionKey() + " não encontrado no snapshot da jornada"));
-        if (node.embeddedScreenSdui() == null || node.embeddedScreenSdui().isEmpty()) {
+        if (!node.hasEmbeddedScreen()) {
             // REQ-04.01.005: a USER_TASK may have no tela desenhada — a display-only step (a
-            // message, maybe built from a prior integration's output). Synthesize the smallest SDUI
-            // the channel already knows how to render: a text node plus the "Avançar" button the
-            // form renderer always shows, same shape FormSduiSerializer produces for a real TEXT field.
+            // message, maybe built from a prior integration's output).
             String message = resolveMessage(node, processInstanceId);
             return StepResponse.userTask(task.id(), task.taskDefinitionKey(), task.name(),
                     new FormPayload(null, node.name(), null, SduiTemplateResolver.messageSdui(message)));
         }
+        SduiNode root = snapshotRepository.findLatestPublished(journeyId, node.id())
+                .orElseThrow(() -> new IllegalStateException("Nó " + node.id()
+                        + " tem tela desenhada mas nenhum snapshot publicado foi encontrado no Strapi"))
+                .root();
+        ActionRegistry.validate(root);
         Map<String, CamundaVariable> variables = camundaClient.getProcessVariables(processInstanceId);
-        List<Object> resolvedSdui = SduiTemplateResolver.resolveSduiNode(node.embeddedScreenSdui(), variables);
+        SduiNode resolved = SduiTemplateResolver.resolveSduiNode(root, variables,
+                ResolutionContext.fromProcessVariables(variables));
         return StepResponse.userTask(task.id(), task.taskDefinitionKey(), task.name(),
-                new FormPayload(null, node.name(), null, resolvedSdui));
+                new FormPayload(null, node.name(), null, resolved));
     }
 
     // Falls back to the node's own name when there's no message configured at all, so a formless
@@ -80,6 +91,7 @@ public class StepResolver {
         if (text == null || text.isBlank()) {
             return node.name();
         }
-        return SduiTemplateResolver.resolveTemplate(text, camundaClient.getProcessVariables(processInstanceId));
+        Map<String, CamundaVariable> variables = camundaClient.getProcessVariables(processInstanceId);
+        return SduiTemplateResolver.resolveTemplate(text, variables, ResolutionContext.fromProcessVariables(variables));
     }
 }

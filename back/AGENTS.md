@@ -2,13 +2,20 @@
 
 Instruções para agentes de IA (Claude Code, GitHub Copilot, Codex etc.) trabalhando neste projeto.
 
+## Fase atual: protótipo
+
+- Não criar, alterar nem complementar testes automatizados durante esta fase.
+- Não executar testes existentes.
+- Build e verificações estáticas podem ser executados normalmente, desde que os testes sejam explicitamente ignorados.
+- Os testes serão planejados em uma etapa posterior pelo usuário.
+
 ## Stack
 
 - Java 21, Spring Boot 4.1 (spring-boot-starter-webmvc, data-jpa, validation)
 - PostgreSQL + Flyway (migrations em `src/main/resources/db/migration`)
 - Maven (`./mvnw` / `mvnw.cmd`)
 
-Build/test: `./mvnw verify` (Windows: `mvnw.cmd verify`). Rode sempre após alterações relevantes.
+Build: usar um comando Maven que ignore a compilação e a execução dos testes durante a fase de protótipo (por exemplo, `./mvnw package -Dmaven.test.skip=true`; no Windows, `mvnw.cmd package -Dmaven.test.skip=true`).
 
 ## Arquitetura
 
@@ -29,4 +36,4 @@ Ao adicionar funcionalidade nova, respeitar essa separação: não colocar lógi
 ## Regras gerais
 
 - Validar entradas na camada de `interfaces` (DTOs com Bean Validation), não confiar em validação só no domínio.
-- Rodar `./mvnw verify` antes de considerar uma tarefa concluída.
+- Durante a fase de protótipo, não rodar metas ou comandos que compilem ou executem testes. Build sem testes e lint estão autorizados.

@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * A point-in-time snapshot of a journey's flow/product/channel data (EP-06). Each journey has one
- * or more versions; exactly one may be PUBLISHED at a time.
+ * A point-in-time snapshot of a journey's flow/product/channel-types data (EP-06). Each journey
+ * has one or more versions; exactly one may be PUBLISHED at a time.
  */
 public class JourneyVersion {
 
@@ -26,16 +26,14 @@ public class JourneyVersion {
     private String journeyDescription;
     private UUID productId;
     private String productName;
-    private UUID channelId;
-    private String channelName;
-    private ChannelType channelType;
+    private List<ChannelType> channelTypes;
     private List<FlowNode> flowNodes;
     private List<FlowConnection> flowConnections;
 
     public JourneyVersion(UUID id, UUID journeyId, int versionNumber, VersionStatus status, String description,
                            UUID createdBy, OffsetDateTime createdAt, OffsetDateTime publishedAt, String journeyName,
-                           String journeyDescription, UUID productId, String productName, UUID channelId,
-                           String channelName, ChannelType channelType, List<FlowNode> flowNodes,
+                           String journeyDescription, UUID productId, String productName,
+                           List<ChannelType> channelTypes, List<FlowNode> flowNodes,
                            List<FlowConnection> flowConnections) {
         this.id = id;
         this.journeyId = journeyId;
@@ -49,29 +47,26 @@ public class JourneyVersion {
         this.journeyDescription = journeyDescription;
         this.productId = productId;
         this.productName = productName;
-        this.channelId = channelId;
-        this.channelName = channelName;
-        this.channelType = channelType;
+        this.channelTypes = channelTypes;
         this.flowNodes = flowNodes;
         this.flowConnections = flowConnections;
     }
 
     public static JourneyVersion createDraft(UUID journeyId, int versionNumber, String description, UUID createdBy,
                                               String journeyName, String journeyDescription, UUID productId,
-                                              String productName, UUID channelId, String channelName,
-                                              ChannelType channelType, List<FlowNode> flowNodes,
-                                              List<FlowConnection> flowConnections) {
+                                              String productName, List<ChannelType> channelTypes,
+                                              List<FlowNode> flowNodes, List<FlowConnection> flowConnections) {
         return new JourneyVersion(UUID.randomUUID(), journeyId, versionNumber, VersionStatus.DRAFT, description,
                 createdBy, OffsetDateTime.now(), null, journeyName, journeyDescription, productId, productName,
-                channelId, channelName, channelType, flowNodes, flowConnections);
+                channelTypes, flowNodes, flowConnections);
     }
 
     // Keeps a DRAFT in sync with the journey's live flow as it's edited (REQ-06.02.009): unlike
     // publish/deactivate, this doesn't change identity (id/versionNumber) — it's the same draft,
     // just with fresher content. Only DRAFT may be replaced this way; other statuses stay immutable.
     public void replaceContent(String journeyName, String journeyDescription, UUID productId, String productName,
-                                UUID channelId, String channelName, ChannelType channelType,
-                                List<FlowNode> flowNodes, List<FlowConnection> flowConnections) {
+                                List<ChannelType> channelTypes, List<FlowNode> flowNodes,
+                                List<FlowConnection> flowConnections) {
         if (status != VersionStatus.DRAFT) {
             throw new IllegalStateException("Only a DRAFT version's content can be replaced: " + id);
         }
@@ -79,9 +74,7 @@ public class JourneyVersion {
         this.journeyDescription = journeyDescription;
         this.productId = productId;
         this.productName = productName;
-        this.channelId = channelId;
-        this.channelName = channelName;
-        this.channelType = channelType;
+        this.channelTypes = channelTypes;
         this.flowNodes = flowNodes;
         this.flowConnections = flowConnections;
     }
@@ -150,16 +143,8 @@ public class JourneyVersion {
         return productName;
     }
 
-    public UUID getChannelId() {
-        return channelId;
-    }
-
-    public String getChannelName() {
-        return channelName;
-    }
-
-    public ChannelType getChannelType() {
-        return channelType;
+    public List<ChannelType> getChannelTypes() {
+        return channelTypes;
     }
 
     public List<FlowNode> getFlowNodes() {

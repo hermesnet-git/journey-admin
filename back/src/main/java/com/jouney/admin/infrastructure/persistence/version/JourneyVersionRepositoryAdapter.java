@@ -8,7 +8,6 @@ import com.jouney.admin.domain.version.VersionStatus;
 import com.jouney.admin.infrastructure.persistence.flow.FlowConnectionRecord;
 import com.jouney.admin.infrastructure.persistence.flow.FlowNodeRecord;
 import com.jouney.admin.infrastructure.persistence.publication.PublicationSnapshotRecord;
-import com.jouney.admin.infrastructure.persistence.publication.SnapshotFlowNodeRecord;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,14 +34,12 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
     public JourneyVersion save(JourneyVersion version) {
         PublicationSnapshotRecord record = new PublicationSnapshotRecord(version.getJourneyId(),
                 version.getJourneyName(), version.getJourneyDescription(), version.getProductId(),
-                version.getProductName(), version.getChannelId(), version.getChannelName(), version.getChannelType(),
-                version.getVersionNumber(),
+                version.getProductName(), version.getChannelTypes(), version.getVersionNumber(),
                 version.getFlowNodes().stream()
-                        .map(n -> new SnapshotFlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
+                        .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
                                 n.getPositionX(), n.getPositionY(),
                                 FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
-                                n.getStartVariables(), n.getMessageText(),
-                                PublicationSnapshotRecord.embeddedScreenSduiOf(n, version.getChannelType())))
+                                n.getStartVariables(), n.getMessageText(), n.getEmbeddedScreenRoot()))
                         .toList(),
                 version.getFlowConnections().stream()
                         .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
@@ -83,14 +80,12 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
     private JourneyVersion toDomain(JourneyVersionJpaEntity entity) {
         PublicationSnapshotRecord record = readJson(entity.getSnapshot());
 
-        // O nó reconstruído a partir da snapshot nunca carrega embeddedScreen (só existia na
-        // snapshot como a árvore já compilada) — mas carrega embeddedScreenSdui: PublishJourneyVersion
-        // usa version.getFlowNodes() pra montar a Publication na hora de (re)publicar, e sem isto
-        // aqui a tela se perderia nesse republish (embeddedScreen vazio recompilaria pra null).
+        // PublishJourneyVersion usa version.getFlowNodes() pra montar a Publication na hora de
+        // (re)publicar — sem repassar embeddedScreenRoot aqui, a tela se perderia nesse republish.
         List<FlowNode> flowNodes = record.flowNodes().stream()
                 .map(n -> new FlowNode(n.id(), n.type(), n.name(), n.description(), n.positionX(), n.positionY(),
                         n.connectorConfig() != null ? n.connectorConfig().toDomain() : null,
-                        n.startVariables(), n.messageText(), List.of(), n.embeddedScreenSdui()))
+                        n.startVariables(), n.messageText(), n.embeddedScreenRoot()))
                 .toList();
         List<FlowConnection> flowConnections = record.flowConnections().stream()
                 .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
@@ -99,8 +94,7 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
         return new JourneyVersion(entity.getId(), entity.getJourneyId(), entity.getVersionNumber(),
                 entity.getStatus(), entity.getDescription(), entity.getCreatedBy(), entity.getCreatedAt(),
                 entity.getPublishedAt(), record.journeyName(), record.journeyDescription(), record.productId(),
-                record.productName(), record.channelId(), record.channelName(), record.channelType(), flowNodes,
-                flowConnections);
+                record.productName(), record.channelTypes(), flowNodes, flowConnections);
     }
 
     private String writeJson(Object value) {

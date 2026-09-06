@@ -8,20 +8,18 @@
 
 # 1. Introdução
 
-O Elastic Journey Admin Portal é uma aplicação composta por frontend e backend para cadastro de produtos e canais, criação visual de jornadas específicas por canal, configuração de formulários, execução e publicação por meio de uma API do runtime.
+O Elastic Journey Admin Portal é uma aplicação composta por frontend e backend para cadastro de produtos e seus tipos de canal habilitados, criação visual de workflows para jornadas multicanal, composição de telas a partir de um catálogo corporativo de componentes SDUI, execução e publicação por meio de uma API do runtime.
 
 ---
 
 # 2. Objetivo do Produto
 
 ```text
-Gestão de Produtos
+Gestão de Produtos e Canais
 
-Gestão de Canais
+Gestão de Jornadas Multicanal
 
-Gestão de Jornadas por Canal
-
-Modelagem Visual de Fluxos
+Modelagem Visual de Workflows
 
 Service Tasks, Receive Tasks e Message Start Events com conectores REST, Kafka, Azure Event Hubs e Azure Service Bus
 
@@ -29,7 +27,7 @@ Catálogo de integrações: clusters de mensageria corporativos, referências de
 
 Geração de fluxo assistida por IA
 
-Formulários
+Catálogo Server Driven UI (SDUI)
 
 Execução
 
@@ -58,7 +56,7 @@ API de Publicação do Runtime (mock na versão 1.0.0)
 
 ## Elastic Journey Admin Portal
 
-Responsável por cadastrar produtos e canais e por criar, modelar, versionar, executar e publicar jornadas específicas para cada canal. Controla o acesso por autenticação mockada de provedor externo e registra eventos de auditoria. Produz uma **Journey Publication** associada a uma versão e inicia sua publicação por uma chamada outbound.
+Responsável por cadastrar produtos (com os tipos de canal que cada um habilita) e por criar, modelar, versionar, executar e publicar jornadas multicanal. Controla o acesso por autenticação mockada de provedor externo e registra eventos de auditoria. Produz uma **Journey Publication** associada a uma versão e inicia sua publicação por uma chamada outbound.
 
 ## API de Publicação do Runtime
 
@@ -71,13 +69,15 @@ Fronteira externa responsável por receber o snapshot enviado pelo Admin Portal.
 ```text
 Gestão de Produtos e Canais
 
-Gestão de Jornadas Específicas por Canal
+Gestão de Jornadas Multicanal
 
-Modelagem Visual de Fluxos
+Modelos predefinidos para criação de jornadas
+
+Modelagem Visual de Workflows
 
 Geração de Fluxo Assistida por IA
 
-Gestão de Formulários
+Catálogo Server Driven UI (SDUI)
 
 Versionamento de Jornadas
 
@@ -132,9 +132,7 @@ Duplicação em massa
 
 Criação automática de próximos passos
 
-Clonagem de jornadas entre canais
-
-Templates de jornadas
+Clonagem de jornadas entre tipos de canal
 
 Biblioteca de componentes de formulário
 
@@ -142,8 +140,14 @@ Debug completo por etapa
 
 Visualização dos dados de formulário por etapa
 
-Exibição condicional em formulários (campo `visibleIf` já existe no modelo, mas não é avaliado em runtime)
+Formulários multi-etapas (wizard)
+
+Fontes de dados dinâmicas - $dataSource e estratégia de prefetch no servidor ou no cliente
+
+Paginação de opções carregadas dinamicamente
 ```
+
+> **Nota de revisão (2026-09-05):** "Exibição condicional em formulários" saiu desta lista — implementada nesta revisão como visibilidade condicional de componente (US-04.12), avaliada em runtime. Itens do catálogo SDUI (`ej-admin-requisitos.md` FT-04) adicionados.
 
 > **Nota de revisão (2026-08-24):** "Seções" e "Organização dinâmica de campos" saíram desta lista — implementadas nesta revisão.
 
@@ -153,15 +157,21 @@ Exibição condicional em formulários (campo `visibleIf` já existe no modelo, 
 
 ## Product
 
-Produto ou serviço digital que agrupa seus canais de atendimento. Exemplo: Vivo+.
+Produto ou serviço digital que declara diretamente um conjunto não vazio de tipos de canal habilitados para suas jornadas. Exemplo: Vivo+.
 
-## Channel
+## Channel Type
 
-Aplicação ou interface de atendimento pertencente a um produto. Tipos da versão 1.0.0: Web, Mobile, WhatsApp, URA, Contact Center e Other.
+Valor de domínio fixo — não uma entidade cadastrável. Tipos da versão 1.0.0: `WEB`, `MOBILE`, `WHATSAPP`.
 
 ## Journey
 
-Workflow específico de um canal. Cada jornada pertence a exatamente um canal e possui código, fluxo e formulários próprios.
+Workflow associado a um produto e a um subconjunto não vazio dos tipos de canal habilitados por esse produto. Possui código, fluxo e telas próprios; pode atender mais de um tipo de canal ao mesmo tempo, com o mesmo fluxo e as mesmas telas.
+
+> **Nota de revisão (2026-09-06):** `Channel` (entidade com CRUD por produto) substituído por `Channel Type` (valor de domínio fixo, só 3 tipos); `Journey` deixou de pertencer a exatamente um canal.
+
+## Journey Template
+
+Esqueleto de fluxo predefinido e versionado no backend, copiado com novos identificadores quando o usuário o escolhe na criação de uma jornada. Não altera os metadados informados pelo usuário e não é persistido como entidade própria.
 
 ## Flow
 
@@ -179,9 +189,13 @@ Catálogo de clusters de mensageria corporativos e referências de credencial (A
 
 Geração automática de um rascunho de fluxo a partir de uma descrição em linguagem natural, usando a credencial de IA do Integration Catalog. O fluxo gerado é sempre um rascunho editável, sujeito às mesmas regras de validação estrutural e à mesma revisão manual de um fluxo criado por edição direta. A geração considera o fluxo já desenhado no canvas como contexto: um pedido aditivo preserva nós/conexões sem relação com o pedido; redesenhar tudo do zero só ocorre quando pedido explicitamente.
 
-## Form
+## Component Registry
 
-Formulário reutilizável do catálogo, usado como modelo de partida (cópia) para a tela de uma User Task — não mais referenciado por id, ver User Task Configuration.
+Catálogo corporativo de componentes SDUI (`ui.*`, versão 1) disponíveis para compor a tela de uma User Task, persistido em tabela própria. Remover um componente marca-o como indisponível, sem apagar o registro. Ver `ej-admin-requisitos.md` FT-04.
+
+## Sdui Node
+
+Nó de uma árvore que representa a tela de uma User Task, referenciando um componente do Component Registry por `type`+`version`, com vínculo de dados, eventos e visibilidade condicional próprios — ver User Task Configuration.
 
 ## Execution
 
@@ -193,7 +207,9 @@ Investigação do comportamento de qualquer execução de jornada no motor de ru
 
 ## Journey Version
 
-Versão imutável de uma jornada, contendo o fluxo, conexões e a tela embutida (compilada) de cada User Task numa determinada publicação.
+Versão imutável de uma jornada, contendo o fluxo, conexões e a árvore de tela SDUI (`embeddedScreenRoot`) de cada User Task numa determinada publicação.
+
+> **Nota de revisão (2026-09-05):** "tela embutida (compilada)" substituída por "árvore de tela SDUI (`embeddedScreenRoot`)" — não existe mais etapa de compilação separada, a mesma árvore editada é a publicada. Nota de 2026-08-24 mantida abaixo por histórico.
 
 > **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
@@ -222,14 +238,14 @@ Identificador técnico (`X-Correlation-Id`) que amarra os logs de entrada/saída
 # 7. Cardinalidades Principais
 
 ```text
-Product 1 → 0..N Channel
+Product 1 → N Channel Type (coleção de valores, não uma entidade relacional)
 
-Channel 1 → 0..N Journey
+Product 1 → 0..N Journey
 
-Journey 1 → 1 Channel
+Journey 1 → N Channel Type (subconjunto dos tipos do Product)
 ```
 
-Jornadas de canais diferentes são independentes. Um produto pode possuir, por exemplo, um questionário Web com dez telas e um questionário Mobile com seis telas.
+Jornadas com tipos de canal diferentes são independentes. Um produto pode possuir, por exemplo, um questionário com dez telas rodando em Web e outro com seis telas rodando em Mobile.
 
 ---
 
@@ -283,9 +299,9 @@ Especificação OpenAPI
 
 | Artefato | Descrição |
 |-----------|-----------|
-| Product | Produto que agrupa canais de atendimento |
-| Channel | Aplicação ou interface de atendimento de um produto |
-| Journey | Jornada específica de um canal |
+| Product | Produto que declara os tipos de canal habilitados para suas jornadas |
+| Channel Type | Valor de domínio fixo (`WEB`/`MOBILE`/`WHATSAPP`) — não é uma entidade cadastrável |
+| Journey | Workflow associado a um produto e a um subconjunto dos tipos de canal desse produto |
 | Flow | Estrutura visual da jornada |
 | Flow Node | Elemento individual do fluxo |
 | Flow Connection | Conexão entre elementos do fluxo |
@@ -294,9 +310,9 @@ Especificação OpenAPI
 | Receive Task | Tarefa que aguarda uma mensagem externa |
 | Message Start Event | Elemento que inicia uma jornada por mensagem externa |
 | Connector | Tipo e configuração da integração utilizada por uma tarefa |
-| User Task Configuration | Tela embutida (`embeddedScreen`) desenhada diretamente no nó de uma User Task |
-| Form | Formulário reutilizável do catálogo, usado só como modelo de partida (cópia) para telas de User Task |
-| Form Component | Componente visual pertencente a um formulário |
+| User Task Configuration | Árvore de tela SDUI (`embeddedScreenRoot`) desenhada diretamente no nó de uma User Task |
+| Component Registry | Catálogo corporativo de componentes SDUI disponíveis para compor telas |
+| Sdui Node | Nó da árvore de tela, referenciando um componente do Component Registry |
 | Journey Version | Versão imutável de uma jornada |
 | Journey Publication | Snapshot de uma versão enviado para a API de publicação do runtime |
 | External Identity Provider | Provedor externo de autenticação, mockado na versão 1.0.0 |
@@ -304,6 +320,8 @@ Especificação OpenAPI
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
 | AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+
+> **Nota de revisão (2026-09-05):** linhas `Form`/`Form Component` substituídas por `Component Registry`/`Sdui Node` e `User Task Configuration` atualizada — ver `ej-admin-requisitos.md` FT-04. Nota de 2026-08-24 mantida abaixo por histórico.
 
 > **Nota de revisão (2026-08-24):** linhas `User Task Configuration` e `Form` reescritas — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
@@ -313,12 +331,12 @@ Especificação OpenAPI
 
 | Termo | Descrição |
 |-------|-----------|
-| Product | Produto ou serviço digital |
-| Channel | Aplicação ou interface de atendimento de um produto |
-| Journey | Jornada digital específica de um canal |
+| Product | Produto ou serviço digital que declara os tipos de canal habilitados para suas jornadas |
+| Channel Type | Valor de domínio fixo (`WEB`/`MOBILE`/`WHATSAPP`) — não é uma entidade cadastrável |
+| Journey | Workflow associado a um produto e a um subconjunto dos tipos de canal desse produto |
 | Flow | Fluxo visual |
 | User Task | Interação humana realizada durante a jornada |
-| Form | Formulário reutilizável do catálogo, usado como modelo de partida (cópia) para a tela de uma User Task |
+| Component Registry / Sdui Node | Catálogo corporativo de componentes SDUI e os nós da árvore de tela que instanciam esses componentes numa User Task |
 | Execution | Execução real da jornada publicada, contra o motor de runtime |
 | Diagnostic | Investigação do comportamento de qualquer execução no motor de runtime, independente da tela de Execução ao vivo |
 | Publication | Envio do snapshot de uma versão imutável para a API de publicação do runtime |
@@ -328,10 +346,12 @@ Especificação OpenAPI
 | Integration Catalog | Catálogo de clusters de mensageria e referências de credencial usados pelos conectores, e da credencial de IA |
 | AI-Assisted Flow Generation | Geração de um rascunho de fluxo a partir de um prompt em linguagem natural, considerando o fluxo já desenhado como contexto |
 
+> **Nota de revisão (2026-09-05):** linha `Form` substituída por `Component Registry / Sdui Node` — ver `ej-admin-requisitos.md` FT-04. Nota de 2026-08-24 mantida abaixo por histórico.
+
 > **Nota de revisão (2026-08-24):** linha `Form` reescrita — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 
 ---
 
 # 12. Resumo Executivo
 
-O Elastic Journey Admin Portal versão 1.0.0 cobre o ciclo de vida de jornadas específicas por canal: cadastro do produto e de seus canais, modelagem do fluxo e dos formulários (incluindo conectores REST, Kafka, Azure Event Hubs e Azure Service Bus apoiados por um catálogo de integrações de clusters e credenciais), versionamento, execução, diagnóstico de execuções, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).
+O Elastic Journey Admin Portal versão 1.0.0 cobre o ciclo de vida de jornadas multicanal: cadastro do produto e dos tipos de canal que habilita, modelagem do fluxo e composição das telas a partir de um catálogo corporativo de componentes SDUI (incluindo conectores REST, Kafka, Azure Event Hubs e Azure Service Bus apoiados por um catálogo de integrações de clusters e credenciais), versionamento, execução, diagnóstico de execuções, autenticação mockada, autorização por papéis, auditoria, publicação por uma chamada mockada para a futura API de publicação do runtime, uma central de ajuda com FAQ e contato do time de sustentação, e observabilidade técnica (log de API e de transações de persistência, correlacionados por requisição, preparados para integração futura com ELK).

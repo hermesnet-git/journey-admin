@@ -31,9 +31,7 @@ export interface VersionSnapshot {
   journeyDescription: string | null;
   productId: string;
   productName: string;
-  channelId: string;
-  channelName: string;
-  channelType: string;
+  channelTypes: string[];
   flowNodes: FlowNodeSnapshot[];
   flowConnections: FlowConnectionSnapshot[];
   forms: FormSnapshot[];

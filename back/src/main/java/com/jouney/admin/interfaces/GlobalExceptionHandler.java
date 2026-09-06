@@ -3,20 +3,25 @@ package com.jouney.admin.interfaces;
 import com.jouney.admin.domain.ActivePublicationExistsException;
 import com.jouney.admin.domain.auth.InvalidCredentialsException;
 import com.jouney.admin.domain.auth.InvalidSessionException;
-import com.jouney.admin.domain.channel.ChannelNotFoundException;
 import com.jouney.admin.domain.channel.ProductInactiveException;
+import com.jouney.admin.domain.componentregistry.ComponentDefinitionNotFoundException;
+import com.jouney.admin.domain.componentregistry.ComponentTypeVersionAlreadyExistsException;
+import com.jouney.admin.domain.componentregistry.UnknownRenderTargetException;
 import com.jouney.admin.domain.flow.FlowNodeNotFoundException;
 import com.jouney.admin.domain.flow.FlowValidationException;
-import com.jouney.admin.domain.journey.ChannelInactiveException;
+import com.jouney.admin.domain.journey.ChannelTypeNotAllowedException;
+import com.jouney.admin.domain.journey.JourneyChannelsEmptyException;
 import com.jouney.admin.domain.journey.JourneyInactiveException;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
+import com.jouney.admin.domain.journey.JourneyTemplateNotFoundException;
 import com.jouney.admin.domain.messaging.ClusterInUseException;
 import com.jouney.admin.domain.messaging.ClusterNameAlreadyExistsException;
 import com.jouney.admin.domain.messaging.CredentialInUseException;
 import com.jouney.admin.domain.messaging.CredentialReferenceNameAlreadyExistsException;
 import com.jouney.admin.domain.messaging.CredentialReferenceNotFoundException;
 import com.jouney.admin.domain.messaging.MessagingClusterNotFoundException;
+import com.jouney.admin.domain.product.ProductChannelTypesEmptyException;
 import com.jouney.admin.domain.product.ProductNotFoundException;
 import com.jouney.admin.domain.version.JourneyVersionNotFoundException;
 import com.jouney.admin.domain.version.VersionHasNoFlowException;
@@ -46,10 +51,10 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler({ProductNotFoundException.class, ChannelNotFoundException.class,
+    @ExceptionHandler({ProductNotFoundException.class,
             JourneyNotFoundException.class, JourneyVersionNotFoundException.class,
             MessagingClusterNotFoundException.class, CredentialReferenceNotFoundException.class,
-            FlowNodeNotFoundException.class})
+            FlowNodeNotFoundException.class, ComponentDefinitionNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
     }
@@ -57,12 +62,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ActivePublicationExistsException.class, JourneyNotPublishedException.class,
             JourneyInactiveException.class, VersionNotDraftException.class, VersionNotPublishedException.class,
             VersionNotUnpublishedException.class, ClusterInUseException.class, CredentialInUseException.class,
-            ClusterNameAlreadyExistsException.class, CredentialReferenceNameAlreadyExistsException.class})
+            ClusterNameAlreadyExistsException.class, CredentialReferenceNameAlreadyExistsException.class,
+            ComponentTypeVersionAlreadyExistsException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }
 
-    @ExceptionHandler({ProductInactiveException.class, ChannelInactiveException.class, VersionHasNoFlowException.class})
+    @ExceptionHandler({UnknownRenderTargetException.class, JourneyTemplateNotFoundException.class})
+    public ResponseEntity<ApiError> handleBadRequest(RuntimeException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler({ProductInactiveException.class, VersionHasNoFlowException.class,
+            JourneyChannelsEmptyException.class, ChannelTypeNotAllowedException.class,
+            ProductChannelTypesEmptyException.class})
     public ResponseEntity<ApiError> handleUnprocessable(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, null);
     }

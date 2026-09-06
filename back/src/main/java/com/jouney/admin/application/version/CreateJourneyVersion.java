@@ -2,9 +2,7 @@ package com.jouney.admin.application.version;
 
 import com.jouney.admin.application.audit.RecordAuditEvent;
 import com.jouney.admin.domain.audit.AuditResult;
-import com.jouney.admin.domain.channel.Channel;
-import com.jouney.admin.domain.channel.ChannelNotFoundException;
-import com.jouney.admin.domain.channel.ChannelRepository;
+import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.Flow;
 import com.jouney.admin.domain.flow.FlowRepository;
 import com.jouney.admin.domain.journey.Journey;
@@ -16,11 +14,12 @@ import com.jouney.admin.domain.product.ProductRepository;
 import com.jouney.admin.domain.version.JourneyVersion;
 import com.jouney.admin.domain.version.JourneyVersionRepository;
 import com.jouney.admin.domain.version.VersionStatus;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
- * Keeps the journey's current DRAFT version in sync with its live flow/product/channel state
+ * Keeps the journey's current DRAFT version in sync with its live flow/product/channel-types state
  * (REQ-06.02.002/003/009): if a DRAFT already exists, its snapshot is replaced in place —
  * same id/versionNumber, fresher content — since a DRAFT is "what's currently being edited", not
  * a series of throwaway branches. Only when no DRAFT exists (typically right after a publish,
@@ -31,18 +30,15 @@ import org.springframework.stereotype.Service;
 public class CreateJourneyVersion {
 
     private final JourneyRepository journeyRepository;
-    private final ChannelRepository channelRepository;
     private final ProductRepository productRepository;
     private final FlowRepository flowRepository;
     private final JourneyVersionRepository journeyVersionRepository;
     private final RecordAuditEvent recordAuditEvent;
 
-    public CreateJourneyVersion(JourneyRepository journeyRepository, ChannelRepository channelRepository,
-                                 ProductRepository productRepository, FlowRepository flowRepository,
-                                 JourneyVersionRepository journeyVersionRepository,
+    public CreateJourneyVersion(JourneyRepository journeyRepository, ProductRepository productRepository,
+                                 FlowRepository flowRepository, JourneyVersionRepository journeyVersionRepository,
                                  RecordAuditEvent recordAuditEvent) {
         this.journeyRepository = journeyRepository;
-        this.channelRepository = channelRepository;
         this.productRepository = productRepository;
         this.flowRepository = flowRepository;
         this.journeyVersionRepository = journeyVersionRepository;
@@ -52,10 +48,9 @@ public class CreateJourneyVersion {
     public JourneyVersion execute(UUID journeyId, String description, UUID createdBy) {
         Journey journey = journeyRepository.findById(journeyId)
                 .orElseThrow(() -> new JourneyNotFoundException(journeyId));
-        Channel channel = channelRepository.findById(journey.getChannelId())
-                .orElseThrow(() -> new ChannelNotFoundException(journey.getChannelId()));
-        Product product = productRepository.findById(channel.getProductId())
-                .orElseThrow(() -> new ProductNotFoundException(channel.getProductId()));
+        Product product = productRepository.findById(journey.getProductId())
+                .orElseThrow(() -> new ProductNotFoundException(journey.getProductId()));
+        List<ChannelType> channelTypes = List.copyOf(journey.getChannelTypes());
         Flow flow = flowRepository.findByJourneyId(journeyId)
                 .orElseThrow(() -> new IllegalStateException("Journey has no flow: " + journeyId));
 
@@ -63,7 +58,7 @@ public class CreateJourneyVersion {
         if (existingDraft.isPresent()) {
             JourneyVersion draft = existingDraft.get();
             draft.replaceContent(journey.getName(), journey.getDescription(), product.getId(), product.getName(),
-                    channel.getId(), channel.getName(), channel.getType(), flow.getNodes(), flow.getConnections());
+                    channelTypes, flow.getNodes(), flow.getConnections());
             JourneyVersion saved = journeyVersionRepository.save(draft);
             recordAuditEvent.record("JOURNEY_VERSION_UPDATE", "JOURNEY_VERSION", saved.getId(), AuditResult.SUCCESS,
                     createdBy);
@@ -72,8 +67,8 @@ public class CreateJourneyVersion {
 
         int nextVersionNumber = journeyVersionRepository.findMaxVersionNumber(journeyId) + 1;
         JourneyVersion version = JourneyVersion.createDraft(journeyId, nextVersionNumber, description, createdBy,
-                journey.getName(), journey.getDescription(), product.getId(), product.getName(), channel.getId(),
-                channel.getName(), channel.getType(), flow.getNodes(), flow.getConnections());
+                journey.getName(), journey.getDescription(), product.getId(), product.getName(), channelTypes,
+                flow.getNodes(), flow.getConnections());
         JourneyVersion saved = journeyVersionRepository.save(version);
         recordAuditEvent.record("JOURNEY_VERSION_CREATE", "JOURNEY_VERSION", saved.getId(), AuditResult.SUCCESS,
                 createdBy);

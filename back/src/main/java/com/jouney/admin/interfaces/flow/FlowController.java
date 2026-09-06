@@ -129,7 +129,8 @@ public class FlowController {
     private ApiError errorPayload(Exception ex) {
         if (ex instanceof FlowValidationException fve) {
             var details = fve.getViolations().stream()
-                    .map(v -> new ApiError.ApiErrorDetail("flow", "STRUCTURAL_VIOLATION", v)).toList();
+                    .map(v -> new ApiError.ApiErrorDetail(v.nodeId() != null ? v.nodeId() : "flow", "STRUCTURAL_VIOLATION", v.message()))
+                    .toList();
             return new ApiError(OffsetDateTime.now(), 422, "UNPROCESSABLE_ENTITY", fve.getMessage(), "", details);
         }
         if (ex instanceof AiRequestDeclinedException) {

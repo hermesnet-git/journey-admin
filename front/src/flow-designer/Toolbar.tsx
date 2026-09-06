@@ -8,7 +8,6 @@ import {
   Save,
   LayoutGrid,
   ChevronDown,
-  Sparkles,
   PaintBucket,
   ShieldCheck,
   AlignStartVertical,
@@ -94,6 +93,53 @@ function EdgeShapePicker({ value, onChange }: { value: EdgeShape; onChange: (sha
   );
 }
 
+// Input controlado com buffer de texto próprio: sem isso, cada dígito digitado seria imediatamente
+// sobrescrito pelo zoomPct real (arredondado) vindo de volta do canvas a cada render. O valor só é
+// aplicado (onZoomChange) ao confirmar — Enter ou blur —, e o buffer resincroniza com zoomPct depois
+// que ele muda por outro meio (scroll, botões +/-, fit à tela).
+function ZoomInput({ zoomPct, onZoomChange }: { zoomPct: number; onZoomChange: (pct: number) => void }) {
+  const { c } = useFlowTheme();
+  const [text, setText] = useState(String(zoomPct));
+  const editingRef = useRef(false);
+
+  useEffect(() => {
+    if (!editingRef.current) setText(String(zoomPct));
+  }, [zoomPct]);
+
+  function commit() {
+    editingRef.current = false;
+    const parsed = parseInt(text, 10);
+    if (Number.isFinite(parsed)) {
+      onZoomChange(Math.min(400, Math.max(10, parsed)));
+    } else {
+      setText(String(zoomPct));
+    }
+  }
+
+  return (
+    <div className="flex items-center w-[38px]">
+      <input
+        value={text}
+        onFocus={(e) => {
+          editingRef.current = true;
+          e.target.select();
+        }}
+        onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, ''))}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+        }}
+        title="Digite o zoom desejado"
+        className="w-full text-center text-[11px] font-medium bg-transparent border-0 p-0"
+        style={{ color: c.textSecondary }}
+      />
+      <span className="text-[11px] font-medium" style={{ color: c.textSecondary }}>
+        %
+      </span>
+    </div>
+  );
+}
+
 export function Toolbar({
   canUndo,
   canRedo,
@@ -110,6 +156,7 @@ export function Toolbar({
   zoomPct,
   onZoomIn,
   onZoomOut,
+  onZoomChange,
   onFitToScreen,
   onSave,
   saving,
@@ -117,7 +164,6 @@ export function Toolbar({
   validating,
   validationStatus,
   onCancel,
-  onGenerate,
   journeyName,
 }: {
   canUndo: boolean;
@@ -135,6 +181,7 @@ export function Toolbar({
   zoomPct: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
+  onZoomChange: (pct: number) => void;
   onFitToScreen: () => void;
   onSave: () => void;
   saving: boolean;
@@ -142,7 +189,6 @@ export function Toolbar({
   validating: boolean;
   validationStatus: 'valid' | 'invalid' | null;
   onCancel: () => void;
-  onGenerate: () => void;
   journeyName: string;
 }) {
   const { c } = useFlowTheme();
@@ -157,23 +203,13 @@ export function Toolbar({
       </div>
       <div className="flex items-center gap-[3px] shrink-0">
         <button
-          onClick={onGenerate}
-          title="Gerar fluxo a partir de um prompt"
-          className="h-[27px] px-[8px] rounded-lg flex items-center gap-[5px] text-[12px] font-semibold cursor-pointer"
-          style={{ border: `1px solid ${c.border}`, color: c.accent }}
-        >
-          <Sparkles size={14} /> Gerar com IA
-        </button>
-        {divider}
-        <button
           onClick={onOrganize}
           title={selectedCount >= 2 ? 'Organizar só os componentes selecionados' : 'Organizar todo o canvas'}
-          className="h-[27px] px-[8px] rounded-lg flex items-center gap-[5px] text-[12px] font-semibold cursor-pointer"
-          style={{ border: `1px solid ${c.border}`, color: c.textPrimary }}
+          className={iconBtn}
+          style={{ color: c.textSecondary }}
         >
-          <LayoutGrid size={14} /> Organizar
+          <LayoutGrid size={14} />
         </button>
-        {divider}
         {(
           [
             { icon: AlignStartVertical, title: 'Alinhar à esquerda', action: () => onAlign('left') },
@@ -227,9 +263,7 @@ export function Toolbar({
         <button onClick={onZoomOut} className={iconBtn} style={{ color: c.textSecondary }} title="Diminuir zoom">
           <ZoomOut size={16} />
         </button>
-        <div className="w-7 text-center text-[11px] font-medium" style={{ color: c.textSecondary }}>
-          {zoomPct}%
-        </div>
+        <ZoomInput zoomPct={zoomPct} onZoomChange={onZoomChange} />
         <button onClick={onZoomIn} className={iconBtn} style={{ color: c.textSecondary }} title="Aumentar zoom">
           <ZoomIn size={16} />
         </button>

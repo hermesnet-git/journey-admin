@@ -4,14 +4,15 @@ import java.util.List;
 
 public class FlowValidationException extends RuntimeException {
 
-    private final List<String> violations;
+    private final List<FlowViolation> violations;
 
-    public FlowValidationException(List<String> violations) {
-        super("Fluxo estruturalmente inválido: " + String.join("; ", violations));
+    public FlowValidationException(List<FlowViolation> violations) {
+        super("Fluxo estruturalmente inválido: "
+                + String.join("; ", violations.stream().map(FlowViolation::message).toList()));
         this.violations = violations;
     }
 
-    public List<String> getViolations() {
+    public List<FlowViolation> getViolations() {
         return violations;
     }
 }

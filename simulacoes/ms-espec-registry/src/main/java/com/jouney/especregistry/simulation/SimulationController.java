@@ -90,8 +90,8 @@ public class SimulationController {
         if (!snapshot.channelTypes().contains(channel)) {
             throw new UnsupportedChannelException(channel, snapshot.channelTypes());
         }
-        // Catches a journey published before FlowValidator (admin/back) started rejecting this shape
-        // at save time — fails clearly here instead of crashing the engine (SynchronousChainCheck).
+        // Explica ao usuário, antes de chamar o motor, por que essa jornada não consegue iniciar
+        // (SynchronousChainCheck) em vez de deixar o motor crashar sem contexto nenhum.
         SynchronousChainCheck.verify(snapshot);
         Map<String, CamundaVariable> startVariables = new LinkedHashMap<>(snapshot.findStartNode()
                 .map(node -> "MESSAGE_START_EVENT".equals(node.type())

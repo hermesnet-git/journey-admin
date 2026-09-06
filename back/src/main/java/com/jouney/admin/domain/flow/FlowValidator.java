@@ -60,6 +60,27 @@ public final class FlowValidator {
     // declarado ao iniciar a instância (?channel=...) — nunca declarado pelo usuário no nó START.
     private static final String CHANNEL_VARIABLE = "channel";
 
+    // Nome amigável de cada tipo de etapa, igual ao que a tela já mostra (NODE_META no front) — as
+    // mensagens de violação abaixo usam este vocabulário em vez do nome técnico do enum (GATEWAY,
+    // USER_TASK...), que não significa nada pra quem não conhece a implementação.
+    private static final Map<FlowNodeType, String> FRIENDLY_TYPE_NAME = Map.of(
+            FlowNodeType.START, "Início",
+            FlowNodeType.MESSAGE_START_EVENT, "Início por Mensagem",
+            FlowNodeType.END, "Fim",
+            FlowNodeType.GATEWAY, "Decisão",
+            FlowNodeType.USER_TASK, "Tarefa de Usuário",
+            FlowNodeType.SERVICE_TASK, "Tarefa de Serviço",
+            FlowNodeType.RECEIVE_TASK, "Tarefa de Recebimento");
+
+    private static final Map<ChannelType, String> FRIENDLY_CHANNEL_NAME = Map.of(
+            ChannelType.WEB, "Web",
+            ChannelType.MOBILE, "Mobile",
+            ChannelType.WHATSAPP, "WhatsApp");
+
+    private static String friendlyType(FlowNodeType type) {
+        return FRIENDLY_TYPE_NAME.getOrDefault(type, type.toString());
+    }
+
     private FlowValidator() {
     }
 
@@ -74,7 +95,7 @@ public final class FlowValidator {
     // checagem — o resto da validação estrutural continua idêntico.
     public static void validate(List<FlowNode> nodes, List<FlowConnection> connections,
                                  Map<String, ComponentDefinition> componentRegistry, List<ChannelType> channelTypes) {
-        List<String> violations = new ArrayList<>();
+        List<FlowViolation> violations = new ArrayList<>();
 
         List<FlowNode> starts = nodes.stream().filter(n -> START_TYPES.contains(n.getType())).toList();
         // REQ-03.11.001: a GATEWAY's two branches may each run to their own END instead of
@@ -82,11 +103,11 @@ public final class FlowValidator {
         // one END node; it must just have at least one.
         List<FlowNode> ends = nodes.stream().filter(n -> n.getType() == FlowNodeType.END).toList();
         if (starts.size() != 1) {
-            violations.add("O fluxo deve conter exatamente um elemento inicial, START ou MESSAGE_START_EVENT (encontrado(s) "
-                    + starts.size() + ")");
+            violations.add(new FlowViolation("A jornada precisa ter exatamente um passo inicial — Início ou Início por Mensagem"
+                    + " (foram encontrados " + starts.size() + ")"));
         }
         if (ends.isEmpty()) {
-            violations.add("O fluxo deve conter ao menos um nó END");
+            violations.add(new FlowViolation("A jornada precisa ter ao menos uma etapa de Fim"));
         }
 
         // REQ-03.09.011/REQ-03.12.002: output variable names and START's declared startVariables
@@ -110,27 +131,28 @@ public final class FlowValidator {
                 continue;
             }
             if (node.getType() != FlowNodeType.START) {
-                violations.add("Nó '" + node.getName() + "' declara startVariables mas não é o nó START");
+                violations.add(new FlowViolation(node.getId(), "'" + node.getName()
+                        + "' declara variáveis de entrada da jornada, mas isso só é permitido no Início"));
                 continue;
             }
             for (Map<String, Object> declaration : declared) {
                 Object name = declaration.get("name");
                 Object type = declaration.get("type");
                 if (!(name instanceof String s) || s.isBlank()) {
-                    violations.add("Nó START '" + node.getName() + "' tem uma entrada de startVariables sem um nome válido");
+                    violations.add(new FlowViolation(node.getId(), "O Início '" + node.getName() + "' tem uma variável de entrada sem um nome válido"));
                     continue;
                 }
                 if (CHANNEL_VARIABLE.equals(s)) {
-                    violations.add("Nó START '" + node.getName()
-                            + "' não pode declarar a variável 'channel' — é um nome reservado, injetado automaticamente pelo canal que inicia a instância");
+                    violations.add(new FlowViolation(node.getId(), "O Início '" + node.getName()
+                            + "' não pode declarar a variável 'channel' — é um nome reservado; o canal usado para iniciar a jornada já preenche essa variável automaticamente"));
                     continue;
                 }
                 if (!(type instanceof String t) || !VALID_VARIABLE_TYPES.contains(t)) {
-                    violations.add("Nó START '" + node.getName() + "' declara a variável '" + s + "' com um tipo inválido");
+                    violations.add(new FlowViolation(node.getId(), "O Início '" + node.getName() + "' declara a variável '" + s + "' com um tipo inválido"));
                     continue;
                 }
                 if (!seenOutputNames.add(s)) {
-                    violations.add("Variável de saída '" + s + "' foi declarada mais de uma vez no fluxo");
+                    violations.add(new FlowViolation(node.getId(), "Variável de saída '" + s + "' foi declarada mais de uma vez no fluxo"));
                     continue;
                 }
                 startVariableNames.add(s);
@@ -165,8 +187,8 @@ public final class FlowValidator {
             switch (node.getType()) {
                 case START, MESSAGE_START_EVENT -> {
                     if (in != 0 || out != 1) {
-                        violations.add("Nó " + node.getType() + " '" + node.getName()
-                                + "' deve ter nenhuma entrada e exatamente uma saída");
+                        violations.add(new FlowViolation(node.getId(), "O " + friendlyType(node.getType()) + " '" + node.getName()
+                                + "' não pode vir depois de outra etapa e deve levar a exatamente uma próxima etapa"));
                     }
                 }
                 case USER_TASK, SERVICE_TASK, RECEIVE_TASK -> {
@@ -175,33 +197,33 @@ public final class FlowValidator {
                         // é o erro mais comum tanto de quem desenha na mão quanto da geração por IA
                         // (ver FlowGenerationPrompt): a intenção é uma decisão, mas falta o GATEWAY.
                         String hint = out > 1
-                                ? " (para ramificar a partir daqui, insira um GATEWAY logo depois — este tipo de nó nunca tem mais de uma saída)"
+                                ? " (para ramificar a partir daqui, insira uma Decisão logo depois — este tipo de etapa nunca tem mais de um caminho de saída)"
                                 : "";
-                        violations.add("Nó " + node.getType() + " '" + node.getName()
-                                + "' deve ter ao menos uma entrada e exatamente uma saída" + hint);
+                        violations.add(new FlowViolation(node.getId(), "A " + friendlyType(node.getType()) + " '" + node.getName()
+                                + "' precisa ser alcançada por uma etapa anterior e levar a exatamente uma próxima etapa" + hint));
                     }
                 }
                 case END -> {
                     if (in < 1 || out != 0) {
-                        violations.add("Nó END '" + node.getName()
-                                + "' deve ter ao menos uma entrada e nenhuma saída");
+                        violations.add(new FlowViolation(node.getId(), "O Fim '" + node.getName()
+                                + "' precisa ser alcançado por uma etapa anterior e não pode levar a nenhuma outra"));
                     }
                 }
                 case GATEWAY -> {
                     if (in < 1 || out != 2) {
-                        violations.add("Nó GATEWAY '" + node.getName()
-                                + "' deve ter ao menos uma entrada e exatamente duas saídas (escopo do MVP)");
+                        violations.add(new FlowViolation(node.getId(), "A Decisão '" + node.getName()
+                                + "' precisa ser alcançada por uma etapa anterior e ter exatamente dois caminhos possíveis"));
                     } else {
                         List<FlowConnection> outgoing = outgoingConnections.getOrDefault(node.getId(), List.of());
                         long defaultCount = outgoing.stream().filter(FlowConnection::isDefault).count();
                         if (defaultCount != 1) {
-                            violations.add("Nó GATEWAY '" + node.getName()
-                                    + "' deve ter exatamente uma saída padrão (encontrada(s) " + defaultCount + ")");
+                            violations.add(new FlowViolation(node.getId(), "A Decisão '" + node.getName()
+                                    + "' precisa ter exatamente um caminho marcado como padrão (foram encontrados " + defaultCount + ")"));
                         }
                         for (FlowConnection connection : outgoing) {
                             if (!connection.isDefault() && (connection.getCondition() == null || connection.getCondition().isBlank())) {
-                                violations.add("Nó GATEWAY '" + node.getName()
-                                        + "' tem uma saída não padrão sem condição");
+                                violations.add(new FlowViolation(node.getId(), "A Decisão '" + node.getName()
+                                        + "' tem um caminho que não é o padrão, mas está sem uma condição definida"));
                             }
                         }
                     }
@@ -211,21 +233,22 @@ public final class FlowValidator {
             if (node.getConnectorConfig() != null) {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
                 if (!connectorConfig.getConnectorType().isEnabled()) {
-                    violations.add("Nó '" + node.getName() + "' referencia um conector desabilitado ("
-                            + connectorConfig.getConnectorType() + ")");
+                    violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' usa um conector desabilitado ("
+                            + connectorConfig.getConnectorType() + ")"));
                 }
                 if (node.getType() == FlowNodeType.MESSAGE_START_EVENT
                         && !connectorConfig.getConnectorType().isMessageBroker()) {
-                    violations.add("Nó MESSAGE_START_EVENT '" + node.getName()
+                    violations.add(new FlowViolation(node.getId(), "O Início por Mensagem '" + node.getName()
                             + "' não pode usar um conector " + connectorConfig.getConnectorType()
-                            + "; só um conector de mensageria (Kafka, Event Hubs ou Service Bus, em modo de consumo) inicia um fluxo a partir de uma mensagem recebida");
+                            + "; só um conector de mensageria (Kafka, Event Hubs ou Service Bus) pode iniciar a jornada a partir de uma mensagem recebida"));
                 }
                 if (connectorConfig.getConnectorType().isMessageBroker()) {
                     String expectedOperation = BROKER_OPERATION_BY_TYPE.get(node.getType());
                     Object operation = connectorConfig.getConfig() != null ? connectorConfig.getConfig().get("operation") : null;
                     if (expectedOperation != null && operation != null && !expectedOperation.equals(operation)) {
-                        violations.add("Nó '" + node.getName() + "': a operação de mensageria deve ser " + expectedOperation
-                                + " para " + node.getType());
+                        String friendlyOperation = "PRODUCE".equals(expectedOperation) ? "publicar" : "consumir";
+                        violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' (" + friendlyType(node.getType())
+                                + "): a operação de mensageria deveria ser '" + friendlyOperation + "'"));
                     }
                 }
 
@@ -237,8 +260,8 @@ public final class FlowValidator {
                     Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                     for (String token : usedTokens) {
                         if (!availableVars.contains(token)) {
-                            violations.add("Nó '" + node.getName() + "' referencia variável não declarada '{{" + token
-                                    + "}}'" + describeAvailableVars(availableVars));
+                            violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' referencia a variável '{{" + token
+                                    + "}}', que ainda não existe nesse ponto da jornada" + describeAvailableVars(availableVars)));
                         }
                     }
                 }
@@ -258,8 +281,8 @@ public final class FlowValidator {
                     Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                     for (String token : usedTokens) {
                         if (!availableVars.contains(token)) {
-                            violations.add("A mensagem do nó '" + node.getName() + "' referencia variável não declarada '{{"
-                                    + token + "}}'" + describeAvailableVars(availableVars));
+                            violations.add(new FlowViolation(node.getId(), "A mensagem exibida por '" + node.getName() + "' referencia a variável '{{"
+                                    + token + "}}', que ainda não existe nesse ponto da jornada" + describeAvailableVars(availableVars)));
                         }
                     }
                 }
@@ -283,9 +306,9 @@ public final class FlowValidator {
                 // mensagem acionável, em vez de deixar estourar só na publicação.
                 if (connection.getCondition() != null
                         && (connection.getCondition().contains("\\\"") || connection.getCondition().contains("\\'"))) {
-                    violations.add("A condição do nó GATEWAY '" + node.getName()
-                            + "' contém aspas escapadas com barra invertida (\\\" ou \\'), inválidas em JUEL — use aspas"
-                            + " diretas, sem escapar, ex.: {{campo}} == \"valor\".");
+                    violations.add(new FlowViolation(node.getId(), "A condição da Decisão '" + node.getName()
+                            + "' usa aspas escapadas com barra invertida (\\\" ou \\'), que não são aceitas — use aspas"
+                            + " diretas, sem escapar, ex.: {{campo}} == \"valor\"."));
                 }
                 Set<String> usedTokens = new HashSet<>();
                 collectVariableTokens(connection.getCondition(), usedTokens);
@@ -295,8 +318,8 @@ public final class FlowValidator {
                 Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                 for (String token : usedTokens) {
                     if (!availableVars.contains(token)) {
-                        violations.add("A condição do nó GATEWAY '" + node.getName() + "' referencia variável não declarada '{{"
-                                + token + "}}'" + describeAvailableVars(availableVars));
+                        violations.add(new FlowViolation(node.getId(), "A condição da Decisão '" + node.getName() + "' referencia a variável '{{"
+                                + token + "}}', que ainda não existe nesse ponto da jornada" + describeAvailableVars(availableVars)));
                     }
                 }
             }
@@ -325,14 +348,14 @@ public final class FlowValidator {
                 for (Map<String, Object> rule : outputMappingOf(node.getConnectorConfig())) {
                     Object name = rule.get("name");
                     if (name instanceof String s && !s.isBlank() && !seenOutputNames.add(s)) {
-                        violations.add("Variável de saída '" + s + "' foi declarada mais de uma vez no fluxo");
+                        violations.add(new FlowViolation(node.getId(), "Variável de saída '" + s + "' foi declarada mais de uma vez no fluxo"));
                     }
                 }
             }
             if (node.getType() == FlowNodeType.USER_TASK && node.getEmbeddedScreenRoot() != null) {
                 for (String variableName : formVariableNames(node.getEmbeddedScreenRoot())) {
                     if (!seenOutputNames.add(variableName)) {
-                        violations.add("Variável de saída '" + variableName + "' foi declarada mais de uma vez no fluxo");
+                        violations.add(new FlowViolation(node.getId(), "Variável de saída '" + variableName + "' foi declarada mais de uma vez no fluxo"));
                     }
                 }
             }
@@ -348,76 +371,14 @@ public final class FlowValidator {
             }
             for (FlowNode node : nodes) {
                 if (!reachableFromStart.contains(node.getId()) || !reachingEnd.contains(node.getId())) {
-                    violations.add("Nó '" + node.getName() + "' não está em um caminho contínuo entre START e END");
+                    violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' não está conectada num caminho contínuo entre o Início e o Fim da jornada"));
                 }
-            }
-        }
-
-        // A chain of REST SERVICE_TASKs (Camunda's native http-connector, running synchronously
-        // inside the engine — see attachHttpConnector in ms-transform-publication) running straight to
-        // END with no checkpoint since START crashes the runtime engine: several connector executions
-        // completing the process instance in the very transaction that started it trips a Camunda
-        // engine bug ("execution ... doesn't exist", reproduced live against FT-05 execution).
-        // USER_TASK, RECEIVE_TASK and a non-REST SERVICE_TASK (Kafka, or no connector — always the
-        // external-task pattern, camunda:type="external") all pause the engine waiting on something
-        // external, same effect as a USER_TASK for this purpose; only a REST SERVICE_TASK runs inline.
-        // Requiring one of those checkpoints before such an END — a formless USER_TASK is enough,
-        // REQ-04.01.005 — avoids the crash structurally, at design time instead of at runtime.
-        Map<String, FlowNode> byId = new HashMap<>();
-        nodes.forEach(n -> byId.put(n.getId(), n));
-        for (FlowNode end : ends) {
-            if (reachesEndWithoutCheckpoint(end, backward, byId)) {
-                violations.add("Fim '" + end.getName()
-                        + "' é alcançado por um trecho do fluxo só com tarefas automáticas via conector REST, sem "
-                        + "nenhum checkpoint (User Task, Receive Task ou tarefa Kafka) antes — adicione uma User Task "
-                        + "(pode ser sem formulário) antes desse Fim");
             }
         }
 
         if (!violations.isEmpty()) {
             throw new FlowValidationException(violations);
         }
-    }
-
-    private static boolean reachesEndWithoutCheckpoint(FlowNode end, Map<String, List<String>> backward,
-                                                         Map<String, FlowNode> byId) {
-        Set<String> seen = new HashSet<>();
-        Queue<String> queue = new ArrayDeque<>();
-        seen.add(end.getId());
-        queue.add(end.getId());
-        while (!queue.isEmpty()) {
-            String current = queue.poll();
-            FlowNode node = byId.get(current);
-            if (node == null) {
-                continue;
-            }
-            if (isSynchronousRestTask(node)) {
-                return true;
-            }
-            if (isCheckpoint(node)) {
-                continue; // engine pauses here (User Task, or an external-task node awaiting a worker) — don't look further back through it
-            }
-            for (String prev : backward.getOrDefault(current, List.of())) {
-                if (seen.add(prev)) {
-                    queue.add(prev);
-                }
-            }
-        }
-        return false;
-    }
-
-    private static boolean isSynchronousRestTask(FlowNode node) {
-        return node.getType() == FlowNodeType.SERVICE_TASK && node.getConnectorConfig() != null
-                && node.getConnectorConfig().getConnectorType() == ConnectorType.REST;
-    }
-
-    private static boolean isCheckpoint(FlowNode node) {
-        if (node.getType() == FlowNodeType.USER_TASK || node.getType() == FlowNodeType.RECEIVE_TASK) {
-            return true;
-        }
-        // A SERVICE_TASK not using the native REST connector goes through the external-task pattern
-        // (Kafka, or no connector at all) — Camunda pauses there waiting for a worker, same as RECEIVE_TASK.
-        return node.getType() == FlowNodeType.SERVICE_TASK && !isSynchronousRestTask(node);
     }
 
     @SuppressWarnings("unchecked")
@@ -495,14 +456,14 @@ public final class FlowValidator {
     // namespace de binding válido, ação de evento é uma das 6 do Action Registry. Raiz precisa ser
     // ui.screen (seção 14.1: "root deve conter exatamente um ui.screen").
     private static void validateEmbeddedScreen(FlowNode node, Map<String, ComponentDefinition> componentRegistry,
-                                                 List<ChannelType> channelTypes, List<String> violations) {
+                                                 List<ChannelType> channelTypes, List<FlowViolation> violations) {
         SduiNode root = node.getEmbeddedScreenRoot();
         if (root == null) {
             return;
         }
         if (!"ui.screen".equals(root.type())) {
-            violations.add("A tela do nó '" + node.getName() + "' deve ter raiz do tipo ui.screen (encontrado '"
-                    + root.type() + "')");
+            violations.add(new FlowViolation(node.getId(), "A tela do nó '" + node.getName() + "' deve ter raiz do tipo ui.screen (encontrado '"
+                    + root.type() + "')"));
         }
         validateSduiNode(node, root, componentRegistry, new HashSet<>(), violations);
         if (!channelTypes.isEmpty()) {
@@ -515,11 +476,11 @@ public final class FlowValidator {
     // branco pra algum canal por causa de uma combinação de regras de visibilidade mal configurada.
     private static void validateChannelVisibilityCoverage(FlowNode ownerNode, SduiNode root,
                                                             Map<String, ComponentDefinition> componentRegistry,
-                                                            List<ChannelType> channelTypes, List<String> violations) {
+                                                            List<ChannelType> channelTypes, List<FlowViolation> violations) {
         for (ChannelType channelType : channelTypes) {
             if (!hasVisibleLeafContent(root, componentRegistry, channelType.name())) {
-                violations.add("A tela do nó '" + ownerNode.getName()
-                        + "' fica sem nenhum componente visível para o canal " + channelType);
+                violations.add(new FlowViolation(ownerNode.getId(), "A tela de '" + ownerNode.getName()
+                        + "' fica sem nenhum componente visível no canal " + FRIENDLY_CHANNEL_NAME.get(channelType)));
             }
         }
     }
@@ -562,53 +523,53 @@ public final class FlowValidator {
 
     private static void validateSduiNode(FlowNode ownerNode, SduiNode sduiNode,
                                           Map<String, ComponentDefinition> componentRegistry, Set<String> seenIds,
-                                          List<String> violations) {
+                                          List<FlowViolation> violations) {
         if (sduiNode.id() == null || sduiNode.id().isBlank()) {
-            violations.add("A tela do nó '" + ownerNode.getName() + "' tem um componente sem id");
+            violations.add(new FlowViolation(ownerNode.getId(), "A tela do nó '" + ownerNode.getName() + "' tem um componente sem id"));
         } else if (!seenIds.add(sduiNode.id())) {
-            violations.add("A tela do nó '" + ownerNode.getName() + "' tem o id '" + sduiNode.id() + "' duplicado");
+            violations.add(new FlowViolation(ownerNode.getId(), "A tela do nó '" + ownerNode.getName() + "' tem o id '" + sduiNode.id() + "' duplicado"));
         }
 
         ComponentDefinition definition = componentRegistry.get(sduiNode.type() + "@" + sduiNode.version());
         if (definition == null) {
-            violations.add("A tela do nó '" + ownerNode.getName() + "' usa o tipo '" + sduiNode.type() + "@"
-                    + sduiNode.version() + "', não encontrado no Component Registry");
+            violations.add(new FlowViolation(ownerNode.getId(), "A tela do nó '" + ownerNode.getName() + "' usa o tipo '" + sduiNode.type() + "@"
+                    + sduiNode.version() + "', não encontrado no Component Registry"));
         } else if (definition.getStatus() == ComponentStatus.REMOVED) {
-            violations.add("A tela do nó '" + ownerNode.getName() + "' usa o componente '" + sduiNode.type()
-                    + "', removido do catálogo");
+            violations.add(new FlowViolation(ownerNode.getId(), "A tela do nó '" + ownerNode.getName() + "' usa o componente '" + sduiNode.type()
+                    + "', removido do catálogo"));
         }
 
         List<SduiNode> children = sduiNode.children();
         if (children != null && !children.isEmpty() && definition != null && !definition.isAllowsChildren()) {
-            violations.add("O componente '" + sduiNode.id() + "' (" + sduiNode.type() + ") não aceita filhos, na tela do nó '"
-                    + ownerNode.getName() + "'");
+            violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' (" + sduiNode.type() + ") não aceita filhos, na tela do nó '"
+                    + ownerNode.getName() + "'"));
         }
 
         if (sduiNode.bindings() != null) {
             for (SduiBinding binding : sduiNode.bindings().values()) {
                 if (binding.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(binding.path()::startsWith)) {
-                    violations.add("O componente '" + sduiNode.id() + "' tem um binding com path inválido: '"
-                            + binding.path() + "', na tela do nó '" + ownerNode.getName() + "'");
+                    violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' tem um binding com path inválido: '"
+                            + binding.path() + "', na tela do nó '" + ownerNode.getName() + "'"));
                 }
             }
         }
         if (sduiNode.events() != null) {
             for (SduiEvent event : sduiNode.events().values()) {
                 if (event.action() == null || !VALID_SDUI_ACTIONS.contains(event.action())) {
-                    violations.add("O componente '" + sduiNode.id() + "' referencia uma ação inválida: '"
-                            + event.action() + "', na tela do nó '" + ownerNode.getName() + "'");
+                    violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' referencia uma ação inválida: '"
+                            + event.action() + "', na tela do nó '" + ownerNode.getName() + "'"));
                 }
             }
         }
         SduiVisibility visibility = sduiNode.visibility();
         if (visibility != null) {
             if (visibility.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(visibility.path()::startsWith)) {
-                violations.add("O componente '" + sduiNode.id() + "' tem uma visibilidade com path inválido: '"
-                        + visibility.path() + "', na tela do nó '" + ownerNode.getName() + "'");
+                violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' tem uma visibilidade com path inválido: '"
+                        + visibility.path() + "', na tela do nó '" + ownerNode.getName() + "'"));
             }
             if (visibility.rule() == null || !VALID_VISIBILITY_RULES.contains(visibility.rule())) {
-                violations.add("O componente '" + sduiNode.id() + "' tem uma visibilidade com regra inválida: '"
-                        + visibility.rule() + "', na tela do nó '" + ownerNode.getName() + "'");
+                violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' tem uma visibilidade com regra inválida: '"
+                        + visibility.rule() + "', na tela do nó '" + ownerNode.getName() + "'"));
             }
         }
 

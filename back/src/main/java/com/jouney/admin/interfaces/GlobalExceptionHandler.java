@@ -129,8 +129,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(FlowValidationException.class)
     public ResponseEntity<ApiError> handleFlowValidation(FlowValidationException ex, HttpServletRequest request) {
+        // "field" carrega o id do nó com problema quando a violação é sobre uma etapa específica —
+        // o front usa isso pra destacar a etapa no canvas, não só listar o texto na modal. "flow"
+        // (valor antigo, fixo) cai só nas violações sobre a jornada como um todo (ex.: contagem de
+        // elementos iniciais/finais), que não apontam pra um nó só.
         List<ApiError.ApiErrorDetail> details = ex.getViolations().stream()
-                .map(v -> new ApiError.ApiErrorDetail("flow", "STRUCTURAL_VIOLATION", v))
+                .map(v -> new ApiError.ApiErrorDetail(v.nodeId() != null ? v.nodeId() : "flow", "STRUCTURAL_VIOLATION", v.message()))
                 .toList();
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, details);
     }

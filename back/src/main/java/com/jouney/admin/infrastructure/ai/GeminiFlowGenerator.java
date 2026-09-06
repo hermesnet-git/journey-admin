@@ -8,6 +8,7 @@ import com.jouney.admin.domain.flow.AiFlowGenerator;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.domain.flow.FlowValidator;
+import com.jouney.admin.domain.flow.FlowViolation;
 import com.jouney.admin.domain.flow.GeneratedFlow;
 import com.jouney.admin.domain.flow.GenerationContext;
 import java.util.LinkedHashMap;
@@ -108,9 +109,10 @@ public class GeminiFlowGenerator implements AiFlowGenerator {
                 if (attempt == MAX_ATTEMPTS) {
                     throw ex;
                 }
-                FlowGenerationPrompt.reportViolations(onProgress, attempt, ex.getViolations());
+                List<String> violationMessages = ex.getViolations().stream().map(FlowViolation::message).toList();
+                FlowGenerationPrompt.reportViolations(onProgress, attempt, violationMessages);
                 onProgress.accept("Pedindo correção pro modelo...");
-                String violations = String.join("; ", ex.getViolations());
+                String violations = String.join("; ", violationMessages);
                 // Conversa nova por tentativa (não um replay do turno anterior) — ver javadoc da classe.
                 currentPrompt = basePrompt + "\n\nVocê já tentou gerar esse fluxo antes e produziu:\n"
                         + functionCall.get("args") + "\n\nMas esse fluxo tem os seguintes problemas — corrija e gere "

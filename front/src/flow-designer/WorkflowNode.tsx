@@ -14,7 +14,7 @@ const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask', '
 // pelo mesmo motivo: esse botão fica dentro do canvas do próprio React Flow, que recorta qualquer
 // coisa que tente ultrapassar seus limites, então um nó perto da borda do canvas tinha seu popup
 // renderizado parcialmente atrás do painel de propriedades (sempre aberto) em vez de por cima dele.
-function QuickAdd({ nodeId }: { nodeId: string }) {
+function QuickAdd({ nodeId, avoid }: { nodeId: string; avoid?: 'up' | 'down' }) {
   const { c } = useFlowTheme();
   const actions = useWorkflowActions();
   const [open, setOpen] = useState(false);
@@ -51,18 +51,26 @@ function QuickAdd({ nodeId }: { nodeId: string }) {
   return (
     <div
       ref={triggerRef}
-      className="absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-      style={{ left: 'calc(100% + 8px)', zIndex: open ? 20 : 1 }}
+      className="absolute opacity-0 group-hover:opacity-100 transition-opacity"
+      // Sem linha de saída ainda: botão centralizado (padrão). Já existe uma (ex.: o ramo "padrão"
+      // do Gateway): nasce do lado OPOSTO em vez de centralizado, senão a linha existente passa bem
+      // por cima do botão do próximo ramo, dificultando notar/clicar nele.
+      style={{
+        left: 'calc(100% + 8px)',
+        top: avoid === 'up' ? 'calc(50% + 20px)' : avoid === 'down' ? 'calc(50% - 20px)' : '50%',
+        transform: 'translateY(-50%)',
+        zIndex: open ? 20 : 1,
+      }}
     >
       <button
         ref={buttonRef}
         onClick={toggle}
         onPointerDown={(e) => e.stopPropagation()}
         title="Adicionar próxima etapa"
-        className="nodrag w-[17px] h-[17px] rounded-full flex items-center justify-center cursor-pointer"
+        className="nodrag w-[20px] h-[20px] rounded-full flex items-center justify-center cursor-pointer"
         style={{ border: `1.5px solid ${c.handleColor}`, background: c.cardBg, color: c.handleColor }}
       >
-        <Plus size={11} />
+        <Plus size={12} />
       </button>
       {open &&
         rect &&
@@ -127,13 +135,10 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
   // vermelhos foram tentados e descartados: competiam com a borda de "selecionado" (mesma cor de
   // anel, só o matiz mudava), confundindo os dois estados quando o nó inválido também era o atual.
   const missingConnectorFields = hasConnectorBadge ? connectorMissingFields(data.connectorConfig) : [];
-  const missingGatewayDefault = !!data.missingGatewayDefault;
-  const invalid = !!data.invalid || missingConnectorFields.length > 0 || missingGatewayDefault;
+  const invalid = !!data.invalid || missingConnectorFields.length > 0;
   const invalidReason = missingConnectorFields.length > 0
     ? `Conector incompleto — falta: ${missingConnectorFields.join(', ')}`
-    : missingGatewayDefault
-      ? 'Nenhum caminho marcado como padrão'
-      : 'Configuração incompleta';
+    : (data.invalidReason ?? 'Configuração incompleta');
 
   const borderColor = selected ? c.accent : c.cardBorder;
   // Resting elevation so shapes read as raised, tappable surfaces against the dotted canvas
@@ -225,7 +230,7 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
               ['--handle-ring' as string]: c.accentSoft,
             }}
           />
-          {!outgoingLimitReached && <QuickAdd nodeId={id} />}
+          {!outgoingLimitReached && <QuickAdd nodeId={id} avoid={data.quickAddAvoid} />}
         </>
       )}
     </div>
@@ -238,8 +243,9 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
   prev.data.name === next.data.name &&
   prev.data.zoom === next.data.zoom &&
   prev.data.invalid === next.data.invalid &&
+  prev.data.invalidReason === next.data.invalidReason &&
   prev.data.outgoingLimitReached === next.data.outgoingLimitReached &&
-  prev.data.missingGatewayDefault === next.data.missingGatewayDefault &&
+  prev.data.quickAddAvoid === next.data.quickAddAvoid &&
   prev.data.connectorConfig === next.data.connectorConfig &&
   prev.data.messageText === next.data.messageText &&
   prev.data.embeddedScreenRoot === next.data.embeddedScreenRoot,

@@ -124,7 +124,7 @@ class FlowValidatorTest {
                 new FlowConnection("c2", "task", "end", null, false));
         assertThatThrownBy(() -> FlowValidator.validate(List.of(start, userTask, end), connections, REGISTRY,
                 List.of(ChannelType.WHATSAPP)))
-                .hasMessageContaining("fica sem nenhum componente visível para o canal WHATSAPP");
+                .hasMessageContaining("fica sem nenhum componente visível no canal WhatsApp");
     }
 
     @Test

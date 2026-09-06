@@ -31,9 +31,9 @@ import { Palette } from './Palette';
 import { PropertiesDock } from './PropertiesDock';
 import { FormPreviewDock, DOCK_DEFAULT_HEIGHT } from './FormPreviewDock';
 import { ErrorModal } from './ErrorModal';
-import { GeneratePromptModal, type GenerateLogEntry } from './GeneratePromptModal';
 import { EditJourneyChannelsModal } from '../journeys/EditJourneyChannelsModal';
 import { Toolbar } from './Toolbar';
+import { flowEdgeTypes } from './FlowEdge';
 import {
   NODE_WIDTH,
   NODE_DIMENSIONS,
@@ -45,11 +45,15 @@ import {
   newConnectionId,
   computeLayout,
   computeLayoutForSelection,
+  GATEWAY_BRANCH_GAP,
+  GATEWAY_GAP_X,
+  RANK_SEP,
   findFreeSpot,
   SINGLE_OUTPUT_TYPES,
   FRONT_TO_BACKEND_TYPE,
   BACKEND_TO_FRONT_TYPE,
   outgoingLimitFor,
+  gatewayViolations,
   makeAnnotation,
   isAnnotationId,
   orderedUserTasks,
@@ -63,7 +67,7 @@ import {
   type EdgeShape,
 } from './model';
 import { updateJourney, type Journey } from '../api/journeys';
-import { getFlow, updateFlow, validateFlow, generateFlow, type Flow, type FlowUpdateInput } from '../api/flows';
+import { getFlow, updateFlow, validateFlow, type Flow, type FlowUpdateInput } from '../api/flows';
 import { listClusters, listCredentials, type MessagingCluster, type CredentialReference } from '../api/messaging';
 import { ApiClientError } from '../api/client';
 import { useToast } from '../products/Toast';
@@ -222,7 +226,9 @@ function DesignerInner({
   const [errors, setErrors] = useState<string[]>([]);
   const [errorTitle, setErrorTitle] = useState('Não foi possível salvar');
   const [confirmingPublishedEdit, setConfirmingPublishedEdit] = useState(false);
-  const [invalidNodeIds, setInvalidNodeIds] = useState<Set<string>>(new Set());
+  // Chave = id do nó, valor = a(s) mensagem(ns) de violação daquele nó (join "; " quando mais de
+  // uma) — usado tanto pra destacar no canvas (badge de erro) quanto pro texto do tooltip do badge.
+  const [invalidNodeReasons, setInvalidNodeReasons] = useState<Map<string, string>>(new Map());
   const [, setHistoryTick] = useState(0);
   // The properties dock is always visible. It shows this node's properties
   // when set, and falls back to the journey's own properties when null (e.g.
@@ -276,9 +282,22 @@ function DesignerInner({
   useEffect(() => {
     annotationsRef.current = annotations;
   }, [annotations]);
+  // Assinatura do conteúdo real de nodes/edges, sem `selected` — clicar num nó (ou fora, pra
+  // desselecionar) já basta pra trocar a referência do array de nodes/edges (React Flow guarda
+  // seleção dentro do próprio objeto), o que disparava esse reset mesmo sem o fluxo ter mudado de
+  // verdade. O badge de "inválido" precisa sobreviver a isso, e só sumir quando o conteúdo mudar.
+  const structuralKey = useMemo(
+    () =>
+      JSON.stringify([
+        nodes.map(({ selected: _selected, ...rest }) => rest),
+        edges.map(({ selected: _selected, ...rest }) => rest),
+      ]),
+    [nodes, edges],
+  );
   useEffect(() => {
-    setInvalidNodeIds(new Set());
-  }, [nodes, edges]);
+    setInvalidNodeReasons(new Map());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [structuralKey]);
 
   // Keep the always-visible dock in sync with the current selection: clicking
   // any node on canvas updates it to that node's properties.
@@ -295,7 +314,7 @@ function DesignerInner({
   const savedSnapshotRef = useRef<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const { screenToFlowPosition, zoomIn, zoomOut, fitView, getNodesBounds, getViewport, setViewport } = useReactFlow();
+  const { screenToFlowPosition, zoomIn, zoomOut, zoomTo, fitView, getNodesBounds, getViewport, setViewport } = useReactFlow();
   const { zoom } = useViewport();
 
   // Padrão pedido pelo usuário: sempre 100% de zoom (nunca reduz pra caber o fluxo inteiro na tela,
@@ -355,8 +374,7 @@ function DesignerInner({
     listCredentials().then(setCredentials);
   }, []);
 
-  // Mapeamento puro backend -> estado do canvas, reaproveitado tanto pelo carregamento inicial
-  // quanto pela geração por prompt (GeneratePromptModal) abaixo.
+  // Mapeamento puro backend -> estado do canvas, usado no carregamento inicial do fluxo.
   const mapFlowToState = useCallback(
     (flow: Flow) => ({
       nodes: flow.nodes.map((n) => ({
@@ -408,10 +426,7 @@ function DesignerInner({
     });
   }, [journey, fitViewLeftAligned, mapFlowToState]);
 
-  const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [channelsModalOpen, setChannelsModalOpen] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [generateLog, setGenerateLog] = useState<GenerateLogEntry[]>([]);
 
   const pushHistory = useCallback(() => {
     undoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current, annotations: annotationsRef.current });
@@ -438,40 +453,6 @@ function DesignerInner({
     setAnnotations(next.annotations);
     setHistoryTick((t) => t + 1);
   }, []);
-
-  // O back-end só valida/monta o fluxo (FlowValidator) e devolve um preview — nada é persistido
-  // aqui. pushHistory antes de aplicar deixa Ctrl+Z desfazer a geração como qualquer outra edição.
-  const handleGenerate = useCallback(
-    async (prompt: string) => {
-      setGenerating(true);
-      setGenerateLog([]);
-      try {
-        const flow = await generateFlow(activeJourney.journeyId, prompt, (message) =>
-          setGenerateLog((log) => [...log, { text: message }]),
-        );
-        const mapped = mapFlowToState(flow);
-        pushHistory();
-        setNodes(computeLayout(mapped.nodes, mapped.edges));
-        setEdges(mapped.edges);
-        setAnnotations(mapped.annotations);
-        setGenerateModalOpen(false);
-        setGenerateLog([]);
-        requestAnimationFrame(() => fitViewLeftAligned());
-      } catch (err) {
-        // Fica no log do próprio modal (em vermelho), não num ErrorModal separado — o usuário
-        // continua vendo o prompt e o histórico de tentativas junto do erro, e pode ajustar e
-        // tentar de novo sem perder o contexto.
-        const messages =
-          err instanceof ApiClientError && err.details?.length
-            ? err.details.map((d) => d.message)
-            : [err instanceof Error ? err.message : 'Erro ao gerar fluxo.'];
-        setGenerateLog((log) => [...log, ...messages.map((text) => ({ text, error: true }))]);
-      } finally {
-        setGenerating(false);
-      }
-    },
-    [activeJourney.journeyId, mapFlowToState, pushHistory, fitViewLeftAligned],
-  );
 
   // Marks exactly one node as selected (used when a node is created/duplicated).
   const selectOnlyNode = useCallback((nodeId: string) => {
@@ -684,15 +665,25 @@ function DesignerInner({
       const outCount = edgesRef.current.filter((e) => e.source === nodeId).length;
       if (outCount >= outgoingLimitFor(source.type)) return;
       pushHistory();
-      // Os dois ramos do Gateway se abrem acima/abaixo da origem (mesmo deslocamento que o
-      // auto-layout usa entre linhas irmãs) em vez de empilhar na mesma linha da origem, pra que
-      // caminho A/B leiam como ramos distintos à primeira vista. O primeiro adicionado é sugerido
-      // como caminho padrão — exatamente um dos dois precisa ser (REQ-03.11.002) — o usuário pode
-      // trocar no GatewayFields.
+      // Os dois ramos do Gateway se abrem acima/abaixo da origem (em vez de empilhar na mesma linha)
+      // pra que caminho A/B leiam como ramos distintos à primeira vista — mesma regra que
+      // applyGatewayBranchSpacing (model.ts) reaplica depois do dagre, pra "Organizar" não
+      // desfazer o que o quick-add já deixou certo. O deslocamento é derivado da altura de verdade
+      // do nó sendo adicionado (metade da altura + folga), não um valor fixo — um fixo sobrepunha
+      // os dois ramos quando o tipo adicionado era um dos maiores (userTask/serviceTask/
+      // receiveTask, 78px). O primeiro adicionado é sugerido como caminho padrão — exatamente um dos
+      // dois precisa ser (REQ-03.11.002) — o usuário pode trocar no GatewayFields.
       const isGateway = source.type === 'gateway';
-      const branchYOffset = isGateway ? (outCount === 0 ? -44 : 44) : 0;
+      const branchYOffset = isGateway ? (NODE_DIMENSIONS[type].height / 2 + GATEWAY_BRANCH_GAP) * (outCount === 0 ? -1 : 1) : 0;
+      const gapX = isGateway ? GATEWAY_GAP_X : RANK_SEP;
+      // n.position é o canto superior-esquerdo, não o centro — tipos diferentes têm alturas
+      // diferentes (ex.: Início 52px vs Tarefa de Usuário 78px), então alinhar os "y" direto deixava
+      // os CENTROS desalinhados (linha inclinada em vez de reta). Centraliza pelo centro vertical de
+      // verdade da origem antes de aplicar o deslocamento dos ramos do gateway.
+      const sourceCenterY = source.position.y + NODE_DIMENSIONS[source.type].height / 2;
+      const targetY = sourceCenterY - NODE_DIMENSIONS[type].height / 2 + branchYOffset;
       const node = {
-        ...makeNode(type, source.position.x + NODE_DIMENSIONS[source.type].width + 140, source.position.y + branchYOffset),
+        ...makeNode(type, source.position.x + NODE_DIMENSIONS[source.type].width + gapX, targetY),
         selected: true,
       };
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
@@ -726,8 +717,26 @@ function DesignerInner({
     setNodes((nds) =>
       selectedIds.size >= 2 ? computeLayoutForSelection(nds, edgesRef.current, selectedIds) : computeLayout(nds, edgesRef.current),
     );
-    requestAnimationFrame(() => fitView({ padding: 0.2, duration: 200 }));
-  }, [pushHistory, fitView]);
+    // Recentraliza o resultado sem trocar o zoom atual do usuário — fitView recalcularia um zoom
+    // novo pra caber tudo, o que não é o que "Organizar" deveria fazer (só reposiciona os nós).
+    requestAnimationFrame(() => {
+      const paneEl = wrapperRef.current;
+      if (!paneEl || nodesRef.current.length === 0) return;
+      const bounds = getNodesBounds(nodesRef.current.map((n) => n.id));
+      if (bounds.width === 0 && bounds.height === 0) return;
+      const { width: paneWidth, height: paneHeight } = paneEl.getBoundingClientRect();
+      if (!paneWidth || !paneHeight) return;
+      const { zoom: currentZoom } = getViewport();
+      setViewport(
+        {
+          x: paneWidth / 2 - (bounds.x + bounds.width / 2) * currentZoom,
+          y: paneHeight / 2 - (bounds.y + bounds.height / 2) * currentZoom,
+          zoom: currentZoom,
+        },
+        { duration: 200 },
+      );
+    });
+  }, [pushHistory, getNodesBounds, getViewport, setViewport]);
 
   // Mesmo padrão de alinhar/distribuir do editor de tela (FormScreenCanvasWeb) — só que operando em
   // WFNode.position direto (não em positionX/positionY de FormField), já que aqui não tem um
@@ -850,22 +859,38 @@ function DesignerInner({
     [onQuickAdd, selectOnlyNode, deleteNode, onUpdateAnnotationText, onDeleteAnnotation, onUnlinkAnnotation],
   );
 
+  // Regras de Decisão calculáveis ao vivo no cliente (grau, padrão único, condição obrigatória) —
+  // não espera o usuário clicar em "Validar" pra acusar o problema no canvas. `invalidNodeReasons`
+  // (do "Validar" contra o back) tem prioridade quando as duas coincidirem, por trazer o texto mais
+  // completo (pode juntar mais de uma violação do mesmo nó).
+  const liveGatewayReasons = useMemo(() => gatewayViolations(nodes, edges), [nodes, edges]);
+
   const displayNodes = useMemo(
     () =>
       nodes.map((n) => {
         const outgoing = edges.filter((e) => e.source === n.id);
+        // Direção média das linhas de saída já existentes, pra nascer o botão "+" do lado oposto em
+        // vez de sempre centralizado (onde uma linha existente passaria por cima dele).
+        const offsets = outgoing
+          .map((e) => nodes.find((t) => t.id === e.target)?.position.y)
+          .filter((y): y is number => y !== undefined)
+          .map((y) => y - n.position.y)
+          .filter((dy) => Math.abs(dy) > 4);
+        const avgOffset = offsets.length ? offsets.reduce((a, b) => a + b, 0) / offsets.length : 0;
+        const invalidReason = invalidNodeReasons.get(n.id) ?? liveGatewayReasons.get(n.id);
         return {
           ...n,
           data: {
             ...n.data,
-            invalid: invalidNodeIds.has(n.id),
+            invalid: invalidReason !== undefined,
+            invalidReason,
             outgoingLimitReached: !!n.type && outgoing.length >= outgoingLimitFor(n.type),
-            missingGatewayDefault: n.type === 'gateway' && outgoing.length >= 2 && !outgoing.some((e) => e.data?.isDefault),
+            quickAddAvoid: avgOffset > 0 ? ('down' as const) : avgOffset < 0 ? ('up' as const) : undefined,
             zoom,
           },
         };
       }),
-    [nodes, edges, invalidNodeIds, zoom],
+    [nodes, edges, invalidNodeReasons, liveGatewayReasons, zoom],
   );
 
   const displayAnnotations = useMemo(() => annotations.map((a) => ({ ...a, data: { ...a.data, zoom } })), [annotations, zoom]);
@@ -904,16 +929,8 @@ function DesignerInner({
         return {
           ...e,
           type: edgeShape,
-          // Same label the read-only "Fluxo da Jornada" viewer already shows (FlowDiagramViewer) —
-          // a gateway's outgoing path is otherwise invisible on canvas until you open its
-          // properties, and the two views ended up inconsistent with each other.
-          label: e.data?.isDefault ? 'padrão' : (e.data?.condition ?? undefined),
-          // Texto solto sobre a linha, sem chip e sem contorno nenhum.
-          // Mesmo tratamento da legenda de tipo de conector embaixo do nome do nó (NodeShape/
-          // ShapeLabel): fonte pequena, semi-negrito, levemente espaçada e discreta (opacidade).
-          labelStyle: { fill: c.textPrimary, fillOpacity: 0.6, fontSize: 9, fontWeight: 600, letterSpacing: '0.03em' },
-          labelBgStyle: { fill: 'transparent' },
-          labelBgPadding: [0, 0] as [number, number],
+          // O texto ("padrão"/condição) some daqui — FlowEdge (edgeTypes) monta o próprio rótulo a
+          // partir de e.data.isDefault/condition, ancorado perto do destino (ver FlowEdge.tsx).
           style: {
             stroke: color,
             strokeWidth: e.selected || onFocusedPath ? 2.5 : 1.5,
@@ -982,6 +999,7 @@ function DesignerInner({
     try {
       await validateFlow(activeJourney.journeyId, buildFlowInput(nodes, edges, annotations));
       setValidationStatus('valid');
+      setInvalidNodeReasons(new Map());
       showToast('Jornada consistente — nenhuma violação estrutural encontrada.', 'success');
     } catch (err) {
       setErrorTitle('Jornada inconsistente');
@@ -990,6 +1008,18 @@ function DesignerInner({
         // erro de rede/servidor não confirma inconsistência nenhuma, só que a checagem falhou.
         setValidationStatus('invalid');
         setErrors(err.details.map((d) => d.message));
+        // `field` carrega o id do nó com problema (ver ApiErrorDetail/FlowViolation no back) quando
+        // a violação é sobre uma etapa específica — "flow" (violação sobre a jornada como um todo,
+        // ex.: contagem de elementos iniciais/finais) não bate com nenhum id de nó e é ignorado aqui.
+        // Duas violações no mesmo nó (ex.: gateway sem padrão E com condição faltando) juntam a
+        // mensagem com "; ", pro tooltip do badge mostrar as duas.
+        const nodeIds = new Set(nodes.map((n) => n.id));
+        const reasons = new Map<string, string>();
+        for (const d of err.details) {
+          if (!nodeIds.has(d.field)) continue;
+          reasons.set(d.field, reasons.has(d.field) ? `${reasons.get(d.field)}; ${d.message}` : d.message);
+        }
+        setInvalidNodeReasons(reasons);
       } else {
         setErrors([err instanceof Error ? err.message : 'Erro ao validar jornada.']);
       }
@@ -1056,6 +1086,7 @@ function DesignerInner({
             zoomPct={Math.round(zoom * 100)}
             onZoomIn={() => zoomIn({ duration: 150 })}
             onZoomOut={() => zoomOut({ duration: 150 })}
+            onZoomChange={(pct) => zoomTo(pct / 100, { duration: 150 })}
             onFitToScreen={() => fitView({ padding: 0.2, duration: 200 })}
             onSave={handleSave}
             saving={saving}
@@ -1063,7 +1094,6 @@ function DesignerInner({
             validating={validating}
             validationStatus={validationStatus}
             onCancel={onClose}
-            onGenerate={() => setGenerateModalOpen(true)}
             journeyName={name}
           />
           <div className="flex-1 flex min-h-0">
@@ -1081,6 +1111,7 @@ function DesignerInner({
                 nodes={[...displayNodes, ...displayAnnotations]}
                 edges={[...displayEdges, ...annotationLinkEdges]}
                 nodeTypes={nodeTypes}
+                edgeTypes={flowEdgeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
@@ -1200,17 +1231,6 @@ function DesignerInner({
           />
         )}
         {errors.length > 0 && <ErrorModal errors={errors} title={errorTitle} onClose={() => setErrors([])} />}
-        {generateModalOpen && (
-          <GeneratePromptModal
-            generating={generating}
-            log={generateLog}
-            onGenerate={handleGenerate}
-            onCancel={() => {
-              setGenerateModalOpen(false);
-              setGenerateLog([]);
-            }}
-          />
-        )}
         {confirmingPublishedEdit && (
           <ConfirmDialog
             title="Editar jornada publicada?"

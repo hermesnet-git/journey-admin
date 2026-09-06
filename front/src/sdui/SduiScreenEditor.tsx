@@ -4,7 +4,7 @@ import { useFlowTheme } from '../flow-designer/theme';
 import type { VariableOrigin } from '../flow-designer/model';
 import { listComponentDefinitions, type ComponentDefinition } from '../api/componentDefinitions';
 import type { ChannelType } from '../api/products';
-import { createNode, findNode, insertNode, removeNode, collectIds, moveNode, moveWithinSiblings, updateProps, updateBindings, updateEvents, updateVisibility, type SduiNode } from './model';
+import { createNode, findNode, findParent, insertNode, removeNode, collectIds, moveNode, moveWithinSiblings, updateProps, updateBindings, updateEvents, updateVisibility, type SduiNode } from './model';
 import { SduiComponentPalette, type PaletteDragData } from './SduiComponentPalette';
 import { SduiTreeCanvas, type CanvasDragData } from './SduiTreeCanvas';
 import { SduiLayersPanel } from './SduiLayersPanel';
@@ -104,6 +104,18 @@ export function SduiScreenEditor({ root, onChange, onPushHistory, variables, cha
   const selectedNode = root && selectedId ? findNode(root, selectedId) : null;
   const selectedDefinition = selectedNode ? registry.get(registryKey(selectedNode.type, selectedNode.version)) ?? null : null;
 
+  /** Clique na paleta (sem arrastar): adiciona dentro do container selecionado, ou ao lado do item
+   * selecionado (mesmo pai) quando ele é folha, ou na raiz se nada estiver selecionado — assim
+   * cliques seguidos continuam empilhando no mesmo lugar sem exigir drag-and-drop. */
+  function handleAddComponent(definition: ComponentDefinition) {
+    if (!root) return;
+    const targetId = selectedId && selectedDefinition?.allowsChildren ? selectedId : selectedId ? findParent(root, selectedId)?.id ?? root.id : root.id;
+    onPushHistory();
+    const node = createNode(definition);
+    onChange(insertNode(root, targetId, node));
+    setSelectedId(node.id);
+  }
+
   if (!root) {
     return (
       <div className="flex-1 flex items-center justify-center flex-col gap-3">
@@ -125,7 +137,7 @@ export function SduiScreenEditor({ root, onChange, onPushHistory, variables, cha
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setDragging(null)}>
       <div className="flex-1 flex min-h-0">
-        <SduiComponentPalette definitions={definitions} />
+        <SduiComponentPalette definitions={definitions} onAdd={handleAddComponent} />
         <SduiTreeCanvas root={root} registry={registry} selectedId={selectedId} onSelect={setSelectedId} onRemove={handleRemove} dragActive={!!dragging} />
         <SduiLayersPanel root={root} selectedId={selectedId} onSelect={setSelectedId} onMove={handleMove} />
         <SduiPropertiesPanel

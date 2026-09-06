@@ -28,9 +28,12 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   footer: ReactNode;
+  // Largura inicial (o resize continua livre por cima disso). Só quem precisa de mais espaço passa
+  // (ex.: NewJourneyModal na aba de prompt de IA); todo o resto continua nos 460px de sempre.
+  width?: number;
 }
 
-export function Modal({ title, subtitle, icon, onClose, children, footer }: ModalProps) {
+export function Modal({ title, subtitle, icon, onClose, children, footer, width = 460 }: ModalProps) {
   const { colors: c } = useAppTheme();
   const backdrop = useBackdropClose(onClose);
 
@@ -52,9 +55,9 @@ export function Modal({ title, subtitle, icon, onClose, children, footer }: Moda
         // resize (largura+altura) + overflow-hidden: o usuário pode puxar o canto pra abrir mais
         // espaço quando o conteúdo (ex.: lista de violações) for grande — min/max dão o piso/teto
         // pra não encolher a ponto de cortar o cabeçalho nem crescer além da tela. Largura inicial
-        // continua 460px (não w-full: isso travaria o teto do resize no próprio valor inicial).
-        className="w-[460px] min-w-[320px] max-w-[95vw] rounded-2xl flex flex-col max-h-[90vh] min-h-[180px] box-border overflow-hidden resize animate-[modal-panel-in_180ms_cubic-bezier(0.16,1,0.3,1)]"
-        style={{ background: c.surface, border: `1px solid ${c.border}`, boxShadow: `0 20px 50px -12px ${c.shadow}` }}
+        // vem de `width` (não w-full: isso travaria o teto do resize no próprio valor inicial).
+        className="min-w-[320px] max-w-[95vw] rounded-2xl flex flex-col max-h-[90vh] min-h-[180px] box-border overflow-hidden resize animate-[modal-panel-in_180ms_cubic-bezier(0.16,1,0.3,1)]"
+        style={{ width, background: c.surface, border: `1px solid ${c.border}`, boxShadow: `0 20px 50px -12px ${c.shadow}` }}
       >
         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b shrink-0" style={{ borderColor: c.border }}>
           <div className="min-w-0 flex items-start gap-2.5">

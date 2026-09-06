@@ -12,7 +12,7 @@ export interface PaletteDragData {
   definition: ComponentDefinition;
 }
 
-function PaletteItem({ definition }: { definition: ComponentDefinition }) {
+function PaletteItem({ definition, onAdd }: { definition: ComponentDefinition; onAdd: (definition: ComponentDefinition) => void }) {
   const { c } = useFlowTheme();
   const dragData: PaletteDragData = { source: 'palette', definition };
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -25,7 +25,8 @@ function PaletteItem({ definition }: { definition: ComponentDefinition }) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      title={labelFor(definition.type)}
+      onClick={() => onAdd(definition)}
+      title={`${labelFor(definition.type)} — clique para adicionar ou arraste`}
       className="flex items-center gap-[8px] px-2 py-[6px] rounded-md cursor-grab select-none"
       style={{ opacity: isDragging ? 0.4 : 1, color: c.textPrimary, fontSize: 12.5 }}
       onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
@@ -41,7 +42,7 @@ function PaletteItem({ definition }: { definition: ComponentDefinition }) {
  * ComponentDefinition.category (Component Registry), não de uma lista curada em código. Só mostra
  * componentes não-removidos (REMOVED continua existindo pra telas antigas, mas não é oferecido pra
  * novas). `ui.screen` nunca aparece — é a raiz fixa, nunca solto pelo usuário. */
-export function SduiComponentPalette({ definitions }: { definitions: ComponentDefinition[] }) {
+export function SduiComponentPalette({ definitions, onAdd }: { definitions: ComponentDefinition[]; onAdd: (definition: ComponentDefinition) => void }) {
   const { c } = useFlowTheme();
   const [search, setSearch] = useState('');
 
@@ -75,7 +76,7 @@ export function SduiComponentPalette({ definitions }: { definitions: ComponentDe
               {CATEGORY_LABEL[g.category]}
             </div>
             {g.items.map((d) => (
-              <PaletteItem key={`${d.type}@${d.version}`} definition={d} />
+              <PaletteItem key={`${d.type}@${d.version}`} definition={d} onAdd={onAdd} />
             ))}
           </div>
         ))}

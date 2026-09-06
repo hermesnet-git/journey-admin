@@ -7,7 +7,10 @@ interface Props {
   onChange: (types: ChannelType[]) => void;
 }
 
-// Checklist de tipo de canal — canal é um valor de domínio fixo (WEB/MOBILE/WHATSAPP), não uma
+// WhatsApp sempre por último, independente da ordem em que o backend devolve os canais do produto.
+const CHANNEL_TYPE_ORDER: Record<ChannelType, number> = { WEB: 0, MOBILE: 1, WHATSAPP: 2 };
+
+// Seletor de tipo de canal — canal é um valor de domínio fixo (WEB/MOBILE/WHATSAPP), não uma
 // entidade cadastrável. Reaproveitado pelo modal de Produto (todos os 3 tipos disponíveis) e pelos
 // modais de canal de Jornada (só os tipos que o produto da jornada já tem).
 export function ChannelTypeChecklist({ options, selected, onChange }: Props) {
@@ -26,13 +29,37 @@ export function ChannelTypeChecklist({ options, selected, onChange }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-1 rounded-lg p-2" style={{ border: `1px solid ${c.border}` }}>
-      {options.map((type) => (
-        <label key={type} className="flex items-center gap-2 px-1 py-1 cursor-pointer">
-          <input type="checkbox" checked={selected.includes(type)} onChange={() => toggle(type)} />
-          <span style={{ fontSize: 13, color: c.textPrimary }}>{CHANNEL_TYPE_LABELS[type]}</span>
-        </label>
-      ))}
+    <div className="flex flex-wrap gap-x-5 gap-y-2">
+      {[...options].sort((a, b) => CHANNEL_TYPE_ORDER[a] - CHANNEL_TYPE_ORDER[b]).map((type) => {
+        const active = selected.includes(type);
+        // WhatsApp ainda não tem canal de execução implementado — fica visível no seletor (é um
+        // dos 3 tipos de domínio) mas desabilitado até existir suporte de verdade.
+        const disabled = type === 'WHATSAPP';
+        return (
+          <label
+            key={type}
+            className="flex items-center gap-2 select-none"
+            title={disabled ? 'Canal ainda não disponível' : undefined}
+            style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 }}
+          >
+            <button
+              type="button"
+              role="switch"
+              aria-checked={active}
+              disabled={disabled}
+              onClick={() => toggle(type)}
+              className="relative w-[34px] h-[20px] rounded-full shrink-0 p-0 border-0 transition-colors disabled:cursor-not-allowed"
+              style={{ background: active ? c.accent : c.border, cursor: disabled ? 'not-allowed' : 'pointer' }}
+            >
+              <span
+                className="absolute top-[2px] left-[2px] w-[16px] h-[16px] rounded-full bg-white transition-transform"
+                style={{ transform: active ? 'translateX(14px)' : 'translateX(0)' }}
+              />
+            </button>
+            <span style={{ fontSize: 13, color: c.textPrimary }}>{CHANNEL_TYPE_LABELS[type]}</span>
+          </label>
+        );
+      })}
     </div>
   );
 }

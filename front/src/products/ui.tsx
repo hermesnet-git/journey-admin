@@ -10,6 +10,7 @@ interface FieldProps {
   helperText?: string;
   optional?: boolean;
   children: ReactNode;
+  className?: string;
 }
 
 // Matches the flow-designer PropertiesPanel field style (label above, plain input).
@@ -20,10 +21,10 @@ const fieldLabelStyle = (c: AppColors): React.CSSProperties => ({
   marginBottom: 6,
 });
 
-export function Field({ label, helperText, optional, children }: FieldProps) {
+export function Field({ label, helperText, optional, children, className }: FieldProps) {
   const { colors: c } = useAppTheme();
   return (
-    <label className="flex flex-col">
+    <label className={`flex flex-col${className ? ` ${className}` : ''}`}>
       <span style={fieldLabelStyle(c)}>
         {label}
         {!optional && <span className="ml-[2px]" style={{ color: c.danger }}>*</span>}
@@ -65,9 +66,9 @@ export function TextInput({ style, ...props }: React.InputHTMLAttributes<HTMLInp
   return <input {...props} style={{ ...fieldInputStyle(c), ...style }} />;
 }
 
-export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function TextArea({ style, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const { colors: c } = useAppTheme();
-  return <textarea {...props} style={{ ...fieldInputStyle(c), minHeight: 70, resize: 'vertical' }} />;
+  return <textarea {...props} style={{ ...fieldInputStyle(c), minHeight: 70, resize: 'vertical', ...style }} />;
 }
 
 export function SelectInput(props: React.SelectHTMLAttributes<HTMLSelectElement>) {

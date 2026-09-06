@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Mirrors FlowValidator's structural check (admin/back, {@code reachesEndWithoutCheckpoint}) — same
- * rule, ported here (no shared module between the two services) so a journey published before that
- * rule existed can still be caught before ever calling Camunda, instead of only after it crashes. */
+/** Detecta, a partir do snapshot publicado, se algum Fim é alcançado só por Tarefas de Serviço via
+ * REST (sempre síncronas), sem nenhum ponto de parada antes — não é uma regra de validação
+ * estrutural em tempo de design (produto: isso é comportamento normal do motor, não uma jornada mal
+ * formada), só uma checagem em tempo de execução pra explicar ao usuário por que uma instância não
+ * inicia/avança, em vez de deixar o motor crashar sem explicação nenhuma. */
 final class SynchronousChainCheck {
 
     private SynchronousChainCheck() {

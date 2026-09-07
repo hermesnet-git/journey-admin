@@ -393,12 +393,15 @@ CREATE TABLE journey_version (
     created_by UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     published_at TIMESTAMPTZ,
+    runtime_deployment_id VARCHAR(255),
     UNIQUE (journey_id, version_number),
     FOREIGN KEY (journey_id) REFERENCES journey(journey_id)
 );
 ```
 
 Versões publicadas são imutáveis. A versão 1.0.0 não contempla restauração ou rollback. A publicação deve referenciar a versão publicada, preservando versões anteriores.
+
+`runtime_deployment_id` guarda o identificador do deployment gerado no runtime pelo publish/republish dessa versão específica — nulo enquanto não publicada, e limpo ao despublicar (o deployment que ele apontava deixa de existir). É o que permite despublicar uma versão sem afetar o deployment de outra: **diferente de `journey_publication` (§14), que continua tendo no máximo um registro por jornada** (o snapshot mais recente enviado ao runtime, usado pra inspeção), `journey_version.version_status` pode ter mais de uma linha `PUBLISHED` por `journey_id` ao mesmo tempo — publicar uma versão nova não despublica a anterior (REQ-06.04.004).
 
 ---
 

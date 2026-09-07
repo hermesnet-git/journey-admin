@@ -14,9 +14,9 @@ import org.springframework.web.client.RestClient;
 
 /**
  * Autentica no admin/back com credenciais de serviço (mesmo mock admin/admin usado no resto do
- * projeto) e busca as jornadas publicadas e o snapshot de publicação de cada uma — a única
- * enriquecimento que o simulador precisa além da própria API do Camunda: saber qual formulário
- * (já em SDUI) corresponde à User Task atual.
+ * projeto) e busca o snapshot de publicação de uma jornada — a única enriquecimento que o
+ * simulador precisa além da própria API do Camunda: saber qual formulário (já em SDUI)
+ * corresponde à User Task atual.
  */
 @Component
 public class AdminBackClient {
@@ -28,11 +28,6 @@ public class AdminBackClient {
     public AdminBackClient(AdminBackProperties properties) {
         this.properties = properties;
         this.restClient = RestClient.create();
-    }
-
-    public List<JourneySummary> listPublishedJourneys() {
-        return get("/api/v1/journeys?status=PUBLISHED", new ParameterizedTypeReference<List<JourneySummary>>() {
-        });
     }
 
     public PublicationSnapshot getPublicationSnapshot(UUID journeyId) {

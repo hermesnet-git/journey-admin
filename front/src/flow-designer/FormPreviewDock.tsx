@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
-import { ChevronDown, ChevronUp, Maximize2, Minimize2, Pin, PinOff } from 'lucide-react';
+import { ChevronDown, ChevronUp, MessageCircle, Maximize2, Minimize2, Monitor, Pin, PinOff, Smartphone } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { SduiScreenEditor } from '../sdui/SduiScreenEditor';
 import { SduiNodeRenderer } from '../execution/SduiNodeRenderer';
+import { WhatsAppTranscriptRenderer } from '../sdui/WhatsAppTranscriptRenderer';
+import { PREVIEW_TARGETS, PREVIEW_TARGET_LABEL, type PreviewTarget } from '../sdui/previewTarget';
 import { UserTaskNavigator } from './UserTaskNavigator';
 import type { WFNode, VariableOrigin } from './model';
 import type { SduiNode } from '../sdui/model';
@@ -41,6 +43,8 @@ const SCREEN_TABS: { key: ScreenMode; label: string }[] = [
   { key: 'preview', label: 'Preview' },
 ];
 
+const TARGET_ICON = { web: Monitor, mobile: Smartphone, whatsapp: MessageCircle } as const;
+
 function noopSubmit() {}
 
 /** Painel ancorado ao fundo do canvas — editor de tela SDUI embutido (catálogo corporativo v1)
@@ -65,6 +69,7 @@ export function FormPreviewDock({
   const [expanded, setExpanded] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mode, setMode] = useState<ScreenMode>('edit');
+  const [target, setTarget] = useState<PreviewTarget>('web');
 
   const dragState = useRef<{ startY: number; startHeight: number } | null>(null);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -119,12 +124,34 @@ export function FormPreviewDock({
     </div>
   );
 
+  const targetToggle = (
+    <div className="shrink-0 flex items-center gap-1">
+      {PREVIEW_TARGETS.map((t) => {
+        const Icon = TARGET_ICON[t];
+        return (
+          <button
+            key={t}
+            onClick={() => setTarget(t)}
+            title={PREVIEW_TARGET_LABEL[t]}
+            className="w-[22px] h-[22px] rounded-md flex items-center justify-center cursor-pointer border-0"
+            style={{ background: target === t ? c.accentSoft : 'transparent', color: target === t ? c.accent : c.textSecondary }}
+          >
+            <Icon size={13} />
+          </button>
+        );
+      })}
+    </div>
+  );
+
   const navigatorRow = (
     <div className="shrink-0 grid grid-cols-3 items-center gap-3 px-3 py-[6px]" style={{ borderBottom: `1px solid ${c.border}`, background: c.sidebarBg }}>
       <div className="min-w-0">
         <UserTaskNavigator tasks={userTasks} currentId={nodeId} onNavigate={onNavigateTask} />
       </div>
-      <div className="flex justify-center">{modeToggle}</div>
+      <div className="flex justify-center items-center gap-4">
+        {modeToggle}
+        {targetToggle}
+      </div>
       <div className="flex items-center justify-end gap-1">
         {pinButton}
         <button
@@ -143,13 +170,20 @@ export function FormPreviewDock({
     <div className="flex-1 flex flex-col min-h-0">
       {mode === 'preview' ? (
         <div className="flex-1 overflow-y-auto p-6">
-          {embeddedScreenRoot ? (
-            <div className="max-w-[480px] mx-auto">
-              <SduiNodeRenderer sdui={embeddedScreenRoot} onSubmit={noopSubmit} submitting={false} />
-            </div>
-          ) : (
+          {!embeddedScreenRoot ? (
             <div className="text-center text-[12.5px]" style={{ color: c.textSecondary }}>
               Nenhuma tela desenhada ainda.
+            </div>
+          ) : target === 'whatsapp' ? (
+            <WhatsAppTranscriptRenderer root={embeddedScreenRoot} />
+          ) : (
+            <div className="mx-auto" style={{ maxWidth: target === 'mobile' ? 360 : 480 }}>
+              {target === 'mobile' && (
+                <div className="text-center text-[10.5px] mb-2" style={{ color: c.textSecondary }}>
+                  Prévia aproximada — o app real usa Flutter, não este renderer React.
+                </div>
+              )}
+              <SduiNodeRenderer sdui={embeddedScreenRoot} onSubmit={noopSubmit} submitting={false} />
             </div>
           )}
         </div>
@@ -160,6 +194,7 @@ export function FormPreviewDock({
           onPushHistory={onPushHistory}
           variables={variables}
           channelTypes={channelTypes}
+          previewTarget={target}
         />
       )}
     </div>
@@ -211,7 +246,10 @@ export function FormPreviewDock({
       />
       <div className="shrink-0 grid grid-cols-3 items-center px-3 py-[6px]" style={{ borderBottom: `1px solid ${c.border}`, background: c.sidebarBg }}>
         <div />
-        <div className="flex justify-center">{modeToggle}</div>
+        <div className="flex justify-center items-center gap-4">
+        {modeToggle}
+        {targetToggle}
+      </div>
         <div className="flex items-center justify-end gap-1">
           {pinButton}
           <button

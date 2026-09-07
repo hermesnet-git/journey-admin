@@ -10,6 +10,10 @@ interface ConfirmDialogProps {
   message: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
+  // Enquanto true, mantém o diálogo aberto com o botão de confirmar em spinner (Mística
+  // showSpinner) em vez de fechar na hora — sem isso o usuário clica em "Publicar" e o diálogo
+  // some antes da chamada ao back terminar, sem nenhum sinal de que algo ainda está em andamento.
+  loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -19,6 +23,7 @@ export function ConfirmDialog({
   message,
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
+  loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -26,16 +31,16 @@ export function ConfirmDialog({
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape' && !loading) onCancel();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [onCancel]);
+  }, [onCancel, loading]);
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4 animate-[modal-backdrop-in_180ms_ease-out]"
-      onClick={onCancel}
+      onClick={loading ? undefined : onCancel}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -56,8 +61,10 @@ export function ConfirmDialog({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 pt-1">
-          <SecondaryButton onClick={onCancel}>{cancelLabel}</SecondaryButton>
-          <ButtonDanger small onPress={onConfirm}>
+          <SecondaryButton onClick={onCancel} disabled={loading}>
+            {cancelLabel}
+          </SecondaryButton>
+          <ButtonDanger small onPress={onConfirm} disabled={loading} showSpinner={loading}>
             {confirmLabel}
           </ButtonDanger>
         </div>

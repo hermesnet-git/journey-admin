@@ -2,7 +2,6 @@ package com.jouney.journey.especregistry;
 
 import com.jouney.journey.camunda.CamundaVariable;
 import com.jouney.journey.config.EspecRegistryProperties;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.core.ParameterizedTypeReference;
@@ -12,7 +11,7 @@ import org.springframework.web.client.RestClient;
 
 /**
  * Cliente só de specs do ms-espec-registry — nunca fala de instância/processo em execução. Usado
- * por JourneyController (catálogo/flow) e JourneyStepResolver (formulário do nó atual/conversão de
+ * por JourneyController (flow) e JourneyStepResolver (formulário do nó atual/conversão de
  * respostas), que cruzam essas specs com o estado do engine obtido via CamundaEngineClient.
  */
 @Component
@@ -23,14 +22,6 @@ public class EspecRegistryClient {
 
     public EspecRegistryClient(EspecRegistryProperties properties) {
         this.properties = properties;
-    }
-
-    public List<JourneySummary> listJourneys() {
-        return restClient.get()
-                .uri(properties.baseUrl() + "/api/v1/journeys")
-                .retrieve()
-                .body(new ParameterizedTypeReference<List<JourneySummary>>() {
-                });
     }
 
     public FlowBundle getFlow(UUID journeyId) {

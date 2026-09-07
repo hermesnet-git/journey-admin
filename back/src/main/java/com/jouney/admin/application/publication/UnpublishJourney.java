@@ -7,12 +7,23 @@ import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.journey.JourneyRepository;
 import com.jouney.admin.domain.journey.JourneyStatus;
+import com.jouney.admin.domain.version.JourneyVersion;
 import com.jouney.admin.domain.version.JourneyVersionRepository;
 import com.jouney.admin.domain.version.VersionStatus;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
+/**
+ * Journey-level "Despublicar": desde que uma jornada passou a poder ter mais de uma versão
+ * PUBLISHED ao mesmo tempo (publicar uma versão nova não despublica a anterior — ver
+ * {@link com.jouney.admin.application.version.PublishJourneyVersion}), despublicar a jornada
+ * inteira significa despublicar cada versão publicada dela, uma a uma — cada uma mirando só o seu
+ * próprio deployment no runtime (nunca "tudo daquela chave"). Se qualquer uma tiver instância
+ * ativa, para na hora (a exceção do runtime propaga) e as versões já despublicadas antes dela na
+ * lista permanecem despublicadas — não há rollback.
+ */
 @Service
 public class UnpublishJourney {
 
@@ -37,23 +48,19 @@ public class UnpublishJourney {
             throw new JourneyNotPublishedException(journeyId);
         }
 
-        // The publication record (snapshot) is intentionally preserved — only the
-        // journey's status changes. See REQ-06.01.004 / REQ-02.01.005.
-        try {
-            runtimePublicationPort.unpublish(journeyId);
-        } catch (RuntimeException e) {
-            recordAuditEvent.record("JOURNEY_UNPUBLISH", "JOURNEY", journeyId, AuditResult.FAILURE,
-                    Map.of("error", errorMessage(e)), null);
-            throw e;
+        List<JourneyVersion> publishedVersions =
+                journeyVersionRepository.findAllByJourneyIdAndStatus(journeyId, VersionStatus.PUBLISHED);
+        for (JourneyVersion version : publishedVersions) {
+            try {
+                runtimePublicationPort.unpublish(journeyId, version.getRuntimeDeploymentId());
+            } catch (RuntimeException e) {
+                recordAuditEvent.record("JOURNEY_UNPUBLISH", "JOURNEY", journeyId, AuditResult.FAILURE,
+                        Map.of("error", errorMessage(e), "versionId", version.getId().toString()), null);
+                throw e;
+            }
+            version.unpublish();
+            journeyVersionRepository.save(version);
         }
-
-        // No version stays PUBLISHED once the journey itself is UNPUBLISHED — mark it UNPUBLISHED
-        // too so the journey no longer reports a currently-published version (REQ-06.04.007).
-        journeyVersionRepository.findByJourneyIdAndStatus(journeyId, VersionStatus.PUBLISHED)
-                .ifPresent(version -> {
-                    version.unpublish();
-                    journeyVersionRepository.save(version);
-                });
 
         journey.unpublish();
         journeyRepository.save(journey);

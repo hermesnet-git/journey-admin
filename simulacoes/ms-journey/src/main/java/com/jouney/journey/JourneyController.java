@@ -6,10 +6,8 @@ import com.jouney.journey.camunda.ProcessIds;
 import com.jouney.journey.camunda.ProcessInstanceInfo;
 import com.jouney.journey.especregistry.EspecRegistryClient;
 import com.jouney.journey.especregistry.FlowBundle;
-import com.jouney.journey.especregistry.JourneySummary;
 import com.jouney.journey.especregistry.StepResponse;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -40,13 +38,6 @@ public class JourneyController {
         this.espec = espec;
         this.engineClient = engineClient;
         this.stepResolver = stepResolver;
-    }
-
-    @GetMapping("/journeys")
-    public List<JourneySummary> journeys(@RequestParam String channelType) {
-        return espec.listJourneys().stream()
-                .filter(journey -> journey.channelTypes().stream().anyMatch(channelType::equalsIgnoreCase))
-                .toList();
     }
 
     @GetMapping("/journeys/{journeyId}/flow")

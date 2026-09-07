@@ -1,8 +1,10 @@
 package com.jouney.admin.infrastructure.publication;
 
 import com.jouney.admin.application.publication.RuntimePublicationPort;
+import com.jouney.admin.application.publication.RuntimeUnpublishBlockedException;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.infrastructure.persistence.publication.PublicationSnapshotRecord;
+import java.time.Duration;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,7 @@ import tools.jackson.databind.ObjectMapper;
 public class PublicationAdapter implements RuntimePublicationPort {
 
     private static final Logger log = LoggerFactory.getLogger(PublicationAdapter.class);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
 
     private final RestClient restClient;
     private final String baseUrl;
@@ -34,22 +37,28 @@ public class PublicationAdapter implements RuntimePublicationPort {
 
     public PublicationAdapter(@Value("${app.transform-publication.base-url}") String baseUrl, ObjectMapper objectMapper) {
         this.baseUrl = baseUrl;
-        this.restClient = RestClient.create();
+        this.restClient = TimeoutAwareRestClient.create(Duration.ofSeconds(5), READ_TIMEOUT);
         this.objectMapper = objectMapper;
     }
 
+    // Espelha PublicationController.PublishResponse do ms-transform-publication.
+    private record PublishRuntimeResponse(String processDefinitionKey, String deploymentId, String processDefinitionId) {
+    }
+
     @Override
-    public void publish(Publication snapshot) {
+    public String publish(Publication snapshot) {
         PublicationSnapshotRecord record = PublicationSnapshotRecord.from(snapshot);
 
         try {
-            restClient.post()
+            PublishRuntimeResponse response = restClient.post()
                     .uri(baseUrl + "/api/v1/publications")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(record)
                     .retrieve()
-                    .toBodilessEntity();
-            log.info("Published journey={} to runtime publication API at {}", snapshot.getJourneyId(), baseUrl);
+                    .body(PublishRuntimeResponse.class);
+            log.info("Published journey={} deploymentId={} to runtime publication API at {}",
+                    snapshot.getJourneyId(), response != null ? response.deploymentId() : null, baseUrl);
+            return response != null ? response.deploymentId() : null;
         } catch (RestClientResponseException e) {
             // ms-transform-publication's error body is always {"code":...,"message":"<one clean
             // sentence>",...} regardless of which case it is — Camunda unreachable, Camunda rejecting
@@ -69,9 +78,12 @@ public class PublicationAdapter implements RuntimePublicationPort {
                             + baseUrl + ": " + cause,
                     e);
         } catch (RestClientException e) {
+            String detail = TimeoutAwareRestClient.isTimeout(e)
+                    ? "did not respond within " + READ_TIMEOUT.toSeconds() + "s"
+                    : e.getMessage();
             throw new RuntimePublicationException(
                     "Failed to publish journey " + snapshot.getJourneyId() + " to runtime publication API at "
-                            + baseUrl + ": " + e.getMessage(),
+                            + baseUrl + ": " + detail,
                     e);
         }
     }
@@ -95,16 +107,37 @@ public class PublicationAdapter implements RuntimePublicationPort {
     }
 
     @Override
-    public void unpublish(UUID journeyId) {
+    public void unpublish(UUID journeyId, String runtimeDeploymentId) {
+        // Mira só o deployment daquela versão específica, sem afetar outra versão da mesma
+        // jornada que também possa estar publicada (ver JourneyVersion.publish/PublishJourneyVersion).
         try {
             restClient.delete()
-                    .uri(baseUrl + "/api/v1/publications/{journeyId}", journeyId)
+                    .uri(baseUrl + "/api/v1/publications/{journeyId}/deployments/{deploymentId}", journeyId,
+                            runtimeDeploymentId)
                     .retrieve()
                     .toBodilessEntity();
-            log.info("Unpublished journey={} from runtime publication API at {}", journeyId, baseUrl);
-        } catch (RestClientException e) {
+            log.info("Unpublished journey={} deploymentId={} from runtime publication API at {}",
+                    journeyId, runtimeDeploymentId, baseUrl);
+        } catch (RestClientResponseException e) {
+            // 409 especificamente significa que o runtime recusou por ter instância ativa (ver
+            // ActiveInstancesExistException do ms-transform-publication) — não é indisponibilidade,
+            // é a regra de negócio barrando de propósito.
+            String cause = extractMessage(e, e.getStatusCode().value() + " " + e.getStatusText());
+            if (e.getStatusCode().value() == HttpStatus.CONFLICT.value()) {
+                throw new RuntimeUnpublishBlockedException(cause);
+            }
             throw new RuntimePublicationException(
-                    "Failed to unpublish journey " + journeyId + " from runtime publication API at " + baseUrl, e);
+                    "Failed to unpublish journey " + journeyId + " from runtime publication API at " + baseUrl
+                            + ": " + cause,
+                    e);
+        } catch (RestClientException e) {
+            String detail = TimeoutAwareRestClient.isTimeout(e)
+                    ? "did not respond within " + READ_TIMEOUT.toSeconds() + "s"
+                    : e.getMessage();
+            throw new RuntimePublicationException(
+                    "Failed to unpublish journey " + journeyId + " from runtime publication API at " + baseUrl
+                            + ": " + detail,
+                    e);
         }
     }
 }

@@ -3,7 +3,6 @@ package com.jouney.especregistry.simulation;
 import com.jouney.especregistry.adminback.AdminBackClient;
 import com.jouney.especregistry.adminback.ConnectorConfig;
 import com.jouney.especregistry.adminback.FlowNode;
-import com.jouney.especregistry.adminback.JourneySummary;
 import com.jouney.especregistry.adminback.PublicationSnapshot;
 import com.jouney.especregistry.camunda.CamundaClient;
 import com.jouney.especregistry.camunda.CamundaVariable;
@@ -57,11 +56,6 @@ public class SimulationController {
         this.kafkaTemplate = kafkaTemplate;
         this.kafkaMessagePublisher = kafkaMessagePublisher;
         this.startFailureDiagnostic = startFailureDiagnostic;
-    }
-
-    @GetMapping("/journeys")
-    public List<JourneySummary> journeys() {
-        return adminBackClient.listPublishedJourneys();
     }
 
     /** Diagrama da jornada sem iniciar instância nenhuma — usado pelo front pra descobrir, ao

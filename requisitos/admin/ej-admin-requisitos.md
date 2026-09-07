@@ -233,7 +233,7 @@ canais de um produto.
 #### REQ-02.06.001 - O sistema deve permitir publicar jornadas.
 #### REQ-02.06.002 - O sistema deve permitir despublicar jornadas por meio da API do runtime.
 #### REQ-02.06.003 - O sistema deve permitir consultar jornadas publicadas.
-#### REQ-02.06.004 - Cada jornada deve possuir no maximo uma publicacao ativa, associada a uma versao imutavel. Alteracoes realizadas apos a publicacao nao devem modificar o snapshot publicado; para disponibiliza-las, o usuario deve publicar uma nova versao.
+#### REQ-02.06.004 - Uma jornada pode possuir mais de uma versão publicada simultaneamente, cada uma associada a uma versão imutável e a um deployment próprio no runtime — publicar uma versão nova não invalida nem despublica a anterior, para não interromper instâncias já em execução nela. Alterações realizadas após a publicação não devem modificar o snapshot publicado; para disponibilizá-las, o usuário deve publicar uma nova versão.
 ---
 
 ### US-02.07 Estado da publicação
@@ -764,16 +764,17 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-06.04.001 - O sistema deve permitir publicar uma versão `DRAFT`.
 #### REQ-06.04.002 - Antes da publicação, o sistema deve validar a versão completa da jornada.
 #### REQ-06.04.003 - A publicação deve enviar ao runtime o snapshot completo da versão selecionada.
-#### REQ-06.04.004 - Ao publicar uma nova versão, a versão anteriormente publicada deve ser marcada como `UNPUBLISHED`.
-#### REQ-06.04.005 - O sistema deve preservar o snapshot da versão anteriormente publicada.
-#### REQ-06.04.006 - A publicação deve registrar qual versão foi enviada ao runtime.
-#### REQ-06.04.007 - A jornada deve indicar sua versão atualmente publicada.
+#### REQ-06.04.004 - Ao publicar uma nova versão, qualquer versão anteriormente publicada da mesma jornada permanece `PUBLISHED` e com seu deployment intacto no runtime — publicar não é um efeito colateral de despublicar. Uma jornada pode ter mais de uma versão `PUBLISHED` ao mesmo tempo.
+#### REQ-06.04.005 - O sistema deve preservar o snapshot de toda versão publicada, atual ou anterior.
+#### REQ-06.04.006 - A publicação deve registrar qual versão foi enviada ao runtime, incluindo o identificador do deployment gerado (necessário para despublicar essa versão especificamente, sem afetar outras — ver REQ-06.04.010).
+#### REQ-06.04.007 - A jornada deve indicar, como referência rápida, a mais recente entre suas versões atualmente publicadas; a listagem de versões deve exibir o status real de cada uma individualmente.
 #### REQ-06.04.008 - Alterações em `DRAFT` não devem modificar o snapshot publicado.
-#### REQ-06.04.009 - Ao despublicar uma jornada, a versão `PUBLISHED` correspondente deve ser marcada como `UNPUBLISHED`, preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada.
-#### REQ-06.04.010 - O sistema deve permitir despublicar a versão atualmente `PUBLISHED` de uma jornada diretamente pela versão; a despublicação de uma versão deve refletir no status da jornada, que passa a `UNPUBLISHED`.
-#### REQ-06.04.011 - O sistema deve permitir republicar qualquer versão `UNPUBLISHED` de uma jornada (não apenas a mais recente), sem alterar seu conteúdo/snapshot, retornando-a ao estado `PUBLISHED` e refletindo no status da jornada, que volta a `PUBLISHED`. Se já existir uma versão `PUBLISHED` na jornada no momento da republicação, essa versão deve ser marcada como `UNPUBLISHED` antes (mesmo comportamento de REQ-06.04.004). Versões `INACTIVE` (jornada excluída) permanecem fora de alcance (REQ-06.05.004).
-#### REQ-06.04.012 - Antes de republicar uma versão, se já existir uma versão `PUBLISHED` na jornada, o sistema deve informar ao usuário que a versão publicada atual será substituída e solicitar confirmação antes de prosseguir.
+#### REQ-06.04.009 - Ao despublicar uma jornada, toda versão `PUBLISHED` dela deve ser marcada como `UNPUBLISHED`, uma a uma, cada uma despublicando apenas o próprio deployment no runtime (nunca o de outra versão), preservando os snapshots; a jornada deixa de indicar uma versão atualmente publicada. Se qualquer uma dessas versões tiver instância de processo ativa (REQ-06.04.014), a operação para nessa versão e as demais já processadas antes dela permanecem despublicadas.
+#### REQ-06.04.010 - O sistema deve permitir despublicar a versão atualmente `PUBLISHED` de uma jornada diretamente pela versão, afetando apenas o deployment dela no runtime; a despublicação de uma versão só deve refletir no status da jornada (`UNPUBLISHED`) quando não restar nenhuma outra versão publicada — se outra versão da mesma jornada continuar `PUBLISHED`, a jornada permanece `PUBLISHED`.
+#### REQ-06.04.011 - O sistema deve permitir republicar qualquer versão `UNPUBLISHED` de uma jornada (não apenas a mais recente), sem alterar seu conteúdo/snapshot, retornando-a ao estado `PUBLISHED` e refletindo no status da jornada, que volta a `PUBLISHED`. Uma versão `PUBLISHED` já existente na jornada, se houver, permanece intacta (mesmo comportamento de REQ-06.04.004). Versões `INACTIVE` (jornada excluída) permanecem fora de alcance (REQ-06.05.004).
+#### REQ-06.04.012 - Antes de republicar uma versão, o sistema deve informar ao usuário que ela volta a ficar publicada e que outras versões publicadas da jornada não são afetadas, solicitando confirmação antes de prosseguir.
 #### REQ-06.04.013 - O sistema deve distinguir uma falha de publicação genuinamente indisponível (runtime inacessível) de uma rejeição de conteúdo (fluxo inválido para o motor de runtime), apresentando ao usuário uma mensagem de erro única e legível, nunca a resposta de erro crua ou aninhada do serviço subjacente.
+#### REQ-06.04.014 - O sistema não deve permitir despublicar uma versão que possua uma ou mais instâncias de processo ativas (em execução) no runtime — a operação deve ser bloqueada antes de qualquer remoção de deployment, com uma mensagem clara informando a quantidade de instâncias ativas, para nunca interromper silenciosamente quem já está no meio de uma jornada.
 
 ### US-06.05 Compatibilidade e limites da Versão 1.0.0
 #### REQ-06.05.001 - O sistema deve preservar versões de jornadas desativadas.

@@ -10,6 +10,7 @@ import { SduiTreeCanvas, type CanvasDragData } from './SduiTreeCanvas';
 import { SduiLayersPanel } from './SduiLayersPanel';
 import { SduiPropertiesPanel } from './SduiPropertiesPanel';
 import { iconFor, labelFor } from './componentMeta';
+import type { PreviewTarget } from './previewTarget';
 
 function registryKey(type: string, version: string): string {
   return `${type}@${version}`;
@@ -21,12 +22,13 @@ interface Props {
   onPushHistory: () => void;
   variables: VariableOrigin[];
   channelTypes: ChannelType[];
+  previewTarget: PreviewTarget;
 }
 
 /** Compõe paleta + canvas recursivo + camadas + propriedades num único DndContext — o provider fica
  * aqui (não dentro do canvas) porque paleta e canvas são irmãos: draggable/droppable só se enxergam
  * dentro do MESMO DndContext. */
-export function SduiScreenEditor({ root, onChange, onPushHistory, variables, channelTypes }: Props) {
+export function SduiScreenEditor({ root, onChange, onPushHistory, variables, channelTypes, previewTarget }: Props) {
   const { c } = useFlowTheme();
   const [definitions, setDefinitions] = useState<ComponentDefinition[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(root?.id ?? null);
@@ -137,14 +139,23 @@ export function SduiScreenEditor({ root, onChange, onPushHistory, variables, cha
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setDragging(null)}>
       <div className="flex-1 flex min-h-0">
-        <SduiComponentPalette definitions={definitions} onAdd={handleAddComponent} />
-        <SduiTreeCanvas root={root} registry={registry} selectedId={selectedId} onSelect={setSelectedId} onRemove={handleRemove} dragActive={!!dragging} />
+        <SduiComponentPalette definitions={definitions} onAdd={handleAddComponent} previewTarget={previewTarget} />
+        <SduiTreeCanvas
+          root={root}
+          registry={registry}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          onRemove={handleRemove}
+          dragActive={!!dragging}
+          previewTarget={previewTarget}
+        />
         <SduiLayersPanel root={root} selectedId={selectedId} onSelect={setSelectedId} onMove={handleMove} />
         <SduiPropertiesPanel
           node={selectedNode}
           definition={selectedDefinition}
           variables={variables}
           channelTypes={channelTypes}
+          previewTarget={previewTarget}
           onUpdateProps={(patch) => onChange(updateProps(root, selectedId!, patch))}
           onUpdateBindings={(bindings) => onChange(updateBindings(root, selectedId!, bindings))}
           onUpdateEvents={(events) => onChange(updateEvents(root, selectedId!, events))}

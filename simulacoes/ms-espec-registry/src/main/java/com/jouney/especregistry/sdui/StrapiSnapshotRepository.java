@@ -3,8 +3,12 @@ package com.jouney.especregistry.sdui;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.jouney.especregistry.config.StrapiProperties;
+import java.net.SocketTimeoutException;
+import java.net.http.HttpClient;
+import java.net.http.HttpTimeoutException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -20,21 +25,55 @@ import org.springframework.web.client.RestClientException;
  * Única implementação de {@link SnapshotRepository} hoje — grava/lê snapshots publicados no
  * content-type {@code sdui-snapshot} do Strapi ({@code admin/simulacoes/strapi-sdui-registry}).
  *
- * NÃO TESTADO CONTRA UM STRAPI REAL: não existe ainda um token de API gerado (STRAPI_API_TOKEN),
- * então esta classe nunca rodou fim a fim. A forma da requisição/resposta segue a convenção REST
- * padrão do Strapi ({@code {"data": {...}}} na escrita, filtros {@code filters[campo][$eq]} na
- * leitura) — mas a leitura tenta tanto o formato "achatado" (Strapi v5, campos direto em cada linha
- * de {@code data}) quanto o antigo {@code attributes} (Strapi v4), defensivamente, já que a versão
- * exata instalada localmente não foi confirmada. Ajustar aqui se o formato real divergir ao testar.
+ * Testado fim a fim contra um Strapi v5.52.3 real (2026-09-06): a forma da requisição/resposta
+ * segue a convenção REST do Strapi ({@code {"data": {...}}} na escrita, filtros
+ * {@code filters[campo][$eq]} na leitura), com um detalhe confirmado do v5 — update/delete usam o
+ * {@code documentId} (string) na URL, não o {@code id} numérico interno (esse ainda existe na
+ * resposta, mas não serve pra rota de update). A leitura ainda tenta os dois formatos de campo
+ * ("achatado" do v5, ou aninhado em {@code attributes} do v4) defensivamente.
  */
 @Component
 public class StrapiSnapshotRepository implements SnapshotRepository {
 
     private static final String COLLECTION_PATH = "/api/sdui-snapshots";
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
+    // Bem mais curto que o READ_TIMEOUT do save/find de verdade — isReachable() só serve pra
+    // responder rápido pro healthcheck do admin/back, não faz sentido esperar 10s por isso.
+    private static final Duration HEALTH_CHECK_TIMEOUT = Duration.ofSeconds(3);
 
-    private final RestClient restClient = RestClient.create();
+    // Sem isso, um Strapi que aceita a conexão mas nunca responde (visto na prática: processo
+    // travado, sem crashar) trava a requisição inteira do publish pra sempre — RestClient.create()
+    // usa o HttpClient do JDK, que não tem read timeout default nenhum.
+    private final RestClient restClient = RestClient.builder()
+            .requestFactory(timeoutFactory(Duration.ofSeconds(5), READ_TIMEOUT)).build();
+    private final RestClient healthCheckClient = RestClient.builder()
+            .requestFactory(timeoutFactory(Duration.ofSeconds(2), HEALTH_CHECK_TIMEOUT)).build();
     private final StrapiProperties properties;
     private final ObjectMapper objectMapper;
+
+    private static JdkClientHttpRequestFactory timeoutFactory(Duration connectTimeout, Duration readTimeout) {
+        // Causa raiz real do travamento (confirmada isolando cada variante da query): o HttpClient
+        // do JDK tenta negociar upgrade HTTP/2 (h2c) por padrão mesmo em conexão sem TLS — o
+        // Koa/Node do Strapi não suporta esse upgrade e a negociação trava a conexão inteira, sem
+        // erro nenhum. Forçar HTTP/1.1 explicitamente resolve (mesma requisição volta em ~10ms em
+        // vez de travar até o timeout).
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
+                HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(connectTimeout).build());
+        factory.setReadTimeout(readTimeout);
+        return factory;
+    }
+
+    // Distingue um timeout (Strapi aceitou a conexão mas nunca respondeu) de qualquer outro erro de
+    // rede — sem isso a mensagem mostrada ao usuário é só o texto genérico do RestClientException
+    // ("I/O error on GET request..."), sem dizer que o problema foi especificamente o tempo limite.
+    private static String describeFailure(RestClientException e) {
+        for (Throwable current = e; current != null; current = current.getCause()) {
+            if (current instanceof HttpTimeoutException || current instanceof SocketTimeoutException) {
+                return "não respondeu em até " + READ_TIMEOUT.toSeconds() + "s";
+            }
+        }
+        return e.getMessage();
+    }
 
     public StrapiSnapshotRepository(StrapiProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
@@ -45,7 +84,7 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
     public void save(SduiScreenEnvelope envelope) {
         String token = requireToken();
         findLatestEntry(envelope.journeyId(), envelope.screenId())
-                .ifPresent(entry -> deprecate(entry.strapiId(), token));
+                .ifPresent(entry -> deprecate(entry.documentId(), token));
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("journeyId", envelope.journeyId().toString());
@@ -69,7 +108,7 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
                     .toBodilessEntity();
         } catch (RestClientException e) {
             throw new StrapiSnapshotException("Falha ao publicar snapshot SDUI no Strapi para "
-                    + envelope.journeyId() + "/" + envelope.screenId(), e);
+                    + envelope.journeyId() + "/" + envelope.screenId() + ": " + describeFailure(e), e);
         }
     }
 
@@ -78,7 +117,28 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
         return findLatestEntry(journeyId, screenId).map(StrapiEntry::envelope);
     }
 
-    private record StrapiEntry(long strapiId, SduiScreenEnvelope envelope) {
+    @Override
+    public boolean isReachable() {
+        String token = properties.apiToken();
+        if (token == null || token.isBlank()) {
+            return false;
+        }
+        try {
+            healthCheckClient.get().uri(properties.baseUrl() + COLLECTION_PATH + "?pagination[limit]=1")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .retrieve()
+                    .toBodilessEntity();
+            return true;
+        } catch (RestClientException e) {
+            return false;
+        }
+    }
+
+    // Strapi v5 troca o id numérico interno (formato v4) por um documentId (string) pra qualquer
+    // rota de update/delete — usar o id numérico na URL, como o código fazia antes, dá 404
+    // (confirmado: só descoberto agora porque foi o primeiro deprecate() que rodou contra um
+    // Strapi real de verdade).
+    private record StrapiEntry(String documentId, SduiScreenEnvelope envelope) {
     }
 
     private Optional<StrapiEntry> findLatestEntry(UUID journeyId, String screenId) {
@@ -96,7 +156,7 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
                     .body(JsonNode.class);
         } catch (RestClientException e) {
             throw new StrapiSnapshotException("Falha ao consultar snapshot SDUI no Strapi para "
-                    + journeyId + "/" + screenId, e);
+                    + journeyId + "/" + screenId + ": " + describeFailure(e), e);
         }
         if (response == null) {
             return Optional.empty();
@@ -107,7 +167,11 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
         }
         JsonNode row = dataArray.get(0);
         JsonNode fields = row.has("attributes") ? row.path("attributes") : row;
-        long strapiId = row.path("id").asLong();
+        String documentId = textOrNull(row, "documentId");
+        if (documentId == null) {
+            throw new StrapiSnapshotException("Snapshot SDUI do Strapi sem documentId para "
+                    + journeyId + "/" + screenId + " — formato de resposta inesperado.");
+        }
         try {
             SduiScreenEnvelope envelope = new SduiScreenEnvelope(
                     textOrNull(fields, "schemaVersion"), textOrNull(fields, "catalogVersion"), journeyId, screenId,
@@ -119,23 +183,24 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
                     objectMapper.convertValue(fields.path("minRendererVersion"), objectMapper.getTypeFactory()
                             .constructMapType(Map.class, String.class, String.class)),
                     objectMapper.treeToValue(fields.path("root"), SduiNode.class));
-            return Optional.of(new StrapiEntry(strapiId, envelope));
+            return Optional.of(new StrapiEntry(documentId, envelope));
         } catch (Exception e) {
             throw new StrapiSnapshotException("Snapshot SDUI do Strapi em formato inesperado para "
                     + journeyId + "/" + screenId, e);
         }
     }
 
-    private void deprecate(long strapiId, String token) {
+    private void deprecate(String documentId, String token) {
         try {
-            restClient.put().uri(properties.baseUrl() + COLLECTION_PATH + "/" + strapiId)
+            restClient.put().uri(properties.baseUrl() + COLLECTION_PATH + "/" + documentId)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of("data", Map.of("status", "deprecated")))
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException e) {
-            throw new StrapiSnapshotException("Falha ao depreciar revisão anterior (id " + strapiId + ") no Strapi", e);
+            throw new StrapiSnapshotException("Falha ao depreciar revisão anterior (documentId " + documentId
+                    + ") no Strapi: " + describeFailure(e), e);
         }
     }
 

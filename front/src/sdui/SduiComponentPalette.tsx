@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { Search } from 'lucide-react';
+import { AlertTriangle, Search } from 'lucide-react';
 import { useFlowTheme } from '../flow-designer/theme';
 import type { ComponentDefinition, ComponentCategory } from '../api/componentDefinitions';
 import { iconFor, labelFor, CATEGORY_LABEL } from './componentMeta';
+import { isSupportedOnPreviewTarget, PREVIEW_TARGET_LABEL, type PreviewTarget } from './previewTarget';
 
 const CATEGORY_ORDER: ComponentCategory[] = ['CONTENT', 'LAYOUT', 'INPUT', 'ACTION', 'FEEDBACK'];
 
@@ -12,7 +13,15 @@ export interface PaletteDragData {
   definition: ComponentDefinition;
 }
 
-function PaletteItem({ definition, onAdd }: { definition: ComponentDefinition; onAdd: (definition: ComponentDefinition) => void }) {
+function PaletteItem({
+  definition,
+  onAdd,
+  previewTarget,
+}: {
+  definition: ComponentDefinition;
+  onAdd: (definition: ComponentDefinition) => void;
+  previewTarget: PreviewTarget;
+}) {
   const { c } = useFlowTheme();
   const dragData: PaletteDragData = { source: 'palette', definition };
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -20,20 +29,25 @@ function PaletteItem({ definition, onAdd }: { definition: ComponentDefinition; o
     data: dragData,
   });
   const Icon = iconFor(definition.type);
+  const supported = isSupportedOnPreviewTarget(definition, definition.type, previewTarget);
+  const title = supported
+    ? `${labelFor(definition.type)} — clique para adicionar ou arraste`
+    : `${labelFor(definition.type)} — não suportado no alvo ${PREVIEW_TARGET_LABEL[previewTarget]}`;
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
       onClick={() => onAdd(definition)}
-      title={`${labelFor(definition.type)} — clique para adicionar ou arraste`}
+      title={title}
       className="flex items-center gap-[8px] px-2 py-[6px] rounded-md cursor-grab select-none"
       style={{ opacity: isDragging ? 0.4 : 1, color: c.textPrimary, fontSize: 12.5 }}
       onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
       <Icon size={15} color={c.accent} strokeWidth={1.8} />
-      {labelFor(definition.type)}
+      <span className="flex-1 truncate">{labelFor(definition.type)}</span>
+      {!supported && <AlertTriangle size={11} color={c.danger} />}
     </div>
   );
 }
@@ -42,7 +56,15 @@ function PaletteItem({ definition, onAdd }: { definition: ComponentDefinition; o
  * ComponentDefinition.category (Component Registry), não de uma lista curada em código. Só mostra
  * componentes não-removidos (REMOVED continua existindo pra telas antigas, mas não é oferecido pra
  * novas). `ui.screen` nunca aparece — é a raiz fixa, nunca solto pelo usuário. */
-export function SduiComponentPalette({ definitions, onAdd }: { definitions: ComponentDefinition[]; onAdd: (definition: ComponentDefinition) => void }) {
+export function SduiComponentPalette({
+  definitions,
+  onAdd,
+  previewTarget,
+}: {
+  definitions: ComponentDefinition[];
+  onAdd: (definition: ComponentDefinition) => void;
+  previewTarget: PreviewTarget;
+}) {
   const { c } = useFlowTheme();
   const [search, setSearch] = useState('');
 
@@ -76,7 +98,7 @@ export function SduiComponentPalette({ definitions, onAdd }: { definitions: Comp
               {CATEGORY_LABEL[g.category]}
             </div>
             {g.items.map((d) => (
-              <PaletteItem key={`${d.type}@${d.version}`} definition={d} onAdd={onAdd} />
+              <PaletteItem key={`${d.type}@${d.version}`} definition={d} onAdd={onAdd} previewTarget={previewTarget} />
             ))}
           </div>
         ))}

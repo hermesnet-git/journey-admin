@@ -1236,9 +1236,11 @@ function DesignerInner({
             title="Editar jornada publicada?"
             message={
               <>
-                Esta jornada está publicada. Salvar agora grava essas alterações numa versão em rascunho separada.{' '}
+                Esta jornada está publicada. Salvar agora grava essas alterações numa versão em rascunho separada, sem
+                alterar o que já está no ar.{' '}
                 <strong style={{ color: appColors.warning }}>
-                  A versão publicada continua ativa até que o rascunho seja publicado.
+                  Quando esse rascunho for publicado, ele vira mais uma versão publicada — a versão atual continua
+                  ativa até você despublicá-la manualmente.
                 </strong>
               </>
             }

@@ -65,6 +65,11 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Database 
     connection: {
       ...connections[client],
       acquireConnectionTimeout: env.int('DATABASE_CONNECTION_TIMEOUT', 60000),
+      // Liga o log de query do Knex (cada SQL executado aparece no console) — desligado por padrão
+      // pra não poluir o log normal. Usado pra diagnosticar o travamento do publish: se nenhuma
+      // query aparecer durante o hang, o problema é anterior ao banco (ex.: checagem de permissão
+      // do token); se aparecer e nunca voltar, o problema é o Postgres/pool de conexão.
+      debug: env.bool('DATABASE_DEBUG', false),
     },
   };
 };

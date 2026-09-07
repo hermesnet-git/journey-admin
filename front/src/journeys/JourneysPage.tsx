@@ -229,12 +229,16 @@ function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
       await reload();
       showToast('Jornada despublicada com sucesso.');
     } catch (err) {
+      // Despublicar a jornada agora despublica cada versão publicada dela, uma a uma — a mesma
+      // trava de instância ativa da versão vale aqui (ver confirmUnpublish de versão, mais abaixo).
       const message =
-        err instanceof ApiClientError && err.status === 409
-          ? 'A jornada não está publicada.'
-          : err instanceof Error
-            ? err.message
-            : 'Erro ao despublicar jornada';
+        err instanceof ApiClientError && err.code === 'ACTIVE_INSTANCES_EXIST'
+          ? 'Não é possível despublicar: existem instâncias em execução em alguma versão dessa jornada. Aguarde elas terminarem antes de despublicar.'
+          : err instanceof ApiClientError && err.status === 409
+            ? 'A jornada não está publicada.'
+            : err instanceof Error
+              ? err.message
+              : 'Erro ao despublicar jornada';
       showToast(message, 'error');
     }
   }
@@ -647,7 +651,6 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
   async function confirmPublish() {
     if (!publishingVersion) return;
     const versionId = publishingVersion.versionId;
-    setPublishingVersion(null);
     setBusyVersionId(versionId);
     setError(null);
     setInconsistentErrors(null);
@@ -683,13 +686,13 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
       }
     } finally {
       setBusyVersionId(null);
+      setPublishingVersion(null);
     }
   }
 
   async function confirmUnpublish() {
     if (!unpublishingVersion) return;
     const versionId = unpublishingVersion.versionId;
-    setUnpublishingVersion(null);
     setBusyVersionId(versionId);
     setError(null);
     try {
@@ -698,22 +701,26 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
       onJourneyChanged();
       showToast('Versão despublicada com sucesso.');
     } catch (err) {
+      // ACTIVE_INSTANCES_EXIST e "essa versão não está publicada" são as duas causas conhecidas de
+      // 409 aqui — só o code distingue qual é qual, o status sozinho não basta mais.
       const message =
-        err instanceof ApiClientError && err.status === 409
-          ? 'Essa versão não está publicada.'
-          : err instanceof Error
-            ? err.message
-            : 'Erro ao despublicar versão.';
+        err instanceof ApiClientError && err.code === 'ACTIVE_INSTANCES_EXIST'
+          ? 'Não é possível despublicar: existem instâncias em execução nessa versão. Aguarde elas terminarem antes de despublicar.'
+          : err instanceof ApiClientError && err.status === 409
+            ? 'Essa versão não está publicada.'
+            : err instanceof Error
+              ? err.message
+              : 'Erro ao despublicar versão.';
       setError(message);
     } finally {
       setBusyVersionId(null);
+      setUnpublishingVersion(null);
     }
   }
 
   async function confirmRepublish() {
     if (!republishingVersion) return;
     const versionId = republishingVersion.versionId;
-    setRepublishingVersion(null);
     setBusyVersionId(versionId);
     setError(null);
     setInconsistentErrors(null);
@@ -741,10 +748,9 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
       }
     } finally {
       setBusyVersionId(null);
+      setRepublishingVersion(null);
     }
   }
-
-  const hasPublishedVersion = versions?.some((v) => v.status === 'PUBLISHED') ?? false;
 
   return (
     <div className="border-t" style={{ borderColor: c.border, background: c.bg }}>
@@ -855,6 +861,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
           title="Publicar versão?"
           message={`Deseja publicar a v${publishingVersion.versionNumber}? Depois de publicada, essa versão não poderá mais ser editada.`}
           confirmLabel="Publicar"
+          loading={busyVersionId === publishingVersion.versionId}
           onConfirm={confirmPublish}
           onCancel={() => setPublishingVersion(null)}
         />
@@ -865,6 +872,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
           title="Despublicar versão?"
           message={`Deseja despublicar a v${unpublishingVersion.versionNumber}? A jornada deixa de estar publicada e a versão passa a despublicada; o snapshot é preservado.`}
           confirmLabel="Despublicar"
+          loading={busyVersionId === unpublishingVersion.versionId}
           onConfirm={confirmUnpublish}
           onCancel={() => setUnpublishingVersion(null)}
         />
@@ -873,12 +881,9 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
       {republishingVersion && (
         <ConfirmDialog
           title="Republicar versão?"
-          message={
-            hasPublishedVersion
-              ? `Deseja republicar a v${republishingVersion.versionNumber}? A versão publicada atual será despublicada e substituída por esta.`
-              : `Deseja republicar a v${republishingVersion.versionNumber}? Ela volta a ficar publicada com o mesmo conteúdo de antes.`
-          }
+          message={`Deseja republicar a v${republishingVersion.versionNumber}? Ela volta a ficar publicada com o mesmo conteúdo de antes — outras versões publicadas da jornada não são afetadas.`}
           confirmLabel="Republicar"
+          loading={busyVersionId === republishingVersion.versionId}
           onConfirm={confirmRepublish}
           onCancel={() => setRepublishingVersion(null)}
         />

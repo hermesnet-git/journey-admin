@@ -32,7 +32,10 @@ import com.jouney.admin.infrastructure.ai.AiGenerationException;
 import com.jouney.admin.infrastructure.connector.ConnectorTestException;
 import com.jouney.admin.infrastructure.connector.SsrfBlockedException;
 import com.jouney.admin.infrastructure.dashboard.RuntimeMonitoringException;
+import com.jouney.admin.application.publication.RuntimeUnpublishBlockedException;
+import com.jouney.admin.application.publication.SduiPublicationUnavailableException;
 import com.jouney.admin.infrastructure.messaging.MessagingConnectionTestException;
+import com.jouney.admin.infrastructure.publication.EspecRegistrySduiException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationRejectedException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -104,6 +107,36 @@ public class GlobalExceptionHandler {
                                                                        HttpServletRequest request) {
         log.error("Runtime rejected the publication", ex);
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "RUNTIME_DEPLOYMENT_REJECTED", ex.getMessage(), request, null);
+    }
+
+    // Runtime recusou despublicar por ter instância ativa — 409, mesmo código que
+    // ActiveInstancesExistException usa lá no ms-transform-publication, pro front conseguir
+    // distinguir esse caso específico de qualquer outro 409 genérico (ex.: "já está despublicada").
+    @ExceptionHandler(RuntimeUnpublishBlockedException.class)
+    public ResponseEntity<ApiError> handleRuntimeUnpublishBlocked(RuntimeUnpublishBlockedException ex,
+                                                                     HttpServletRequest request) {
+        log.warn("Unpublish blocked by runtime: {}", ex.getMessage());
+        return build(HttpStatus.CONFLICT, "ACTIVE_INSTANCES_EXIST", ex.getMessage(), request, null);
+    }
+
+    // Healthcheck (isAvailable()) reprovou antes de tentar publicar de verdade — 503, não 502,
+    // porque não houve nenhuma tentativa de chamada real que tenha falhado, só a checagem prévia.
+    @ExceptionHandler(SduiPublicationUnavailableException.class)
+    public ResponseEntity<ApiError> handleSduiPublicationUnavailable(SduiPublicationUnavailableException ex,
+                                                                       HttpServletRequest request) {
+        log.warn("SDUI publication health check failed before publish attempt: {}", ex.getMessage());
+        return build(HttpStatus.SERVICE_UNAVAILABLE, "SDUI_PUBLICATION_UNAVAILABLE", ex.getMessage(), request, null);
+    }
+
+    // Sem isso, EspecRegistrySduiException caía no handleUnexpected genérico abaixo, que desce até
+    // a causa raiz da cadeia de exceções (rootCause) — descartando a mensagem amigável que essa
+    // classe monta (qual serviço, qual base-url, timeout ou erro de fato) e mostrando só o texto cru
+    // do JDK (ex.: "HttpTimeoutException: Request cancelled"), sem nenhuma pista do que realmente
+    // falhou.
+    @ExceptionHandler(EspecRegistrySduiException.class)
+    public ResponseEntity<ApiError> handleEspecRegistrySdui(EspecRegistrySduiException ex, HttpServletRequest request) {
+        log.error("ms-espec-registry SDUI publication call failed", ex);
+        return build(HttpStatus.BAD_GATEWAY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(MessagingConnectionTestException.class)

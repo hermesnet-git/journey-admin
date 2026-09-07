@@ -1,9 +1,22 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { GripVertical, X } from 'lucide-react';
+import { AlertTriangle, GripVertical, X } from 'lucide-react';
 import { useFlowTheme } from '../flow-designer/theme';
 import type { ComponentDefinition } from '../api/componentDefinitions';
 import type { SduiNode } from './model';
 import { iconFor, labelFor } from './componentMeta';
+import { SduiNodeRenderer } from '../execution/SduiNodeRenderer';
+import { isSupportedOnPreviewTarget, PREVIEW_TARGET_LABEL, type PreviewTarget } from './previewTarget';
+
+function noopSubmit() {}
+
+/** Cópia só-de-prévia com binding de valor sintético quando o nó ainda não tem um configurado —
+ * sem isso, campos recém-arrastados (textInput/select/checkbox/datePicker) renderizam em branco
+ * (SduiNodeRenderer exige `bindings.value.path` pra derivar o `name` do campo). Nunca é gravada de
+ * volta na árvore, só usada pra esta renderização. */
+function withPreviewBinding(node: SduiNode): SduiNode {
+  if (node.bindings?.value) return node;
+  return { ...node, bindings: { ...node.bindings, value: { path: `form.${node.id}`, mode: 'oneWay' } } };
+}
 
 export interface CanvasDragData {
   source: 'canvas';
@@ -23,6 +36,7 @@ function CanvasNode({
   onSelect,
   onRemove,
   dragActive,
+  previewTarget,
 }: {
   node: SduiNode;
   depth: number;
@@ -32,11 +46,14 @@ function CanvasNode({
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   dragActive: boolean;
+  previewTarget: PreviewTarget;
 }) {
   const { c } = useFlowTheme();
   const definition = registry.get(registryKey(node));
   const isContainer = !!definition?.allowsChildren;
   const Icon = iconFor(node.type);
+  const supported = isSupportedOnPreviewTarget(definition ?? null, node.type, previewTarget);
+  const showLivePreview = !isRoot && !isContainer && (previewTarget === 'web' || previewTarget === 'mobile') && !!definition;
   const dragData: CanvasDragData = { source: 'canvas', nodeId: node.id };
   const draggable = useDraggable({ id: node.id, data: dragData, disabled: isRoot });
   const droppable = useDroppable({ id: node.id, data: { source: 'canvas-container', nodeId: node.id }, disabled: !isContainer });
@@ -76,6 +93,11 @@ function CanvasNode({
             ?
           </span>
         )}
+        {definition && !supported && (
+          <span title={`Não suportado no alvo ${PREVIEW_TARGET_LABEL[previewTarget]}`} style={{ display: 'flex' }}>
+            <AlertTriangle size={12} color={c.danger} />
+          </span>
+        )}
         {!isRoot && (
           <button
             onClick={(e) => {
@@ -90,6 +112,11 @@ function CanvasNode({
           </button>
         )}
       </div>
+      {showLivePreview && (
+        <div style={{ marginLeft: 14, marginTop: 2, marginBottom: 4, pointerEvents: 'none' }}>
+          <SduiNodeRenderer sdui={withPreviewBinding(node)} onSubmit={noopSubmit} submitting={false} />
+        </div>
+      )}
       {isContainer && (
         <div
           ref={droppable.setNodeRef}
@@ -119,6 +146,7 @@ function CanvasNode({
               onSelect={onSelect}
               onRemove={onRemove}
               dragActive={dragActive}
+              previewTarget={previewTarget}
             />
           ))}
         </div>
@@ -141,6 +169,7 @@ export function SduiTreeCanvas({
   onSelect,
   onRemove,
   dragActive,
+  previewTarget,
 }: {
   root: SduiNode;
   registry: Map<string, ComponentDefinition>;
@@ -148,11 +177,22 @@ export function SduiTreeCanvas({
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   dragActive: boolean;
+  previewTarget: PreviewTarget;
 }) {
   const { c } = useFlowTheme();
   return (
     <div className="flex-1 overflow-y-auto p-3" style={{ background: c.canvasBg }} onClick={() => onSelect(root.id)}>
-      <CanvasNode node={root} depth={0} isRoot registry={registry} selectedId={selectedId} onSelect={onSelect} onRemove={onRemove} dragActive={dragActive} />
+      <CanvasNode
+        node={root}
+        depth={0}
+        isRoot
+        registry={registry}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        onRemove={onRemove}
+        dragActive={dragActive}
+        previewTarget={previewTarget}
+      />
     </div>
   );
 }

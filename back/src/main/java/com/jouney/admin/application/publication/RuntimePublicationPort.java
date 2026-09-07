@@ -9,7 +9,11 @@ import java.util.UUID;
  */
 public interface RuntimePublicationPort {
 
-    void publish(Publication snapshot);
+    /** @return o id do deployment do runtime gerado por este publish — guardado por versão pra um
+     * unpublish futuro conseguir mirar só nele (ver {@link #unpublish(UUID, String)}). */
+    String publish(Publication snapshot);
 
-    void unpublish(UUID journeyId);
+    /** Despublica só o deployment específico informado, sem afetar outras versões da mesma
+     * jornada que possam também estar publicadas. */
+    void unpublish(UUID journeyId, String runtimeDeploymentId);
 }

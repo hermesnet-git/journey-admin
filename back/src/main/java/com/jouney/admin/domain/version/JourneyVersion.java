@@ -21,6 +21,11 @@ public class JourneyVersion {
     private final UUID createdBy;
     private final OffsetDateTime createdAt;
     private OffsetDateTime publishedAt;
+    // Deployment do Camunda gerado por este publish/republish específico — permite despublicar só
+    // esta versão (deletar só o deployment dela) sem afetar outra versão da mesma jornada que
+    // também esteja publicada. Null pra versões nunca publicadas, ou publicadas antes dessa
+    // rastreabilidade existir.
+    private String runtimeDeploymentId;
 
     private String journeyName;
     private String journeyDescription;
@@ -31,9 +36,9 @@ public class JourneyVersion {
     private List<FlowConnection> flowConnections;
 
     public JourneyVersion(UUID id, UUID journeyId, int versionNumber, VersionStatus status, String description,
-                           UUID createdBy, OffsetDateTime createdAt, OffsetDateTime publishedAt, String journeyName,
-                           String journeyDescription, UUID productId, String productName,
-                           List<ChannelType> channelTypes, List<FlowNode> flowNodes,
+                           UUID createdBy, OffsetDateTime createdAt, OffsetDateTime publishedAt,
+                           String runtimeDeploymentId, String journeyName, String journeyDescription, UUID productId,
+                           String productName, List<ChannelType> channelTypes, List<FlowNode> flowNodes,
                            List<FlowConnection> flowConnections) {
         this.id = id;
         this.journeyId = journeyId;
@@ -43,6 +48,7 @@ public class JourneyVersion {
         this.createdBy = createdBy;
         this.createdAt = createdAt;
         this.publishedAt = publishedAt;
+        this.runtimeDeploymentId = runtimeDeploymentId;
         this.journeyName = journeyName;
         this.journeyDescription = journeyDescription;
         this.productId = productId;
@@ -57,7 +63,7 @@ public class JourneyVersion {
                                               String productName, List<ChannelType> channelTypes,
                                               List<FlowNode> flowNodes, List<FlowConnection> flowConnections) {
         return new JourneyVersion(UUID.randomUUID(), journeyId, versionNumber, VersionStatus.DRAFT, description,
-                createdBy, OffsetDateTime.now(), null, journeyName, journeyDescription, productId, productName,
+                createdBy, OffsetDateTime.now(), null, null, journeyName, journeyDescription, productId, productName,
                 channelTypes, flowNodes, flowConnections);
     }
 
@@ -79,9 +85,10 @@ public class JourneyVersion {
         this.flowConnections = flowConnections;
     }
 
-    public void publish() {
+    public void publish(String runtimeDeploymentId) {
         this.status = VersionStatus.PUBLISHED;
         this.publishedAt = OffsetDateTime.now();
+        this.runtimeDeploymentId = runtimeDeploymentId;
     }
 
     // Companion to Journey.deactivate(): used when a journey that was once published can't be
@@ -93,6 +100,9 @@ public class JourneyVersion {
 
     public void unpublish() {
         this.status = VersionStatus.UNPUBLISHED;
+        // O deployment que esse id apontava pra já não existe mais no Camunda depois de
+        // despublicar — limpa pra não sobrar uma referência morta.
+        this.runtimeDeploymentId = null;
     }
 
     public UUID getId() {
@@ -125,6 +135,10 @@ public class JourneyVersion {
 
     public OffsetDateTime getPublishedAt() {
         return publishedAt;
+    }
+
+    public String getRuntimeDeploymentId() {
+        return runtimeDeploymentId;
     }
 
     public String getJourneyName() {

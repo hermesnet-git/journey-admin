@@ -13,4 +13,9 @@ public interface SnapshotRepository {
     void save(SduiScreenEnvelope envelope);
 
     Optional<SduiScreenEnvelope> findLatestPublished(UUID journeyId, String screenId);
+
+    /** Checagem rápida de que o backend está disponível pra receber publicação agora — usada pelo
+     * admin/back antes de tentar publicar de verdade, pra falhar rápido com uma mensagem clara em
+     * vez de só descobrir depois de já ter feito o deploy no runtime. */
+    boolean isReachable();
 }

@@ -1,6 +1,7 @@
 package com.jouney.transformpublication.interfaces;
 
 import com.jouney.transformpublication.bpmn.BpmnTransformationException;
+import com.jouney.transformpublication.camunda.ActiveInstancesExistException;
 import com.jouney.transformpublication.camunda.CamundaDeploymentException;
 import com.jouney.transformpublication.camunda.CamundaUnavailableException;
 import java.time.OffsetDateTime;
@@ -29,6 +30,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleDeployment(CamundaDeploymentException ex) {
         log.error("Camunda rejected deployment", ex);
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "CAMUNDA_DEPLOYMENT_REJECTED", ex.getMessage());
+    }
+
+    // 409, não 422/502: nem o conteúdo nem a disponibilidade do Camunda são o problema — é uma
+    // regra de negócio (não deletar deployment com instância ativa) barrando a ação antes de tentar.
+    @ExceptionHandler(ActiveInstancesExistException.class)
+    public ResponseEntity<Map<String, Object>> handleActiveInstances(ActiveInstancesExistException ex) {
+        log.warn("Unpublish blocked: active instances exist — {}", ex.getMessage());
+        return build(HttpStatus.CONFLICT, "ACTIVE_INSTANCES_EXIST", ex.getMessage());
     }
 
     @ExceptionHandler(CamundaUnavailableException.class)

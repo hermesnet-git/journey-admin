@@ -35,9 +35,11 @@ public class PublicationController {
                 new PublishResponse(result.processDefinitionKey(), result.deploymentId(), result.processDefinitionId()));
     }
 
-    @DeleteMapping("/{journeyId}")
-    public ResponseEntity<Void> unpublish(@PathVariable UUID journeyId) {
-        unpublishJourneyFromCamunda.execute(journeyId);
+    // Despublica só o deployment de uma versão específica — usado no fluxo multi-versão, onde
+    // publicar uma versão nova não derruba a anterior, então despublicar precisa ser cirúrgico.
+    @DeleteMapping("/{journeyId}/deployments/{deploymentId}")
+    public ResponseEntity<Void> unpublishDeployment(@PathVariable UUID journeyId, @PathVariable String deploymentId) {
+        unpublishJourneyFromCamunda.executeDeployment(deploymentId);
         return ResponseEntity.noContent().build();
     }
 }

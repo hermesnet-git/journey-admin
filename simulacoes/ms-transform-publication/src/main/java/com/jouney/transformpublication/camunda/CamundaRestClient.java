@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
@@ -17,10 +15,11 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
- * Thin client for the Camunda 7 REST API (engine-rest). Deploys BPMN and, on unpublish,
- * deletes every deployment for the journey's process definition key (cascading to runtime
- * and history data) — this is a simulated runtime integration, so it deliberately does not
- * try to cover the full deployment/versioning lifecycle Camunda supports.
+ * Thin client for the Camunda 7 REST API (engine-rest). Deploys BPMN and, on unpublish, deletes
+ * one specific deployment (cascading to its runtime and history data) — but only once confirmed
+ * no instance is currently active for it (see {@link ActiveInstancesExistException}) — this is a
+ * simulated runtime integration, so it deliberately does not try to cover the full
+ * deployment/versioning lifecycle Camunda supports.
  */
 @Component
 public class CamundaRestClient {
@@ -96,28 +95,56 @@ public class CamundaRestClient {
         return e.getStatusCode().value() + " " + e.getStatusText();
     }
 
-    // Deletes every deployment ever made for this key (all republish versions), not just the
-    // latest — unpublishing a journey should leave no trace of it in Camunda.
-    public void deleteAllDeploymentsForKey(String processDefinitionKey) {
+    // Deleta só UM deployment específico (a versão que está sendo despublicada), não todos os já
+    // feitos pra essa chave — usado quando o admin/back sabe exatamente qual deploymentId
+    // corresponde à versão sendo despublicada (fluxo multi-versão: publicar uma versão nova não
+    // derruba a anterior, então despublicar precisa mirar só a sua própria).
+    public void deleteDeployment(String deploymentId) {
+        long activeInstances = activeInstanceCountForDeployment(deploymentId);
+        if (activeInstances > 0) {
+            throw new ActiveInstancesExistException(
+                    "Não é possível despublicar: existe(m) " + activeInstances
+                            + " instância(s) de processo em execução para o deployment " + deploymentId
+                            + ". Aguarde elas terminarem ou pare-as manualmente antes de despublicar.");
+        }
+        try {
+            restClient.delete()
+                    .uri(baseUrl + "/deployment/{id}?cascade=true", deploymentId)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            throw new CamundaDeploymentException(
+                    "Camunda rejeitou a remoção do deployment " + deploymentId + ": " + extractCamundaMessage(e), e);
+        } catch (RestClientException e) {
+            throw new CamundaUnavailableException("Não foi possível conectar ao Camunda em " + baseUrl, e);
+        }
+    }
+
+    private long activeInstanceCountForDeployment(String deploymentId) {
         try {
             List<Map<String, Object>> definitions = restClient.get()
-                    .uri(baseUrl + "/process-definition?key={key}", processDefinitionKey)
+                    .uri(baseUrl + "/process-definition?deploymentId={id}", deploymentId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {
                     });
-            Set<String> deploymentIds = definitions == null ? Set.of()
-                    : definitions.stream()
-                            .map(d -> String.valueOf(d.get("deploymentId")))
-                            .collect(Collectors.toSet());
-            for (String deploymentId : deploymentIds) {
-                restClient.delete()
-                        .uri(baseUrl + "/deployment/{id}?cascade=true", deploymentId)
-                        .retrieve()
-                        .toBodilessEntity();
+            if (definitions == null || definitions.isEmpty()) {
+                return 0L;
             }
+            long total = 0L;
+            for (Map<String, Object> definition : definitions) {
+                Map<String, Object> count = restClient.get()
+                        .uri(baseUrl + "/process-instance/count?processDefinitionId={id}",
+                                String.valueOf(definition.get("id")))
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<Map<String, Object>>() {
+                        });
+                Object value = count == null ? null : count.get("count");
+                total += value instanceof Number n ? n.longValue() : 0L;
+            }
+            return total;
         } catch (RestClientResponseException e) {
             throw new CamundaDeploymentException(
-                    "Camunda rejeitou a remoção dos deployments de " + processDefinitionKey + ": "
+                    "Camunda rejeitou a consulta de instâncias ativas do deployment " + deploymentId + ": "
                             + extractCamundaMessage(e), e);
         } catch (RestClientException e) {
             throw new CamundaUnavailableException("Não foi possível conectar ao Camunda em " + baseUrl, e);

@@ -2,6 +2,7 @@ package com.jouney.especregistry.sdui;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +31,16 @@ public class SduiSnapshotController {
     public ResponseEntity<Void> receive(@RequestBody List<SduiScreenEnvelope> envelopes) {
         envelopes.forEach(snapshotRepository::save);
         return ResponseEntity.noContent().build();
+    }
+
+    // Chamado pelo admin/back antes de publicar de verdade (EspecRegistrySduiAdapter.isAvailable())
+    // — falha rápido com uma mensagem clara em vez de só descobrir depois de já ter feito o deploy
+    // no runtime.
+    @GetMapping("/health")
+    public ResponseEntity<Void> health() {
+        return snapshotRepository.isReachable()
+                ? ResponseEntity.ok().build()
+                : ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
     }
 
     @GetMapping("/{journeyId}/{screenId}/latest")

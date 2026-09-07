@@ -196,7 +196,7 @@ export const EPICS: Epic[] = [
           d('REQ-02.06.003', 'O sistema deve permitir consultar jornadas publicadas.'),
           d(
             'REQ-02.06.004',
-            'Cada jornada deve possuir no máximo uma publicação ativa, associada a uma versão imutável. Alterações após a publicação não modificam o snapshot publicado; é preciso publicar uma nova versão.',
+            'Uma jornada pode possuir mais de uma versão publicada simultaneamente, cada uma com um deployment próprio no runtime — publicar uma versão nova não invalida nem despublica a anterior, para não interromper instâncias já em execução nela. Alterações após a publicação não modificam o snapshot publicado; é preciso publicar uma nova versão.',
           ),
         ],
       },
@@ -1224,26 +1224,41 @@ export const EPICS: Epic[] = [
           d('REQ-06.04.001', 'O sistema deve permitir publicar uma versão DRAFT.'),
           d('REQ-06.04.002', 'Antes da publicação, o sistema deve validar a versão completa da jornada.'),
           d('REQ-06.04.003', 'A publicação deve enviar ao runtime o snapshot completo da versão selecionada.'),
-          d('REQ-06.04.004', 'Ao publicar uma nova versão, a versão anteriormente publicada deve ser marcada como UNPUBLISHED.'),
-          d('REQ-06.04.005', 'O sistema deve preservar o snapshot da versão anteriormente publicada.'),
-          d('REQ-06.04.006', 'A publicação deve registrar qual versão foi enviada ao runtime.'),
-          d('REQ-06.04.007', 'A jornada deve indicar sua versão atualmente publicada.'),
+          {
+            code: 'REQ-06.04.004',
+            description:
+              'Ao publicar uma nova versão, qualquer versão anteriormente publicada da mesma jornada permanece PUBLISHED e com seu deployment intacto no runtime — publicar não é um efeito colateral de despublicar. Uma jornada pode ter mais de uma versão PUBLISHED ao mesmo tempo.',
+            status: 'done',
+            notes: 'Antes, publicar uma versão nova despublicava a anterior — corrigido: isso mentia sobre o estado real do runtime (Camunda já mantinha a versão antiga deployada e rodando; só o rótulo no admin mudava).',
+          },
+          d('REQ-06.04.005', 'O sistema deve preservar o snapshot de toda versão publicada, atual ou anterior.'),
+          d(
+            'REQ-06.04.006',
+            'A publicação deve registrar qual versão foi enviada ao runtime, incluindo o identificador do deployment gerado (necessário para despublicar essa versão especificamente, sem afetar outras).',
+          ),
+          d(
+            'REQ-06.04.007',
+            'A jornada deve indicar, como referência rápida, a mais recente entre suas versões atualmente publicadas; a listagem de versões exibe o status real de cada uma individualmente.',
+          ),
           d('REQ-06.04.008', 'Alterações em DRAFT não devem modificar o snapshot publicado.'),
           d(
             'REQ-06.04.009',
-            'Ao despublicar uma jornada, a versão PUBLISHED correspondente deve ser marcada como UNPUBLISHED, preservando seu snapshot; a jornada deixa de indicar uma versão atualmente publicada.',
+            'Ao despublicar uma jornada, toda versão PUBLISHED dela é marcada como UNPUBLISHED, uma a uma, cada uma despublicando apenas o próprio deployment no runtime (nunca o de outra versão), preservando os snapshots; a jornada deixa de indicar uma versão atualmente publicada.',
           ),
-          d(
-            'REQ-06.04.010',
-            'O sistema deve permitir despublicar a versão atualmente PUBLISHED de uma jornada diretamente pela versão; a despublicação de uma versão deve refletir no status da jornada, que passa a UNPUBLISHED.',
-          ),
+          {
+            code: 'REQ-06.04.010',
+            description:
+              'O sistema deve permitir despublicar a versão atualmente PUBLISHED de uma jornada diretamente pela versão, afetando apenas o deployment dela no runtime; a despublicação de uma versão só reflete no status da jornada (UNPUBLISHED) quando não resta nenhuma outra versão publicada.',
+            status: 'done',
+            notes: 'Antes, despublicar qualquer versão sempre derrubava o status da jornada inteira — corrigido: a jornada permanece PUBLISHED enquanto sobrar outra versão publicada.',
+          },
           d(
             'REQ-06.04.011',
-            'O sistema deve permitir republicar qualquer versão UNPUBLISHED de uma jornada (não apenas a mais recente), sem alterar seu conteúdo/snapshot, retornando-a a PUBLISHED e refletindo no status da jornada, que volta a PUBLISHED. Se já existir uma versão PUBLISHED na jornada no momento da republicação, essa versão deve ser marcada como UNPUBLISHED antes. Versões INACTIVE (jornada excluída) permanecem fora de alcance.',
+            'O sistema deve permitir republicar qualquer versão UNPUBLISHED de uma jornada (não apenas a mais recente), sem alterar seu conteúdo/snapshot, retornando-a a PUBLISHED e refletindo no status da jornada, que volta a PUBLISHED. Uma versão PUBLISHED já existente na jornada, se houver, permanece intacta. Versões INACTIVE (jornada excluída) permanecem fora de alcance.',
           ),
           d(
             'REQ-06.04.012',
-            'Antes de republicar uma versão, se já existir uma versão PUBLISHED na jornada, o sistema deve informar ao usuário que a versão publicada atual será substituída e solicitar confirmação antes de prosseguir.',
+            'Antes de republicar uma versão, o sistema informa ao usuário que ela volta a ficar publicada e que outras versões publicadas da jornada não são afetadas, solicitando confirmação antes de prosseguir.',
           ),
           {
             code: 'REQ-06.04.013',
@@ -1251,6 +1266,13 @@ export const EPICS: Epic[] = [
               'O sistema deve distinguir uma falha de publicação genuinamente indisponível de uma rejeição de conteúdo, apresentando uma mensagem de erro única e legível, nunca a resposta crua ou aninhada do serviço subjacente.',
             status: 'done',
             notes: 'Achado real: condição de gateway gerada por IA com aspas escapadas quebrava o parser de expressão do motor — motivou também a guarda em FlowValidator (REQ-03.11.003).',
+          },
+          {
+            code: 'REQ-06.04.014',
+            description:
+              'O sistema não deve permitir despublicar uma versão que possua instância(s) de processo ativa(s) no runtime — a operação é bloqueada antes de qualquer remoção de deployment, com mensagem clara informando a quantidade de instâncias ativas.',
+            status: 'done',
+            notes: 'Corrige bug real relatado pelo usuário: era possível despublicar uma jornada com instância ativa, matando-a silenciosamente (o delete do deployment usava cascade=true sem checar nada antes).',
           },
         ],
       },
@@ -1925,6 +1947,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-09-07 00:19 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Publicar uma versão nova deixa de despublicar a anterior (FT-06/US-06.04) — corrige bug real de despublicar derrubando instância ativa. REQ-02.06.004 e REQ-06.04.004/005/006/007/009/010/011/012 reescritos: uma jornada agora pode ter mais de uma versão PUBLISHED simultaneamente, cada uma com seu próprio runtime_deployment_id (coluna nova em journey_version, migration V17); despublicar passou a ser cirúrgico por versão (ms-transform-publication ganhou DELETE /api/v1/publications/{journeyId}/deployments/{deploymentId}, mirando só o deployment daquela versão — o endpoint antigo que apagava tudo da chave foi removido, sem dados legados pra manter compatível); a jornada só volta a UNPUBLISHED quando não sobra nenhuma versão publicada. REQ-06.04.014 novo: despublicar uma versão com instância de processo ativa agora é bloqueado (409 ACTIVE_INSTANCES_EXIST) — antes o delete do deployment usava cascade=true sem checar nada, matando a instância silenciosamente (bug relatado pelo usuário). Mensagens do front ajustadas (diálogo de republicar não fala mais em "substituir a versão publicada"; erro de despublicar com instância ativa tem texto próprio). Total FT-06: 42 → 43 REQs; total geral: 496 → 497 REQs, 444 → 445 concluídos (90%).',
+  },
   {
     date: '2026-09-06 04:15 (não commitado)',
     source: 'progresso',

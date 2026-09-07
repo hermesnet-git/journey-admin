@@ -45,12 +45,15 @@ public class JourneyVersionJpaEntity {
     @Column(name = "published_at")
     private OffsetDateTime publishedAt;
 
+    @Column(name = "runtime_deployment_id")
+    private String runtimeDeploymentId;
+
     protected JourneyVersionJpaEntity() {
     }
 
     public JourneyVersionJpaEntity(UUID id, UUID journeyId, int versionNumber, VersionStatus status, String snapshot,
                                     String description, UUID createdBy, OffsetDateTime createdAt,
-                                    OffsetDateTime publishedAt) {
+                                    OffsetDateTime publishedAt, String runtimeDeploymentId) {
         this.id = id;
         this.journeyId = journeyId;
         this.versionNumber = versionNumber;
@@ -60,6 +63,7 @@ public class JourneyVersionJpaEntity {
         this.createdBy = createdBy;
         this.createdAt = createdAt;
         this.publishedAt = publishedAt;
+        this.runtimeDeploymentId = runtimeDeploymentId;
     }
 
     public UUID getId() {
@@ -96,5 +100,9 @@ public class JourneyVersionJpaEntity {
 
     public OffsetDateTime getPublishedAt() {
         return publishedAt;
+    }
+
+    public String getRuntimeDeploymentId() {
+        return runtimeDeploymentId;
     }
 }

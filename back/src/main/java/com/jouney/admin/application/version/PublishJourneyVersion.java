@@ -2,6 +2,7 @@ package com.jouney.admin.application.version;
 
 import com.jouney.admin.application.audit.RecordAuditEvent;
 import com.jouney.admin.application.publication.RuntimePublicationPort;
+import com.jouney.admin.application.publication.SduiPublicationUnavailableException;
 import com.jouney.admin.application.publication.SduiScreenPublicationPort;
 import com.jouney.admin.domain.audit.AuditResult;
 import com.jouney.admin.domain.channel.ProductInactiveException;
@@ -33,10 +34,14 @@ import org.springframework.stereotype.Service;
 /**
  * Publishes a DRAFT journey version (REQ-06.04): validates product/flow like the legacy
  * {@link com.jouney.admin.application.publication.PublishJourney}, sends the version's own
- * snapshot to the runtime, then marks whichever version was previously PUBLISHED as UNPUBLISHED —
- * preserving its snapshot (only its status changes). The core of this (everything past the DRAFT check) is
- * reused by {@link RepublishJourneyVersion} (REQ-06.04.011) for UNPUBLISHED versions, since going
- * live is otherwise identical regardless of which status a version is coming from.
+ * snapshot to the runtime. A previously-PUBLISHED version of the same journey is left untouched —
+ * the runtime already keeps every deployed version independently addressable (Camunda versions by
+ * process definition key), and any instance already running on that older version must be allowed
+ * to keep running; despublicar it is a separate, explicit action (see
+ * {@link UnpublishJourneyVersion}). The core of this
+ * (everything past the DRAFT check) is reused by {@link RepublishJourneyVersion} (REQ-06.04.011)
+ * for UNPUBLISHED versions, since going live is otherwise identical regardless of which status a
+ * version is coming from.
  */
 @Service
 public class PublishJourneyVersion {
@@ -109,8 +114,18 @@ public class PublishJourneyVersion {
                 version.getVersionNumber());
         List<SduiScreenEnvelope> sduiEnvelopes = SduiEnvelopeBuilder.buildAll(journeyId, version.getVersionNumber(),
                 version.getFlowNodes(), componentRegistry);
+        String deploymentId;
         try {
-            runtimePublicationPort.publish(publication);
+            // Checa disponibilidade antes de qualquer efeito colateral (deploy no runtime incluso)
+            // — só quando a versão tem tela pra publicar de verdade, pra não checar o Strapi à toa
+            // numa jornada sem User Task com tela nenhuma. Falha rápido (timeout curto do próprio
+            // isAvailable()) em vez de deployar no runtime e só descobrir depois, no publish do
+            // SDUI, que o Strapi está fora do ar.
+            if (!sduiEnvelopes.isEmpty() && !sduiScreenPublicationPort.isAvailable()) {
+                throw new SduiPublicationUnavailableException(
+                        "Não foi possível publicar: o serviço de telas SDUI (ms-espec-registry/Strapi) está indisponível no momento.");
+            }
+            deploymentId = runtimePublicationPort.publish(publication);
             sduiScreenPublicationPort.publish(sduiEnvelopes);
         } catch (RuntimeException e) {
             recordAuditEvent.record(auditAction, "JOURNEY_VERSION", version.getId(), AuditResult.FAILURE,
@@ -119,13 +134,12 @@ public class PublishJourneyVersion {
         }
         publicationRepository.save(publication);
 
-        journeyVersionRepository.findByJourneyIdAndStatus(journeyId, VersionStatus.PUBLISHED)
-                .ifPresent(previous -> {
-                    previous.unpublish();
-                    journeyVersionRepository.save(previous);
-                });
-
-        version.publish();
+        // Uma versão PUBLISHED anterior da mesma jornada, se existir, fica como está — o runtime já
+        // mantém as duas independentemente (Camunda versiona por chave), e quem já estava numa
+        // instância da versão antiga precisa poder terminar sem interrupção. Despublicar a antiga
+        // (se for o caso) é uma ação separada e explícita, não um efeito colateral de publicar uma
+        // versão nova.
+        version.publish(deploymentId);
         JourneyVersion published = journeyVersionRepository.save(version);
 
         journey.publish();

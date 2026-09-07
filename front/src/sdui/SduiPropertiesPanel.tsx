@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { AlertTriangle, Plus, X } from 'lucide-react';
 import { useFlowTheme } from '../flow-designer/theme';
 import { PropertyGrid, PropertyRow, PropertyGroupHeader, ToggleSwitch, gridInputStyle } from '../flow-designer/PropertyGrid';
 import type { VariableOrigin } from '../flow-designer/model';
@@ -11,6 +11,7 @@ import type { ChannelType } from '../api/products';
 import { BindingsEditor } from './BindingsEditor';
 import { EventsEditor } from './EventsEditor';
 import { VisibilityEditor } from './VisibilityEditor';
+import { isSupportedOnPreviewTarget, PREVIEW_TARGET_LABEL, type PreviewTarget } from './previewTarget';
 
 function OptionsListEditor({ value, onChange }: { value: { label: string; value: string }[]; onChange: (next: { label: string; value: string }[]) => void }) {
   const { c } = useFlowTheme();
@@ -170,6 +171,7 @@ export function SduiPropertiesPanel({
   definition,
   variables,
   channelTypes,
+  previewTarget,
   onUpdateProps,
   onUpdateBindings,
   onUpdateEvents,
@@ -179,6 +181,7 @@ export function SduiPropertiesPanel({
   definition: ComponentDefinition | null;
   variables: VariableOrigin[];
   channelTypes: ChannelType[];
+  previewTarget: PreviewTarget;
   onUpdateProps: (patch: Record<string, unknown>) => void;
   onUpdateBindings: (bindings: SduiNode['bindings']) => void;
   onUpdateEvents: (events: SduiNode['events']) => void;
@@ -216,6 +219,16 @@ export function SduiPropertiesPanel({
           </button>
         ))}
       </div>
+
+      {!isSupportedOnPreviewTarget(definition, node.type, previewTarget) && (
+        <div
+          className="flex items-center gap-[6px] px-3 py-[6px] shrink-0"
+          style={{ background: c.dangerSoft, color: c.danger, fontSize: 11 }}
+        >
+          <AlertTriangle size={12} />
+          Não suportado no alvo {PREVIEW_TARGET_LABEL[previewTarget]}
+        </div>
+      )}
 
       {tab === 'props' && (
         <div className="p-2">

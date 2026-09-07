@@ -9,4 +9,9 @@ import java.util.List;
 public interface SduiScreenPublicationPort {
 
     void publish(List<SduiScreenEnvelope> envelopes);
+
+    /** Checagem rápida (bem mais curta que o timeout de publish) de que o backend de specs SDUI
+     * está disponível — chamada antes de publicar de verdade, pra falhar rápido com uma mensagem
+     * clara em vez de só descobrir lá na frente, depois de já ter feito o deploy no runtime. */
+    boolean isAvailable();
 }

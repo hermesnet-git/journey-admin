@@ -10,8 +10,9 @@ import org.springframework.stereotype.Service;
  * Republishes any UNPUBLISHED version of a journey (REQ-06.04.011), returning it to PUBLISHED
  * with its snapshot untouched. INACTIVE versions (soft-deleted journeys) stay out of reach
  * (REQ-06.05.004). If the journey already has a different PUBLISHED version (possible when a new
- * DRAFT was published after this one was unpublished), {@link PublishJourneyVersion#goLive} marks
- * it UNPUBLISHED, same as any other publish.
+ * DRAFT was published after this one was unpublished), that other version is left untouched —
+ * {@link PublishJourneyVersion#goLive} no longer despublica the previously-published version,
+ * same as any other publish.
  */
 @Service
 public class RepublishJourneyVersion {

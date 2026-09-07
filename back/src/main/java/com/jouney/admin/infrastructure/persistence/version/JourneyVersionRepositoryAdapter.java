@@ -48,7 +48,8 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
 
         JourneyVersionJpaEntity entity = new JourneyVersionJpaEntity(version.getId(), version.getJourneyId(),
                 version.getVersionNumber(), version.getStatus(), writeJson(record), version.getDescription(),
-                version.getCreatedBy(), version.getCreatedAt(), version.getPublishedAt());
+                version.getCreatedBy(), version.getCreatedAt(), version.getPublishedAt(),
+                version.getRuntimeDeploymentId());
         return toDomain(jpaRepository.save(entity));
     }
 
@@ -65,6 +66,11 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
     @Override
     public Optional<JourneyVersion> findByJourneyIdAndStatus(UUID journeyId, VersionStatus status) {
         return jpaRepository.findByJourneyIdAndStatus(journeyId, status).map(this::toDomain);
+    }
+
+    @Override
+    public List<JourneyVersion> findAllByJourneyIdAndStatus(UUID journeyId, VersionStatus status) {
+        return jpaRepository.findAllByJourneyIdAndStatus(journeyId, status).stream().map(this::toDomain).toList();
     }
 
     @Override
@@ -93,8 +99,9 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
 
         return new JourneyVersion(entity.getId(), entity.getJourneyId(), entity.getVersionNumber(),
                 entity.getStatus(), entity.getDescription(), entity.getCreatedBy(), entity.getCreatedAt(),
-                entity.getPublishedAt(), record.journeyName(), record.journeyDescription(), record.productId(),
-                record.productName(), record.channelTypes(), flowNodes, flowConnections);
+                entity.getPublishedAt(), entity.getRuntimeDeploymentId(), record.journeyName(),
+                record.journeyDescription(), record.productId(), record.productName(), record.channelTypes(),
+                flowNodes, flowConnections);
     }
 
     private String writeJson(Object value) {

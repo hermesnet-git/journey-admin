@@ -1,0 +1,17 @@
+{
+  "name": "@elastic-journey/journey-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@elastic-journey/sdui-contract": "0.1.0"
+  }
+}
+

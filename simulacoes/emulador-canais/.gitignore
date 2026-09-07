@@ -1,0 +1,15 @@
+node_modules/
+.tmp-node/
+dist/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+.env
+.expo/
+*.log
+*.tsbuildinfo
+apps/*/vite.config.js
+apps/*/vite.config.d.ts

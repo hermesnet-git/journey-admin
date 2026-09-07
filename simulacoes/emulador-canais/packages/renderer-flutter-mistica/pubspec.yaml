@@ -1,0 +1,14 @@
+name: elastic_journey_renderer_flutter_mistica
+description: Adapter Flutter/Mística para o catálogo SDUI v1 do Elastic Journey.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  elastic_journey_sdui_runtime:
+    path: ../sdui-runtime-dart
+

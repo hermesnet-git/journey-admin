@@ -1,0 +1,123 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: #f4f4f6;
+}
+
+.host-shell {
+  margin: 0 auto;
+  max-width: 1120px;
+  padding: 24px;
+}
+
+.host-header {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.host-badge {
+  background: #e8f2ff;
+  border-radius: 999px;
+  color: #0057a8;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.host-panel {
+  background: white;
+  border: 1px solid #dedee3;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(25, 25, 35, 0.08);
+  padding: 20px;
+}
+
+.host-form {
+  display: grid;
+  gap: 16px;
+}
+
+.host-field {
+  display: grid;
+  gap: 6px;
+}
+
+.host-field input,
+.host-field select {
+  border: 1px solid #8d8d96;
+  border-radius: 8px;
+  font: inherit;
+  min-height: 44px;
+  padding: 8px 10px;
+}
+
+.host-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.host-actions button {
+  border: 1px solid #0066cc;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  padding: 9px 14px;
+}
+
+.host-actions button:first-child {
+  background: #0066cc;
+  color: white;
+}
+
+.host-error {
+  background: #fff0f0;
+  border: 1px solid #b42318;
+  border-radius: 8px;
+  color: #7a1710;
+  margin-bottom: 16px;
+  padding: 12px;
+}
+
+.host-meta {
+  color: #62626b;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  margin-bottom: 12px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .host-shell {
+    padding: 12px;
+  }
+
+  .host-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .host-panel {
+    border-radius: 8px;
+    padding: 12px;
+  }
+}
+

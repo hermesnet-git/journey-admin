@@ -1,0 +1,29 @@
+{
+  "name": "@elastic-journey/react-native-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "expo start --port 18081",
+    "android": "expo start --android --port 18081",
+    "ios": "expo start --ios --port 18081",
+    "bundle": "expo export --platform android --output-dir dist",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@elastic-journey/journey-client": "0.1.0",
+    "@elastic-journey/renderer-react-native-mistica": "1.1.0",
+    "@elastic-journey/sdui-contract": "0.1.0",
+    "@elastic-journey/sdui-runtime": "0.1.0",
+    "@react-native-community/datetimepicker": "9.1.0",
+    "@react-native-picker/picker": "2.11.4",
+    "expo": "~57.0.20",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17"
+  }
+}

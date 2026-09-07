@@ -1,0 +1,11 @@
+name: elastic_journey_client
+description: Cliente Dart do Emulator BFF para canais Flutter.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  http: ^1.6.0
+

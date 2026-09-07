@@ -1,0 +1,8 @@
+name: elastic_journey_sdui_runtime
+description: Runtime headless Dart para o contrato SDUI v1 do Elastic Journey.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+

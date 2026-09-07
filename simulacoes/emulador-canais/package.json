@@ -1,0 +1,31 @@
+{
+  "name": "elastic-journey-channel-emulator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:lab": "npm run dev --workspace @elastic-journey/channel-lab",
+    "dev:bff": "npm run dev --workspace @elastic-journey/emulator-bff",
+    "dev:react-native": "npm run dev --workspace @elastic-journey/react-native-host",
+    "dev:wce-bridge": "npm run dev --workspace @elastic-journey/wce-bridge",
+    "dev:wce-ui": "npm run dev --workspace @elastic-journey/wce-web-ui",
+    "dev:flutter": "cd apps/flutter-host && flutter run -d chrome --web-hostname 127.0.0.1 --web-port 15172 --no-pub",
+    "build:flutter": "cd apps/flutter-host && flutter build web --no-pub"
+  },
+  "engines": {
+    "node": ">=24.20.0 <25.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "typescript": "~6.0.2"
+  }
+}

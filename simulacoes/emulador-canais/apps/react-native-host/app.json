@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Elastic Journey - Canal React Native",
+    "slug": "elastic-journey-react-native",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "elasticjourney",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.elasticjourney.channelemulator"
+    },
+    "android": {
+      "package": "com.elasticjourney.channelemulator"
+    }
+  }
+}

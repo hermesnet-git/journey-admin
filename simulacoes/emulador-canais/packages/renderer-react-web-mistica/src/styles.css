@@ -1,0 +1,62 @@
+.ej-sdui-screen {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.ej-sdui-stack {
+  display: flex;
+  min-width: 0;
+}
+
+.ej-sdui-stack-responsive {
+  flex-direction: column;
+}
+
+@media (min-width: 600px) {
+  .ej-sdui-stack-responsive {
+    flex-direction: row;
+  }
+
+  .ej-sdui-stack-responsive > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+.ej-sdui-text-area {
+  background: transparent;
+  border: 1px solid var(--ej-sdui-border, #8a8a8a);
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: inherit;
+  font: inherit;
+  line-height: 1.4;
+  min-height: 88px;
+  padding: 12px;
+  resize: vertical;
+  width: 100%;
+}
+
+.ej-sdui-text-area[aria-invalid='true'] {
+  border-color: var(--ej-sdui-error, #b3261e);
+}
+
+.ej-sdui-card-interactive {
+  cursor: pointer;
+  outline: none;
+}
+
+.ej-sdui-card-interactive:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.ej-sdui-loading-overlay {
+  align-items: center;
+  background: color-mix(in srgb, white 78%, transparent);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: absolute;
+  z-index: 10;
+}
+

@@ -11,6 +11,21 @@
         ],
         "createdAt": "2026-09-04T00:34:27.424Z",
         "reason": "false positive: CSS border-trick triangle (transparent left/right + solid top) drawing the tooltip pointer under the payload preview card, not a side-tab accent border on a card"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-09-08T19:23:28.358Z",
+        "reason": "Verificado nesta sessão: Inter é a fonte real e intencional do Channel Lab (apps/channel-lab/src/styles.css já usava antes de qualquer edição minha), fallback deliberado enquanto a fonte corporativa Vivo Type não está disponível fora do ambiente da Vivo."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "simulacoes/emulador-canais/apps/channel-lab/src/styles.css"
+        ],
+        "createdAt": "2026-09-08T19:23:36.862Z",
+        "reason": "Pré-existente: .event-log article usa border-left de 2px como indicador semântico de severidade (info/erro) no log de diagnóstico, cor vem do nível do evento — não é acento decorativo de card, é dado de estado."
       }
     ]
   }

@@ -41,7 +41,7 @@ npm run dev:wce-bridge
 npm run dev:wce-ui
 ```
 
-O BFF usa a porta `18085` e aponta para `http://localhost:8085/api/v1` por padrão. Consulte `services/emulator-bff/.env.example` para configuração.
+O BFF usa a porta `18085` e aponta para `http://localhost:8085/api/v1` por padrão. Para sobrepor qualquer variável (portas, timeouts, credenciais), copie `services/emulator-bff/.env.example` para `services/emulator-bff/.env` e edite — o arquivo é carregado automaticamente por `dev:bff`, `dev:all` e `dev:android` (via `--env-file-if-exists`, nativo do Node), sem precisar exportar nada no shell. `.env` não é versionado.
 
 ## Subir o ambiente completo
 

@@ -2,8 +2,10 @@ import type {
   AdminJourneySummary,
   AndroidLaunchResult,
   ChannelType,
+  EmulatorHardwareConfig,
   FlowBundle,
   LabBootstrap,
+  LabStatus,
   LabTarget,
   WhatsAppSessionSummary,
 } from './types.js';
@@ -84,6 +86,21 @@ export const labApi = {
       method: 'POST',
       body: JSON.stringify({ target, bootstrapToken }),
     });
+  },
+
+  getEmulatorConfig(): Promise<EmulatorHardwareConfig> {
+    return request('/api/lab/v1/android/emulator-config');
+  },
+
+  setEmulatorConfig(ramMb: number, cpuCores: number): Promise<EmulatorHardwareConfig> {
+    return request('/api/lab/v1/android/emulator-config', {
+      method: 'POST',
+      body: JSON.stringify({ ramMb, cpuCores }),
+    });
+  },
+
+  getStatus(): Promise<LabStatus> {
+    return request('/api/lab/v1/status', {}, 8_000);
   },
 
   startWhatsApp(journeyId: string, from: string, variables: Record<string, unknown>): Promise<WhatsAppSessionSummary> {

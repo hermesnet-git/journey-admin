@@ -49,6 +49,30 @@ export interface AndroidLaunchResult {
   detail: string;
 }
 
+export interface EmulatorHardwareConfig {
+  avdName: string;
+  ramMb: number;
+  cpuCores: number;
+  maxRamMb: number;
+  maxCpuCores: number;
+  deviceConnected: boolean;
+}
+
+export type LabStatusLevel = 'up' | 'down' | 'pending';
+
+export interface LabStatusItem {
+  id: string;
+  label: string;
+  status: LabStatusLevel;
+  detail: string;
+  help: string;
+}
+
+export interface LabStatus {
+  items: LabStatusItem[];
+  checkedAt: string;
+}
+
 export interface WhatsAppSessionSummary {
   from: string;
   journeyId: string;

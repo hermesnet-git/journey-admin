@@ -14,6 +14,13 @@ const adb = resolveAndroidCommand(windows ? 'adb.exe' : 'adb', join('platform-to
 const emulator = resolveAndroidCommand(windows ? 'emulator.exe' : 'emulator', join('emulator', windows ? 'emulator.exe' : 'emulator'));
 const children = new Map();
 let stopping = false;
+
+// Mesmos nomes de variável e mesmos defaults do Emulator BFF (services/emulator-bff/src/config.ts),
+// pra quem sobe os apps por aqui (npm run dev:android) ver o mesmo comportamento do lançamento
+// sob demanda feito pelo Channel Lab via BFF.
+const androidAvdBootTimeoutMs = Number(process.env.ANDROID_AVD_BOOT_TIMEOUT_MS) || 180_000;
+const androidExpoReadyTimeoutMs = Number(process.env.ANDROID_EXPO_READY_TIMEOUT_MS) || 60_000;
+const androidFlutterReadyTimeoutMs = Number(process.env.ANDROID_FLUTTER_READY_TIMEOUT_MS) || 180_000;
 const platformName = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' }[process.platform] ?? process.platform;
 
 const colors = ['\x1b[35m', '\x1b[36m', '\x1b[33m', '\x1b[32m', '\x1b[34m', '\x1b[31m', '\x1b[95m'];
@@ -169,7 +176,11 @@ async function startAll() {
     { name: 'Channel Lab', port: 15170, command: npm, args: ['run', 'dev:lab'] },
     // Metro must be ready before Expo Go is opened. Keeping these actions
     // separate also prevents Expo's error screen from being reported healthy.
-    { name: 'React Native Metro', port: 18081, command: npm, args: ['run', 'dev:react-native'], readinessTimeoutMs: 60_000 },
+    // EXPO_PACKAGER_HOSTNAME fixa o debuggerHost em 127.0.0.1 (o que o adb
+    // reverse já mapeia de volta pro host) em vez de deixar o Expo tentar
+    // autodetectar o IP de LAN da máquina, o que falha em redes com muitas
+    // interfaces/IPv6 e derruba o app com "createBundleURL" nulo.
+    { name: 'React Native Metro', port: 18081, command: npm, args: ['run', 'dev:react-native'], readinessTimeoutMs: 60_000, env: { EXPO_PACKAGER_HOSTNAME: '127.0.0.1' } },
     { name: 'Flutter Web', port: 15172, command: flutter, args: ['run', '-d', 'web-server', '--web-hostname', '127.0.0.1', '--web-port', '15172', '--no-pub'], cwd: resolve(root, 'apps/flutter-host'), requires: flutter, readinessTimeoutMs: 90_000 },
   ];
   const readiness = [];
@@ -231,7 +242,7 @@ function androidProperty(device, name) {
   return result.status === 0 ? result.stdout.trim() : '';
 }
 
-async function waitForAndroidDevice(timeoutMs = 120_000) {
+async function waitForAndroidDevice(timeoutMs = androidAvdBootTimeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const device = androidDevices()[0];
@@ -258,7 +269,7 @@ function androidTopActivity(device) {
   return result.stdout.split(/\r?\n/).find((line) => line.includes('topResumedActivity'))?.trim() ?? '';
 }
 
-async function waitForExpoExperience(device, timeoutMs = 30_000) {
+async function waitForExpoExperience(device, timeoutMs = androidExpoReadyTimeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const activity = androidTopActivity(device);
@@ -280,11 +291,14 @@ async function ensureAndroidDevice() {
   const avd = listAndroidAvds()[0];
   if (!avd) return { device: null, detail: 'nenhum dispositivo conectado ou AVD configurado' };
   process.stdout.write(`\n[Android Emulator] iniciando AVD ${avd}...\n`);
-  startProcess({ name: 'Android Emulator', command: emulator, args: ['-avd', avd, '-no-snapshot-load'] }, colors.length);
+  // Sem -no-snapshot-load: reaproveita o quick-boot snapshot quando existir,
+  // evitando o cold boot completo (mais lento e com o sistema se acomodando
+  // por mais tempo mesmo depois de sys.boot_completed=1).
+  startProcess({ name: 'Android Emulator', command: emulator, args: ['-avd', avd] }, colors.length);
   const device = await waitForAndroidDevice();
   return device
     ? { device, detail: `AVD ${avd} (${device})` }
-    : { device: null, detail: `AVD ${avd} não ficou pronto em 120s` };
+    : { device: null, detail: `AVD ${avd} não ficou pronto em ${Math.round(androidAvdBootTimeoutMs / 1000)}s` };
 }
 
 async function startAndroidApplications(android, metroAvailable = true) {
@@ -327,7 +341,7 @@ async function startAndroidApplications(android, metroAvailable = true) {
       args: ['run', '-d', device, '--no-pub', '--dart-define=EMULATOR_BFF_BASE_URL=http://127.0.0.1:18085/api/v1'],
       cwd: resolve(root, 'apps/flutter-host'),
     }, colors.length + 1);
-    flutterRunning = await waitForAndroidPackage(device, 'com.elasticjourney.elastic_journey_flutter_host', flutterChild, 120_000);
+    flutterRunning = await waitForAndroidPackage(device, 'com.elasticjourney.elastic_journey_flutter_host', flutterChild, androidFlutterReadyTimeoutMs);
     if (flutterRunning) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 10_000));
       flutterRunning = androidDevices().includes(device) && androidProperty(device, 'sys.boot_completed') === '1';
@@ -345,7 +359,7 @@ async function startAndroid() {
   const android = await ensureAndroidDevice();
   if (!android.device) throw new Error(android.detail);
   if (!(await portIsOpen(18081))) {
-    startProcess({ name: 'React Native Metro', command: npm, args: ['run', 'dev:react-native'] }, 0);
+    startProcess({ name: 'React Native Metro', command: npm, args: ['run', 'dev:react-native'], env: { EXPO_PACKAGER_HOSTNAME: '127.0.0.1' } }, 0);
     if (!(await waitForPort(18081, 60_000))) throw new Error('O Metro não ficou disponível na porta 18081 dentro de 60 segundos.');
   } else {
     process.stdout.write('[React Native Metro] porta 18081 já está ativa; reutilizando o Metro existente.\n');

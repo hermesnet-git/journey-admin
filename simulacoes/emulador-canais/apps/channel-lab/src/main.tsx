@@ -15,7 +15,8 @@ function initialColorScheme(): LabColorScheme {
   } catch {
     // O tema continua funcional quando o navegador bloqueia armazenamento local.
   }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Sem preferência salva, o Channel Lab abre no escuro por padrão.
+  return 'dark';
 }
 
 function ThemedChannelLab() {

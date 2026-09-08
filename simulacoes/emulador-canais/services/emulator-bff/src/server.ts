@@ -10,7 +10,7 @@ import type { BffConfig } from './config.js';
 import { AdminCatalogClient, AdminCatalogError } from './admin-catalog.js';
 import { WhatsAppSessionManager } from './whatsapp.js';
 import { LAB_TARGETS, LabBootstrapStore, type LabTarget } from './lab-bootstrap.js';
-import { AndroidControllerError, launchAndroid, type AndroidTarget } from './android-controller.js';
+import { AndroidControllerError, getEmulatorHardwareConfig, getLabStatus, launchAndroid, setEmulatorHardwareConfig, type AndroidTarget } from './android-controller.js';
 
 const MAX_BODY_BYTES = 1_048_576;
 
@@ -136,10 +136,11 @@ function problemFrom(error: unknown, correlationId: string): ApiProblem {
     };
   }
   if (error instanceof AndroidControllerError) {
+    const status = error.code === 'ANDROID_BUSY' ? 409 : error.code === 'EMULATOR_CONFIG_INVALID' ? 400 : 503;
     return {
-      status: error.code === 'ANDROID_BUSY' ? 409 : 503,
+      status,
       code: error.code,
-      title: 'Não foi possível iniciar o canal mobile',
+      title: status === 400 ? 'Configuração de emulador inválida' : 'Não foi possível iniciar o canal mobile',
       detail: error.message,
       correlationId,
       timestamp: new Date().toISOString(),
@@ -229,7 +230,33 @@ export function createBffServer(config: BffConfig): Server {
         if (bootstrap.target !== target) {
           throw new RequestError(409, 'LAB_BOOTSTRAP_TARGET_MISMATCH', `O bootstrap pertence ao alvo ${bootstrap.target}.`);
         }
-        sendJson(response, 200, await launchAndroid(target as AndroidTarget, bootstrapToken));
+        sendJson(response, 200, await launchAndroid(target as AndroidTarget, bootstrapToken, {
+          avdBootMs: config.androidAvdBootTimeoutMs,
+          expoReadyMs: config.androidExpoReadyTimeoutMs,
+          flutterReadyMs: config.androidFlutterReadyTimeoutMs,
+        }));
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname === '/api/lab/v1/android/emulator-config') {
+        sendJson(response, 200, getEmulatorHardwareConfig());
+        return;
+      }
+
+      if (request.method === 'POST' && url.pathname === '/api/lab/v1/android/emulator-config') {
+        const body = await readJsonObject(request);
+        const ramMb = Number(body.ramMb);
+        const cpuCores = Number(body.cpuCores);
+        sendJson(response, 200, setEmulatorHardwareConfig(ramMb, cpuCores));
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname === '/api/lab/v1/status') {
+        sendJson(response, 200, await getLabStatus({
+          adminBaseUrl: config.adminBaseUrl,
+          journeyBaseUrl: config.journeyBaseUrl,
+          wceBridgeBaseUrl: config.wceBridgeBaseUrl,
+        }));
         return;
       }
 

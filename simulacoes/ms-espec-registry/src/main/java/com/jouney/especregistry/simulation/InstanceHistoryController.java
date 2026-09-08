@@ -52,11 +52,13 @@ public class InstanceHistoryController {
                                                  @RequestParam(required = false) Instant startedFrom,
                                                  @RequestParam(required = false) Instant startedTo) {
         String processDefinitionKey = journeyId != null ? ProcessIds.keyForJourney(journeyId) : null;
-        return camundaClient
-                .searchHistoricInstances(processDefinitionKey, businessKey, startedFrom, startedTo, finished, SEARCH_MAX_RESULTS)
-                .stream()
+        List<HistoricProcessInstance> instances = camundaClient
+                .searchHistoricInstances(processDefinitionKey, businessKey, startedFrom, startedTo, finished, SEARCH_MAX_RESULTS);
+        Map<String, String> channels = camundaClient.getChannelsForInstances(instances.stream().map(HistoricProcessInstance::id).toList());
+        return instances.stream()
                 .map(p -> new HistoricInstanceSummary(p.id(), p.businessKey(), p.processDefinitionName(),
-                        p.processDefinitionVersion(), p.startTime(), p.endTime(), p.durationInMillis(), p.state()))
+                        p.processDefinitionVersion(), p.startTime(), p.endTime(), p.durationInMillis(), p.state(),
+                        channels.get(p.id())))
                 .toList();
     }
 

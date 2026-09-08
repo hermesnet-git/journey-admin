@@ -10,5 +10,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * que HttpConnectorDelegate grava por Service Task) — {@link CamundaClient#getHistoricProcessVariables}
  * usa isso pra nunca misturar as duas. */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record HistoricVariableInstance(String name, Object value, String type, String activityInstanceId) {
+public record HistoricVariableInstance(String name, Object value, String type, String activityInstanceId,
+                                        String processInstanceId) {
 }

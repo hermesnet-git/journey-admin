@@ -410,6 +410,9 @@ export interface HistoricInstanceSummary {
   endTime: string | null;
   durationMillis: number | null;
   state: string;
+  // Canal (WEB/MOBILE/WHATSAPP) declarado ao iniciar a instância — null pra execuções de antes do
+  // conceito multicanal existir.
+  channel: string | null;
 }
 
 /** Um nó que a instância visitou, com o que ele recebeu/produziu — mesmo mapa de campos por tipo de

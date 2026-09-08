@@ -416,6 +416,32 @@ public class CamundaClient {
                 .toList();
     }
 
+    /** Canal ({@code channel}, variável de processo gravada no {@code start}) de cada instância da
+     * lista, numa única chamada — usado pra preencher a coluna "Canal" da busca de Diagnóstico sem
+     * uma requisição de histórico por linha. Instâncias sem a variável (deploy anterior à existência
+     * do conceito multicanal) simplesmente não aparecem no mapa de retorno. */
+    public Map<String, String> getChannelsForInstances(Collection<String> processInstanceIds) {
+        if (processInstanceIds.isEmpty()) {
+            return Map.of();
+        }
+        List<HistoricVariableInstance> list = restClient.get()
+                .uri(baseUrl + "/history/variable-instance?variableName=channel&processInstanceIdIn={ids}",
+                        String.join(",", processInstanceIds))
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricVariableInstance>>() {
+                });
+        if (list == null) {
+            return Map.of();
+        }
+        Map<String, String> result = new java.util.LinkedHashMap<>();
+        for (HistoricVariableInstance v : list) {
+            if (v.value() != null) {
+                result.put(v.processInstanceId(), String.valueOf(v.value()));
+            }
+        }
+        return result;
+    }
+
     public Optional<HistoricProcessInstance> getHistoricProcessInstance(String processInstanceId) {
         try {
             return Optional.ofNullable(restClient.get()

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useAppTheme, type AppColors } from '../shell/theme';
+import { CHANNEL_TYPE_LABELS, type ChannelType } from '../api/products';
 import { formatDateTime, formatDuration, HistoryWorkspace, STATE_LABEL } from '../execution/HistoryWorkspace';
 import {
   getInstanceHistory,
@@ -40,7 +41,12 @@ function bucketMeta(bucket: Bucket, c: AppColors): { fg: string; bg: string; Ico
   return { fg: c.danger, bg: c.dangerSoft, Icon: XCircle };
 }
 
-const GRID_COLS = 'minmax(0,1fr) 160px 150px 110px';
+const GRID_COLS = 'minmax(0,1fr) 100px 160px 150px 110px';
+
+function channelLabel(channel: string | null): string {
+  if (!channel) return '—';
+  return CHANNEL_TYPE_LABELS[channel as ChannelType] ?? channel;
+}
 
 type SearchType = 'journey' | 'businessKey' | 'instanceId';
 
@@ -408,6 +414,9 @@ export function DiagnosticoPage({ initialInstanceId }: Props) {
                 Execução
               </span>
               <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
+                Canal
+              </span>
+              <span className="text-[10.5px] font-semibold uppercase tracking-[0.04em]" style={{ color: c.textMuted }}>
                 Estado
               </span>
               <button
@@ -516,7 +525,7 @@ function InstanceGroup({ group, onOpen, c }: { group: Group; onOpen: (id: string
             {group.version != null ? `v${group.version}` : 'sem versão'}
           </span>
         </div>
-        <span className="text-[11px] shrink-0" style={{ color: c.textMuted }}>
+        <span className="text-[11px] shrink-0" style={{ color: c.textMuted, gridColumn: 3 }}>
           {group.items.length} execuç{group.items.length === 1 ? 'ão' : 'ões'}
         </span>
       </div>
@@ -556,6 +565,9 @@ function InstanceRow({
           {item.businessKey}
         </div>
       </div>
+      <span className="text-[12px] truncate" style={{ color: c.textSecondary }}>
+        {channelLabel(item.channel)}
+      </span>
       <span
         className="inline-flex items-center gap-[5px] text-[10.5px] font-semibold px-[8px] py-[3px] rounded-full w-fit"
         style={{ background: meta.bg, color: meta.fg }}

@@ -4,7 +4,7 @@ import { useFlowTheme } from '../flow-designer/theme';
 import type { VariableOrigin } from '../flow-designer/model';
 import { listComponentDefinitions, type ComponentDefinition } from '../api/componentDefinitions';
 import type { ChannelType } from '../api/products';
-import { createNode, findNode, findParent, insertNode, removeNode, collectIds, moveNode, moveWithinSiblings, updateProps, updateBindings, updateEvents, updateVisibility, type SduiNode } from './model';
+import { createNode, findNode, findParent, insertNode, removeNode, collectIds, moveNode, moveWithinSiblings, updateProps, updateBindings, updateEvents, updateVisibility, updateActive, type SduiNode } from './model';
 import { SduiComponentPalette, type PaletteDragData } from './SduiComponentPalette';
 import { SduiTreeCanvas, type CanvasDragData } from './SduiTreeCanvas';
 import { SduiLayersPanel } from './SduiLayersPanel';
@@ -160,6 +160,7 @@ export function SduiScreenEditor({ root, onChange, onPushHistory, variables, cha
           onUpdateBindings={(bindings) => onChange(updateBindings(root, selectedId!, bindings))}
           onUpdateEvents={(events) => onChange(updateEvents(root, selectedId!, events))}
           onUpdateVisibility={(visibility) => onChange(updateVisibility(root, selectedId!, visibility))}
+          onUpdateActive={(active) => onChange(updateActive(root, selectedId!, active))}
         />
       </div>
       <DragOverlay>

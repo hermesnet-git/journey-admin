@@ -16,11 +16,11 @@
       "type": "string",
       "required": true
     },
-    "screenId": {
+    "uiStepId": {
       "type": "string",
       "required": true
     },
-    "revision": {
+    "journeyVersion": {
       "type": "integer",
       "required": true,
       "min": 1
@@ -59,10 +59,15 @@
       "required": true,
       "description": "Hash de integridade do JSON do snapshot (SHA-256), calculado pelo ms-espec-registry ao gravar (admin/back nunca fala com o Strapi direto)"
     },
-    "root": {
+    "dataSources": {
       "type": "json",
       "required": true,
-      "description": "Árvore de nó ui.screen completa (id/type/version/props/bindings/events/visibility/children), imutável após publicação"
+      "description": "Reservado para evolução; deve ser um objeto vazio no contrato v1"
+    },
+    "data": {
+      "type": "json",
+      "required": true,
+      "description": "Tupla Hiccup canônica com raiz ui.screen, imutável após a publicação"
     }
   }
 }

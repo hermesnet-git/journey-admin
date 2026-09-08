@@ -166,14 +166,15 @@ export interface JourneySummary {
   publishedVersionNumber: number | null;
 }
 
-export type { SduiNode } from '../sdui/model';
-import type { SduiNode } from '../sdui/model';
+export type { SduiEnvelope } from '../sdui/model';
+import type { SduiEnvelope } from '../sdui/model';
 
 export interface FormPayload {
   id: string;
   name: string;
   description: string | null;
-  sdui: SduiNode;
+  sdui: SduiEnvelope | null;
+  context: Record<string, unknown>;
 }
 
 export interface TrailEntry {

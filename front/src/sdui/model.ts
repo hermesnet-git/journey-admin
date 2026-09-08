@@ -28,7 +28,48 @@ export interface SduiNode {
   bindings: Record<string, SduiBinding> | null;
   events: Record<string, SduiEvent> | null;
   visibility: SduiVisibility | null;
+  active: SduiVisibility | null;
   children: SduiNode[] | null;
+}
+
+export interface SduiEnvelope {
+  schemaVersion: string;
+  catalogVersion: string;
+  journeyId: string;
+  journeyVersion: number;
+  uiStepId: string;
+  data: unknown[];
+}
+
+/** Adapta a tupla publicada somente para o renderer de inspeção do Admin. */
+export function fromCanonicalTuple(tuple: unknown[]): SduiNode {
+  if (!Array.isArray(tuple) || tuple.length < 2 || typeof tuple[0] !== 'string') {
+    throw new Error('Tupla SDUI inválida');
+  }
+  const attributes = { ...((tuple[1] as Record<string, unknown>) ?? {}) };
+  const id = String(attributes.id ?? '');
+  const version = String(attributes.version ?? '');
+  const bindings = (attributes.$bindings as SduiNode['bindings']) ?? null;
+  const events = (attributes.$events as SduiNode['events']) ?? null;
+  const visibility = (attributes.$visibility as SduiVisibility) ?? null;
+  const active = (attributes.$active as SduiVisibility) ?? null;
+  delete attributes.id;
+  delete attributes.version;
+  delete attributes.$bindings;
+  delete attributes.$events;
+  delete attributes.$visibility;
+  delete attributes.$active;
+  return {
+    id,
+    type: tuple[0],
+    version,
+    props: attributes,
+    bindings,
+    events,
+    visibility,
+    active,
+    children: Array.isArray(tuple[2]) ? (tuple[2] as unknown[][]).map(fromCanonicalTuple) : null,
+  };
 }
 
 export function walk(node: SduiNode, visit: (node: SduiNode, parent: SduiNode | null) => void, parent: SduiNode | null = null) {
@@ -81,6 +122,12 @@ export function updateVisibility(root: SduiNode, id: string, visibility: SduiVis
   const node = findNode(root, id);
   if (!node) return root;
   return replaceNode(root, id, { ...node, visibility });
+}
+
+export function updateActive(root: SduiNode, id: string, active: SduiVisibility | null): SduiNode {
+  const node = findNode(root, id);
+  if (!node) return root;
+  return replaceNode(root, id, { ...node, active });
 }
 
 export function removeNode(root: SduiNode, id: string): SduiNode {
@@ -139,6 +186,7 @@ export function createNode(definition: ComponentDefinition): SduiNode {
     bindings: null,
     events: null,
     visibility: null,
+    active: null,
     children: definition.allowsChildren ? [] : null,
   };
 }

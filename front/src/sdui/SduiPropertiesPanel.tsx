@@ -154,12 +154,13 @@ function PropField({ prop, value, onChange }: { prop: PropDescriptor; value: unk
   }
 }
 
-type Tab = 'props' | 'bindings' | 'events' | 'visibility';
+type Tab = 'props' | 'bindings' | 'events' | 'visibility' | 'active';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'props', label: 'Propriedades' },
   { key: 'bindings', label: 'Vínculo' },
   { key: 'events', label: 'Eventos' },
   { key: 'visibility', label: 'Visibilidade' },
+  { key: 'active', label: 'Ativo' },
 ];
 
 /** Painel de propriedades do componente SDUI selecionado — sucessor de FormFieldConfigPanel.tsx:
@@ -176,6 +177,7 @@ export function SduiPropertiesPanel({
   onUpdateBindings,
   onUpdateEvents,
   onUpdateVisibility,
+  onUpdateActive,
 }: {
   node: SduiNode | null;
   definition: ComponentDefinition | null;
@@ -186,6 +188,7 @@ export function SduiPropertiesPanel({
   onUpdateBindings: (bindings: SduiNode['bindings']) => void;
   onUpdateEvents: (events: SduiNode['events']) => void;
   onUpdateVisibility: (visibility: SduiNode['visibility']) => void;
+  onUpdateActive: (active: SduiNode['active']) => void;
 }) {
   const { c } = useFlowTheme();
   const [tab, setTab] = useState<Tab>('props');
@@ -262,6 +265,15 @@ export function SduiPropertiesPanel({
           variables={variables}
           channelTypes={channelTypes}
           onChange={onUpdateVisibility}
+        />
+      )}
+
+      {tab === 'active' && (
+        <VisibilityEditor
+          visibility={node.active}
+          variables={variables}
+          channelTypes={channelTypes}
+          onChange={onUpdateActive}
         />
       )}
     </div>

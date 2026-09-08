@@ -119,7 +119,10 @@ function StepView({ instance, onStep, onError }: { instance: JourneyInstance; on
     if (!parsed?.document || compatibilityError) return null;
     return createSduiRuntime({
       document: parsed.document,
-      context: { session: { channel: 'WEB', locale: 'pt-BR' } },
+      context: {
+        ...(instance.step.form?.context ?? {}),
+        session: { ...((instance.step.form?.context?.session as Record<string, unknown>) ?? {}), channel: 'WEB', locale: 'pt-BR' },
+      },
       handlers: {
         submit: async (answers) => {
           if (!instance.step.taskId) return;

@@ -79,7 +79,9 @@ public class JourneyController {
         Object answersRaw = body != null ? body.get("answers") : null;
         @SuppressWarnings("unchecked")
         Map<String, Object> answers = answersRaw instanceof Map<?, ?> m ? (Map<String, Object>) m : Map.of();
-        Map<String, CamundaVariable> variables = espec.convertAnswers(journeyId, current.nodeId(), answers);
+        int journeyVersion = stepResolver.journeyVersion(instance);
+        Map<String, CamundaVariable> variables = espec.convertAnswers(journeyId, journeyVersion,
+                current.nodeId(), answers);
         try {
             engineClient.completeTask(taskId, variables);
         } catch (RestClientException ex) {

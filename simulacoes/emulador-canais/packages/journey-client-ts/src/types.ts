@@ -28,6 +28,7 @@ export interface FormPayload {
   name: string;
   description: string | null;
   sdui: SduiDocument | unknown;
+  context: Record<string, unknown>;
 }
 
 export interface JourneyStep {

@@ -104,9 +104,7 @@ public class BpmnTransformer {
         // is immutable per version, unlike journey_publication which is overwritten on every republish) —
         // instead of mislabeling old instances with whatever the journey looks like today. Keep stamping
         // this on every publish even if no other consumer inside ms-transform-publication itself reads it.
-        if (request.versionNumber() != null) {
-            process.setCamundaVersionTag("v" + request.versionNumber());
-        }
+        process.setCamundaVersionTag("v" + request.versionNumber());
         definitions.getRootElements().add(process);
 
         Map<String, FlowNode> byId = new HashMap<>();

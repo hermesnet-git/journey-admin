@@ -42,12 +42,13 @@ public class JourneyStepResolver {
             return StepResponse.ended();
         }
         UUID journeyId = ProcessIds.journeyIdFromKey(instance.get().definitionKey());
+        int journeyVersion = journeyVersion(instance.get());
 
         List<TaskInfo> tasks = engineClient.findActiveUserTasks(processInstanceId);
         if (!tasks.isEmpty()) {
             TaskInfo task = tasks.get(0);
             Map<String, Object> variables = rawValues(engineClient.getProcessVariables(processInstanceId));
-            FormPayload form = espec.resolveForm(journeyId, task.taskDefinitionKey(), variables);
+            FormPayload form = espec.resolveForm(journeyId, journeyVersion, task.taskDefinitionKey(), variables);
             return StepResponse.userTask(task.id(), task.taskDefinitionKey(), task.name(), form);
         }
 
@@ -59,6 +60,10 @@ public class JourneyStepResolver {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Nó " + leaf.activityId() + " não encontrado no flow da jornada"));
         return StepResponse.waiting(node.id(), node.name(), node.type());
+    }
+
+    public int journeyVersion(ProcessInstanceInfo instance) {
+        return Integer.parseInt(engineClient.getJourneyVersionTag(instance.definitionId()).substring(1));
     }
 
     private Map<String, Object> rawValues(Map<String, CamundaVariable> variables) {

@@ -12,7 +12,7 @@ public interface SnapshotRepository {
      * (se existir) como deprecated — nunca edita um snapshot já publicado. */
     void save(SduiScreenEnvelope envelope);
 
-    Optional<SduiScreenEnvelope> findLatestPublished(UUID journeyId, String screenId);
+    Optional<SduiScreenEnvelope> findPublished(UUID journeyId, int journeyVersion, String uiStepId);
 
     /** Checagem rápida de que o backend está disponível pra receber publicação agora — usada pelo
      * admin/back antes de tentar publicar de verdade, pra falhar rápido com uma mensagem clara em

@@ -11,5 +11,12 @@ import java.util.Map;
  */
 public record SduiNode(String id, String type, String version, Map<String, Object> props,
                         Map<String, SduiBinding> bindings, Map<String, SduiEvent> events,
-                        SduiVisibility visibility, List<SduiNode> children) {
+                        SduiVisibility visibility, SduiVisibility active, List<SduiNode> children) {
+
+    /** Mantém a leitura de rascunhos anteriores apenas no modelo de autoria. */
+    public SduiNode(String id, String type, String version, Map<String, Object> props,
+                    Map<String, SduiBinding> bindings, Map<String, SduiEvent> events,
+                    SduiVisibility visibility, List<SduiNode> children) {
+        this(id, type, version, props, bindings, events, visibility, null, children);
+    }
 }

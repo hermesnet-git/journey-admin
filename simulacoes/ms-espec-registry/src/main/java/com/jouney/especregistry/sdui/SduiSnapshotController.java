@@ -29,7 +29,10 @@ public class SduiSnapshotController {
 
     @PostMapping
     public ResponseEntity<Void> receive(@RequestBody List<SduiScreenEnvelope> envelopes) {
-        envelopes.forEach(snapshotRepository::save);
+        envelopes.forEach(envelope -> {
+            CanonicalSdui.validateEnvelope(envelope);
+            snapshotRepository.save(envelope);
+        });
         return ResponseEntity.noContent().build();
     }
 
@@ -43,10 +46,12 @@ public class SduiSnapshotController {
                 : ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
     }
 
-    @GetMapping("/{journeyId}/{screenId}/latest")
-    public SduiScreenEnvelope latest(@PathVariable UUID journeyId, @PathVariable String screenId) {
-        return snapshotRepository.findLatestPublished(journeyId, screenId)
+    @GetMapping("/{journeyId}/{journeyVersion}/{uiStepId}")
+    public SduiScreenEnvelope get(@PathVariable UUID journeyId, @PathVariable int journeyVersion,
+                                  @PathVariable String uiStepId) {
+        return snapshotRepository.findPublished(journeyId, journeyVersion, uiStepId)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Nenhum snapshot publicado encontrado para " + journeyId + "/" + screenId));
+                        "Nenhum snapshot publicado encontrado para " + journeyId + "/" + journeyVersion
+                                + "/" + uiStepId));
     }
 }

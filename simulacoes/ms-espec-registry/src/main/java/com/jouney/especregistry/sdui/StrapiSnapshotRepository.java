@@ -83,21 +83,20 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
     @Override
     public void save(SduiScreenEnvelope envelope) {
         String token = requireToken();
-        findLatestEntry(envelope.journeyId(), envelope.screenId())
-                .ifPresent(entry -> deprecate(entry.documentId(), token));
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("journeyId", envelope.journeyId().toString());
-        data.put("screenId", envelope.screenId());
-        data.put("revision", envelope.revision());
+        data.put("journeyVersion", envelope.journeyVersion());
+        data.put("uiStepId", envelope.uiStepId());
         data.put("status", "published");
         data.put("schemaVersion", envelope.schemaVersion());
         data.put("catalogVersion", envelope.catalogVersion());
         data.put("publishedAt_source", (envelope.publishedAt() != null ? envelope.publishedAt() : OffsetDateTime.now()).toString());
-        data.put("integrityHash", integrityHash(envelope.root()));
+        data.put("integrityHash", integrityHash(envelope.data()));
         data.put("supportedTargets", envelope.supportedTargets());
         data.put("minRendererVersion", envelope.minRendererVersion());
-        data.put("root", envelope.root());
+        data.put("dataSources", envelope.dataSources());
+        data.put("data", envelope.data());
 
         try {
             restClient.post().uri(properties.baseUrl() + COLLECTION_PATH)
@@ -108,13 +107,14 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
                     .toBodilessEntity();
         } catch (RestClientException e) {
             throw new StrapiSnapshotException("Falha ao publicar snapshot SDUI no Strapi para "
-                    + envelope.journeyId() + "/" + envelope.screenId() + ": " + describeFailure(e), e);
+                    + envelope.journeyId() + "/" + envelope.journeyVersion() + "/" + envelope.uiStepId()
+                    + ": " + describeFailure(e), e);
         }
     }
 
     @Override
-    public Optional<SduiScreenEnvelope> findLatestPublished(UUID journeyId, String screenId) {
-        return findLatestEntry(journeyId, screenId).map(StrapiEntry::envelope);
+    public Optional<SduiScreenEnvelope> findPublished(UUID journeyId, int journeyVersion, String uiStepId) {
+        return findEntry(journeyId, journeyVersion, uiStepId).map(StrapiEntry::envelope);
     }
 
     @Override
@@ -134,20 +134,18 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
         }
     }
 
-    // Strapi v5 troca o id numérico interno (formato v4) por um documentId (string) pra qualquer
-    // rota de update/delete — usar o id numérico na URL, como o código fazia antes, dá 404
-    // (confirmado: só descoberto agora porque foi o primeiro deprecate() que rodou contra um
-    // Strapi real de verdade).
+    // Strapi v5 troca o id numérico interno (formato v4) por um documentId (string).
     private record StrapiEntry(String documentId, SduiScreenEnvelope envelope) {
     }
 
-    private Optional<StrapiEntry> findLatestEntry(UUID journeyId, String screenId) {
+    private Optional<StrapiEntry> findEntry(UUID journeyId, int journeyVersion, String uiStepId) {
         String token = requireToken();
         String uri = properties.baseUrl() + COLLECTION_PATH
                 + "?filters[journeyId][$eq]=" + journeyId
-                + "&filters[screenId][$eq]=" + screenId
+                + "&filters[journeyVersion][$eq]=" + journeyVersion
+                + "&filters[uiStepId][$eq]=" + uiStepId
                 + "&filters[status][$eq]=published"
-                + "&sort[0]=revision:desc&pagination[limit]=1";
+                + "&pagination[limit]=1";
         JsonNode response;
         try {
             response = restClient.get().uri(uri)
@@ -156,7 +154,7 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
                     .body(JsonNode.class);
         } catch (RestClientException e) {
             throw new StrapiSnapshotException("Falha ao consultar snapshot SDUI no Strapi para "
-                    + journeyId + "/" + screenId + ": " + describeFailure(e), e);
+                    + journeyId + "/" + journeyVersion + "/" + uiStepId + ": " + describeFailure(e), e);
         }
         if (response == null) {
             return Optional.empty();
@@ -170,37 +168,24 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
         String documentId = textOrNull(row, "documentId");
         if (documentId == null) {
             throw new StrapiSnapshotException("Snapshot SDUI do Strapi sem documentId para "
-                    + journeyId + "/" + screenId + " — formato de resposta inesperado.");
+                    + journeyId + "/" + journeyVersion + "/" + uiStepId + " — formato de resposta inesperado.");
         }
         try {
             SduiScreenEnvelope envelope = new SduiScreenEnvelope(
-                    textOrNull(fields, "schemaVersion"), textOrNull(fields, "catalogVersion"), journeyId, screenId,
-                    fields.path("revision").asInt(),
+                    textOrNull(fields, "schemaVersion"), textOrNull(fields, "catalogVersion"), journeyId,
+                    fields.path("journeyVersion").asInt(), textOrNull(fields, "uiStepId"),
                     textOrNull(fields, "status"),
                     OffsetDateTime.parse(fields.path("publishedAt_source").asText()),
                     objectMapper.convertValue(fields.path("supportedTargets"), objectMapper.getTypeFactory()
                             .constructCollectionType(java.util.List.class, String.class)),
                     objectMapper.convertValue(fields.path("minRendererVersion"), objectMapper.getTypeFactory()
                             .constructMapType(Map.class, String.class, String.class)),
-                    objectMapper.treeToValue(fields.path("root"), SduiNode.class));
+                    objectMapper.convertValue(fields.path("dataSources"), objectMapper.getTypeFactory()
+                            .constructMapType(Map.class, String.class, Object.class)), fields.path("data"));
             return Optional.of(new StrapiEntry(documentId, envelope));
         } catch (Exception e) {
             throw new StrapiSnapshotException("Snapshot SDUI do Strapi em formato inesperado para "
-                    + journeyId + "/" + screenId, e);
-        }
-    }
-
-    private void deprecate(String documentId, String token) {
-        try {
-            restClient.put().uri(properties.baseUrl() + COLLECTION_PATH + "/" + documentId)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("data", Map.of("status", "deprecated")))
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientException e) {
-            throw new StrapiSnapshotException("Falha ao depreciar revisão anterior (documentId " + documentId
-                    + ") no Strapi: " + describeFailure(e), e);
+                    + journeyId + "/" + journeyVersion + "/" + uiStepId, e);
         }
     }
 
@@ -209,9 +194,9 @@ public class StrapiSnapshotRepository implements SnapshotRepository {
         return value.isMissingNode() || value.isNull() ? null : value.asText();
     }
 
-    private String integrityHash(SduiNode root) {
+    private String integrityHash(JsonNode data) {
         try {
-            byte[] json = objectMapper.writeValueAsBytes(root);
+            byte[] json = objectMapper.writeValueAsBytes(data);
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(json);
             StringBuilder hex = new StringBuilder(digest.length * 2);
             for (byte b : digest) {

@@ -460,8 +460,18 @@ export interface ApiSduiSnapshotSduiSnapshot
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    data: Schema.Attribute.JSON & Schema.Attribute.Required;
+    dataSources: Schema.Attribute.JSON & Schema.Attribute.Required;
     integrityHash: Schema.Attribute.String & Schema.Attribute.Required;
     journeyId: Schema.Attribute.String & Schema.Attribute.Required;
+    journeyVersion: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -471,21 +481,12 @@ export interface ApiSduiSnapshotSduiSnapshot
     minRendererVersion: Schema.Attribute.JSON & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
     publishedAt_source: Schema.Attribute.DateTime & Schema.Attribute.Required;
-    revision: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMax<
-        {
-          min: 1;
-        },
-        number
-      >;
-    root: Schema.Attribute.JSON & Schema.Attribute.Required;
     schemaVersion: Schema.Attribute.String & Schema.Attribute.Required;
-    screenId: Schema.Attribute.String & Schema.Attribute.Required;
     status: Schema.Attribute.Enumeration<['published', 'deprecated']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'published'>;
     supportedTargets: Schema.Attribute.JSON & Schema.Attribute.Required;
+    uiStepId: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

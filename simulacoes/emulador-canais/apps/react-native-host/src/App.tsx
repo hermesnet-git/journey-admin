@@ -276,8 +276,9 @@ function StepView({ journeyId, instance, onStep, onError, onNotice }: StepViewPr
     return createSduiRuntime({
       document: parsed.document,
       context: {
+        ...(instance.step.form?.context ?? {}),
         session: { channel: 'MOBILE', locale: 'pt-BR' },
-        route: { journeyId },
+        route: { ...((instance.step.form?.context?.route as Record<string, unknown>) ?? {}), journeyId },
       },
       handlers: {
         submit: async (answers) => {

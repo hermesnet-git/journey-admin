@@ -48,6 +48,19 @@ public class CamundaEngineClient {
         }
     }
 
+    public String getJourneyVersionTag(String processDefinitionId) {
+        Map<String, Object> definition = restClient.get()
+                .uri(properties.baseUrl() + "/process-definition/{id}", processDefinitionId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+        Object tag = definition != null ? definition.get("versionTag") : null;
+        if (!(tag instanceof String value) || !value.startsWith("v")) {
+            throw new IllegalStateException("Definição do runtime sem versão de jornada válida");
+        }
+        return value;
+    }
+
     public List<TaskInfo> findActiveUserTasks(String processInstanceId) {
         List<TaskInfo> tasks = restClient.get()
                 .uri(properties.baseUrl() + "/task?processInstanceId={id}", processInstanceId)

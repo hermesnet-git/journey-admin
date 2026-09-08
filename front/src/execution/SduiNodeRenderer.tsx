@@ -100,12 +100,16 @@ function collectInitialValues(node: SduiNode, acc: Record<string, string>) {
 // neste código (arriscado adivinhar), então uma visibilidade condicionada a um desses tipos não
 // reage ao vivo no simulador ainda. Upgrade: expor o valor ao vivo desses campos quando houver uma
 // necessidade real confirmada contra a API real do Form.
-function evaluateVisibility(node: SduiNode, extraValues: Record<string, unknown>): boolean {
-  const visibility = node.visibility;
-  if (!visibility || !visibility.path.startsWith('form.')) return true;
-  const name = visibility.path.slice('form.'.length);
-  const equal = String(extraValues[name] ?? '') === String(visibility.value ?? '');
-  return visibility.rule === 'notEquals' ? !equal : equal;
+function evaluateCondition(condition: SduiNode['visibility'], extraValues: Record<string, unknown>): boolean {
+  if (!condition || !condition.path.startsWith('form.')) return true;
+  const name = condition.path.slice('form.'.length);
+  const actual = extraValues[name];
+  const expected = condition.value;
+  const equal = String(actual ?? '') === String(expected ?? '');
+  if (condition.rule === 'notEquals') return !equal;
+  if (condition.rule === 'in') return Array.isArray(expected) && expected.includes(actual);
+  if (condition.rule === 'notIn') return !(Array.isArray(expected) && expected.includes(actual));
+  return equal;
 }
 
 export function SduiNodeRenderer({ sdui, onSubmit, submitting }: Props) {
@@ -182,7 +186,8 @@ function FieldRenderer({
   dispatch: (event: SduiEvent | undefined) => void;
   submitting: boolean;
 }) {
-  if (dismissed.has(node.id) || !evaluateVisibility(node, extraValues)) return null;
+  if (dismissed.has(node.id) || !evaluateCondition(node.visibility, extraValues)) return null;
+  const active = evaluateCondition(node.active, extraValues);
 
   const props = node.props;
   const label = (props.label as string | undefined) ?? '';
@@ -228,16 +233,15 @@ function FieldRenderer({
 
     case 'ui.stack': {
       const direction = (props.direction as string | undefined) ?? 'vertical';
-      const isRow = direction === 'horizontal' || direction === 'responsive';
+      const isRow = direction === 'horizontal';
       return (
         <div
           style={{
             display: 'flex',
             flexDirection: isRow ? 'row' : 'column',
-            flexWrap: props.wrap === true || direction === 'responsive' ? 'wrap' : 'nowrap',
-            gap: spacingOf(props.gapToken, 16),
-            alignItems: props.align as React.CSSProperties['alignItems'],
-            justifyContent: props.justify as React.CSSProperties['justifyContent'],
+            flexWrap: 'nowrap',
+            gap: spacingOf(props.spacingToken, 16),
+            alignItems: ({ start: 'flex-start', end: 'flex-end', center: 'center', stretch: 'stretch' } as Record<string, string>)[String(props.alignment ?? 'stretch')] as React.CSSProperties['alignItems'],
           }}
         >
           {children.map(renderChild)}
@@ -246,16 +250,13 @@ function FieldRenderer({
     }
 
     case 'ui.card': {
-      const interactive = props.interactive === true;
-      const onPress = node.events?.onPress;
       return (
         <div
-          onClick={interactive && onPress ? () => dispatch(onPress) : undefined}
+          aria-disabled={!active}
           style={{
             padding: spacingOf(props.paddingToken, 16),
             boxShadow: elevationOf(props.elevationToken),
             borderRadius: 8,
-            cursor: interactive ? 'pointer' : 'default',
             border: `1px solid ${skinVars.colors.border}`,
           }}
         >
@@ -389,7 +390,7 @@ function FieldRenderer({
       const variant = props.variant as string | undefined;
       const onPress = node.events?.onPress;
       const isSubmit = onPress?.action === 'action.submit';
-      const disabled = props.disabled === true;
+      const disabled = props.disabled === true || !active;
       // submit/onPress são mutuamente exclusivos na API da Mística — um botão de ação.submit usa a
       // coleta/validação nativa do <Form>; qualquer outra ação despacha manualmente.
       const commonProps = isSubmit

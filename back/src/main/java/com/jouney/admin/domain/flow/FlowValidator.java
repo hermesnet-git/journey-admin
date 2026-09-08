@@ -56,6 +56,9 @@ public final class FlowValidator {
     // pontual pra suportar "visível nestes canais" (lista de valores) sem virar lógica booleana
     // composta — continua uma única regra, só que contra um conjunto de valores em vez de um só.
     private static final Set<String> VALID_VISIBILITY_RULES = Set.of("equals", "notEquals", "in", "notIn");
+    private static final Pattern SEMVER = Pattern.compile("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$");
+    private static final Set<String> INPUT_COMPONENTS = Set.of("ui.textInput", "ui.textArea", "ui.select",
+            "ui.checkbox", "ui.datePicker");
     // Nome de variável de processo reservado: injetado pelo ms-espec-registry a partir do canal
     // declarado ao iniciar a instância (?channel=...) — nunca declarado pelo usuário no nó START.
     private static final String CHANNEL_VARIABLE = "channel";
@@ -531,12 +534,27 @@ public final class FlowValidator {
         }
 
         ComponentDefinition definition = componentRegistry.get(sduiNode.type() + "@" + sduiNode.version());
+        if (sduiNode.version() == null || !SEMVER.matcher(sduiNode.version()).matches()) {
+            violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id()
+                    + "' deve usar versão SemVer completa, por exemplo 1.0.0"));
+        }
         if (definition == null) {
             violations.add(new FlowViolation(ownerNode.getId(), "A tela do nó '" + ownerNode.getName() + "' usa o tipo '" + sduiNode.type() + "@"
                     + sduiNode.version() + "', não encontrado no Component Registry"));
         } else if (definition.getStatus() == ComponentStatus.REMOVED) {
             violations.add(new FlowViolation(ownerNode.getId(), "A tela do nó '" + ownerNode.getName() + "' usa o componente '" + sduiNode.type()
                     + "', removido do catálogo"));
+        }
+
+        if (definition != null) {
+            Map<String, Object> props = sduiNode.props() != null ? sduiNode.props() : Map.of();
+            Set<String> allowedProps = definition.getPropsSchema().stream().map(p -> p.name()).collect(java.util.stream.Collectors.toSet());
+            props.keySet().stream().filter(name -> !allowedProps.contains(name)).forEach(name ->
+                    violations.add(new FlowViolation(ownerNode.getId(), "O atributo '" + name + "' não pertence ao componente '"
+                            + sduiNode.id() + "'")));
+            definition.getPropsSchema().stream().filter(p -> p.required() && !props.containsKey(p.name())).forEach(p ->
+                    violations.add(new FlowViolation(ownerNode.getId(), "O atributo obrigatório '" + p.name()
+                            + "' não foi informado no componente '" + sduiNode.id() + "'")));
         }
 
         List<SduiNode> children = sduiNode.children();
@@ -561,6 +579,23 @@ public final class FlowValidator {
                 }
             }
         }
+        if (INPUT_COMPONENTS.contains(sduiNode.type())) {
+            SduiBinding value = sduiNode.bindings() != null ? sduiNode.bindings().get("value") : null;
+            if (value == null || value.path() == null || !value.path().startsWith("form.")
+                    || !"twoWay".equals(value.mode())) {
+                violations.add(new FlowViolation(ownerNode.getId(), "O componente de entrada '" + sduiNode.id()
+                        + "' exige bindings.value em modo twoWay e path form.*"));
+            }
+            if (sduiNode.events() != null && !sduiNode.events().isEmpty()) {
+                violations.add(new FlowViolation(ownerNode.getId(), "O componente de entrada '" + sduiNode.id()
+                        + "' não aceita eventos"));
+            }
+        }
+        if (("ui.button".equals(sduiNode.type()) || "ui.link".equals(sduiNode.type()))
+                && (sduiNode.events() == null || !sduiNode.events().containsKey("onPress"))) {
+            violations.add(new FlowViolation(ownerNode.getId(), "O componente de ação '" + sduiNode.id()
+                    + "' exige o evento onPress"));
+        }
         SduiVisibility visibility = sduiNode.visibility();
         if (visibility != null) {
             if (visibility.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(visibility.path()::startsWith)) {
@@ -572,11 +607,25 @@ public final class FlowValidator {
                         + visibility.rule() + "', na tela do nó '" + ownerNode.getName() + "'"));
             }
         }
+        validateCondition(ownerNode, sduiNode.id(), "estado ativo", sduiNode.active(), violations);
 
         if (children != null) {
             for (SduiNode child : children) {
                 validateSduiNode(ownerNode, child, componentRegistry, seenIds, violations);
             }
+        }
+    }
+
+    private static void validateCondition(FlowNode ownerNode, String componentId, String label,
+                                           SduiVisibility condition, List<FlowViolation> violations) {
+        if (condition == null) return;
+        if (condition.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(condition.path()::startsWith)) {
+            violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + componentId + "' tem "
+                    + label + " com path inválido: '" + condition.path() + "'"));
+        }
+        if (condition.rule() == null || !VALID_VISIBILITY_RULES.contains(condition.rule())) {
+            violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + componentId + "' tem "
+                    + label + " com regra inválida: '" + condition.rule() + "'"));
         }
     }
 

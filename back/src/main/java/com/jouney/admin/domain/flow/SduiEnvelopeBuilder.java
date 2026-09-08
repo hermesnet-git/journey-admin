@@ -3,8 +3,10 @@ package com.jouney.admin.domain.flow;
 import com.jouney.admin.domain.componentregistry.ComponentDefinition;
 import com.jouney.admin.domain.componentregistry.RenderTarget;
 import com.jouney.admin.domain.componentregistry.TargetStatus;
+import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.sdui.SduiNode;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -20,25 +22,28 @@ import java.util.UUID;
  * continuarem corretos conforme o Component Registry ganhar mais alvos/versões. */
 public final class SduiEnvelopeBuilder {
 
-    private static final String SCHEMA_VERSION = "1.0";
-    private static final String CATALOG_VERSION = "1.0";
+    private static final String SCHEMA_VERSION = "1.0.0";
+    private static final String CATALOG_VERSION = "1.0.0";
 
     private SduiEnvelopeBuilder() {
     }
 
-    public static List<SduiScreenEnvelope> buildAll(UUID journeyId, int revision, List<FlowNode> flowNodes,
+    public static List<SduiScreenEnvelope> buildAll(UUID journeyId, int journeyVersion,
+                                                      List<ChannelType> channelTypes, List<FlowNode> flowNodes,
                                                       Map<String, ComponentDefinition> componentRegistry) {
         List<SduiScreenEnvelope> envelopes = new ArrayList<>();
         for (FlowNode node : flowNodes) {
             if (node.getEmbeddedScreenRoot() == null) {
                 continue;
             }
-            envelopes.add(build(journeyId, node.getId(), revision, node.getEmbeddedScreenRoot(), componentRegistry));
+            envelopes.add(build(journeyId, journeyVersion, node.getId(), channelTypes,
+                    node.getEmbeddedScreenRoot(), componentRegistry));
         }
         return envelopes;
     }
 
-    private static SduiScreenEnvelope build(UUID journeyId, String screenId, int revision, SduiNode root,
+    private static SduiScreenEnvelope build(UUID journeyId, int journeyVersion, String uiStepId,
+                                             List<ChannelType> channelTypes, SduiNode root,
                                              Map<String, ComponentDefinition> componentRegistry) {
         Set<String> usedKeys = new LinkedHashSet<>();
         collectKeys(root, usedKeys);
@@ -47,6 +52,9 @@ public final class SduiEnvelopeBuilder {
         List<String> supportedTargets = new ArrayList<>();
         Map<String, String> minRendererVersion = new LinkedHashMap<>();
         for (String target : RenderTarget.ALL) {
+            if (!targetBelongsToJourney(target, channelTypes)) {
+                continue;
+            }
             boolean allSupported = !used.isEmpty() && used.stream().allMatch(d -> {
                 var support = d.getSupportedTargets().get(target);
                 return support != null && support.status() == TargetStatus.SUPPORTED;
@@ -62,8 +70,38 @@ public final class SduiEnvelopeBuilder {
             minRendererVersion.put(target, maxVersion);
         }
 
-        return new SduiScreenEnvelope(SCHEMA_VERSION, CATALOG_VERSION, journeyId, screenId, revision, "published",
-                OffsetDateTime.now(), supportedTargets, minRendererVersion, root);
+        return new SduiScreenEnvelope(SCHEMA_VERSION, CATALOG_VERSION, journeyId, journeyVersion, uiStepId,
+                "published", OffsetDateTime.now(ZoneOffset.UTC), supportedTargets, minRendererVersion, Map.of(), toTuple(root));
+    }
+
+    private static boolean targetBelongsToJourney(String target, List<ChannelType> channelTypes) {
+        if (target.equals(RenderTarget.WHATSAPP)) {
+            return channelTypes.contains(ChannelType.WHATSAPP);
+        }
+        if (target.endsWith(".web")) {
+            return channelTypes.contains(ChannelType.WEB);
+        }
+        if (target.endsWith(".mobile")) {
+            return channelTypes.contains(ChannelType.MOBILE);
+        }
+        return false;
+    }
+
+    /** Converte o modelo normalizado de autoria na tupla canônica de publicação. */
+    private static List<Object> toTuple(SduiNode node) {
+        Map<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("id", node.id());
+        attributes.put("version", node.version());
+        if (node.props() != null) attributes.putAll(node.props());
+        if (node.bindings() != null && !node.bindings().isEmpty()) attributes.put("$bindings", node.bindings());
+        if (node.events() != null && !node.events().isEmpty()) attributes.put("$events", node.events());
+        if (node.visibility() != null) attributes.put("$visibility", node.visibility());
+        if (node.active() != null) attributes.put("$active", node.active());
+        List<Object> tuple = new ArrayList<>();
+        tuple.add(node.type());
+        tuple.add(attributes);
+        if (node.children() != null) tuple.add(node.children().stream().map(SduiEnvelopeBuilder::toTuple).toList());
+        return tuple;
     }
 
     private static void collectKeys(SduiNode node, Set<String> acc) {

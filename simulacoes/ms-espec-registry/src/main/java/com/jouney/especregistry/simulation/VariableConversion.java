@@ -4,7 +4,8 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jouney.especregistry.adminback.ConnectorConfig;
 import com.jouney.especregistry.camunda.CamundaVariable;
-import com.jouney.especregistry.sdui.SduiNode;
+import com.jouney.especregistry.sdui.CanonicalSdui;
+import tools.jackson.databind.JsonNode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -26,9 +27,9 @@ public final class VariableConversion {
     private VariableConversion() {
     }
 
-    public static Map<String, CamundaVariable> fromAnswers(SduiNode sdui, Map<String, Object> answers) {
-        Map<String, SduiForm.FieldSpec> specs = SduiForm.fields(sdui).stream()
-                .collect(Collectors.toMap(SduiForm.FieldSpec::name, f -> f, (a, b) -> a));
+    public static Map<String, CamundaVariable> fromAnswers(JsonNode sdui, Map<String, Object> answers) {
+        Map<String, CanonicalSdui.FieldSpec> specs = CanonicalSdui.fields(sdui).stream()
+                .collect(Collectors.toMap(CanonicalSdui.FieldSpec::name, f -> f, (a, b) -> a));
         Map<String, CamundaVariable> variables = new HashMap<>();
         for (Map.Entry<String, Object> entry : answers.entrySet()) {
             if (entry.getValue() == null) {
@@ -39,7 +40,7 @@ public final class VariableConversion {
         return variables;
     }
 
-    private static CamundaVariable convertAnswer(SduiForm.FieldSpec spec, Object raw) {
+    private static CamundaVariable convertAnswer(CanonicalSdui.FieldSpec spec, Object raw) {
         if (spec != null && "ui.textInput".equals(spec.type())
                 && ("number".equals(spec.inputMode()) || "decimal".equals(spec.inputMode()))) {
             return new CamundaVariable(Double.valueOf(raw.toString()), "Double");

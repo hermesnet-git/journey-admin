@@ -50,6 +50,15 @@ public class AdminBackClient {
                 snapshot.flowNodes(), snapshot.flowConnections());
     }
 
+    public PublicationSnapshot getVersionSnapshot(UUID journeyId, int versionNumber) {
+        JourneyVersionResponse version = listVersions(journeyId).stream()
+                .filter(candidate -> candidate.versionNumber() == versionNumber)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Versão " + versionNumber
+                        + " não encontrada para a jornada " + journeyId));
+        return getVersionSnapshot(journeyId, version.versionId());
+    }
+
     private <T> T get(String path, Class<T> type) {
         return withAuth(headers -> restClient.get().uri(properties.baseUrl() + path).headers(headers).retrieve()
                 .body(type));

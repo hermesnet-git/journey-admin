@@ -31,18 +31,21 @@ public class EspecRegistryClient {
                 .body(FlowBundle.class);
     }
 
-    public FormPayload resolveForm(UUID journeyId, String nodeId, Map<String, Object> variables) {
+    public FormPayload resolveForm(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> variables) {
         return restClient.post()
-                .uri(properties.baseUrl() + "/api/v1/journeys/{jid}/nodes/{nid}/form/resolve", journeyId, nodeId)
+                .uri(properties.baseUrl() + "/api/v1/journeys/{jid}/versions/{version}/nodes/{nid}/form/resolve",
+                        journeyId, journeyVersion, nodeId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("variables", variables))
                 .retrieve()
                 .body(FormPayload.class);
     }
 
-    public Map<String, CamundaVariable> convertAnswers(UUID journeyId, String nodeId, Map<String, Object> answers) {
+    public Map<String, CamundaVariable> convertAnswers(UUID journeyId, int journeyVersion, String nodeId,
+                                                        Map<String, Object> answers) {
         return restClient.post()
-                .uri(properties.baseUrl() + "/api/v1/journeys/{jid}/nodes/{nid}/answers/convert", journeyId, nodeId)
+                .uri(properties.baseUrl() + "/api/v1/journeys/{jid}/versions/{version}/nodes/{nid}/answers/convert",
+                        journeyId, journeyVersion, nodeId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("answers", answers))
                 .retrieve()

@@ -113,7 +113,7 @@ public class PublishJourneyVersion {
                 version.getChannelTypes(), version.getFlowNodes(), version.getFlowConnections(), version.getId(),
                 version.getVersionNumber());
         List<SduiScreenEnvelope> sduiEnvelopes = SduiEnvelopeBuilder.buildAll(journeyId, version.getVersionNumber(),
-                version.getFlowNodes(), componentRegistry);
+                version.getChannelTypes(), version.getFlowNodes(), componentRegistry);
         String deploymentId;
         try {
             // Checa disponibilidade antes de qualquer efeito colateral (deploy no runtime incluso)

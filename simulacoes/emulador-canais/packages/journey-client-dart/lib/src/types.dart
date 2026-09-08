@@ -60,18 +60,20 @@ class FlowBundle {
 }
 
 class FormPayload {
-  const FormPayload({required this.id, required this.name, this.description, required this.sdui});
+  const FormPayload({required this.id, required this.name, this.description, required this.sdui, required this.context});
 
   final String id;
   final String name;
   final String? description;
   final dynamic sdui;
+  final JsonMap context;
 
   factory FormPayload.fromJson(JsonMap json) => FormPayload(
         id: json['id']?.toString() ?? '',
         name: json['name']?.toString() ?? '',
         description: json['description']?.toString(),
         sdui: json['sdui'],
+        context: json['context'] is Map ? Map<String, dynamic>.from(json['context'] as Map) : <String, dynamic>{},
       );
 }
 
@@ -133,4 +135,3 @@ JsonMap _map(dynamic value) => value is Map
     : <String, dynamic>{};
 
 List<dynamic> _list(dynamic value) => value is List ? value : const [];
-

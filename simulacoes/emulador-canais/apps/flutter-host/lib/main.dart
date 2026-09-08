@@ -355,8 +355,12 @@ class _ChannelHostPageState extends State<ChannelHostPage> {
     final runtime = SduiRuntime(
       root: parsed.root!,
       context: {
+        ...form.context,
         'session': {
-          'channel': kIsWeb ? 'FLUTTER_WEB' : 'FLUTTER_MOBILE',
+          ...(form.context['session'] is Map
+              ? Map<String, dynamic>.from(form.context['session'] as Map)
+              : <String, dynamic>{}),
+          'channel': kIsWeb ? 'WEB' : 'MOBILE',
           'locale': 'pt-BR',
         },
       },

@@ -2,6 +2,7 @@ import { CheckCircle2, Clock, Radio } from 'lucide-react';
 import { Box, Boxed, ButtonLayout, ButtonPrimary, Callout, Stack, Text, TextLink, skinVars } from '@telefonica/mistica';
 import type { ConnectorConfigInfo, StepResponse, TestMessageInput } from './api';
 import { SduiNodeRenderer } from './SduiNodeRenderer';
+import { fromCanonicalTuple } from '../sdui/model';
 import { PhoneFrame } from './PhoneFrame';
 import { SendTestMessagePanel } from './SendTestMessagePanel';
 import { KafkaManualSendPanel } from './KafkaManualSendPanel';
@@ -61,7 +62,11 @@ export function DevicePreview({
             {/* key=taskId: sem isto o React reaproveita a mesma instância (e o estado interno do
                 <Form> da Mística) entre User Tasks diferentes — os valores digitados na tela
                 anterior vazavam pra tela seguinte, mesmo sem nenhum campo em comum de verdade. */}
-            <SduiNodeRenderer key={step.taskId} sdui={step.form.sdui} onSubmit={onCompleteTask} submitting={busy} />
+            {step.form.sdui ? (
+              <SduiNodeRenderer key={step.taskId} sdui={fromCanonicalTuple(step.form.sdui.data)} onSubmit={onCompleteTask} submitting={busy} />
+            ) : (
+              <Text size={14}>{step.form.description ?? 'Etapa sem interface visual.'}</Text>
+            )}
           </Stack>
         )}
 

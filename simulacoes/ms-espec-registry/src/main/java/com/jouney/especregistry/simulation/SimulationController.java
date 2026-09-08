@@ -286,7 +286,7 @@ public class SimulationController {
         SynchronousChainCheck.verify(snapshot);
 
         Map<String, Object> answers = request != null && request.answers() != null ? request.answers() : Map.of();
-        Map<String, CamundaVariable> variables = VariableConversion.fromAnswers(current.form().sdui(), answers);
+        Map<String, CamundaVariable> variables = VariableConversion.fromAnswers(current.form().sdui().data(), answers);
         Instant before = Instant.now();
         try {
             camundaClient.completeTask(taskId, variables);

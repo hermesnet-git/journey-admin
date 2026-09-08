@@ -4,9 +4,8 @@ import com.jouney.especregistry.adminback.AdminBackClient;
 import com.jouney.especregistry.adminback.FlowNode;
 import com.jouney.especregistry.adminback.PublicationSnapshot;
 import com.jouney.especregistry.camunda.CamundaVariable;
-import com.jouney.especregistry.sdui.ActionRegistry;
-import com.jouney.especregistry.sdui.ResolutionContext;
-import com.jouney.especregistry.sdui.SduiNode;
+import com.jouney.especregistry.sdui.CanonicalSdui;
+import com.jouney.especregistry.sdui.SduiScreenEnvelope;
 import com.jouney.especregistry.sdui.SnapshotRepository;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,28 +35,29 @@ public class FormSpecController {
         this.snapshotRepository = snapshotRepository;
     }
 
-    @PostMapping("/journeys/{journeyId}/nodes/{nodeId}/form/resolve")
-    public FormPayload resolveForm(@PathVariable UUID journeyId, @PathVariable String nodeId,
+    @PostMapping("/journeys/{journeyId}/versions/{journeyVersion}/nodes/{nodeId}/form/resolve")
+    public FormPayload resolveForm(@PathVariable UUID journeyId, @PathVariable int journeyVersion,
+                                    @PathVariable String nodeId,
                                     @RequestBody(required = false) ResolveFormRequest request) {
-        FlowNode node = findNode(journeyId, nodeId);
+        FlowNode node = findNode(journeyId, journeyVersion, nodeId);
         Map<String, CamundaVariable> variables = toVariables(request != null ? request.variables() : null);
         if (!node.hasEmbeddedScreen()) {
             String message = SduiTemplateResolver.resolveMessage(node, variables);
-            return new FormPayload(null, node.name(), null, SduiTemplateResolver.messageSdui(message));
+            return new FormPayload(null, node.name(), message, null, Map.of());
         }
-        SduiNode root = requireScreenRoot(journeyId, node);
-        ActionRegistry.validate(root);
-        return new FormPayload(null, node.name(), null,
-                SduiTemplateResolver.resolveSduiNode(root, variables, ResolutionContext.fromProcessVariables(variables)));
+        SduiScreenEnvelope envelope = requireScreen(journeyId, journeyVersion, node);
+        CanonicalSdui.validateEnvelope(envelope);
+        return new FormPayload(null, node.name(), null, envelope, runtimeContext(envelope, request));
     }
 
-    @PostMapping("/journeys/{journeyId}/nodes/{nodeId}/answers/convert")
-    public Map<String, CamundaVariable> convertAnswers(@PathVariable UUID journeyId, @PathVariable String nodeId,
+    @PostMapping("/journeys/{journeyId}/versions/{journeyVersion}/nodes/{nodeId}/answers/convert")
+    public Map<String, CamundaVariable> convertAnswers(@PathVariable UUID journeyId,
+                                                         @PathVariable int journeyVersion,
+                                                         @PathVariable String nodeId,
                                                          @RequestBody(required = false) ConvertAnswersRequest request) {
-        FlowNode node = findNode(journeyId, nodeId);
+        FlowNode node = findNode(journeyId, journeyVersion, nodeId);
         Map<String, Object> answers = request != null && request.answers() != null ? request.answers() : Map.of();
-        SduiNode root = requireScreenRoot(journeyId, node);
-        return VariableConversion.fromAnswers(root, answers);
+        return VariableConversion.fromAnswers(requireScreen(journeyId, journeyVersion, node).data(), answers);
     }
 
     @PostMapping("/journeys/{journeyId}/start-variables/convert")
@@ -71,17 +71,26 @@ public class FormSpecController {
         return VariableConversion.fromDeclaredVariables(variables, start.startVariables());
     }
 
-    private FlowNode findNode(UUID journeyId, String nodeId) {
-        PublicationSnapshot snapshot = adminBackClient.getPublicationSnapshot(journeyId);
+    private FlowNode findNode(UUID journeyId, int journeyVersion, String nodeId) {
+        PublicationSnapshot snapshot = adminBackClient.getVersionSnapshot(journeyId, journeyVersion);
         return snapshot.findNode(nodeId)
                 .orElseThrow(() -> new IllegalStateException("Nó " + nodeId + " não encontrado no snapshot da jornada"));
     }
 
-    private SduiNode requireScreenRoot(UUID journeyId, FlowNode node) {
-        return snapshotRepository.findLatestPublished(journeyId, node.id())
+    private SduiScreenEnvelope requireScreen(UUID journeyId, int journeyVersion, FlowNode node) {
+        return snapshotRepository.findPublished(journeyId, journeyVersion, node.id())
                 .orElseThrow(() -> new IllegalStateException("Nó " + node.id()
-                        + " tem tela desenhada mas nenhum snapshot publicado foi encontrado no Strapi"))
-                .root();
+                        + " tem tela desenhada mas nenhum snapshot publicado foi encontrado no Strapi"));
+    }
+
+    private Map<String, Object> runtimeContext(SduiScreenEnvelope envelope, ResolveFormRequest request) {
+        Map<String, Object> source = request != null && request.variables() != null ? request.variables() : Map.of();
+        Map<String, Object> values = new LinkedHashMap<>();
+        CanonicalSdui.referencedProcessVariables(envelope.data()).forEach(name -> {
+            if (source.containsKey(name)) values.put(name, source.get(name));
+        });
+        return Map.of("form", values, "data", values, "session", Map.of(), "route", Map.of(),
+                "computed", Map.of());
     }
 
     // Envelopa cada valor bruto do JSON num CamundaVariable sem type (SduiTemplateResolver só usa

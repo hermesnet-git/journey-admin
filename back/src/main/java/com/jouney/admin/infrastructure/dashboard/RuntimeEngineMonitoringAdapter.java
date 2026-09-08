@@ -139,7 +139,38 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
 
     @Override
     public List<HistoricInstanceSummary> recentInstances(int limit) {
-        return fetchHistoricInstances(baseUrl + "/history/process-instance?maxResults={n}&sortBy=startTime&sortOrder=desc", limit);
+        List<HistoricProcessInstanceRaw> raw = call(() -> restClient.get()
+                .uri(baseUrl + "/history/process-instance?maxResults={n}&sortBy=startTime&sortOrder=desc", limit)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricProcessInstanceRaw>>() {
+                }));
+        if (raw == null) return List.of();
+        Map<String, String> channels = fetchChannels(raw.stream().map(HistoricProcessInstanceRaw::id).toList());
+        return raw.stream().map(p -> toSummary(p, channels.get(p.id()))).toList();
+    }
+
+    /** Canal ({@code channel}, variável de processo gravada no start da instância) de cada id da
+     * lista, numa única chamada em lote — só usado pelo card "Execuções recentes" do Dashboard, que
+     * é a única lista deste adapter que expõe canal por instância (ver javadoc de
+     * {@link HistoricInstanceSummary}). */
+    private Map<String, String> fetchChannels(List<String> processInstanceIds) {
+        if (processInstanceIds.isEmpty()) {
+            return Map.of();
+        }
+        List<HistoricVariableRaw> raw = call(() -> restClient.get()
+                .uri(baseUrl + "/history/variable-instance?variableName=channel&processInstanceIdIn={ids}",
+                        String.join(",", processInstanceIds))
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricVariableRaw>>() {
+                }));
+        if (raw == null) return Map.of();
+        Map<String, String> result = new java.util.LinkedHashMap<>();
+        for (HistoricVariableRaw v : raw) {
+            if (v.value() != null) {
+                result.put(v.processInstanceId(), String.valueOf(v.value()));
+            }
+        }
+        return result;
     }
 
     // 404 aqui é "esse id não existe" (usuário pode ter digitado um businessKey, não um
@@ -154,7 +185,7 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                     .retrieve()
                     .body(HistoricProcessInstanceRaw.class);
             if (raw != null) {
-                return Optional.of(toSummary(raw));
+                return Optional.of(toSummary(raw, fetchChannels(List.of(raw.id())).get(raw.id())));
             }
         } catch (HttpClientErrorException.NotFound e) {
             // Não é um processInstanceId válido — tenta como businessKey abaixo.
@@ -179,10 +210,10 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
         if (raw == null) {
             return Optional.empty();
         }
-        return raw.stream()
+        Optional<HistoricProcessInstanceRaw> found = raw.stream()
                 .filter(p -> businessKey.equals(p.businessKey()))
-                .findFirst()
-                .map(RuntimeEngineMonitoringAdapter::toSummary);
+                .findFirst();
+        return found.map(p -> toSummary(p, fetchChannels(List.of(p.id())).get(p.id())));
     }
 
     private List<HistoricInstanceSummary> fetchHistoricInstances(String uriTemplate, Object... uriVariables) {
@@ -192,12 +223,13 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                 .body(new ParameterizedTypeReference<List<HistoricProcessInstanceRaw>>() {
                 }));
         if (raw == null) return List.of();
-        return raw.stream().map(RuntimeEngineMonitoringAdapter::toSummary).toList();
+        return raw.stream().map(p -> toSummary(p, null)).toList();
     }
 
-    private static HistoricInstanceSummary toSummary(HistoricProcessInstanceRaw p) {
+    private static HistoricInstanceSummary toSummary(HistoricProcessInstanceRaw p, String channel) {
         return new HistoricInstanceSummary(p.id(), displayName(p.processDefinitionName(), p.processDefinitionKey()),
-                p.businessKey(), parseInstant(p.startTime()), parseInstant(p.endTime()), p.durationInMillis(), p.state());
+                p.businessKey(), parseInstant(p.startTime()), parseInstant(p.endTime()), p.durationInMillis(), p.state(),
+                channel);
     }
 
     @Override
@@ -244,5 +276,9 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
     private record HistoricProcessInstanceRaw(String id, String businessKey, String processDefinitionKey,
                                                String processDefinitionName, String startTime, String endTime,
                                                Long durationInMillis, String state) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record HistoricVariableRaw(Object value, String processInstanceId) {
     }
 }

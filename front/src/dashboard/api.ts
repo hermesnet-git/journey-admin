@@ -38,6 +38,9 @@ export interface InstanceEntry {
   endTime: string | null;
   durationMillis: number | null;
   state: 'ACTIVE' | 'COMPLETED' | 'SUSPENDED' | 'EXTERNALLY_TERMINATED' | 'INTERNALLY_TERMINATED' | string;
+  // Só resolvido no card "Execuções recentes" (recentInstances/findInstance) — null nas demais
+  // listas deste tipo (pendingInstances/executingRecently), que não precisam dele.
+  channel: string | null;
 }
 
 export interface DailyCount {

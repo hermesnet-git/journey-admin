@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { ConfirmDialog } from '../products/ConfirmDialog';
+import { CHANNEL_TYPE_LABELS, type ChannelType } from '../api/products';
 import {
   findInstance,
   getDashboardOverview,
@@ -323,6 +324,9 @@ export function DashboardPage({ onOpenDiagnostics }: Props) {
                         <div className="text-[11px] truncate font-mono" style={{ color: c.textMuted }}>
                           {inst.businessKey ?? inst.id.slice(0, 8)}
                         </div>
+                      </td>
+                      <td className="py-2 px-2 shrink-0 text-[11.5px]" style={{ color: c.textSecondary }}>
+                        {inst.channel ? CHANNEL_TYPE_LABELS[inst.channel as ChannelType] ?? inst.channel : '—'}
                       </td>
                       <td className="py-2 px-2 shrink-0">
                         <InstanceStateTag state={inst.state} c={c} />

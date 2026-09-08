@@ -10,7 +10,8 @@ import type { BffConfig } from './config.js';
 import { AdminCatalogClient, AdminCatalogError } from './admin-catalog.js';
 import { WhatsAppSessionManager } from './whatsapp.js';
 import { LAB_TARGETS, LabBootstrapStore, type LabTarget } from './lab-bootstrap.js';
-import { AndroidControllerError, getEmulatorHardwareConfig, getLabStatus, launchAndroid, setEmulatorHardwareConfig, type AndroidTarget } from './android-controller.js';
+import { AndroidControllerError, getEmulatorHardwareConfig, launchAndroid, setEmulatorHardwareConfig, type AndroidTarget } from './android-controller.js';
+import { getLabStatus } from './lab-status.js';
 
 const MAX_BODY_BYTES = 1_048_576;
 

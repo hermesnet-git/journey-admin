@@ -289,7 +289,7 @@ function topActivity(deviceId: string): string {
   return result.stdout.split(/\r?\n/).find((line) => line.includes('topResumedActivity'))?.trim() ?? '';
 }
 
-async function metroAvailable(): Promise<boolean> {
+export async function metroAvailable(): Promise<boolean> {
   try {
     const response = await fetch('http://127.0.0.1:18081/status', { signal: AbortSignal.timeout(2_000) });
     return response.ok;
@@ -331,47 +331,16 @@ async function ensureDevice(bootTimeoutMs: number): Promise<{ deviceId: string; 
   return { deviceId, avdName };
 }
 
-function packageInstalled(deviceId: string, packageName: string): boolean {
+export function packageInstalled(deviceId: string, packageName: string): boolean {
   const result = spawnSync(adb, ['-s', deviceId, 'shell', 'pm', 'list', 'packages', packageName], { encoding: 'utf8', windowsHide: true });
   return result.status === 0 && result.stdout.includes(packageName);
 }
 
-export type LabStatusLevel = 'up' | 'down' | 'pending';
-
-export interface LabStatusItem {
-  id: string;
-  label: string;
-  status: LabStatusLevel;
-  detail: string;
-  help: string;
-}
-
-export interface LabStatus {
-  items: LabStatusItem[];
-  checkedAt: string;
-}
-
-export interface LabStatusInput {
-  adminBaseUrl: string;
-  journeyBaseUrl: string;
-  wceBridgeBaseUrl: string;
-}
-
-async function reachable(url: string, timeoutMs = 2_500): Promise<boolean> {
-  try {
-    // Qualquer resposta HTTP (mesmo 4xx/5xx) já prova que o processo está de
-    // pé e aceitando conexão — só falha de rede/timeout conta como fora do ar.
-    await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Usada só pelo painel de status: nunca deve lançar. Um device pode aparecer
-// na listagem e morrer um instante depois (ex.: AVD fechando bem nessa hora)
-// — isso não pode derrubar a checagem dos outros itens do painel.
-function currentDeviceSummary(): { connected: boolean; booted: boolean; deviceId: string | null; detail: string } {
+// Usada só pelo painel de status do Channel Lab: nunca deve lançar. Um device
+// pode aparecer na listagem e morrer um instante depois (ex.: AVD fechando
+// bem nessa hora) — isso não pode derrubar a checagem dos outros itens do
+// painel.
+export function currentDeviceSummary(): { connected: boolean; booted: boolean; deviceId: string | null; detail: string } {
   let devices: Array<{ id: string; status: string }>;
   try {
     devices = deviceLines();
@@ -391,75 +360,6 @@ function currentDeviceSummary(): { connected: boolean; booted: boolean; deviceId
     return { connected: true, booted: false, deviceId: ready.id, detail: `${ready.id} parou de responder (encerrando?)` };
   }
   return { connected: true, booted, deviceId: ready.id, detail: booted ? ready.id : `${ready.id} terminando de inicializar` };
-}
-
-export async function getLabStatus(input: LabStatusInput): Promise<LabStatus> {
-  const [adminUp, journeyUp, wceBridgeUp, metroUp] = await Promise.all([
-    reachable(input.adminBaseUrl),
-    reachable(input.journeyBaseUrl),
-    reachable(`${input.wceBridgeBaseUrl}/health`),
-    metroAvailable(),
-  ]);
-  const device = currentDeviceSummary();
-
-  const appStatus = (installed: boolean | null, notReadyDetail: string): { status: LabStatusLevel; detail: string } => {
-    if (installed === null) return { status: 'pending', detail: notReadyDetail };
-    return installed ? { status: 'up', detail: 'instalado no emulador' } : { status: 'down', detail: 'não encontrado no emulador' };
-  };
-  const expoInstalled = device.booted && device.deviceId ? packageInstalled(device.deviceId, 'host.exp.exponent') : null;
-  const flutterInstalled = device.booted && device.deviceId ? packageInstalled(device.deviceId, 'com.elasticjourney.elastic_journey_flutter_host') : null;
-
-  const items: LabStatusItem[] = [
-    {
-      id: 'admin',
-      label: 'Catálogo de jornadas',
-      status: adminUp ? 'up' : 'down',
-      detail: adminUp ? 'respondendo' : 'sem resposta',
-      help: 'Serviço que lista as jornadas publicadas disponíveis para escolher no passo 2.',
-    },
-    {
-      id: 'ms-journey',
-      label: 'Execução de jornadas',
-      status: journeyUp ? 'up' : 'down',
-      detail: journeyUp ? 'respondendo' : 'sem resposta',
-      help: 'Serviço que inicia, avança e encerra a jornada quando um canal é aberto.',
-    },
-    {
-      id: 'wce-bridge',
-      label: 'Ponte do WhatsApp',
-      status: wceBridgeUp ? 'up' : 'down',
-      detail: wceBridgeUp ? 'respondendo' : 'sem resposta',
-      help: 'Recebe e envia as mensagens da simulação de WhatsApp entre o BFF e a WCE Web UI.',
-    },
-    {
-      id: 'metro',
-      label: 'Empacotador React Native',
-      status: metroUp ? 'up' : 'down',
-      detail: metroUp ? 'servindo o projeto' : 'sem resposta',
-      help: 'Compila e entrega o código do canal React Native para o Expo Go, dentro do emulador.',
-    },
-    {
-      id: 'avd',
-      label: 'Emulador Android',
-      status: device.booted ? 'up' : device.connected ? 'pending' : 'down',
-      detail: device.detail,
-      help: 'O dispositivo Android virtual onde os canais React Native e Flutter Mobile rodam.',
-    },
-    {
-      id: 'expo-go',
-      label: 'App: Expo Go',
-      ...appStatus(expoInstalled, 'depende do emulador estar pronto'),
-      help: 'O aplicativo que carrega e executa o canal React Native dentro do emulador.',
-    },
-    {
-      id: 'flutter-app',
-      label: 'App: canal Flutter',
-      ...appStatus(flutterInstalled, 'depende do emulador estar pronto'),
-      help: 'O aplicativo Flutter Mobile instalado no emulador pela última execução.',
-    },
-  ];
-
-  return { items, checkedAt: new Date().toISOString() };
 }
 
 async function reversePorts(deviceId: string): Promise<void> {

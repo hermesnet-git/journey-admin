@@ -4,19 +4,7 @@ import { useFlowTheme } from '../flow-designer/theme';
 import type { ComponentDefinition } from '../api/componentDefinitions';
 import type { SduiNode } from './model';
 import { iconFor, labelFor } from './componentMeta';
-import { SduiNodeRenderer } from '../execution/SduiNodeRenderer';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
-
-function noopSubmit() {}
-
-/** Cópia só-de-prévia com binding de valor sintético quando o nó ainda não tem um configurado —
- * sem isso, campos recém-arrastados (textInput/select/checkbox/datePicker) renderizam em branco
- * (SduiNodeRenderer exige `bindings.value.path` pra derivar o `name` do campo). Nunca é gravada de
- * volta na árvore, só usada pra esta renderização. */
-function withPreviewBinding(node: SduiNode): SduiNode {
-  if (node.bindings?.value) return node;
-  return { ...node, bindings: { ...node.bindings, value: { path: `form.${node.id}`, mode: 'oneWay' } } };
-}
 
 export interface CanvasDragData {
   source: 'canvas';
@@ -54,7 +42,6 @@ function CanvasNode({
   const Icon = iconFor(node.type);
   const compatibility = compatibilityForDesignChannel(definition ?? null, designChannel);
   const compatible = compatibility === 'COMPATIBLE';
-  const showLivePreview = !isRoot && !isContainer && designChannel !== 'WHATSAPP' && !!definition;
   const dragData: CanvasDragData = { source: 'canvas', nodeId: node.id };
   const draggable = useDraggable({ id: node.id, data: dragData, disabled: isRoot });
   const droppable = useDroppable({ id: node.id, data: { source: 'canvas-container', nodeId: node.id }, disabled: !isContainer });
@@ -113,11 +100,6 @@ function CanvasNode({
           </button>
         )}
       </div>
-      {showLivePreview && (
-        <div style={{ marginLeft: 14, marginTop: 2, marginBottom: 4, pointerEvents: 'none' }}>
-          <SduiNodeRenderer sdui={withPreviewBinding(node)} onSubmit={noopSubmit} submitting={false} />
-        </div>
-      )}
       {isContainer && (
         <div
           ref={droppable.setNodeRef}

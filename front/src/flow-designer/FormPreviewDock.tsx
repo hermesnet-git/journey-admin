@@ -2,8 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronUp, MessageCircle, Maximize2, Minimize2, Monitor, Pin, PinOff, Smartphone } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { SduiScreenEditor } from '../sdui/SduiScreenEditor';
-import { SduiNodeRenderer } from '../execution/SduiNodeRenderer';
-import { WhatsAppTranscriptRenderer } from '../sdui/WhatsAppTranscriptRenderer';
+import { FormDesignPreview } from './form-preview/FormDesignPreview';
 import { DESIGN_CHANNEL_LABEL, type DesignChannel } from '../sdui/designChannel';
 import { UserTaskNavigator } from './UserTaskNavigator';
 import type { WFNode, VariableOrigin } from './model';
@@ -40,12 +39,10 @@ const MIN_VISIBLE_FLOW = 140;
 type ScreenMode = 'edit' | 'preview';
 const SCREEN_TABS: { key: ScreenMode; label: string }[] = [
   { key: 'edit', label: 'Construir' },
-  { key: 'preview', label: 'Simular' },
+  { key: 'preview', label: 'Preview' },
 ];
 
 const CHANNEL_ICON = { WEB: Monitor, MOBILE: Smartphone, WHATSAPP: MessageCircle } as const;
-
-function noopSubmit() {}
 
 /** Painel ancorado ao fundo do canvas — editor de tela SDUI embutido (catálogo corporativo v1)
  * sobre `embeddedScreenRoot`, o próprio FlowNode. Sucessor do antigo editor baseado em FormField[]:
@@ -189,17 +186,8 @@ export function FormPreviewDock({
             <div className="text-center text-[12.5px]" style={{ color: c.textSecondary }}>
               Nenhuma tela desenhada ainda.
             </div>
-          ) : designChannel === 'WHATSAPP' ? (
-            <WhatsAppTranscriptRenderer root={embeddedScreenRoot} />
           ) : (
-            <div className="mx-auto" style={{ maxWidth: designChannel === 'MOBILE' ? 360 : 480 }}>
-              {designChannel === 'MOBILE' && (
-                <div className="text-center text-[10.5px] mb-2" style={{ color: c.textSecondary }}>
-                  Simulação aproximada da experiência Mobile.
-                </div>
-              )}
-              <SduiNodeRenderer sdui={embeddedScreenRoot} onSubmit={noopSubmit} submitting={false} />
-            </div>
+            <FormDesignPreview root={embeddedScreenRoot} channel={designChannel} />
           )}
         </div>
       ) : (

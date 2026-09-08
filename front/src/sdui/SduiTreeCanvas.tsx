@@ -5,7 +5,7 @@ import type { ComponentDefinition } from '../api/componentDefinitions';
 import type { SduiNode } from './model';
 import { iconFor, labelFor } from './componentMeta';
 import { SduiNodeRenderer } from '../execution/SduiNodeRenderer';
-import { isSupportedOnPreviewTarget, PREVIEW_TARGET_LABEL, type PreviewTarget } from './previewTarget';
+import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
 
 function noopSubmit() {}
 
@@ -36,7 +36,7 @@ function CanvasNode({
   onSelect,
   onRemove,
   dragActive,
-  previewTarget,
+  designChannel,
 }: {
   node: SduiNode;
   depth: number;
@@ -46,14 +46,15 @@ function CanvasNode({
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   dragActive: boolean;
-  previewTarget: PreviewTarget;
+  designChannel: DesignChannel;
 }) {
   const { c } = useFlowTheme();
   const definition = registry.get(registryKey(node));
   const isContainer = !!definition?.allowsChildren;
   const Icon = iconFor(node.type);
-  const supported = isSupportedOnPreviewTarget(definition ?? null, previewTarget);
-  const showLivePreview = !isRoot && !isContainer && (previewTarget === 'web' || previewTarget === 'mobile') && !!definition;
+  const compatibility = compatibilityForDesignChannel(definition ?? null, designChannel);
+  const compatible = compatibility === 'COMPATIBLE';
+  const showLivePreview = !isRoot && !isContainer && designChannel !== 'WHATSAPP' && !!definition;
   const dragData: CanvasDragData = { source: 'canvas', nodeId: node.id };
   const draggable = useDraggable({ id: node.id, data: dragData, disabled: isRoot });
   const droppable = useDroppable({ id: node.id, data: { source: 'canvas-container', nodeId: node.id }, disabled: !isContainer });
@@ -89,12 +90,12 @@ function CanvasNode({
           {labelFor(node.type)}
         </span>
         {!definition && (
-          <span className="text-[10px] px-1 rounded" style={{ color: c.danger, background: 'transparent' }} title="Este componente não foi encontrado no catálogo — pode ter sido removido">
+          <span className="text-[10px] px-1 rounded" style={{ color: c.danger, background: 'transparent' }} title="Este componente não está mais disponível para edição. Substitua-o antes de publicar.">
             ?
           </span>
         )}
-        {definition && !supported && (
-          <span title={`Não suportado no alvo ${PREVIEW_TARGET_LABEL[previewTarget]}`} style={{ display: 'flex' }}>
+        {definition && !compatible && (
+          <span title={compatibilityMessage(compatibility, designChannel) ?? undefined} style={{ display: 'flex' }}>
             <AlertTriangle size={12} color={c.danger} />
           </span>
         )}
@@ -146,7 +147,7 @@ function CanvasNode({
               onSelect={onSelect}
               onRemove={onRemove}
               dragActive={dragActive}
-              previewTarget={previewTarget}
+              designChannel={designChannel}
             />
           ))}
         </div>
@@ -169,7 +170,7 @@ export function SduiTreeCanvas({
   onSelect,
   onRemove,
   dragActive,
-  previewTarget,
+  designChannel,
 }: {
   root: SduiNode;
   registry: Map<string, ComponentDefinition>;
@@ -177,7 +178,7 @@ export function SduiTreeCanvas({
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   dragActive: boolean;
-  previewTarget: PreviewTarget;
+  designChannel: DesignChannel;
 }) {
   const { c } = useFlowTheme();
   return (
@@ -191,7 +192,7 @@ export function SduiTreeCanvas({
         onSelect={onSelect}
         onRemove={onRemove}
         dragActive={dragActive}
-        previewTarget={previewTarget}
+        designChannel={designChannel}
       />
     </div>
   );

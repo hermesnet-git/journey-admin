@@ -3,6 +3,7 @@ package com.jouney.admin.interfaces.componentregistry;
 import com.jouney.admin.application.componentregistry.CreateComponentDefinition;
 import com.jouney.admin.application.componentregistry.DeleteComponentDefinition;
 import com.jouney.admin.application.componentregistry.ListComponentDefinitions;
+import com.jouney.admin.application.componentregistry.ListAuthoringComponentDefinitions;
 import com.jouney.admin.application.componentregistry.UpdateComponentDefinition;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -28,15 +29,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class ComponentDefinitionController {
 
     private final ListComponentDefinitions listComponentDefinitions;
+    private final ListAuthoringComponentDefinitions listAuthoringComponentDefinitions;
     private final CreateComponentDefinition createComponentDefinition;
     private final UpdateComponentDefinition updateComponentDefinition;
     private final DeleteComponentDefinition deleteComponentDefinition;
 
     public ComponentDefinitionController(ListComponentDefinitions listComponentDefinitions,
+                                          ListAuthoringComponentDefinitions listAuthoringComponentDefinitions,
                                           CreateComponentDefinition createComponentDefinition,
                                           UpdateComponentDefinition updateComponentDefinition,
                                           DeleteComponentDefinition deleteComponentDefinition) {
         this.listComponentDefinitions = listComponentDefinitions;
+        this.listAuthoringComponentDefinitions = listAuthoringComponentDefinitions;
         this.createComponentDefinition = createComponentDefinition;
         this.updateComponentDefinition = updateComponentDefinition;
         this.deleteComponentDefinition = deleteComponentDefinition;
@@ -48,12 +52,18 @@ public class ComponentDefinitionController {
         return listComponentDefinitions.execute().stream().map(ComponentDefinitionResponse::from).toList();
     }
 
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
+    @GetMapping("/authoring")
+    public List<ComponentDefinitionResponse> listForAuthoring() {
+        return listAuthoringComponentDefinitions.execute().stream().map(ComponentDefinitionResponse::from).toList();
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ComponentDefinitionResponse create(@Valid @RequestBody ComponentDefinitionInput input) {
         return ComponentDefinitionResponse.from(createComponentDefinition.execute(input.type(), input.version(),
                 input.status(), input.level(), input.category(), input.allowsChildren(), input.allowedChildTypes(),
-                input.propsSchema(), input.events(), input.supportedTargets()));
+                input.propsSchema(), input.events(), input.allowedReservedFields(), input.supportedTargets()));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -61,7 +71,7 @@ public class ComponentDefinitionController {
     public ComponentDefinitionResponse update(@PathVariable UUID id, @Valid @RequestBody ComponentDefinitionInput input) {
         return ComponentDefinitionResponse.from(updateComponentDefinition.execute(id, input.status(), input.level(),
                 input.category(), input.allowsChildren(), input.allowedChildTypes(), input.propsSchema(),
-                input.events(), input.supportedTargets()));
+                input.events(), input.allowedReservedFields(), input.supportedTargets()));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

@@ -178,13 +178,20 @@ export function createNode(definition: ComponentDefinition): SduiNode {
   for (const prop of definition.propsSchema) {
     if (prop.defaultValue !== null && prop.defaultValue !== undefined) props[prop.name] = prop.defaultValue;
   }
+  const id = nextNodeId(definition.type);
+  const inputBinding = definition.category === 'INPUT' && definition.allowedReservedFields.includes('$bindings')
+    ? { value: { path: `form.${id}`, mode: 'twoWay' as const } }
+    : null;
+  const requiredAction = definition.allowedReservedFields.includes('$events') && definition.events.includes('onPress')
+    ? { onPress: { action: definition.type === 'ui.link' ? 'action.openUrl' : 'action.submit', params: {} } }
+    : null;
   return {
-    id: nextNodeId(definition.type),
+    id,
     type: definition.type,
     version: definition.version,
     props,
-    bindings: null,
-    events: null,
+    bindings: inputBinding,
+    events: requiredAction,
     visibility: null,
     active: null,
     children: definition.allowsChildren ? [] : null,

@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronUp, MessageCircle, Maximize2, Minimize2, Monitor, Pin, PinOff, Smartphone } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { SduiScreenEditor } from '../sdui/SduiScreenEditor';
 import { SduiNodeRenderer } from '../execution/SduiNodeRenderer';
 import { WhatsAppTranscriptRenderer } from '../sdui/WhatsAppTranscriptRenderer';
-import { PREVIEW_TARGETS, PREVIEW_TARGET_LABEL, type PreviewTarget } from '../sdui/previewTarget';
+import { DESIGN_CHANNEL_LABEL, type DesignChannel } from '../sdui/designChannel';
 import { UserTaskNavigator } from './UserTaskNavigator';
 import type { WFNode, VariableOrigin } from './model';
 import type { SduiNode } from '../sdui/model';
@@ -39,11 +39,11 @@ const MIN_VISIBLE_FLOW = 140;
 
 type ScreenMode = 'edit' | 'preview';
 const SCREEN_TABS: { key: ScreenMode; label: string }[] = [
-  { key: 'edit', label: 'Build' },
-  { key: 'preview', label: 'Preview' },
+  { key: 'edit', label: 'Construir' },
+  { key: 'preview', label: 'Simular' },
 ];
 
-const TARGET_ICON = { web: Monitor, mobile: Smartphone, whatsapp: MessageCircle } as const;
+const CHANNEL_ICON = { WEB: Monitor, MOBILE: Smartphone, WHATSAPP: MessageCircle } as const;
 
 function noopSubmit() {}
 
@@ -69,7 +69,13 @@ export function FormPreviewDock({
   const [expanded, setExpanded] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mode, setMode] = useState<ScreenMode>('edit');
-  const [target, setTarget] = useState<PreviewTarget>('web');
+  const [designChannel, setDesignChannel] = useState<DesignChannel>(channelTypes[0] ?? 'WEB');
+
+  useEffect(() => {
+    if (!channelTypes.includes(designChannel)) {
+      setDesignChannel(channelTypes[0] ?? 'WEB');
+    }
+  }, [channelTypes, designChannel]);
 
   const dragState = useRef<{ startY: number; startHeight: number } | null>(null);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -124,17 +130,26 @@ export function FormPreviewDock({
     </div>
   );
 
-  const targetToggle = (
+  const channelSelector = (
     <div className="shrink-0 flex items-center gap-1">
-      {PREVIEW_TARGETS.map((t) => {
-        const Icon = TARGET_ICON[t];
+      {channelTypes.map((channel) => {
+        const Icon = CHANNEL_ICON[channel];
+        const selected = designChannel === channel;
+        if (channelTypes.length === 1) {
+          return (
+            <div key={channel} className="flex items-center gap-1 px-2 text-[11.5px]" style={{ color: c.textSecondary }}>
+              <Icon size={13} />
+              {DESIGN_CHANNEL_LABEL[channel]}
+            </div>
+          );
+        }
         return (
           <button
-            key={t}
-            onClick={() => setTarget(t)}
-            title={PREVIEW_TARGET_LABEL[t]}
+            key={channel}
+            onClick={() => setDesignChannel(channel)}
+            title={`Simular canal ${DESIGN_CHANNEL_LABEL[channel]}`}
             className="w-[22px] h-[22px] rounded-md flex items-center justify-center cursor-pointer border-0"
-            style={{ background: target === t ? c.accentSoft : 'transparent', color: target === t ? c.accent : c.textSecondary }}
+            style={{ background: selected ? c.accentSoft : 'transparent', color: selected ? c.accent : c.textSecondary }}
           >
             <Icon size={13} />
           </button>
@@ -150,7 +165,7 @@ export function FormPreviewDock({
       </div>
       <div className="flex justify-center items-center gap-4">
         {modeToggle}
-        {targetToggle}
+        {channelSelector}
       </div>
       <div className="flex items-center justify-end gap-1">
         {pinButton}
@@ -174,13 +189,13 @@ export function FormPreviewDock({
             <div className="text-center text-[12.5px]" style={{ color: c.textSecondary }}>
               Nenhuma tela desenhada ainda.
             </div>
-          ) : target === 'whatsapp' ? (
+          ) : designChannel === 'WHATSAPP' ? (
             <WhatsAppTranscriptRenderer root={embeddedScreenRoot} />
           ) : (
-            <div className="mx-auto" style={{ maxWidth: target === 'mobile' ? 360 : 480 }}>
-              {target === 'mobile' && (
+            <div className="mx-auto" style={{ maxWidth: designChannel === 'MOBILE' ? 360 : 480 }}>
+              {designChannel === 'MOBILE' && (
                 <div className="text-center text-[10.5px] mb-2" style={{ color: c.textSecondary }}>
-                  Prévia aproximada — o app real usa Flutter, não este renderer React.
+                  Simulação aproximada da experiência Mobile.
                 </div>
               )}
               <SduiNodeRenderer sdui={embeddedScreenRoot} onSubmit={noopSubmit} submitting={false} />
@@ -194,7 +209,7 @@ export function FormPreviewDock({
           onPushHistory={onPushHistory}
           variables={variables}
           channelTypes={channelTypes}
-          previewTarget={target}
+          designChannel={designChannel}
         />
       )}
     </div>
@@ -248,7 +263,7 @@ export function FormPreviewDock({
         <div />
         <div className="flex justify-center items-center gap-4">
         {modeToggle}
-        {targetToggle}
+        {channelSelector}
       </div>
         <div className="flex items-center justify-end gap-1">
           {pinButton}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { useFlowTheme } from '../flow-designer/theme';
 import type { VariableOrigin } from '../flow-designer/model';
-import { listComponentDefinitions, type ComponentDefinition } from '../api/componentDefinitions';
+import { listAuthoringComponentDefinitions, type ComponentDefinition } from '../api/componentDefinitions';
 import type { ChannelType } from '../api/products';
 import { createNode, findNode, findParent, insertNode, removeNode, collectIds, moveNode, moveWithinSiblings, updateProps, updateBindings, updateEvents, updateVisibility, updateActive, type SduiNode } from './model';
 import { SduiComponentPalette, type PaletteDragData } from './SduiComponentPalette';
@@ -10,7 +10,7 @@ import { SduiTreeCanvas, type CanvasDragData } from './SduiTreeCanvas';
 import { SduiLayersPanel } from './SduiLayersPanel';
 import { SduiPropertiesPanel } from './SduiPropertiesPanel';
 import { iconFor, labelFor } from './componentMeta';
-import type { PreviewTarget } from './previewTarget';
+import { compatibilityForDesignChannel, type DesignChannel } from './designChannel';
 
 function registryKey(type: string, version: string): string {
   return `${type}@${version}`;
@@ -22,21 +22,22 @@ interface Props {
   onPushHistory: () => void;
   variables: VariableOrigin[];
   channelTypes: ChannelType[];
-  previewTarget: PreviewTarget;
+  designChannel: DesignChannel;
 }
 
 /** Compõe paleta + canvas recursivo + camadas + propriedades num único DndContext — o provider fica
  * aqui (não dentro do canvas) porque paleta e canvas são irmãos: draggable/droppable só se enxergam
  * dentro do MESMO DndContext. */
-export function SduiScreenEditor({ root, onChange, onPushHistory, variables, channelTypes, previewTarget }: Props) {
+export function SduiScreenEditor({ root, onChange, onPushHistory, variables, channelTypes, designChannel }: Props) {
   const { c } = useFlowTheme();
   const [definitions, setDefinitions] = useState<ComponentDefinition[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(root?.id ?? null);
   const [dragging, setDragging] = useState<{ label: string; icon: ReturnType<typeof iconFor> } | null>(null);
+  const [compositionError, setCompositionError] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   useEffect(() => {
-    listComponentDefinitions().then(setDefinitions).catch(() => setDefinitions([]));
+    listAuthoringComponentDefinitions().then(setDefinitions).catch(() => setDefinitions([]));
   }, []);
 
   const registry = useMemo(() => {
@@ -77,6 +78,15 @@ export function SduiScreenEditor({ root, onChange, onPushHistory, variables, cha
     if (!targetDefinition?.allowsChildren) return;
 
     if (data?.source === 'palette') {
+      if (compatibilityForDesignChannel(data.definition, designChannel) !== 'COMPATIBLE') {
+        setCompositionError(`${labelFor(data.definition.type)} não está disponível para este canal.`);
+        return;
+      }
+      if (!canAcceptChild(targetDefinition, data.definition)) {
+        setCompositionError(invalidCompositionMessage(data.definition, targetDefinition));
+        return;
+      }
+      setCompositionError(null);
       onPushHistory();
       onChange(insertNode(root, targetId, createNode(data.definition)));
       return;
@@ -85,6 +95,13 @@ export function SduiScreenEditor({ root, onChange, onPushHistory, variables, cha
       if (data.nodeId === targetId) return;
       const subtreeIds = collectIds(findNode(root, data.nodeId) ?? root);
       if (subtreeIds.has(targetId)) return; // não soltar um nó dentro de si mesmo/seus próprios filhos
+      const movedNode = findNode(root, data.nodeId);
+      const movedDefinition = movedNode ? registry.get(registryKey(movedNode.type, movedNode.version)) : null;
+      if (movedDefinition && !canAcceptChild(targetDefinition, movedDefinition)) {
+        setCompositionError(invalidCompositionMessage(movedDefinition, targetDefinition));
+        return;
+      }
+      setCompositionError(null);
       onPushHistory();
       onChange(moveNode(root, data.nodeId, targetId));
     }
@@ -111,7 +128,18 @@ export function SduiScreenEditor({ root, onChange, onPushHistory, variables, cha
    * cliques seguidos continuam empilhando no mesmo lugar sem exigir drag-and-drop. */
   function handleAddComponent(definition: ComponentDefinition) {
     if (!root) return;
+    if (compatibilityForDesignChannel(definition, designChannel) !== 'COMPATIBLE') {
+      setCompositionError(`${labelFor(definition.type)} não está disponível para este canal.`);
+      return;
+    }
     const targetId = selectedId && selectedDefinition?.allowsChildren ? selectedId : selectedId ? findParent(root, selectedId)?.id ?? root.id : root.id;
+    const targetNode = findNode(root, targetId);
+    const targetDefinition = targetNode ? registry.get(registryKey(targetNode.type, targetNode.version)) : null;
+    if (!targetDefinition || !canAcceptChild(targetDefinition, definition)) {
+      if (targetDefinition) setCompositionError(invalidCompositionMessage(definition, targetDefinition));
+      return;
+    }
+    setCompositionError(null);
     onPushHistory();
     const node = createNode(definition);
     onChange(insertNode(root, targetId, node));
@@ -138,30 +166,37 @@ export function SduiScreenEditor({ root, onChange, onPushHistory, variables, cha
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setDragging(null)}>
-      <div className="flex-1 flex min-h-0">
-        <SduiComponentPalette definitions={definitions} onAdd={handleAddComponent} previewTarget={previewTarget} />
-        <SduiTreeCanvas
-          root={root}
-          registry={registry}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          onRemove={handleRemove}
-          dragActive={!!dragging}
-          previewTarget={previewTarget}
-        />
-        <SduiLayersPanel root={root} selectedId={selectedId} onSelect={setSelectedId} onMove={handleMove} />
-        <SduiPropertiesPanel
-          node={selectedNode}
-          definition={selectedDefinition}
-          variables={variables}
-          channelTypes={channelTypes}
-          previewTarget={previewTarget}
-          onUpdateProps={(patch) => onChange(updateProps(root, selectedId!, patch))}
-          onUpdateBindings={(bindings) => onChange(updateBindings(root, selectedId!, bindings))}
-          onUpdateEvents={(events) => onChange(updateEvents(root, selectedId!, events))}
-          onUpdateVisibility={(visibility) => onChange(updateVisibility(root, selectedId!, visibility))}
-          onUpdateActive={(active) => onChange(updateActive(root, selectedId!, active))}
-        />
+      <div className="flex-1 flex flex-col min-h-0">
+        {compositionError && (
+          <div className="shrink-0 px-3 py-2 text-[11.5px]" style={{ color: c.danger, background: c.dangerSoft }}>
+            {compositionError}
+          </div>
+        )}
+        <div className="flex-1 flex min-h-0">
+          <SduiComponentPalette definitions={definitions} onAdd={handleAddComponent} designChannel={designChannel} />
+          <SduiTreeCanvas
+            root={root}
+            registry={registry}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onRemove={handleRemove}
+            dragActive={!!dragging}
+            designChannel={designChannel}
+          />
+          <SduiLayersPanel root={root} selectedId={selectedId} onSelect={setSelectedId} onMove={handleMove} />
+          <SduiPropertiesPanel
+            node={selectedNode}
+            definition={selectedDefinition}
+            variables={variables}
+            channelTypes={channelTypes}
+            designChannel={designChannel}
+            onUpdateProps={(patch) => onChange(updateProps(root, selectedId!, patch))}
+            onUpdateBindings={(bindings) => onChange(updateBindings(root, selectedId!, bindings))}
+            onUpdateEvents={(events) => onChange(updateEvents(root, selectedId!, events))}
+            onUpdateVisibility={(visibility) => onChange(updateVisibility(root, selectedId!, visibility))}
+            onUpdateActive={(active) => onChange(updateActive(root, selectedId!, active))}
+          />
+        </div>
       </div>
       <DragOverlay>
         {dragging && (
@@ -176,4 +211,13 @@ export function SduiScreenEditor({ root, onChange, onPushHistory, variables, cha
       </DragOverlay>
     </DndContext>
   );
+}
+
+function canAcceptChild(parent: ComponentDefinition, child: ComponentDefinition): boolean {
+  if (!parent.allowsChildren || child.type === 'ui.screen') return false;
+  return parent.allowedChildTypes.length === 0 || parent.allowedChildTypes.includes(child.type);
+}
+
+function invalidCompositionMessage(child: ComponentDefinition, parent: ComponentDefinition): string {
+  return `${labelFor(child.type)} não pode ser adicionado dentro de ${labelFor(parent.type)}.`;
 }

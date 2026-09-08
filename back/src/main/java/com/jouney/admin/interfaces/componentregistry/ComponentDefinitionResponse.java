@@ -13,14 +13,17 @@ import java.util.UUID;
 public record ComponentDefinitionResponse(UUID id, String type, String version, ComponentStatus status, int level,
                                            ComponentCategory category, boolean allowsChildren,
                                            List<String> allowedChildTypes, List<PropDescriptor> propsSchema,
-                                           List<String> events, Map<String, TargetSupport> supportedTargets,
+                                           List<String> events, List<String> allowedReservedFields,
+                                           Map<String, TargetSupport> supportedTargets,
+                                           String origin,
                                            OffsetDateTime createdAt, OffsetDateTime updatedAt) {
 
     public static ComponentDefinitionResponse from(ComponentDefinition definition) {
         return new ComponentDefinitionResponse(definition.getId(), definition.getType(), definition.getVersion(),
                 definition.getStatus(), definition.getLevel(), definition.getCategory(),
                 definition.isAllowsChildren(), definition.getAllowedChildTypes(), definition.getPropsSchema(),
-                definition.getEvents(), definition.getSupportedTargets(), definition.getCreatedAt(),
+                definition.getEvents(), definition.getAllowedReservedFields(), definition.getSupportedTargets(),
+                definition.getOrigin(), definition.getCreatedAt(),
                 definition.getUpdatedAt());
     }
 }

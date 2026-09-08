@@ -54,8 +54,15 @@ public class ComponentDefinitionJpaEntity {
     private String events;
 
     @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "allowed_reserved_fields", nullable = false)
+    private String allowedReservedFields;
+
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "supported_targets", nullable = false)
     private String supportedTargets;
+
+    @Column(nullable = false, updatable = false)
+    private String origin;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
@@ -68,7 +75,9 @@ public class ComponentDefinitionJpaEntity {
 
     public ComponentDefinitionJpaEntity(UUID id, String type, String version, ComponentStatus status, int level,
                                          ComponentCategory category, boolean allowsChildren, String allowedChildTypes,
-                                         String propsSchema, String events, String supportedTargets,
+                                         String propsSchema, String events, String allowedReservedFields,
+                                         String supportedTargets,
+                                         String origin,
                                          OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.type = type;
@@ -80,7 +89,9 @@ public class ComponentDefinitionJpaEntity {
         this.allowedChildTypes = allowedChildTypes;
         this.propsSchema = propsSchema;
         this.events = events;
+        this.allowedReservedFields = allowedReservedFields;
         this.supportedTargets = supportedTargets;
+        this.origin = origin;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -125,8 +136,16 @@ public class ComponentDefinitionJpaEntity {
         return events;
     }
 
+    public String getAllowedReservedFields() {
+        return allowedReservedFields;
+    }
+
     public String getSupportedTargets() {
         return supportedTargets;
+    }
+
+    public String getOrigin() {
+        return origin;
     }
 
     public OffsetDateTime getCreatedAt() {

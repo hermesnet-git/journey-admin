@@ -4,7 +4,7 @@ import { AlertTriangle, Search } from 'lucide-react';
 import { useFlowTheme } from '../flow-designer/theme';
 import type { ComponentDefinition, ComponentCategory } from '../api/componentDefinitions';
 import { iconFor, labelFor, CATEGORY_LABEL } from './componentMeta';
-import { isSupportedOnPreviewTarget, PREVIEW_TARGET_LABEL, type PreviewTarget } from './previewTarget';
+import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
 
 const CATEGORY_ORDER: ComponentCategory[] = ['CONTENT', 'LAYOUT', 'INPUT', 'ACTION', 'FEEDBACK'];
 
@@ -16,11 +16,11 @@ export interface PaletteDragData {
 function PaletteItem({
   definition,
   onAdd,
-  previewTarget,
+  designChannel,
 }: {
   definition: ComponentDefinition;
   onAdd: (definition: ComponentDefinition) => void;
-  previewTarget: PreviewTarget;
+  designChannel: DesignChannel;
 }) {
   const { c } = useFlowTheme();
   const dragData: PaletteDragData = { source: 'palette', definition };
@@ -29,10 +29,11 @@ function PaletteItem({
     data: dragData,
   });
   const Icon = iconFor(definition.type);
-  const supported = isSupportedOnPreviewTarget(definition, previewTarget);
-  const title = supported
+  const compatibility = compatibilityForDesignChannel(definition, designChannel);
+  const compatible = compatibility === 'COMPATIBLE';
+  const title = compatible
     ? `${labelFor(definition.type)} — clique para adicionar ou arraste`
-    : `${labelFor(definition.type)} — não suportado no alvo ${PREVIEW_TARGET_LABEL[previewTarget]}`;
+    : `${labelFor(definition.type)} — ${compatibilityMessage(compatibility, designChannel)}`;
   return (
     <div
       ref={setNodeRef}
@@ -47,7 +48,7 @@ function PaletteItem({
     >
       <Icon size={15} color={c.accent} strokeWidth={1.8} />
       <span className="flex-1 truncate">{labelFor(definition.type)}</span>
-      {!supported && <AlertTriangle size={11} color={c.danger} />}
+      {!compatible && <AlertTriangle size={11} color={c.danger} />}
     </div>
   );
 }
@@ -59,24 +60,29 @@ function PaletteItem({
 export function SduiComponentPalette({
   definitions,
   onAdd,
-  previewTarget,
+  designChannel,
 }: {
   definitions: ComponentDefinition[];
   onAdd: (definition: ComponentDefinition) => void;
-  previewTarget: PreviewTarget;
+  designChannel: DesignChannel;
 }) {
   const { c } = useFlowTheme();
   const [search, setSearch] = useState('');
 
   const grouped = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const visible = definitions.filter((d) => d.type !== 'ui.screen' && d.status !== 'REMOVED');
+    const visible = definitions.filter((d) => d.type !== 'ui.screen' && d.status !== 'REMOVED'
+      && compatibilityForDesignChannel(d, designChannel) === 'COMPATIBLE');
     const filtered = q ? visible.filter((d) => labelFor(d.type).toLowerCase().includes(q) || d.type.toLowerCase().includes(q)) : visible;
     return CATEGORY_ORDER.map((cat) => ({
       category: cat,
       items: filtered.filter((d) => d.category === cat).sort((a, b) => labelFor(a.type).localeCompare(labelFor(b.type))),
     })).filter((g) => g.items.length > 0);
-  }, [definitions, search]);
+  }, [definitions, search, designChannel]);
+
+  const unavailableCount = useMemo(() => definitions.filter((d) => d.type !== 'ui.screen'
+    && d.status !== 'REMOVED' && compatibilityForDesignChannel(d, designChannel) !== 'COMPATIBLE').length,
+  [definitions, designChannel]);
 
   return (
     <div className="flex flex-col h-full" style={{ width: 200, borderRight: `1px solid ${c.border}`, background: c.cardBg }}>
@@ -92,19 +98,24 @@ export function SduiComponentPalette({
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-1">
+        {unavailableCount > 0 && !search && (
+          <div className="mx-1 mb-2 rounded-md px-2 py-1.5 text-[10.5px]" style={{ background: c.hoverBg, color: c.textSecondary }}>
+            {unavailableCount} {unavailableCount === 1 ? 'componente indisponível' : 'componentes indisponíveis'} para este canal.
+          </div>
+        )}
         {grouped.map((g) => (
           <div key={g.category} className="mb-2">
             <div className="px-2 py-1 text-[10.5px] font-bold uppercase tracking-wide" style={{ color: c.textSecondary }}>
               {CATEGORY_LABEL[g.category]}
             </div>
             {g.items.map((d) => (
-              <PaletteItem key={`${d.type}@${d.version}`} definition={d} onAdd={onAdd} previewTarget={previewTarget} />
+              <PaletteItem key={`${d.type}@${d.version}`} definition={d} onAdd={onAdd} designChannel={designChannel} />
             ))}
           </div>
         ))}
         {grouped.length === 0 && (
           <div className="p-3 text-[11.5px]" style={{ color: c.textSecondary }}>
-            Nenhum componente encontrado.
+            {search ? 'Nenhum componente encontrado.' : 'Nenhum componente disponível para este canal.'}
           </div>
         )}
       </div>

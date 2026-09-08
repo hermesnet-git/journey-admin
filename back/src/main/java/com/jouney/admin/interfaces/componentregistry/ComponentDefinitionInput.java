@@ -14,5 +14,6 @@ public record ComponentDefinitionInput(@NotBlank String type, @NotBlank String v
                                         @NotNull ComponentStatus status, @Min(0) int level,
                                         @NotNull ComponentCategory category, boolean allowsChildren,
                                         List<String> allowedChildTypes, List<PropDescriptor> propsSchema,
-                                        List<String> events, Map<String, TargetSupport> supportedTargets) {
+                                        List<String> events, List<String> allowedReservedFields,
+                                        Map<String, TargetSupport> supportedTargets) {
 }

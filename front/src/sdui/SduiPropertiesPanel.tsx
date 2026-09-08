@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Plus, X } from 'lucide-react';
 import { useFlowTheme } from '../flow-designer/theme';
 import { PropertyGrid, PropertyRow, PropertyGroupHeader, ToggleSwitch, gridInputStyle } from '../flow-designer/PropertyGrid';
@@ -11,7 +11,7 @@ import type { ChannelType } from '../api/products';
 import { BindingsEditor } from './BindingsEditor';
 import { EventsEditor } from './EventsEditor';
 import { VisibilityEditor } from './VisibilityEditor';
-import { isSupportedOnPreviewTarget, PREVIEW_TARGET_LABEL, type PreviewTarget } from './previewTarget';
+import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
 
 function OptionsListEditor({ value, onChange }: { value: { label: string; value: string }[]; onChange: (next: { label: string; value: string }[]) => void }) {
   const { c } = useFlowTheme();
@@ -155,12 +155,12 @@ function PropField({ prop, value, onChange }: { prop: PropDescriptor; value: unk
 }
 
 type Tab = 'props' | 'bindings' | 'events' | 'visibility' | 'active';
-const TABS: { key: Tab; label: string }[] = [
+const TABS: { key: Tab; label: string; reservedField?: '$bindings' | '$events' | '$visibility' | '$active' }[] = [
   { key: 'props', label: 'Propriedades' },
-  { key: 'bindings', label: 'Vínculo' },
-  { key: 'events', label: 'Eventos' },
-  { key: 'visibility', label: 'Visibilidade' },
-  { key: 'active', label: 'Ativo' },
+  { key: 'bindings', label: 'Valor', reservedField: '$bindings' },
+  { key: 'events', label: 'Ações', reservedField: '$events' },
+  { key: 'visibility', label: 'Visibilidade', reservedField: '$visibility' },
+  { key: 'active', label: 'Estado', reservedField: '$active' },
 ];
 
 /** Painel de propriedades do componente SDUI selecionado — sucessor de FormFieldConfigPanel.tsx:
@@ -172,7 +172,7 @@ export function SduiPropertiesPanel({
   definition,
   variables,
   channelTypes,
-  previewTarget,
+  designChannel,
   onUpdateProps,
   onUpdateBindings,
   onUpdateEvents,
@@ -183,7 +183,7 @@ export function SduiPropertiesPanel({
   definition: ComponentDefinition | null;
   variables: VariableOrigin[];
   channelTypes: ChannelType[];
-  previewTarget: PreviewTarget;
+  designChannel: DesignChannel;
   onUpdateProps: (patch: Record<string, unknown>) => void;
   onUpdateBindings: (bindings: SduiNode['bindings']) => void;
   onUpdateEvents: (events: SduiNode['events']) => void;
@@ -192,6 +192,14 @@ export function SduiPropertiesPanel({
 }) {
   const { c } = useFlowTheme();
   const [tab, setTab] = useState<Tab>('props');
+  const availableTabs = useMemo(
+    () => TABS.filter((item) => !item.reservedField || definition?.allowedReservedFields.includes(item.reservedField)),
+    [definition],
+  );
+
+  useEffect(() => {
+    if (!availableTabs.some((item) => item.key === tab)) setTab('props');
+  }, [availableTabs, tab]);
 
   if (!node || !definition) {
     return (
@@ -204,7 +212,7 @@ export function SduiPropertiesPanel({
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ width: 260, borderLeft: `1px solid ${c.border}`, background: c.cardBg }}>
       <div className="flex shrink-0" style={{ borderBottom: `1px solid ${c.border}` }}>
-        {TABS.map((t) => (
+        {availableTabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -223,13 +231,13 @@ export function SduiPropertiesPanel({
         ))}
       </div>
 
-      {!isSupportedOnPreviewTarget(definition, previewTarget) && (
+      {compatibilityForDesignChannel(definition, designChannel) !== 'COMPATIBLE' && (
         <div
           className="flex items-center gap-[6px] px-3 py-[6px] shrink-0"
           style={{ background: c.dangerSoft, color: c.danger, fontSize: 11 }}
         >
           <AlertTriangle size={12} />
-          Não suportado no alvo {PREVIEW_TARGET_LABEL[previewTarget]}
+          {compatibilityMessage(compatibilityForDesignChannel(definition, designChannel), designChannel)}
         </div>
       )}
 
@@ -238,8 +246,13 @@ export function SduiPropertiesPanel({
           <PropertyGroupHeader label={labelFor(node.type)} first />
           <PropertyGrid>
             {definition.propsSchema.map((prop, i) => (
-              <PropertyRow key={prop.name} label={prop.name} first={i === 0}>
-                <PropField prop={prop} value={node.props[prop.name]} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
+              <PropertyRow key={prop.name} label={`${prop.name}${prop.required ? ' *' : ''}`} first={i === 0}>
+                <div className="flex flex-col gap-1" style={{ width: '100%' }}>
+                  <PropField prop={prop} value={node.props[prop.name]} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
+                  {prop.required && isMissing(node.props[prop.name]) && (
+                    <span style={{ color: c.danger, fontSize: 10.5 }}>Preenchimento obrigatório.</span>
+                  )}
+                </div>
               </PropertyRow>
             ))}
             {definition.propsSchema.length === 0 && (
@@ -252,7 +265,14 @@ export function SduiPropertiesPanel({
       )}
 
       {tab === 'bindings' && (
-        <BindingsEditor binding={node.bindings?.value ?? null} variables={variables} onChange={(b) => onUpdateBindings(b ? { value: b } : null)} />
+        <BindingsEditor
+          bindings={node.bindings}
+          bindingNames={bindingConfiguration(definition).names}
+          requiredBindingNames={bindingConfiguration(definition).required}
+          fixedMode={bindingConfiguration(definition).mode}
+          variables={variables}
+          onChange={onUpdateBindings}
+        />
       )}
 
       {tab === 'events' && (
@@ -278,4 +298,21 @@ export function SduiPropertiesPanel({
       )}
     </div>
   );
+}
+
+function isMissing(value: unknown): boolean {
+  return value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+}
+
+function bindingConfiguration(definition: ComponentDefinition): {
+  names: string[];
+  required: string[];
+  mode: 'oneWay' | 'twoWay' | null;
+} {
+  if (definition.category === 'INPUT') return { names: ['value'], required: ['value'], mode: 'twoWay' };
+  if (definition.type === 'ui.text') return { names: ['text'], required: [], mode: 'oneWay' };
+  if (definition.type === 'ui.image') return { names: ['source', 'alt'], required: [], mode: 'oneWay' };
+  if (definition.type === 'ui.alert') return { names: ['title', 'message'], required: [], mode: 'oneWay' };
+  if (definition.type === 'ui.progress') return { names: ['value'], required: [], mode: 'oneWay' };
+  return { names: [], required: [], mode: null };
 }

@@ -29,7 +29,9 @@ public class ComponentDefinitionRepositoryAdapter implements ComponentDefinition
                 definition.getVersion(), definition.getStatus(), definition.getLevel(), definition.getCategory(),
                 definition.isAllowsChildren(), writeJson(definition.getAllowedChildTypes()),
                 writeJson(definition.getPropsSchema()), writeJson(definition.getEvents()),
-                writeJson(definition.getSupportedTargets()), definition.getCreatedAt(), definition.getUpdatedAt());
+                writeJson(definition.getAllowedReservedFields()),
+                writeJson(definition.getSupportedTargets()), definition.getOrigin(), definition.getCreatedAt(),
+                definition.getUpdatedAt());
         return toDomain(jpaRepository.save(entity));
     }
 
@@ -58,12 +60,16 @@ public class ComponentDefinitionRepositoryAdapter implements ComponentDefinition
         });
         List<String> events = readJson(entity.getEvents(), new TypeReference<List<String>>() {
         });
+        List<String> allowedReservedFields = readJson(entity.getAllowedReservedFields(),
+                new TypeReference<List<String>>() {
+                });
         var supportedTargets = readJson(entity.getSupportedTargets(),
                 new TypeReference<java.util.Map<String, TargetSupport>>() {
                 });
         return new ComponentDefinition(entity.getId(), entity.getType(), entity.getVersion(), entity.getStatus(),
                 entity.getLevel(), entity.getCategory(), entity.isAllowsChildren(), allowedChildTypes, propsSchema,
-                events, supportedTargets, entity.getCreatedAt(), entity.getUpdatedAt());
+                events, allowedReservedFields, supportedTargets, entity.getOrigin(), entity.getCreatedAt(),
+                entity.getUpdatedAt());
     }
 
     private String writeJson(Object value) {

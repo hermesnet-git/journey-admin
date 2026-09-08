@@ -103,7 +103,7 @@ export function EventsEditor({
   if (availableEvents.length === 0) {
     return (
       <div className="p-2 text-[11.5px]" style={{ color: c.textSecondary }}>
-        Este componente não dispara nenhum evento (ver seção 9 do catálogo).
+        Este componente não possui ações configuráveis.
       </div>
     );
   }

@@ -28,10 +28,15 @@ public class UpdateComponentDefinition {
     public ComponentDefinition execute(UUID id, ComponentStatus status, int level, ComponentCategory category,
                                         boolean allowsChildren, List<String> allowedChildTypes,
                                         List<PropDescriptor> propsSchema, List<String> events,
+                                        List<String> allowedReservedFields,
                                         Map<String, TargetSupport> supportedTargets) {
         ComponentDefinition definition = repository.findById(id)
                 .orElseThrow(() -> new ComponentDefinitionNotFoundException(id));
+        if (definition.isSystem() && status == ComponentStatus.REMOVED) {
+            throw new ComponentDefinition.SystemComponentRemovalException();
+        }
         definition.update(status, level, category, allowsChildren, allowedChildTypes, propsSchema, events,
+                allowedReservedFields,
                 supportedTargets);
         ComponentDefinition saved = repository.save(definition);
         recordAuditEvent.record("COMPONENT_DEFINITION_UPDATE", "COMPONENT_DEFINITION", id, AuditResult.SUCCESS);

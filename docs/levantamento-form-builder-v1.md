@@ -1,0 +1,252 @@
+# Levantamento do Form Builder — estado atual e melhorias
+
+Data do levantamento: 2026-09-08.
+
+## 1. Premissas arquiteturais
+
+O Portal Administrativo opera exclusivamente em tempo de design. Ele permite desenhar jornadas e telas SDUI, validar o contrato e publicar uma especificação independente de tecnologia.
+
+No Portal Administrativo:
+
+- não existe emulador de canal;
+- não são executados aplicativos React Native, Flutter ou integrações de WhatsApp;
+- não devem ser reutilizados código, renderizadores, adapters, serviços ou decisões de infraestrutura do emulador de canais;
+- existe um simulador visual em React para ajudar o autor a compreender a projeção provável da tela;
+- o simulador trabalha somente com os canais funcionais `WEB`, `MOBILE` e `WHATSAPP`;
+- a simulação não garante fidelidade visual ou comportamental com uma tecnologia consumidora específica;
+- o contrato SDUI e o Component Registry são os únicos pontos de integração conceitual entre o Portal e os futuros consumidores.
+
+O emulador de canais é uma aplicação externa ao Portal, criada para validar se a proposta do Elastic Journey pode ser consumida por tecnologias reais. Ele não faz parte do Form Builder e não deve se tornar sua dependência.
+
+## 2. Objetivo do Form Builder
+
+O Form Builder deve permitir que um usuário de negócio ou designer:
+
+1. desenhe uma tela associada a uma Tarefa de Usuário;
+2. escolha componentes do catálogo SDUI;
+3. configure propriedades, vínculos, eventos, visibilidade e estado ativo;
+4. visualize uma simulação coerente para Web, Mobile e WhatsApp;
+5. identifique incompatibilidades antes da publicação;
+6. publique uma especificação canônica, sem conhecimento da tecnologia que irá renderizá-la.
+
+## 3. Estrutura atual
+
+O Form Builder é o painel inferior do editor de jornadas.
+
+| Área | Responsabilidade atual |
+| --- | --- |
+| `JourneyDesignerPage` | Mantém fluxo, seleção, histórico, salvamento e validação. |
+| `FormPreviewDock` | Hospeda Build, Preview, seleção de canal e navegação entre Tarefas de Usuário. |
+| `SduiScreenEditor` | Coordena paleta, árvore, camadas, propriedades e drag-and-drop. |
+| `SduiComponentPalette` | Lista componentes do Component Registry por categoria. |
+| `SduiTreeCanvas` | Edita a árvore normalizada e mostra uma representação resumida dos componentes. |
+| `SduiLayersPanel` | Mostra a hierarquia e permite ordenar componentes. |
+| `SduiPropertiesPanel` | Edita propriedades, vínculos, eventos, visibilidade e estado ativo. |
+
+Cada Tarefa de Usuário possui no máximo uma árvore `embeddedScreenRoot`, cuja raiz obrigatória é `ui.screen`.
+
+Durante a autoria, a árvore é normalizada em objetos. A conversão para o envelope canônico e para as tuplas SDUI ocorre na publicação. Essa transformação é responsabilidade do Admin Backend, não do simulador visual.
+
+## 4. Catálogo e criação de componentes
+
+Comportamento atual:
+
+- as definições são carregadas do Component Registry;
+- categoria, versão, propriedades e eventos vêm do catálogo;
+- componentes `REMOVED` não aparecem na paleta;
+- `ui.screen` é criado como raiz e não aparece como item arrastável;
+- novos componentes recebem os valores padrão de `propsSchema`;
+- componentes podem ser adicionados por clique ou drag-and-drop;
+- o editor verifica apenas se o destino aceita filhos;
+- `allowedChildTypes` não é aplicado na inserção nem validado pelo backend;
+- a criação da raiz seleciona a primeira definição `ui.screen` recebida, sem uma regra determinística para escolher a versão vigente.
+
+## 5. Propriedades e comportamentos
+
+O painel atual sempre apresenta cinco abas: Propriedades, Vínculo, Eventos, Visibilidade e Ativo.
+
+### 5.1 Propriedades
+
+- Os campos são gerados por `PropDescriptor.kind`.
+- Há controles para texto, número, booleano, enum, token, opções e validações.
+- Propriedades obrigatórias são verificadas no backend, mas não recebem tratamento suficiente durante a edição.
+- O catálogo atual declara propriedades por componente, não por canal.
+
+### 5.2 Vínculos
+
+- A interface autora somente `$bindings.value`.
+- São aceitos `form`, `data`, `session`, `route` e `computed`.
+- O editor oferece `oneWay` e `twoWay` sem considerar o tipo do componente.
+- Componentes de entrada são rejeitados posteriormente caso não usem `form.*` e `twoWay`.
+- A aba aparece inclusive para componentes em que vínculo de valor não faz sentido.
+
+### 5.3 Eventos
+
+- Os eventos possíveis vêm do Component Registry.
+- O usuário escolhe uma ação do Action Registry.
+- Parâmetros são pares livres de chave e valor.
+- Existem dicas, mas não formulários e validações específicos por ação.
+
+### 5.4 Visibilidade e estado ativo
+
+- `$visibility` e `$active` usam o mesmo formato declarativo.
+- São suportados `equals`, `notEquals`, `in` e `notIn`.
+- Jornadas multicanal recebem um atalho baseado em `session.channel`.
+- A aba Ativo reutiliza textos escritos para Visibilidade, o que prejudica a compreensão.
+- O backend verifica se resta conteúdo visível em cada canal declarado pela jornada.
+
+## 6. Simulação atual
+
+O seletor atual apresenta Web, Mobile e WhatsApp, mas internamente ainda usa nomes e decisões relacionadas a tecnologias específicas. Isso deve ser removido da camada de design.
+
+| Canal funcional | Comportamento atual | Interpretação correta |
+| --- | --- | --- |
+| Web | Simulação React em largura de navegador. | Representação funcional aproximada de uma experiência Web. |
+| Mobile | Simulação React em largura reduzida. | Representação funcional aproximada de uma experiência Mobile, sem afirmar React Native ou Flutter. |
+| WhatsApp | Árvore achatada em bolhas, listas e ações. | Projeção conversacional aproximada do contrato SDUI. |
+
+A simulação deve responder à pergunta “como esta tela se comporta neste canal?”, não “como esta tecnologia específica irá renderizar a tela?”.
+
+## 7. Compatibilidade por canal já implementada
+
+Este ponto deve ser revisitado antes da frente “Exibir somente componentes e propriedades compatíveis com o canal selecionado”. Já existe uma implementação e precisamos decidir o que preservar ou substituir.
+
+Hoje:
+
+- a seleção funcional de Web, Mobile ou WhatsApp é convertida internamente para um alvo tecnológico representativo;
+- a paleta mantém todos os componentes visíveis e sinaliza os incompatíveis;
+- o canvas e o painel de propriedades repetem o alerta;
+- o usuário ainda pode adicionar e configurar o componente sinalizado;
+- `$visibility` permite criar variações por `session.channel` numa única árvore;
+- o backend calcula `supportedTargets` do envelope com base no catálogo e nos canais da jornada.
+
+O problema não é a existência de `supportedTargets` no catálogo. Essa informação continua necessária para publicação e governança. O problema é usá-la diretamente no designer como se o usuário estivesse escolhendo uma tecnologia concreta.
+
+## 8. Modelo recomendado para design-time
+
+### 8.1 Canal de autoria
+
+O Form Builder deve trabalhar com um `DesignChannel` de domínio:
+
+- `WEB`;
+- `MOBILE`;
+- `WHATSAPP`.
+
+Somente canais pertencentes à jornada devem aparecer no seletor. Em jornada com um único canal, ele deve aparecer como contexto fixo; em jornada multicanal, o usuário pode alternar a simulação.
+
+### 8.2 Compatibilidade agregada
+
+O Admin Backend deve traduzir os detalhes tecnológicos do Component Registry para uma situação funcional por canal adequada ao designer.
+
+Sugestão de estados:
+
+- `COMPATIBLE`: existe representação válida para o canal;
+- `PARTIAL`: o canal preserva a função, mas descarta ou adapta parte da apresentação;
+- `INCOMPATIBLE`: não existe representação funcional aceitável;
+- `PENDING`: compatibilidade ainda não homologada.
+
+Essa projeção deve ser derivada do contrato do catálogo, e não do emulador. O frontend não deve escolher arbitrariamente `react.web` para representar Web ou `react.mobile` para representar Mobile.
+
+Para Web e Mobile, precisamos discutir a regra de agregação quando os targets tecnológicos do catálogo têm estados diferentes. Exemplos:
+
+Decisão tomada: o componente é funcionalmente compatível com o canal quando pelo menos um target tecnológico associado a esse canal estiver com status `SUPPORTED`.
+
+| Canal de design | Regra de compatibilidade funcional |
+| --- | --- |
+| `WEB` | Compatível quando `react.web` ou `flutter.web` estiver `SUPPORTED`. |
+| `MOBILE` | Compatível quando `react.mobile` ou `flutter.mobile` estiver `SUPPORTED`. |
+| `WHATSAPP` | Compatível quando `whatsapp` estiver `SUPPORTED`. |
+
+Precedência recomendada quando nenhum target estiver suportado:
+
+1. se algum target estiver `PLANNED`, o estado funcional é `PENDING`;
+2. se todos os targets estiverem `UNSUPPORTED` ou ausentes, o estado funcional é `INCOMPATIBLE`.
+
+O Portal não exige paridade entre React e Flutter para permitir a autoria. Os renderers concretos e a governança do Component Registry são responsáveis por garantir o suporte declarado. A simulação do Admin permanece tecnologicamente e visualmente neutra.
+
+### 8.3 Simuladores independentes
+
+O Admin Front deve possuir simuladores próprios e deliberadamente simples:
+
+- `WebDesignSimulator`;
+- `MobileDesignSimulator`;
+- `WhatsAppDesignSimulator`.
+
+Eles podem compartilhar primitivas internas do próprio Admin, mas não devem importar pacotes do emulador ou SDKs dos canais reais.
+
+Cada simulador interpreta o mesmo modelo de autoria e deve:
+
+- demonstrar hierarquia, conteúdo, entrada e ações;
+- aplicar tokens de design suficientes para orientar o autor;
+- aplicar `$visibility` e `$active` com contexto fictício controlado;
+- evidenciar adaptações e perdas semânticas;
+- informar claramente que se trata de simulação de design.
+
+## 9. Melhorias necessárias
+
+### Prioridade 1 — corrigir o domínio do designer
+
+1. Substituir `PreviewTarget` por um conceito como `DesignChannel`.
+2. Remover do Form Builder referências a React, Flutter, adapters ou implementações do emulador.
+3. Limitar o seletor aos canais declarados pela jornada.
+4. Definir automaticamente o canal inicial de forma determinística.
+5. Manter a seleção ao navegar entre Tarefas de Usuário.
+
+### Prioridade 2 — tornar o catálogo determinístico
+
+1. Selecionar explicitamente a versão vigente de `ui.screen`.
+2. Não depender da ordem da resposta da API.
+3. Aplicar `allowedChildTypes` durante clique, drag-and-drop e validação no backend.
+4. Indicar componentes `EXPERIMENTAL`, `DEPRECATED` e `REMOVED` de maneira coerente.
+
+### Prioridade 3 — decidir a experiência de compatibilidade
+
+Antes de implementar, avaliar o comportamento existente e responder:
+
+1. componente incompatível deve ser ocultado, desabilitado ou apenas sinalizado?
+2. componentes parcialmente representáveis devem continuar disponíveis?
+3. como explicar adaptações do WhatsApp sem expor detalhes de adapter?
+4. como tratar uma única árvore multicanal com `$visibility`?
+5. incompatibilidade deve bloquear publicação ou apenas retirar o canal dos alvos publicados?
+
+Recomendação inicial: não ocultar componentes. Exibi-los com estados claros preserva a compreensão do catálogo e evita esconder componentes já usados em outra variação da mesma árvore. A decisão final depende das respostas acima.
+
+### Prioridade 4 — contextualizar o painel de propriedades
+
+1. Mostrar Vínculo somente quando o componente admitir binding.
+2. Restringir campos de entrada a `form.*` e `twoWay` já durante a edição.
+3. Mostrar Eventos somente quando houver eventos declarados.
+4. Exigir `onPress` durante a configuração de botão e link.
+5. Diferenciar os textos e a semântica das abas Visibilidade e Ativo.
+6. Indicar propriedades obrigatórias e erros junto ao campo.
+7. Não filtrar propriedades por canal enquanto isso não estiver modelado formalmente no catálogo.
+
+### Prioridade 5 — melhorar os simuladores
+
+1. Tornar Web e Mobile visualmente distintos sem associá-los a frameworks.
+2. Manter a projeção conversacional própria do Admin para WhatsApp.
+3. Centralizar no Admin as regras usadas pelos três simuladores para evitar divergência interna.
+4. Criar um contexto fictício editável para testar bindings, `$visibility` e `$active` em design-time.
+5. Exibir no simulador avisos de adaptação, conteúdo omitido e comportamento parcial.
+
+### Prioridade 6 — antecipar validações
+
+1. Executar validações locais durante a edição.
+2. Manter o backend como autoridade final.
+3. Apresentar erros por componente e propriedade, além da lista geral da jornada.
+4. Validar tipos, enums, tokens, parâmetros de ações e restrições de filhos.
+5. Diferenciar erro impeditivo, alerta de compatibilidade e informação de adaptação.
+
+### Prioridade 7 — alinhar documentação interna
+
+Revisar textos da área “Sobre” que ainda afirmam que a árvore editada é publicada sem transformação ou que a execução usa a última revisão. O comportamento vigente publica o envelope canônico e resolve snapshots pela versão exata da jornada.
+
+## 10. Sequência recomendada
+
+1. Formalizar `DesignChannel` e a regra de seleção de canal no Form Builder.
+2. Implementar a agregação aprovada: qualquer target `SUPPORTED` torna o componente compatível com o canal.
+3. Corrigir versão vigente e restrições estruturais do catálogo.
+4. Implementar a política aprovada para paleta e propriedades.
+5. separar e aprimorar os três simuladores internos do Admin.
+6. antecipar validações e melhorar a apresentação dos erros.
+7. revisar a documentação embutida.

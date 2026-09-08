@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
 
 /**
  * Fonte de verdade operacional do catálogo SDUI corporativo (seção 12) — o que o Form Builder pode
@@ -11,6 +12,10 @@ import java.util.UUID;
  * chave de negócio (ver constraint UNIQUE na migration); {@code id} é só a chave técnica.
  */
 public class ComponentDefinition {
+
+    private static final Set<String> RESERVED_FIELDS = Set.of("$bindings", "$events", "$visibility", "$active");
+    public static final String ORIGIN_SYSTEM = "SYSTEM";
+    public static final String ORIGIN_CUSTOM = "CUSTOM";
 
     private final UUID id;
     private final String type;
@@ -22,14 +27,16 @@ public class ComponentDefinition {
     private List<String> allowedChildTypes;
     private List<PropDescriptor> propsSchema;
     private List<String> events;
+    private List<String> allowedReservedFields;
     private Map<String, TargetSupport> supportedTargets;
+    private final String origin;
     private final OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
     public ComponentDefinition(UUID id, String type, String version, ComponentStatus status, int level,
                                 ComponentCategory category, boolean allowsChildren, List<String> allowedChildTypes,
-                                List<PropDescriptor> propsSchema, List<String> events,
-                                Map<String, TargetSupport> supportedTargets, OffsetDateTime createdAt,
+                                List<PropDescriptor> propsSchema, List<String> events, List<String> allowedReservedFields,
+                                Map<String, TargetSupport> supportedTargets, String origin, OffsetDateTime createdAt,
                                 OffsetDateTime updatedAt) {
         this.id = id;
         this.type = type;
@@ -41,7 +48,9 @@ public class ComponentDefinition {
         this.allowedChildTypes = allowedChildTypes == null ? List.of() : allowedChildTypes;
         this.propsSchema = propsSchema == null ? List.of() : propsSchema;
         this.events = events == null ? List.of() : events;
+        this.allowedReservedFields = validateReservedFields(allowedReservedFields);
         this.supportedTargets = validateTargetMap(supportedTargets == null ? Map.of() : supportedTargets);
+        this.origin = ORIGIN_SYSTEM.equals(origin) ? ORIGIN_SYSTEM : ORIGIN_CUSTOM;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -49,14 +58,25 @@ public class ComponentDefinition {
     public static ComponentDefinition create(String type, String version, ComponentStatus status, int level,
                                                ComponentCategory category, boolean allowsChildren,
                                                List<String> allowedChildTypes, List<PropDescriptor> propsSchema,
-                                               List<String> events, Map<String, TargetSupport> supportedTargets) {
+                                               List<String> events, List<String> allowedReservedFields,
+                                               Map<String, TargetSupport> supportedTargets) {
         OffsetDateTime now = OffsetDateTime.now();
         return new ComponentDefinition(UUID.randomUUID(), type, version, status, level, category, allowsChildren,
-                allowedChildTypes, propsSchema, events, supportedTargets, now, now);
+                allowedChildTypes, propsSchema, events, allowedReservedFields, supportedTargets, ORIGIN_CUSTOM,
+                now, now);
+    }
+
+    public static ComponentDefinition create(String type, String version, ComponentStatus status, int level,
+                                               ComponentCategory category, boolean allowsChildren,
+                                               List<String> allowedChildTypes, List<PropDescriptor> propsSchema,
+                                               List<String> events, Map<String, TargetSupport> supportedTargets) {
+        return create(type, version, status, level, category, allowsChildren, allowedChildTypes, propsSchema,
+                events, List.of(), supportedTargets);
     }
 
     public void update(ComponentStatus status, int level, ComponentCategory category, boolean allowsChildren,
                         List<String> allowedChildTypes, List<PropDescriptor> propsSchema, List<String> events,
+                        List<String> allowedReservedFields,
                         Map<String, TargetSupport> supportedTargets) {
         this.status = status;
         this.level = level;
@@ -65,6 +85,7 @@ public class ComponentDefinition {
         this.allowedChildTypes = allowedChildTypes == null ? List.of() : allowedChildTypes;
         this.propsSchema = propsSchema == null ? List.of() : propsSchema;
         this.events = events == null ? List.of() : events;
+        this.allowedReservedFields = validateReservedFields(allowedReservedFields);
         this.supportedTargets = validateTargetMap(supportedTargets == null ? Map.of() : supportedTargets);
         this.updatedAt = OffsetDateTime.now();
     }
@@ -72,6 +93,9 @@ public class ComponentDefinition {
     /** Regra de compatibilidade 8 do catálogo: uma tela não pode publicar componente REMOVED. Não
      * apaga a linha (telas já publicadas antes da remoção continuam referenciando o type+version). */
     public void markRemoved() {
+        if (isSystem()) {
+            throw new SystemComponentRemovalException();
+        }
         this.status = ComponentStatus.REMOVED;
         this.updatedAt = OffsetDateTime.now();
     }
@@ -83,6 +107,16 @@ public class ComponentDefinition {
             }
         }
         return targets;
+    }
+
+    private static List<String> validateReservedFields(List<String> fields) {
+        List<String> normalized = fields == null ? List.of() : List.copyOf(fields);
+        for (String field : normalized) {
+            if (!RESERVED_FIELDS.contains(field)) {
+                throw new IllegalArgumentException("Campo reservado desconhecido: " + field);
+            }
+        }
+        return normalized;
     }
 
     /** Chave de negócio composta (type+version) usada pra indexar um mapa do Registry em memória —
@@ -131,8 +165,20 @@ public class ComponentDefinition {
         return events;
     }
 
+    public List<String> getAllowedReservedFields() {
+        return allowedReservedFields;
+    }
+
     public Map<String, TargetSupport> getSupportedTargets() {
         return supportedTargets;
+    }
+
+    public String getOrigin() {
+        return origin;
+    }
+
+    public boolean isSystem() {
+        return ORIGIN_SYSTEM.equals(origin);
     }
 
     public OffsetDateTime getCreatedAt() {
@@ -141,5 +187,11 @@ public class ComponentDefinition {
 
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public static final class SystemComponentRemovalException extends RuntimeException {
+        public SystemComponentRemovalException() {
+            super("Componentes sistêmicos não podem ser removidos");
+        }
     }
 }

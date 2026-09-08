@@ -6,6 +6,7 @@ import com.jouney.admin.domain.auth.InvalidSessionException;
 import com.jouney.admin.domain.channel.ProductInactiveException;
 import com.jouney.admin.domain.componentregistry.ComponentDefinitionNotFoundException;
 import com.jouney.admin.domain.componentregistry.ComponentTypeVersionAlreadyExistsException;
+import com.jouney.admin.domain.componentregistry.ComponentDefinition.SystemComponentRemovalException;
 import com.jouney.admin.domain.componentregistry.UnknownRenderTargetException;
 import com.jouney.admin.domain.flow.FlowNodeNotFoundException;
 import com.jouney.admin.domain.flow.FlowValidationException;
@@ -69,6 +70,12 @@ public class GlobalExceptionHandler {
             ComponentTypeVersionAlreadyExistsException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(SystemComponentRemovalException.class)
+    public ResponseEntity<ApiError> handleSystemComponentRemoval(SystemComponentRemovalException ex,
+                                                                  HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "SYSTEM_COMPONENT_PROTECTED", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler({UnknownRenderTargetException.class, JourneyTemplateNotFoundException.class})

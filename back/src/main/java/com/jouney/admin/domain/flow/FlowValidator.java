@@ -555,6 +555,7 @@ public final class FlowValidator {
             definition.getPropsSchema().stream().filter(p -> p.required() && !props.containsKey(p.name())).forEach(p ->
                     violations.add(new FlowViolation(ownerNode.getId(), "O atributo obrigatório '" + p.name()
                             + "' não foi informado no componente '" + sduiNode.id() + "'")));
+            validateReservedFields(ownerNode, sduiNode, definition, violations);
         }
 
         List<SduiNode> children = sduiNode.children();
@@ -572,10 +573,27 @@ public final class FlowValidator {
             }
         }
         if (sduiNode.events() != null) {
-            for (SduiEvent event : sduiNode.events().values()) {
+            for (Map.Entry<String, SduiEvent> entry : sduiNode.events().entrySet()) {
+                if (definition != null && !definition.getEvents().contains(entry.getKey())) {
+                    violations.add(new FlowViolation(ownerNode.getId(), "O evento '" + entry.getKey()
+                            + "' não pertence ao componente '" + sduiNode.id() + "'"));
+                }
+                SduiEvent event = entry.getValue();
                 if (event.action() == null || !VALID_SDUI_ACTIONS.contains(event.action())) {
                     violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' referencia uma ação inválida: '"
                             + event.action() + "', na tela do nó '" + ownerNode.getName() + "'"));
+                }
+            }
+        }
+        if (children != null && definition != null && definition.isAllowsChildren()) {
+            for (SduiNode child : children) {
+                boolean nestedScreen = "ui.screen".equals(child.type());
+                boolean restricted = !definition.getAllowedChildTypes().isEmpty()
+                        && !definition.getAllowedChildTypes().contains(child.type());
+                if (nestedScreen || restricted) {
+                    violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + child.id() + "' ("
+                            + child.type() + ") não pode ser adicionado dentro de '" + sduiNode.id() + "' ("
+                            + sduiNode.type() + ")"));
                 }
             }
         }
@@ -627,6 +645,30 @@ public final class FlowValidator {
             violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + componentId + "' tem "
                     + label + " com regra inválida: '" + condition.rule() + "'"));
         }
+    }
+
+    private static void validateReservedFields(FlowNode ownerNode, SduiNode node,
+                                                ComponentDefinition definition,
+                                                List<FlowViolation> violations) {
+        Set<String> allowed = Set.copyOf(definition.getAllowedReservedFields());
+        if (node.bindings() != null && !node.bindings().isEmpty() && !allowed.contains("$bindings")) {
+            addReservedFieldViolation(ownerNode, node, "$bindings", violations);
+        }
+        if (node.events() != null && !node.events().isEmpty() && !allowed.contains("$events")) {
+            addReservedFieldViolation(ownerNode, node, "$events", violations);
+        }
+        if (node.visibility() != null && !allowed.contains("$visibility")) {
+            addReservedFieldViolation(ownerNode, node, "$visibility", violations);
+        }
+        if (node.active() != null && !allowed.contains("$active")) {
+            addReservedFieldViolation(ownerNode, node, "$active", violations);
+        }
+    }
+
+    private static void addReservedFieldViolation(FlowNode ownerNode, SduiNode node, String field,
+                                                   List<FlowViolation> violations) {
+        violations.add(new FlowViolation(ownerNode.getId(), "O campo '" + field
+                + "' não é permitido no componente '" + node.id() + "'"));
     }
 
     // Nome de variável de processo de um campo de tela SDUI: parte final de um binding

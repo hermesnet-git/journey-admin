@@ -60,21 +60,32 @@ export function NamespacePathInput({
   );
 }
 
-/** Edita o binding `value` do nó (seção 8: `bindings.value.path`+`mode`) — o único binding que o
- * Form Builder autora hoje (leitura de dados avulsa por outros nomes de binding fica pra quando
- * surgir um caso real, YAGNI). Só relevante pra componentes que coletam valor (categoria INPUT). */
+/** Edita somente os vínculos autorizados para o componente. Campos de entrada usam `value` em
+ * leitura e escrita; componentes de conteúdo e feedback expõem os atributos de leitura previstos
+ * no contrato funcional. */
 export function BindingsEditor({
-  binding,
+  bindings,
+  bindingNames,
+  requiredBindingNames,
+  fixedMode,
   variables,
   onChange,
 }: {
-  binding: SduiBinding | null;
+  bindings: Record<string, SduiBinding> | null;
+  bindingNames: string[];
+  requiredBindingNames: string[];
+  fixedMode: SduiBinding['mode'] | null;
   variables: VariableOrigin[];
-  onChange: (binding: SduiBinding | null) => void;
+  onChange: (bindings: Record<string, SduiBinding> | null) => void;
 }) {
   const { c } = useFlowTheme();
-  const { namespace, suffix } = splitPath(binding?.path);
-  const mode = binding?.mode ?? 'twoWay';
+
+  function setBinding(name: string, binding: SduiBinding | null) {
+    const next = { ...(bindings ?? {}) };
+    if (binding) next[name] = binding;
+    else delete next[name];
+    onChange(Object.keys(next).length > 0 ? next : null);
+  }
 
   return (
     <div className="p-2 flex flex-col gap-[6px]">
@@ -82,28 +93,41 @@ export function BindingsEditor({
         Caminho no contexto de dados da jornada (form/data/session/route/computed) que este
         componente lê e/ou grava.
       </div>
-      <label className="flex items-center gap-[4px] text-[11.5px]" style={{ color: c.textSecondary, cursor: 'pointer' }}>
-        <input type="checkbox" checked={!binding} onChange={(e) => onChange(e.target.checked ? null : { path: 'form.', mode: 'twoWay' })} />
-        Sem vínculo (valor não é lido nem gravado)
-      </label>
-      {binding && (
-        <>
+      {bindingNames.map((name) => {
+        const binding = bindings?.[name] ?? null;
+        const { namespace, suffix } = splitPath(binding?.path);
+        const mode = fixedMode ?? binding?.mode ?? 'oneWay';
+        const required = requiredBindingNames.includes(name);
+        return (
+          <div key={name} className="flex flex-col gap-[4px]">
+            <label className="flex items-center gap-[4px] text-[11.5px] font-medium" style={{ color: c.textPrimary }}>
+              <input
+                type="checkbox"
+                checked={!!binding}
+                disabled={required}
+                onChange={(e) => setBinding(name, e.target.checked ? { path: `${required ? 'form' : 'data'}.`, mode } : null)}
+              />
+              {name}{required ? ' *' : ''}
+            </label>
+            {binding && <>
           <NamespacePathInput
             namespace={namespace}
             suffix={suffix}
             variables={variables}
-            onChange={(ns, s) => onChange({ path: `${ns}.${s}`, mode })}
+            onChange={(ns, s) => setBinding(name, { path: `${ns}.${s}`, mode })}
           />
-          <select
+          {!fixedMode && <select
             style={{ ...gridInputStyle(c), cursor: 'pointer' }}
             value={mode}
-            onChange={(e) => onChange({ path: binding.path, mode: e.target.value as SduiBinding['mode'] })}
+            onChange={(e) => setBinding(name, { path: binding.path, mode: e.target.value as SduiBinding['mode'] })}
           >
-            <option value="twoWay">Leitura e escrita (twoWay)</option>
-            <option value="oneWay">Somente leitura (oneWay)</option>
-          </select>
-        </>
-      )}
+            <option value="twoWay">Usar e atualizar o valor</option>
+            <option value="oneWay">Somente usar o valor</option>
+          </select>}
+            </>}
+          </div>
+        );
+      })}
     </div>
   );
 }

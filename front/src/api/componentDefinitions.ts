@@ -4,6 +4,9 @@ export type ComponentStatus = 'EXPERIMENTAL' | 'STABLE' | 'DEPRECATED' | 'REMOVE
 export type ComponentCategory = 'CONTENT' | 'LAYOUT' | 'INPUT' | 'ACTION' | 'FEEDBACK';
 export type PropKind = 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'ENUM' | 'TOKEN' | 'OPTIONS_LIST' | 'VALIDATION_LIST';
 export type TargetStatus = 'SUPPORTED' | 'PLANNED' | 'UNSUPPORTED';
+export type ReservedField = '$bindings' | '$events' | '$visibility' | '$active';
+export type ComponentOrigin = 'SYSTEM' | 'CUSTOM';
+export const RESERVED_FIELDS: ReservedField[] = ['$bindings', '$events', '$visibility', '$active'];
 
 // Os 5 alvos de renderização do catálogo (seção 4) — chaves fixas de supportedTargets/adapterKeys.
 // whatsapp: canal de mensageria (achatado em texto/botões/lista/mídia), não framework de UI livre
@@ -36,7 +39,9 @@ export interface ComponentDefinition {
   allowedChildTypes: string[];
   propsSchema: PropDescriptor[];
   events: string[];
+  allowedReservedFields: ReservedField[];
   supportedTargets: Partial<Record<RenderTarget, TargetSupport>>;
+  origin: ComponentOrigin;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,11 +56,16 @@ export interface ComponentDefinitionInput {
   allowedChildTypes: string[];
   propsSchema: PropDescriptor[];
   events: string[];
+  allowedReservedFields: ReservedField[];
   supportedTargets: Partial<Record<RenderTarget, TargetSupport>>;
 }
 
 export function listComponentDefinitions(): Promise<ComponentDefinition[]> {
   return apiGet<ComponentDefinition[]>('/component-registry');
+}
+
+export function listAuthoringComponentDefinitions(): Promise<ComponentDefinition[]> {
+  return apiGet<ComponentDefinition[]>('/component-registry/authoring');
 }
 
 export function createComponentDefinition(input: ComponentDefinitionInput): Promise<ComponentDefinition> {

@@ -28,11 +28,12 @@ public class CreateComponentDefinition {
     public ComponentDefinition execute(String type, String version, ComponentStatus status, int level,
                                         ComponentCategory category, boolean allowsChildren,
                                         List<String> allowedChildTypes, List<PropDescriptor> propsSchema,
-                                        List<String> events, Map<String, TargetSupport> supportedTargets) {
+                                        List<String> events, List<String> allowedReservedFields,
+                                        Map<String, TargetSupport> supportedTargets) {
         ComponentDefinition definition;
         try {
             definition = repository.save(ComponentDefinition.create(type, version, status, level, category,
-                    allowsChildren, allowedChildTypes, propsSchema, events, supportedTargets));
+                    allowsChildren, allowedChildTypes, propsSchema, events, allowedReservedFields, supportedTargets));
         } catch (DataIntegrityViolationException e) {
             throw new ComponentTypeVersionAlreadyExistsException(type, version);
         }

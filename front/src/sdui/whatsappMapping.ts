@@ -1,5 +1,5 @@
 // WhatsApp É um RenderTarget do Component Registry (ver RENDER_TARGETS em api/componentDefinitions.ts) —
-// SUPPORTED/UNSUPPORTED por componente vem de lá agora (ver previewTarget.ts), não mais fixo aqui.
+// SUPPORTED/UNSUPPORTED por componente vem de lá agora (ver designChannel.ts), não mais fixo aqui.
 // O que ESTE arquivo ainda decide é só a FORMA da mensagem pra quem já é suportado: WhatsApp não tem
 // container/card/stack de layout livre, então a árvore SDUI é achatada numa sequência de mensagens
 // (texto/botões/lista/mídia) em vez de renderizada como componentes aninhados.

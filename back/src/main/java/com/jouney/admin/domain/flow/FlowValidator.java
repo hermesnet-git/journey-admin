@@ -59,6 +59,7 @@ public final class FlowValidator {
     private static final Pattern SEMVER = Pattern.compile("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$");
     private static final Set<String> INPUT_COMPONENTS = Set.of("ui.textInput", "ui.textArea", "ui.select",
             "ui.checkbox", "ui.datePicker");
+    private static final Set<String> VALID_DATE_PICKER_MODES = Set.of("date", "time", "dateTime");
     // Nome de variável de processo reservado: injetado pelo ms-espec-registry a partir do canal
     // declarado ao iniciar a instância (?channel=...) — nunca declarado pelo usuário no nó START.
     private static final String CHANNEL_VARIABLE = "channel";
@@ -555,6 +556,7 @@ public final class FlowValidator {
             definition.getPropsSchema().stream().filter(p -> p.required() && !props.containsKey(p.name())).forEach(p ->
                     violations.add(new FlowViolation(ownerNode.getId(), "O atributo obrigatório '" + p.name()
                             + "' não foi informado no componente '" + sduiNode.id() + "'")));
+            validateCanonicalPropertyValues(ownerNode, sduiNode, props, violations);
             validateReservedFields(ownerNode, sduiNode, definition, violations);
         }
 
@@ -630,6 +632,29 @@ public final class FlowValidator {
         if (children != null) {
             for (SduiNode child : children) {
                 validateSduiNode(ownerNode, child, componentRegistry, seenIds, violations);
+            }
+        }
+    }
+
+    // Algumas propriedades possuem restrições de domínio que não cabem apenas no tipo genérico
+    // registrado em propsSchema. Validá-las aqui impede que uma UI Spec incompatível seja publicada.
+    private static void validateCanonicalPropertyValues(FlowNode ownerNode, SduiNode node,
+                                                          Map<String, Object> props,
+                                                          List<FlowViolation> violations) {
+        if ("ui.datePicker".equals(node.type())) {
+            Object mode = props.get("mode");
+            if (!(mode instanceof String text) || !VALID_DATE_PICKER_MODES.contains(text)) {
+                violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + node.id()
+                        + "' deve usar mode igual a date, time ou dateTime"));
+            }
+        }
+
+        if ("ui.progress".equals(node.type())) {
+            Object value = props.get("value");
+            if (!(value instanceof Number number) || !Double.isFinite(number.doubleValue())
+                    || number.doubleValue() < 0 || number.doubleValue() > 1) {
+                violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + node.id()
+                        + "' deve usar value numérico entre 0 e 1"));
             }
         }
     }

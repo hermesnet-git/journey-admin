@@ -10,6 +10,7 @@ import type { BffConfig } from './config.js';
 import { AdminCatalogClient, AdminCatalogError } from './admin-catalog.js';
 import { WhatsAppSessionManager } from './whatsapp.js';
 import { LAB_TARGETS, LabBootstrapStore, type LabTarget } from './lab-bootstrap.js';
+import { AndroidControllerError, launchAndroid, type AndroidTarget } from './android-controller.js';
 
 const MAX_BODY_BYTES = 1_048_576;
 
@@ -134,6 +135,16 @@ function problemFrom(error: unknown, correlationId: string): ApiProblem {
       timestamp: new Date().toISOString(),
     };
   }
+  if (error instanceof AndroidControllerError) {
+    return {
+      status: error.code === 'ANDROID_BUSY' ? 409 : 503,
+      code: error.code,
+      title: 'Não foi possível iniciar o canal mobile',
+      detail: error.message,
+      correlationId,
+      timestamp: new Date().toISOString(),
+    };
+  }
   return {
     status: 500,
     code: 'INTERNAL_ERROR',
@@ -201,6 +212,24 @@ export function createBffServer(config: BffConfig): Server {
           throw new RequestError(400, 'LAB_BOOTSTRAP_VARIABLES_INVALID', 'variables deve ser um objeto.');
         }
         sendJson(response, 201, labBootstraps.create(journeyId, target as LabTarget, variables as Record<string, unknown>));
+        return;
+      }
+
+      if (request.method === 'POST' && url.pathname === '/api/lab/v1/android/launch') {
+        const body = await readJsonObject(request);
+        const target = typeof body.target === 'string' ? body.target : '';
+        const bootstrapToken = typeof body.bootstrapToken === 'string' ? body.bootstrapToken.trim() : '';
+        if (!['react.mobile', 'flutter.mobile'].includes(target) || !bootstrapToken) {
+          throw new RequestError(400, 'ANDROID_LAUNCH_INVALID', 'target mobile e bootstrapToken são obrigatórios.');
+        }
+        const bootstrap = labBootstraps.get(bootstrapToken);
+        if (!bootstrap) {
+          throw new RequestError(404, 'LAB_BOOTSTRAP_NOT_FOUND', 'Bootstrap inexistente ou expirado.');
+        }
+        if (bootstrap.target !== target) {
+          throw new RequestError(409, 'LAB_BOOTSTRAP_TARGET_MISMATCH', `O bootstrap pertence ao alvo ${bootstrap.target}.`);
+        }
+        sendJson(response, 200, await launchAndroid(target as AndroidTarget, bootstrapToken));
         return;
       }
 

@@ -8,6 +8,12 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 15171,
     strictPort: true,
+    proxy: {
+      '/emulator-bff': {
+        target: 'http://127.0.0.1:18085',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/emulator-bff/, ''),
+      },
+    },
   },
 });
-

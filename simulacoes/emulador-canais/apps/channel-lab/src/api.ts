@@ -1,5 +1,6 @@
 import type {
   AdminJourneySummary,
+  AndroidLaunchResult,
   ChannelType,
   FlowBundle,
   LabBootstrap,
@@ -16,9 +17,9 @@ export class LabApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, timeoutMs = 10_000): Promise<T> {
   let response: Response;
-  const timeout = AbortSignal.timeout(10_000);
+  const timeout = AbortSignal.timeout(timeoutMs);
   const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
   try {
     response = await fetch(`${BFF_ORIGIN}${path}`, {
@@ -49,6 +50,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+async function longRequest<T>(path: string, init: RequestInit): Promise<T> {
+  return request(path, init, 240_000);
+}
+
 export const labApi = {
   async health(): Promise<boolean> {
     const result = await request<{ status?: string }>('/health');
@@ -71,6 +76,13 @@ export const labApi = {
     return request('/api/lab/v1/bootstraps', {
       method: 'POST',
       body: JSON.stringify({ journeyId, target, variables }),
+    });
+  },
+
+  launchAndroid(target: 'react.mobile' | 'flutter.mobile', bootstrapToken: string): Promise<AndroidLaunchResult> {
+    return longRequest('/api/lab/v1/android/launch', {
+      method: 'POST',
+      body: JSON.stringify({ target, bootstrapToken }),
     });
   },
 

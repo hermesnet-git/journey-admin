@@ -1,9 +1,8 @@
-// WhatsApp não é um RenderTarget do Component Registry (ver RENDER_TARGETS em api/componentDefinitions.ts) —
-// é canal de mensageria, sem container/card/stack de layout livre. Por isso não dá pra "renderizar" a
-// árvore SDUI lá: ela precisa ser achatada numa sequência de mensagens (texto/botões/lista/mídia).
-// ponytail: mapeamento fixo aqui no front — não existe modelagem de suporte WhatsApp no catálogo (back)
-// hoje. Upgrade natural: migrar pra um campo real no Component Registry se o mapeamento precisar variar
-// por versão de componente ou ser editável sem deploy do front.
+// WhatsApp É um RenderTarget do Component Registry (ver RENDER_TARGETS em api/componentDefinitions.ts) —
+// SUPPORTED/UNSUPPORTED por componente vem de lá agora (ver previewTarget.ts), não mais fixo aqui.
+// O que ESTE arquivo ainda decide é só a FORMA da mensagem pra quem já é suportado: WhatsApp não tem
+// container/card/stack de layout livre, então a árvore SDUI é achatada numa sequência de mensagens
+// (texto/botões/lista/mídia) em vez de renderizada como componentes aninhados.
 import type { SduiNode } from './model';
 import { labelFor } from './componentMeta';
 

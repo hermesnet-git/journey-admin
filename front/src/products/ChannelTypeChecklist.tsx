@@ -32,24 +32,15 @@ export function ChannelTypeChecklist({ options, selected, onChange }: Props) {
     <div className="flex flex-wrap gap-x-5 gap-y-2">
       {[...options].sort((a, b) => CHANNEL_TYPE_ORDER[a] - CHANNEL_TYPE_ORDER[b]).map((type) => {
         const active = selected.includes(type);
-        // WhatsApp ainda não tem canal de execução implementado — fica visível no seletor (é um
-        // dos 3 tipos de domínio) mas desabilitado até existir suporte de verdade.
-        const disabled = type === 'WHATSAPP';
         return (
-          <label
-            key={type}
-            className="flex items-center gap-2 select-none"
-            title={disabled ? 'Canal ainda não disponível' : undefined}
-            style={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 }}
-          >
+          <label key={type} className="flex items-center gap-2 select-none" style={{ cursor: 'pointer' }}>
             <button
               type="button"
               role="switch"
               aria-checked={active}
-              disabled={disabled}
               onClick={() => toggle(type)}
-              className="relative w-[34px] h-[20px] rounded-full shrink-0 p-0 border-0 transition-colors disabled:cursor-not-allowed"
-              style={{ background: active ? c.accent : c.border, cursor: disabled ? 'not-allowed' : 'pointer' }}
+              className="relative w-[34px] h-[20px] rounded-full shrink-0 p-0 border-0 transition-colors"
+              style={{ background: active ? c.accent : c.border, cursor: 'pointer' }}
             >
               <span
                 className="absolute top-[2px] left-[2px] w-[16px] h-[16px] rounded-full bg-white transition-transform"

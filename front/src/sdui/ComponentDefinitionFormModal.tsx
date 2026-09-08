@@ -35,6 +35,7 @@ const TARGET_LABEL: Record<RenderTarget, string> = {
   'react.mobile': 'React Mobile',
   'flutter.web': 'Flutter Web',
   'flutter.mobile': 'Flutter Mobile',
+  whatsapp: 'WhatsApp',
 };
 
 function PropsSchemaEditor({ value, onChange }: { value: PropDescriptor[]; onChange: (next: PropDescriptor[]) => void }) {

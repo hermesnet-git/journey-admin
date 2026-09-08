@@ -52,7 +52,7 @@ function CanvasNode({
   const definition = registry.get(registryKey(node));
   const isContainer = !!definition?.allowsChildren;
   const Icon = iconFor(node.type);
-  const supported = isSupportedOnPreviewTarget(definition ?? null, node.type, previewTarget);
+  const supported = isSupportedOnPreviewTarget(definition ?? null, previewTarget);
   const showLivePreview = !isRoot && !isContainer && (previewTarget === 'web' || previewTarget === 'mobile') && !!definition;
   const dragData: CanvasDragData = { source: 'canvas', nodeId: node.id };
   const draggable = useDraggable({ id: node.id, data: dragData, disabled: isRoot });

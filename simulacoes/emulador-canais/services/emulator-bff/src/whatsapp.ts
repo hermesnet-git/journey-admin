@@ -14,6 +14,7 @@ interface WhatsAppSession {
   journeyId: string;
   instance: JourneyInstance;
   conversation: WhatsAppSduiConversation | null;
+  rendererDiagnostic: string | null;
 }
 
 export interface StartWhatsAppSessionRequest {
@@ -28,6 +29,7 @@ export interface WhatsAppSessionSummary {
   processInstanceId: string;
   stepType: JourneyStep['type'];
   taskId: string | null;
+  rendererDiagnostic: string | null;
 }
 
 class WceBridgeClient {
@@ -70,6 +72,7 @@ function sessionSummary(session: WhatsAppSession): WhatsAppSessionSummary {
     processInstanceId: session.instance.processInstanceId,
     stepType: session.instance.step.type,
     taskId: session.instance.step.taskId,
+    rendererDiagnostic: session.rendererDiagnostic,
   };
 }
 
@@ -137,6 +140,7 @@ export class WhatsAppSessionManager {
       journeyId: request.journeyId,
       instance,
       conversation: null,
+      rendererDiagnostic: null,
     };
     this.sessions.set(request.from, session);
     await this.activateStep(session, instance.step);
@@ -192,6 +196,7 @@ export class WhatsAppSessionManager {
   private async activateStep(session: WhatsAppSession, step: JourneyStep): Promise<void> {
     session.instance = { ...session.instance, step };
     session.conversation = null;
+    session.rendererDiagnostic = null;
     if (step.type === 'WAITING') {
       await this.bridge.send(text(session.from, `⏳ Jornada aguardando: ${step.nodeName ?? step.nodeType ?? 'processamento externo'}.\nDigite atualizar para consultar novamente.`));
       return;
@@ -227,7 +232,8 @@ export class WhatsAppSessionManager {
       session.conversation = conversation;
       await this.sendAll(conversation.initialMessages());
     } catch (error) {
-      await this.bridge.send(text(session.from, error instanceof Error ? error.message : 'SDUI incompatível com o canal WhatsApp.'));
+      session.rendererDiagnostic = error instanceof Error ? error.message : 'SDUI incompatível com o canal WhatsApp.';
+      await this.bridge.send(text(session.from, session.rendererDiagnostic));
     }
   }
 

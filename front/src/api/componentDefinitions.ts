@@ -5,8 +5,10 @@ export type ComponentCategory = 'CONTENT' | 'LAYOUT' | 'INPUT' | 'ACTION' | 'FEE
 export type PropKind = 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'ENUM' | 'TOKEN' | 'OPTIONS_LIST' | 'VALIDATION_LIST';
 export type TargetStatus = 'SUPPORTED' | 'PLANNED' | 'UNSUPPORTED';
 
-// Os 4 alvos de renderização do catálogo (seção 4) — chaves fixas de supportedTargets/adapterKeys.
-export const RENDER_TARGETS = ['react.web', 'react.mobile', 'flutter.web', 'flutter.mobile'] as const;
+// Os 5 alvos de renderização do catálogo (seção 4) — chaves fixas de supportedTargets/adapterKeys.
+// whatsapp: canal de mensageria (achatado em texto/botões/lista/mídia), não framework de UI livre
+// como os outros 4 — mesmo mecanismo de status por trás, ver RenderTarget.java (back).
+export const RENDER_TARGETS = ['react.web', 'react.mobile', 'flutter.web', 'flutter.mobile', 'whatsapp'] as const;
 export type RenderTarget = (typeof RENDER_TARGETS)[number];
 
 export interface PropDescriptor {

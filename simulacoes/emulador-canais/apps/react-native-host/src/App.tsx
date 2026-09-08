@@ -139,7 +139,7 @@ function versionAtLeast(current: string, minimum: string): boolean {
 }
 
 function targetCompatibilityError(document: SduiDocument | null): string {
-  if (!document || !('root' in document)) return '';
+  if (!document || !('supportedTargets' in document)) return '';
   if (!document.supportedTargets.includes('react.mobile')) return 'Esta tela não foi publicada para o alvo react.mobile.';
   if (document.schemaVersion.split('.')[0] !== '1' || document.catalogVersion.split('.')[0] !== '1') {
     return 'A versão do snapshot SDUI não é compatível com o catálogo v1.';

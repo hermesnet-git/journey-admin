@@ -13,7 +13,7 @@ Este arquivo registra o andamento das oito etapas acordadas. Vue, Angular e Next
 | 5. React Native | Em validação | Host e renderer dos 19 componentes implementados; falta validação integrada e visual em dispositivo/emulador. |
 | 6. Flutter Web e Mobile | Em validação | Cliente, runtime Dart, renderer dos 19 componentes e host compartilhado implementados; Web e Android compilados, faltando validação integrada e visual. A compilação iOS requer macOS/Xcode. |
 | 7. WhatsApp e WCE | Em validação | Adapter conversacional, sessões no BFF, WCE Bridge e WCE Web UI implementados e compilados; falta validação integrada e visual com jornada publicada. |
-| 8. Channel Lab | Em validação | Cockpit, catálogo administrativo via BFF, variáveis iniciais, bootstrap efêmero e abertura dos cinco alvos implementados; falta validação integrada e visual. |
+| 8. Channel Lab | Em validação | Cockpit com tema Mística `Vivo-evolution`, catálogo administrativo via BFF, variáveis iniciais, bootstrap efêmero e abertura dos cinco alvos implementados; falta validação integrada e visual. |
 
 ## Situação do plano
 

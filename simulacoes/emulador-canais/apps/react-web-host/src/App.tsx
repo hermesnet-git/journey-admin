@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ButtonPrimary, ButtonSecondary, Stack, Text, Title1, ThemeContextProvider, getSkinByName } from '@telefonica/mistica';
 import { JourneyClient, JourneyClientError, type FlowBundle, type JourneyInstance, type JourneyStep, type StartVariableDefinition } from '@elastic-journey/journey-client';
-import { parseSduiDocument } from '@elastic-journey/sdui-contract';
+import { parseSduiDocument, type SduiDocument } from '@elastic-journey/sdui-contract';
 import { createSduiRuntime } from '@elastic-journey/sdui-runtime';
 import { SduiRenderer, type RendererDiagnostic } from '@elastic-journey/renderer-react-web-mistica';
 
-const BFF_URL = import.meta.env.VITE_EMULATOR_BFF_URL ?? 'http://127.0.0.1:18085/api/v1';
+const BFF_URL = import.meta.env.VITE_EMULATOR_BFF_URL ?? '/emulator-bff/api/v1';
 const client = new JourneyClient({ baseUrl: BFF_URL });
 const INITIAL_QUERY = new URLSearchParams(window.location.search);
 const INITIAL_JOURNEY_ID = INITIAL_QUERY.get('journeyId')?.trim() ?? '';
 const INITIAL_LAB_BOOTSTRAP = INITIAL_QUERY.get('labBootstrap')?.trim() ?? '';
+const REACT_WEB_RENDERER_VERSION = '1.2.0';
 
 interface LabBootstrap {
   journeyId: string;
@@ -30,8 +31,9 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function labBootstrapUrl(token: string): string {
-  const url = new URL(BFF_URL);
-  url.pathname = `/api/lab/v1/bootstraps/${encodeURIComponent(token)}`;
+  const url = new URL(BFF_URL, window.location.origin);
+  const bffPrefix = url.pathname.replace(/\/api\/v1\/?$/, '');
+  url.pathname = `${bffPrefix}/api/lab/v1/bootstraps/${encodeURIComponent(token)}`;
   url.search = '';
   url.hash = '';
   return url.toString();
@@ -88,13 +90,33 @@ function startDefinitions(flow: FlowBundle | null): StartVariableDefinition[] {
   return flow?.flowNodes.find((node) => node.type === 'START' || node.type === 'MESSAGE_START_EVENT')?.startVariables ?? [];
 }
 
+function versionAtLeast(current: string, minimum: string): boolean {
+  const left = current.split('.').map(Number);
+  const right = minimum.split('.').map(Number);
+  for (let index = 0; index < 3; index += 1) {
+    if (left[index]! > right[index]!) return true;
+    if (left[index]! < right[index]!) return false;
+  }
+  return true;
+}
+
+function targetCompatibilityError(document: SduiDocument | null): string {
+  if (!document || !('supportedTargets' in document)) return '';
+  if (!document.supportedTargets.includes('react.web')) return 'Esta tela não foi publicada para o alvo react.web.';
+  const minimum = document.minRendererVersion['react.web'];
+  return minimum && !versionAtLeast(REACT_WEB_RENDERER_VERSION, minimum)
+    ? `A tela exige renderer react.web ${minimum} ou superior; o canal possui ${REACT_WEB_RENDERER_VERSION}.`
+    : '';
+}
+
 function StepView({ instance, onStep, onError }: { instance: JourneyInstance; onStep: (step: JourneyStep) => void; onError: (message: string) => void }) {
   const [submitting, setSubmitting] = useState(false);
   const [diagnostics, setDiagnostics] = useState<RendererDiagnostic[]>([]);
   const parsed = useMemo(() => instance.step.form ? parseSduiDocument(instance.step.form.sdui) : null, [instance.step.form]);
+  const compatibilityError = targetCompatibilityError(parsed?.document ?? null);
 
   const runtime = useMemo(() => {
-    if (!parsed?.document) return null;
+    if (!parsed?.document || compatibilityError) return null;
     return createSduiRuntime({
       document: parsed.document,
       context: { session: { channel: 'WEB', locale: 'pt-BR' } },
@@ -124,14 +146,14 @@ function StepView({ instance, onStep, onError }: { instance: JourneyInstance; on
         },
       },
     });
-  }, [instance.processInstanceId, instance.step.taskId, parsed?.document, onError, onStep]);
+  }, [compatibilityError, instance.processInstanceId, instance.step.taskId, parsed?.document, onError, onStep]);
 
   if (instance.step.type === 'WAITING') {
     return <Stack space={16}><Title1>Jornada aguardando</Title1><Text>{instance.step.nodeName ?? instance.step.nodeType ?? 'Processamento externo'}</Text><ButtonPrimary onPress={async () => onStep(await client.getCurrentStep(instance.processInstanceId))}>Atualizar passo</ButtonPrimary></Stack>;
   }
   if (instance.step.type === 'ENDED') return <Stack space={12}><Title1>Jornada concluída</Title1><Text>A instância chegou ao fim.</Text></Stack>;
   if (!parsed?.valid || !runtime) {
-    return <div className="host-error">SDUI incompatível: {parsed?.diagnostics.map((item) => `${item.code} (${item.path})`).join(', ') || 'formulário ausente'}</div>;
+    return <div className="host-error">SDUI incompatível: {compatibilityError || parsed?.diagnostics.map((item) => `${item.code} (${item.path})`).join(', ') || 'formulário ausente'}</div>;
   }
 
   return (
@@ -155,7 +177,7 @@ export function App() {
   const [instance, setInstance] = useState<JourneyInstance | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const skin = getSkinByName('Blau');
+  const skin = getSkinByName('Vivo');
 
   useEffect(() => {
     if (!INITIAL_LAB_BOOTSTRAP && !INITIAL_JOURNEY_ID) return;

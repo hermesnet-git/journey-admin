@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import {
   ButtonDanger,
   ButtonLink,
@@ -24,7 +24,7 @@ import {
 } from '@telefonica/mistica';
 import type { SduiNode } from '@elastic-journey/sdui-contract';
 import type { FieldError, SduiRuntime } from '@elastic-journey/sdui-runtime';
-import { align, color, elevation, iconSize, justify, maxWidth, spacing } from './tokens.js';
+import { align, color, elevation, iconSize, spacing } from './tokens.js';
 
 export interface RendererDiagnostic {
   code: string;
@@ -66,13 +66,13 @@ function dateValue(value: unknown): Date | undefined {
 }
 
 function eventValue(node: SduiNode, value: string): unknown {
-  const inputMode = node.props.inputMode;
+  const inputMode = node.attributes.inputMode;
   if ((inputMode === 'number' || inputMode === 'decimal') && value !== '') return Number(value);
   return value;
 }
 
 function typography(node: SduiNode): { size: number; weight?: 'regular' | 'medium' | 'bold' } {
-  const variant = String(node.props.variant ?? 'typography.body.regular');
+  const variant = String(node.attributes.variant ?? 'typography.body.regular');
   if (variant.includes('heading')) return { size: 20, weight: 'bold' };
   if (variant.includes('caption')) return { size: 12, weight: 'regular' };
   return { size: 16, weight: variant.includes('medium') ? 'medium' : 'regular' };
@@ -87,7 +87,6 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
   const change = async (node: SduiNode, value: unknown): Promise<void> => {
     runtime.setNodeValue(node, value);
     setErrors((current) => current.filter((error) => error.nodeId !== node.id));
-    await runtime.dispatch(node, 'onChange');
   };
 
   const dispatch = async (node: SduiNode, eventName: string): Promise<void> => {
@@ -95,17 +94,18 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
     setErrors(result.errors);
   };
 
-  const renderNode = (node: SduiNode): ReactNode => {
+  const renderNode = (node: SduiNode, ancestorsActive = true): ReactNode => {
     if (!runtime.isVisible(node)) return null;
-    const props = node.props;
-    const children = (node.children ?? []).map((child) => <div key={child.id}>{renderNode(child)}</div>);
+    const active = ancestorsActive && runtime.isActive(node);
+    const props = node.attributes;
+    const children = node.children.map((child) => <div key={child.id}>{renderNode(child, active)}</div>);
     const text = (value: unknown): string => runtime.resolveText(value);
 
     switch (node.type) {
       case 'ui.screen': {
         const content = (
           <Stack space={16}>
-            {typeof props.title === 'string' && props.title ? <Title2>{text(props.title)}</Title2> : null}
+            {runtime.getNodeAttribute(node, 'title') ? <Title2>{text(runtime.getNodeAttribute(node, 'title'))}</Title2> : null}
             {children}
           </Stack>
         );
@@ -129,10 +129,8 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
           <section
             style={{
               background: color(props.backgroundToken),
-              border: props.borderToken ? `1px solid ${color(props.borderToken) ?? skinVars.colors.border}` : undefined,
               boxSizing: 'border-box',
-              margin: spacing(props.marginToken),
-              maxWidth: maxWidth(props.maxWidthToken),
+              borderRadius: spacing(props.borderRadiusToken),
               padding: spacing(props.paddingToken),
               width: '100%',
             }}
@@ -145,13 +143,11 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
         const direction = String(props.direction ?? 'vertical');
         return (
           <div
-            className={`ej-sdui-stack${direction === 'responsive' ? ' ej-sdui-stack-responsive' : ''}`}
+            className="ej-sdui-stack"
             style={{
-              alignItems: align(props.align),
-              flexDirection: direction === 'horizontal' ? 'row' : direction === 'vertical' ? 'column' : undefined,
-              flexWrap: props.wrap === true ? 'wrap' : 'nowrap',
-              gap: spacing(props.gapToken, 16),
-              justifyContent: justify(props.justify),
+              alignItems: align(props.alignment),
+              flexDirection: direction === 'horizontal' ? 'row' : 'column',
+              gap: spacing(props.spacingToken, 16),
             }}
           >
             {children}
@@ -160,21 +156,8 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
       }
 
       case 'ui.card': {
-        const interactive = props.interactive === true && Boolean(node.events?.onPress);
-        const activate = (): void => { if (interactive) void dispatch(node, 'onPress'); };
-        const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-          if (interactive && (event.key === 'Enter' || event.key === ' ')) {
-            event.preventDefault();
-            activate();
-          }
-        };
         return (
           <div
-            className={interactive ? 'ej-sdui-card-interactive' : undefined}
-            onClick={activate}
-            onKeyDown={onKeyDown}
-            role={interactive ? 'button' : undefined}
-            tabIndex={interactive ? 0 : undefined}
             style={{
               background: skinVars.colors.backgroundContainer,
               border: `1px solid ${skinVars.colors.border}`,
@@ -193,16 +176,16 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
         const style: CSSProperties = props.maxLines
           ? { display: '-webkit-box', overflow: 'hidden', WebkitBoxOrient: 'vertical', WebkitLineClamp: Number(props.maxLines) }
           : {};
-        return <Text size={preset.size} weight={preset.weight} color={color(props.colorToken) ?? skinVars.colors.textPrimary} textAlign={props.align as never} as="div"><span style={style}>{text(props.text)}</span></Text>;
+        return <Text size={preset.size} weight={preset.weight} color={color(props.colorToken) ?? skinVars.colors.textPrimary} textAlign={props.align as never} as="div"><span style={style}>{text(runtime.getNodeAttribute(node, 'text'))}</span></Text>;
       }
 
       case 'ui.image': {
-        const source = text(props.source);
+        const source = text(runtime.getNodeAttribute(node, 'source'));
         if (!source) return null;
         return (
           <img
             src={source}
-            alt={text(props.alt)}
+            alt={text(runtime.getNodeAttribute(node, 'alt'))}
             style={{ aspectRatio: typeof props.aspectRatio === 'number' ? String(props.aspectRatio) : undefined, display: 'block', maxWidth: '100%', objectFit: props.fit as CSSProperties['objectFit'], width: '100%' }}
           />
         );
@@ -242,13 +225,13 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
             inputMode={mode}
             required={props.required === true}
             readOnly={props.readOnly === true}
+            disabled={!active}
             maxLength={typeof props.maxLength === 'number' ? props.maxLength : undefined}
             fullWidth
             value={stringValue(runtime.getNodeValue(node))}
             error={Boolean(fieldError)}
             helperText={fieldError}
             onChange={(event) => void change(node, eventValue(node, event.currentTarget.value))}
-            onBlur={() => void dispatch(node, 'onBlur')}
           />
         );
       }
@@ -265,12 +248,12 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
                 value={stringValue(runtime.getNodeValue(node))}
                 placeholder={text(props.placeholder)}
                 required={props.required === true}
+                disabled={!active || props.readOnly === true}
                 rows={typeof props.minLines === 'number' ? props.minLines : 3}
                 maxLength={typeof props.maxLength === 'number' ? props.maxLength : undefined}
                 aria-invalid={Boolean(fieldError)}
                 aria-describedby={fieldError ? `${node.id}-error` : undefined}
                 onChange={(event) => void change(node, event.currentTarget.value)}
-                onBlur={() => void dispatch(node, 'onBlur')}
               />
               {fieldError ? <Text id={`${node.id}-error`} size={13} color={skinVars.colors.error}>{fieldError}</Text> : null}
             </Stack>
@@ -291,6 +274,7 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
             optional={props.required !== true}
             fullWidth
             native={!props.searchable}
+            disabled={!active}
             error={Boolean(fieldError)}
             helperText={fieldError ?? text(props.placeholder)}
             onChangeValue={(value) => void change(node, value)}
@@ -306,6 +290,7 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
               id={node.id}
               name={node.id}
               checked={runtime.getNodeValue(node) === true}
+              disabled={!active}
               onChange={(value) => void change(node, value)}
               aria-label={text(props.label)}
             >
@@ -327,6 +312,7 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
               label={text(props.label)}
               type={mode === 'time' ? 'time' : 'datetime-local'}
               required={props.required === true}
+              disabled={!active}
               fullWidth
               value={stringValue(runtime.getNodeValue(node))}
               error={Boolean(fieldError)}
@@ -341,6 +327,7 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
             label={text(props.label)}
             value={stringValue(runtime.getNodeValue(node))}
             optional={props.required !== true}
+            disabled={!active}
             fullWidth
             min={dateValue(props.minDate)}
             max={props.maxDate === 'today' ? new Date() : dateValue(props.maxDate)}
@@ -356,28 +343,30 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
         const common = {
           onPress: () => dispatch(node, 'onPress'),
           showSpinner: submitting || props.loading === true,
-          disabled: props.disabled === true,
+          disabled: props.disabled === true || !active,
           small: props.size === 'small',
           style: props.fullWidth === true ? { width: '100%' } : undefined,
         };
         if (props.variant === 'secondary') return <ButtonSecondary {...common}>{label}</ButtonSecondary>;
         if (props.variant === 'danger') return <ButtonDanger {...common}>{label}</ButtonDanger>;
-        if (props.variant === 'link') return <ButtonLink onPress={() => dispatch(node, 'onPress')}>{label}</ButtonLink>;
+        if (props.variant === 'link') return common.disabled ? <Text color={skinVars.colors.textSecondary}>{label}</Text> : <ButtonLink onPress={() => dispatch(node, 'onPress')}>{label}</ButtonLink>;
         return <ButtonPrimary {...common}>{label}</ButtonPrimary>;
       }
 
       case 'ui.link':
-        return <TextLink onPress={() => dispatch(node, 'onPress')} underline={props.emphasis === 'low' ? 'on hover' : 'always'} aria-label={text(props.accessibilityLabel) || undefined}>{text(props.label)}</TextLink>;
+        return active
+          ? <TextLink onPress={() => dispatch(node, 'onPress')} underline={props.emphasis === 'low' ? 'on hover' : 'always'} aria-label={text(props.accessibilityLabel) || undefined}>{text(props.label)}</TextLink>
+          : <Text color={skinVars.colors.textSecondary}>{text(props.label)}</Text>;
 
       case 'ui.alert':
         return (
           <Callout
-            title={text(props.title) || undefined}
-            description={text(props.message)}
+            title={text(runtime.getNodeAttribute(node, 'title')) || undefined}
+            description={text(runtime.getNodeAttribute(node, 'message'))}
             variant={props.severity === 'positive' || props.severity === 'informative' ? 'brand' : 'default'}
             role={props.severity === 'negative' ? 'alert' : 'status'}
             closeButtonLabel="Fechar aviso"
-            onClose={props.dismissible === true ? () => {
+            onClose={props.dismissible === true && active ? () => {
               if (node.events?.onDismiss) void dispatch(node, 'onDismiss');
               else runtime.dismiss(node.id);
             } : undefined}
@@ -385,7 +374,8 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
         );
 
       case 'ui.progress': {
-        const rawValue = typeof props.value === 'number' ? props.value : 0;
+        const boundValue = runtime.getNodeAttribute(node, 'value');
+        const rawValue = typeof boundValue === 'number' ? boundValue : 0;
         const value = Math.min(100, Math.max(0, rawValue <= 1 ? rawValue * 100 : rawValue));
         return (
           <Stack space={8}>

@@ -8,6 +8,26 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (() => {
+        const showStartupError = (value) => {
+          const root = document.getElementById('root');
+          if (!root || root.childElementCount > 0) return;
+          const message = value instanceof Error ? (value.stack || value.message) : String(value || 'Falha desconhecida.');
+          root.innerHTML = '<main style="max-width:680px;margin:64px auto;padding:24px;font:14px system-ui;color:#7a271a;background:#fee4e2;border:1px solid #f97066;border-radius:12px"><h1 style="font-size:18px">WCE Web UI não pôde ser iniciado</h1><p id="wce-startup-error"></p><small>Consulte também os logs do WCE Bridge e do Emulator BFF.</small></main>';
+          const detail = document.getElementById('wce-startup-error');
+          detail.style.whiteSpace = 'pre-wrap';
+          detail.style.overflowWrap = 'anywhere';
+          detail.textContent = message;
+        };
+        window.addEventListener('error', (event) => showStartupError(event.error || event.message));
+        window.addEventListener('unhandledrejection', (event) => showStartupError(event.reason));
+        window.setTimeout(() => {
+          const root = document.getElementById('root');
+          if (root && root.childElementCount === 0) showStartupError('O módulo principal não montou a aplicação dentro do tempo esperado. Atualize a página e verifique o servidor Vite.');
+        }, 4000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

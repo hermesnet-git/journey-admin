@@ -116,7 +116,8 @@ export class JourneyClient {
     const managedSignal = requestSignal(this.timeoutMs, options?.signal);
     let response: Response;
     try {
-      response = await this.fetchImplementation(`${this.baseUrl}${path}`, {
+      const fetchImplementation = this.fetchImplementation;
+      response = await fetchImplementation(`${this.baseUrl}${path}`, {
         ...init,
         headers: {
           accept: 'application/json',

@@ -1,7 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import {
+  ButtonDanger,
+  ButtonPrimary,
+  VivoLogo,
+  skinVars,
+} from '@telefonica/mistica';
 import { BFF_ORIGIN, LabApiError, labApi } from './api.js';
 import type {
   AdminJourneySummary,
+  AndroidLaunchResult,
   ChannelType,
   DiagnosticEntry,
   FlowBundle,
@@ -14,6 +21,7 @@ import type {
 const REACT_WEB_ORIGIN = import.meta.env.VITE_REACT_WEB_ORIGIN ?? 'http://127.0.0.1:15171';
 const FLUTTER_WEB_ORIGIN = import.meta.env.VITE_FLUTTER_WEB_ORIGIN ?? 'http://127.0.0.1:15172';
 const WCE_UI_ORIGIN = import.meta.env.VITE_WCE_UI_ORIGIN ?? 'http://127.0.0.1:15173';
+const WHATSAPP_SIMULATED_PHONE = '5511999999999';
 const BFF_ENDPOINT = (() => {
   try {
     return new URL(BFF_ORIGIN).host;
@@ -21,6 +29,28 @@ const BFF_ENDPOINT = (() => {
     return BFF_ORIGIN;
   }
 })();
+const LAB_THEME_VARIABLES = {
+  '--lab-background': skinVars.colors.backgroundAlternative,
+  '--lab-surface': skinVars.colors.backgroundContainer,
+  '--lab-surface-alt': skinVars.colors.background,
+  '--lab-selected': skinVars.colors.backgroundSelected,
+  '--lab-brand': skinVars.colors.brand,
+  '--lab-brand-high': skinVars.colors.brandHigh,
+  '--lab-brand-low': skinVars.colors.brandLow,
+  '--lab-brand-top': skinVars.colors.backgroundBrandTop,
+  '--lab-brand-bottom': skinVars.colors.backgroundBrandBottom,
+  '--lab-on-brand': skinVars.colors.textPrimaryInverse,
+  '--lab-text': skinVars.colors.textPrimary,
+  '--lab-text-secondary': skinVars.colors.textSecondary,
+  '--lab-neutral': skinVars.colors.neutralMedium,
+  '--lab-border': skinVars.colors.borderLow,
+  '--lab-border-high': skinVars.colors.border,
+  '--lab-success': skinVars.colors.success,
+  '--lab-success-low': skinVars.colors.successLow,
+  '--lab-error': skinVars.colors.error,
+  '--lab-error-low': skinVars.colors.errorLow,
+  '--lab-warning-low': skinVars.colors.warningLow,
+} as CSSProperties;
 
 const TARGETS: TargetDefinition[] = [
   { id: 'react.web', label: 'React Web', description: 'Renderer Mística Web real', channel: 'WEB', mode: 'iframe', url: REACT_WEB_ORIGIN },
@@ -29,6 +59,11 @@ const TARGETS: TargetDefinition[] = [
   { id: 'flutter.mobile', label: 'Flutter Mobile', description: 'Aplicativo Android/iOS', channel: 'MOBILE', mode: 'device' },
   { id: 'whatsapp.wce', label: 'WhatsApp WCE', description: 'Projeção conversacional via WCE', channel: 'WHATSAPP', mode: 'iframe', url: WCE_UI_ORIGIN },
 ];
+
+interface AppProps {
+  colorScheme: 'light' | 'dark';
+  onToggleColorScheme: () => void;
+}
 
 function definitions(flow: FlowBundle | null): StartVariableDefinition[] {
   return flow?.flowNodes.find((node) => node.type === 'START' || node.type === 'MESSAGE_START_EVENT')?.startVariables ?? [];
@@ -59,7 +94,7 @@ function dateLabel(value: string | null): string {
   return Number.isNaN(date.valueOf()) ? value : date.toLocaleString('pt-BR');
 }
 
-export function App() {
+export function App({ colorScheme, onToggleColorScheme }: AppProps) {
   const [channel, setChannel] = useState<ChannelType>('WEB');
   const [target, setTarget] = useState<LabTarget>('react.web');
   const [journeys, setJourneys] = useState<AdminJourneySummary[]>([]);
@@ -70,11 +105,12 @@ export function App() {
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [loadingFlow, setLoadingFlow] = useState(false);
   const [launching, setLaunching] = useState(false);
+  const [launchStatus, setLaunchStatus] = useState('');
   const [bffOnline, setBffOnline] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [deviceInstruction, setDeviceInstruction] = useState('');
-  const [whatsAppPhone, setWhatsAppPhone] = useState('5511999999999');
+  const whatsAppPhone = WHATSAPP_SIMULATED_PHONE;
   const [whatsAppSession, setWhatsAppSession] = useState<WhatsAppSessionSummary | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([]);
   const catalogRequest = useRef<AbortController | null>(null);
@@ -176,13 +212,21 @@ export function App() {
     setError('');
     setPreviewUrl('');
     setDeviceInstruction('');
+    setLaunchStatus(target === 'react.mobile' || target === 'flutter.mobile'
+      ? 'Preparando o Android. O AVD pode levar alguns minutos para iniciar.'
+      : 'Preparando o canal selecionado.');
     try {
       if (target === 'whatsapp.wce') {
         const session = await labApi.startWhatsApp(selectedJourney.journeyId, whatsAppPhone.trim(), variables);
         setBffOnline(true);
         setWhatsAppSession(session);
         setPreviewUrl(TARGETS.find((item) => item.id === target)!.url!);
-        log('info', 'WhatsApp', `Sessão iniciada: ${session.processInstanceId}; passo ${session.stepType}.`);
+        if (session.rendererDiagnostic) {
+          setError(session.rendererDiagnostic);
+          log('error', 'WhatsApp SDUI', session.rendererDiagnostic);
+        } else {
+          log('info', 'WhatsApp', `Sessão iniciada: ${session.processInstanceId}; passo ${session.stepType}.`);
+        }
         return;
       }
       const bootstrap = await labApi.createBootstrap(selectedJourney.journeyId, target, variables);
@@ -193,15 +237,20 @@ export function App() {
         url.searchParams.set('labBootstrap', bootstrap.token);
         setPreviewUrl(url.toString());
       } else if (target === 'react.mobile') {
-        setDeviceInstruction(`elasticjourney://run?labBootstrap=${encodeURIComponent(bootstrap.token)}`);
-      } else {
-        setDeviceInstruction(`cd apps/flutter-host\nflutter run -d <device-id> --dart-define=LAB_BOOTSTRAP_TOKEN=${bootstrap.token}`);
+        setLaunchStatus('Localizando ou iniciando o AVD e abrindo o Expo Go…');
+        const result = await labApi.launchAndroid(target, bootstrap.token);
+        setDeviceInstruction(deviceResultText(result));
+      } else if (target === 'flutter.mobile') {
+        setLaunchStatus('Localizando ou iniciando o AVD e compilando o aplicativo Flutter…');
+        const result = await labApi.launchAndroid(target, bootstrap.token);
+        setDeviceInstruction(deviceResultText(result));
       }
       log('info', 'Bootstrap', `Token criado para ${target}; expira em ${dateLabel(bootstrap.expiresAt)}.`);
     } catch (cause) {
       reportError('Execução', cause);
     } finally {
       setLaunching(false);
+      setLaunchStatus('');
     }
   };
 
@@ -221,10 +270,29 @@ export function App() {
     }
   };
 
-  return <div className="lab-shell">
+  return <div className="lab-shell" style={LAB_THEME_VARIABLES}>
+    {launching && launchStatus ? <div className="launch-overlay" role="status" aria-live="polite">
+      <div className="launch-dialog"><span className="launch-spinner" /><h2>Iniciando canal</h2><p>{launchStatus}</p><small>Não feche esta página enquanto o ambiente está sendo preparado.</small></div>
+    </div> : null}
     <header className="topbar">
-      <div className="brand"><span className="brand-mark">EJ</span><div><h1>Channel Lab</h1><p>Elastic Journey · laboratório de canais digitais</p></div></div>
-      <div className="service-status"><span className={`status-dot ${bffOnline === true ? 'up' : bffOnline === false ? 'down' : ''}`} /> Emulator BFF · {BFF_ENDPOINT}</div>
+      <div className="brand"><span className="brand-mark"><VivoLogo size={42} color="#ffffff" /></span><div><h1>Channel Lab</h1><p>Elastic Journey · laboratório de canais digitais</p></div></div>
+      <div className="topbar-actions">
+        <button
+          className={`theme-toggle ${colorScheme}`}
+          type="button"
+          role="switch"
+          aria-checked={colorScheme === 'dark'}
+          aria-label={`Ativar tema ${colorScheme === 'light' ? 'escuro' : 'claro'}`}
+          title={`Tema atual: ${colorScheme === 'light' ? 'claro' : 'escuro'}`}
+          onClick={onToggleColorScheme}
+        >
+          <span aria-hidden="true">☀</span>
+          <i aria-hidden="true"><b /></i>
+          <span aria-hidden="true">☾</span>
+          <strong>{colorScheme === 'light' ? 'Claro' : 'Escuro'}</strong>
+        </button>
+        <div className="service-status"><span className={`status-dot ${bffOnline === true ? 'up' : bffOnline === false ? 'down' : ''}`} /> Emulator BFF · {BFF_ENDPOINT}</div>
+      </div>
     </header>
 
     <nav className="steps" aria-label="Etapas da simulação">
@@ -268,18 +336,27 @@ export function App() {
           {flow && definitions(flow).length === 0 ? <p className="section-placeholder success">Esta jornada não exige variáveis iniciais.</p> : null}
           {flow ? <div className="variables">{definitions(flow).map((definition) => <VariableField key={definition.name} definition={definition} value={definition.name ? variables[definition.name] : undefined} onChange={(value) => definition.name && setVariables((current) => ({ ...current, [definition.name!]: value }))} />)}</div> : null}
           {target === 'whatsapp.wce' && flow ? <label className="field">Número simulado
-            <input value={whatsAppPhone} onChange={(event) => setWhatsAppPhone(event.currentTarget.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="5511999999999" />
-            <small className="field-hint">Deve ser o mesmo WCE_USER_PHONE configurado no WCE Bridge.</small>
+            <input value={whatsAppPhone} disabled readOnly aria-describedby="whatsapp-phone-hint" />
+            <small className="field-hint" id="whatsapp-phone-hint">Identificador fixo configurado para esta simulação.</small>
           </label> : null}
-          <button className="launch" disabled={!selectedJourney || !flow || !variablesValid(flow, variables) || launching || (target === 'whatsapp.wce' && (!whatsAppPhone || Boolean(whatsAppSession)))} onClick={launch}>{launching ? 'Preparando…' : target === 'whatsapp.wce' ? whatsAppSession ? 'Conversa ativa' : 'Iniciar conversa' : 'Abrir no canal'} <span>→</span></button>
-          {whatsAppSession ? <button className="stop" onClick={stopWhatsApp} disabled={launching}>Encerrar sessão WhatsApp</button> : null}
+          <div className="mistica-action primary-action">
+            <ButtonPrimary
+              disabled={!selectedJourney || !flow || !variablesValid(flow, variables) || launching || (target === 'whatsapp.wce' && (!whatsAppPhone || Boolean(whatsAppSession)))}
+              showSpinner={launching}
+              loadingText="Preparando…"
+              onPress={() => void launch()}
+            >
+              {target === 'whatsapp.wce' ? whatsAppSession ? 'Conversa ativa' : 'Iniciar conversa' : 'Abrir no canal'} →
+            </ButtonPrimary>
+          </div>
+          {whatsAppSession ? <div className="mistica-action stop-action"><ButtonDanger onPress={() => void stopWhatsApp()} disabled={launching}>Encerrar sessão WhatsApp</ButtonDanger></div> : null}
         </section>
       </aside>
 
       <section className="stage">
         <div className="stage-header"><div><span className="eyebrow">ALVO ATUAL</span><h2>{TARGETS.find((item) => item.id === target)?.label}</h2></div><span className="target-badge">{target}</span></div>
         <div className="stage-body">
-          {previewUrl ? <iframe key={previewUrl} src={previewUrl} title={`Preview ${target}`} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" /> : deviceInstruction ? <DevicePanel target={target} instruction={deviceInstruction} /> : <div className="stage-empty"><div className="empty-icon">◇</div><h3>O canal aparecerá aqui</h3><p>Selecione a jornada, preencha o contexto inicial e abra a execução.</p><div className="architecture"><span>Channel Lab</span><b>→</b><span>Host real</span><b>→</b><span>Emulator BFF</span><b>→</b><span>ms-journey</span></div></div>}
+          {previewUrl ? <iframe key={previewUrl} src={previewUrl} title={`Preview ${target}`} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" /> : deviceInstruction ? <DevicePanel target={target} instruction={deviceInstruction} /> : <EmptyStage target={target} />}
         </div>
         <div className="stage-footer"><span>O Channel Lab coordena, mas não renderiza SDUI.</span>{previewUrl ? <a href={previewUrl} target="_blank" rel="noreferrer">Abrir em nova janela ↗</a> : null}</div>
       </section>
@@ -296,6 +373,23 @@ export function App() {
       </aside>
     </main>
     <footer className="app-footer"><span>channel-lab · {window.location.host}</span><span>BFF: {BFF_ORIGIN}</span></footer>
+  </div>;
+}
+
+function deviceResultText(result: AndroidLaunchResult): string {
+  const emulator = result.avdName ? `${result.avdName} (${result.deviceId})` : result.deviceId;
+  return `${result.detail}\nDispositivo: ${emulator}`;
+}
+
+function EmptyStage({ target }: { target: LabTarget }) {
+  const mobile = target === 'react.mobile' || target === 'flutter.mobile';
+  return <div className="stage-empty">
+    <div className="empty-icon">◇</div>
+    <h3>{mobile ? 'O aplicativo será aberto no dispositivo' : 'O canal aparecerá aqui'}</h3>
+    <p>{mobile
+      ? 'Selecione a jornada, preencha o contexto inicial e clique em “Abrir no canal”. O Channel Lab iniciará o AVD quando necessário.'
+      : 'Selecione a jornada, preencha o contexto inicial e abra a execução.'}</p>
+    <div className="architecture"><span>Channel Lab</span><b>→</b><span>{mobile ? 'AVD / dispositivo' : 'Host real'}</span><b>→</b><span>Emulator BFF</span><b>→</b><span>ms-journey</span></div>
   </div>;
 }
 

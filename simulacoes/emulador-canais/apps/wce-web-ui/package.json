@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 15173 --strictPort",
+    "dev": "vite build --emptyOutDir --minify false --sourcemap && vite preview --host 127.0.0.1 --port 15173 --strictPort",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false"
   },

@@ -16,7 +16,9 @@
     "dev:react-native": "npm run dev --workspace @elastic-journey/react-native-host",
     "dev:wce-bridge": "npm run dev --workspace @elastic-journey/wce-bridge",
     "dev:wce-ui": "npm run dev --workspace @elastic-journey/wce-web-ui",
-    "dev:flutter": "cd apps/flutter-host && flutter run -d chrome --web-hostname 127.0.0.1 --web-port 15172 --no-pub",
+    "dev:flutter": "cd apps/flutter-host && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 15172 --no-pub",
+    "dev:all": "node scripts/dev.mjs all",
+    "dev:android": "node scripts/dev.mjs android",
     "build:flutter": "cd apps/flutter-host && flutter build web --no-pub"
   },
   "engines": {

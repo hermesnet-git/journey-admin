@@ -41,12 +41,21 @@ export interface LabBootstrap {
   expiresAt: string;
 }
 
+export interface AndroidLaunchResult {
+  status: 'RUNNING';
+  target: 'react.mobile' | 'flutter.mobile';
+  deviceId: string;
+  avdName: string | null;
+  detail: string;
+}
+
 export interface WhatsAppSessionSummary {
   from: string;
   journeyId: string;
   processInstanceId: string;
   stepType: string;
   taskId: string | null;
+  rendererDiagnostic: string | null;
 }
 
 export interface DiagnosticEntry {

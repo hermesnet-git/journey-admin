@@ -37,37 +37,44 @@ class FlutterMisticaTokens {
   final Color informativeLow;
 
   double spacing(dynamic token) => switch (token?.toString()) {
-        'spacing.none' => 0,
-        'spacing.xs' => 4,
-        'spacing.sm' => 8,
-        'spacing.lg' => 24,
-        'spacing.xl' => 32,
-        _ => 16,
-      };
+    'spacing.none' => 0,
+    'spacing.xs' => 4,
+    'spacing.sm' => 8,
+    'spacing.lg' => 24,
+    'spacing.xl' => 32,
+    _ => 16,
+  };
 
   double maxWidth(dynamic token) => switch (token?.toString()) {
-        'layout.content.compact' => 480,
-        'layout.content.wide' => 1120,
-        _ => 760,
-      };
+    'layout.content.compact' => 480,
+    'layout.content.wide' => 1120,
+    _ => 760,
+  };
 
   double iconSize(dynamic token) => switch (token?.toString()) {
-        'size.icon.sm' => 18,
-        'size.icon.lg' => 32,
-        _ => 24,
-      };
+    'size.icon.sm' => 18,
+    'size.icon.lg' => 32,
+    _ => 24,
+  };
+
+  double radius(dynamic token) => switch (token?.toString()) {
+    'radius.none' => 0,
+    'radius.sm' => 4,
+    'radius.lg' => 16,
+    'radius.full' => 999,
+    _ => 8,
+  };
 
   Color color(dynamic token, {Color? fallback}) => switch (token?.toString()) {
-        'color.background.primary' => background,
-        'color.background.secondary' => backgroundSecondary,
-        'color.surface' => surface,
-        'color.text.primary' => textPrimary,
-        'color.text.secondary' => textSecondary,
-        'color.brand' || 'color.brand.primary' => brand,
-        'color.feedback.negative' => negative,
-        'color.feedback.positive' => positive,
-        'color.feedback.warning' => warning,
-        _ => fallback ?? textPrimary,
-      };
+    'color.background.primary' => background,
+    'color.background.secondary' => backgroundSecondary,
+    'color.surface' => surface,
+    'color.text.primary' => textPrimary,
+    'color.text.secondary' => textSecondary,
+    'color.brand' || 'color.brand.primary' => brand,
+    'color.feedback.negative' => negative,
+    'color.feedback.positive' => positive,
+    'color.feedback.warning' => warning,
+    _ => fallback ?? textPrimary,
+  };
 }
-

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { io, type Socket } from 'socket.io-client';
 import type { ListRow, ReplyButton, SimpleUiMessage, StoredMessage, WceReply } from './types.js';
 
 const BRIDGE_URL = import.meta.env.VITE_WCE_BRIDGE_URL ?? 'http://127.0.0.1:13001';
@@ -58,40 +57,54 @@ export function App() {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState('');
   const [input, setInput] = useState('');
-  const socketRef = useRef<Socket | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const socket = io(BRIDGE_URL, { transports: ['websocket', 'polling'], reconnection: true });
-    socketRef.current = socket;
-    socket.on('connect', () => { setConnected(true); setError(''); });
-    socket.on('disconnect', () => setConnected(false));
-    socket.on('connect_error', () => { setConnected(false); setError('WCE Bridge indisponível.'); });
-    socket.on('bridge_error', (message: string) => setError(message));
-    socket.on('ui_history', (history: StoredMessage[]) => setMessages(history));
-    socket.on('ui_message', (data: SimpleUiMessage) => append('out', data));
-    socket.on('ui_user_message', (data: SimpleUiMessage) => append('in', data));
-    return () => { socket.close(); socketRef.current = null; };
+    let active = true;
+    const refresh = async (): Promise<void> => {
+      try {
+        const response = await fetch(`${BRIDGE_URL}/messages`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const history = await response.json() as StoredMessage[];
+        if (active) { setMessages(history); setConnected(true); setError(''); }
+      } catch {
+        if (active) { setConnected(false); setError('WCE Bridge indisponível.'); }
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 750);
+    return () => { active = false; window.clearInterval(timer); };
   }, []);
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), [messages]);
+  useEffect(() => {
+    const end = endRef.current;
+    if (typeof end?.scrollIntoView === 'function') end.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  const append = (direction: 'in' | 'out', data: SimpleUiMessage): void => {
-    setMessages((current) => [...current, { id: crypto.randomUUID(), direction, data, timestamp: new Date().toISOString() }]);
-  };
-
-  const reply = (value: WceReply): void => {
-    if (!socketRef.current?.connected) {
+  const reply = async (value: WceReply): Promise<void> => {
+    if (!connected) {
       setError('WCE Bridge indisponível.');
       return;
     }
-    socketRef.current.emit('ui_reply', value);
+    try {
+      const response = await fetch(`${BRIDGE_URL}/reply`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(value),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { message?: string };
+        throw new Error(body.message || `WCE Bridge respondeu HTTP ${response.status}.`);
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível enviar a resposta.');
+    }
   };
 
   const send = (): void => {
     const body = input.trim();
     if (!body) return;
-    reply({ type: 'text', payload: { body } });
+    void reply({ type: 'text', payload: { body } });
     setInput('');
   };
 

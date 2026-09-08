@@ -18,6 +18,7 @@ const _configuredJourneyId = String.fromEnvironment('JOURNEY_ID');
 const _configuredLabBootstrapToken = String.fromEnvironment(
   'LAB_BOOTSTRAP_TOKEN',
 );
+String get _flutterRendererVersion => kIsWeb ? '1.0.0' : '1.3.0';
 
 String get _defaultBffUrl {
   if (kIsWeb) {
@@ -327,6 +328,29 @@ class _ChannelHostPageState extends State<ChannelHostPage> {
         _sduiDiagnostics = parsed.diagnostics;
       });
       return;
+    }
+    final snapshot = form.sdui is Map
+        ? (form.sdui as Map).map(
+            (key, value) => MapEntry(key.toString(), value),
+          )
+        : <String, dynamic>{};
+    if (snapshot.isNotEmpty) {
+      final target = kIsWeb ? 'flutter.web' : 'flutter.mobile';
+      final targets = snapshot['supportedTargets'];
+      final minimums = snapshot['minRendererVersion'];
+      final minimum = minimums is Map ? minimums[target]?.toString() : null;
+      if (targets is! List ||
+          !targets.contains(target) ||
+          (minimum != null &&
+              !_versionAtLeast(_flutterRendererVersion, minimum))) {
+        setState(() {
+          _runtime = null;
+          _sduiDiagnostics = [
+            'SDUI_TARGET_UNSUPPORTED (alvo $target ou versão mínima do renderer incompatível)',
+          ];
+        });
+        return;
+      }
     }
     final runtime = SduiRuntime(
       root: parsed.root!,
@@ -667,6 +691,22 @@ class _ChannelHostPageState extends State<ChannelHostPage> {
       ],
     );
   }
+}
+
+bool _versionAtLeast(String current, String minimum) {
+  final left = current.split('.').map(int.tryParse).toList();
+  final right = minimum.split('.').map(int.tryParse).toList();
+  if (left.length != 3 ||
+      right.length != 3 ||
+      left.contains(null) ||
+      right.contains(null)) {
+    return false;
+  }
+  for (var index = 0; index < 3; index++) {
+    if (left[index]! > right[index]!) return true;
+    if (left[index]! < right[index]!) return false;
+  }
+  return true;
 }
 
 class _LabBootstrap {

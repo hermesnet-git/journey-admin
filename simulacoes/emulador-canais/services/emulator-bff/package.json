@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@elastic-journey/journey-client": "0.1.0",
-    "@elastic-journey/renderer-whatsapp": "0.1.0"
+    "@elastic-journey/renderer-whatsapp": "1.0.0"
   },
   "devDependencies": {
     "tsx": "^4.20.0"

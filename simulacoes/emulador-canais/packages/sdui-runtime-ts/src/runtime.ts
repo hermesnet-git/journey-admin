@@ -70,6 +70,7 @@ export class SduiRuntime {
   readonly root: SduiNode<'ui.screen'>;
   readonly context: RuntimeContext;
   private readonly handlers: RuntimeHandlers;
+  private readonly parents = new Map<string, SduiNode | null>();
   private readonly dismissed = new Set<string>();
   private readonly listeners = new Set<Listener>();
   private revision = 0;
@@ -86,7 +87,7 @@ export class SduiRuntime {
       computed: cloneRecord(options.context?.computed),
     };
     this.handlers = options.handlers ?? {};
-    this.seedResolvedValues();
+    walkSdui(this.root, (node, parent) => this.parents.set(node.id, parent));
   }
 
   subscribe(listener: Listener): () => void {
@@ -103,15 +104,28 @@ export class SduiRuntime {
     return matchesVisibility(actual.found ? actual.value : undefined, node.visibility.rule, node.visibility.value);
   }
 
+  isActive(node: SduiNode): boolean {
+    if (!node.active) return true;
+    const actual = readPath(this.context, node.active.path);
+    return matchesVisibility(actual.found ? actual.value : undefined, node.active.rule, node.active.value);
+  }
+
   resolveText(value: unknown): string {
     return typeof value === 'string' ? interpolateText(value, this.context) : '';
   }
 
   getNodeValue(node: SduiNode): unknown {
     const path = valueBinding(node);
-    if (!path) return node.props.value;
+    if (!path) return undefined;
     const resolved = readPath(this.context, path);
-    return resolved.found ? resolved.value : node.props.value;
+    return resolved.found ? resolved.value : undefined;
+  }
+
+  getNodeAttribute(node: SduiNode, name: string): unknown {
+    const binding = node.bindings[name];
+    if (!binding) return node.attributes[name];
+    const resolved = readPath(this.context, binding.path);
+    return resolved.found ? resolved.value : node.attributes[name];
   }
 
   setNodeValue(node: SduiNode, value: unknown): boolean {
@@ -130,7 +144,7 @@ export class SduiRuntime {
   validate(): FieldError[] {
     const errors: FieldError[] = [];
     walkSdui(this.root, (node) => {
-      if (!INPUT_COMPONENTS.has(node.type) || !this.isVisible(node)) return;
+      if (!INPUT_COMPONENTS.has(node.type) || !this.isVisible(node) || !this.isActiveWithAncestors(node)) return;
       const path = valueBinding(node);
       if (!path?.startsWith('form.')) return;
       errors.push(...validateNodeValue(node, path, this.getNodeValue(node)));
@@ -141,7 +155,7 @@ export class SduiRuntime {
   answers(): Record<string, unknown> {
     const answers: Record<string, unknown> = {};
     walkSdui(this.root, (node) => {
-      if (!INPUT_COMPONENTS.has(node.type) || !this.isVisible(node)) return;
+      if (!INPUT_COMPONENTS.has(node.type) || !this.isVisible(node) || !this.isActiveWithAncestors(node)) return;
       const path = valueBinding(node);
       if (!path?.startsWith('form.')) return;
       const value = this.getNodeValue(node);
@@ -151,6 +165,7 @@ export class SduiRuntime {
   }
 
   async dispatch(node: SduiNode, eventName: string): Promise<ActionResult> {
+    if (!this.isAvailable(node)) return { handled: false, submitted: false, errors: [] };
     const event = node.events?.[eventName];
     if (!event) return { handled: false, submitted: false, errors: [] };
     const params = event.params ?? {};
@@ -184,12 +199,23 @@ export class SduiRuntime {
     }
   }
 
-  private seedResolvedValues(): void {
-    walkSdui(this.root, (node) => {
-      const binding = node.bindings?.value;
-      if (!binding || node.props.value === undefined || readPath(this.context, binding.path).found) return;
-      writePath(this.context, binding.path, node.props.value);
-    });
+  private isActiveWithAncestors(node: SduiNode): boolean {
+    let current: SduiNode | null | undefined = node;
+    while (current) {
+      if (!this.isActive(current)) return false;
+      current = this.parents.get(current.id);
+    }
+    return true;
+  }
+
+
+  private isAvailable(node: SduiNode): boolean {
+    let current: SduiNode | null | undefined = node;
+    while (current) {
+      if (!this.isVisible(current) || !this.isActive(current)) return false;
+      current = this.parents.get(current.id);
+    }
+    return true;
   }
 
   private changed(): void {

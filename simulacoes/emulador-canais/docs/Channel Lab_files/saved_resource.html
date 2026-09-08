@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<!-- saved from url=(0253)https://51cf6e24-1cc3-4a95-9944-b1a395d5409f.frame.claudeusercontent.com/_f/1788847123-6908/?__frame_t=BMZQln1f9CX3zN4UvKj_r0G9.d92d2a10-dd9f-47b5-ac68-865e436d5be2.222f7939-c9b4-46f6-ac41-7b301edcc4b0.1788850852&__frame_v=manifest.44244f2523adb29d.json -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!-- frame-runtime --><script>window.__FRAME_PREAMBLE={"v":1,"capabilities":{"artifact":"artifact.DfA2To-s.js","assets":"assets.8Gk803W0.js","comments":"comments.hEoja5zd.js","db":"db.h-3sndFg.js","downloads":"downloads.th1YuAIk.js","embed":"embed.eqL6deQM.js","endpoints":"endpoints.CfzSv5nM.js","mcp":"mcp.Bvma3qD7.js","network":"network.B5UA9Su4.js","permissions":"permissions.BNySkLV5.js","room":"room.VSdFwTE9.js","sample":"sample.BW2Uysoh.js","self":"artifact.DfA2To-s.js","user":"user.BpKav-Rf.js"},"transforms":"_transforms.-IAc0qoT.js","comments":"_comments.C-AkolIB.js","translate":"_translate.5HCW4BJh.js","ldx":"_ldx.6JS5dhCp.js"}</script><script>(function(){"use strict";var le=["light","dark","system"],ue=/^[A-Za-z0-9_-]{1,64}$/,J=/^[a-zA-Z_:][a-zA-Z0-9_:.-]{0,127}$/,fe=new Set(["class","hidden","value","checked","style","title","alt","placeholder","lang","dir","role","tabindex","disabled","readonly","contenteditable","open","colspan","rowspan"]);function de(e){const t=e.toLowerCase();return t.startsWith("data-")||t.startsWith("aria-")||fe.has(t)}var We="http://www.w3.org/1999/xhtml",pe="http://www.w3.org/2000/svg",me=new Set(["script","style","iframe","noscript","noframes","noembed","xmp","plaintext","template","title","textarea","object","embed"]),he=new Set(["script","style"]);function _e(e){const t=e.localName.toLowerCase();return e.namespaceURI==="http://www.w3.org/1999/xhtml"?!me.has(t):e.namespaceURI===pe?!he.has(t):!1}function I(e,t){return e===t||(e===160||e===32)&&(t===160||t===32)}function ve(e,t){const r=e.length,n=t.length;let a=0;for(;a<r&&a<n&&I(e.charCodeAt(a),t.charCodeAt(a));)a++;let s=0;for(;s<r-a&&s<n-a&&I(e.charCodeAt(r-1-s),t.charCodeAt(n-1-s));)s++;return{p:a,s}}function ye(e,t){const r=e.firstChild;if(e.childNodes.length!==1||r===null||r.nodeType!==Node.TEXT_NODE){e.textContent=t;return}const n=r.data,a=n.length,s=t.length,{p:c,s:i}=ve(n,t);c===a&&i===0&&a===s||r.replaceData(c,a-c-i,t.slice(c,s-i));const p=r.data,f=e.ownerDocument.getSelection?.()??null,v=f!==null&&f.rangeCount>0&&(f.anchorNode===r||f.focusNode===r)?{anchor:f.anchorNode,anchorOffset:f.anchorOffset,focus:f.focusNode,focusOffset:f.focusOffset}:null;let d=-1,y=-1;for(let _=0;_<p.length&&_<t.length;_++){const E=p.charCodeAt(_),T=t.charCodeAt(_);E!==T&&I(E,T)&&(d<0&&(d=_),y=_)}const w=d>=0;if(w&&r.replaceData(d,y-d+1,t.slice(d,y+1)),w&&v!==null&&v.anchor!==null&&v.focus!==null)try{f.setBaseAndExtent(v.anchor,v.anchorOffset,v.focus,v.focusOffset)}catch{}}var we=new Set(["html","head","body","frameset"]);function be(e){return e.namespaceURI==="http://www.w3.org/1999/xhtml"&&we.has(e.localName)}function Ee(e){if(e===null||typeof e!="object")return!1;const t=e;if(typeof t.target!="string"||!ue.test(t.target)||t.text!==void 0&&typeof t.text!="string")return!1;if(t.attrsSet!==void 0){if(t.attrsSet===null||typeof t.attrsSet!="object")return!1;for(const[r,n]of Object.entries(t.attrsSet))if(!J.test(r)||typeof n!="string")return!1}if(t.attrsRemoved!==void 0){if(!Array.isArray(t.attrsRemoved))return!1;for(const r of t.attrsRemoved)if(typeof r!="string"||!J.test(r))return!1}return!0}function ge(e,t){if(e===null||typeof e!="object")return!1;const{seq:r,elements:n}=e;if(typeof r!="number"||!Number.isSafeInteger(r)||!Array.isArray(n)||n.length===0||n.length>64)return!1;for(let a=0;a<n.length;a++)if(!t(n[a]))return!1;return!0}function Ae(e){return e===null||typeof e!="object"?!1:ge(e.__frame_patch,Ee)}function Te(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_init;return t!==null&&typeof t=="object"}function Re(e){return e!==null&&typeof e=="object"&&e.__frame_size_poke===!0}function Le(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_theme;if(t===null||typeof t!="object")return!1;const r=t.theme;return typeof r=="string"&&le.includes(r)}var L=/^[\w.-]+\.js$/;function Se(e,t,r){return r?"inert":typeof t=="string"&&L.test(t)?e?[t]:"inert":e?"inert":"framed"}var Ke="frame_ldx_runtime",$e="script#an-form";function ke(){return{post(e,t){parent.postMessage(e,t)},on(e){const t=r=>{r.source===parent&&e(r.data,r.origin,r.isTrusted)};return addEventListener("message",t),()=>removeEventListener("message",t)}}}function Pe(){return{post:()=>{},on:()=>()=>{}}}var U="__frame_scroll",Oe=150,Ce=310,Me=160,je=3e4;function Ne(){let e=0,t=!1,r=!1,n=!1,a=0,s=null;const c=u=>{try{sessionStorage.setItem(U,JSON.stringify({y:u}))}catch{}},i=()=>{if(clearTimeout(e),s===null)return;const u=s;s=null,c(u)},p=()=>{if(t){t=!1;return}r=!0,s=scrollY,clearTimeout(e),e=setTimeout(i,Oe)};try{addEventListener("scroll",p,{passive:!0}),addEventListener("pagehide",i)}catch{}const f=()=>{let u;try{u=sessionStorage.getItem(U)}catch{return null}if(u===null)return null;let b;try{b=JSON.parse(u)}catch{b=null}const o=b?.y;if(!(typeof o=="number"&&Number.isFinite(o)&&o>=0)){try{sessionStorage.removeItem(U)}catch{}return null}return o};let v=!1;const d=u=>{try{const b=scrollY;scrollTo({top:u,left:0,behavior:"instant"}),a=u,n=!0,clearTimeout(e),s=null,c(u);const o=scrollY;o!==b&&(t=!0),o!==u&&!v&&(v=!0,addEventListener("load",()=>{try{if(scrollY===o){const m=f();d(m!==null?m:a)}}catch{}},{once:!0}))}catch{}},y=()=>{try{return!!location.hash}catch{return!0}};let w=!1;const _=()=>{try{if(w||innerWidth>Ce||innerHeight>Me)return;w=!0;const u=Date.now(),b=()=>{try{removeEventListener("resize",b)}catch{}if(Date.now()-u>je||r||y())return;const o=f();d(o!==null?o:a)};addEventListener("resize",b)}catch{}};let E=!1,T=!1;return{restore(){if(E||(E=!0,y()))return;const u=f();u!==null&&(d(u),_())},promoted(){if(T||(T=!0,y()))return;const u=f();u!==null?(d(u),_()):n&&d(a)}}}function Be(e,t,r,n){let a=null;try{a=window.trustedTypes?.createPolicy("frame-runtime",{createScriptURL:p=>p})??null}catch{}const s=window.Worker,c=s?.prototype,i=Object.freeze({Worker:s,workerOn:c?.addEventListener,workerPost:c?.postMessage,workerTerminate:c?.terminate,fetch:window.fetch.bind(window),preventDefault:Event.prototype.preventDefault,policy:a,origins:t});r(e).then(p=>p?.bootTopLevel?p.bootTopLevel(i,n):n.settle()).catch(()=>n.settle())}var qe="modulepreload",Xe=function(e){return"/"+e},Ye={},De=function(t,r,n){let a=Promise.resolve();function s(c){const i=new Event("vite:preloadError",{cancelable:!0});if(i.payload=c,window.dispatchEvent(i),!i.defaultPrevented)throw c}return a.then(c=>{for(const i of c||[])i.status==="rejected"&&s(i.reason);return t().catch(s)})},Ie=window===top,Q=Object.getOwnPropertyDescriptor(window,"claude"),C=Se(Ie,window.__FRAME_PREAMBLE?.topLevel,Q?.writable===!1),x=typeof C=="object"&&C[0],h=x?Pe():ke();(function(){const e=Object.defineProperty,t=globalThis,r=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let n=0;for(let a=0;a<r.length;a++){const s=r[a];try{e(t,s,{value:void 0,writable:!1,configurable:!1})}catch{try{delete t[s]}catch{}try{e(t,s,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof t[s]=="function"&&n++}if(n&&C==="framed")try{h.post({__frame_rtc_lockdown_failed:n},"*")}catch{}})();var Ue=1e4,xe=2e3,ee=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function te(e){for(const t of ee)if(t.endsWith(":*"))try{const r=new URL(e);if(`${r.protocol}//${r.hostname}:*`===t)return!0}catch{}else if(e===t)return!0;return!1}var M=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),F=window.__FRAME_PREAMBLE?.transforms,z=window.__FRAME_PREAMBLE?.comments,H=window.__FRAME_PREAMBLE?.translate,W=window.__FRAME_PREAMBLE?.ldx;function S(e){return De(()=>import("/_runtime/"+e),void 0)}function re(e,t){return{contract:e.contract,changes:new Set(e.changes??[]),flags:new Set(e.flags??[]),capabilities:e.capabilities??{},capBudgets:e.capBudgets??{},transforms:new Map,shellOrigin:t,mount:q,hooks:N,pipe:()=>({wrap:(r,n)=>(...a)=>{try{return n(...a)}catch(s){return Promise.reject(s)}}})}}var j=null,A=null;function ne(e,t,r){try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!0,enumerable:!0})}catch{}}}var K=!1,N={editBefore:null,edit:null};function Fe(e,t,r=!1){const n=[];let a;if(r)try{N.editBefore?.(e)}catch{}for(const s of e.elements){const c=document.querySelector(`[data-id="${s.target}"]`);if(!c){a=s.target;break}if([...Object.keys(s.attrsSet??{}),...s.attrsRemoved??[]].some(i=>!de(i))){a=s.target;break}if(s.text!==void 0&&(!_e(c)||be(c))){a=s.target;break}for(const[i,p]of Object.entries(s.attrsSet??{}))if(!se(c,i)){try{c.setAttribute(i,p)}catch{}oe(c,i,p)}for(const i of s.attrsRemoved??[])se(c,i)||(c.removeAttribute(i),oe(c,i,null));typeof s.text=="string"&&ye(c,s.text),n.push(s.target)}if(r)try{N.edit?.(e.seq,n,a)}catch{}if(a!==void 0){h.post({__frame_patch_miss:{seq:e.seq}},t);return}try{document.dispatchEvent(new CustomEvent("claude:edit",{detail:{seq:e.seq,targets:n}}))}catch{}}function oe(e,t,r){if(!(e instanceof HTMLInputElement))return;const n=t.toLowerCase();n==="checked"?e.checked=r!==null:n==="value"&&e.type!=="file"&&(e.value=r??"")}function se(e,t){const r=t.toLowerCase(),n=e;return r==="data-id"||(r==="value"||r==="checked")&&(n.__artifactSecret===!0||/^(password|hidden|file)$/.test(n.type??"")||/(^|\s)(cc-|one-time-code|current-password|new-password)/i.test(`${e.getAttribute("autocomplete")??""} ${n.autocomplete??""}`))}function ae(e){const t=document.documentElement;e==="light"||e==="dark"?(t.dataset.theme=e,t.style.colorScheme=e,K=!0):K&&(delete t.dataset.theme,t.style.colorScheme="",K=!1)}var B=new Map;function ze(){let e;const t={u:new Promise(r=>{e=r}),r:r=>{t.done=!0,e(r)},done:!1,nulled:!1};return t}function $(){for(const e of B.values())e.done||(e.nulled=!0,e.r(null))}var He=Object.freeze(Object.assign(Object.create(null),{call:Function.prototype.call,apply:Function.prototype.apply,bind:Function.prototype.bind})),q=(e,t)=>{const r=B.get(e);if(!r||r.done){r?.nulled&&A&&h.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:e}},A);return}const n=typeof t=="function"?Object.setPrototypeOf(t,He):Object.assign(Object.create(null),t);typeof n.then=="function"&&delete n.then,r.r(Object.freeze(n))};function ie(){const e=Q?.value??{};ne(window,"claude",e);for(const t of Object.keys(M)){if(e[t]!==void 0){ne(e,t,e[t]);continue}B.set(t,ze())}if(e.use===void 0){const t=r=>{if(typeof r!="string"||!Object.hasOwn(M,r))return Promise.resolve(null);const n=B.get(r);return n?n.u:Promise.resolve(e[r]??null)};try{Object.defineProperty(e,"use",{value:t,writable:!0,configurable:!0,enumerable:!1})}catch{}}}if(C==="framed"){const e=F&&L.test(F)?S(F).catch(()=>{}):Promise.resolve(void 0),t=o=>{if(o.type==="auxclick"&&o.button!==1)return;const m=o.target,k=m&&m.closest?m.closest("a[href],area[href]"):null;if(!k)return;const O=k.getAttribute("href");if(!O)return;let R;try{R=new URL(O,document.baseURI)}catch{return}if((R.protocol==="http:"||R.protocol==="https:")&&R.origin!==location.origin){o.preventDefault();const P=(k.getAttribute("target")??"").toLowerCase(),g=o.type==="auxclick"||o.metaKey||o.ctrlKey||o.shiftKey||o.altKey||!["","_self","_top","_parent"].includes(P);h.post({__frame_nav:!0,url:R.href,newTab:g},"*")}};addEventListener("click",t,!0),addEventListener("auxclick",t,!0);const r={},n=o=>{o.isTrusted&&(r.pointer=!0)},a=o=>{o.isTrusted&&(r.click=!0)};addEventListener("pointermove",n,{capture:!0,passive:!0}),addEventListener("click",a,{capture:!0,passive:!0});const s={cb:null};addEventListener("keydown",o=>s.cb?.(o),!0),e.then(o=>o?.installEscapeForward?.(s,m=>{A&&h.post(m,A)})),e.then(o=>{o?.wireNav&&(o.wireNav(),removeEventListener("click",t,!0),removeEventListener("auxclick",t,!0),removeEventListener("pointermove",n,!0),removeEventListener("click",a,!0),o.wireEngagement?.(r))});let c=null;try{c=Ne()}catch{}ie();let i=null,p=null,f=0;const v=h.on((o,m)=>{te(m)&&Te(o)&&(i=o.__frame_init,A=m,v(),clearTimeout(f),p?.())});h.post({__frame_connect:!0},"*");const d=setTimeout,y=clearTimeout;let w=0;const _=()=>{try{h.post({__frame_alive:!0},"*")}catch{}w=d(_,xe)},E=()=>y(w);_(),addEventListener("load",E,{once:!0});const T=new Promise(o=>{p=o,f=setTimeout(()=>{v(),o()},Ue)}),u=document.readyState==="loading"?new Promise(o=>document.addEventListener("DOMContentLoaded",()=>o(),{once:!0})):Promise.resolve();u.then(()=>{try{c?.restore()}catch{}});const b={cb:null};h.on((o,m)=>{if(te(m)&&Re(o)){try{c?.promoted()}catch{}b.cb?.()}}),T.then(async()=>{if(!i||!A){$();return}ae(i.theme);const o=A;let m=!1,k=!1;h.on((l,Y,D)=>{if(Y!==o)return;Le(l)&&ae(l.__frame_theme.theme),Ae(l)&&Fe(l.__frame_patch,o,D);const G=l?.__fc_mode;G&&typeof G=="object"&&!m&&z&&L.test(z)&&(m=!0,S(z).then(Z=>Z.install?.(o,G.on===!0)).catch(()=>{}));const V=l?.__ft_cmd;V&&typeof V=="object"&&!k&&H&&L.test(H)&&(k=!0,S(H).then(Z=>Z.install?.(o,V)).catch(()=>{}))});const O=Object.keys(i.capabilities??{}).filter(l=>Object.hasOwn(M,l)).map(l=>[l,M[l]]).filter(l=>typeof l[1]=="string"&&L.test(l[1])),R=await Promise.allSettled(O.map(([,l])=>S(l))),P=await e,g=A;if(P?.buildBoot||h.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},g),P?.buildBoot)try{j=P.buildBoot(i,P.TRANSFORMS??{},{shellOrigin:g,mount:q,hooks:N},l=>h.post({__frame_cap_telemetry:l},g))}catch{h.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},g),j=re(i,g)}else j=re(i,g);const X=l=>h.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:l}},g),ce=j;R.forEach((l,Y)=>{const D=O[Y][0];if(l.status!=="fulfilled"){X(D);return}try{l.value?.install?.(ce)}catch{X(D)}}),$(),await u,E(),h.post({__frame_ready:!0},A),e.then(l=>l?.installSizeReporter?.(g,b)),ce.flags.has("frame_ldx_runtime")&&W&&L.test(W)&&document.querySelector("script#an-form")&&S(W).then(l=>l?.boot?.()).catch(()=>!1).then(l=>{l!==!0&&X("_ldx")})})}else x&&(ie(),Be(x,ee,S,{settle:$,mount:q}))})();</script><!-- /frame-runtime --><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<title>Channel Lab</title>
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link rel="stylesheet" href="./css2">
+<style>
+  /* tokens extraídos do skin real @telefonica/mistica "vivo-evolution"
+     (node_modules/@telefonica/mistica/src/skins/vivo-evolution.tsx) */
+  :root{
+    --bg:#F1EFF6;              /* vivoNeutral25 — backgroundAlternative */
+    --surface:#FFFFFF;         /* vivoNeutral0 */
+    --surface-sunken:#EAE6F0;  /* vivoNeutral100 */
+    --ink:#16131E;             /* vivoNeutral975 — textPrimary */
+    --ink-2:#665D7A;           /* vivoNeutral600 — textSecondary */
+    --border:#DCD8E5;          /* vivoNeutral200 */
+    --border-strong:#C7C1D6;   /* vivoNeutral300 */
+    --accent:#660099;          /* vivoPurple700 — brand */
+    --accent-strong:#4F007A;   /* vivoPurple800 */
+    --accent-soft:#F5F0FA;     /* vivoPurple25 */
+    --line:#9187A8;            /* vivoNeutral500 */
+    --line-dashed:#C7C1D6;     /* vivoNeutral300 */
+    --sdk:#7FB029;             /* vivoGreen700 — SDK reutilizável */
+    --sdk-strong:#3F6E35;      /* vivoGreen850 */
+    --sdk-soft:#E4F3D8;        /* vivoGreen50 */
+    --font-display:'Inter', 'Segoe UI', system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16131E;            /* vivoNeutral950 */
+      --surface:#252233;       /* vivoNeutral900 */
+      --surface-sunken:#2D2A3D;/* vivoNeutral800 */
+      --ink:#EAE6F0;           /* vivoNeutral100 */
+      --ink-2:#B9AFCC;         /* vivoNeutral400 */
+      --border:#2D2A3D;        /* vivoNeutral800 */
+      --border-strong:#423B52;/* vivoNeutral700 */
+      --accent:#A85ED4;        /* vivoPurple400 — brand, lifted for dark contrast */
+      --accent-strong:#DCC3EA; /* vivoPurple100 */
+      --accent-soft:#2D0048;   /* vivoPurple925 */
+      --line:#665D7A;          /* vivoNeutral600 */
+      --line-dashed:#423B52;   /* vivoNeutral700 */
+      --sdk:#AEDA5F;           /* vivoGreen400 */
+      --sdk-strong:#D6EBAD;    /* vivoGreen100 */
+      --sdk-soft:#1B4A31;      /* vivoGreen925 */
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#16131E;
+    --surface:#252233;
+    --surface-sunken:#2D2A3D;
+    --ink:#EAE6F0;
+    --ink-2:#B9AFCC;
+    --border:#2D2A3D;
+    --border-strong:#423B52;
+    --accent:#A85ED4;
+    --accent-strong:#DCC3EA;
+    --accent-soft:#2D0048;
+    --line:#665D7A;
+    --line-dashed:#423B52;
+    --sdk:#AEDA5F;
+    --sdk-strong:#D6EBAD;
+    --sdk-soft:#1B4A31;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-display);
+    line-height:1.55;
+  }
+  .sheet{
+    max-width:1180px;
+    margin:0 auto;
+    padding:40px 28px 80px;
+  }
+
+  /* ---- title block, engineering-drawing style ---- */
+  .titleblock{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:16px 32px;
+    border:1.5px solid var(--border-strong);
+    border-radius:20px;
+    padding:24px 28px;
+    background:var(--surface);
+  }
+  .wordmark{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-weight:800;
+    font-size:13px;
+    letter-spacing:.01em;
+    color:var(--accent);
+    margin-bottom:10px;
+  }
+  .wordmark .bead{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+  }
+  .titleblock h1{
+    margin:0 0 6px;
+    font-size:28px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+  }
+  .titleblock p{
+    margin:0;
+    max-width:62ch;
+    color:var(--ink-2);
+    font-size:15px;
+  }
+  .titleblock .meta{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--ink-2);
+    text-align:right;
+    white-space:nowrap;
+    align-self:start;
+  }
+  .titleblock .meta b{color:var(--ink); font-weight:600;}
+  .scope-strip{
+    grid-column:1 / -1;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    border-top:1px solid var(--border);
+    padding-top:14px;
+    margin-top:2px;
+  }
+  .chip{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.03em;
+    padding:5px 12px;
+    border-radius:999px;
+    background:var(--surface-sunken);
+    color:var(--ink-2);
+    border:1px solid var(--border);
+  }
+
+  section{margin-top:44px;}
+  h2{
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--accent-strong);
+    margin:0 0 4px;
+  }
+  h2 .num{color:var(--ink-2); font-weight:500; margin-right:8px;}
+  h3.claim{
+    font-size:19px;
+    font-weight:600;
+    margin:2px 0 18px;
+    max-width:52ch;
+    text-wrap:balance;
+  }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:24px;
+  }
+
+  figure{margin:0;}
+  figure svg{display:block; width:100%; height:auto; overflow:visible;}
+  figcaption{
+    margin-top:14px;
+    font-size:13px;
+    color:var(--ink-2);
+    max-width:80ch;
+  }
+  figcaption code{font-size:12px;}
+
+  code, .mono{font-family:var(--font-mono);}
+  code{
+    background:var(--surface-sunken);
+    border:1px solid var(--border);
+    border-radius:3px;
+    padding:1px 5px;
+    font-size:12.5px;
+  }
+
+  /* legend */
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:18px;
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px dashed var(--border);
+    font-size:12.5px;
+    color:var(--ink-2);
+  }
+  .legend .item{display:flex; align-items:center; gap:7px;}
+  .legend svg{flex:none;}
+
+  /* inventory table */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+  }
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-2);
+    font-weight:600;
+    padding:0 12px 10px;
+    border-bottom:1px solid var(--border-strong);
+  }
+  tbody td{
+    padding:11px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  td.name{font-weight:600;}
+  td.port, td.path, td .path{font-family:var(--font-mono); font-size:12.5px; color:var(--ink-2);}
+  .dot{
+    display:inline-block;
+    width:8px; height:8px;
+    border-radius:50%;
+    margin-right:7px;
+    position:relative;
+    top:-1px;
+  }
+  .dot.repo{background:var(--accent);}
+  .dot.upstream{background:none; border:1.5px solid var(--ink-2);}
+  .scroll-x{overflow-x:auto;}
+
+  /* flows */
+  .flow-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(280px,1fr));
+    gap:18px;
+  }
+  .flow-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:18px 20px;
+  }
+  .flow-card h4{
+    margin:0 0 12px;
+    font-size:14.5px;
+    font-weight:600;
+  }
+  .flow-card ol{
+    margin:0;
+    padding-left:0;
+    list-style:none;
+    counter-reset:step;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+  }
+  .flow-card li{
+    counter-increment:step;
+    display:grid;
+    grid-template-columns:20px 1fr;
+    gap:9px;
+    font-size:13px;
+    color:var(--ink-2);
+  }
+  .flow-card li::before{
+    content:counter(step);
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--accent-strong);
+    background:var(--accent-soft);
+    width:20px; height:20px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    flex:none;
+  }
+  .flow-card li b{color:var(--ink); font-weight:600;}
+
+  /* guardrails */
+  .guardrails{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(260px,1fr));
+    gap:1px;
+    background:var(--border);
+    border:1px solid var(--border);
+    border-radius:18px;
+    overflow:hidden;
+  }
+  .guardrails div{
+    background:var(--surface);
+    padding:16px 18px;
+    font-size:13.5px;
+    color:var(--ink-2);
+  }
+  .guardrails div b{
+    color:var(--accent-strong);
+    display:block;
+    margin-bottom:5px;
+    font-weight:600;
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+
+  footer{
+    margin-top:56px;
+    padding-top:20px;
+    border-top:1px solid var(--border);
+    font-size:12px;
+    color:var(--ink-2);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  footer .refs{font-family:var(--font-mono);}
+  footer .refs span{margin-right:14px;}
+
+  @media (max-width:640px){
+    .titleblock{grid-template-columns:1fr;}
+    .titleblock .meta{text-align:left;}
+  }
+</style>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div>
+      <span class="wordmark"><span class="bead"></span>channel lab</span>
+      <h1>Mapa de integrações</h1>
+      <p>Quem chama quem, em runtime e em tempo de build, para executar uma jornada publicada do Elastic Journey em React Web, React Native, Flutter e WhatsApp — sempre atrás do <code>ms-journey</code>. Skin <b style="color:var(--ink)">Vivo-evolution</b> da Mística, a mesma usada no cockpit real.</p>
+    </div>
+    <div class="meta">
+      <div>doc <b>arquitetura-v1</b></div>
+      <div>escopo <b>simulacoes/emulador-canais</b></div>
+      <div>atualizado <b>2026-09-08</b></div>
+    </div>
+    <div class="scope-strip">
+      <span class="chip">react.web</span>
+      <span class="chip">react.mobile</span>
+      <span class="chip">flutter.web</span>
+      <span class="chip">flutter.mobile</span>
+      <span class="chip">whatsapp (projeção)</span>
+    </div>
+  </div>
+
+  <section>
+    <h2><span class="num">01</span>Diagrama de processos</h2>
+    <h3 class="claim">Todo canal carrega seu próprio renderer SDUI — só o do WhatsApp mora dentro do BFF, não no app do usuário.</h3>
+    <div class="panel">
+      <figure>
+        <svg viewBox="0 0 1220 600" role="img" aria-label="Diagrama de componentes: cinco canais chamam o Emulator BFF, que é o único ponto de contato com ms-journey (execução) e Admin Backend (catálogo). Quatro canais têm borda verde porque embutem seu próprio renderer SDUI; o canal WhatsApp é a exceção — seu renderer roda dentro do próprio Emulator BFF, e a WCE Web UI só exibe mensagens já prontas recebidas via WCE Bridge por Socket.IO, contornando o BFF nessa perna. A tabela abaixo do diagrama lista qual pacote de renderer cada canal usa.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-2)"></path>
+            </marker>
+            <marker id="arrowAccent" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--accent)"></path>
+            </marker>
+          </defs>
+
+          <!-- Channel Lab -->
+          <g>
+            <rect x="373" y="22" width="240" height="64" rx="8" style="fill:var(--surface);stroke:var(--border-strong);stroke-width:1.5"></rect>
+            <text x="493" y="48" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:14px;fill:var(--ink)">Channel Lab</text>
+            <text x="493" y="66" text-anchor="middle" style="font-family:var(--font-mono);font-size:11px;fill:var(--ink-2)">:15170 · cockpit de seleção e diagnóstico</text>
+          </g>
+
+          <!-- container of channel apps -->
+          <rect x="30" y="124" width="1160" height="132" rx="12" style="fill:none;stroke:var(--line-dashed);stroke-width:1.5;stroke-dasharray:5 5"></rect>
+          <text x="50" y="146" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--ink-2)">canais abertos pelo Channel Lab — borda verde = renderer SDUI embutido</text>
+
+          <!-- 5 channel boxes -->
+          <g>
+            <rect x="50" y="160" width="208" height="76" rx="9" style="fill:var(--surface);stroke:var(--sdk);stroke-width:2"></rect>
+            <text x="154" y="184" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:12.5px;fill:var(--ink)">React Web Host</text>
+            <text x="154" y="201" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--ink-2)">:15171</text>
+          </g>
+          <g>
+            <rect x="276" y="160" width="208" height="76" rx="9" style="fill:var(--surface);stroke:var(--sdk);stroke-width:2"></rect>
+            <text x="380" y="184" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:12.5px;fill:var(--ink)">Flutter Web Host</text>
+            <text x="380" y="201" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--ink-2)">:15172</text>
+          </g>
+          <g>
+            <rect x="502" y="160" width="208" height="76" rx="9" style="fill:var(--surface);stroke:var(--sdk);stroke-width:2"></rect>
+            <text x="606" y="184" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:12.5px;fill:var(--ink)">React Native Host</text>
+            <text x="606" y="201" text-anchor="middle" style="font-family:var(--font-mono);font-size:9.5px;fill:var(--ink-2)">Metro :18081 · no device</text>
+          </g>
+          <g>
+            <rect x="728" y="160" width="208" height="76" rx="9" style="fill:var(--surface);stroke:var(--sdk);stroke-width:2"></rect>
+            <text x="832" y="184" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:12.5px;fill:var(--ink)">Flutter Mobile Host</text>
+            <text x="832" y="201" text-anchor="middle" style="font-family:var(--font-mono);font-size:9.5px;fill:var(--ink-2)">app no AVD/device</text>
+          </g>
+          <g>
+            <rect x="954" y="160" width="208" height="76" rx="9" style="fill:var(--surface);stroke:var(--border-strong);stroke-width:1.5"></rect>
+            <text x="1058" y="184" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:12.5px;fill:var(--ink)">WCE Web UI</text>
+            <text x="1058" y="201" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--ink-2)">:15173 · cliente de chat</text>
+          </g>
+
+          <!-- Emulator BFF hub -->
+          <g>
+            <rect x="290" y="320" width="640" height="90" rx="9" style="fill:var(--surface);stroke:var(--accent);stroke-width:2"></rect>
+            <rect x="290" y="320" width="640" height="6" style="fill:var(--accent)"></rect>
+            <text x="610" y="356" text-anchor="middle" style="font-family:var(--font-display);font-weight:700;font-size:16px;fill:var(--ink)">Emulator BFF</text>
+            <text x="610" y="374" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--ink-2)">:18085 · única borda upstream</text>
+            <rect x="770" y="384" width="150" height="20" rx="10" style="fill:var(--sdk-soft);stroke:var(--sdk);stroke-width:1.4"></rect>
+            <text x="845" y="398" text-anchor="middle" style="font-family:var(--font-display);font-weight:700;font-size:9px;letter-spacing:.04em;fill:var(--sdk-strong)">renderer-whatsapp aqui</text>
+          </g>
+
+          <!-- upstream row -->
+          <g>
+            <rect x="240" y="480" width="220" height="80" rx="7" style="fill:var(--surface);stroke:var(--border-strong);stroke-width:1.5;stroke-dasharray:6 4"></rect>
+            <text x="350" y="512" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:13px;fill:var(--ink)">ms-journey</text>
+            <text x="350" y="529" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--ink-2)">:8085 · upstream, fora deste repo</text>
+          </g>
+          <g>
+            <rect x="500" y="480" width="220" height="80" rx="7" style="fill:var(--surface);stroke:var(--border-strong);stroke-width:1.5;stroke-dasharray:6 4"></rect>
+            <text x="610" y="512" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:13px;fill:var(--ink)">Admin Backend</text>
+            <text x="610" y="529" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--ink-2)">:8081 · upstream, fora deste repo</text>
+          </g>
+          <g>
+            <rect x="760" y="480" width="220" height="80" rx="7" style="fill:var(--surface);stroke:var(--border-strong);stroke-width:1.5"></rect>
+            <text x="870" y="512" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:13px;fill:var(--ink)">WCE Bridge</text>
+            <text x="870" y="529" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--ink-2)">:13001 · borda Cloud API</text>
+          </g>
+
+          <!-- Channel Lab -> BFF (through the gap between channel boxes) -->
+          <path d="M493,86 L493,320" style="fill:none;stroke:var(--line);stroke-width:1.6" marker-end="url(#arrow)"></path>
+          <text x="504" y="270" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">catálogo · bootstrap · android/launch</text>
+
+          <!-- channel boxes -> BFF (each ships its own SDUI, already rendered by its own renderer) -->
+          <path d="M154,236 L300,320" style="fill:none;stroke:var(--line);stroke-width:1.6" marker-end="url(#arrow)"></path>
+          <path d="M380,236 L410,320" style="fill:none;stroke:var(--line);stroke-width:1.6" marker-end="url(#arrow)"></path>
+          <path d="M606,236 L606,320" style="fill:none;stroke:var(--line);stroke-width:1.6" marker-end="url(#arrow)"></path>
+          <path d="M832,236 L780,320" style="fill:none;stroke:var(--line);stroke-width:1.6" marker-end="url(#arrow)"></path>
+          <text x="230" y="282" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">flow · instances</text>
+          <text x="660" y="282" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">current-step · complete</text>
+
+          <!-- BFF -> ms-journey (highlighted single path) -->
+          <path d="M410,410 L360,480" style="fill:none;stroke:var(--accent);stroke-width:2.6" marker-end="url(#arrowAccent)"></path>
+          <text x="340" y="460" text-anchor="end" style="font-family:var(--font-mono);font-size:10.5px;font-weight:600;fill:var(--accent-strong)">único consumidor</text>
+
+          <!-- BFF -> Admin -->
+          <path d="M610,410 L610,480" style="fill:none;stroke:var(--line);stroke-width:1.6" marker-end="url(#arrow)"></path>
+          <text x="622" y="450" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">só catálogo</text>
+          <text x="622" y="462" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">PUBLISHED</text>
+
+          <!-- BFF <-> WCE Bridge (two parallel lines, opposite direction) — sai do badge renderer-whatsapp -->
+          <path d="M845,410 L860,480" style="fill:none;stroke:var(--sdk);stroke-width:1.8" marker-end="url(#arrow)"></path>
+          <path d="M898,480 L878,410" style="fill:none;stroke:var(--line);stroke-width:1.6" marker-end="url(#arrow)"></path>
+          <text x="915" y="440" style="font-family:var(--font-mono);font-size:9.5px;fill:var(--sdk-strong)">↓ mensagem já pronta</text>
+          <text x="915" y="453" style="font-family:var(--font-mono);font-size:9.5px;fill:var(--ink-2)">↑ /webhook (resposta)</text>
+
+          <!-- WCE Web UI -> WCE Bridge, bypassing the hub -->
+          <path d="M1058,236 C 1200,236 1200,270 1200,420 C 1200,460 970,460 900,480" style="fill:none;stroke:var(--accent);stroke-width:2" marker-end="url(#arrowAccent)" marker-start="url(#arrowAccent)"></path>
+          <text x="1210" y="340" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;font-weight:600;fill:var(--accent-strong)" transform="rotate(90 1210 340)">Socket.IO</text>
+          <text x="1160" y="400" text-anchor="middle" style="font-family:var(--font-display);font-size:10px;fill:var(--ink-2)">ui_message</text>
+          <text x="1160" y="414" text-anchor="middle" style="font-family:var(--font-display);font-size:10px;fill:var(--ink-2)">ui_reply</text>
+        </svg>
+      </figure>
+      <div class="legend" aria-hidden="true">
+        <div class="item"><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" style="stroke:var(--line);stroke-width:1.6"></line></svg> chamada HTTP síncrona (execução)</div>
+        <div class="item"><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" style="stroke:var(--accent);stroke-width:2.4"></line></svg> caminho único / crítico</div>
+        <div class="item"><svg width="16" height="16"><rect x="1" y="1" width="14" height="14" rx="4" style="fill:var(--sdk-soft);stroke:var(--sdk);stroke-width:1.6"></rect></svg> renderer SDUI embutido</div>
+        <div class="item"><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" style="stroke:var(--border-strong);stroke-width:1.6;stroke-dasharray:4 3"></line></svg> serviço já existente, fora deste repo</div>
+      </div>
+      <figcaption>Quatro canais têm borda verde: cada um embute o próprio renderer, que interpreta o SDUI publicado pelo <code>ms-journey</code> antes de chegar na tela. O WhatsApp é a exceção estrutural — o renderer dele roda dentro do Emulator BFF (badge verde), não num app do usuário; a WCE Web UI só exibe as mensagens que o BFF já produziu, por isso é o único canal sem borda verde e sem ligação direta com o BFF, falando apenas Socket.IO com o WCE Bridge. A tabela da seção 2 lista o pacote exato de cada um.</figcaption>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Inventário</h2>
+    <h3 class="claim">Cada canal, seu renderer e a única coisa com quem ele fala.</h3>
+    <div class="panel scroll-x">
+      <table>
+        <thead>
+          <tr><th></th><th>Componente</th><th>Porta</th><th>Renderer embutido</th><th>Fala com</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="dot repo"></span></td><td class="name">Channel Lab</td><td class="port">15170</td><td>—</td><td>Emulator BFF</td></tr>
+          <tr><td><span class="dot repo"></span></td><td class="name">React Web Host</td><td class="port">15171</td><td class="path">renderer-react-web-mistica</td><td>Emulator BFF</td></tr>
+          <tr><td><span class="dot repo"></span></td><td class="name">Flutter Web Host</td><td class="port">15172</td><td class="path">renderer-flutter-mistica</td><td>Emulator BFF</td></tr>
+          <tr><td><span class="dot repo"></span></td><td class="name">React Native Host</td><td class="port">18081 (Metro)</td><td class="path">renderer-react-native-mistica</td><td>Emulator BFF (via <code>adb reverse</code>)</td></tr>
+          <tr><td><span class="dot repo"></span></td><td class="name">Flutter Mobile Host</td><td class="port">app no AVD</td><td class="path">renderer-flutter-mistica <span style="color:var(--ink-2)">(mesmo do Flutter Web)</span></td><td>Emulator BFF (via <code>adb reverse</code>)</td></tr>
+          <tr><td><span class="dot repo"></span></td><td class="name">WCE Web UI</td><td class="port">15173</td><td>—</td><td>WCE Bridge (Socket.IO)</td></tr>
+          <tr><td><span class="dot repo"></span></td><td class="name">Emulator BFF</td><td class="port">18085</td><td class="path">renderer-whatsapp <span style="color:var(--ink-2)">(embutido, canal WhatsApp)</span></td><td>ms-journey, Admin Backend, WCE Bridge, ADB/Flutter</td></tr>
+          <tr><td><span class="dot repo"></span></td><td class="name">WCE Bridge</td><td class="port">13001</td><td>—</td><td>WCE Web UI, Emulator BFF</td></tr>
+          <tr><td><span class="dot upstream"></span></td><td class="name">ms-journey</td><td class="port">8085 (default)</td><td>—</td><td>engine / especificações</td></tr>
+          <tr><td><span class="dot upstream"></span></td><td class="name">Admin Backend</td><td class="port">8081 (default)</td><td>—</td><td>catálogo de jornadas <code>PUBLISHED</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>Ciclo de mensagens do WhatsApp</h2>
+    <h3 class="claim">A conversa não tem tela: é uma sequência de mensagens que o BFF projeta a partir do mesmo SDUI.</h3>
+    <div class="panel">
+      <figure>
+        <svg viewBox="0 0 900 300" role="img" aria-label="Sequência de seis passos, após a sessão já iniciada: o Emulator BFF envia a mensagem ao WCE Bridge, que repassa por Socket.IO à WCE Web UI; a resposta do usuário volta por Socket.IO ao Bridge, que reenvia como webhook ao BFF; o BFF completa a tarefa no ms-journey e recebe o próximo passo, reiniciando o ciclo.">
+          <!-- lifelines -->
+          <line x1="90" y1="46" x2="90" y2="270" style="stroke:var(--line-dashed);stroke-width:1.3;stroke-dasharray:3 4"></line>
+          <line x1="330" y1="46" x2="330" y2="270" style="stroke:var(--line-dashed);stroke-width:1.3;stroke-dasharray:3 4"></line>
+          <line x1="570" y1="46" x2="570" y2="270" style="stroke:var(--line-dashed);stroke-width:1.3;stroke-dasharray:3 4"></line>
+          <line x1="810" y1="46" x2="810" y2="270" style="stroke:var(--line-dashed);stroke-width:1.3;stroke-dasharray:3 4"></line>
+
+          <text x="90" y="26" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:12.5px;fill:var(--ink)">WCE Web UI</text>
+          <text x="330" y="26" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:12.5px;fill:var(--ink)">WCE Bridge</text>
+          <text x="570" y="26" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:12.5px;fill:var(--ink)">Emulator BFF</text>
+          <text x="810" y="26" text-anchor="middle" style="font-family:var(--font-display);font-weight:600;font-size:12.5px;fill:var(--ink)">ms-journey</text>
+
+          <defs>
+            <marker id="arrowSeq" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--ink-2)"></path>
+            </marker>
+          </defs>
+
+          <!-- step 1: BFF -> Bridge -->
+          <line x1="570" y1="62" x2="330" y2="62" style="stroke:var(--ink-2);stroke-width:1.5" marker-end="url(#arrowSeq)"></line>
+          <text x="450" y="56" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">1 · POST /send-to-emulator</text>
+
+          <!-- step 2: Bridge -> UI -->
+          <line x1="330" y1="98" x2="90" y2="98" style="stroke:var(--ink-2);stroke-width:1.5" marker-end="url(#arrowSeq)"></line>
+          <text x="210" y="92" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">2 · ui_message</text>
+
+          <!-- step 3: UI -> Bridge (user replies) -->
+          <line x1="90" y1="140" x2="330" y2="140" style="stroke:var(--accent);stroke-width:1.8" marker-end="url(#arrowSeq)"></line>
+          <text x="210" y="134" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;fill:var(--accent-strong)">3 · ui_reply (usuário)</text>
+
+          <!-- step 4: Bridge -> BFF -->
+          <line x1="330" y1="176" x2="570" y2="176" style="stroke:var(--ink-2);stroke-width:1.5" marker-end="url(#arrowSeq)"></line>
+          <text x="450" y="170" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">4 · POST /webhook</text>
+
+          <!-- step 5: BFF -> ms-journey -->
+          <line x1="570" y1="212" x2="810" y2="212" style="stroke:var(--ink-2);stroke-width:1.5" marker-end="url(#arrowSeq)"></line>
+          <text x="690" y="206" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">5 · tasks/{'{id}'}/complete</text>
+
+          <!-- step 6: ms-journey -> BFF -->
+          <line x1="810" y1="248" x2="570" y2="248" style="stroke:var(--ink-2);stroke-width:1.5" marker-end="url(#arrowSeq)"></line>
+          <text x="690" y="242" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink-2)">6 · próximo passo → volta ao 1</text>
+        </svg>
+      </figure>
+      <figcaption>O estado da conversa (contato, <code>processInstanceId</code>, <code>taskId</code>, resposta pendente) vive só na memória do BFF — reiniciá-lo descarta sessões em andamento. A tarefa só é concluída no <code>ms-journey</code> depois que todas as respostas da tela SDUI forem coletadas e validadas pelo runtime.</figcaption>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span>Outros dois planos de fluxo</h2>
+    <div class="flow-grid">
+      <div class="flow-card">
+        <h4>Descoberta de jornadas (plano administrativo)</h4>
+        <ol>
+          <li><b>Channel Lab</b> pede <code>GET /api/lab/v1/journeys?channelType=</code> ao BFF.</li>
+          <li>BFF autentica no <b>Admin Backend</b> com credencial server-side e devolve só jornadas <code>PUBLISHED</code>.</li>
+          <li>Navegador nunca recebe usuário, senha ou token do Admin.</li>
+        </ol>
+      </div>
+      <div class="flow-card">
+        <h4>Bootstrap efêmero (Web e Mobile)</h4>
+        <ol>
+          <li>Lab cria <code>POST /api/lab/v1/bootstraps</code> com <code>journeyId</code>, <code>target</code>, variáveis.</li>
+          <li>BFF guarda em memória (TTL 10 min) e devolve um token opaco.</li>
+          <li>O host troca o token por <code>GET /api/lab/v1/bootstraps/{'{token}'}</code>, valida o próprio alvo e <b>inicia a instância sozinho</b>.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span>Dependências de pacotes</h2>
+    <h3 class="claim">Os renderers já têm formato de SDK — falta só publicá-los.</h3>
+    <p style="max-width:74ch; color:var(--ink-2); font-size:14px; margin:-6px 0 20px;">
+      Confirmado no código: os quatro pacotes são versionados (<code>semver</code> próprio), não importam nada deste emulador — a dependência corre só até <code>sdui-contract</code>/<code>sdui-runtime-*</code>, headless — e têm <code>build</code> que compila para <code>dist/</code> com tipos <code>.d.ts</code>. Isso é a forma de um SDK. O que falta pra virar um de verdade: os quatro estão marcados <code>"private": true</code> (ou <code>publish_to: none</code> no Dart) e o ponto de entrada aponta pro código-fonte (<code>./src/index.ts</code>), não pro <code>dist</code> já compilado — hoje só um workspace npm/pub que enxerga o monorepo consegue importar. Nenhuma mudança de arquitetura: destravar publicação é <code>private:false</code> (ou registry interno) + apontar <code>exports</code>/<code>main</code>/<code>types</code> pro <code>dist</code> + um README de consumo.
+    </p>
+    <div class="panel">
+      <figure>
+        <svg viewBox="0 0 1200 400" role="img" aria-label="Grafo de dependências: os apps e serviços importam renderers, que importam o runtime SDUI, que importa o contrato — a mesma pilha se repete em TypeScript e em Dart, exceto que o Dart não tem um pacote de contrato separado e não tem equivalentes de WhatsApp, Channel Lab ou WCE.">
+          <defs>
+            <marker id="arrowDep" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" style="fill:var(--line)"></path>
+            </marker>
+          </defs>
+
+          <line x1="885" y1="10" x2="885" y2="390" style="stroke:var(--line-dashed);stroke-width:1.3;stroke-dasharray:4 4"></line>
+          <text x="440" y="16" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;fill:var(--ink-2)">TYPESCRIPT</text>
+          <text x="1040" y="16" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;fill:var(--ink-2)">DART</text>
+
+          <!-- row1 apps -->
+          <g>
+            <rect x="20" y="28" width="170" height="48" rx="6" style="fill:var(--surface);stroke:var(--border-strong)"></rect>
+            <text x="105" y="57" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;fill:var(--ink)">channel-lab</text>
+          </g>
+          <g>
+            <rect x="210" y="28" width="170" height="48" rx="6" style="fill:var(--surface);stroke:var(--border-strong)"></rect>
+            <text x="295" y="57" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;fill:var(--ink)">react-web-host</text>
+          </g>
+          <g>
+            <rect x="400" y="28" width="170" height="48" rx="6" style="fill:var(--surface);stroke:var(--border-strong)"></rect>
+            <text x="485" y="57" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;fill:var(--ink)">react-native-host</text>
+          </g>
+          <g>
+            <rect x="590" y="28" width="170" height="48" rx="6" style="fill:var(--surface);stroke:var(--accent);stroke-width:1.8"></rect>
+            <text x="675" y="57" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;fill:var(--ink)">emulator-bff</text>
+          </g>
+          <g>
+            <rect x="955" y="28" width="185" height="48" rx="6" style="fill:var(--surface);stroke:var(--border-strong)"></rect>
+            <text x="1047" y="57" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;fill:var(--ink)">flutter-host</text>
+          </g>
+
+          <!-- row2 renderers — os que são SDKs reaproveitáveis ganham a cor verde -->
+          <g>
+            <rect x="205" y="132" width="190" height="48" rx="9" style="fill:var(--sdk-soft);stroke:var(--sdk);stroke-width:1.6"></rect>
+            <text x="300" y="154" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.5px;fill:var(--sdk-strong)">renderer-react-web-mistica</text>
+            <text x="300" y="171" text-anchor="middle" style="font-family:var(--font-display);font-weight:700;font-size:8.5px;letter-spacing:.08em;fill:var(--sdk-strong)">SDK</text>
+          </g>
+          <g>
+            <rect x="395" y="132" width="200" height="48" rx="9" style="fill:var(--sdk-soft);stroke:var(--sdk);stroke-width:1.6"></rect>
+            <text x="495" y="154" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.2px;fill:var(--sdk-strong)">renderer-react-native-mistica</text>
+            <text x="495" y="171" text-anchor="middle" style="font-family:var(--font-display);font-weight:700;font-size:8.5px;letter-spacing:.08em;fill:var(--sdk-strong)">SDK</text>
+          </g>
+          <g>
+            <rect x="595" y="132" width="160" height="48" rx="9" style="fill:var(--sdk-soft);stroke:var(--sdk);stroke-width:1.6"></rect>
+            <text x="675" y="154" text-anchor="middle" style="font-family:var(--font-mono);font-size:11px;fill:var(--sdk-strong)">renderer-whatsapp</text>
+            <text x="675" y="171" text-anchor="middle" style="font-family:var(--font-display);font-weight:700;font-size:8.5px;letter-spacing:.08em;fill:var(--sdk-strong)">SDK</text>
+          </g>
+          <g>
+            <rect x="950" y="132" width="195" height="48" rx="9" style="fill:var(--sdk-soft);stroke:var(--sdk);stroke-width:1.6"></rect>
+            <text x="1047" y="154" text-anchor="middle" style="font-family:var(--font-mono);font-size:10.2px;fill:var(--sdk-strong)">renderer-flutter-mistica</text>
+            <text x="1047" y="171" text-anchor="middle" style="font-family:var(--font-display);font-weight:700;font-size:8.5px;letter-spacing:.08em;fill:var(--sdk-strong)">SDK</text>
+          </g>
+
+          <!-- row3 clients/runtime -->
+          <g>
+            <rect x="20" y="236" width="220" height="48" rx="6" style="fill:var(--surface);stroke:var(--border)"></rect>
+            <text x="130" y="265" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;fill:var(--ink)">journey-client-ts</text>
+          </g>
+          <g>
+            <rect x="350" y="236" width="220" height="48" rx="6" style="fill:var(--surface);stroke:var(--border)"></rect>
+            <text x="460" y="265" text-anchor="middle" style="font-family:var(--font-mono);font-size:11.5px;fill:var(--ink)">sdui-runtime-ts</text>
+          </g>
+          <g>
+            <rect x="900" y="236" width="130" height="48" rx="6" style="fill:var(--surface);stroke:var(--border)"></rect>
+            <text x="965" y="265" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink)">journey-client-dart</text>
+          </g>
+          <g>
+            <rect x="1045" y="236" width="140" height="48" rx="6" style="fill:var(--surface);stroke:var(--border)"></rect>
+            <text x="1115" y="265" text-anchor="middle" style="font-family:var(--font-mono);font-size:10px;fill:var(--ink)">sdui-runtime-dart</text>
+          </g>
+
+          <!-- row4 foundation -->
+          <g>
+            <rect x="20" y="332" width="550" height="48" rx="6" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5"></rect>
+            <text x="295" y="361" text-anchor="middle" style="font-family:var(--font-mono);font-weight:600;font-size:12px;fill:var(--accent-strong)">sdui-contract</text>
+          </g>
+          <g>
+            <rect x="900" y="332" width="285" height="48" rx="6" style="fill:none;stroke:var(--line-dashed);stroke-width:1.3;stroke-dasharray:5 5"></rect>
+            <text x="1042" y="352" text-anchor="middle" style="font-family:var(--font-display);font-size:10.5px;fill:var(--ink-2)">sem pacote de contrato próprio —</text>
+            <text x="1042" y="366" text-anchor="middle" style="font-family:var(--font-display);font-size:10.5px;fill:var(--ink-2)">tipos embutidos no runtime Dart</text>
+          </g>
+
+          <!-- edges row1->row2 -->
+          <path d="M295,76 L300,132" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+          <path d="M485,76 L495,132" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+          <path d="M675,76 L675,132" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+          <path d="M1047,76 L1047,132" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+
+          <!-- row1 -> journey-client-ts (converging) -->
+          <path d="M90,76 L130,236" style="fill:none;stroke:var(--line);stroke-width:1.2" marker-end="url(#arrowDep)"></path>
+          <path d="M255,76 L150,236" style="fill:none;stroke:var(--line);stroke-width:1.2" marker-end="url(#arrowDep)"></path>
+          <path d="M445,76 L170,236" style="fill:none;stroke:var(--line);stroke-width:1.2" marker-end="url(#arrowDep)"></path>
+          <path d="M620,76 L190,236" style="fill:none;stroke:var(--line);stroke-width:1.2" marker-end="url(#arrowDep)"></path>
+          <path d="M1000,76 L960,236" style="fill:none;stroke:var(--line);stroke-width:1.2" marker-end="url(#arrowDep)"></path>
+
+          <!-- row2 -> runtime -->
+          <path d="M300,180 L440,236" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+          <path d="M495,180 L465,236" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+          <path d="M675,180 L490,236" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+          <path d="M1047,180 L1105,236" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+
+          <!-- row3 -> contract -->
+          <path d="M130,284 L200,332" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+          <path d="M460,284 L340,332" style="fill:none;stroke:var(--line);stroke-width:1.4" marker-end="url(#arrowDep)"></path>
+        </svg>
+      </figure>
+      <div class="legend" aria-hidden="true">
+        <div class="item"><svg width="16" height="16"><rect x="1" y="1" width="14" height="14" rx="4" style="fill:var(--sdk-soft);stroke:var(--sdk);stroke-width:1.6"></rect></svg> SDK — versionado, sem dependência deste emulador (ainda não publicado)</div>
+        <div class="item"><svg width="16" height="16"><rect x="1" y="1" width="14" height="14" rx="4" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5"></rect></svg> fundação do contrato, headless</div>
+        <div class="item"><svg width="16" height="16"><rect x="1" y="1" width="14" height="14" rx="4" style="fill:var(--surface);stroke:var(--border-strong)"></rect></svg> específico deste emulador</div>
+      </div>
+      <figcaption>Os quatro renderers verdes são candidatos diretos a SDK publicável: nenhum depende deste emulador, todos são versionados, todos compilam para <code>dist/</code> com tipos. Publicar de verdade exige só destravar o empacotamento (ver texto acima) — não mexer em arquitetura. A única peça que genuinamente <b>não</b> viaja para produção é o par WCE Bridge/WCE Web UI (seção 1): ele emula a borda de transporte da Cloud API só para este laboratório; o <code>renderer-whatsapp</code> continua o mesmo dos dois lados dessa troca.</figcaption>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span>Fronteiras que a arquitetura protege</h2>
+    <div class="guardrails">
+      <div><b>Um só cliente do ms-journey</b>Nenhum host chama Camunda, ms-espec-registry, Strapi ou o próprio ms-journey diretamente — sempre via Emulator BFF.</div>
+      <div><b>Admin é só catálogo</b>A execução da jornada nunca depende do Admin Backend; ele só responde "quais jornadas estão publicadas".</div>
+      <div><b>Contrato sem framework</b><code>sdui-contract</code> e <code>sdui-runtime-*</code> nunca importam Mística, React Native ou Flutter UI.</div>
+      <div><b>Nada de credencial no navegador</b>Tokens do Admin e tokens de bootstrap não chegam ao cliente nem aos logs (rota mascarada em <code>sanitizedLogPath</code>).</div>
+      <div><b>WCE é descartável</b>Bridge + Web UI ficam atrás de um contrato próprio; podem virar um BSP real sem tocar no contrato SDUI ou no ms-journey.</div>
+      <div><b>Estado só em memória</b>Bootstraps e sessões de WhatsApp vivem no processo do BFF; reiniciá-lo descarta os dois.</div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Detalhes de instalação e scripts <code>dev:*</code> ficam no README do projeto.</span>
+    <span class="refs">
+      <span>memoria-arquitetura-v0..v4.md</span>
+      <span>status-implementacao.md</span>
+      <span>channel-lab.md</span>
+      <span>whatsapp-wce.md</span>
+    </span>
+  </footer>
+
+</div>
+
+</body></html>

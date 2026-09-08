@@ -43,15 +43,15 @@ function passes(rule: ValidationRule, value: unknown): boolean {
 }
 
 export function validateNodeValue(node: SduiNode, path: string, value: unknown): FieldError[] {
-  const rules = Array.isArray(node.props.validation)
-    ? node.props.validation.filter((rule): rule is ValidationRule => typeof rule === 'object' && rule !== null && typeof (rule as ValidationRule).rule === 'string')
+  const rules = Array.isArray(node.attributes.validation)
+    ? node.attributes.validation.filter((rule): rule is ValidationRule => typeof rule === 'object' && rule !== null && typeof (rule as ValidationRule).rule === 'string')
     : [];
 
-  if (node.props.required === true && !rules.some((rule) => rule.rule === 'required')) {
+  if (node.attributes.required === true && !rules.some((rule) => rule.rule === 'required')) {
     rules.unshift({ rule: 'required', message: 'Campo obrigatório.' });
   }
-  if (typeof node.props.maxLength === 'number' && !rules.some((rule) => rule.rule === 'maxLength')) {
-    rules.push({ rule: 'maxLength', value: node.props.maxLength, message: 'Limite de caracteres excedido.' });
+  if (typeof node.attributes.maxLength === 'number' && !rules.some((rule) => rule.rule === 'maxLength')) {
+    rules.push({ rule: 'maxLength', value: node.attributes.maxLength, message: 'Limite de caracteres excedido.' });
   }
 
   return rules

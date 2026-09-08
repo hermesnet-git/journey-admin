@@ -89,6 +89,11 @@ const server = createServer(async (request, response) => {
       json(response, 200, { status: 'ok', messageId: message.id });
       return;
     }
+    if (request.method === 'POST' && url.pathname === '/reply') {
+      await processReply(await readBody(request));
+      json(response, 200, { status: 'ok' });
+      return;
+    }
     json(response, 404, { status: 'error', message: 'Rota não encontrada no WCE Bridge.' });
   } catch (error) {
     json(response, 400, { status: 'error', message: error instanceof Error ? error.message : 'Falha ao processar mensagem.' });
@@ -105,24 +110,28 @@ const io = new SocketServer(server, {
 io.on('connection', (socket) => {
   socket.emit('ui_history', history);
   socket.on('ui_reply', async (value: unknown) => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) return;
-    const reply = value as WceReply;
-    const display = replyAsDisplayMessage(reply);
-    store('in', display);
-    io.emit('ui_user_message', display);
     try {
-      const response = await fetch(botWebhookUrl, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify(constructWebhookPayload(reply, userPhone, displayPhone)),
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!response.ok) throw new Error(`Webhook respondeu HTTP ${response.status}.`);
+      await processReply(value);
     } catch (error) {
       socket.emit('bridge_error', error instanceof Error ? error.message : 'Não foi possível entregar o webhook.');
     }
   });
 });
+
+async function processReply(value: unknown): Promise<void> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('Resposta inválida.');
+  const reply = value as WceReply;
+  const display = replyAsDisplayMessage(reply);
+  store('in', display);
+  io.emit('ui_user_message', display);
+  const response = await fetch(botWebhookUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify(constructWebhookPayload(reply, userPhone, displayPhone)),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error(`Webhook respondeu HTTP ${response.status}.`);
+}
 
 server.listen(port, host, () => {
   process.stdout.write(`${JSON.stringify({

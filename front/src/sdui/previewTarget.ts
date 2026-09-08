@@ -1,5 +1,4 @@
 import type { ComponentDefinition, RenderTarget } from '../api/componentDefinitions';
-import { whatsappKindFor } from './whatsappMapping';
 
 export type PreviewTarget = 'web' | 'mobile' | 'whatsapp';
 
@@ -11,17 +10,18 @@ export const PREVIEW_TARGET_LABEL: Record<PreviewTarget, string> = {
   whatsapp: 'WhatsApp',
 };
 
-const RENDER_TARGET_FOR: Record<'web' | 'mobile', RenderTarget> = {
+const RENDER_TARGET_FOR: Record<PreviewTarget, RenderTarget> = {
   web: 'react.web',
   mobile: 'react.mobile',
+  whatsapp: 'whatsapp',
 };
 
-/** Suporte do tipo de componente no alvo de prévia selecionado. Web/Mobile consultam o campo real
- * do Component Registry (`supportedTargets`); WhatsApp não é um RenderTarget (sem layout livre em
- * mensagens), então usa a tabela fixa de whatsappMapping.ts. Sem `definition` carregada ainda, não
- * bloqueia (evita falso alarme antes do catálogo terminar de carregar). */
-export function isSupportedOnPreviewTarget(definition: ComponentDefinition | null, type: string, target: PreviewTarget): boolean {
-  if (target === 'whatsapp') return whatsappKindFor(type) !== 'unsupported';
+/** Suporte do tipo de componente no alvo de prévia selecionado — sempre consulta o campo real do
+ * Component Registry (`supportedTargets`), o mesmo mecanismo pros 3 alvos (`whatsapp` é um
+ * RenderTarget como os outros, ver RenderTarget.java/back: "SUPPORTED" ali significa "tem
+ * representação válida em mensagem", não "renderiza igual aos demais"). Sem `definition` carregada
+ * ainda, não bloqueia (evita falso alarme antes do catálogo terminar de carregar). */
+export function isSupportedOnPreviewTarget(definition: ComponentDefinition | null, target: PreviewTarget): boolean {
   if (!definition) return true;
   return (definition.supportedTargets[RENDER_TARGET_FOR[target]]?.status ?? 'UNSUPPORTED') === 'SUPPORTED';
 }

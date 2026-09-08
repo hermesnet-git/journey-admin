@@ -4,6 +4,12 @@ O Channel Lab é o cockpit local do Emulador de Canais. Ele roda em `http://127.
 
 Ele não renderiza SDUI, não executa BPMN e não acessa diretamente Admin ou `ms-journey`.
 
+## Identidade visual
+
+O cockpit usa `ThemeContextProvider` e a skin `Vivo-evolution` da biblioteca `@telefonica/mistica`. O logo e as ações principais são componentes Mística; painéis, seletores de canal e área de preview mantêm o layout especializado do laboratório, consumindo os tokens de cor da mesma skin. A barra superior permite alternar entre os temas claro e escuro, e a preferência fica salva no armazenamento local do navegador.
+
+O tema fica restrito ao Channel Lab. React Web, Flutter e WCE são carregados como aplicações independentes e preservam seus próprios renderers.
+
 ## Pré-requisitos por alvo
 
 | Alvo | Processos necessários |

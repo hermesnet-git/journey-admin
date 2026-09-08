@@ -220,7 +220,7 @@ export function SduiPropertiesPanel({
         ))}
       </div>
 
-      {!isSupportedOnPreviewTarget(definition, node.type, previewTarget) && (
+      {!isSupportedOnPreviewTarget(definition, previewTarget) && (
         <div
           className="flex items-center gap-[6px] px-3 py-[6px] shrink-0"
           style={{ background: c.dangerSoft, color: c.danger, fontSize: 11 }}

@@ -29,7 +29,7 @@ function PaletteItem({
     data: dragData,
   });
   const Icon = iconFor(definition.type);
-  const supported = isSupportedOnPreviewTarget(definition, definition.type, previewTarget);
+  const supported = isSupportedOnPreviewTarget(definition, previewTarget);
   const title = supported
     ? `${labelFor(definition.type)} — clique para adicionar ou arraste`
     : `${labelFor(definition.type)} — não suportado no alvo ${PREVIEW_TARGET_LABEL[previewTarget]}`;

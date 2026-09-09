@@ -78,6 +78,35 @@ export function labelFor(type: string): string {
   return COMPONENT_LABEL[type] ?? type;
 }
 
+/** Descrição funcional curta usada nas superfícies de autoria. Não substitui o contrato nem cria
+ * novos tipos: quando um componente customizado não possuir metadado local, a interface utiliza
+ * uma descrição neutra e mantém o catálogo como fonte de verdade. */
+export const COMPONENT_DESCRIPTION: Record<string, string> = {
+  'ui.screen': 'Estrutura principal da tela.',
+  'ui.container': 'Agrupa e organiza outros componentes.',
+  'ui.stack': 'Distribui componentes em linha ou coluna.',
+  'ui.card': 'Destaca um grupo de informações.',
+  'ui.text': 'Apresenta títulos, textos e instruções.',
+  'ui.image': 'Exibe uma imagem com descrição acessível.',
+  'ui.icon': 'Adiciona um símbolo visual à tela.',
+  'ui.divider': 'Separa visualmente blocos de conteúdo.',
+  'ui.spacer': 'Cria espaço entre componentes.',
+  'ui.textInput': 'Coleta uma informação em uma linha.',
+  'ui.textArea': 'Coleta textos com várias linhas.',
+  'ui.select': 'Permite escolher uma opção de uma lista.',
+  'ui.checkbox': 'Registra confirmação ou aceite.',
+  'ui.datePicker': 'Coleta data, hora ou ambas.',
+  'ui.button': 'Executa a ação principal da tela.',
+  'ui.link': 'Oferece navegação ou acesso a conteúdo.',
+  'ui.alert': 'Comunica uma informação importante.',
+  'ui.progress': 'Indica o avanço de uma operação.',
+  'ui.loading': 'Informa que uma operação está em andamento.',
+};
+
+export function descriptionFor(type: string): string {
+  return COMPONENT_DESCRIPTION[type] ?? 'Componente disponível no catálogo.';
+}
+
 export const CATEGORY_LABEL: Record<ComponentCategory, string> = {
   CONTENT: 'Conteúdo',
   LAYOUT: 'Layout',

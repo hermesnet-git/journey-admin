@@ -207,6 +207,7 @@ Cada simulador interpreta o mesmo modelo de autoria e deve:
 - preservação de componentes cuja definição não seja encontrada, acompanhada de diagnóstico explícito no editor e sem migração silenciosa.
 - correção da fronteira física do frontend: catálogo e contrato permanecem em `sdui`, construção em `flow-designer/form-builder` e previews em `flow-designer/form-preview`;
 - primeira camada do redesenho estrutural, com canvas prioritário, paleta e inspetor recolhíveis, estrutura da tela opcional, seletor textual de canal e modo Preview livre das ferramentas de construção.
+- paleta de componentes aprimorada com busca por nome, tipo e finalidade, categorias recolhíveis, contadores, descrições funcionais, versão discreta, identificação de itens experimentais e estados vazios orientativos.
 
 ### 9.2 Plano organizado em 15 passos
 
@@ -214,8 +215,8 @@ Cada simulador interpreta o mesmo modelo de autoria e deve:
 | ---: | --- | --- |
 | 1 | Selecionar deterministicamente a versão vigente do catálogo e preservar a resolução das versões já utilizadas. | Concluído |
 | 2 | Redesenhar estruturalmente o Form Designer, melhorando a distribuição do canvas, paleta, camadas e propriedades. | Em validação visual |
-| 3 | Aprimorar a paleta com busca, categorias, descrições funcionais, status e compatibilidade mais claros. | Próximo |
-| 4 | Tornar o canvas de construção mais próximo da tela resultante, com seleção, hierarquia e áreas de drop mais evidentes. | Pendente |
+| 3 | Aprimorar a paleta com busca, categorias, descrições funcionais, status e compatibilidade mais claros. | Em validação visual |
+| 4 | Tornar o canvas de construção mais próximo da tela resultante, com seleção, hierarquia e áreas de drop mais evidentes. | Próximo |
 | 5 | Reorganizar o painel de propriedades com nomes funcionais em português, agrupamentos e controles apropriados. | Pendente |
 | 6 | Melhorar a navegação entre Tarefas de Usuário e canais, preservando o contexto de autoria. | Pendente |
 | 7 | Refinar a separação entre os modos Construir e Preview e avaliar uma visualização lado a lado. | Pendente |

@@ -1,4 +1,4 @@
-# Levantamento do Form Builder — estado atual e melhorias
+# Refatoração do Form Builder — versão 1
 
 Data do levantamento: 2026-09-08.
 
@@ -37,11 +37,14 @@ O Form Builder é o painel inferior do editor de jornadas.
 | --- | --- |
 | `JourneyDesignerPage` | Mantém fluxo, seleção, histórico, salvamento e validação. |
 | `FormPreviewDock` | Hospeda Build, Preview, seleção de canal e navegação entre Tarefas de Usuário. |
-| `SduiScreenEditor` | Coordena paleta, árvore, camadas, propriedades e drag-and-drop. |
-| `SduiComponentPalette` | Lista componentes do Component Registry por categoria. |
-| `SduiTreeCanvas` | Edita a árvore normalizada e mostra uma representação resumida dos componentes. |
-| `SduiLayersPanel` | Mostra a hierarquia e permite ordenar componentes. |
-| `SduiPropertiesPanel` | Edita propriedades, vínculos, eventos, visibilidade e estado ativo. |
+| `form-builder/FormBuilder` | Coordena a construção visual da tela, incluindo paleta, canvas, camadas, propriedades e drag-and-drop. |
+| `form-builder/ComponentPalette` | Consulta o catálogo e oferece os componentes disponíveis para inclusão. |
+| `form-builder/FormCanvas` | Edita a árvore da tela e mostra uma representação visual dos componentes. |
+| `form-builder/LayerPanel` | Mostra a hierarquia da tela e permite ordenar componentes. |
+| `form-builder/PropertyInspector` | Edita propriedades, valores, ações, visibilidade e estado ativo. |
+| `form-preview/FormDesignPreview` | Coordena os previews funcionais de Web, Mobile e WhatsApp. |
+
+O diretório `sdui` não contém o Form Builder. Ele concentra o catálogo, seus contratos, metadados e regras compartilhadas. O diretório `flow-designer/form-builder` contém exclusivamente a experiência de construção em tempo de design e depende do catálogo SDUI sem fazer parte dele. O preview possui ciclo próprio em `flow-designer/form-preview`.
 
 Cada Tarefa de Usuário possui no máximo uma árvore `embeddedScreenRoot`, cuja raiz obrigatória é `ui.screen`.
 
@@ -182,7 +185,52 @@ Cada simulador interpreta o mesmo modelo de autoria e deve:
 - evidenciar adaptações e perdas semânticas;
 - informar claramente que se trata de simulação de design.
 
-## 9. Melhorias necessárias
+## 9. Estado atual da refatoração
+
+### 9.1 Entregas concluídas
+
+- adoção dos canais funcionais `WEB`, `MOBILE` e `WHATSAPP` no tempo de design, sem acoplamento do Form Builder a React, Flutter ou ao emulador de canais;
+- seletor de preview limitado aos canais declarados pela jornada, com contexto fixo quando existe apenas um canal;
+- regra de compatibilidade funcional agregada: Web ou Mobile é compatível quando ao menos um renderer tecnológico correspondente está `SUPPORTED`;
+- separação de responsabilidades entre o domínio SDUI e os previews pertencentes ao Flow Designer;
+- previews independentes para Web, Mobile e WhatsApp, todos implementados internamente no Admin Front;
+- exibição das áreas Valor, Ações, Visibilidade e Estado conforme `allowedReservedFields` do catálogo;
+- configuração orientada de bindings, exigindo `form.*` e `twoWay` para componentes de entrada;
+- exigência de `onPress` para botão e link, com validação final no Admin Backend;
+- indicação de propriedades obrigatórias durante a autoria;
+- aplicação de `allowedChildTypes` no clique, no drag-and-drop e na validação do Admin Backend;
+- diferenciação entre componentes sistêmicos e customizados, impedindo a exclusão dos sistêmicos;
+- catálogo sistêmico de fábrica com 19 componentes estáveis;
+- jornada “Laboratório Multicanal de Componentes” para validar todos os componentes nos três canais;
+- seleção determinística da versão vigente de cada componente: maior versão `STABLE`, usando a maior `EXPERIMENTAL` apenas quando não existe versão estável;
+- separação entre catálogo de inclusão e catálogo de resolução: novos componentes usam a versão vigente, enquanto componentes existentes são resolvidos por `type@version` exatos;
+- preservação de componentes cuja definição não seja encontrada, acompanhada de diagnóstico explícito no editor e sem migração silenciosa.
+- correção da fronteira física do frontend: catálogo e contrato permanecem em `sdui`, construção em `flow-designer/form-builder` e previews em `flow-designer/form-preview`;
+- primeira camada do redesenho estrutural, com canvas prioritário, paleta e inspetor recolhíveis, estrutura da tela opcional, seletor textual de canal e modo Preview livre das ferramentas de construção.
+
+### 9.2 Plano organizado em 15 passos
+
+| Passo | Trabalho | Situação |
+| ---: | --- | --- |
+| 1 | Selecionar deterministicamente a versão vigente do catálogo e preservar a resolução das versões já utilizadas. | Concluído |
+| 2 | Redesenhar estruturalmente o Form Designer, melhorando a distribuição do canvas, paleta, camadas e propriedades. | Em validação visual |
+| 3 | Aprimorar a paleta com busca, categorias, descrições funcionais, status e compatibilidade mais claros. | Próximo |
+| 4 | Tornar o canvas de construção mais próximo da tela resultante, com seleção, hierarquia e áreas de drop mais evidentes. | Pendente |
+| 5 | Reorganizar o painel de propriedades com nomes funcionais em português, agrupamentos e controles apropriados. | Pendente |
+| 6 | Melhorar a navegação entre Tarefas de Usuário e canais, preservando o contexto de autoria. | Pendente |
+| 7 | Refinar a separação entre os modos Construir e Preview e avaliar uma visualização lado a lado. | Pendente |
+| 8 | Evoluir os previews de Web, Mobile e WhatsApp mantendo sua natureza funcional e independente de frameworks. | Pendente |
+| 9 | Criar contexto fictício editável para `form`, `data`, `session`, `route` e `computed`. | Pendente |
+| 10 | Criar editores orientados para os parâmetros de cada ação normativa, eliminando pares livres onde houver contrato conhecido. | Pendente |
+| 11 | Antecipar no frontend as validações de propriedades, enums, tokens, bindings, ações e composição. | Pendente |
+| 12 | Oferecer experiência guiada para telas novas, incluindo estado vazio e modelos iniciais. | Pendente |
+| 13 | Melhorar o feedback operacional de salvamento, pendências, erros por componente, confirmações e histórico. | Pendente |
+| 14 | Revisar os textos do portal para remover linguagem técnica, referências desatualizadas e detalhes de implementação. | Pendente |
+| 15 | Validar designer e preview com a jornada Laboratório Multicanal em Web, Mobile e WhatsApp. | Pendente |
+
+O passo 2 deve ser discutido visualmente antes da implementação, pois sua estrutura condiciona as melhorias dos passos 3 a 8.
+
+## Apêndice A — Melhorias identificadas no levantamento inicial
 
 ### Prioridade 1 — corrigir o domínio do designer
 
@@ -241,7 +289,7 @@ Recomendação inicial: não ocultar componentes. Exibi-los com estados claros p
 
 Revisar textos da área “Sobre” que ainda afirmam que a árvore editada é publicada sem transformação ou que a execução usa a última revisão. O comportamento vigente publica o envelope canônico e resolve snapshots pela versão exata da jornada.
 
-## 10. Sequência recomendada
+## Apêndice B — Sequência originalmente recomendada
 
 1. Formalizar `DesignChannel` e a regra de seleção de canal no Form Builder.
 2. Implementar a agregação aprovada: qualquer target `SUPPORTED` torna o componente compatível com o canal.

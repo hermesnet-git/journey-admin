@@ -70,7 +70,7 @@ export interface WFNodeData extends Record<string, unknown> {
   // resolved by the simulator at execution time.
   messageText?: string | null;
   // Raiz da árvore SDUI (catálogo corporativo v1) desenhada no editor embutido do dock
-  // (FormPreviewDock/SduiScreenEditor) — sempre um único ui.screen, null quando não há tela.
+  // (FormDesignerDock/FormBuilder) — sempre um único ui.screen, null quando não há tela.
   embeddedScreenRoot?: SduiNode | null;
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: only meaningful on the START node.
@@ -425,7 +425,7 @@ export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges:
   return rules;
 }
 
-// Ordem de navegação do painel de tarefas do editor de tela embutido (FormPreviewDock): BFS a
+// Ordem de navegação do painel de tarefas do construtor de telas (FormDesignerDock): BFS a
 // partir do(s) nó(s) de início, na ordem em que cada User Task é alcançada pelas arestas — cobre o
 // caso comum (fluxo linear) e dá uma ordem estável mesmo com desvios/gateways. Tarefas
 // inalcançáveis a partir do início (fluxo ainda sendo montado, pedaço solto) entram no fim, na

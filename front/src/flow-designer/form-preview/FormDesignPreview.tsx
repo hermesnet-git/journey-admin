@@ -1,5 +1,5 @@
 import type { SduiNode } from '../../sdui/model';
-import type { DesignChannel } from '../../sdui/designChannel';
+import type { DesignChannel } from '../form-builder/designChannel';
 import { WebFormPreview } from './WebFormPreview';
 import { MobileFormPreview } from './MobileFormPreview';
 import { WhatsAppFormPreview } from './WhatsAppFormPreview';

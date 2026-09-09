@@ -1,10 +1,10 @@
 import { Plus, X } from 'lucide-react';
-import { useFlowTheme } from '../flow-designer/theme';
-import { gridInputStyle } from '../flow-designer/PropertyGrid';
-import type { SduiEvent } from './model';
+import { useFlowTheme } from '../theme';
+import { gridInputStyle } from '../PropertyGrid';
+import type { SduiEvent } from '../../sdui/model';
 
 // Seção 9 do catálogo — as 6 ações do Action Registry.
-export const SDUI_ACTIONS = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss'] as const;
+export const AVAILABLE_ACTIONS = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss'] as const;
 
 const ACTION_LABEL: Record<string, string> = {
   'action.submit': 'Enviar formulário',
@@ -81,7 +81,7 @@ function ParamsRows({ params, onChange }: { params: Record<string, unknown>; onC
 
 /** Edita `node.events` — evento (filtrado por ComponentDefinition.events, o que o Registry declara
  * que este tipo de componente dispara) → uma das 6 ações do catálogo → parâmetros chave/valor. */
-export function EventsEditor({
+export function ActionEditor({
   availableEvents,
   events,
   onChange,
@@ -118,7 +118,7 @@ export function EventsEditor({
               <input
                 type="checkbox"
                 checked={!!configured}
-                onChange={(e) => setEvent(eventName, e.target.checked ? { action: SDUI_ACTIONS[0], params: {} } : null)}
+                onChange={(e) => setEvent(eventName, e.target.checked ? { action: AVAILABLE_ACTIONS[0], params: {} } : null)}
               />
               {eventName}
             </label>
@@ -129,7 +129,7 @@ export function EventsEditor({
                   value={configured.action}
                   onChange={(e) => setEvent(eventName, { action: e.target.value, params: configured.params ?? {} })}
                 >
-                  {SDUI_ACTIONS.map((a) => (
+                  {AVAILABLE_ACTIONS.map((a) => (
                     <option key={a} value={a}>
                       {ACTION_LABEL[a]}
                     </option>

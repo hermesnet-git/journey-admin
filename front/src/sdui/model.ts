@@ -136,7 +136,7 @@ export function removeNode(root: SduiNode, id: string): SduiNode {
 }
 
 /** Insere `node` como último filho de `parentId` — soltar sempre insere no fim (sem reordenar por
- * posição exata dentro do nível, ver ponytail em SduiTreeCanvas.tsx). */
+ * posição exata dentro do nível, ver tratamento correspondente no FormCanvas. */
 export function insertNode(root: SduiNode, parentId: string, node: SduiNode): SduiNode {
   if (root.id === parentId) return { ...root, children: [...(root.children ?? []), node] };
   if (!root.children) return root;
@@ -144,7 +144,7 @@ export function insertNode(root: SduiNode, parentId: string, node: SduiNode): Sd
 }
 
 /** Reordena `id` um passo pra cima/baixo entre os irmãos do MESMO pai — não muda de container (ver
- * SduiLayersPanel, que oferece isto porque o canvas de arrastar sempre insere no fim, sem posição
+ * LayerPanel, que oferece isto porque o canvas de arrastar sempre insere no fim, sem posição
  * fina dentro de um nível). */
 export function moveWithinSiblings(root: SduiNode, id: string, direction: 'up' | 'down'): SduiNode {
   const parent = findParent(root, id);

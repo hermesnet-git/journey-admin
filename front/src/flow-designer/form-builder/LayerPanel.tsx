@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
-import { useFlowTheme } from '../flow-designer/theme';
-import type { SduiNode } from './model';
-import { iconFor, labelFor } from './componentMeta';
+import { useFlowTheme } from '../theme';
+import type { SduiNode } from '../../sdui/model';
+import { iconFor, labelFor } from '../../sdui/componentMeta';
 
 function LayerRow({
   node,
@@ -92,7 +92,7 @@ function LayerRow({
 /** Árvore de camadas — sucessora de FormScreenLayersPanel.tsx (que era lista linear, sem
  * aninhamento). Subir/descer reordena o nó dentro dos filhos do MESMO pai (não muda de pai) —
  * cobre reordenar dentro de um nível sem precisar do drag-and-drop do canvas fazer isso também. */
-export function SduiLayersPanel({
+export function LayerPanel({
   root,
   selectedId,
   onSelect,

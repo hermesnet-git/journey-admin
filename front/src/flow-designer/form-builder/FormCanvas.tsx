@@ -1,9 +1,9 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { AlertTriangle, GripVertical, X } from 'lucide-react';
-import { useFlowTheme } from '../flow-designer/theme';
-import type { ComponentDefinition } from '../api/componentDefinitions';
-import type { SduiNode } from './model';
-import { iconFor, labelFor } from './componentMeta';
+import { useFlowTheme } from '../theme';
+import type { ComponentDefinition } from '../../api/componentDefinitions';
+import type { SduiNode } from '../../sdui/model';
+import { iconFor, labelFor } from '../../sdui/componentMeta';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
 
 export interface CanvasDragData {
@@ -143,9 +143,9 @@ function CanvasNode({
  * por posição exata dentro de um nível — upgrade natural depois via Camadas, que já tem subir/
  * descer). Escolhido deliberadamente no lugar do padrão "achatar com depth/parentId" de sortable
  * tree: entrega o requisito real (profundidade arbitrária) com bem menos superfície de bug.
- * Puramente apresentacional — o DndContext vive em SduiScreenEditor (paleta e canvas são irmãos,
+ * Puramente apresentacional — o DndContext vive no FormBuilder (paleta e canvas são irmãos,
  * precisam do mesmo provider). */
-export function SduiTreeCanvas({
+export function FormCanvas({
   root,
   registry,
   selectedId,

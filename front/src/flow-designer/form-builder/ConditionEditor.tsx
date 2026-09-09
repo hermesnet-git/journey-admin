@@ -1,9 +1,9 @@
-import { useFlowTheme } from '../flow-designer/theme';
-import { gridInputStyle } from '../flow-designer/PropertyGrid';
-import type { VariableOrigin } from '../flow-designer/model';
-import type { ChannelType } from '../api/products';
-import type { SduiVisibility } from './model';
-import { NamespacePathInput, splitPath } from './BindingsEditor';
+import { useFlowTheme } from '../theme';
+import { gridInputStyle } from '../PropertyGrid';
+import type { VariableOrigin } from '../model';
+import type { ChannelType } from '../../api/products';
+import type { SduiVisibility } from '../../sdui/model';
+import { NamespacePathInput, splitPath } from './BindingEditor';
 
 // equals/notEquals: único shape que a seção 14.2 do catálogo exemplifica. in/notIn: extensão
 // pontual pra "visível nestes canais" (lista de valores) — continua uma regra só, não lógica
@@ -27,7 +27,7 @@ function selectedChannelsFrom(visibility: SduiVisibility | null, channelTypes: C
 
 /** Edita `node.visibility` (seção 6/14.2: `{rule,path,value}`) — condição declarativa de exibição,
  * substitui o antigo `visibleIf` em string ({{campo}} OP valor). */
-export function VisibilityEditor({
+export function ConditionEditor({
   visibility,
   variables,
   channelTypes,

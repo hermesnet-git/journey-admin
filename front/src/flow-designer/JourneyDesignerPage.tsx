@@ -29,7 +29,7 @@ import { WorkflowNode } from './WorkflowNode';
 import { AnnotationNode } from './AnnotationNode';
 import { Palette } from './Palette';
 import { PropertiesDock } from './PropertiesDock';
-import { FormPreviewDock, DOCK_DEFAULT_HEIGHT } from './FormPreviewDock';
+import { FormDesignerDock, DOCK_DEFAULT_HEIGHT } from './FormDesignerDock';
 import { ErrorModal } from './ErrorModal';
 import { EditJourneyChannelsModal } from '../journeys/EditJourneyChannelsModal';
 import { Toolbar } from './Toolbar';
@@ -240,7 +240,7 @@ function DesignerInner({
   // (PropertiesPanel limpa via onFreshNodeConsumed) pra não recolapsar se o usuário voltar a esse
   // nó depois de já ter configurado algo.
   const [freshNodeId, setFreshNodeId] = useState<string | null>(null);
-  // Vive aqui (não dentro do FormPreviewDock) porque o dock desmonta toda vez que a seleção sai de
+  // Vive aqui (não dentro do FormDesignerDock) porque o dock desmonta toda vez que a seleção sai de
   // uma User Task — um state interno perderia o redimensionamento do usuário a cada troca de nó.
   const [dockHeight, setDockHeight] = useState(DOCK_DEFAULT_HEIGHT);
   // "Fixar" o editor de tela: enquanto ativo, o dock continua mostrando a última User Task válida
@@ -1180,7 +1180,7 @@ function DesignerInner({
                 )}
               </ReactFlow>
               {previewNode && (
-                <FormPreviewDock
+                <FormDesignerDock
                   channelTypes={activeJourney.channelTypes}
                   nodeId={previewNode.id}
                   embeddedScreenRoot={previewNode.data.embeddedScreenRoot ?? null}

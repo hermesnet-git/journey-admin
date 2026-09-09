@@ -1,5 +1,5 @@
-import type { ChannelType } from '../api/products';
-import type { ComponentDefinition, RenderTarget } from '../api/componentDefinitions';
+import type { ChannelType } from '../../api/products';
+import type { ComponentDefinition, RenderTarget } from '../../api/componentDefinitions';
 
 export type DesignChannel = ChannelType;
 export type ChannelCompatibility = 'COMPATIBLE' | 'PENDING' | 'INCOMPATIBLE';

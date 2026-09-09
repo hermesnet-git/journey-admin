@@ -9,7 +9,12 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 
-/** Seleciona uma única versão vigente de cada componente para novas telas. */
+/**
+ * Seleciona uma única versão vigente de cada componente para novas telas. Uma versão experimental
+ * nunca substitui automaticamente uma versão estável: ela só é oferecida quando o tipo ainda não
+ * possui versão estável. Telas existentes continuam resolvidas pela chave exata tipo+versão no
+ * catálogo completo.
+ */
 @Service
 public class ListAuthoringComponentDefinitions {
 
@@ -26,13 +31,19 @@ public class ListAuthoringComponentDefinitions {
                         || definition.getStatus() == ComponentStatus.EXPERIMENTAL)
                 .filter(definition -> isSemVer(definition.getVersion()))
                 .forEach(definition -> currentByType.merge(definition.getType(), definition,
-                        (current, candidate) -> compareSemVer(candidate.getVersion(), current.getVersion()) > 0
-                                ? candidate : current));
+                        ListAuthoringComponentDefinitions::selectCurrent));
         return currentByType.values().stream()
                 .sorted(Comparator.comparingInt(ComponentDefinition::getLevel)
                         .thenComparing(ComponentDefinition::getCategory)
                         .thenComparing(ComponentDefinition::getType))
                 .toList();
+    }
+
+    private static ComponentDefinition selectCurrent(ComponentDefinition current, ComponentDefinition candidate) {
+        if (current.getStatus() != candidate.getStatus()) {
+            return candidate.getStatus() == ComponentStatus.STABLE ? candidate : current;
+        }
+        return compareSemVer(candidate.getVersion(), current.getVersion()) > 0 ? candidate : current;
     }
 
     private static boolean isSemVer(String version) {

@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Plus, X } from 'lucide-react';
-import { useFlowTheme } from '../flow-designer/theme';
-import { PropertyGrid, PropertyRow, PropertyGroupHeader, ToggleSwitch, gridInputStyle } from '../flow-designer/PropertyGrid';
-import type { VariableOrigin } from '../flow-designer/model';
-import type { ComponentDefinition, PropDescriptor } from '../api/componentDefinitions';
-import { tokensForGroup } from './designTokens';
-import { labelFor } from './componentMeta';
-import type { SduiNode } from './model';
-import type { ChannelType } from '../api/products';
-import { BindingsEditor } from './BindingsEditor';
-import { EventsEditor } from './EventsEditor';
-import { VisibilityEditor } from './VisibilityEditor';
+import { useFlowTheme } from '../theme';
+import { PropertyGrid, PropertyRow, PropertyGroupHeader, ToggleSwitch, gridInputStyle } from '../PropertyGrid';
+import type { VariableOrigin } from '../model';
+import type { ComponentDefinition, PropDescriptor } from '../../api/componentDefinitions';
+import { tokensForGroup } from '../../sdui/designTokens';
+import { labelFor } from '../../sdui/componentMeta';
+import type { SduiNode } from '../../sdui/model';
+import type { ChannelType } from '../../api/products';
+import { BindingEditor } from './BindingEditor';
+import { ActionEditor } from './ActionEditor';
+import { ConditionEditor } from './ConditionEditor';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
 
 function OptionsListEditor({ value, onChange }: { value: { label: string; value: string }[]; onChange: (next: { label: string; value: string }[]) => void }) {
@@ -167,7 +167,7 @@ const TABS: { key: Tab; label: string; reservedField?: '$bindings' | '$events' |
  * schema de props vem de ComponentDefinition.propsSchema (Component Registry), não de uma lista
  * curada em código. Bindings/events/visibility ganham editores estruturados dedicados (pedido
  * explícito: aderência total ao contrato, sem cair pra JSON bruto). */
-export function SduiPropertiesPanel({
+export function PropertyInspector({
   node,
   definition,
   variables,
@@ -265,7 +265,7 @@ export function SduiPropertiesPanel({
       )}
 
       {tab === 'bindings' && (
-        <BindingsEditor
+        <BindingEditor
           bindings={node.bindings}
           bindingNames={bindingConfiguration(definition).names}
           requiredBindingNames={bindingConfiguration(definition).required}
@@ -276,11 +276,11 @@ export function SduiPropertiesPanel({
       )}
 
       {tab === 'events' && (
-        <EventsEditor availableEvents={definition.events} events={node.events} onChange={onUpdateEvents} />
+        <ActionEditor availableEvents={definition.events} events={node.events} onChange={onUpdateEvents} />
       )}
 
       {tab === 'visibility' && (
-        <VisibilityEditor
+        <ConditionEditor
           visibility={node.visibility}
           variables={variables}
           channelTypes={channelTypes}
@@ -289,7 +289,7 @@ export function SduiPropertiesPanel({
       )}
 
       {tab === 'active' && (
-        <VisibilityEditor
+        <ConditionEditor
           visibility={node.active}
           variables={variables}
           channelTypes={channelTypes}

@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronUp, MessageCircle, Maximize2, Minimize2, Monitor, Pin, PinOff, Smartphone } from 'lucide-react';
 import { useFlowTheme } from './theme';
-import { SduiScreenEditor } from '../sdui/SduiScreenEditor';
+import { FormBuilder } from './form-builder/FormBuilder';
 import { FormDesignPreview } from './form-preview/FormDesignPreview';
-import { DESIGN_CHANNEL_LABEL, type DesignChannel } from '../sdui/designChannel';
+import { DESIGN_CHANNEL_LABEL, type DesignChannel } from './form-builder/designChannel';
 import { UserTaskNavigator } from './UserTaskNavigator';
 import type { WFNode, VariableOrigin } from './model';
 import type { SduiNode } from '../sdui/model';
@@ -47,8 +47,8 @@ const CHANNEL_ICON = { WEB: Monitor, MOBILE: Smartphone, WHATSAPP: MessageCircle
 /** Painel ancorado ao fundo do canvas — editor de tela SDUI embutido (catálogo corporativo v1)
  * sobre `embeddedScreenRoot`, o próprio FlowNode. Sucessor do antigo editor baseado em FormField[]:
  * este mantém o mesmo chrome (redimensionar/expandir/fixar/navegar entre User Tasks), só o corpo
- * (paleta+canvas+camadas+propriedades) vem de SduiScreenEditor agora. */
-export function FormPreviewDock({
+ * O corpo de construção pertence ao Form Builder; o catálogo SDUI fornece apenas as definições e regras. */
+export function FormDesignerDock({
   channelTypes,
   nodeId,
   embeddedScreenRoot,
@@ -67,6 +67,7 @@ export function FormPreviewDock({
   const [collapsed, setCollapsed] = useState(false);
   const [mode, setMode] = useState<ScreenMode>('edit');
   const [designChannel, setDesignChannel] = useState<DesignChannel>(channelTypes[0] ?? 'WEB');
+  const currentTask = userTasks.find((task) => task.id === nodeId);
 
   useEffect(() => {
     if (!channelTypes.includes(designChannel)) {
@@ -110,15 +111,16 @@ export function FormPreviewDock({
   );
 
   const modeToggle = (
-    <div className="shrink-0 flex items-center gap-4">
+    <div className="shrink-0 flex items-center rounded-lg p-1" style={{ background: c.chipBg }}>
       {SCREEN_TABS.map((tab) => (
         <button
           key={tab.key}
           onClick={() => setMode(tab.key)}
-          className="text-[12.5px] font-medium cursor-pointer border-0 bg-transparent pb-[6px]"
+          className="text-[12px] font-semibold cursor-pointer border-0 rounded-md px-3 py-1.5"
           style={{
             color: mode === tab.key ? c.accent : c.textSecondary,
-            borderBottom: `2px solid ${mode === tab.key ? c.accent : 'transparent'}`,
+            background: mode === tab.key ? c.cardBg : 'transparent',
+            boxShadow: mode === tab.key ? '0 1px 3px rgba(0,0,0,.12)' : 'none',
           }}
         >
           {tab.label}
@@ -128,7 +130,7 @@ export function FormPreviewDock({
   );
 
   const channelSelector = (
-    <div className="shrink-0 flex items-center gap-1">
+    <div className="shrink-0 flex items-center gap-1 rounded-lg p-1" style={{ border: `1px solid ${c.border}` }}>
       {channelTypes.map((channel) => {
         const Icon = CHANNEL_ICON[channel];
         const selected = designChannel === channel;
@@ -145,10 +147,11 @@ export function FormPreviewDock({
             key={channel}
             onClick={() => setDesignChannel(channel)}
             title={`Simular canal ${DESIGN_CHANNEL_LABEL[channel]}`}
-            className="w-[22px] h-[22px] rounded-md flex items-center justify-center cursor-pointer border-0"
+            className="h-[28px] rounded-md flex items-center justify-center gap-1.5 px-2 cursor-pointer border-0"
             style={{ background: selected ? c.accentSoft : 'transparent', color: selected ? c.accent : c.textSecondary }}
           >
             <Icon size={13} />
+            <span className="text-[11px] font-medium">{DESIGN_CHANNEL_LABEL[channel]}</span>
           </button>
         );
       })}
@@ -156,7 +159,7 @@ export function FormPreviewDock({
   );
 
   const navigatorRow = (
-    <div className="shrink-0 grid grid-cols-3 items-center gap-3 px-3 py-[6px]" style={{ borderBottom: `1px solid ${c.border}`, background: c.sidebarBg }}>
+    <div className="shrink-0 grid items-center gap-3 px-3 py-2" style={{ gridTemplateColumns: 'minmax(220px, 1fr) auto minmax(100px, 1fr)', borderBottom: `1px solid ${c.border}`, background: c.sidebarBg }}>
       <div className="min-w-0">
         <UserTaskNavigator tasks={userTasks} currentId={nodeId} onNavigate={onNavigateTask} />
       </div>
@@ -181,7 +184,7 @@ export function FormPreviewDock({
   const body = (
     <div className="flex-1 flex flex-col min-h-0">
       {mode === 'preview' ? (
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6" style={{ background: c.canvasBg }}>
           {!embeddedScreenRoot ? (
             <div className="text-center text-[12.5px]" style={{ color: c.textSecondary }}>
               Nenhuma tela desenhada ainda.
@@ -191,7 +194,7 @@ export function FormPreviewDock({
           )}
         </div>
       ) : (
-        <SduiScreenEditor
+        <FormBuilder
           root={embeddedScreenRoot}
           onChange={onEmbeddedScreenRootChange}
           onPushHistory={onPushHistory}
@@ -218,9 +221,15 @@ export function FormPreviewDock({
   if (collapsed) {
     return (
       <div
-        className="absolute bottom-0 left-0 right-0 w-full z-20 flex items-center justify-end gap-3 px-6 py-[10px]"
+        className="absolute bottom-0 left-0 right-0 w-full z-20 flex items-center justify-between gap-3 px-4 py-[10px]"
         style={{ background: c.cardBg, borderTop: `1px solid ${c.border}` }}
       >
+        <div className="min-w-0">
+          <span className="text-[11px] font-semibold" style={{ color: c.textPrimary }}>Form Designer</span>
+          <span className="ml-2 text-[11px]" style={{ color: c.textSecondary }}>
+            {currentTask?.data.name ?? 'Tarefa de Usuário'} · {embeddedScreenRoot ? 'Tela configurada' : 'Sem tela'}
+          </span>
+        </div>
         <div className="shrink-0 flex items-center gap-1">
           {pinButton}
           <button
@@ -247,8 +256,10 @@ export function FormPreviewDock({
         title="Arrastar para redimensionar"
         className="absolute -top-[3px] left-0 right-0 h-[6px] cursor-row-resize z-10"
       />
-      <div className="shrink-0 grid grid-cols-3 items-center px-3 py-[6px]" style={{ borderBottom: `1px solid ${c.border}`, background: c.sidebarBg }}>
-        <div />
+      <div className="shrink-0 grid items-center gap-3 px-3 py-2" style={{ gridTemplateColumns: 'minmax(220px, 1fr) auto minmax(100px, 1fr)', borderBottom: `1px solid ${c.border}`, background: c.sidebarBg }}>
+        <div className="min-w-0">
+          <UserTaskNavigator tasks={userTasks} currentId={nodeId} onNavigate={onNavigateTask} />
+        </div>
         <div className="flex justify-center items-center gap-4">
         {modeToggle}
         {channelSelector}

@@ -1,5 +1,5 @@
 import type { SduiNode } from '../../sdui/model';
-import type { DesignChannel } from '../../sdui/designChannel';
+import type { DesignChannel } from '../form-builder/designChannel';
 import { labelFor } from '../../sdui/componentMeta';
 
 export interface FormPreviewDiagnostic {

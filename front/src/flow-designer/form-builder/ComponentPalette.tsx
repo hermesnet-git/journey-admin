@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { AlertTriangle, Search } from 'lucide-react';
-import { useFlowTheme } from '../flow-designer/theme';
-import type { ComponentDefinition, ComponentCategory } from '../api/componentDefinitions';
-import { iconFor, labelFor, CATEGORY_LABEL } from './componentMeta';
+import { useFlowTheme } from '../theme';
+import type { ComponentDefinition, ComponentCategory } from '../../api/componentDefinitions';
+import { iconFor, labelFor, CATEGORY_LABEL } from '../../sdui/componentMeta';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
 
 const CATEGORY_ORDER: ComponentCategory[] = ['CONTENT', 'LAYOUT', 'INPUT', 'ACTION', 'FEEDBACK'];
@@ -57,7 +57,7 @@ function PaletteItem({
  * ComponentDefinition.category (Component Registry), não de uma lista curada em código. Só mostra
  * componentes não-removidos (REMOVED continua existindo pra telas antigas, mas não é oferecido pra
  * novas). `ui.screen` nunca aparece — é a raiz fixa, nunca solto pelo usuário. */
-export function SduiComponentPalette({
+export function ComponentPalette({
   definitions,
   onAdd,
   designChannel,

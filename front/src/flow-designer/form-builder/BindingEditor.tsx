@@ -1,7 +1,7 @@
-import { useFlowTheme } from '../flow-designer/theme';
-import { gridInputStyle } from '../flow-designer/PropertyGrid';
-import type { VariableOrigin } from '../flow-designer/model';
-import type { SduiBinding } from './model';
+import { useFlowTheme } from '../theme';
+import { gridInputStyle } from '../PropertyGrid';
+import type { VariableOrigin } from '../model';
+import type { SduiBinding } from '../../sdui/model';
 
 // Seção 8 do catálogo: 5 namespaces permitidos pra um path de binding.
 export const BINDING_NAMESPACES = ['form', 'data', 'session', 'route', 'computed'] as const;
@@ -16,8 +16,8 @@ export function splitPath(path: string | undefined): { namespace: BindingNamespa
   return { namespace: 'form', suffix: '' };
 }
 
-/** Namespace + sufixo do path — reaproveitado por BindingsEditor (binding `value`) e
- * VisibilityEditor (regra de visibilidade), mesmo shape `namespace.path` (seção 8 do catálogo). Pra
+/** Namespace + sufixo do path — reaproveitado pelos editores de valor e de condição, pois ambos
+ * utilizam o mesmo formato `namespace.path` definido pelo catálogo. Para
  * `form`/`data`, sugere os nomes já conhecidos do fluxo (mesma lista de VariableOrigin usada pelo
  * VariablePickerButton) via &lt;datalist&gt; — os outros 3 namespaces não têm fonte de sugestão
  * neste admin (sem um "data contract" formal, ver FlowValidator.java). */
@@ -63,7 +63,7 @@ export function NamespacePathInput({
 /** Edita somente os vínculos autorizados para o componente. Campos de entrada usam `value` em
  * leitura e escrita; componentes de conteúdo e feedback expõem os atributos de leitura previstos
  * no contrato funcional. */
-export function BindingsEditor({
+export function BindingEditor({
   bindings,
   bindingNames,
   requiredBindingNames,

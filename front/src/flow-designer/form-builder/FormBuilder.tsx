@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
-import { ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { FileInput, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
 import { useFlowTheme } from '../theme';
 import type { VariableOrigin } from '../model';
 import { listAuthoringComponentDefinitions, listComponentDefinitions, type ComponentDefinition } from '../../api/componentDefinitions';
@@ -12,6 +12,7 @@ import { LayerPanel } from './LayerPanel';
 import { PropertyInspector } from './PropertyInspector';
 import { iconFor, labelFor } from '../../sdui/componentMeta';
 import { compatibilityForDesignChannel, type DesignChannel } from './designChannel';
+import { ConfirmDialog } from '../../products/ConfirmDialog';
 
 function registryKey(type: string, version: string): string {
   return `${type}@${version}`;
@@ -40,6 +41,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
   const [paletteOpen, setPaletteOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [layersOpen, setLayersOpen] = useState(false);
+  const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   useEffect(() => {
@@ -129,9 +131,20 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
 
   function handleRemove(id: string) {
     if (!root) return;
+    const target = findNode(root, id);
+    if ((target?.children?.length ?? 0) > 0) {
+      setPendingRemovalId(id);
+      return;
+    }
+    performRemove(id);
+  }
+
+  function performRemove(id: string) {
+    if (!root) return;
     onPushHistory();
     onChange(removeNode(root, id));
     if (selectedId === id) setSelectedId(root.id);
+    setPendingRemovalId(null);
   }
 
   function handleMove(id: string, direction: 'up' | 'down') {
@@ -142,6 +155,10 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
 
   const selectedNode = root && selectedId ? findNode(root, selectedId) : null;
   const selectedDefinition = selectedNode ? registry.get(registryKey(selectedNode.type, selectedNode.version)) ?? null : null;
+  const authoringIssueCount = useMemo(
+    () => root ? countAuthoringIssues(root, registry, designChannel) : 0,
+    [root, registry, designChannel],
+  );
 
   function handleSelect(id: string) {
     setSelectedId(id);
@@ -169,6 +186,34 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
     const node = createNode(definition);
     onChange(insertNode(root, targetId, node));
     handleSelect(node.id);
+  }
+
+  function applyStarterTemplate(kind: 'information' | 'basicForm') {
+    if (!root) return;
+    const definitionFor = (type: string) => authoringDefinitions.find(
+      (definition) => definition.type === type && compatibilityForDesignChannel(definition, designChannel) === 'COMPATIBLE',
+    );
+    const textDefinition = definitionFor('ui.text');
+    const buttonDefinition = definitionFor('ui.button');
+    const inputDefinition = definitionFor('ui.textInput');
+    if (!textDefinition || !buttonDefinition || (kind === 'basicForm' && !inputDefinition)) {
+      setCompositionError('Os componentes necessários para este modelo não estão disponíveis no canal selecionado.');
+      return;
+    }
+    const textNode = createNode(textDefinition);
+    const buttonNode = createNode(buttonDefinition);
+    const children: SduiNode[] = [
+      { ...textNode, props: { ...textNode.props, text: kind === 'information' ? 'Insira aqui a informação que deseja apresentar.' : 'Preencha as informações abaixo.' } },
+    ];
+    if (kind === 'basicForm' && inputDefinition) {
+      const inputNode = createNode(inputDefinition);
+      children.push({ ...inputNode, props: { ...inputNode.props, label: 'Informação', required: true } });
+    }
+    children.push({ ...buttonNode, props: { ...buttonNode.props, label: 'Continuar' } });
+    onPushHistory();
+    onChange({ ...root, children });
+    setCompositionError(null);
+    setSelectedId(children[0].id);
   }
 
   if (!root) {
@@ -203,6 +248,11 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {authoringIssueCount > 0 && (
+              <span className="mr-1 rounded-full px-2 py-1 text-[9.5px] font-semibold" style={{ background: c.dangerSoft, color: c.danger }}>
+                {authoringIssueCount} {authoringIssueCount === 1 ? 'pendência' : 'pendências'}
+              </span>
+            )}
             <ToolButton
               title={paletteOpen ? 'Recolher componentes' : 'Mostrar componentes'}
               active={paletteOpen}
@@ -220,12 +270,23 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
         </div>
         {registryLoaded && selectedNode && !selectedDefinition && (
           <div className="px-3 py-2 text-[11px]" style={{ background: c.dangerSoft, color: c.danger }}>
-            A definição {selectedNode.type}@{selectedNode.version} não foi encontrada no catálogo. O componente foi preservado, mas não pode ser configurado.
+            Este componente não está mais disponível para configuração. Ele foi preservado para que nenhum conteúdo seja perdido.
           </div>
         )}
         {compositionError && (
           <div className="shrink-0 px-3 py-2 text-[11.5px]" style={{ color: c.danger, background: c.dangerSoft }}>
             {compositionError}
+          </div>
+        )}
+        {(root.children?.length ?? 0) === 0 && (
+          <div className="shrink-0 flex items-center gap-3 px-3 py-2" style={{ borderBottom: `1px solid ${c.border}`, background: c.accentSoft }}>
+            <Sparkles size={15} color={c.accent} />
+            <div className="min-w-0 flex-1">
+              <div className="text-[11.5px] font-semibold" style={{ color: c.textPrimary }}>Comece a desenhar esta tela</div>
+              <div className="text-[10.5px]" style={{ color: c.textSecondary }}>Escolha um modelo inicial ou adicione componentes pela paleta.</div>
+            </div>
+            <button type="button" onClick={() => applyStarterTemplate('information')} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}><Info size={13} /> Informativa</button>
+            <button type="button" onClick={() => applyStarterTemplate('basicForm')} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}><FileInput size={13} /> Coleta básica</button>
           </div>
         )}
         <div className="flex-1 flex min-h-0">
@@ -267,6 +328,15 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
           </div>
         )}
       </DragOverlay>
+      {pendingRemovalId && (
+        <ConfirmDialog
+          title="Remover grupo de componentes?"
+          message="Todos os componentes contidos neste grupo também serão removidos da tela."
+          confirmLabel="Remover grupo"
+          onConfirm={() => performRemove(pendingRemovalId)}
+          onCancel={() => setPendingRemovalId(null)}
+        />
+      )}
     </DndContext>
   );
 }
@@ -290,6 +360,37 @@ function ToolButton({ title, active, onClick, icon: Icon }: {
       <Icon size={16} />
     </button>
   );
+}
+
+/** Resumo operacional das pendências que o autor consegue corrigir no próprio Form Builder. */
+function countAuthoringIssues(root: SduiNode, registry: Map<string, ComponentDefinition>, channel: DesignChannel): number {
+  let count = 0;
+  function visit(node: SduiNode) {
+    const definition = registry.get(registryKey(node.type, node.version));
+    if (!definition) {
+      count += 1;
+      return;
+    }
+    if (compatibilityForDesignChannel(definition, channel) !== 'COMPATIBLE' && isVisibleInChannel(node, channel)) count += 1;
+    count += definition.propsSchema.filter((prop) => prop.required && (
+      node.props[prop.name] === undefined || node.props[prop.name] === null || String(node.props[prop.name]).trim() === ''
+    )).length;
+    if (definition.category === 'INPUT' && !node.bindings?.value?.path) count += 1;
+    if ((definition.type === 'ui.button' || definition.type === 'ui.link') && !node.events?.onPress) count += 1;
+    (node.children ?? []).forEach(visit);
+  }
+  visit(root);
+  return count;
+}
+
+function isVisibleInChannel(node: SduiNode, channel: DesignChannel): boolean {
+  const condition = node.visibility;
+  if (!condition || condition.path !== 'session.channel') return true;
+  if (condition.rule === 'equals') return condition.value === channel;
+  if (condition.rule === 'notEquals') return condition.value !== channel;
+  if (condition.rule === 'in') return Array.isArray(condition.value) && condition.value.includes(channel);
+  if (condition.rule === 'notIn') return Array.isArray(condition.value) && !condition.value.includes(channel);
+  return true;
 }
 
 function canAcceptChild(parent: ComponentDefinition, child: ComponentDefinition): boolean {

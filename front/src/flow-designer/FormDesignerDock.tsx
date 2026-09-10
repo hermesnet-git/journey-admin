@@ -30,6 +30,8 @@ interface Props {
   /** Fixado: dock continua mostrando a última User Task mesmo depois de selecionar outra coisa. */
   pinned: boolean;
   onPinnedChange: (pinned: boolean) => void;
+  /** Indica que o desenho atual ainda não foi salvo na jornada. */
+  hasUnsavedChanges: boolean;
 }
 
 const MIN_HEIGHT = 160;
@@ -61,6 +63,7 @@ export function FormDesignerDock({
   onHeightChange,
   pinned,
   onPinnedChange,
+  hasUnsavedChanges,
 }: Props) {
   const { c } = useFlowTheme();
   const [expanded, setExpanded] = useState(false);
@@ -160,7 +163,10 @@ export function FormDesignerDock({
 
   const taskNavigator = (
     <div className="min-w-0">
-      <div className="mb-0.5 text-[9px] font-semibold uppercase tracking-[.05em]" style={{ color: c.textSecondary }}>Tarefa em edição</div>
+      <div className="mb-0.5 flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[.05em]" style={{ color: c.textSecondary }}>
+        <span>Tarefa em edição</span>
+        {hasUnsavedChanges && <span className="normal-case tracking-normal" style={{ color: c.accent }}>• Alterações não salvas</span>}
+      </div>
       <UserTaskNavigator tasks={userTasks} currentId={nodeId} onNavigate={onNavigateTask} />
     </div>
   );
@@ -229,7 +235,9 @@ export function FormDesignerDock({
         <div className={mode === 'edit' ? 'flex flex-1 min-w-0 min-h-0' : 'hidden'}>
           {builderBody}
         </div>
-        {mode === 'preview' && previewBody}
+        <div className={mode === 'preview' ? 'flex flex-1 min-w-0 min-h-0' : 'hidden'}>
+          {previewBody}
+        </div>
       </>
     </div>
   );

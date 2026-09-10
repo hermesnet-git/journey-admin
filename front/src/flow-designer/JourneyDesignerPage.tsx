@@ -1067,6 +1067,8 @@ function DesignerInner({
       : null;
   const previewVariables = previewNode ? availableVariableOriginsAt(previewNode.id, nodes, edges) : [];
   const userTasks = orderedUserTasks(nodes, edges);
+  const hasUnsavedChanges = savedSnapshotRef.current !== null
+    && savedSnapshotRef.current !== buildFlowSnapshot(name, description, nodes, edges, annotations);
 
   useEffect(() => {
     if (isValidPreviewTarget && propertiesNode) setPinnedPreviewNodeId(propertiesNode.id);
@@ -1211,6 +1213,7 @@ function DesignerInner({
                   onHeightChange={setDockHeight}
                   pinned={dockPinned}
                   onPinnedChange={setDockPinned}
+                  hasUnsavedChanges={hasUnsavedChanges}
                 />
               )}
             </div>

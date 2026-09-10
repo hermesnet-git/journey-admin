@@ -52,11 +52,22 @@ function elevationOf(token: unknown): string {
   return ELEVATION_SHADOW[tokenSuffix(token)] ?? 'none';
 }
 function colorOf(token: unknown): string | undefined {
-  const suffix = typeof token === 'string' ? token : '';
-  if (suffix.includes('text.secondary')) return skinVars.colors.textSecondary;
-  if (suffix.includes('text.primary')) return skinVars.colors.textPrimary;
-  if (suffix.includes('feedback.negative')) return skinVars.colors.error;
-  if (suffix.includes('background')) return skinVars.colors.background;
+  if (typeof token !== 'string') return undefined;
+  if (token === 'color.background.primary' || token === 'color.surface.default') return skinVars.colors.background;
+  if (token === 'color.background.secondary' || token === 'color.surface.highlight') return skinVars.colors.backgroundAlternative;
+  if (token === 'color.background.elevated' || token === 'color.surface.selected') return skinVars.colors.backgroundContainer;
+  if (token === 'color.background.inverse') return skinVars.colors.textPrimary;
+  if (token === 'color.surface.disabled') return skinVars.colors.backgroundAlternative;
+  if (token === 'color.text.primary') return skinVars.colors.textPrimary;
+  if (token === 'color.text.secondary' || token === 'color.text.disabled') return skinVars.colors.textSecondary;
+  if (token === 'color.text.inverse') return skinVars.colors.background;
+  if (token === 'color.border.default') return skinVars.colors.border;
+  if (token === 'color.border.strong' || token === 'color.border.focus') return skinVars.colors.brand;
+  if (token === 'color.border.error' || token === 'color.action.danger' || token === 'color.feedback.negative') return skinVars.colors.error;
+  if (token === 'color.action.primary') return skinVars.colors.buttonPrimaryBackground;
+  if (token === 'color.action.secondary' || token === 'color.feedback.info') return skinVars.colors.brand;
+  if (token === 'color.feedback.success') return skinVars.colors.success;
+  if (token === 'color.feedback.warning') return skinVars.colors.brand;
   return undefined;
 }
 

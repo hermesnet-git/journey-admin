@@ -1,8 +1,7 @@
 import type { SduiNode } from '../../sdui/model';
-import type { ComponentDefinition } from '../../api/componentDefinitions';
 import type { DesignChannel } from '../form-builder/designChannel';
-import { compatibilityForDesignChannel } from '../form-builder/designChannel';
 import { labelFor } from '../../sdui/componentMeta';
+import type { PreviewProjectionResult } from './previewProjection';
 
 export interface FormPreviewDiagnostic {
   id: string;
@@ -16,35 +15,38 @@ const OMITTED_ON_WHATSAPP = new Set(['ui.icon', 'ui.divider', 'ui.spacer']);
 export function collectPreviewDiagnostics(
   root: SduiNode,
   channel: DesignChannel,
-  definitions: Map<string, ComponentDefinition>,
+  projection: PreviewProjectionResult,
 ): FormPreviewDiagnostic[] {
-  const diagnostics: FormPreviewDiagnostic[] = [];
+  const diagnostics: FormPreviewDiagnostic[] = [
+    ...projection.omittedByCompatibility.map((node) => ({
+      id: `${node.id}-compatibility`,
+      tone: 'warning' as const,
+      message: `${labelFor(node.type)} não será apresentado em ${channel === 'WHATSAPP' ? 'WhatsApp' : channel === 'MOBILE' ? 'Mobile' : 'Web'}.`,
+    })),
+    ...projection.omittedByVisibility.map((node) => ({
+      id: `${node.id}-visibility`,
+      tone: 'info' as const,
+      message: `${labelFor(node.type)} está oculto pelos dados informados no preview.`,
+    })),
+    ...projection.unresolvedVisibility.map((node) => ({
+      id: `${node.id}-unresolved`,
+      tone: 'info' as const,
+      message: `A condição de ${labelFor(node.type)} não pôde ser avaliada com os dados informados.`,
+    })),
+    ...projection.inactive.map((node) => ({
+      id: `${node.id}-inactive`,
+      tone: 'info' as const,
+      message: `${labelFor(node.type)} está visível, mas inativo pelos dados do preview.`,
+    })),
+  ];
+  const alreadyOmitted = new Set([
+    ...projection.omittedByCompatibility.map((node) => node.id),
+    ...projection.omittedByVisibility.map((node) => node.id),
+  ]);
   function visit(node: SduiNode) {
-    const definition = definitions.get(`${node.type}@${node.version}`) ?? null;
-    if (!definition) {
-      diagnostics.push({
-        id: `${node.id}-catalog`,
-        tone: 'warning',
-        message: `${labelFor(node.type)} não foi encontrado no catálogo e não pode ser apresentado.`,
-      });
-      return;
-    }
-    if (compatibilityForDesignChannel(definition, channel) !== 'COMPATIBLE') {
-      diagnostics.push({
-        id: `${node.id}-compatibility`,
-        tone: 'warning',
-        message: `${labelFor(node.type)} não será apresentado em ${channel === 'WHATSAPP' ? 'WhatsApp' : channel === 'MOBILE' ? 'Mobile' : 'Web'}.`,
-      });
-      return;
-    }
+    if (alreadyOmitted.has(node.id)) return;
     if (channel === 'WHATSAPP' && OMITTED_ON_WHATSAPP.has(node.type)) {
       diagnostics.push({ id: node.id, tone: 'info', message: `${labelFor(node.type)} será omitido no WhatsApp.` });
-    }
-    if (node.visibility) {
-      diagnostics.push({ id: `${node.id}-visibility`, tone: 'info', message: `${labelFor(node.type)} possui visibilidade condicional; o preview mantém o componente visível.` });
-    }
-    if (node.active) {
-      diagnostics.push({ id: `${node.id}-active`, tone: 'info', message: `${labelFor(node.type)} possui estado condicional; o preview não avalia dados da jornada.` });
     }
     (node.children ?? []).forEach(visit);
   }

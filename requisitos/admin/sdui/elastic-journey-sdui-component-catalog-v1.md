@@ -498,7 +498,7 @@ O SDUI referencia tokens corporativos. Cada adapter visual resolve esses tokens 
 
 | Grupo | Exemplos de tokens | Uso |
 |---|---|---|
-| Cor | `color.background.primary`, `color.text.primary`, `color.feedback.negative` | Fundos, conteúdo e estados sem codificar hexadecimal |
+| Cor | `color.background.primary`, `color.background.secondary`, `color.background.elevated`, `color.background.inverse`, `color.surface.default`, `color.surface.highlight`, `color.surface.selected`, `color.surface.disabled`, `color.text.primary`, `color.text.secondary`, `color.text.inverse`, `color.text.disabled`, `color.border.default`, `color.border.strong`, `color.border.focus`, `color.border.error`, `color.action.primary`, `color.action.secondary`, `color.action.danger`, `color.feedback.info`, `color.feedback.success`, `color.feedback.warning`, `color.feedback.negative` | Fundos, superfícies, conteúdo, bordas, ações e estados sem codificar hexadecimal |
 | Tipografia | `typography.heading.medium`, `typography.body.regular`, `typography.caption` | Hierarquia e leitura |
 | Espaçamento | `spacing.none`, `spacing.xs`, `spacing.sm`, `spacing.md`, `spacing.lg`, `spacing.xl` | Gap, padding e margin |
 | Forma | `radius.none`, `radius.sm`, `radius.md`, `radius.full` | Bordas e superfícies |
@@ -507,6 +507,8 @@ O SDUI referencia tokens corporativos. Cada adapter visual resolve esses tokens 
 | Largura | `layout.content.compact`, `layout.content.default`, `layout.content.wide` | Limites responsivos de conteúdo |
 
 Valores literais como `#0066FF`, `16px`, `12dp` ou nomes de classes CSS não devem ser publicados. A evolução visual do Mística deve ocorrer por atualização do mapeamento de tokens, preservando o snapshot SDUI. A ausência de representação para um token visual no WhatsApp não torna o componente incompatível quando sua semântica conversacional estiver homologada.
+
+Os tokens de cor são intencionais. Por exemplo, `color.background.primary` significa "fundo principal" e não uma cor fixa; `color.action.danger` significa "ação destrutiva" e pode mudar de valor físico conforme skin, tema, acessibilidade ou plataforma. O Builder pode apresentar rótulos amigáveis ao usuário, mas o contrato publicado deve preservar o identificador semântico.
 
 ## 11. Regras de compatibilidade entre alvos
 

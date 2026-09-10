@@ -225,26 +225,50 @@ Cada simulador interpreta o mesmo modelo de autoria e deve:
 | 5 | Reorganizar o painel de propriedades com nomes funcionais em português, agrupamentos e controles apropriados. | Em validação visual |
 | 6 | Melhorar a navegação entre Tarefas de Usuário e canais, preservando o contexto de autoria. | Em validação visual |
 | 7 | Refinar a separação entre os modos Design e Preview, mantendo o canal como contexto comum aos dois. | Em validação visual |
-| 8 | Evoluir os previews de Web, Mobile e WhatsApp mantendo sua natureza funcional e independente de frameworks. | Próximo |
-| 9 | Criar contexto fictício editável para `form`, `data`, `session`, `route` e `computed`. | Pendente |
-| 10 | Criar editores orientados para os parâmetros de cada ação normativa, eliminando pares livres onde houver contrato conhecido. | Pendente |
-| 11 | Antecipar no frontend as validações de propriedades, enums, tokens, bindings, ações e composição. | Pendente |
-| 12 | Oferecer experiência guiada para telas novas, incluindo estado vazio e modelos iniciais. | Pendente |
-| 13 | Melhorar o feedback operacional de salvamento, pendências, erros por componente, confirmações e histórico. | Pendente |
-| 14 | Revisar os textos do portal para remover linguagem técnica, referências desatualizadas e detalhes de implementação. | Pendente |
-| 15 | Validar designer e preview com a jornada Laboratório Multicanal em Web, Mobile e WhatsApp. | Pendente |
+| 8 | Evoluir os previews de Web, Mobile e WhatsApp mantendo sua natureza funcional e independente de frameworks. | Em validação visual |
+| 9 | Criar contexto fictício editável para `form`, `data`, `session`, `route` e `computed`. | Em validação visual |
+| 10 | Criar editores orientados para os parâmetros de cada ação normativa, eliminando pares livres onde houver contrato conhecido. | Em validação visual |
+| 11 | Antecipar no frontend as validações de propriedades, enums, tokens, bindings, ações e composição. | Em validação visual |
+| 12 | Oferecer experiência guiada para telas novas, incluindo estado vazio e modelos iniciais. | Em validação visual |
+| 13 | Melhorar o feedback operacional de salvamento, pendências, erros por componente, confirmações e histórico. | Em validação visual |
+| 14 | Revisar os textos do portal para remover linguagem técnica, referências desatualizadas e detalhes de implementação. | Em validação visual |
+| 15 | Validar designer e preview com a jornada Laboratório Multicanal em Web, Mobile e WhatsApp. | Preparado para validação visual |
+
+### 9.4 Relatório de implementação dos passos 8 a 15 — 2026-09-10
+
+As alterações abaixo permanecem sem commit para validação funcional e visual.
+
+| Passo | Decisão adotada | Implementação realizada |
+| ---: | --- | --- |
+| 8 | Centralizar regras comuns antes dos previews específicos e manter cada canal como uma representação funcional. | Criada projeção compartilhada para compatibilidade, visibilidade e estado. Web ganhou área mais ampla; Mobile ganhou densidade, altura, espaçamento e quebra de linhas próprios; WhatsApp continua com projeção conversacional. |
+| 9 | Testar condições sem transformar o preview em simulador de jornada. | Adicionado painel recolhível **Dados do preview** para `form`, `data`, `session`, `route` e `computed`. O canal é injetado automaticamente em `session.channel`; dados inválidos são apontados no próprio editor. |
+| 10 | Expor somente parâmetros conhecidos pelo contrato de cada ação. | Removidos pares livres de chave/valor. Navegar, abrir endereço, definir valor e telemetria possuem campos orientados; enviar formulário e dispensar não solicitam parâmetros. Eventos receberam nomes funcionais. |
+| 11 | Antecipar erros determinísticos sem substituir a validação definitiva do backend. | Propriedades obrigatórias, números, enumerações, tokens e listas de opções recebem validação local. Tokens visuais passaram a ser escolhidos por rótulos funcionais, preservando o valor canônico no contrato. O cabeçalho resume pendências de propriedades, valor, ação, catálogo e compatibilidade do canal. |
+| 12 | Ajudar o primeiro desenho sem criar conteúdo implícito ou obrigar um modelo. | Uma tela vazia oferece os modelos **Informativa** e **Coleta básica**, compostos no momento da escolha com as versões vigentes e compatíveis do catálogo. A paleta permanece disponível como alternativa. |
+| 13 | Mostrar estado operacional no ponto de trabalho e confirmar apenas operações com perda em cascata. | Adicionados indicador de alterações não salvas, contador de pendências e confirmação ao remover um grupo que contém outros componentes. O histórico existente de desfazer/refazer foi preservado. |
+| 14 | Priorizar linguagem funcional e esconder detalhes que não ajudam na correção. | Mensagem de definição ausente deixou de expor chave técnica; ações, contexto, modelos e diagnósticos usam textos orientados ao autor. Comentários de manutenção permanecem em português. |
+| 15 | Usar a jornada de laboratório como roteiro multicanal, sem considerar o build uma aprovação visual. | A massa foi auditada: a jornada declara Web, Mobile e WhatsApp e contém o mostruário dos componentes. O frontend foi compilado com sucesso; a aprovação visual nos três canais permanece com o usuário antes do commit. |
+
+Decisões deliberadamente não adotadas nesta etapa:
+
+- não foi criado um modo de comparação lado a lado;
+- o Preview não executa a jornada, ações ou integrações;
+- componentes incompatíveis continuam visíveis no Design para poderem ser corrigidos, mas são omitidos do Preview com diagnóstico;
+- propriedades registradas como texto no catálogo não foram convertidas localmente em listas fechadas; essa mudança depende da homologação do contrato e da massa do catálogo;
+- nenhuma alteração foi feita em banco de dados, publicações ou serviços externos.
 
 ### 9.3 Refinamentos do catálogo identificados durante o Form Builder
 
 Os pontos abaixo devem ser retomados em uma frente própria, pois afetam o contrato do catálogo, a massa de fábrica e os renderizadores:
 
-1. apresentar design tokens por nomes funcionais no Form Builder, mantendo o valor canônico em informação secundária; por exemplo, exibir “Médio” para `spacing.md`;
-2. revisar propriedades cadastradas como `TEXT` que representam conjuntos fechados de valores e deveriam ser `ENUM`;
-3. começar essa revisão por `ui.button.variant` e `ui.button.size`, atualmente livres no catálogo;
-4. homologar os valores canônicos de estilo e tamanho antes de transformá-los em seletores, garantindo equivalência entre os canais;
-5. revisar sistematicamente as demais propriedades `TEXT` com comportamento enumerável, sem inferir restrições apenas no Form Builder;
-6. preservar a diferença funcional entre `$visibility`, que remove o componente da apresentação, e `$active`, que mantém o componente visível, porém sem interação quando a condição resultar em falso;
-7. manter `disabled` como desativação estática, com precedência sobre a condição declarada em `$active`.
+1. revisar propriedades cadastradas como `TEXT` que representam conjuntos fechados de valores e deveriam ser `ENUM`;
+2. começar essa revisão por `ui.button.variant` e `ui.button.size`, atualmente livres no catálogo;
+3. homologar os valores canônicos de estilo e tamanho antes de transformá-los em seletores, garantindo equivalência entre os canais;
+4. revisar sistematicamente as demais propriedades `TEXT` com comportamento enumerável, sem inferir restrições apenas no Form Builder;
+5. preservar a diferença funcional entre `$visibility`, que remove o componente da apresentação, e `$active`, que mantém o componente visível, porém sem interação quando a condição resultar em falso;
+6. manter `disabled` como desativação estática, com precedência sobre a condição declarada em `$active`.
+
+Resolvido nesta etapa: design tokens passaram a ser apresentados por nomes funcionais no Form Builder, mantendo o valor canônico no snapshot SDUI e no contrato.
 
 Até esse refinamento ser homologado no catálogo, o Form Builder deve respeitar o `kind` efetivamente registrado e não limitar valores por conta própria.
 

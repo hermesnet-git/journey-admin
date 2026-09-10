@@ -1,91 +1,87 @@
-import { Plus, X } from 'lucide-react';
 import { useFlowTheme } from '../theme';
 import { gridInputStyle } from '../PropertyGrid';
 import type { SduiEvent } from '../../sdui/model';
 
-// Seção 9 do catálogo — as 6 ações do Action Registry.
 export const AVAILABLE_ACTIONS = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss'] as const;
 
 const ACTION_LABEL: Record<string, string> = {
   'action.submit': 'Enviar formulário',
   'action.navigate': 'Navegar',
-  'action.openUrl': 'Abrir URL',
+  'action.openUrl': 'Abrir endereço',
   'action.setValue': 'Definir valor',
   'action.track': 'Registrar telemetria',
   'action.dismiss': 'Dispensar',
 };
 
-// Parâmetros esperados por ação (seção 9) — só orienta os placeholders das linhas de parâmetro,
-// não valida (o schema de params é livre, mesmo espírito do config de ConnectorConfig).
-const ACTION_PARAM_HINT: Record<string, string> = {
-  'action.submit': 'formId, successRoute',
-  'action.navigate': 'route',
-  'action.openUrl': 'url',
-  'action.setValue': 'path, value',
-  'action.track': 'event',
-  'action.dismiss': '(sem parâmetros)',
+const EVENT_LABEL: Record<string, string> = {
+  onPress: 'Ao acionar o componente',
+  onChange: 'Ao alterar o valor',
+  onBlur: 'Ao sair do campo',
+  onDismiss: 'Ao dispensar',
 };
 
-function ParamsRows({ params, onChange }: { params: Record<string, unknown>; onChange: (params: Record<string, unknown>) => void }) {
+interface ActionParameter {
+  name: string;
+  label: string;
+  placeholder: string;
+  required: boolean;
+}
+
+// O formulário segue o registro normativo de ações. Enviar e dispensar não recebem destino:
+// a continuidade pertence à jornada, e não ao componente da tela.
+const ACTION_PARAMETERS: Record<string, ActionParameter[]> = {
+  'action.submit': [],
+  'action.navigate': [{ name: 'route', label: 'Destino interno', placeholder: 'Ex.: /inicio', required: true }],
+  'action.openUrl': [{ name: 'url', label: 'Endereço', placeholder: 'https://', required: true }],
+  'action.setValue': [
+    { name: 'path', label: 'Valor da jornada', placeholder: 'Ex.: form.aceite', required: true },
+    { name: 'value', label: 'Novo valor', placeholder: 'Valor', required: true },
+  ],
+  'action.track': [{ name: 'event', label: 'Nome do evento', placeholder: 'Ex.: cadastro_continuado', required: true }],
+  'action.dismiss': [],
+};
+
+function initialParams(action: string): Record<string, unknown> {
+  return Object.fromEntries((ACTION_PARAMETERS[action] ?? []).map((parameter) => [parameter.name, '']));
+}
+
+function defaultActionForEvent(eventName: string): string {
+  if (eventName === 'onDismiss') return 'action.dismiss';
+  if (eventName === 'onChange') return 'action.setValue';
+  return 'action.submit';
+}
+
+function ActionParameters({ event, onChange }: { event: SduiEvent; onChange: (event: SduiEvent) => void }) {
   const { c } = useFlowTheme();
-  const rows = Object.entries(params);
-
-  function commit(next: [string, unknown][]) {
-    onChange(Object.fromEntries(next));
+  const parameters = ACTION_PARAMETERS[event.action] ?? [];
+  if (parameters.length === 0) {
+    return <div className="text-[10.5px]" style={{ color: c.textSecondary }}>Esta ação não precisa de informações adicionais.</div>;
   }
-
   return (
-    <div className="flex flex-col gap-[4px] pl-2">
-      {rows.map(([key, value], i) => (
-        <div key={i} className="flex gap-1">
-          <input
-            style={{ ...gridInputStyle(c), flex: '0 0 40%' }}
-            placeholder="chave"
-            value={key}
-            onChange={(e) => {
-              const next = [...rows];
-              next[i] = [e.target.value, value];
-              commit(next);
-            }}
-          />
-          <input
-            style={{ ...gridInputStyle(c), flex: 1 }}
-            placeholder="valor"
-            value={typeof value === 'string' ? value : JSON.stringify(value ?? '')}
-            onChange={(e) => {
-              const next = [...rows];
-              next[i] = [key, e.target.value];
-              commit(next);
-            }}
-          />
-          <button
-            onClick={() => commit(rows.filter((_, ri) => ri !== i))}
-            title="Remover parâmetro"
-            className="w-[22px] h-[22px] rounded flex items-center justify-center border-0 cursor-pointer shrink-0"
-            style={{ background: 'transparent', color: c.textSecondary }}
-          >
-            <X size={12} />
-          </button>
-        </div>
-      ))}
-      <button
-        onClick={() => commit([...rows, ['', '']])}
-        className="flex items-center gap-1 border-0 bg-transparent cursor-pointer self-start"
-        style={{ color: c.accent, fontSize: 11.5, padding: '2px 0' }}
-      >
-        <Plus size={12} /> Parâmetro
-      </button>
+    <div className="flex flex-col gap-2">
+      {parameters.map((parameter) => {
+        const value = event.params?.[parameter.name];
+        const missing = parameter.required && (value === undefined || value === null || String(value).trim() === '');
+        return (
+          <label key={parameter.name} className="flex flex-col gap-1">
+            <span className="text-[10.5px] font-medium" style={{ color: c.textSecondary }}>{parameter.label}{parameter.required && ' *'}</span>
+            <input
+              style={gridInputStyle(c)}
+              placeholder={parameter.placeholder}
+              value={typeof value === 'string' ? value : String(value ?? '')}
+              onChange={(input) => onChange({ ...event, params: { ...(event.params ?? {}), [parameter.name]: input.target.value } })}
+            />
+            {missing && <span className="text-[10px]" style={{ color: c.danger }}>Preenchimento obrigatório.</span>}
+          </label>
+        );
+      })}
     </div>
   );
 }
 
-/** Edita `node.events` — evento (filtrado por ComponentDefinition.events, o que o Registry declara
- * que este tipo de componente dispara) → uma das 6 ações do catálogo → parâmetros chave/valor. */
-export function ActionEditor({
-  availableEvents,
-  events,
-  onChange,
-}: {
+/** Relaciona cada evento permitido pelo componente a uma ação normativa, sem expor estruturas
+ * técnicas ou pares livres de chave e valor ao autor da jornada. */
+export function ActionEditor({ availableEvents, events, onChange }: {
   availableEvents: string[];
   events: Record<string, SduiEvent> | null;
   onChange: (events: Record<string, SduiEvent> | null) => void;
@@ -101,47 +97,31 @@ export function ActionEditor({
   }
 
   if (availableEvents.length === 0) {
-    return (
-      <div className="p-2 text-[11.5px]" style={{ color: c.textSecondary }}>
-        Este componente não possui ações configuráveis.
-      </div>
-    );
+    return <div className="p-2 text-[11.5px]" style={{ color: c.textSecondary }}>Este componente não possui ações configuráveis.</div>;
   }
 
   return (
-    <div className="p-2 flex flex-col gap-[10px]">
+    <div className="flex flex-col gap-3 p-2">
       {availableEvents.map((eventName) => {
         const configured = current[eventName];
         return (
-          <div key={eventName} className="flex flex-col gap-[4px]">
-            <label className="flex items-center gap-[4px] text-[11.5px] font-medium" style={{ color: c.textPrimary, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={!!configured}
-                onChange={(e) => setEvent(eventName, e.target.checked ? { action: AVAILABLE_ACTIONS[0], params: {} } : null)}
-              />
-              {eventName}
+          <section key={eventName} className="flex flex-col gap-2 rounded-md p-2" style={{ border: `1px solid ${c.border}`, background: c.canvasBg }}>
+            <label className="flex items-center gap-1.5 text-[11.5px] font-medium" style={{ color: c.textPrimary, cursor: 'pointer' }}>
+              <input type="checkbox" checked={!!configured} onChange={(event) => {
+                const action = defaultActionForEvent(eventName);
+                setEvent(eventName, event.target.checked ? { action, params: initialParams(action) } : null);
+              }} />
+              {EVENT_LABEL[eventName] ?? 'Ao ocorrer a interação'}
             </label>
             {configured && (
-              <div className="flex flex-col gap-[4px] pl-2">
-                <select
-                  style={{ ...gridInputStyle(c), cursor: 'pointer' }}
-                  value={configured.action}
-                  onChange={(e) => setEvent(eventName, { action: e.target.value, params: configured.params ?? {} })}
-                >
-                  {AVAILABLE_ACTIONS.map((a) => (
-                    <option key={a} value={a}>
-                      {ACTION_LABEL[a]}
-                    </option>
-                  ))}
+              <>
+                <select style={{ ...gridInputStyle(c), cursor: 'pointer' }} value={configured.action} onChange={(event) => setEvent(eventName, { action: event.target.value, params: initialParams(event.target.value) })}>
+                  {AVAILABLE_ACTIONS.map((action) => <option key={action} value={action}>{ACTION_LABEL[action]}</option>)}
                 </select>
-                <div className="text-[10.5px]" style={{ color: c.textSecondary }}>
-                  Parâmetros típicos: {ACTION_PARAM_HINT[configured.action]}
-                </div>
-                <ParamsRows params={configured.params ?? {}} onChange={(params) => setEvent(eventName, { action: configured.action, params })} />
-              </div>
+                <ActionParameters event={configured} onChange={(event) => setEvent(eventName, event)} />
+              </>
             )}
-          </div>
+          </section>
         );
       })}
     </div>

@@ -4,7 +4,7 @@ import { useFlowTheme } from '../theme';
 import { ToggleSwitch, gridInputStyle } from '../PropertyGrid';
 import type { VariableOrigin } from '../model';
 import type { ComponentDefinition, PropDescriptor } from '../../api/componentDefinitions';
-import { tokensForGroup } from '../../sdui/designTokens';
+import { tokenOptionsForGroup, tokensForGroup } from '../../sdui/designTokens';
 import { iconFor, labelFor } from '../../sdui/componentMeta';
 import type { SduiNode } from '../../sdui/model';
 import type { ChannelType } from '../../api/products';
@@ -128,21 +128,21 @@ function PropField({ prop, presentation, value, onChange }: { prop: PropDescript
         </select>
       );
     case 'TOKEN': {
-      const listId = `tokens-${prop.name}`;
+      const tokens = tokenOptionsForGroup(prop.tokenGroup);
       return (
-        <>
-          <input
-            style={gridInputStyle(c)}
-            list={listId}
-            value={typeof value === 'string' ? value : ''}
-            onChange={(e) => onChange(e.target.value)}
-          />
-          <datalist id={listId}>
-            {tokensForGroup(prop.tokenGroup).map((t) => (
-              <option key={t} value={t} />
-            ))}
-          </datalist>
-        </>
+        <select
+          style={{ ...gridInputStyle(c), cursor: 'pointer' }}
+          value={typeof value === 'string' ? value : ''}
+          onChange={(e) => onChange(e.target.value || undefined)}
+          title={typeof value === 'string' ? value : undefined}
+        >
+          <option value="">Usar padrão do componente</option>
+          {tokens.map((token) => (
+            <option key={token.value} value={token.value} title={token.value}>
+              {token.label}
+            </option>
+          ))}
+        </select>
       );
     }
     case 'OPTIONS_LIST':
@@ -294,6 +294,7 @@ export function PropertyInspector({
                 <div className="px-3 pb-3 flex flex-col gap-2">
                   {items.map(({ prop, presentation }) => {
                     const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
+                    const error = propertyError(prop, node.props[prop.name]);
                     return (
                       <label key={prop.name} title={prop.name} className={fullWidth ? 'block' : 'grid items-center gap-2'} style={fullWidth ? undefined : { gridTemplateColumns: '112px minmax(0, 1fr)' }}>
                         <span className={`flex items-center gap-1 text-[11px] font-medium ${fullWidth ? 'mb-1' : ''}`} style={{ color: c.textSecondary }}>
@@ -302,9 +303,7 @@ export function PropertyInspector({
                         </span>
                         <span className="min-w-0">
                           <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
-                          {prop.required && isMissing(node.props[prop.name]) && (
-                            <span className="block mt-1" style={{ color: c.danger, fontSize: 10 }}>Preenchimento obrigatório.</span>
-                          )}
+                          {error && <span className="block mt-1" style={{ color: c.danger, fontSize: 10 }}>{error}</span>}
                         </span>
                       </label>
                     );
@@ -359,6 +358,22 @@ export function PropertyInspector({
 
 function isMissing(value: unknown): boolean {
   return value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+}
+
+/** Antecipa no painel os erros determinísticos declarados no catálogo. A validação definitiva
+ * continua no backend, mas o autor recebe o problema junto ao campo que precisa corrigir. */
+function propertyError(prop: PropDescriptor, value: unknown): string | null {
+  if (prop.required && isMissing(value)) return 'Preenchimento obrigatório.';
+  if (isMissing(value)) return null;
+  if (prop.kind === 'NUMBER' && (typeof value !== 'number' || !Number.isFinite(value))) return 'Informe um número válido.';
+  if (prop.kind === 'ENUM' && !(prop.enumValues ?? []).includes(String(value))) return 'Escolha uma opção disponível.';
+  if (prop.kind === 'TOKEN' && !tokensForGroup(prop.tokenGroup).includes(String(value))) return 'Escolha um valor previsto pelo design da interface.';
+  if (prop.kind === 'OPTIONS_LIST' && Array.isArray(value) && value.some((option) => {
+    if (!option || typeof option !== 'object') return true;
+    const item = option as Record<string, unknown>;
+    return !String(item.label ?? '').trim() || !String(item.value ?? '').trim();
+  })) return 'Preencha o rótulo e o valor de todas as opções.';
+  return null;
 }
 
 function bindingConfiguration(definition: ComponentDefinition): {

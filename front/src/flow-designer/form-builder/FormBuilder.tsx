@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
-import { FileInput, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
+import { AlertTriangle, FileInput, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
 import { useFlowTheme } from '../theme';
 import type { VariableOrigin } from '../model';
 import { listAuthoringComponentDefinitions, listComponentDefinitions, type ComponentDefinition } from '../../api/componentDefinitions';
 import type { ChannelType } from '../../api/products';
-import { createNode, findNode, findParent, insertNode, removeNode, collectIds, moveNode, moveWithinSiblings, updateProps, updateBindings, updateEvents, updateVisibility, updateActive, type SduiNode } from '../../sdui/model';
+import { createNode, findNode, findParent, insertNode, removeNode, collectIds, moveNode, moveWithinSiblings, renameNode, updateProps, updateBindings, updateEvents, updateVisibility, updateActive, type SduiNode } from '../../sdui/model';
 import { ComponentPalette, type PaletteDragData } from './ComponentPalette';
 import { FormCanvas, type CanvasDragData } from './FormCanvas';
 import { LayerPanel } from './LayerPanel';
 import { PropertyInspector } from './PropertyInspector';
 import { iconFor, labelFor } from '../../sdui/componentMeta';
-import { compatibilityForDesignChannel, type DesignChannel } from './designChannel';
+import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
 import { ConfirmDialog } from '../../products/ConfirmDialog';
 
 function registryKey(type: string, version: string): string {
@@ -41,6 +41,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
   const [paletteOpen, setPaletteOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [layersOpen, setLayersOpen] = useState(false);
+  const [issuesOpen, setIssuesOpen] = useState(false);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -155,14 +156,40 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
 
   const selectedNode = root && selectedId ? findNode(root, selectedId) : null;
   const selectedDefinition = selectedNode ? registry.get(registryKey(selectedNode.type, selectedNode.version)) ?? null : null;
-  const authoringIssueCount = useMemo(
-    () => root ? countAuthoringIssues(root, registry, designChannel) : 0,
+  const reservedNodeIds = useMemo(() => {
+    if (!root) return new Set<string>();
+    const ids = collectIds(root);
+    if (selectedId) ids.delete(selectedId);
+    return ids;
+  }, [root, selectedId]);
+  const authoringIssues = useMemo(
+    () => root ? collectAuthoringIssues(root, registry, designChannel) : [],
     [root, registry, designChannel],
   );
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.key !== 'Delete' && event.key !== 'Backspace') || !root || !selectedId || selectedId === root.id) return;
+      const target = event.target as HTMLElement | null;
+      const editingText = target?.closest('input, textarea, select, [contenteditable="true"]');
+      if (editingText) return;
+      event.preventDefault();
+      handleRemove(selectedId);
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [root, selectedId]);
 
   function handleSelect(id: string) {
     setSelectedId(id);
     setInspectorOpen(true);
+  }
+
+  function handleRenameNode(id: string, nextId: string) {
+    if (!root || id === nextId) return;
+    onPushHistory();
+    onChange(renameNode(root, id, nextId));
+    setSelectedId(nextId);
   }
 
   /** Clique na paleta (sem arrastar): adiciona dentro do container selecionado, ou ao lado do item
@@ -248,10 +275,16 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
             </div>
           </div>
           <div className="flex items-center gap-1">
-            {authoringIssueCount > 0 && (
-              <span className="mr-1 rounded-full px-2 py-1 text-[9.5px] font-semibold" style={{ background: c.dangerSoft, color: c.danger }}>
-                {authoringIssueCount} {authoringIssueCount === 1 ? 'pendência' : 'pendências'}
-              </span>
+            {authoringIssues.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIssuesOpen((value) => !value)}
+                className="mr-1 rounded-full px-2 py-1 text-[9.5px] font-semibold border-0 cursor-pointer"
+                style={{ background: c.dangerSoft, color: c.danger }}
+                title="Mostrar pendências da tela"
+              >
+                {authoringIssues.length} {authoringIssues.length === 1 ? 'pendência' : 'pendências'}
+              </button>
             )}
             <ToolButton
               title={paletteOpen ? 'Recolher componentes' : 'Mostrar componentes'}
@@ -276,6 +309,32 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
         {compositionError && (
           <div className="shrink-0 px-3 py-2 text-[11.5px]" style={{ color: c.danger, background: c.dangerSoft }}>
             {compositionError}
+          </div>
+        )}
+        {issuesOpen && authoringIssues.length > 0 && (
+          <div className="shrink-0 px-3 py-2" style={{ borderBottom: `1px solid ${c.border}`, background: c.dangerSoft }}>
+            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: c.danger }}>
+              <AlertTriangle size={13} />
+              Pendências encontradas nesta tela
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {authoringIssues.map((issue) => (
+                <button
+                  key={issue.id}
+                  type="button"
+                  onClick={() => {
+                    handleSelect(issue.nodeId);
+                    setInspectorOpen(true);
+                  }}
+                  className="rounded-md px-2 py-1 text-left text-[10.5px] cursor-pointer"
+                  style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}
+                  title={issue.message}
+                >
+                  <span className="font-semibold">{issue.componentLabel}</span>
+                  <span style={{ color: c.textSecondary }}> - {issue.message}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {(root.children?.length ?? 0) === 0 && (
@@ -307,6 +366,8 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
             variables={variables}
             channelTypes={channelTypes}
             designChannel={designChannel}
+            reservedNodeIds={reservedNodeIds}
+            onRenameNode={(nextId) => selectedId && handleRenameNode(selectedId, nextId)}
             onUpdateProps={(patch) => onChange(updateProps(root, selectedId!, patch))}
             onUpdateBindings={(bindings) => onChange(updateBindings(root, selectedId!, bindings))}
             onUpdateEvents={(events) => onChange(updateEvents(root, selectedId!, events))}
@@ -362,25 +423,46 @@ function ToolButton({ title, active, onClick, icon: Icon }: {
   );
 }
 
-/** Resumo operacional das pendências que o autor consegue corrigir no próprio Form Builder. */
-function countAuthoringIssues(root: SduiNode, registry: Map<string, ComponentDefinition>, channel: DesignChannel): number {
-  let count = 0;
+interface AuthoringIssue {
+  id: string;
+  nodeId: string;
+  componentLabel: string;
+  message: string;
+}
+
+/** Lista operacional das pendências que o autor consegue corrigir no próprio Form Builder. */
+function collectAuthoringIssues(root: SduiNode, registry: Map<string, ComponentDefinition>, channel: DesignChannel): AuthoringIssue[] {
+  const issues: AuthoringIssue[] = [];
   function visit(node: SduiNode) {
     const definition = registry.get(registryKey(node.type, node.version));
+    const componentLabel = labelFor(node.type);
+    const addIssue = (suffix: string, message: string) => issues.push({
+      id: `${node.id}:${suffix}`,
+      nodeId: node.id,
+      componentLabel,
+      message,
+    });
     if (!definition) {
-      count += 1;
+      addIssue('definition', 'componente ausente no catálogo');
       return;
     }
-    if (compatibilityForDesignChannel(definition, channel) !== 'COMPATIBLE' && isVisibleInChannel(node, channel)) count += 1;
-    count += definition.propsSchema.filter((prop) => prop.required && (
-      node.props[prop.name] === undefined || node.props[prop.name] === null || String(node.props[prop.name]).trim() === ''
-    )).length;
-    if (definition.category === 'INPUT' && !node.bindings?.value?.path) count += 1;
-    if ((definition.type === 'ui.button' || definition.type === 'ui.link') && !node.events?.onPress) count += 1;
+    const compatibility = compatibilityForDesignChannel(definition, channel);
+    if (compatibility !== 'COMPATIBLE' && isVisibleInChannel(node, channel)) {
+      addIssue('compatibility', compatibilityMessage(compatibility, channel) ?? 'incompatível com o canal selecionado');
+    }
+    definition.propsSchema.forEach((prop) => {
+      if (prop.required && (
+        node.props[prop.name] === undefined || node.props[prop.name] === null || String(node.props[prop.name]).trim() === ''
+      )) {
+        addIssue(`prop:${prop.name}`, `preencha ${prop.name}`);
+      }
+    });
+    if (definition.category === 'INPUT' && !node.bindings?.value?.path) addIssue('binding:value', 'configure o campo Valor');
+    if ((definition.type === 'ui.button' || definition.type === 'ui.link') && !node.events?.onPress) addIssue('event:onPress', 'configure a ação principal');
     (node.children ?? []).forEach(visit);
   }
   visit(root);
-  return count;
+  return issues;
 }
 
 function isVisibleInChannel(node: SduiNode, channel: DesignChannel): boolean {

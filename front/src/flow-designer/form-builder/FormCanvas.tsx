@@ -1,42 +1,228 @@
+import type { CSSProperties, ReactNode } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { AlertTriangle, Boxes, GripVertical, X } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { AlertTriangle, Boxes, GripVertical, Loader2, X } from 'lucide-react';
+import {
+  ButtonDanger,
+  ButtonPrimary,
+  ButtonSecondary,
+  Callout,
+  Divider,
+  Image,
+  Meter,
+  Stack,
+  Text,
+  TextLink,
+  Title2,
+  skinVars,
+} from '@telefonica/mistica';
 import { useFlowTheme } from '../theme';
 import type { ComponentDefinition } from '../../api/componentDefinitions';
 import type { SduiNode } from '../../sdui/model';
-import { iconFor, labelFor } from '../../sdui/componentMeta';
-import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
+import { labelFor } from '../../sdui/componentMeta';
+import { compatibilityForDesignChannel, compatibilityMessage, DESIGN_CHANNEL_LABEL, type DesignChannel } from './designChannel';
 
 export interface CanvasDragData {
   source: 'canvas';
   nodeId: string;
 }
 
+const SPACING: Record<string, number> = { none: 0, xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
+
 function registryKey(node: SduiNode): string {
   return `${node.type}@${node.version}`;
 }
 
-function componentSummary(node: SduiNode): string | null {
-  const props = node.props;
-  const preferredKeys = node.type === 'ui.text'
-    ? ['text', 'content', 'value']
-    : ['label', 'title', 'placeholder', 'alt'];
-  for (const key of preferredKeys) {
-    const value = props[key];
-    if (typeof value === 'string' && value.trim()) return value.trim();
+function suffix(value: unknown): string {
+  return typeof value === 'string' ? value.split('.').pop() ?? '' : '';
+}
+
+function spacing(value: unknown, fallback = 0): number {
+  return SPACING[suffix(value)] ?? fallback;
+}
+
+function color(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  if (value === 'color.background.primary' || value === 'color.surface.default') return skinVars.colors.background;
+  if (value === 'color.background.secondary' || value === 'color.surface.highlight') return skinVars.colors.backgroundAlternative;
+  if (value === 'color.background.elevated' || value === 'color.surface.selected') return skinVars.colors.backgroundContainer;
+  if (value === 'color.background.inverse') return skinVars.colors.textPrimary;
+  if (value === 'color.surface.disabled') return skinVars.colors.backgroundAlternative;
+  if (value === 'color.text.primary') return skinVars.colors.textPrimary;
+  if (value === 'color.text.secondary' || value === 'color.text.disabled') return skinVars.colors.textSecondary;
+  if (value === 'color.text.inverse') return skinVars.colors.background;
+  if (value === 'color.border.default') return skinVars.colors.border;
+  if (value === 'color.border.strong' || value === 'color.border.focus') return skinVars.colors.brand;
+  if (value === 'color.border.error' || value === 'color.action.danger' || value === 'color.feedback.negative') return skinVars.colors.error;
+  if (value === 'color.action.primary') return skinVars.colors.buttonPrimaryBackground;
+  if (value === 'color.action.secondary' || value === 'color.feedback.info') return skinVars.colors.brand;
+  if (value === 'color.feedback.success') return skinVars.colors.success;
+  if (value === 'color.feedback.warning') return skinVars.colors.brand;
+  return undefined;
+}
+
+function text(node: SduiNode, name: string, fallback = ''): string {
+  const value = node.props[name];
+  return typeof value === 'string' && value ? value : fallback;
+}
+
+const staticFieldStyle: CSSProperties = {
+  width: '100%',
+  boxSizing: 'border-box',
+  borderRadius: 8,
+  border: `1px solid ${skinVars.colors.border}`,
+  padding: '10px 12px',
+  background: skinVars.colors.background,
+  color: skinVars.colors.textSecondary,
+  fontFamily: 'inherit',
+  fontSize: 14,
+};
+
+function StaticField({ node, multiline = false }: { node: SduiNode; multiline?: boolean }) {
+  const label = text(node, 'label', 'Campo sem rótulo');
+  const placeholder = text(node, 'placeholder', multiline ? 'Digite uma resposta' : 'Preencha este campo');
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <Text size={13.5} weight="medium">{label}{node.props.required === true ? ' *' : ''}</Text>
+      {multiline
+        ? <textarea disabled rows={Number(node.props.minLines) || 3} placeholder={placeholder} style={{ ...staticFieldStyle, resize: 'none' }} />
+        : <input disabled placeholder={placeholder} style={staticFieldStyle} />}
+    </label>
+  );
+}
+
+function EmptyDropHint({ active }: { active: boolean }) {
+  const { c } = useFlowTheme();
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-1 rounded-lg"
+      style={{
+        minHeight: 58,
+        border: `1px dashed ${active ? c.accent : c.border}`,
+        background: active ? c.accentSoft : 'transparent',
+        color: c.textSecondary,
+        fontSize: 11,
+      }}
+    >
+      <Boxes size={17} color={active ? c.accent : c.textSecondary} />
+      <span>{active ? 'Solte para adicionar aqui' : 'Arraste um componente para cá'}</span>
+    </div>
+  );
+}
+
+function VisualContent({
+  node,
+  children,
+  dragActive,
+  isOver,
+  designChannel,
+}: {
+  node: SduiNode;
+  children: ReactNode;
+  dragActive: boolean;
+  isOver: boolean;
+  designChannel: DesignChannel;
+}) {
+  const childCount = node.children?.length ?? 0;
+  const mobile = designChannel === 'MOBILE';
+  const emptyHint = childCount === 0 ? <EmptyDropHint active={dragActive || isOver} /> : null;
+
+  switch (node.type) {
+    case 'ui.screen':
+      return (
+        <Stack space={mobile ? 16 : 24}>
+          {text(node, 'title') && <Title2>{text(node, 'title')}</Title2>}
+          <Stack space={mobile ? 16 : 24}>{childCount ? children : emptyHint}</Stack>
+        </Stack>
+      );
+    case 'ui.container':
+      return (
+        <div style={{ padding: spacing(node.props.paddingToken), background: color(node.props.backgroundToken), borderRadius: spacing(node.props.borderRadiusToken) }}>
+          <Stack space={16}>{childCount ? children : emptyHint}</Stack>
+        </div>
+      );
+    case 'ui.stack':
+      return (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: node.props.direction === 'horizontal' ? 'row' : 'column',
+            flexWrap: mobile && node.props.direction === 'horizontal' ? 'wrap' : undefined,
+            gap: spacing(node.props.spacingToken, mobile ? 12 : 16),
+            alignItems: String(node.props.alignment ?? 'stretch') as CSSProperties['alignItems'],
+          }}
+        >
+          {childCount ? children : emptyHint}
+        </div>
+      );
+    case 'ui.card':
+      return (
+        <div
+          style={{
+            padding: spacing(node.props.paddingToken, 16),
+            border: `1px solid ${skinVars.colors.border}`,
+            borderRadius: 10,
+            boxShadow: suffix(node.props.elevationToken) === 'medium'
+              ? '0 6px 18px rgba(0,0,0,.14)'
+              : suffix(node.props.elevationToken) === 'low'
+                ? '0 2px 8px rgba(0,0,0,.10)'
+                : 'none',
+          }}
+        >
+          <Stack space={12}>{childCount ? children : emptyHint}</Stack>
+        </div>
+      );
+    case 'ui.text':
+      return <Text size={suffix(node.props.variant) === 'caption' ? 12 : suffix(node.props.variant).includes('heading') ? 18 : 15} color={color(node.props.colorToken)} textAlign={node.props.align as 'left' | 'center' | 'right' | undefined}>{text(node, 'text', 'Texto')}</Text>;
+    case 'ui.image':
+      return text(node, 'source')
+        ? <div style={{ maxHeight: mobile ? 220 : 360, overflow: 'hidden' }}><Image src={text(node, 'source')} alt={text(node, 'alt')} width="100%" /></div>
+        : <div style={{ ...staticFieldStyle, textAlign: 'center' }}>{text(node, 'alt', 'Prévia da imagem')}</div>;
+    case 'ui.icon': {
+      const name = text(node, 'name', 'Circle').replace(/(^|-|_)(\w)/g, (_, __, letter: string) => letter.toUpperCase());
+      const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ size?: number; color?: string }>>)[name] ?? LucideIcons.Circle;
+      return <Icon size={20} color={color(node.props.colorToken)} />;
+    }
+    case 'ui.divider':
+      return <Divider />;
+    case 'ui.spacer':
+      return <div style={node.props.axis === 'horizontal' ? { width: spacing(node.props.sizeToken, 16) } : { height: spacing(node.props.sizeToken, 16) }} />;
+    case 'ui.textInput':
+      return <StaticField node={node} />;
+    case 'ui.textArea':
+      return <StaticField node={node} multiline />;
+    case 'ui.select': {
+      const first = Array.isArray(node.props.options) ? (node.props.options as { label?: string }[])[0]?.label : undefined;
+      return <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><Text size={13.5} weight="medium">{text(node, 'label', 'Seleção')}{node.props.required === true ? ' *' : ''}</Text><select disabled style={staticFieldStyle}><option>{text(node, 'placeholder', first ?? 'Selecione uma opção')}</option></select></label>;
+    }
+    case 'ui.checkbox':
+      return <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: node.props.disabled === true || node.props.readOnly === true ? .55 : 1 }}><input type="checkbox" disabled checked={node.props.indeterminate === true} readOnly /><Text size={13.5}>{text(node, 'label', 'Confirmação')}{node.props.required === true ? ' *' : ''}</Text></label>;
+    case 'ui.datePicker':
+      return <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><Text size={13.5} weight="medium">{text(node, 'label', 'Data')}{node.props.required === true ? ' *' : ''}</Text><input disabled type={node.props.mode === 'time' ? 'time' : node.props.mode === 'datetime' ? 'datetime-local' : 'date'} style={staticFieldStyle} /></label>;
+    case 'ui.button': {
+      const label = text(node, 'label', 'Botão');
+      const noop = () => {};
+      if (node.props.variant === 'secondary') return <ButtonSecondary disabled onPress={noop}>{label}</ButtonSecondary>;
+      if (node.props.variant === 'danger') return <ButtonDanger disabled onPress={noop}>{label}</ButtonDanger>;
+      return <ButtonPrimary disabled onPress={noop}>{label}</ButtonPrimary>;
+    }
+    case 'ui.link':
+      return <TextLink disabled onPress={() => {}} underline="always">{text(node, 'label', 'Link')}</TextLink>;
+    case 'ui.alert':
+      return <Callout variant={node.props.severity === 'positive' || node.props.severity === 'informative' ? 'brand' : 'default'} title={text(node, 'title') || undefined} description={text(node, 'message', 'Mensagem de alerta')} />;
+    case 'ui.progress':
+      return <Stack space={4}>{text(node, 'label') && <Text size={13}>{text(node, 'label')}</Text>}<Meter type="linear" values={[typeof node.props.value === 'number' ? node.props.value : 0]} /></Stack>;
+    case 'ui.loading':
+      return <Stack space={4}><Loader2 size={20} /><Text size={13}>{text(node, 'label', 'Carregando...')}</Text></Stack>;
+    default:
+      return null;
   }
-  if (node.type === 'ui.select' && Array.isArray(props.options)) {
-    return `${props.options.length} ${props.options.length === 1 ? 'opção' : 'opções'}`;
-  }
-  if (node.type === 'ui.stack' && typeof props.direction === 'string') {
-    return props.direction === 'horizontal' ? 'Organização horizontal' : 'Organização vertical';
-  }
-  return null;
 }
 
 function CanvasNode({
   node,
-  depth,
   isRoot,
+  parentHorizontal,
   registry,
   selectedId,
   onSelect,
@@ -45,8 +231,8 @@ function CanvasNode({
   designChannel,
 }: {
   node: SduiNode;
-  depth: number;
   isRoot?: boolean;
+  parentHorizontal?: boolean;
   registry: Map<string, ComponentDefinition>;
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -57,127 +243,117 @@ function CanvasNode({
   const { c } = useFlowTheme();
   const definition = registry.get(registryKey(node));
   const isContainer = !!definition?.allowsChildren;
-  const Icon = iconFor(node.type);
   const compatibility = compatibilityForDesignChannel(definition ?? null, designChannel);
   const compatible = compatibility === 'COMPATIBLE';
+  const selected = selectedId === node.id;
+  const childParentHorizontal = node.type === 'ui.stack' && node.props.direction === 'horizontal';
   const dragData: CanvasDragData = { source: 'canvas', nodeId: node.id };
   const draggable = useDraggable({ id: node.id, data: dragData, disabled: isRoot });
   const droppable = useDroppable({ id: node.id, data: { source: 'canvas-container', nodeId: node.id }, disabled: !isContainer });
-  const selected = selectedId === node.id;
-  const children = node.children ?? [];
-  const summary = componentSummary(node);
+  const children = (node.children ?? []).map((child) => (
+    <CanvasNode
+      key={child.id}
+      node={child}
+      parentHorizontal={childParentHorizontal}
+      registry={registry}
+      selectedId={selectedId}
+      onSelect={onSelect}
+      onRemove={onRemove}
+      dragActive={dragActive}
+      designChannel={designChannel}
+    />
+  ));
+
+  function setNodeRef(element: HTMLDivElement | null) {
+    draggable.setNodeRef(element);
+    if (isContainer) droppable.setNodeRef(element);
+  }
 
   return (
     <div
-      ref={draggable.setNodeRef}
-      style={{ opacity: draggable.isDragging ? 0.35 : 1, marginLeft: isRoot ? 0 : 18 }}
+      ref={setNodeRef}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(node.id);
+      }}
+      title={labelFor(node.type)}
+      className="group relative"
+      style={{
+        minWidth: 0,
+        width: isRoot || !parentHorizontal ? '100%' : undefined,
+        flex: parentHorizontal ? '1 1 0' : undefined,
+        flexBasis: parentHorizontal ? 0 : undefined,
+        opacity: draggable.isDragging ? 0.35 : 1,
+        padding: isRoot ? 18 : 8,
+        borderRadius: isRoot ? 12 : 10,
+        outline: `${selected ? 2 : dragActive && isContainer ? 1 : 1}px ${dragActive && isContainer && !selected ? 'dashed' : 'solid'} ${selected ? c.accent : droppable.isOver ? c.accent : 'transparent'}`,
+        background: selected ? c.accentSoft : droppable.isOver ? c.hoverBg : 'transparent',
+        boxShadow: selected ? `0 0 0 3px ${c.accentSoft}` : 'none',
+        cursor: 'pointer',
+      }}
     >
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect(node.id);
-        }}
-        className="group flex items-start gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer"
-        style={{
-          marginTop: isRoot ? 0 : 8,
-          border: `${selected ? 2 : 1}px solid ${selected ? c.accent : dragActive && isContainer ? c.accent : c.border}`,
-          borderStyle: dragActive && isContainer && !selected ? 'dashed' : 'solid',
-          background: droppable.isOver || selected ? c.accentSoft : c.cardBg,
-          boxShadow: selected ? `0 0 0 2px ${c.accentSoft}` : '0 1px 2px rgba(0,0,0,.04)',
-        }}
-      >
-        {!isRoot && (
-          <span {...draggable.listeners} {...draggable.attributes} style={{ cursor: 'grab', display: 'flex' }}>
-            <GripVertical size={14} color={c.textSecondary} />
-          </span>
-        )}
-        <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: c.accentSoft }}>
-          <Icon size={16} color={c.accent} strokeWidth={1.8} />
-        </span>
-        <span className="flex-1 min-w-0">
-          <span className="flex items-center gap-2">
-            <span className="text-[12px] font-semibold truncate" style={{ color: c.textPrimary }}>{labelFor(node.type)}</span>
-            {isContainer && !isRoot && (
-              <span className="text-[9px] rounded px-1.5 py-0.5" style={{ color: c.textSecondary, background: c.canvasBg }}>
-                {children.length} {children.length === 1 ? 'item' : 'itens'}
-              </span>
-            )}
-          </span>
-          {summary && <span className="block mt-0.5 text-[10.5px] truncate" style={{ color: c.textSecondary }}>{summary}</span>}
-          {isRoot && <span className="block mt-0.5 text-[10.5px]" style={{ color: c.textSecondary }}>Estrutura principal da tela</span>}
-        </span>
-        {!definition && (
-          <span className="text-[10px] px-1 rounded" style={{ color: c.danger, background: 'transparent' }} title="Este componente não está mais disponível para edição. Substitua-o antes de publicar.">
-            ?
-          </span>
-        )}
-        {definition && !compatible && (
-          <span title={compatibilityMessage(compatibility, designChannel) ?? undefined} style={{ display: 'flex' }}>
-            <AlertTriangle size={12} color={c.danger} />
-          </span>
-        )}
-        {!isRoot && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(node.id);
-            }}
-            title="Remover"
-            className="w-[18px] h-[18px] rounded flex items-center justify-center cursor-pointer border-0 shrink-0"
-            style={{ background: 'transparent', color: c.textSecondary }}
-          >
-            <X size={12} />
-          </button>
-        )}
-      </div>
-      {isContainer && (
-        <div
-          ref={droppable.setNodeRef}
+      {!isRoot && (
+        <span
+          {...draggable.listeners}
+          {...draggable.attributes}
+          className="absolute flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100"
+          title="Mover componente"
           style={{
-            minHeight: children.length === 0 ? 72 : 0,
-            marginLeft: isRoot ? 16 : 28,
-            marginTop: 8,
-            padding: children.length === 0 ? 12 : '0 0 4px 12px',
-            border: `1px dashed ${droppable.isOver ? c.accent : c.border}`,
-            borderRadius: 8,
-            display: children.length === 0 ? 'flex' : 'block',
-            alignItems: 'center',
-            justifyContent: children.length === 0 ? 'center' : undefined,
-            background: droppable.isOver ? c.accentSoft : 'transparent',
+            left: -8,
+            top: 6,
+            width: 22,
+            height: 22,
+            cursor: 'grab',
+            background: c.cardBg,
+            color: c.textSecondary,
+            border: `1px solid ${c.border}`,
+            zIndex: 2,
           }}
         >
-          {children.length === 0 && (
-            <span className="flex flex-col items-center gap-1 text-[11px]" style={{ color: c.textSecondary }}>
-              <Boxes size={18} color={droppable.isOver ? c.accent : c.textSecondary} />
-              <span>{dragActive ? 'Solte para adicionar aqui' : 'Arraste ou adicione um componente'}</span>
-            </span>
-          )}
-          {children.map((child) => (
-            <CanvasNode
-              key={child.id}
-              node={child}
-              depth={depth + 1}
-              registry={registry}
-              selectedId={selectedId}
-              onSelect={onSelect}
-              onRemove={onRemove}
-              dragActive={dragActive}
-              designChannel={designChannel}
-            />
-          ))}
-        </div>
+          <GripVertical size={13} />
+        </span>
       )}
+      {!isRoot && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove(node.id);
+          }}
+          title="Remover"
+          className="absolute rounded-md border-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100"
+          style={{
+            right: -8,
+            top: 6,
+            width: 22,
+            height: 22,
+            background: c.cardBg,
+            color: c.textSecondary,
+            border: `1px solid ${c.border}`,
+            zIndex: 2,
+          }}
+        >
+          <X size={12} />
+        </button>
+      )}
+      {definition && !compatible && (
+        <span
+          title={compatibilityMessage(compatibility, designChannel) ?? undefined}
+          className="absolute flex items-center justify-center"
+          style={{ right: isRoot ? 10 : 18, top: isRoot ? 10 : 34, color: c.danger, zIndex: 2 }}
+        >
+          <AlertTriangle size={13} />
+        </span>
+      )}
+      <VisualContent node={node} dragActive={dragActive} isOver={droppable.isOver} designChannel={designChannel}>
+        {children}
+      </VisualContent>
     </div>
   );
 }
 
-/** Canvas único recursivo — aninhamento arbitrário via dnd-kit puro (useDraggable/useDroppable),
- * sem @dnd-kit/sortable: soltar sempre insere no FIM dos filhos do container alvo (sem reordenar
- * por posição exata dentro de um nível — upgrade natural depois via Camadas, que já tem subir/
- * descer). Escolhido deliberadamente no lugar do padrão "achatar com depth/parentId" de sortable
- * tree: entrega o requisito real (profundidade arbitrária) com bem menos superfície de bug.
- * Puramente apresentacional — o DndContext vive no FormBuilder (paleta e canvas são irmãos,
- * precisam do mesmo provider). */
+/** Canvas visual do Form Builder. A árvore técnica continua no painel de camadas; aqui o autor
+ * edita olhando para uma aproximação da tela final, com alças e contornos apenas como affordances. */
 export function FormCanvas({
   root,
   registry,
@@ -196,29 +372,41 @@ export function FormCanvas({
   designChannel: DesignChannel;
 }) {
   const { c } = useFlowTheme();
+  const mobile = designChannel === 'MOBILE';
+  const whatsapp = designChannel === 'WHATSAPP';
   return (
     <div className="flex-1 overflow-y-auto p-5" style={{ background: c.canvasBg }} onClick={() => onSelect(root.id)}>
-      <div className="mx-auto w-full max-w-[760px]">
+      <div className="mx-auto w-full" style={{ maxWidth: mobile ? 430 : whatsapp ? 560 : 860 }}>
         <div className="mb-3 flex items-center justify-between px-1">
           <div>
-            <div className="text-[12px] font-semibold" style={{ color: c.textPrimary }}>Estrutura da tela</div>
-            <div className="text-[10.5px]" style={{ color: c.textSecondary }}>Selecione um bloco para configurar suas propriedades.</div>
+            <div className="text-[12px] font-semibold" style={{ color: c.textPrimary }}>Design da tela</div>
+            <div className="text-[10.5px]" style={{ color: c.textSecondary }}>Selecione diretamente na prévia para configurar.</div>
           </div>
           <span className="rounded-full px-2 py-1 text-[9px] font-semibold" style={{ background: c.accentSoft, color: c.accent }}>
-            {designChannel}
+            {DESIGN_CHANNEL_LABEL[designChannel]}
           </span>
         </div>
-        <CanvasNode
-          node={root}
-          depth={0}
-          isRoot
-          registry={registry}
-          selectedId={selectedId}
-          onSelect={onSelect}
-          onRemove={onRemove}
-          dragActive={dragActive}
-          designChannel={designChannel}
-        />
+        <div
+          style={{
+            border: `1px solid ${c.border}`,
+            borderRadius: mobile ? 28 : 12,
+            background: skinVars.colors.background,
+            boxShadow: '0 18px 50px -30px rgba(0,0,0,.45)',
+            minHeight: mobile ? 620 : 460,
+            overflow: 'hidden',
+          }}
+        >
+          <CanvasNode
+            node={root}
+            isRoot
+            registry={registry}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            onRemove={onRemove}
+            dragActive={dragActive}
+            designChannel={designChannel}
+          />
+        </div>
       </div>
     </div>
   );

@@ -100,6 +100,14 @@ export function replaceNode(root: SduiNode, id: string, replacement: SduiNode): 
   return { ...root, children: root.children.map((c) => replaceNode(c, id, replacement)) };
 }
 
+/** Renomeia o identificador do nó selecionado. Não altera bindings automaticamente porque os
+ * vínculos são parte do contrato funcional da tela e devem continuar explícitos para o designer. */
+export function renameNode(root: SduiNode, id: string, nextId: string): SduiNode {
+  const node = findNode(root, id);
+  if (!node) return root;
+  return replaceNode(root, id, { ...node, id: nextId });
+}
+
 export function updateProps(root: SduiNode, id: string, patch: Record<string, unknown>): SduiNode {
   const node = findNode(root, id);
   if (!node) return root;

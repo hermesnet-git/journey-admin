@@ -17,6 +17,21 @@ const RULES = [
 
 const CHANNEL_VISIBILITY_PATH = 'session.channel';
 
+const CONDITION_COPY = {
+  visibility: {
+    description: 'Defina quando este componente deve aparecer na tela. Se houver condição, ele só será exibido quando a regra for atendida.',
+    channelShortcut: 'Atalho: mostrar nestes canais',
+    alwaysEnabled: 'Sempre mostrar (sem condição)',
+    defaultPath: 'form.',
+  },
+  active: {
+    description: 'Defina quando este componente deve ficar habilitado para interação. Se houver condição, ele aparece na tela, mas só fica ativo quando a regra for atendida.',
+    channelShortcut: 'Atalho: habilitar nestes canais',
+    alwaysEnabled: 'Sempre habilitado (sem condição)',
+    defaultPath: 'form.',
+  },
+} as const;
+
 function selectedChannelsFrom(visibility: SduiVisibility | null, channelTypes: ChannelType[]): ChannelType[] {
   if (visibility?.path !== CHANNEL_VISIBILITY_PATH || !Array.isArray(visibility.value)) {
     return channelTypes; // nenhuma restrição de canal configurada ainda — atalho começa com tudo marcado
@@ -31,14 +46,17 @@ export function ConditionEditor({
   visibility,
   variables,
   channelTypes,
+  mode = 'visibility',
   onChange,
 }: {
   visibility: SduiVisibility | null;
   variables: VariableOrigin[];
   channelTypes: ChannelType[];
+  mode?: keyof typeof CONDITION_COPY;
   onChange: (visibility: SduiVisibility | null) => void;
 }) {
   const { c } = useFlowTheme();
+  const copy = CONDITION_COPY[mode];
   const { namespace, suffix } = splitPath(visibility?.path);
   const selectedChannels = selectedChannelsFrom(visibility, channelTypes);
 
@@ -50,14 +68,13 @@ export function ConditionEditor({
   return (
     <div className="p-2 flex flex-col gap-[6px]">
       <div className="text-[11.5px]" style={{ color: c.textSecondary }}>
-        Este componente pode ficar escondido até que um valor do contexto de dados atenda a uma
-        condição.
+        {copy.description}
       </div>
 
       {channelTypes.length > 1 && (
         <div className="flex flex-col gap-[4px] p-2 rounded-md" style={{ background: c.cardBg, border: `1px solid ${c.border}` }}>
           <div className="text-[11px] font-medium" style={{ color: c.textSecondary }}>
-            Atalho: visível nestes canais
+            {copy.channelShortcut}
           </div>
           {channelTypes.map((type) => (
             <label key={type} className="flex items-center gap-[6px] text-[12px]" style={{ color: c.textPrimary, cursor: 'pointer' }}>
@@ -72,9 +89,9 @@ export function ConditionEditor({
         <input
           type="checkbox"
           checked={!visibility}
-          onChange={(e) => onChange(e.target.checked ? null : { rule: 'equals', path: 'form.', value: '' })}
+          onChange={(e) => onChange(e.target.checked ? null : { rule: 'equals', path: copy.defaultPath, value: '' })}
         />
-        Sempre visível (sem condição)
+        {copy.alwaysEnabled}
       </label>
       {visibility && (
         <>

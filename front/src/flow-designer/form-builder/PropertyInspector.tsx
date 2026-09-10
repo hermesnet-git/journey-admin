@@ -12,7 +12,7 @@ import { BindingEditor } from './BindingEditor';
 import { ActionEditor } from './ActionEditor';
 import { ConditionEditor } from './ConditionEditor';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
-import { PROPERTY_GROUP_LABEL, PROPERTY_GROUP_ORDER, propertyPresentation, type PropertyPresentation } from './propertyPresentation';
+import { PROPERTY_GROUP_ORDER, propertyPresentation, type PropertyPresentation } from './propertyPresentation';
 
 function OptionsListEditor({ value, onChange }: { value: { label: string; value: string }[]; onChange: (next: { label: string; value: string }[]) => void }) {
   const { c } = useFlowTheme();
@@ -158,15 +158,6 @@ function PropField({ prop, presentation, value, onChange }: { prop: PropDescript
   }
 }
 
-type Tab = 'props' | 'bindings' | 'events' | 'visibility' | 'active';
-const TABS: { key: Tab; label: string; reservedField?: '$bindings' | '$events' | '$visibility' | '$active' }[] = [
-  { key: 'props', label: 'Propriedades' },
-  { key: 'bindings', label: 'Valor', reservedField: '$bindings' },
-  { key: 'events', label: 'Ações', reservedField: '$events' },
-  { key: 'visibility', label: 'Visibilidade', reservedField: '$visibility' },
-  { key: 'active', label: 'Estado', reservedField: '$active' },
-];
-
 function InspectorHeader({ node, definition, designChannel }: { node: SduiNode; definition: ComponentDefinition; designChannel: DesignChannel }) {
   const { c } = useFlowTheme();
   const Icon = iconFor(node.type);
@@ -195,6 +186,8 @@ export function PropertyInspector({
   variables,
   channelTypes,
   designChannel,
+  reservedNodeIds,
+  onRenameNode,
   onUpdateProps,
   onUpdateBindings,
   onUpdateEvents,
@@ -206,6 +199,8 @@ export function PropertyInspector({
   variables: VariableOrigin[];
   channelTypes: ChannelType[];
   designChannel: DesignChannel;
+  reservedNodeIds: Set<string>;
+  onRenameNode: (nextId: string) => void;
   onUpdateProps: (patch: Record<string, unknown>) => void;
   onUpdateBindings: (bindings: SduiNode['bindings']) => void;
   onUpdateEvents: (events: SduiNode['events']) => void;
@@ -213,29 +208,31 @@ export function PropertyInspector({
   onUpdateActive: (active: SduiNode['active']) => void;
 }) {
   const { c } = useFlowTheme();
-  const [tab, setTab] = useState<Tab>('props');
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const availableTabs = useMemo(
-    () => TABS.filter((item) => !item.reservedField || definition?.allowedReservedFields.includes(item.reservedField)),
-    [definition],
-  );
-  const propertyGroups = useMemo(() => PROPERTY_GROUP_ORDER.map((group) => ({
-    group,
-    items: definition?.propsSchema
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['bindings', 'events', 'visibility', 'active']));
+  const [draftNodeId, setDraftNodeId] = useState(node?.id ?? '');
+  const propertyItems = useMemo(() => PROPERTY_GROUP_ORDER.flatMap((group) => (
+    definition?.propsSchema
       .map((prop) => ({ prop, presentation: propertyPresentation(node?.type ?? '', prop) }))
-      .filter((item) => item.presentation.group === group) ?? [],
-  })).filter((group) => group.items.length > 0), [definition, node?.type]);
+      .filter((item) => item.presentation.group === group) ?? []
+  )), [definition, node?.type]);
 
   useEffect(() => {
-    if (!availableTabs.some((item) => item.key === tab)) setTab('props');
-  }, [availableTabs, tab]);
+    setDraftNodeId(node?.id ?? '');
+  }, [node?.id]);
 
-  function toggleGroup(group: string) {
-    setCollapsedGroups((current) => {
+  function toggleSection(section: string) {
+    setCollapsedSections((current) => {
       const next = new Set(current);
-      if (next.has(group)) next.delete(group); else next.add(group);
+      if (next.has(section)) next.delete(section); else next.add(section);
       return next;
     });
+  }
+
+  function commitNodeId() {
+    if (!node) return;
+    const nextId = draftNodeId.trim();
+    if (validateComponentName(nextId, reservedNodeIds)) return;
+    if (nextId !== node.id) onRenameNode(nextId);
   }
 
   if (!node || !definition) {
@@ -248,29 +245,16 @@ export function PropertyInspector({
     );
   }
 
+  const nodeIdError = validateComponentName(draftNodeId.trim(), reservedNodeIds);
+  const bindingsConfig = bindingConfiguration(definition);
+  const canConfigureBindings = definition.allowedReservedFields.includes('$bindings');
+  const canConfigureEvents = definition.allowedReservedFields.includes('$events');
+  const canConfigureVisibility = definition.allowedReservedFields.includes('$visibility');
+  const canConfigureActive = definition.allowedReservedFields.includes('$active');
+
   return (
     <div className="flex flex-col h-full overflow-y-auto shrink-0" style={{ width: 320, borderLeft: `1px solid ${c.border}`, background: c.cardBg }}>
       <InspectorHeader node={node} definition={definition} designChannel={designChannel} />
-      <div className="flex shrink-0" style={{ borderBottom: `1px solid ${c.border}` }}>
-        {availableTabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="flex-1 border-0 cursor-pointer"
-            style={{
-              padding: '8px 2px',
-              fontSize: 10.5,
-              fontWeight: 600,
-              background: 'transparent',
-              color: tab === t.key ? c.accent : c.textSecondary,
-              borderBottom: `2px solid ${tab === t.key ? c.accent : 'transparent'}`,
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       {compatibilityForDesignChannel(definition, designChannel) !== 'COMPATIBLE' && (
         <div
           className="flex items-center gap-[6px] px-3 py-[6px] shrink-0"
@@ -281,18 +265,62 @@ export function PropertyInspector({
         </div>
       )}
 
-      {tab === 'props' && (
-        <div className="py-2">
-          {propertyGroups.map(({ group, items }) => (
-            <section key={group} style={{ borderBottom: `1px solid ${c.border}` }}>
-              <button type="button" onClick={() => toggleGroup(group)} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
-                {collapsedGroups.has(group) ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">{PROPERTY_GROUP_LABEL[group]}</span>
-                <span className="text-[9px]">{items.length}</span>
+      <div className="py-2">
+          <section style={{ borderBottom: `1px solid ${c.border}` }}>
+            <button
+              type="button"
+              onClick={() => toggleSection('identification')}
+              className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left"
+              style={{ color: c.textSecondary }}
+            >
+              {collapsedSections.has('identification') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+              <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Identificação</span>
+              <span className="text-[9px]">1</span>
+            </button>
+            {!collapsedSections.has('identification') && (
+              <div className="px-3 pb-3 flex flex-col gap-2">
+              <label className="grid items-start gap-2" style={{ gridTemplateColumns: '112px minmax(0, 1fr)' }}>
+                <span className="pt-[7px] text-[11px] font-medium" style={{ color: c.textSecondary }}>Nome</span>
+                <span className="min-w-0">
+                  <input
+                    style={{ ...gridInputStyle(c), fontFamily: 'monospace', borderColor: nodeIdError ? c.danger : c.border }}
+                    value={draftNodeId}
+                    title={draftNodeId}
+                    onChange={(event) => setDraftNodeId(event.target.value)}
+                    onBlur={commitNodeId}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        commitNodeId();
+                        event.currentTarget.blur();
+                      }
+                      if (event.key === 'Escape') {
+                        event.preventDefault();
+                        setDraftNodeId(node.id);
+                        event.currentTarget.blur();
+                      }
+                    }}
+                  />
+                  {nodeIdError && <span className="block mt-1" style={{ color: c.danger, fontSize: 10 }}>{nodeIdError}</span>}
+                </span>
+              </label>
+              </div>
+            )}
+          </section>
+          <section style={{ borderBottom: `1px solid ${c.border}` }}>
+              <button type="button" onClick={() => toggleSection('configuration')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
+                {collapsedSections.has('configuration') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Configurações</span>
+                <span className="text-[9px]">{propertyItems.length}</span>
               </button>
-              {!collapsedGroups.has(group) && (
+              {!collapsedSections.has('configuration') && (
                 <div className="px-3 pb-3 flex flex-col gap-2">
-                  {items.map(({ prop, presentation }) => {
+                  {propertyItems.length === 0 && (
+                    <div className="rounded-lg p-4 text-center text-[11px]" style={{ color: c.textSecondary, background: c.canvasBg }}>
+                      Este componente não possui configurações.
+                    </div>
+                  )}
+                  {propertyItems.map(({ prop, presentation }) => {
                     const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
                     const error = propertyError(prop, node.props[prop.name]);
                     return (
@@ -311,53 +339,90 @@ export function PropertyInspector({
                 </div>
               )}
             </section>
-          ))}
-          {definition.propsSchema.length === 0 && (
-            <div className="m-3 rounded-lg p-4 text-center text-[11px]" style={{ color: c.textSecondary, background: c.canvasBg }}>
-              Este componente não possui propriedades configuráveis.
-            </div>
+          {canConfigureBindings && (
+            <section style={{ borderBottom: `1px solid ${c.border}` }}>
+              <button type="button" onClick={() => toggleSection('bindings')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
+                {collapsedSections.has('bindings') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Valor</span>
+                <span className="text-[9px]">{bindingsConfig.names.length}</span>
+              </button>
+              {!collapsedSections.has('bindings') && (
+                <BindingEditor
+                  bindings={node.bindings}
+                  bindingNames={bindingsConfig.names}
+                  requiredBindingNames={bindingsConfig.required}
+                  fixedMode={bindingsConfig.mode}
+                  variables={variables}
+                  onChange={onUpdateBindings}
+                />
+              )}
+            </section>
+          )}
+          {canConfigureEvents && (
+            <section style={{ borderBottom: `1px solid ${c.border}` }}>
+              <button type="button" onClick={() => toggleSection('events')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
+                {collapsedSections.has('events') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Ações</span>
+                <span className="text-[9px]">{definition.events.length}</span>
+              </button>
+              {!collapsedSections.has('events') && (
+                <ActionEditor availableEvents={definition.events} events={node.events} onChange={onUpdateEvents} />
+              )}
+            </section>
+          )}
+          {canConfigureVisibility && (
+            <section style={{ borderBottom: `1px solid ${c.border}` }}>
+              <button type="button" onClick={() => toggleSection('visibility')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
+                {collapsedSections.has('visibility') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Visibilidade</span>
+                <span className="text-[9px]">1</span>
+              </button>
+              {!collapsedSections.has('visibility') && (
+                <ConditionEditor
+                  visibility={node.visibility}
+                  variables={variables}
+                  channelTypes={channelTypes}
+                  mode="visibility"
+                  onChange={onUpdateVisibility}
+                />
+              )}
+            </section>
+          )}
+          {canConfigureActive && (
+            <section style={{ borderBottom: `1px solid ${c.border}` }}>
+              <button type="button" onClick={() => toggleSection('active')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
+                {collapsedSections.has('active') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Estado</span>
+                <span className="text-[9px]">1</span>
+              </button>
+              {!collapsedSections.has('active') && (
+                <ConditionEditor
+                  visibility={node.active}
+                  variables={variables}
+                  channelTypes={channelTypes}
+                  mode="active"
+                  onChange={onUpdateActive}
+                />
+              )}
+            </section>
           )}
         </div>
-      )}
 
-      {tab === 'bindings' && (
-        <BindingEditor
-          bindings={node.bindings}
-          bindingNames={bindingConfiguration(definition).names}
-          requiredBindingNames={bindingConfiguration(definition).required}
-          fixedMode={bindingConfiguration(definition).mode}
-          variables={variables}
-          onChange={onUpdateBindings}
-        />
-      )}
-
-      {tab === 'events' && (
-        <ActionEditor availableEvents={definition.events} events={node.events} onChange={onUpdateEvents} />
-      )}
-
-      {tab === 'visibility' && (
-        <ConditionEditor
-          visibility={node.visibility}
-          variables={variables}
-          channelTypes={channelTypes}
-          onChange={onUpdateVisibility}
-        />
-      )}
-
-      {tab === 'active' && (
-        <ConditionEditor
-          visibility={node.active}
-          variables={variables}
-          channelTypes={channelTypes}
-          onChange={onUpdateActive}
-        />
-      )}
     </div>
   );
 }
 
 function isMissing(value: unknown): boolean {
   return value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+}
+
+/** O nome editável do componente é o `id` publicado no contrato SDUI; por isso precisa ser estável,
+ * único na tela e seguro para referência por ferramentas e validações. */
+function validateComponentName(value: string, reservedNodeIds: Set<string>): string | null {
+  if (!value) return 'Informe um nome.';
+  if (!/^[A-Za-z_][A-Za-z0-9_-]*$/.test(value)) return 'Use letras, números, hífen ou sublinhado; comece por letra ou sublinhado.';
+  if (reservedNodeIds.has(value)) return 'Já existe outro componente com este nome.';
+  return null;
 }
 
 /** Antecipa no painel os erros determinísticos declarados no catálogo. A validação definitiva

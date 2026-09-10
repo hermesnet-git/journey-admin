@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { ButtonDanger, ButtonPrimary, ButtonSecondary, Callout, Divider, Image, Meter, Stack, Text, TextLink, Title2, skinVars } from '@telefonica/mistica';
@@ -45,22 +46,60 @@ const staticFieldStyle: React.CSSProperties = {
   fontFamily: 'inherit', fontSize: 14,
 };
 
-function StaticField({ node, multiline = false }: { node: SduiNode; multiline?: boolean }) {
+function valueKey(node: SduiNode): string {
+  return node.bindings?.value?.path ?? node.id;
+}
+
+function StaticField({
+  node,
+  multiline = false,
+  disabled,
+  values,
+  onValueChange,
+}: {
+  node: SduiNode;
+  multiline?: boolean;
+  disabled: boolean;
+  values: Record<string, string | boolean>;
+  onValueChange: (key: string, value: string | boolean) => void;
+}) {
   const label = text(node, 'label', 'Campo sem rótulo');
   const placeholder = text(node, 'placeholder', multiline ? 'Digite uma resposta' : 'Preencha este campo');
+  const key = valueKey(node);
+  const value = typeof values[key] === 'string' ? values[key] as string : '';
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <Text size={13.5} weight="medium">{label}{node.props.required === true ? ' *' : ''}</Text>
       {multiline
-        ? <textarea disabled rows={Number(node.props.minLines) || 3} placeholder={placeholder} style={{ ...staticFieldStyle, resize: 'none' }} />
-        : <input disabled placeholder={placeholder} style={staticFieldStyle} />}
+        ? <textarea disabled={disabled} rows={Number(node.props.minLines) || 3} placeholder={placeholder} value={value} onChange={(event) => onValueChange(key, event.target.value)} style={{ ...staticFieldStyle, resize: 'vertical' }} />
+        : <input disabled={disabled} placeholder={placeholder} value={value} onChange={(event) => onValueChange(key, event.target.value)} style={staticFieldStyle} />}
     </label>
   );
 }
 
 /** Renderer exclusivamente visual do Form Designer. Nenhum controle dispara evento ou coleta valor. */
 export function FormPreviewNodeRenderer({ node, channel }: { node: SduiNode; channel: Extract<DesignChannel, 'WEB' | 'MOBILE'> }) {
-  const children = (node.children ?? []).map((child) => <FormPreviewNodeRenderer key={child.id} node={child} channel={channel} />);
+  const [values, setValues] = useState<Record<string, string | boolean>>({});
+  function handleValueChange(key: string, value: string | boolean) {
+    setValues((current) => ({ ...current, [key]: value }));
+  }
+  return <PreviewNode node={node} channel={channel} values={values} onValueChange={handleValueChange} />;
+}
+
+function PreviewNode({
+  node,
+  channel,
+  values,
+  onValueChange,
+}: {
+  node: SduiNode;
+  channel: Extract<DesignChannel, 'WEB' | 'MOBILE'>;
+  values: Record<string, string | boolean>;
+  onValueChange: (key: string, value: string | boolean) => void;
+}) {
+  const children = (node.children ?? []).map((child) => (
+    <PreviewNode key={child.id} node={child} channel={channel} values={values} onValueChange={onValueChange} />
+  ));
   const disabled = node.props.disabled === true || node.props.readOnly === true;
   const mobile = channel === 'MOBILE';
 
@@ -87,26 +126,39 @@ export function FormPreviewNodeRenderer({ node, channel }: { node: SduiNode; cha
     case 'ui.spacer':
       return <div style={node.props.axis === 'horizontal' ? { width: spacing(node.props.sizeToken, 16) } : { height: spacing(node.props.sizeToken, 16) }} />;
     case 'ui.textInput':
-      return <StaticField node={node} />;
+      return <StaticField node={node} disabled={disabled} values={values} onValueChange={onValueChange} />;
     case 'ui.textArea':
-      return <StaticField node={node} multiline />;
+      return <StaticField node={node} multiline disabled={disabled} values={values} onValueChange={onValueChange} />;
     case 'ui.select': {
-      const first = Array.isArray(node.props.options) ? (node.props.options as { label?: string }[])[0]?.label : undefined;
-      return <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><Text size={13.5} weight="medium">{text(node, 'label', 'Seleção')}{node.props.required === true ? ' *' : ''}</Text><select disabled style={staticFieldStyle}><option>{text(node, 'placeholder', first ?? 'Selecione uma opção')}</option></select></label>;
+      const options = Array.isArray(node.props.options) ? node.props.options as { label?: string; value?: string }[] : [];
+      const key = valueKey(node);
+      const value = typeof values[key] === 'string' ? values[key] as string : '';
+      return (
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Text size={13.5} weight="medium">{text(node, 'label', 'Seleção')}{node.props.required === true ? ' *' : ''}</Text>
+          <select disabled={disabled} value={value} onChange={(event) => onValueChange(key, event.target.value)} style={{ ...staticFieldStyle, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+            <option value="">{text(node, 'placeholder', 'Selecione uma opção')}</option>
+            {options.map((option, index) => {
+              const optionValue = String(option.value ?? option.label ?? index);
+              return <option key={`${optionValue}-${index}`} value={optionValue}>{option.label ?? optionValue}</option>;
+            })}
+          </select>
+        </label>
+      );
     }
     case 'ui.checkbox':
-      return <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: disabled ? .55 : 1 }}><input type="checkbox" disabled checked={node.props.indeterminate === true} readOnly /><Text size={13.5}>{text(node, 'label', 'Confirmação')}{node.props.required === true ? ' *' : ''}</Text></label>;
+      return <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: disabled ? .55 : 1 }}><input type="checkbox" disabled={disabled} checked={values[valueKey(node)] === true} onChange={(event) => onValueChange(valueKey(node), event.target.checked)} /><Text size={13.5}>{text(node, 'label', 'Confirmação')}{node.props.required === true ? ' *' : ''}</Text></label>;
     case 'ui.datePicker':
-      return <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><Text size={13.5} weight="medium">{text(node, 'label', 'Data')}{node.props.required === true ? ' *' : ''}</Text><input disabled type={node.props.mode === 'time' ? 'time' : node.props.mode === 'datetime' ? 'datetime-local' : 'date'} style={staticFieldStyle} /></label>;
+      return <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><Text size={13.5} weight="medium">{text(node, 'label', 'Data')}{node.props.required === true ? ' *' : ''}</Text><input disabled={disabled} value={typeof values[valueKey(node)] === 'string' ? values[valueKey(node)] as string : ''} onChange={(event) => onValueChange(valueKey(node), event.target.value)} type={node.props.mode === 'time' ? 'time' : node.props.mode === 'datetime' ? 'datetime-local' : 'date'} style={staticFieldStyle} /></label>;
     case 'ui.button': {
       const label = text(node, 'label', 'Botão');
       const noop = () => {};
-      if (node.props.variant === 'secondary') return <ButtonSecondary disabled onPress={noop}>{label}</ButtonSecondary>;
-      if (node.props.variant === 'danger') return <ButtonDanger disabled onPress={noop}>{label}</ButtonDanger>;
-      return <ButtonPrimary disabled onPress={noop}>{label}</ButtonPrimary>;
+      if (node.props.variant === 'secondary') return <ButtonSecondary disabled={disabled} onPress={noop}>{label}</ButtonSecondary>;
+      if (node.props.variant === 'danger') return <ButtonDanger disabled={disabled} onPress={noop}>{label}</ButtonDanger>;
+      return <ButtonPrimary disabled={disabled} onPress={noop}>{label}</ButtonPrimary>;
     }
     case 'ui.link':
-      return <TextLink disabled onPress={() => {}} underline="always">{text(node, 'label', 'Link')}</TextLink>;
+      return <TextLink disabled={disabled} onPress={() => {}} underline="always">{text(node, 'label', 'Link')}</TextLink>;
     case 'ui.alert':
       return <Callout variant={node.props.severity === 'positive' || node.props.severity === 'informative' ? 'brand' : 'default'} title={text(node, 'title') || undefined} description={text(node, 'message', 'Mensagem de alerta')} />;
     case 'ui.progress':

@@ -208,7 +208,7 @@ export function PropertyInspector({
   onUpdateActive: (active: SduiNode['active']) => void;
 }) {
   const { c } = useFlowTheme();
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['bindings', 'events', 'visibility', 'active']));
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['advancedProperties', 'bindings', 'events', 'visibility', 'active']));
   const [draftNodeId, setDraftNodeId] = useState(node?.id ?? '');
   const propertyItems = useMemo(() => PROPERTY_GROUP_ORDER.flatMap((group) => (
     definition?.propsSchema
@@ -251,6 +251,8 @@ export function PropertyInspector({
   const canConfigureEvents = definition.allowedReservedFields.includes('$events');
   const canConfigureVisibility = definition.allowedReservedFields.includes('$visibility');
   const canConfigureActive = definition.allowedReservedFields.includes('$active');
+  const primaryPropertyItems = propertyItems.filter((item) => !item.presentation.advanced);
+  const advancedPropertyItems = propertyItems.filter((item) => item.presentation.advanced);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto shrink-0" style={{ width: 320, borderLeft: `1px solid ${c.border}`, background: c.cardBg }}>
@@ -320,7 +322,7 @@ export function PropertyInspector({
                       Este componente não possui configurações.
                     </div>
                   )}
-                  {propertyItems.map(({ prop, presentation }) => {
+                  {primaryPropertyItems.map(({ prop, presentation }) => {
                     const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
                     const error = propertyError(prop, node.props[prop.name]);
                     return (
@@ -336,6 +338,40 @@ export function PropertyInspector({
                       </label>
                     );
                   })}
+                  {advancedPropertyItems.length > 0 && (
+                    <div className="mt-1 rounded-md" style={{ border: `1px solid ${c.border}`, background: c.canvasBg }}>
+                      <button
+                        type="button"
+                        onClick={() => toggleSection('advancedProperties')}
+                        className="w-full flex items-center gap-1.5 px-2 py-2 border-0 bg-transparent cursor-pointer text-left"
+                        style={{ color: c.textSecondary }}
+                      >
+                        {collapsedSections.has('advancedProperties') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                        <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Avançado</span>
+                        <span className="text-[9px]">{advancedPropertyItems.length}</span>
+                      </button>
+                      {!collapsedSections.has('advancedProperties') && (
+                        <div className="px-2 pb-2 flex flex-col gap-2">
+                          {advancedPropertyItems.map(({ prop, presentation }) => {
+                            const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
+                            const error = propertyError(prop, node.props[prop.name]);
+                            return (
+                              <label key={prop.name} title={prop.name} className={fullWidth ? 'block' : 'grid items-center gap-2'} style={fullWidth ? undefined : { gridTemplateColumns: '104px minmax(0, 1fr)' }}>
+                                <span className={`flex items-center gap-1 text-[11px] font-medium ${fullWidth ? 'mb-1' : ''}`} style={{ color: c.textSecondary }}>
+                                  <span>{presentation.label}{prop.required && <span style={{ color: c.danger }}> *</span>}</span>
+                                  {presentation.help && <span title={presentation.help} className="inline-flex"><CircleHelp size={11} /></span>}
+                                </span>
+                                <span className="min-w-0">
+                                  <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
+                                  {error && <span className="block mt-1" style={{ color: c.danger, fontSize: 10 }}>{error}</span>}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </section>

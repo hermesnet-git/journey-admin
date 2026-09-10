@@ -6,6 +6,7 @@ export interface PropertyPresentation {
   label: string;
   help?: string;
   group: PropertyGroup;
+  advanced?: boolean;
   multiline?: boolean;
   enumLabels?: Record<string, string>;
 }
@@ -89,6 +90,44 @@ function humanize(name: string): string {
 
 /** Metadados exclusivos da experiência de autoria. Propriedades novas continuam editáveis por
  * meio do fallback, sem ampliar ou modificar o contrato publicado pelo catálogo SDUI. */
+const ADVANCED_PROPERTY_NAMES = new Set([
+  'accessibilityLabel',
+  'alt',
+  'aspectRatio',
+  'backgroundToken',
+  'borderRadiusToken',
+  'colorToken',
+  'disabled',
+  'dismissible',
+  'elevationToken',
+  'external',
+  'format',
+  'indeterminate',
+  'inputMode',
+  'loading',
+  'maxDate',
+  'maxLength',
+  'maxLines',
+  'minDate',
+  'minLines',
+  'mode',
+  'name',
+  'overlay',
+  'paddingToken',
+  'readOnly',
+  'searchable',
+  'showValue',
+  'sizeToken',
+  'spacingToken',
+  'validation',
+]);
+
+/** Classificação visual do Form Builder: não muda o contrato SDUI, apenas evita que propriedades
+ * raras, muito específicas ou de ajuste fino disputem espaço com a configuração principal. */
+function isAdvancedProperty(prop: PropDescriptor): boolean {
+  return ADVANCED_PROPERTY_NAMES.has(prop.name);
+}
+
 export function propertyPresentation(type: string, prop: PropDescriptor): PropertyPresentation {
   const generic = GENERIC[prop.name] ?? {};
   const specific = SPECIFIC[`${type}.${prop.name}`] ?? {};
@@ -96,6 +135,7 @@ export function propertyPresentation(type: string, prop: PropDescriptor): Proper
     label: specific.label ?? generic.label ?? humanize(prop.name),
     help: specific.help ?? generic.help,
     group: specific.group ?? generic.group ?? 'BEHAVIOR',
+    advanced: specific.advanced ?? generic.advanced ?? isAdvancedProperty(prop),
     multiline: specific.multiline ?? generic.multiline ?? false,
     enumLabels: { ...(generic.enumLabels ?? {}), ...(specific.enumLabels ?? {}) },
   };

@@ -105,7 +105,9 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
       }
       setCompositionError(null);
       onPushHistory();
-      onChange(insertNode(root, targetId, createNode(data.definition)));
+      const node = createNode(data.definition);
+      onChange(insertNode(root, targetId, node));
+      handleSelect(node.id);
       return;
     }
     if (data?.source === 'canvas') {
@@ -121,6 +123,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
       setCompositionError(null);
       onPushHistory();
       onChange(moveNode(root, data.nodeId, targetId));
+      handleSelect(data.nodeId);
     }
   }
 
@@ -251,7 +254,9 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
           />}
         </div>
       </div>
-      <DragOverlay>
+      {/* O item da paleta é um modelo que cria outra instância no canvas. A animação padrão do
+       * dnd-kit tenta devolvê-lo à origem após a criação e comunica falsamente um cancelamento. */}
+      <DragOverlay dropAnimation={null}>
         {dragging && (
           <div
             className="flex items-center gap-[6px] px-3 py-2 rounded-md text-[12px] font-medium cursor-grabbing"

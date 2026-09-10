@@ -1,13 +1,9 @@
-import { useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Circle } from 'lucide-react';
 import { useFlowTheme } from './theme';
-import { NODE_ICON, TYPE_COLOR, type WFNode } from './model';
+import type { WFNode } from './model';
 
-// Faixa de navegação entre User Tasks do fluxo (só esse tipo) — a atual em destaque total, as
-// demais apagadas; clicar em qualquer uma ou usar as setas troca a seleção do nó no canvas
-// principal (onNavigate recebe o mesmo selectOnlyNode que um clique no nó já usa), então
-// Propriedades/minimapa/este dock ficam sincronizados de graça. Sem key/remount aqui — a transição
-// suave (cor/opacidade/escala) depende do componente continuar montado enquanto currentId muda.
+// Navegação contextual entre Tarefas de Usuário. A ordem já chega determinada pelo fluxo; este
+// controle não sugere que desvios formem um caminho único e não faz retorno circular nas pontas.
 export function UserTaskNavigator({
   tasks,
   currentId,
@@ -18,76 +14,52 @@ export function UserTaskNavigator({
   onNavigate: (nodeId: string) => void;
 }) {
   const { c } = useFlowTheme();
-  // A pílula ativa pode ficar fora da faixa visível (parcialmente atrás da setinha, ou cortada)
-  // conforme navega — sem isto, nada rolava a faixa horizontal pra acompanhar, só a cor/destaque
-  // mudavam, dando a impressão de que o navegador "se perdia".
-  const activeRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
-  }, [currentId]);
-
   if (tasks.length === 0) return null;
 
-  const index = tasks.findIndex((t) => t.id === currentId);
-  const Icon = NODE_ICON.userTask;
-  const color = TYPE_COLOR.userTask;
+  const index = tasks.findIndex((task) => task.id === currentId);
+  const current = tasks[index] ?? tasks[0];
+  const hasScreen = !!current.data.embeddedScreenRoot;
 
   function go(delta: number) {
-    const next = tasks[(index + delta + tasks.length) % tasks.length];
+    const next = tasks[index + delta];
     if (next) onNavigate(next.id);
   }
 
   return (
-    <div className="flex items-center gap-2 min-w-0">
+    <div className="flex items-center gap-1.5 min-w-0">
       <button
         onClick={() => go(-1)}
-        disabled={tasks.length < 2}
+        disabled={index <= 0}
         title="Tarefa anterior"
-        className="shrink-0 w-[22px] h-[22px] rounded-md flex items-center justify-center cursor-pointer border-0 disabled:opacity-30 disabled:cursor-default"
+        className="shrink-0 w-[28px] h-[28px] rounded-md flex items-center justify-center cursor-pointer border-0 disabled:opacity-30 disabled:cursor-default"
         style={{ background: 'transparent', color: c.textSecondary }}
       >
         <ChevronLeft size={14} />
       </button>
-      <div className="no-scrollbar flex-1 min-w-0 flex items-center gap-[6px] overflow-x-auto py-1">
-        {tasks.map((t, i) => {
-          const active = t.id === currentId;
-          return (
-            <div key={t.id} className="flex items-center gap-[6px] shrink-0">
-              {i > 0 && (
-                <div
-                  className="w-[14px] h-px shrink-0 transition-colors duration-300"
-                  style={{ background: active || tasks[i - 1].id === currentId ? color : c.border }}
-                />
-              )}
-              <button
-                ref={active ? activeRef : undefined}
-                onClick={() => onNavigate(t.id)}
-                title={t.data.name}
-                className="shrink-0 flex items-center gap-[6px] rounded-full pl-[6px] pr-[10px] py-[4px] border-0 cursor-pointer transition-all duration-300"
-                style={{
-                  background: active ? color : c.chipBg,
-                  color: active ? '#fff' : c.textSecondary,
-                  opacity: active ? 1 : 0.55,
-                  transform: active ? 'scale(1.06)' : 'scale(1)',
-                }}
-              >
-                <span
-                  className="w-[16px] h-[16px] rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: active ? 'rgba(255,255,255,.25)' : c.cardBg }}
-                >
-                  <Icon size={9} strokeWidth={2} color={active ? '#fff' : c.textSecondary} />
-                </span>
-                <span className="text-[11px] font-medium max-w-[110px] truncate">{t.data.name}</span>
-              </button>
-            </div>
-          );
-        })}
+      <div className="flex-1 min-w-0 flex items-center gap-2 rounded-lg px-2 py-1" style={{ border: `1px solid ${c.border}`, background: c.cardBg }}>
+        <span className="flex shrink-0" title={hasScreen ? 'Tela configurada' : 'Sem tela configurada'}>
+          {hasScreen ? <CheckCircle2 size={14} color={c.success} /> : <Circle size={14} color={c.textSecondary} />}
+        </span>
+        <select
+          value={current.id}
+          onChange={(event) => onNavigate(event.target.value)}
+          title="Selecionar Tarefa de Usuário"
+          className="min-w-0 flex-1 border-0 outline-none cursor-pointer text-[11.5px] font-medium"
+          style={{ color: c.textPrimary, background: 'transparent', colorScheme: 'light dark' }}
+        >
+          {tasks.map((task) => (
+            <option key={task.id} value={task.id} style={{ color: c.textPrimary, background: c.cardBg }}>
+              {task.data.name} — {task.data.embeddedScreenRoot ? 'Tela configurada' : 'Sem tela'}
+            </option>
+          ))}
+        </select>
+        <span className="shrink-0 text-[9.5px]" style={{ color: c.textSecondary }}>{index + 1} de {tasks.length}</span>
       </div>
       <button
         onClick={() => go(1)}
-        disabled={tasks.length < 2}
+        disabled={index < 0 || index >= tasks.length - 1}
         title="Próxima tarefa"
-        className="shrink-0 w-[22px] h-[22px] rounded-md flex items-center justify-center cursor-pointer border-0 disabled:opacity-30 disabled:cursor-default"
+        className="shrink-0 w-[28px] h-[28px] rounded-md flex items-center justify-center cursor-pointer border-0 disabled:opacity-30 disabled:cursor-default"
         style={{ background: 'transparent', color: c.textSecondary }}
       >
         <ChevronRight size={14} />

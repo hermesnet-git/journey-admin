@@ -40,10 +40,8 @@ public class FormSpecController {
                                     @PathVariable String nodeId,
                                     @RequestBody(required = false) ResolveFormRequest request) {
         FlowNode node = findNode(journeyId, journeyVersion, nodeId);
-        Map<String, CamundaVariable> variables = toVariables(request != null ? request.variables() : null);
         if (!node.hasEmbeddedScreen()) {
-            String message = SduiTemplateResolver.resolveMessage(node, variables);
-            return new FormPayload(null, node.name(), message, null, Map.of());
+            throw new IllegalStateException("A Tarefa de Usuário " + node.id() + " não possui tela publicada");
         }
         SduiScreenEnvelope envelope = requireScreen(journeyId, journeyVersion, node);
         CanonicalSdui.validateEnvelope(envelope);
@@ -93,14 +91,4 @@ public class FormSpecController {
                 "computed", Map.of());
     }
 
-    // Envelopa cada valor bruto do JSON num CamundaVariable sem type (SduiTemplateResolver só usa
-    // .value() pra substituir {{token}}, nunca .type()) — permite reaproveitar as mesmas assinaturas
-    // que StepResolver já usa (Map<String, CamundaVariable>) sem duplicar a lógica de resolução.
-    private Map<String, CamundaVariable> toVariables(Map<String, Object> raw) {
-        Map<String, CamundaVariable> result = new LinkedHashMap<>();
-        if (raw != null) {
-            raw.forEach((key, value) -> result.put(key, new CamundaVariable(value, null)));
-        }
-        return result;
-    }
 }

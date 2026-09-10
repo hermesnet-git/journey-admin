@@ -463,6 +463,8 @@ public final class FlowValidator {
                                                  List<ChannelType> channelTypes, List<FlowViolation> violations) {
         SduiNode root = node.getEmbeddedScreenRoot();
         if (root == null) {
+            violations.add(new FlowViolation(node.getId(), "A Tarefa de Usuário '" + node.getName()
+                    + "' precisa ter uma tela configurada"));
             return;
         }
         if (!"ui.screen".equals(root.type())) {

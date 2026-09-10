@@ -71,6 +71,8 @@ import { getFlow, updateFlow, validateFlow, type Flow, type FlowUpdateInput } fr
 import { listClusters, listCredentials, type MessagingCluster, type CredentialReference } from '../api/messaging';
 import { ApiClientError } from '../api/client';
 import { useToast } from '../products/Toast';
+import { listAuthoringComponentDefinitions, type ComponentDefinition } from '../api/componentDefinitions';
+import { createNode as createSduiNode } from '../sdui/model';
 
 // Mesmo formato enviado a updateJourney/updateFlow — usado tanto pro save de verdade quanto pra
 // detectar, comparando com o snapshot salvo pela última vez, se há algo pra salvar. Sem isso,
@@ -93,13 +95,9 @@ function buildFlowSnapshot(
       description: n.data.description || null,
       positionX: Math.round(n.position.x),
       positionY: Math.round(n.position.y),
-      userTaskConfig:
-        n.data.messageText || n.data.embeddedScreenRoot
-          ? {
-              messageText: n.data.messageText || null,
-              embeddedScreenRoot: n.data.embeddedScreenRoot ?? null,
-            }
-          : null,
+      userTaskConfig: n.type === 'userTask'
+        ? { messageText: null, embeddedScreenRoot: n.data.embeddedScreenRoot ?? null }
+        : null,
       connectorConfig: n.data.connectorConfig,
       startVariables: n.data.startVariables ?? null,
     })),
@@ -132,13 +130,9 @@ function buildFlowInput(nodes: WFNode[], edges: WFEdge[], annotations: WFAnnotat
       description: n.data.description || null,
       positionX: Math.round(n.position.x),
       positionY: Math.round(n.position.y),
-      userTaskConfig:
-        n.data.messageText || n.data.embeddedScreenRoot
-          ? {
-              messageText: n.data.messageText || null,
-              embeddedScreenRoot: n.data.embeddedScreenRoot ?? null,
-            }
-          : null,
+      userTaskConfig: n.type === 'userTask'
+        ? { messageText: null, embeddedScreenRoot: n.data.embeddedScreenRoot ?? null }
+        : null,
       connectorConfig: n.data.connectorConfig,
       startVariables: n.data.startVariables ?? null,
     })),
@@ -214,6 +208,7 @@ function DesignerInner({
   const [description, setDescription] = useState(journey.description ?? '');
   const [clusters, setClusters] = useState<MessagingCluster[]>([]);
   const [credentials, setCredentials] = useState<CredentialReference[]>([]);
+  const [screenDefinition, setScreenDefinition] = useState<ComponentDefinition | null>(null);
   const [nodes, setNodes] = useState<WFNode[]>(() => initialFlowNodes());
   const [edges, setEdges] = useState<WFEdge[]>(() => initialFlowEdges(nodes));
   // Separate from `nodes`: never touched by validateFlow/computeLayout/save-as-FlowNode mapping, so
@@ -372,6 +367,11 @@ function DesignerInner({
   useEffect(() => {
     listClusters().then(setClusters);
     listCredentials().then(setCredentials);
+    // A definição vigente de ui.screen é necessária no nascimento da Tarefa de Usuário: a tela
+    // raiz pertence ao nó desde sua criação e nunca é sintetizada posteriormente pelo runtime.
+    listAuthoringComponentDefinitions()
+      .then((definitions) => setScreenDefinition(definitions.find((definition) => definition.type === 'ui.screen') ?? null))
+      .catch(() => setScreenDefinition(null));
   }, []);
 
   // Mapeamento puro backend -> estado do canvas, usado no carregamento inicial do fluxo.
@@ -558,13 +558,21 @@ function DesignerInner({
 
   const addNodeAt = useCallback(
     (type: NodeType, x: number, y: number) => {
+      if (type === 'userTask' && !screenDefinition) {
+        showToast('Não foi possível criar a Tarefa de Usuário porque a definição de Tela não está disponível no catálogo.', 'error');
+        return;
+      }
       pushHistory();
       const spot = findFreeSpot(nodesRef.current, x, y);
       const node = { ...makeNode(type, spot.x, spot.y), selected: true };
+      if (type === 'userTask' && screenDefinition) {
+        node.data.embeddedScreenRoot = createSduiNode(screenDefinition);
+        node.data.messageText = null;
+      }
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
       setFreshNodeId(node.id);
     },
-    [pushHistory],
+    [pushHistory, screenDefinition, showToast],
   );
 
   const addNodeFromPalette = useCallback(
@@ -662,6 +670,10 @@ function DesignerInner({
     (nodeId: string, type: NodeType) => {
       const source = nodesRef.current.find((n) => n.id === nodeId);
       if (!source || !source.type) return;
+      if (type === 'userTask' && !screenDefinition) {
+        showToast('Não foi possível criar a Tarefa de Usuário porque a definição de Tela não está disponível no catálogo.', 'error');
+        return;
+      }
       const outCount = edgesRef.current.filter((e) => e.source === nodeId).length;
       if (outCount >= outgoingLimitFor(source.type)) return;
       pushHistory();
@@ -686,6 +698,12 @@ function DesignerInner({
         ...makeNode(type, source.position.x + NODE_DIMENSIONS[source.type].width + gapX, targetY),
         selected: true,
       };
+      // A criação rápida segue a mesma invariável da paleta: uma Tarefa de Usuário já
+      // nasce com a raiz da tela e fica imediatamente disponível para autoria no Form Builder.
+      if (type === 'userTask' && screenDefinition) {
+        node.data.embeddedScreenRoot = createSduiNode(screenDefinition);
+        node.data.messageText = null;
+      }
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
       setFreshNodeId(node.id);
       setEdges((eds) => [
@@ -702,7 +720,7 @@ function DesignerInner({
       // acompanhe.
       panIntoView(node.position);
     },
-    [pushHistory, panIntoView],
+    [pushHistory, panIntoView, screenDefinition, showToast],
   );
 
   const onPaneClick = useCallback(() => {

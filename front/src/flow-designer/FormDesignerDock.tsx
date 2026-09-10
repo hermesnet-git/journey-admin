@@ -146,7 +146,7 @@ export function FormDesignerDock({
           <button
             key={channel}
             onClick={() => setDesignChannel(channel)}
-            title={`Simular canal ${DESIGN_CHANNEL_LABEL[channel]}`}
+            title={`Visualizar como ${DESIGN_CHANNEL_LABEL[channel]}`}
             className="h-[28px] rounded-md flex items-center justify-center gap-1.5 px-2 cursor-pointer border-0"
             style={{ background: selected ? c.accentSoft : 'transparent', color: selected ? c.accent : c.textSecondary }}
           >
@@ -158,15 +158,30 @@ export function FormDesignerDock({
     </div>
   );
 
-  const navigatorRow = (
-    <div className="shrink-0 grid items-center gap-3 px-3 py-2" style={{ gridTemplateColumns: 'minmax(220px, 1fr) auto minmax(100px, 1fr)', borderBottom: `1px solid ${c.border}`, background: c.sidebarBg }}>
-      <div className="min-w-0">
-        <UserTaskNavigator tasks={userTasks} currentId={nodeId} onNavigate={onNavigateTask} />
-      </div>
-      <div className="flex justify-center items-center gap-4">
+  const taskNavigator = (
+    <div className="min-w-0">
+      <div className="mb-0.5 text-[9px] font-semibold uppercase tracking-[.05em]" style={{ color: c.textSecondary }}>Tarefa em edição</div>
+      <UserTaskNavigator tasks={userTasks} currentId={nodeId} onNavigate={onNavigateTask} />
+    </div>
+  );
+
+  const contextualControls = (
+    <div className="flex justify-center items-end gap-4">
+      <div>
+        <div className="mb-0.5 text-[9px] font-semibold uppercase tracking-[.05em]" style={{ color: c.textSecondary }}>Modo</div>
         {modeToggle}
+      </div>
+      <div>
+        <div className="mb-0.5 text-[9px] font-semibold uppercase tracking-[.05em]" style={{ color: c.textSecondary }}>Canal de visualização</div>
         {channelSelector}
       </div>
+    </div>
+  );
+
+  const navigatorRow = (
+    <div className="shrink-0 grid items-center gap-3 px-3 py-2" style={{ gridTemplateColumns: 'minmax(220px, 1fr) auto minmax(100px, 1fr)', borderBottom: `1px solid ${c.border}`, background: c.sidebarBg }}>
+      {taskNavigator}
+      {contextualControls}
       <div className="flex items-center justify-end gap-1">
         {pinButton}
         <button
@@ -257,13 +272,8 @@ export function FormDesignerDock({
         className="absolute -top-[3px] left-0 right-0 h-[6px] cursor-row-resize z-10"
       />
       <div className="shrink-0 grid items-center gap-3 px-3 py-2" style={{ gridTemplateColumns: 'minmax(220px, 1fr) auto minmax(100px, 1fr)', borderBottom: `1px solid ${c.border}`, background: c.sidebarBg }}>
-        <div className="min-w-0">
-          <UserTaskNavigator tasks={userTasks} currentId={nodeId} onNavigate={onNavigateTask} />
-        </div>
-        <div className="flex justify-center items-center gap-4">
-        {modeToggle}
-        {channelSelector}
-      </div>
+        {taskNavigator}
+        {contextualControls}
         <div className="flex items-center justify-end gap-1">
           {pinButton}
           <button

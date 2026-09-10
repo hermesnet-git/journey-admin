@@ -209,6 +209,8 @@ Cada simulador interpreta o mesmo modelo de autoria e deve:
 - primeira camada do redesenho estrutural, com canvas prioritário, paleta e inspetor recolhíveis, estrutura da tela opcional, seletor textual de canal e modo Preview livre das ferramentas de construção.
 - paleta de componentes aprimorada com busca por nome, tipo e finalidade, categorias recolhíveis, contadores, descrições funcionais, versão discreta, identificação de itens experimentais e estados vazios orientativos.
 - canvas de construção aprimorado com blocos funcionais, resumo do conteúdo configurado, seleção destacada, hierarquia visual e áreas de soltura mais evidentes; a reordenação posicional direta permanece como evolução separada.
+- navegação contextual entre Tarefas de Usuário com acesso direto por lista, posição atual, estado da tela e limites não circulares; canal e modo permanecem preservados durante a navegação.
+- toda Tarefa de Usuário nasce com uma raiz `ui.screen` obtida do catálogo; o Form Builder fica disponível imediatamente e o backend impede salvar tarefas sem tela.
 - painel de propriedades reorganizado com cabeçalho contextual, nomes funcionais em português, agrupamentos, controles apropriados e metadados de autoria em três níveis: específico, genérico e fallback automático para novidades do catálogo.
 
 ### 9.2 Plano organizado em 15 passos
@@ -220,8 +222,8 @@ Cada simulador interpreta o mesmo modelo de autoria e deve:
 | 3 | Aprimorar a paleta com busca, categorias, descrições funcionais, status e compatibilidade mais claros. | Em validação visual |
 | 4 | Tornar o canvas de construção mais próximo da tela resultante, com seleção, hierarquia e áreas de drop mais evidentes. | Em validação visual |
 | 5 | Reorganizar o painel de propriedades com nomes funcionais em português, agrupamentos e controles apropriados. | Em validação visual |
-| 6 | Melhorar a navegação entre Tarefas de Usuário e canais, preservando o contexto de autoria. | Próximo |
-| 7 | Refinar a separação entre os modos Construir e Preview e avaliar uma visualização lado a lado. | Pendente |
+| 6 | Melhorar a navegação entre Tarefas de Usuário e canais, preservando o contexto de autoria. | Em validação visual |
+| 7 | Refinar a separação entre os modos Construir e Preview e avaliar uma visualização lado a lado. | Próximo |
 | 8 | Evoluir os previews de Web, Mobile e WhatsApp mantendo sua natureza funcional e independente de frameworks. | Pendente |
 | 9 | Criar contexto fictício editável para `form`, `data`, `session`, `route` e `computed`. | Pendente |
 | 10 | Criar editores orientados para os parâmetros de cada ação normativa, eliminando pares livres onde houver contrato conhecido. | Pendente |

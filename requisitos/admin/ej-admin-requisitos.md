@@ -450,7 +450,9 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### ~~REQ-04.01.003~~ - ~~O sistema deve permitir remover formulários.~~ *(removido em 2026-09-05)*
 #### ~~REQ-04.01.004~~ - ~~O sistema deve permitir usar um formulário do catálogo como modelo de partida ao desenhar a tela de uma User Task: os campos do formulário são copiados para a tela do nó (`embeddedScreen`) no momento da escolha, sem manter nenhum vínculo persistido entre o nó e o formulário de origem — alterar o formulário depois não afeta telas já copiadas dele, e vice-versa.~~ *(removido em 2026-09-05)*
 
-#### REQ-04.01.005 - O sistema deve permitir manter uma User Task sem nenhuma tela desenhada; nesse caso, o sistema deve permitir configurar uma mensagem exibida ao usuário, com suporte a interpolação de variáveis do fluxo pela sintaxe `{{nome}}`, resolvida com os valores reais da execução no momento em que a tarefa é apresentada.
+#### REQ-04.01.005 - Toda User Task deve possuir uma tela. Ao criar a tarefa no Flow Designer, o sistema deve criar automaticamente a raiz da tela a partir da definição vigente do componente `ui.screen` no catálogo, deixando o Form Builder imediatamente disponível para autoria. Uma tarefa exclusivamente informativa também deve representar sua mensagem por componentes explícitos dentro dessa tela.
+
+> **Nota de revisão (2026-09-09):** a tela deixou de ser opcional porque toda Tarefa de Usuário representa uma interação com o usuário, ainda que apenas informativa. Foi eliminado o comportamento anterior que aceitava uma mensagem avulsa e sintetizava uma tela somente durante a execução; o que é desenhado no Form Builder passa a ser sempre a fonte de verdade publicada. Fluxos residuais sem tela não precisam de compatibilidade retroativa e devem ser corrigidos ou descartados.
 
 #### ~~REQ-04.01.006~~ - ~~No editor de tela embutido de uma User Task (US-03.16), o sistema deve permitir importar os campos de um formulário existente do catálogo como ponto de partida (cópia, sem vínculo persistido) e, separadamente, salvar a tela atualmente desenhada no nó como um novo formulário reutilizável no catálogo.~~ *(removido em 2026-09-05)*
 
@@ -646,7 +648,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.02.002 - O sistema deve apresentar as User Tasks executadas.
 #### REQ-05.02.003 - O sistema deve apresentar os formulários exibidos.
 #### REQ-05.02.004 - O sistema deve apresentar o resultado final da execução.
-#### REQ-05.02.005 - O sistema deve apresentar a tela de uma User Task com toda referência `{{nome}}` já substituída pelos valores atuais das variáveis do processo — tanto na mensagem de uma User Task sem tela desenhada (REQ-04.01.005) quanto em qualquer prop de texto (rótulo, texto de ajuda, valor padrão, opções etc.) de qualquer campo de uma tela embutida (`embeddedScreen`) real. Quando a referência estiver no valor padrão (`defaultValue`) de um campo editável, o campo deve nascer pré-preenchido com o valor resolvido, permanecendo editável pelo usuário.
+#### REQ-05.02.005 - O sistema deve apresentar a tela de uma User Task com toda referência de dados já resolvida com os valores atuais das variáveis do processo, incluindo propriedades textuais e o valor vinculado de componentes editáveis. Quando a resolução fornecer o valor inicial de um componente editável, o campo deve nascer preenchido e permanecer editável pelo usuário.
 ---
 
 ### US-05.03 Visualização da execução

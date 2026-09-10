@@ -10,7 +10,6 @@ import com.jouney.especregistry.camunda.ProcessIds;
 import com.jouney.especregistry.camunda.ProcessInstanceInfo;
 import com.jouney.especregistry.camunda.TaskInfo;
 import com.jouney.especregistry.sdui.CanonicalSdui;
-import com.jouney.especregistry.sdui.ResolutionContext;
 import com.jouney.especregistry.sdui.SduiScreenEnvelope;
 import com.jouney.especregistry.sdui.SnapshotRepository;
 import java.util.List;
@@ -22,8 +21,8 @@ import org.springframework.stereotype.Component;
  * Função central reaproveitada por start/complete/simulate: dado um processInstanceId, descobre o
  * que o simulador deve mostrar agora — uma User Task com seu formulário SDUI, um passo
  * SERVICE_TASK/RECEIVE_TASK aguardando "Simular conclusão", ou o fim do processo. O resto do fluxo
- * (nome/tipo do nó, messageText, conectores) continua vindo do admin/back — só a árvore da tela de
- * uma User Task com tela desenhada vem do Strapi (snapshot publicado, seção 15 do catálogo), via
+ * (nome/tipo do nó e conectores) continua vindo do admin/back — a árvore obrigatória da tela de
+ * uma User Task vem do Strapi (snapshot publicado, seção 15 do catálogo), via
  * SnapshotRepository (journeyId + screenId=node.id()).
  */
 @Component
@@ -65,11 +64,7 @@ public class StepResolver {
         FlowNode node = snapshot.findNode(task.taskDefinitionKey())
                 .orElseThrow(() -> new IllegalStateException("Nó " + task.taskDefinitionKey() + " não encontrado no snapshot da jornada"));
         if (!node.hasEmbeddedScreen()) {
-            // REQ-04.01.005: a USER_TASK may have no tela desenhada — a display-only step (a
-            // message, maybe built from a prior integration's output).
-            String message = resolveMessage(node, processInstanceId);
-            return StepResponse.userTask(task.id(), task.taskDefinitionKey(), task.name(),
-                    new FormPayload(null, node.name(), message, null, Map.of()));
+            throw new IllegalStateException("A Tarefa de Usuário " + node.id() + " não possui tela publicada");
         }
         SduiScreenEnvelope envelope = snapshotRepository.findPublished(journeyId, journeyVersion, node.id())
                 .orElseThrow(() -> new IllegalStateException("Nó " + node.id()
@@ -94,16 +89,4 @@ public class StepResolver {
         return Integer.parseInt(tag.substring(1));
     }
 
-    // Falls back to the node's own name when there's no message configured at all, so a formless
-    // User Task never renders blank. Mantido aqui (em vez de mover pra SduiTemplateResolver junto
-    // com o resto) porque só esta versão precisa do fetch preguiçoso de variáveis — só busca no
-    // Camunda quando há de fato um messageText a resolver.
-    private String resolveMessage(FlowNode node, String processInstanceId) {
-        String text = node.messageText();
-        if (text == null || text.isBlank()) {
-            return node.name();
-        }
-        Map<String, CamundaVariable> variables = camundaClient.getProcessVariables(processInstanceId);
-        return SduiTemplateResolver.resolveTemplate(text, variables, ResolutionContext.fromProcessVariables(variables));
-    }
 }

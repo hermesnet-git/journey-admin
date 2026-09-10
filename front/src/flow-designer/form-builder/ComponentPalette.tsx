@@ -49,14 +49,14 @@ function PaletteItem({
         <Icon size={16} color={c.accent} strokeWidth={1.8} />
       </span>
       <span className="flex-1 min-w-0">
-        <span className="flex items-center gap-1.5">
-          <span className="truncate text-[12px] font-semibold">{labelFor(definition.type)}</span>
-          {definition.status === 'EXPERIMENTAL' && (
-            <span className="rounded px-1 py-0.5 text-[8px] font-bold uppercase" style={{ background: c.accentSoft, color: c.accent }}>Experimental</span>
-          )}
+        <span className="flex items-start gap-1.5">
+          <span className="truncate text-[12px] font-semibold flex-1">{labelFor(definition.type)}</span>
+          <span className="font-mono text-[8.5px] shrink-0" style={{ color: c.textSecondary }}>v{definition.version}</span>
         </span>
         <span className="block mt-0.5 text-[10.5px] leading-[1.35]" style={{ color: c.textSecondary }}>{descriptionFor(definition.type)}</span>
-        <span className="block mt-1 font-mono text-[9px]" style={{ color: c.textSecondary }}>v{definition.version}</span>
+        {definition.status === 'EXPERIMENTAL' && (
+          <span className="inline-block mt-1 rounded px-1 py-0.5 text-[8px] font-bold uppercase" style={{ background: c.accentSoft, color: c.accent }}>Experimental</span>
+        )}
       </span>
       {!compatible && <AlertTriangle size={11} color={c.danger} />}
     </div>

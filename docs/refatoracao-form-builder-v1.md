@@ -209,6 +209,7 @@ Cada simulador interpreta o mesmo modelo de autoria e deve:
 - primeira camada do redesenho estrutural, com canvas prioritário, paleta e inspetor recolhíveis, estrutura da tela opcional, seletor textual de canal e modo Preview livre das ferramentas de construção.
 - paleta de componentes aprimorada com busca por nome, tipo e finalidade, categorias recolhíveis, contadores, descrições funcionais, versão discreta, identificação de itens experimentais e estados vazios orientativos.
 - canvas de construção aprimorado com blocos funcionais, resumo do conteúdo configurado, seleção destacada, hierarquia visual e áreas de soltura mais evidentes; a reordenação posicional direta permanece como evolução separada.
+- painel de propriedades reorganizado com cabeçalho contextual, nomes funcionais em português, agrupamentos, controles apropriados e metadados de autoria em três níveis: específico, genérico e fallback automático para novidades do catálogo.
 
 ### 9.2 Plano organizado em 15 passos
 
@@ -218,8 +219,8 @@ Cada simulador interpreta o mesmo modelo de autoria e deve:
 | 2 | Redesenhar estruturalmente o Form Designer, melhorando a distribuição do canvas, paleta, camadas e propriedades. | Em validação visual |
 | 3 | Aprimorar a paleta com busca, categorias, descrições funcionais, status e compatibilidade mais claros. | Em validação visual |
 | 4 | Tornar o canvas de construção mais próximo da tela resultante, com seleção, hierarquia e áreas de drop mais evidentes. | Em validação visual |
-| 5 | Reorganizar o painel de propriedades com nomes funcionais em português, agrupamentos e controles apropriados. | Próximo |
-| 6 | Melhorar a navegação entre Tarefas de Usuário e canais, preservando o contexto de autoria. | Pendente |
+| 5 | Reorganizar o painel de propriedades com nomes funcionais em português, agrupamentos e controles apropriados. | Em validação visual |
+| 6 | Melhorar a navegação entre Tarefas de Usuário e canais, preservando o contexto de autoria. | Próximo |
 | 7 | Refinar a separação entre os modos Construir e Preview e avaliar uma visualização lado a lado. | Pendente |
 | 8 | Evoluir os previews de Web, Mobile e WhatsApp mantendo sua natureza funcional e independente de frameworks. | Pendente |
 | 9 | Criar contexto fictício editável para `form`, `data`, `session`, `route` e `computed`. | Pendente |
@@ -229,6 +230,20 @@ Cada simulador interpreta o mesmo modelo de autoria e deve:
 | 13 | Melhorar o feedback operacional de salvamento, pendências, erros por componente, confirmações e histórico. | Pendente |
 | 14 | Revisar os textos do portal para remover linguagem técnica, referências desatualizadas e detalhes de implementação. | Pendente |
 | 15 | Validar designer e preview com a jornada Laboratório Multicanal em Web, Mobile e WhatsApp. | Pendente |
+
+### 9.3 Refinamentos do catálogo identificados durante o Form Builder
+
+Os pontos abaixo devem ser retomados em uma frente própria, pois afetam o contrato do catálogo, a massa de fábrica e os renderizadores:
+
+1. apresentar design tokens por nomes funcionais no Form Builder, mantendo o valor canônico em informação secundária; por exemplo, exibir “Médio” para `spacing.md`;
+2. revisar propriedades cadastradas como `TEXT` que representam conjuntos fechados de valores e deveriam ser `ENUM`;
+3. começar essa revisão por `ui.button.variant` e `ui.button.size`, atualmente livres no catálogo;
+4. homologar os valores canônicos de estilo e tamanho antes de transformá-los em seletores, garantindo equivalência entre os canais;
+5. revisar sistematicamente as demais propriedades `TEXT` com comportamento enumerável, sem inferir restrições apenas no Form Builder;
+6. preservar a diferença funcional entre `$visibility`, que remove o componente da apresentação, e `$active`, que mantém o componente visível, porém sem interação quando a condição resultar em falso;
+7. manter `disabled` como desativação estática, com precedência sobre a condição declarada em `$active`.
+
+Até esse refinamento ser homologado no catálogo, o Form Builder deve respeitar o `kind` efetivamente registrado e não limitar valores por conta própria.
 
 O passo 2 deve ser discutido visualmente antes da implementação, pois sua estrutura condiciona as melhorias dos passos 3 a 8.
 

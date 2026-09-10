@@ -197,7 +197,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
           style={{ borderBottom: `1px solid ${c.border}`, background: c.cardBg }}
         >
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: c.textSecondary }}>Tela em construção</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: c.textSecondary }}>Tela em design</div>
             <div className="truncate text-[12px] font-semibold" style={{ color: c.textPrimary }}>
               {selectedNode ? `${labelFor(selectedNode.type)} selecionado` : 'Selecione um componente'}
             </div>

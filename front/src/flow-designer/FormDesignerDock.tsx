@@ -38,7 +38,7 @@ const MIN_VISIBLE_FLOW = 140;
 
 type ScreenMode = 'edit' | 'preview';
 const SCREEN_TABS: { key: ScreenMode; label: string }[] = [
-  { key: 'edit', label: 'Construir' },
+  { key: 'edit', label: 'Design' },
   { key: 'preview', label: 'Preview' },
 ];
 
@@ -146,7 +146,7 @@ export function FormDesignerDock({
           <button
             key={channel}
             onClick={() => setDesignChannel(channel)}
-            title={`Visualizar como ${DESIGN_CHANNEL_LABEL[channel]}`}
+            title={`Selecionar canal ${DESIGN_CHANNEL_LABEL[channel]}`}
             className="h-[28px] rounded-md flex items-center justify-center gap-1.5 px-2 cursor-pointer border-0"
             style={{ background: selected ? c.accentSoft : 'transparent', color: selected ? c.accent : c.textSecondary }}
           >
@@ -172,7 +172,7 @@ export function FormDesignerDock({
         {modeToggle}
       </div>
       <div>
-        <div className="mb-0.5 text-[9px] font-semibold uppercase tracking-[.05em]" style={{ color: c.textSecondary }}>Canal de visualização</div>
+        <div className="mb-0.5 text-[9px] font-semibold uppercase tracking-[.05em]" style={{ color: c.textSecondary }}>Canal em edição</div>
         {channelSelector}
       </div>
     </div>
@@ -196,28 +196,41 @@ export function FormDesignerDock({
     </div>
   );
 
-  const body = (
-    <div className="flex-1 flex flex-col min-h-0">
-      {mode === 'preview' ? (
-        <div className="flex-1 overflow-y-auto p-6" style={{ background: c.canvasBg }}>
-          {!embeddedScreenRoot ? (
-            <div className="text-center text-[12.5px]" style={{ color: c.textSecondary }}>
-              Nenhuma tela desenhada ainda.
-            </div>
-          ) : (
-            <FormDesignPreview root={embeddedScreenRoot} channel={designChannel} />
-          )}
+  // O Form Builder permanece montado na troca de modo para preservar a seleção do componente,
+  // painéis abertos e demais contexto local de autoria.
+  const builderBody = (
+    <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+      <FormBuilder
+        root={embeddedScreenRoot}
+        onChange={onEmbeddedScreenRootChange}
+        onPushHistory={onPushHistory}
+        variables={variables}
+        channelTypes={channelTypes}
+        designChannel={designChannel}
+      />
+    </div>
+  );
+
+  const previewBody = (
+    <div className="flex-1 min-w-0 overflow-y-auto p-6" style={{ background: c.canvasBg }}>
+      {!embeddedScreenRoot ? (
+        <div className="text-center text-[12.5px]" style={{ color: c.textSecondary }}>
+          Nenhuma tela desenhada ainda.
         </div>
       ) : (
-        <FormBuilder
-          root={embeddedScreenRoot}
-          onChange={onEmbeddedScreenRootChange}
-          onPushHistory={onPushHistory}
-          variables={variables}
-          channelTypes={channelTypes}
-          designChannel={designChannel}
-        />
+        <FormDesignPreview root={embeddedScreenRoot} channel={designChannel} />
       )}
+    </div>
+  );
+
+  const body = (
+    <div className="flex-1 flex min-h-0">
+      <>
+        <div className={mode === 'edit' ? 'flex flex-1 min-w-0 min-h-0' : 'hidden'}>
+          {builderBody}
+        </div>
+        {mode === 'preview' && previewBody}
+      </>
     </div>
   );
 

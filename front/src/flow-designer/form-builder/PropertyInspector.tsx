@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, CircleHelp, Plus, SlidersHorizontal, X } from 'lucide-react';
 import { useFlowTheme } from '../theme';
 import { ToggleSwitch, gridInputStyle } from '../PropertyGrid';
@@ -13,6 +13,14 @@ import { ActionEditor } from './ActionEditor';
 import { ConditionEditor } from './ConditionEditor';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
 import { PROPERTY_GROUP_ORDER, propertyPresentation, type PropertyPresentation } from './propertyPresentation';
+
+export type InspectorSection = 'identification' | 'configuration' | 'advancedProperties' | 'bindings' | 'events' | 'visibility' | 'active';
+
+export interface InspectorFocusRequest {
+  id: string;
+  section: InspectorSection;
+  field?: string;
+}
 
 function OptionsListEditor({ value, onChange }: { value: { label: string; value: string }[]; onChange: (next: { label: string; value: string }[]) => void }) {
   const { c } = useFlowTheme();
@@ -187,6 +195,7 @@ export function PropertyInspector({
   channelTypes,
   designChannel,
   reservedNodeIds,
+  focusRequest,
   onRenameNode,
   onUpdateProps,
   onUpdateBindings,
@@ -200,6 +209,7 @@ export function PropertyInspector({
   channelTypes: ChannelType[];
   designChannel: DesignChannel;
   reservedNodeIds: Set<string>;
+  focusRequest?: InspectorFocusRequest | null;
   onRenameNode: (nextId: string) => void;
   onUpdateProps: (patch: Record<string, unknown>) => void;
   onUpdateBindings: (bindings: SduiNode['bindings']) => void;
@@ -208,6 +218,7 @@ export function PropertyInspector({
   onUpdateActive: (active: SduiNode['active']) => void;
 }) {
   const { c } = useFlowTheme();
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['advancedProperties', 'bindings', 'events', 'visibility', 'active']));
   const [draftNodeId, setDraftNodeId] = useState(node?.id ?? '');
   const propertyItems = useMemo(() => PROPERTY_GROUP_ORDER.flatMap((group) => (
@@ -219,6 +230,39 @@ export function PropertyInspector({
   useEffect(() => {
     setDraftNodeId(node?.id ?? '');
   }, [node?.id]);
+
+  useEffect(() => {
+    if (!focusRequest) return undefined;
+
+    // Abre a seção indicada pela pendência antes de mover o foco para o campo.
+    setCollapsedSections((current) => {
+      const next = new Set(current);
+      next.delete(focusRequest.section);
+      if (focusRequest.section === 'advancedProperties') {
+        next.delete('configuration');
+      }
+      return next;
+    });
+
+    const timer = window.setTimeout(() => {
+      const root = panelRef.current;
+      if (!root) return;
+
+      const sectionSelector = `[data-inspector-section="${focusRequest.section}"]`;
+      const fieldSelector = focusRequest.field ? escapeDataAttribute(focusRequest.field) : null;
+      let target = fieldSelector
+        ? root.querySelector<HTMLElement>(`[data-property-field="${fieldSelector}"] input, [data-property-field="${fieldSelector}"] textarea, [data-property-field="${fieldSelector}"] select, [data-property-field="${fieldSelector}"] button`)
+        : null;
+      target = target
+        ?? root.querySelector<HTMLElement>(`${sectionSelector} input, ${sectionSelector} textarea, ${sectionSelector} select, ${sectionSelector} button`)
+        ?? root.querySelector<HTMLElement>(`${sectionSelector} button`);
+
+      target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      target?.focus?.();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [focusRequest?.id]);
 
   function toggleSection(section: string) {
     setCollapsedSections((current) => {
@@ -255,7 +299,7 @@ export function PropertyInspector({
   const advancedPropertyItems = propertyItems.filter((item) => item.presentation.advanced);
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto shrink-0" style={{ width: 320, borderLeft: `1px solid ${c.border}`, background: c.cardBg }}>
+    <div ref={panelRef} className="flex flex-col h-full overflow-y-auto shrink-0" style={{ width: 320, borderLeft: `1px solid ${c.border}`, background: c.cardBg }}>
       <InspectorHeader node={node} definition={definition} designChannel={designChannel} />
       {compatibilityForDesignChannel(definition, designChannel) !== 'COMPATIBLE' && (
         <div
@@ -268,7 +312,7 @@ export function PropertyInspector({
       )}
 
       <div className="py-2">
-          <section style={{ borderBottom: `1px solid ${c.border}` }}>
+          <section data-inspector-section="identification" style={{ borderBottom: `1px solid ${c.border}` }}>
             <button
               type="button"
               onClick={() => toggleSection('identification')}
@@ -309,7 +353,7 @@ export function PropertyInspector({
               </div>
             )}
           </section>
-          <section style={{ borderBottom: `1px solid ${c.border}` }}>
+          <section data-inspector-section="configuration" style={{ borderBottom: `1px solid ${c.border}` }}>
               <button type="button" onClick={() => toggleSection('configuration')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
                 {collapsedSections.has('configuration') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                 <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Configurações</span>
@@ -326,7 +370,7 @@ export function PropertyInspector({
                     const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
                     const error = propertyError(prop, node.props[prop.name]);
                     return (
-                      <label key={prop.name} title={prop.name} className={fullWidth ? 'block' : 'grid items-center gap-2'} style={fullWidth ? undefined : { gridTemplateColumns: '112px minmax(0, 1fr)' }}>
+                      <label key={prop.name} data-property-field={prop.name} title={prop.name} className={fullWidth ? 'block' : 'grid items-center gap-2'} style={fullWidth ? undefined : { gridTemplateColumns: '112px minmax(0, 1fr)' }}>
                         <span className={`flex items-center gap-1 text-[11px] font-medium ${fullWidth ? 'mb-1' : ''}`} style={{ color: c.textSecondary }}>
                           <span>{presentation.label}{prop.required && <span style={{ color: c.danger }}> *</span>}</span>
                           {presentation.help && <span title={presentation.help} className="inline-flex"><CircleHelp size={11} /></span>}
@@ -339,7 +383,7 @@ export function PropertyInspector({
                     );
                   })}
                   {advancedPropertyItems.length > 0 && (
-                    <div className="mt-1 rounded-md" style={{ border: `1px solid ${c.border}`, background: c.canvasBg }}>
+                    <div data-inspector-section="advancedProperties" className="mt-1 rounded-md" style={{ border: `1px solid ${c.border}`, background: c.canvasBg }}>
                       <button
                         type="button"
                         onClick={() => toggleSection('advancedProperties')}
@@ -356,7 +400,7 @@ export function PropertyInspector({
                             const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
                             const error = propertyError(prop, node.props[prop.name]);
                             return (
-                              <label key={prop.name} title={prop.name} className={fullWidth ? 'block' : 'grid items-center gap-2'} style={fullWidth ? undefined : { gridTemplateColumns: '104px minmax(0, 1fr)' }}>
+                              <label key={prop.name} data-property-field={prop.name} title={prop.name} className={fullWidth ? 'block' : 'grid items-center gap-2'} style={fullWidth ? undefined : { gridTemplateColumns: '104px minmax(0, 1fr)' }}>
                                 <span className={`flex items-center gap-1 text-[11px] font-medium ${fullWidth ? 'mb-1' : ''}`} style={{ color: c.textSecondary }}>
                                   <span>{presentation.label}{prop.required && <span style={{ color: c.danger }}> *</span>}</span>
                                   {presentation.help && <span title={presentation.help} className="inline-flex"><CircleHelp size={11} /></span>}
@@ -376,7 +420,7 @@ export function PropertyInspector({
               )}
             </section>
           {canConfigureBindings && (
-            <section style={{ borderBottom: `1px solid ${c.border}` }}>
+            <section data-inspector-section="bindings" style={{ borderBottom: `1px solid ${c.border}` }}>
               <button type="button" onClick={() => toggleSection('bindings')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
                 {collapsedSections.has('bindings') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                 <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Valor</span>
@@ -395,7 +439,7 @@ export function PropertyInspector({
             </section>
           )}
           {canConfigureEvents && (
-            <section style={{ borderBottom: `1px solid ${c.border}` }}>
+            <section data-inspector-section="events" style={{ borderBottom: `1px solid ${c.border}` }}>
               <button type="button" onClick={() => toggleSection('events')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
                 {collapsedSections.has('events') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                 <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Ações</span>
@@ -407,7 +451,7 @@ export function PropertyInspector({
             </section>
           )}
           {canConfigureVisibility && (
-            <section style={{ borderBottom: `1px solid ${c.border}` }}>
+            <section data-inspector-section="visibility" style={{ borderBottom: `1px solid ${c.border}` }}>
               <button type="button" onClick={() => toggleSection('visibility')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
                 {collapsedSections.has('visibility') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                 <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Visibilidade</span>
@@ -425,7 +469,7 @@ export function PropertyInspector({
             </section>
           )}
           {canConfigureActive && (
-            <section style={{ borderBottom: `1px solid ${c.border}` }}>
+            <section data-inspector-section="active" style={{ borderBottom: `1px solid ${c.border}` }}>
               <button type="button" onClick={() => toggleSection('active')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
                 {collapsedSections.has('active') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                 <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Estado</span>
@@ -450,6 +494,10 @@ export function PropertyInspector({
 
 function isMissing(value: unknown): boolean {
   return value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+}
+
+function escapeDataAttribute(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 /** O nome editável do componente é o `id` publicado no contrato SDUI; por isso precisa ser estável,

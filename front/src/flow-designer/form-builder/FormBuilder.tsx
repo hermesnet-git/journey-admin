@@ -3,15 +3,17 @@ import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type Dra
 import { AlertTriangle, FileInput, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
 import { useFlowTheme } from '../theme';
 import type { VariableOrigin } from '../model';
-import { listAuthoringComponentDefinitions, listComponentDefinitions, type ComponentDefinition } from '../../api/componentDefinitions';
+import { listAuthoringComponentDefinitions, listComponentDefinitions, type ComponentDefinition, type PropDescriptor } from '../../api/componentDefinitions';
 import type { ChannelType } from '../../api/products';
 import { createNode, findNode, findParent, insertNode, removeNode, collectIds, moveNode, moveWithinSiblings, renameNode, updateProps, updateBindings, updateEvents, updateVisibility, updateActive, type SduiNode } from '../../sdui/model';
 import { ComponentPalette, type PaletteDragData } from './ComponentPalette';
 import { FormCanvas, type CanvasDragData } from './FormCanvas';
 import { LayerPanel } from './LayerPanel';
-import { PropertyInspector } from './PropertyInspector';
+import { PropertyInspector, type InspectorFocusRequest, type InspectorSection } from './PropertyInspector';
 import { iconFor, labelFor } from '../../sdui/componentMeta';
+import { tokensForGroup } from '../../sdui/designTokens';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
+import { propertyPresentation, type PropertyPresentation } from './propertyPresentation';
 import { ConfirmDialog } from '../../products/ConfirmDialog';
 
 function registryKey(type: string, version: string): string {
@@ -42,6 +44,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [layersOpen, setLayersOpen] = useState(false);
   const [issuesOpen, setIssuesOpen] = useState(false);
+  const [inspectorFocusRequest, setInspectorFocusRequest] = useState<InspectorFocusRequest | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -185,6 +188,16 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
     setInspectorOpen(true);
   }
 
+  function handleIssueClick(issue: AuthoringIssue) {
+    handleSelect(issue.nodeId);
+    setInspectorOpen(true);
+    setInspectorFocusRequest({
+      id: issue.id,
+      section: issue.section,
+      field: issue.field,
+    });
+  }
+
   function handleRenameNode(id: string, nextId: string) {
     if (!root || id === nextId) return;
     onPushHistory();
@@ -280,7 +293,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
                 type="button"
                 onClick={() => setIssuesOpen((value) => !value)}
                 className="mr-1 rounded-full px-2 py-1 text-[9.5px] font-semibold border-0 cursor-pointer"
-                style={{ background: c.dangerSoft, color: c.danger }}
+                style={{ background: authoringIssues.some((issue) => issue.severity === 'error') ? c.dangerSoft : 'rgba(217,119,6,0.14)', color: authoringIssues.some((issue) => issue.severity === 'error') ? c.danger : '#d97706' }}
                 title="Mostrar pendências da tela"
               >
                 {authoringIssues.length} {authoringIssues.length === 1 ? 'pendência' : 'pendências'}
@@ -312,28 +325,36 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
           </div>
         )}
         {issuesOpen && authoringIssues.length > 0 && (
-          <div className="shrink-0 px-3 py-2" style={{ borderBottom: `1px solid ${c.border}`, background: c.dangerSoft }}>
-            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: c.danger }}>
+          <div className="shrink-0 px-3 py-2" style={{ borderBottom: `1px solid ${c.border}`, background: c.canvasBg }}>
+            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: authoringIssues.some((issue) => issue.severity === 'error') ? c.danger : '#d97706' }}>
               <AlertTriangle size={13} />
               Pendências encontradas nesta tela
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {authoringIssues.map((issue) => (
+            <div className="grid gap-1.5">
+              {authoringIssues.map((issue) => {
+                const tone = issueTone(issue.severity, c);
+                return (
                 <button
                   key={issue.id}
                   type="button"
-                  onClick={() => {
-                    handleSelect(issue.nodeId);
-                    setInspectorOpen(true);
-                  }}
-                  className="rounded-md px-2 py-1 text-left text-[10.5px] cursor-pointer"
-                  style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}
+                  onClick={() => handleIssueClick(issue)}
+                  className="rounded-md px-2 py-1.5 text-left text-[10.5px] cursor-pointer"
+                  style={{ border: `1px solid ${tone.border}`, background: c.cardBg, color: c.textPrimary }}
                   title={issue.message}
                 >
-                  <span className="font-semibold">{issue.componentLabel}</span>
-                  <span style={{ color: c.textSecondary }}> - {issue.message}</span>
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-semibold truncate">{issue.componentLabel}</span>
+                    <span className="rounded-full px-1.5 py-0.5 text-[8.5px] font-semibold uppercase" style={{ background: tone.background, color: tone.border }}>
+                      {ISSUE_SEVERITY_LABEL[issue.severity]}
+                    </span>
+                  </span>
+                  <span className="block mt-0.5" style={{ color: c.textSecondary }}>{issue.message}</span>
+                  <span className="block mt-0.5 text-[9.5px]" style={{ color: tone.border }}>
+                    {INSPECTOR_SECTION_LABEL[issue.section]}{issue.fieldLabel ? ` · ${issue.fieldLabel}` : ''}
+                  </span>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -367,6 +388,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
             channelTypes={channelTypes}
             designChannel={designChannel}
             reservedNodeIds={reservedNodeIds}
+            focusRequest={inspectorFocusRequest}
             onRenameNode={(nextId) => selectedId && handleRenameNode(selectedId, nextId)}
             onUpdateProps={(patch) => onChange(updateProps(root, selectedId!, patch))}
             onUpdateBindings={(bindings) => onChange(updateBindings(root, selectedId!, bindings))}
@@ -423,12 +445,34 @@ function ToolButton({ title, active, onClick, icon: Icon }: {
   );
 }
 
+type AuthoringIssueSeverity = 'error' | 'warning' | 'info';
+
 interface AuthoringIssue {
   id: string;
   nodeId: string;
   componentLabel: string;
+  severity: AuthoringIssueSeverity;
+  section: InspectorSection;
+  field?: string;
+  fieldLabel?: string;
   message: string;
 }
+
+const ISSUE_SEVERITY_LABEL: Record<AuthoringIssueSeverity, string> = {
+  error: 'Erro',
+  warning: 'Atenção',
+  info: 'Info',
+};
+
+const INSPECTOR_SECTION_LABEL: Record<InspectorSection, string> = {
+  identification: 'Identificação',
+  configuration: 'Configurações',
+  advancedProperties: 'Avançado',
+  bindings: 'Valor',
+  events: 'Ações',
+  visibility: 'Visibilidade',
+  active: 'Estado',
+};
 
 /** Lista operacional das pendências que o autor consegue corrigir no próprio Form Builder. */
 function collectAuthoringIssues(root: SduiNode, registry: Map<string, ComponentDefinition>, channel: DesignChannel): AuthoringIssue[] {
@@ -436,11 +480,11 @@ function collectAuthoringIssues(root: SduiNode, registry: Map<string, ComponentD
   function visit(node: SduiNode) {
     const definition = registry.get(registryKey(node.type, node.version));
     const componentLabel = labelFor(node.type);
-    const addIssue = (suffix: string, message: string) => issues.push({
+    const addIssue = (suffix: string, issue: string | Omit<AuthoringIssue, 'id' | 'nodeId' | 'componentLabel'>) => issues.push({
       id: `${node.id}:${suffix}`,
       nodeId: node.id,
       componentLabel,
-      message,
+      ...(typeof issue === 'string' ? normalizeAuthoringIssue(suffix, issue, node, definition, channel) : issue),
     });
     if (!definition) {
       addIssue('definition', 'componente ausente no catálogo');
@@ -456,6 +500,17 @@ function collectAuthoringIssues(root: SduiNode, registry: Map<string, ComponentD
       )) {
         addIssue(`prop:${prop.name}`, `preencha ${prop.name}`);
       }
+      const presentation = propertyPresentation(node.type, prop);
+      const message = propertyIssueMessage(prop, node.props[prop.name], presentation);
+      if (message && !(prop.required && isMissingValue(node.props[prop.name]))) {
+        addIssue(`prop:${prop.name}:value`, {
+          severity: 'error',
+          section: presentation.advanced ? 'advancedProperties' : 'configuration',
+          field: prop.name,
+          fieldLabel: presentation.label,
+          message,
+        });
+      }
     });
     if (definition.category === 'INPUT' && !node.bindings?.value?.path) addIssue('binding:value', 'configure o campo Valor');
     if ((definition.type === 'ui.button' || definition.type === 'ui.link') && !node.events?.onPress) addIssue('event:onPress', 'configure a ação principal');
@@ -463,6 +518,96 @@ function collectAuthoringIssues(root: SduiNode, registry: Map<string, ComponentD
   }
   visit(root);
   return issues;
+}
+
+function normalizeAuthoringIssue(
+  suffix: string,
+  message: string,
+  node: SduiNode,
+  definition: ComponentDefinition | undefined,
+  channel: DesignChannel,
+): Omit<AuthoringIssue, 'id' | 'nodeId' | 'componentLabel'> {
+  if (suffix === 'definition') {
+    return {
+      severity: 'error',
+      section: 'configuration',
+      message: 'Este componente não está disponível no catálogo.',
+    };
+  }
+  if (suffix === 'compatibility') {
+    return {
+      severity: 'error',
+      section: 'visibility',
+      message: compatibilityMessage(definition ? compatibilityForDesignChannel(definition, channel) : 'INCOMPATIBLE', channel) ?? 'Este componente não pode aparecer no canal selecionado.',
+    };
+  }
+  if (suffix.startsWith('prop:') && definition) {
+    const propName = suffix.split(':')[1];
+    const prop = definition.propsSchema.find((item) => item.name === propName);
+    const presentation = prop ? propertyPresentation(node.type, prop) : null;
+    return {
+      severity: 'error',
+      section: presentation?.advanced ? 'advancedProperties' : 'configuration',
+      field: propName,
+      fieldLabel: presentation?.label ?? propName,
+      message: presentation ? `Informe ${lowerFirst(presentation.label)}.` : message,
+    };
+  }
+  if (suffix.startsWith('binding:')) {
+    return {
+      severity: 'error',
+      section: 'bindings',
+      field: suffix.split(':')[1],
+      fieldLabel: 'Resposta',
+      message: 'Configure onde a resposta será armazenada.',
+    };
+  }
+  if (suffix.startsWith('event:')) {
+    return {
+      severity: 'warning',
+      section: 'events',
+      field: suffix.split(':')[1],
+      fieldLabel: 'Ação principal',
+      message: 'Configure a ação principal deste componente.',
+    };
+  }
+  return {
+    severity: 'warning',
+    section: 'configuration',
+    message,
+  };
+}
+
+function propertyIssueMessage(prop: PropDescriptor, value: unknown, presentation: PropertyPresentation): string | null {
+  if (prop.required && isMissingValue(value)) return `Informe ${lowerFirst(presentation.label)}.`;
+  if (isMissingValue(value)) return null;
+  if (prop.kind === 'NUMBER' && (typeof value !== 'number' || !Number.isFinite(value))) return `Informe um número válido em ${lowerFirst(presentation.label)}.`;
+  if (prop.kind === 'ENUM' && !(prop.enumValues ?? []).includes(String(value))) return `Escolha uma opção disponível em ${lowerFirst(presentation.label)}.`;
+  if (prop.kind === 'TOKEN' && !tokensForGroup(prop.tokenGroup).includes(String(value))) return `Escolha um valor previsto para ${lowerFirst(presentation.label)}.`;
+  if (prop.kind === 'OPTIONS_LIST') {
+    if (!Array.isArray(value)) return prop.required ? `Adicione pelo menos uma opção em ${lowerFirst(presentation.label)}.` : null;
+    if (prop.required && value.length === 0) return `Adicione pelo menos uma opção em ${lowerFirst(presentation.label)}.`;
+    if (value.some((option) => {
+      if (!option || typeof option !== 'object') return true;
+      const item = option as Record<string, unknown>;
+      return !String(item.label ?? '').trim() || !String(item.value ?? '').trim();
+    })) return `Complete rótulo e valor em todas as opções de ${lowerFirst(presentation.label)}.`;
+  }
+  return null;
+}
+
+function isMissingValue(value: unknown): boolean {
+  return value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+}
+
+function lowerFirst(value: string): string {
+  return value ? value.charAt(0).toLocaleLowerCase('pt-BR') + value.slice(1) : value;
+}
+
+function issueTone(severity: AuthoringIssueSeverity, c: ReturnType<typeof useFlowTheme>['c']): { border: string; background: string } {
+  if (severity === 'error') return { border: c.danger, background: c.dangerSoft };
+  if (severity === 'warning') return { border: '#d97706', background: 'rgba(217,119,6,0.14)' };
+  return { border: c.accent, background: c.accentSoft };
 }
 
 function isVisibleInChannel(node: SduiNode, channel: DesignChannel): boolean {

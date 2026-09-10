@@ -380,7 +380,7 @@ export function FormCanvas({
         <div className="mb-3 flex items-center justify-between px-1">
           <div>
             <div className="text-[12px] font-semibold" style={{ color: c.textPrimary }}>Design da tela</div>
-            <div className="text-[10.5px]" style={{ color: c.textSecondary }}>Selecione diretamente na prévia para configurar.</div>
+            <div className="text-[10.5px]" style={{ color: c.textSecondary }}>Clique em um componente da tela para editar suas configurações.</div>
           </div>
           <span className="rounded-full px-2 py-1 text-[9px] font-semibold" style={{ background: c.accentSoft, color: c.accent }}>
             {DESIGN_CHANNEL_LABEL[designChannel]}

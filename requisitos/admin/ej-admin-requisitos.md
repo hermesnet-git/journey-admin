@@ -518,6 +518,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 ### US-04.05 Preview
 #### REQ-04.05.001 - O sistema deve permitir visualizar o formulário durante a edição.
 #### REQ-04.05.002 - O preview deve refletir alterações em tempo real.
+#### REQ-04.05.003 - O preview deve refletir o canal de renderização selecionado (Web, Mobile ou WhatsApp), compartilhando a mesma seleção de canal do editor e a mesma indicação de compatibilidade por componente exibida na paleta.
 
 ---
 
@@ -548,6 +549,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.07.010 - A leitura do catálogo deve ser permitida a qualquer papel autenticado; criar, editar e remover devem ser restritos ao papel de administrador.
 #### REQ-04.07.011 - Remover um componente do catálogo não deve apagar seu registro — deve marcá-lo como indisponível, preservando a referência para telas já publicadas que o utilizem.
 #### REQ-04.07.012 - O sistema deve prover, desde a primeira instalação, um catálogo inicial com os componentes do contrato corporativo de referência.
+#### REQ-04.07.013 - Um componente de origem sistêmica (pertencente ao catálogo inicial do contrato corporativo, REQ-04.07.012) não deve poder ser removido, apenas ter seus demais atributos editados; somente componentes de origem customizada, criados pelo próprio usuário, podem ser removidos (REQ-04.07.011). A tela de administração do catálogo deve indicar a origem de cada componente.
 
 ---
 
@@ -573,6 +575,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.09.008 - O usuário deve poder editar as propriedades do componente selecionado num painel dedicado, com o campo de entrada apropriado ao tipo de cada propriedade declarada pelo catálogo.
 #### REQ-04.09.009 - No modo de construção da tela, os componentes não devem aceitar digitação de valores reais — não é o formulário sendo preenchido, é uma prancheta de montagem.
 #### REQ-04.09.010 - O sistema deve oferecer um modo de pré-visualização que renderiza a árvore como seria apresentada ao usuário final, alternável a qualquer momento com o modo de construção.
+#### REQ-04.09.011 - O sistema deve sinalizar pendências de preenchimento da tela — propriedade obrigatória vazia, valor de propriedade incompatível com o schema do catálogo, componente de entrada sem vínculo de dados, botão ou link sem ação associada, ou componente incompatível com o canal selecionado — classificadas por severidade, permitindo ao usuário navegar de uma pendência até o campo correspondente no painel de propriedades.
 
 ---
 
@@ -610,6 +613,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.13.006 - O sistema não deve permitir publicar uma jornada com um evento associado a uma ação fora do conjunto fechado (US-04.11).
 #### REQ-04.13.007 - Ao rejeitar a publicação, o sistema deve informar todas as violações encontradas, não só a primeira.
 #### REQ-04.13.008 - O sistema não deve permitir publicar uma jornada em que, para algum dos tipos de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo — considerando as regras de visibilidade condicionadas a `session.channel` (REQ-04.12.004).
+#### REQ-04.13.009 - O sistema não deve permitir publicar uma jornada em que o valor de uma propriedade, em alguma tela, viole o schema declarado pelo componente no catálogo (tipo de valor, faixa numérica ou enumeração — REQ-04.07.006).
 
 ---
 

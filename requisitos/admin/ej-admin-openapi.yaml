@@ -648,6 +648,7 @@ paths:
     post:
       tags: [ComponentRegistry]
       summary: Create a new component (REQ-04.07.001/002, ADMIN only)
+      description: Always creates the component with origin=CUSTOM — this endpoint cannot create a SYSTEM (canonical) component.
       operationId: createComponentDefinition
       requestBody:
         required: true
@@ -668,6 +669,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ComponentDefinition'
+
+  /component-registry/authoring:
+    get:
+      tags: [ComponentRegistry]
+      summary: List components available for authoring in the Form Builder palette (REQ-04.09.001)
+      description: >
+        One row per type — STABLE preferred over EXPERIMENTAL, else the highest semver version —
+        restricted to strict semver versions (e.g. 1.0.0), excluding legacy non-semver versions
+        (e.g. 1.0) and REMOVED/DEPRECATED components.
+      operationId: listAuthoringComponentDefinitions
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: Current version per component type, sorted by level/category/type.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComponentDefinition'
 
   /component-registry/{id}:
     put:
@@ -692,6 +714,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'SYSTEM_COMPONENT_PROTECTED — cannot set status=REMOVED on a SYSTEM (canonical) component; other fields may still be edited.'
         '200':
           description: Updated
           content:
@@ -700,7 +724,7 @@ paths:
                 $ref: '#/components/schemas/ComponentDefinition'
     delete:
       tags: [ComponentRegistry]
-      summary: Mark a component as REMOVED (REQ-04.07.011, ADMIN only) — never deletes the row.
+      summary: Mark a component as REMOVED (REQ-04.07.011/013, ADMIN only) — never deletes the row.
       operationId: deleteComponentDefinition
       parameters:
         - name: id
@@ -714,6 +738,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '422':
+          description: SYSTEM_COMPONENT_PROTECTED — a component with origin=SYSTEM can never be removed, only edited.
         '204':
           description: Marked REMOVED
 
@@ -1578,6 +1604,17 @@ components:
           additionalProperties:
             $ref: '#/components/schemas/TargetSupport'
           description: 'Chaves: react.web, react.mobile, flutter.web, flutter.mobile.'
+        allowedReservedFields:
+          type: array
+          items:
+            type: string
+            enum: ['$bindings', '$events', '$visibility', '$active']
+          description: Campos reservados que este componente pode usar na autoria da tela — orienta o Form Builder, não integra a UI Spec publicada.
+        origin:
+          type: string
+          enum: [SYSTEM, CUSTOM]
+          readOnly: true
+          description: 'SYSTEM = catálogo corporativo de referência, nunca removível. CUSTOM = criado pelo usuário; sempre a origem de um componente novo (POST não aceita este campo).'
         createdAt:
           type: string
           format: date-time

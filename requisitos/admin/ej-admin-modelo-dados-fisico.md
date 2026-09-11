@@ -262,8 +262,8 @@ Mesmo caso de `flow_node`/`flow_connection`: o desenho acima é a referência re
 > **Reformulação (2026-09-05):** substitui por completo as antigas tabelas conceituais `form`/
 > `form_field` (removidas junto com o catálogo de Formulários e o modelo de campo plano — ver
 > `ej-admin-requisitos.md` FT-04). Diferente delas, `component_definition` é uma tabela real,
-> criada pelas migrations `V12__component_registry.sql`/`V13__seed_component_catalog_v1.sql`/
-> `V14__fix_component_definition_level_type.sql`.
+> criada pela migration `V12__component_registry.sql` e evoluída por `V13`/`V14`/`V18`–`V23`
+> (ver nota de revisão abaixo).
 
 ```sql
 CREATE TABLE component_definition (
@@ -277,20 +277,36 @@ CREATE TABLE component_definition (
     allowed_child_types JSONB NOT NULL DEFAULT '[]',
     props_schema JSONB NOT NULL DEFAULT '[]',
     events JSONB NOT NULL DEFAULT '[]',
+    allowed_reserved_fields JSONB NOT NULL DEFAULT '[]',
     supported_targets JSONB NOT NULL DEFAULT '{}',
+    origin VARCHAR(20) NOT NULL DEFAULT 'CUSTOM' CHECK (origin IN ('SYSTEM', 'CUSTOM')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_component_definition_type_version UNIQUE (type, version)
 );
 ```
 
-Chave de negócio é `(type, version)` (ex.: `ui.textInput` + `1.0`), não `component_definition_id`
+Chave de negócio é `(type, version)` (ex.: `ui.textInput` + `1.0.0`), não `component_definition_id`
 — este último é só a chave técnica. `level` foi corrigido de `SMALLINT` para `INTEGER` na `V14`
 (a entidade JPA usa `int` Java, que o Hibernate mapeia por padrão para `INTEGER`, não `SMALLINT`).
-`allowed_child_types`/`props_schema`/`events`/`supported_targets` são JSONB — ver §12 pro shape de
-`props_schema` (lista de `PropDescriptor`) e `supported_targets` (mapa alvo→`TargetSupport`).
-Remover um componente (`DELETE /component-registry/{id}`) nunca apaga a linha — marca
-`status = 'REMOVED'`, preservando a referência para telas já publicadas que o utilizem.
+`allowed_child_types`/`props_schema`/`events`/`allowed_reserved_fields`/`supported_targets` são
+JSONB — ver §12 pro shape de `props_schema` (lista de `PropDescriptor`) e `supported_targets` (mapa
+alvo→`TargetSupport`). `allowed_reserved_fields` (`V21`) é a lista dos campos reservados
+(`$bindings`/`$events`/`$visibility`/`$active`) que aquele componente pode usar — orienta o Form
+Builder, não integra a UI Spec publicada. Remover um componente (`DELETE /component-registry/{id}`)
+nunca apaga a linha — marca `status = 'REMOVED'`, preservando a referência para telas já publicadas
+que o utilizem; um componente de `origin = 'SYSTEM'` não pode ser removido (a aplicação bloqueia
+antes de chegar ao banco).
+
+> **Nota de revisão (2026-09-10):** `V18`/`V19` introduziram uma segunda leva de linhas em versão
+> semver plena (`1.0.0`) ao lado das originais `1.0` da `V13`, depois retirando de circulação
+> (`status = 'REMOVED'`) as `1.0` legadas — a versão `1.0.0` é o catálogo canônico em uso hoje.
+> `V20` normalizou nomes de `kind` dentro do `props_schema` já persistido. `V21` adicionou
+> `allowed_reserved_fields`. `V22` adicionou `origin`, marcando como `SYSTEM` os 19 componentes
+> `ui.*` do contrato corporativo de referência (`status` promovido para `STABLE`) — qualquer
+> componente criado depois via `POST /component-registry` nasce `origin = 'CUSTOM'`, o único que
+> pode ser removido. `V23` corrigiu o `props_schema` persistido de `ui.datePicker` (campos
+> `minDate`/`maxDate`/`format` ausentes, `mode` com valor `datetime` em vez do canônico `dateTime`).
 
 ---
 
@@ -549,6 +565,7 @@ CREATE INDEX idx_flow_connection_flow ON flow_connection(flow_id);
 
 CREATE INDEX idx_component_definition_status ON component_definition(status);
 CREATE INDEX idx_component_definition_category ON component_definition(category);
+CREATE INDEX idx_component_definition_origin ON component_definition(origin);
 
 CREATE INDEX idx_publication_status ON journey_publication(publication_status);
 CREATE INDEX idx_publication_snapshot ON journey_publication USING GIN (journey_snapshot);

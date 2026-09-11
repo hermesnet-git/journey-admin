@@ -263,14 +263,17 @@ export const EPICS: Epic[] = [
         code: 'US-03.01',
         name: 'Flow designer',
         requirements: [
-          d('REQ-03.01.001', 'O sistema deve suportar eventos de início.'),
+          d('REQ-03.01.001', 'O sistema deve suportar eventos de início, incluindo START e MESSAGE_START_EVENT.'),
           d('REQ-03.01.002', 'O sistema deve suportar eventos de término.'),
           d('REQ-03.01.003', 'O sistema deve suportar User Tasks.'),
           d('REQ-03.01.004', 'Cada fluxo deve possuir exatamente um elemento inicial (START ou MESSAGE_START_EVENT) e ao menos um nó END.'),
-          d(
-            'REQ-03.01.005',
-            'Ao criar uma jornada, o sistema deve iniciar seu fluxo apenas com o nó START, cabendo ao usuário adicionar o nó END e os demais elementos antes de salvar.',
-          ),
+          {
+            code: 'REQ-03.01.005',
+            description:
+              'Ao criar uma jornada em branco, o sistema deve iniciar seu canvas sem elementos. Quando o usuário escolher um modelo predefinido, o fluxo deve iniciar com uma cópia independente do esqueleto desse modelo.',
+            status: 'done',
+            notes: 'Revisado com a chegada de modelos de jornada (piloto com um modelo editável, "aprovação de pedido").',
+          },
         ],
       },
       {
@@ -703,6 +706,7 @@ export const EPICS: Epic[] = [
         requirements: [
           d('REQ-04.05.001', 'O sistema deve permitir visualizar o formulário durante a edição.'),
           d('REQ-04.05.002', 'O preview deve refletir alterações em tempo real.'),
+          d('REQ-04.05.003', 'O preview deve refletir o canal de renderização selecionado (Web, Mobile ou WhatsApp), compartilhando a mesma seleção de canal do editor e a mesma indicação de compatibilidade por componente.'),
         ],
       },
       {
@@ -734,15 +738,11 @@ export const EPICS: Epic[] = [
             status: 'done',
             notes: 'O catálogo inicial só marca a renderização web como suportada de fato — os demais alvos (mobile) constam como planejados, ainda sem renderizador.',
           },
-          {
-            code: 'REQ-04.07.009',
-            description: 'O sistema deve disponibilizar uma tela de administração do catálogo, com listagem, criação, edição e remoção.',
-            status: 'done',
-            notes: 'Implementada, ainda não testada visualmente pelo usuário.',
-          },
+          d('REQ-04.07.009', 'O sistema deve disponibilizar uma tela de administração do catálogo, com listagem, criação, edição e remoção.'),
           d('REQ-04.07.010', 'A leitura do catálogo deve ser permitida a qualquer papel autenticado; criar, editar e remover devem ser restritos ao papel de administrador.'),
           d('REQ-04.07.011', 'Remover um componente do catálogo não deve apagar seu registro — deve marcá-lo como indisponível, preservando a referência para telas já publicadas que o utilizem.'),
           d('REQ-04.07.012', 'O sistema deve prover, desde a primeira instalação, um catálogo inicial com os componentes do contrato corporativo de referência.'),
+          d('REQ-04.07.013', 'Um componente de origem sistêmica (pertencente ao catálogo inicial do contrato corporativo) não deve poder ser removido, apenas editado; só componentes de origem customizada, criados pelo próprio usuário, podem ser removidos. A tela de administração indica a origem de cada componente.'),
         ],
       },
       {
@@ -777,6 +777,7 @@ export const EPICS: Epic[] = [
           d('REQ-04.09.008', 'O usuário deve poder editar as propriedades do componente selecionado num painel dedicado, com o campo de entrada apropriado ao tipo de cada propriedade declarada pelo catálogo.'),
           d('REQ-04.09.009', 'No modo de construção da tela, os componentes não devem aceitar digitação de valores reais — não é o formulário sendo preenchido, é uma prancheta de montagem.'),
           d('REQ-04.09.010', 'O sistema deve oferecer um modo de pré-visualização que renderiza a árvore como seria apresentada ao usuário final, alternável a qualquer momento com o modo de construção.'),
+          d('REQ-04.09.011', 'O sistema deve sinalizar pendências de preenchimento da tela — propriedade obrigatória vazia, valor incompatível com o schema, componente de entrada sem vínculo de dados, botão ou link sem ação associada, ou componente incompatível com o canal selecionado — classificadas por severidade, permitindo ao usuário navegar de uma pendência até o campo correspondente.'),
         ],
       },
       {
@@ -837,6 +838,7 @@ export const EPICS: Epic[] = [
           d('REQ-04.13.006', 'O sistema não deve permitir publicar uma jornada com um evento associado a uma ação fora do conjunto fechado.'),
           d('REQ-04.13.007', 'Ao rejeitar a publicação, o sistema deve informar todas as violações encontradas, não só a primeira.'),
           d('REQ-04.13.008', 'O sistema não deve permitir publicar uma jornada em que, para algum dos tipos de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo.'),
+          d('REQ-04.13.009', 'O sistema não deve permitir publicar uma jornada em que o valor de uma propriedade, em alguma tela, viole o schema declarado pelo componente no catálogo (tipo de valor, faixa numérica ou enumeração).'),
         ],
       },
       {
@@ -1948,6 +1950,12 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-09-10 21:07 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Form Builder reformulado e Component Registry ajustado (FT-04) — sincronização de documentação após implementação. REQ-04.05.003 novo (US-04.05, Preview): preview passa a refletir o canal de renderização selecionado, compartilhando a mesma seleção de canal (Web/Mobile/WhatsApp) e a mesma indicação de compatibilidade do editor (FormDesignerDock.tsx/designChannel.ts/previewProjection.ts). REQ-04.09.011 novo (US-04.09, Editor): painel de pendências de preenchimento com severidade (erro/aviso/info) e navegação da pendência até o campo (FormBuilder.tsx/PropertyInspector.tsx). REQ-04.13.009 novo (US-04.13, Validação estrutural): rejeita publicação com valor de propriedade fora do schema do catálogo (FlowValidator.validateCanonicalPropertyValues). REQ-04.07.011 recebeu nota de revisão via REQ-04.07.013 novo (US-04.07, Component Registry): componente de origem sistêmica não pode ser removido, só editado — distinção sistêmico/customizado já implementada (coluna origin, migration V22) mas nunca documentada. Testado visualmente pelo usuário (D&D recursivo, publicação, Catálogo de Componentes) — ressalva de "não testado" removida da entrada de 2026-09-05. Registrada também, sem REQ associado por ser ferramenta de desenvolvimento: massa de dados de fábrica redefinida (requisitos/admin/bd/) — script único "marco zero" que reinicializa o runtime-engine, restaura o Admin a partir de massa_de_dados_journeys.sql e republica as versões semeadas pelas APIs oficiais, com integração Strapi agora opcional. Total FT-04: 64 → 68 REQs; total geral: 497 → 501 REQs, 445 → 449 concluídos (90%).',
+  },
+  {
     date: '2026-09-07 00:19 (não commitado)',
     source: 'progresso',
     summary:
@@ -2305,6 +2313,168 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-09-10 19:56',
+    source: 'git',
+    summary: 'Melhora o tratamento de pendências do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-10 19:27',
+    source: 'git',
+    summary: 'Organiza as propriedades avançadas do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-10 19:11',
+    source: 'git',
+    summary: 'Ajusta a orientação do canvas do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-10 19:04',
+    source: 'git',
+    summary: 'Aprimora o painel de design do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-10 10:48',
+    source: 'git',
+    summary: 'Aprimora o preview e os tokens do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-09 22:43',
+    source: 'git',
+    summary: 'Alinha o Design e o Preview do Form Builder por canal.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-09 22:16',
+    source: 'git',
+    summary: 'Torna a tela obrigatória em User Tasks.',
+    epics: ['FT-03', 'FT-04'],
+  },
+  {
+    date: '2026-09-09 21:07',
+    source: 'git',
+    summary: 'Reorganiza as propriedades do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-09 20:21',
+    source: 'git',
+    summary: 'Aprimora o canvas do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-09 20:06',
+    source: 'git',
+    summary: 'Aprimora a paleta do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-09 19:47',
+    source: 'git',
+    summary: 'Refatora a estrutura do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-08 20:32',
+    source: 'git',
+    summary: 'Adiciona favicon Vivo ao Channel Lab.',
+  },
+  {
+    date: '2026-09-08 20:30',
+    source: 'git',
+    summary: 'Adiciona o canal ao card de execuções recentes do Dashboard.',
+    epics: ['FT-13'],
+  },
+  {
+    date: '2026-09-08 20:27',
+    source: 'git',
+    summary: 'Define a massa de dados de fábrica do Elastic Journey — script único de reset de ambiente local, sem REQ associado.',
+  },
+  {
+    date: '2026-09-08 20:13',
+    source: 'git',
+    summary: 'Adiciona a coluna Canal ao grid de Diagnóstico.',
+    epics: ['FT-15'],
+  },
+  {
+    date: '2026-09-08 19:49',
+    source: 'git',
+    summary: 'Alinha o DatePicker e o Progress ao catálogo SDUI.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-08 19:04',
+    source: 'git',
+    summary: 'Separa o preview do Form Designer.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-08 18:44',
+    source: 'git',
+    summary: 'Ajustes de configuração.',
+  },
+  {
+    date: '2026-09-08 18:43',
+    source: 'git',
+    summary: 'Aprimora a autoria SDUI e o catálogo de componentes.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-08 17:50',
+    source: 'git',
+    summary: 'Evita logs de erro no admin e no ms-journey vindos do painel de status.',
+  },
+  {
+    date: '2026-09-08 17:29',
+    source: 'git',
+    summary: 'Corrige robustez do lançamento mobile e adiciona painel de status ao Channel Lab.',
+  },
+  {
+    date: '2026-09-08 11:40',
+    source: 'git',
+    summary: 'Primeira refatoração para o SDUI Catalog V1.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-08 03:17',
+    source: 'git',
+    summary: 'Ajusta o SDUI Catalog V1 no Emulador.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-08 01:55',
+    source: 'git',
+    summary: 'Versão revisada com o spec-ui-registry da empresa.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-07 01:04',
+    source: 'git',
+    summary: 'Implementação inicial do Channel Lab.',
+  },
+  {
+    date: '2026-09-07 00:32',
+    source: 'git',
+    summary: 'Permite versões publicadas concorrentes e corrige travamentos de publicação.',
+    epics: ['FT-06'],
+  },
+  {
+    date: '2026-09-06 19:13',
+    source: 'git',
+    summary: 'Nova jornada com 3 formas de começar: em branco, por modelo ou por IA.',
+    epics: ['FT-02'],
+  },
+  {
+    date: '2026-09-06 04:36',
+    source: 'git',
+    summary: 'Reformula o domínio de canais: Channel vira tipo fixo (WEB/MOBILE/WHATSAPP); documenta jornada multicanal.',
+    epics: ['FT-01', 'FT-02'],
+  },
   {
     date: '2026-09-05 13:19',
     source: 'git',

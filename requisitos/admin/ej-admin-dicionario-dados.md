@@ -186,6 +186,10 @@ Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da 
 > **Reformulação (2026-09-05):** substitui por completo as antigas entradas `Form`/`FormField`
 > (catálogo de Formulários e modelo de campo plano removidos — ver `ej-admin-requisitos.md` FT-04).
 
+> **Nota de revisão (2026-09-10):** campos `AllowedReservedFields` e `Origin` adicionados
+> (migrations `V21`/`V22`) — a distinção sistêmico/customizado nunca tinha sido documentada aqui,
+> embora já existisse no código (REQ-04.07.013, `ej-admin-requisitos.md`).
+
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | ComponentDefinitionId | UUID | Sim | Identificador técnico da linha — não é a chave de negócio |
@@ -199,10 +203,12 @@ Uma `FlowAnnotation` é só documentação visual do editor: nunca participa da 
 | PropsSchema | JSONB | Sim | Lista de `PropDescriptor` (§11) — schema das propriedades configuráveis do componente |
 | Events | JSONB | Sim | Lista dos eventos que o componente pode disparar, dentre o conjunto fechado de ações (US-04.11) |
 | SupportedTargets | JSONB | Sim | Mapa alvo de renderização → `TargetSupport` (status + versão mínima de renderizador), por `react.web`/`react.mobile`/`flutter.web`/`flutter.mobile` |
+| AllowedReservedFields | JSONB | Sim | Lista dos campos reservados (`$bindings`/`$events`/`$visibility`/`$active`) que o componente pode usar na autoria — orienta o Form Builder, não integra a UI Spec publicada |
+| Origin | VARCHAR(20) | Sim | `SYSTEM` (catálogo corporativo de referência, nunca removível) ou `CUSTOM` (criado pelo usuário via tela de administração, o único que pode ser removido) |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
-Tabela real (`component_definition`), não um documento JSONB dentro de outra entidade. Remover um componente (via tela de administração do catálogo) nunca apaga a linha — marca `Status = REMOVED`, preservando a referência para telas já publicadas que o utilizem. O catálogo é semeado, desde a primeira instalação, com os 19 componentes `ui.*` do contrato corporativo de referência (`requisitos/admin/sdui/elastic-journey-sdui-component-catalog-v1.md`).
+Tabela real (`component_definition`), não um documento JSONB dentro de outra entidade. Remover um componente (via tela de administração do catálogo) nunca apaga a linha — marca `Status = REMOVED`, preservando a referência para telas já publicadas que o utilizem; só é permitido para componentes `Origin = CUSTOM` (REQ-04.07.013). O catálogo é semeado, desde a primeira instalação, com os 19 componentes `ui.*` do contrato corporativo de referência (`requisitos/admin/sdui/elastic-journey-sdui-component-catalog-v1.md`), todos com `Origin = SYSTEM`.
 
 ---
 

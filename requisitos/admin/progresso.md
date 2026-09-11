@@ -16,14 +16,40 @@
 |---|---|
 | Total de Features (FT) | 15 |
 | Total de User Stories (US) | 102 |
-| Total de Requisitos (REQ) | 497 |
-| Concluídos (`done`) | 445 |
+| Total de Requisitos (REQ) | 501 |
+| Concluídos (`done`) | 449 |
 | Em andamento (`in_progress`) | 4 |
 | Não iniciados (`todo`) | 46 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
 | % Concluído | 90% |
 
+> **Form Builder reformulado e Component Registry ajustado (FT-04, 2026-09-10).** O editor de tela
+> (Form Builder) foi separado do preview (`FormDesignerDock` passou a compor `FormBuilder` +
+> `FormDesignPreview` lado a lado) e ambos passaram a compartilhar uma única seleção de canal
+> (Web/Mobile/WhatsApp): a paleta esconde/desabilita componentes incompatíveis com o canal
+> selecionado, o canvas de construção assume a forma do canal (moldura de celular, largura de bolha
+> do WhatsApp) e o preview reprojeta a mesma árvore para o mesmo canal — REQ-04.05.003 (novo). O
+> editor ganhou um painel de pendências de preenchimento (propriedade obrigatória vazia, valor fora
+> do schema, campo de entrada sem vínculo de dados, botão/link sem ação, incompatibilidade de
+> canal), com severidade (erro/aviso/info) e clique-para-focar o campo no painel de propriedades —
+> REQ-04.09.011 (novo). A validação de publicação passou a rejeitar valor de propriedade fora do
+> schema declarado pelo componente (ex.: `ui.datePicker.mode`, `ui.progress.value` fora de `[0,1]`)
+> — REQ-04.13.009 (novo). Ajuste em US-04.07: componentes de origem sistêmica (catálogo corporativo
+> de referência, `origin=SYSTEM`) não podem ser removidos, só editados — apenas componentes
+> customizados criados pelo próprio usuário (`origin=CUSTOM`) podem ser removidos; a tela de
+> administração do catálogo já indica a origem de cada componente — REQ-04.07.013 (novo,
+> `V22__component_definition_origin.sql`). Total FT-04: 64 → 68 REQs; total geral: 497 → 501 REQs,
+> 445 → 449 concluídos.
+>
+> Massa de dados de fábrica redefinida (`requisitos/admin/bd/`, ferramenta de desenvolvimento, sem
+> REQ associado): os scripts `popular_massa_dados.ps1`/`.sh`/`.bat` passaram a reinicializar o
+> runtime-engine, restaurar o banco do Admin a partir de `massa_de_dados_journeys.sql` (produtos,
+> canais, catálogo SDUI estável e jornadas de referência, incluindo um "Laboratório Multicanal de
+> Componentes" exercitando todo o catálogo) e republicar as versões semeadas chamando as APIs
+> oficiais do Admin — nunca escrevendo status de publicação direto no banco. A integração com Strapi
+> passou a ser opcional (o script segue sem ela se a porta 1337 não responder).
+>
 > **Reformulação (FT-03/FT-04, 2026-09-05): catálogo SDUI corporativo implementado; FT-03 renomeada.**
 > FT-03 "Modelagem Visual" renomeada para "Modelagem Visual de Workflows" (título, sem mudança de
 > REQs). FT-04 renomeada de "Formulários (SDUI)" para "Catálogo Server Driven UI (SDUI)" e
@@ -42,11 +68,11 @@
 > a ler a árvore da tela publicada de lá, não mais do admin/back. Perda de capacidade aceita
 > explicitamente: `MULTI_SELECT`/`FILE_UPLOAD`/`RADIO`/`SLIDER`/`RATING`/`STEPPER`/`AUTOCOMPLETE`/
 > `AVATAR`/`BADGE`/`TAG`/`TABS`/`CAROUSEL`/`TABLE` sem equivalente no catálogo v1; canal WEB perde
-> posição livre (x/y), passa a usar `ui.stack`/`ui.container` como os demais canais. **Não testado
-> visualmente pelo usuário** (D&D recursivo, publicação, Catálogo de Componentes) nem contra um
-> Strapi real (token de API ainda não gerado) — ver [[project_sdui_catalog_v1_reformulacao]]. Total
-> FT-04: 30 → 60 REQs (22 removidos junto com US-04.02, 1 removido em US-04.04, 1 em US-04.06, 55
-> novos); total geral: 450 → 480 REQs antes da adição de FT-08 abaixo.
+> posição livre (x/y), passa a usar `ui.stack`/`ui.container` como os demais canais. Testado
+> visualmente pelo usuário (D&D recursivo, publicação, Catálogo de Componentes) — ver
+> [[project_sdui_catalog_v1_reformulacao]]. Total FT-04: 30 → 60 REQs (22 removidos junto com
+> US-04.02, 1 removido em US-04.04, 1 em US-04.06, 55 novos); total geral: 450 → 480 REQs antes da
+> adição de FT-08 abaixo.
 >
 > **Nova US-02.04 Modelos de jornada (2026-09-06): piloto implementado.** A criação aceita um
 > `templateId` opcional e continua compatível com o canvas em branco quando ausente. O backend é a
@@ -109,7 +135,7 @@
 | FT-01 | Gestão de Produtos e Canais | 12 | 12 | 100% |
 | FT-02 | Gestão de Jornadas | 50 | 48 | 96% (1 in_progress) |
 | FT-03 | Modelagem Visual de Workflows | 97 | 97 | 100% |
-| FT-04 | Catálogo Server Driven UI (SDUI) | 64 | 64 | 100% |
+| FT-04 | Catálogo Server Driven UI (SDUI) | 68 | 68 | 100% |
 | FT-05 | Execução | 57 | 57 | 100% |
 | FT-06 | Versionamento de jornadas | 43 | 43 | 100% |
 | FT-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
@@ -479,6 +505,7 @@
 |---|---|---|---|---|---|
 | [x] | REQ-04.05.001 | O sistema deve permitir visualizar o formulário durante a edição. | done | front: `FormPreviewDock.tsx` (alternância Build/Preview), Preview renderiza via `execution/SduiNodeRenderer.tsx` | |
 | [x] | REQ-04.05.002 | O preview deve refletir alterações em tempo real. | done | front: Preview lê o mesmo state `embeddedScreenRoot` do Build, sem etapa de sincronização | |
+| [x] | REQ-04.05.003 | O preview deve refletir o canal de renderização selecionado, com a mesma indicação de compatibilidade por componente do editor. | done | front: `FormDesignerDock.tsx` compartilha `designChannel: DesignChannel` entre `FormBuilder` e `FormDesignPreview`; `previewProjection.ts` reprojeta a árvore por canal; `designChannel.ts` (`compatibilityForDesignChannel`) usado por ambos | |
 
 ### US-04.06 Imutabilidade e serialização para publicação
 
@@ -506,6 +533,7 @@
 | [x] | REQ-04.07.010 | A leitura do catálogo deve ser permitida a qualquer papel autenticado; escrita restrita a administrador. | done | back: `interfaces/componentregistry/ComponentDefinitionController` (`@PreAuthorize`) | |
 | [x] | REQ-04.07.011 | Remover um componente não deve apagar seu registro — deve marcá-lo como indisponível. | done | back: `DeleteComponentDefinition.execute` → `ComponentDefinition.markRemoved()` (nunca `DELETE` de linha) | |
 | [x] | REQ-04.07.012 | O sistema deve prover, desde a primeira instalação, um catálogo inicial com os componentes do contrato corporativo de referência. | done | back: migration `V13__seed_component_catalog_v1.sql` (19 componentes `ui.*`) | |
+| [x] | REQ-04.07.013 | Componente de origem sistêmica não pode ser removido, só editado; só componente customizado pode ser removido. Origem indicada na tela de administração. | done | back: `ComponentDefinition.markRemoved()` lança `SystemComponentRemovalException` quando `origin=SYSTEM`; `CreateComponentDefinition` sempre grava `origin=CUSTOM`; migration `V22__component_definition_origin.sql` (coluna `origin`, backfill `SYSTEM` para o catálogo v1) — front: `ComponentCatalogPage.tsx` mostra badge Sistêmico/Customizado e só exibe "Remover" quando `origin==='CUSTOM'` | |
 
 ### US-04.08 Estrutura da árvore de tela
 
@@ -533,6 +561,7 @@
 | [x] | REQ-04.09.008 | O usuário deve poder editar as propriedades do componente selecionado, com campo apropriado por tipo. | done | front: `sdui/SduiPropertiesPanel.tsx`/`PropField` (TEXT/NUMBER/BOOLEAN/ENUM/TOKEN/OPTIONS_LIST/VALIDATION_LIST) | |
 | [x] | REQ-04.09.009 | No modo de construção, os componentes não devem aceitar digitação de valores reais. | done | front: `sdui/SduiTreeCanvas.tsx` renderiza só ícone+rótulo por nó, nunca o campo real | corrige regressão do sistema anterior (canvas antigo reaproveitava o renderer interativo direto na edição) |
 | [x] | REQ-04.09.010 | O sistema deve oferecer um modo de pré-visualização alternável com o de construção. | done | front: `FormPreviewDock.tsx` (abas Build/Preview) | |
+| [x] | REQ-04.09.011 | Sinalizar pendências de preenchimento (propriedade obrigatória, valor fora do schema, vínculo ausente, ação ausente, incompatibilidade de canal), com severidade e navegação da pendência até o campo. | done | front: `FormBuilder.tsx` (`AuthoringIssue`, `collectAuthoringIssues`, `handleIssueClick`); `PropertyInspector.tsx` (`focusRequest` foca/expande/rola até o campo) | |
 
 ### US-04.10 Vínculo de dados
 
@@ -574,6 +603,7 @@
 | [x] | REQ-04.13.006 | Rejeitar publicação com evento associado a ação fora do conjunto fechado. | done | back: `FlowValidator.VALID_SDUI_ACTIONS` | |
 | [x] | REQ-04.13.007 | Informar todas as violações encontradas, não só a primeira. | done | back: `FlowValidationException` acumula `violations` numa lista antes de lançar | mesmo mecanismo já usado pelo resto de `FlowValidator` |
 | [x] | REQ-04.13.008 | Rejeitar publicação quando, para algum tipo de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo. | done | back: `FlowValidator.validateChannelVisibilityCoverage`/`hasVisibleLeafContent`, chamado por `validateSduiTree` para cada `ChannelType` da jornada sendo publicada | requisito novo desta sessão |
+| [x] | REQ-04.13.009 | Rejeitar publicação quando o valor de uma propriedade viole o schema declarado pelo componente (tipo, faixa numérica ou enumeração). | done | back: `FlowValidator.validateCanonicalPropertyValues` (ex.: `ui.datePicker.mode`, `ui.progress.value` em `[0,1]`) | |
 
 ### US-04.14 Publicação e repositório de especificação corporativo
 
@@ -1310,6 +1340,7 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 
 | Data/Hora | Alteração |
 |---|---|
+| 2026-09-10 21:07 (não commitado) | **Form Builder reformulado e Component Registry ajustado (FT-04) — sincronização de documentação após implementação.** REQ-04.05.003 novo (US-04.05, Preview): preview passa a refletir o canal de renderização selecionado, compartilhando a mesma seleção de canal (Web/Mobile/WhatsApp) e a mesma indicação de compatibilidade do editor (`FormDesignerDock.tsx`/`designChannel.ts`/`previewProjection.ts`). REQ-04.09.011 novo (US-04.09, Editor): painel de pendências de preenchimento com severidade (erro/aviso/info) e navegação da pendência até o campo (`FormBuilder.tsx`/`PropertyInspector.tsx`). REQ-04.13.009 novo (US-04.13, Validação estrutural): rejeita publicação com valor de propriedade fora do schema do catálogo (`FlowValidator.validateCanonicalPropertyValues`). REQ-04.07.011 recebeu nota de revisão via REQ-04.07.013 novo (US-04.07, Component Registry): componente de origem sistêmica não pode ser removido, só editado — distinção sistêmico/customizado já implementada (coluna `origin`, migration `V22`) mas nunca documentada. Testado visualmente pelo usuário (D&D recursivo, publicação, Catálogo de Componentes) — ressalva de "não testado" removida da entrada de 2026-09-05. Registrada também, sem REQ associado por ser ferramenta de desenvolvimento: massa de dados de fábrica redefinida (`requisitos/admin/bd/`) — script único "marco zero" que reinicializa o runtime-engine, restaura o Admin a partir de `massa_de_dados_journeys.sql` e republica as versões semeadas pelas APIs oficiais, com integração Strapi agora opcional. Total FT-04: 64 → 68 REQs; total geral: 497 → 501 REQs, 445 → 449 concluídos (90%). |
 | 2026-09-07 00:19 (não commitado) | **Publicar uma versão nova deixa de despublicar a anterior (FT-06/US-06.04) — corrige bug real de despublicar derrubando instância ativa.** REQ-02.06.004 e REQ-06.04.004/005/006/007/009/010/011/012 reescritos: uma jornada agora pode ter mais de uma versão `PUBLISHED` simultaneamente, cada uma com seu próprio `runtime_deployment_id` (coluna nova em `journey_version`, migration `V17`); despublicar passou a ser cirúrgico por versão (`ms-transform-publication` ganhou `DELETE /api/v1/publications/{journeyId}/deployments/{deploymentId}`, mirando só o deployment daquela versão — o endpoint antigo que apagava tudo da chave foi removido, sem dados legados pra manter compatível); a jornada só volta a `UNPUBLISHED` quando não sobra nenhuma versão publicada. REQ-06.04.014 novo: despublicar uma versão com instância de processo ativa agora é bloqueado (409 `ACTIVE_INSTANCES_EXIST`) — antes o delete do deployment usava `cascade=true` sem checar nada, matando a instância silenciosamente (bug relatado pelo usuário). Mensagens do front ajustadas (diálogo de republicar não fala mais em "substituir a versão publicada"; erro de despublicar com instância ativa tem texto próprio). Total FT-06: 42 → 43 REQs; total geral: 496 → 497 REQs, 444 → 445 concluídos (90%). |
 | 2026-09-06 04:15 (não commitado) | **Requisitos novos da jornada multicanal (nunca documentados) + correção de contagem pré-existente do FT-02.** A capacidade de jornada com múltiplos tipos de canal (implementada em sessão anterior) nunca tinha ganhado REQ — corrigido: REQ-02.02.005/006 reescritos (jornada associada a um subconjunto não vazio dos tipos do produto, produto declarado diretamente, não mais derivado de um canal); REQ-03.11.009 novo (US-03.11, Gateway) — variável reservada `channel`, injetada automaticamente pelo canal que inicia a instância, nunca declarável pelo usuário; REQ-04.12.004 novo (US-04.12, Visibilidade) — regras `in`/`notIn` de `SduiVisibility` sobre `session.channel`; REQ-04.13.008 novo (US-04.13, Validação) — rejeita publicar uma tela sem nenhum componente visível para algum dos tipos de canal da jornada; REQ-05.04.004 novo (US-05.04) — toda instância exige `?channel=`, validado contra os tipos da jornada, injetado como variável de processo; REQ-05.07.003 reescrito (não cita mais "Web ou App", adapta ao tipo escolhido) e REQ-05.07.006 novo — seletor de canal na tela de Executar quando a jornada tem mais de um tipo habilitado. Also corrigidos REQ-02.03.003/02.07.004/02.08.004/02.09.002/02.10.001 (citavam "canal" no singular). De quebra, achada e corrigida uma divergência de contagem do FT-02 que já existia antes desta sessão: o resumo geral registrava 44 REQs/42 concluídos, mas a seção detalhada sempre teve 50 linhas/48 concluídos (mesmo padrão de erro já corrigido antes para outras features) — o resumo por feature já estava com o valor certo (50/48/96%) antes desta entrada, só o total geral abaixo não refletia. Total FT-03: 96 → 97 REQs; FT-04: 62 → 64 REQs; FT-05: 55 → 57 REQs; total geral: 491 → 496 REQs, 439 → 444 concluídos (90%), 101 → 102 USs (contagem de User Stories também estava desatualizada). |
 | 2026-09-06 03:42 (não commitado) | **FT-01 reformulada: canal deixa de ser CRUD e vira domínio fixo (WEB/MOBILE/WHATSAPP).** US-01.02 Gestão de canais removida por completo (7 REQs) — não existe mais entidade `Channel`/tabela `channel`; produto passa a declarar diretamente um conjunto não vazio de tipos de canal (REQ-01.01.006, novo), validado contra `product_channel_type`/`journey_channel_type` (`V16__product_channel_type.sql`, substitui `channel`/`journey_channel`). US-01.03 perdeu os REQs de busca/filtro/contagem de canal (não fazem mais sentido sem CRUD); REQ-01.03.006 reescrito para "exibir os tipos de canal habilitados de cada produto". US-01.04 perdeu os REQs de desativação de canal (canal não tem mais status); REQ-01.04.001/003/004 reescritos removendo a menção a canal como entidade própria. Jornada também passou de `channelIds: Set<UUID>` para `channelTypes: Set<ChannelType>` (subconjunto dos tipos do produto) — mesmo modelo simplificado, aplicado em cascata em `admin/back`, `ms-espec-registry`, `ms-journey` e `admin/front` (não documentado aqui: é a mesma mudança de FT-02, adiada para quando a feature de jornadas multicanal for reformulada em conjunto). Total FT-01: 24 → 12 REQs; total geral: 497 → 491 REQs (12 removidos), 445 → 439 concluídos, 101 USs. |

@@ -27,6 +27,14 @@ export interface CanvasDragData {
   nodeId: string;
 }
 
+export type CanvasDropMode = 'inside' | 'before' | 'after';
+
+export interface CanvasDropData {
+  source: 'canvas-drop';
+  nodeId: string;
+  mode: CanvasDropMode;
+}
+
 const SPACING: Record<string, number> = { none: 0, xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 
 function registryKey(node: SduiNode): string {
@@ -219,6 +227,67 @@ function VisualContent({
   }
 }
 
+function DropIndicator({
+  nodeId,
+  mode,
+  horizontal,
+  active,
+}: {
+  nodeId: string;
+  mode: Exclude<CanvasDropMode, 'inside'>;
+  horizontal: boolean;
+  active: boolean;
+}) {
+  const { c } = useFlowTheme();
+  const droppable = useDroppable({
+    id: `canvas-drop:${nodeId}:${mode}`,
+    data: { source: 'canvas-drop', nodeId, mode } satisfies CanvasDropData,
+    disabled: !active,
+  });
+  if (!active) return null;
+  const before = mode === 'before';
+  return (
+    <div
+      ref={droppable.setNodeRef}
+      aria-label={before ? 'Soltar antes deste componente' : 'Soltar depois deste componente'}
+      style={{
+        position: 'absolute',
+        zIndex: 5,
+        pointerEvents: 'auto',
+        ...(horizontal
+          ? {
+              top: 0,
+              bottom: 0,
+              left: before ? -6 : undefined,
+              right: before ? undefined : -6,
+              width: 12,
+            }
+          : {
+              left: 0,
+              right: 0,
+              top: before ? -6 : undefined,
+              bottom: before ? undefined : -6,
+              height: 12,
+            }),
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          borderRadius: 999,
+          background: c.accent,
+          opacity: droppable.isOver ? 1 : 0,
+          boxShadow: droppable.isOver ? `0 0 0 3px ${c.accentSoft}` : 'none',
+          transition: 'opacity 120ms ease-out, box-shadow 120ms ease-out',
+          ...(horizontal
+            ? { top: 4, bottom: 4, left: 5, width: 2 }
+            : { left: 4, right: 4, top: 5, height: 2 }),
+        }}
+      />
+    </div>
+  );
+}
+
 function CanvasNode({
   node,
   isRoot,
@@ -249,7 +318,11 @@ function CanvasNode({
   const childParentHorizontal = node.type === 'ui.stack' && node.props.direction === 'horizontal';
   const dragData: CanvasDragData = { source: 'canvas', nodeId: node.id };
   const draggable = useDraggable({ id: node.id, data: dragData, disabled: isRoot });
-  const droppable = useDroppable({ id: node.id, data: { source: 'canvas-container', nodeId: node.id }, disabled: !isContainer });
+  const droppable = useDroppable({
+    id: `canvas-drop:${node.id}:inside`,
+    data: { source: 'canvas-drop', nodeId: node.id, mode: 'inside' } satisfies CanvasDropData,
+    disabled: !isContainer,
+  });
   const children = (node.children ?? []).map((child) => (
     <CanvasNode
       key={child.id}
@@ -284,19 +357,21 @@ function CanvasNode({
         flex: parentHorizontal ? '1 1 0' : undefined,
         flexBasis: parentHorizontal ? 0 : undefined,
         opacity: draggable.isDragging ? 0.35 : 1,
-        padding: isRoot ? 18 : 8,
+        padding: isRoot ? 18 : 7,
         borderRadius: isRoot ? 12 : 10,
-        outline: `${selected ? 2 : dragActive && isContainer ? 1 : 1}px ${dragActive && isContainer && !selected ? 'dashed' : 'solid'} ${selected ? c.accent : droppable.isOver ? c.accent : 'transparent'}`,
-        background: selected ? c.accentSoft : droppable.isOver ? c.hoverBg : 'transparent',
-        boxShadow: selected ? `0 0 0 3px ${c.accentSoft}` : 'none',
+        outline: `${selected ? 1.5 : dragActive && isContainer ? 1 : 1}px ${dragActive && isContainer && !selected ? 'dashed' : 'solid'} ${selected ? c.accent : droppable.isOver ? c.accent : 'transparent'}`,
+        background: selected ? 'rgba(128,0,255,0.055)' : droppable.isOver ? c.hoverBg : 'transparent',
+        boxShadow: selected ? `0 0 0 2px ${c.accentSoft}` : 'none',
         cursor: 'pointer',
       }}
     >
+      <DropIndicator nodeId={node.id} mode="before" horizontal={!!parentHorizontal} active={dragActive && !isRoot} />
+      <DropIndicator nodeId={node.id} mode="after" horizontal={!!parentHorizontal} active={dragActive && !isRoot} />
       {!isRoot && (
         <span
           {...draggable.listeners}
           {...draggable.attributes}
-          className="absolute flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100"
+          className={`absolute flex items-center justify-center rounded-md ${selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
           title="Mover componente"
           style={{
             left: -8,
@@ -321,7 +396,7 @@ function CanvasNode({
             onRemove(node.id);
           }}
           title="Remover"
-          className="absolute rounded-md border-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100"
+          className={`absolute rounded-md border-0 flex items-center justify-center cursor-pointer ${selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
           style={{
             right: -8,
             top: 6,

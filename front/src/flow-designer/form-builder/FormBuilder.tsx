@@ -5,9 +5,9 @@ import { useFlowTheme } from '../theme';
 import type { VariableOrigin } from '../model';
 import { listAuthoringComponentDefinitions, listComponentDefinitions, type ComponentDefinition, type PropDescriptor } from '../../api/componentDefinitions';
 import type { ChannelType } from '../../api/products';
-import { createNode, findNode, findParent, insertNode, removeNode, collectIds, moveNode, moveWithinSiblings, renameNode, updateProps, updateBindings, updateEvents, updateVisibility, updateActive, type SduiNode } from '../../sdui/model';
+import { createNode, findNode, findParent, insertNode, insertNodeNear, removeNode, collectIds, moveNode, moveNodeNear, moveWithinSiblings, renameNode, updateProps, updateBindings, updateEvents, updateVisibility, updateActive, type SduiNode } from '../../sdui/model';
 import { ComponentPalette, type PaletteDragData } from './ComponentPalette';
-import { FormCanvas, type CanvasDragData } from './FormCanvas';
+import { FormCanvas, type CanvasDragData, type CanvasDropData } from './FormCanvas';
 import { LayerPanel } from './LayerPanel';
 import { PropertyInspector, type InspectorFocusRequest, type InspectorSection } from './PropertyInspector';
 import { iconFor, labelFor } from '../../sdui/componentMeta';
@@ -96,28 +96,50 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
     const { active, over } = event;
     if (!root || !over) return;
     const data = active.data.current as PaletteDragData | CanvasDragData | undefined;
-    const targetId = String(over.id);
-    const targetDefinition = registry.get(registryKey(findNode(root, targetId)?.type ?? '', findNode(root, targetId)?.version ?? ''));
-    if (!targetDefinition?.allowsChildren) return;
+    const drop = over.data.current as CanvasDropData | undefined;
+    if (drop?.source !== 'canvas-drop') return;
+    const targetNode = findNode(root, drop.nodeId);
+    const parentNode = drop.mode === 'inside' ? targetNode : findParent(root, drop.nodeId);
+    const parentDefinition = parentNode ? registry.get(registryKey(parentNode.type, parentNode.version)) : null;
+    if (!targetNode || !parentNode || !parentDefinition?.allowsChildren) return;
+    const targetId = drop.nodeId;
+    const targetDefinition = parentDefinition;
 
     if (data?.source === 'palette') {
       if (compatibilityForDesignChannel(data.definition, designChannel) !== 'COMPATIBLE') {
         setCompositionError(`${labelFor(data.definition.type)} não está disponível para este canal.`);
         return;
       }
-      if (!canAcceptChild(targetDefinition, data.definition)) {
-        setCompositionError(invalidCompositionMessage(data.definition, targetDefinition));
+      if (!canAcceptChild(parentDefinition, data.definition)) {
+        setCompositionError(invalidCompositionMessage(data.definition, parentDefinition));
         return;
       }
       setCompositionError(null);
       onPushHistory();
       const node = createNode(data.definition);
-      onChange(insertNode(root, targetId, node));
+      onChange(drop.mode === 'inside'
+        ? insertNode(root, drop.nodeId, node)
+        : insertNodeNear(root, drop.nodeId, node, drop.mode));
       handleSelect(node.id);
       return;
     }
     if (data?.source === 'canvas') {
-      if (data.nodeId === targetId) return;
+      if (data.nodeId === drop.nodeId) return;
+      if (drop.mode !== 'inside') {
+        const subtreeIds = collectIds(findNode(root, data.nodeId) ?? root);
+        if (subtreeIds.has(drop.nodeId)) return; // não soltar um nó dentro de si mesmo/seus próprios filhos
+        const movedNode = findNode(root, data.nodeId);
+        const movedDefinition = movedNode ? registry.get(registryKey(movedNode.type, movedNode.version)) : null;
+        if (movedDefinition && !canAcceptChild(parentDefinition, movedDefinition)) {
+          setCompositionError(invalidCompositionMessage(movedDefinition, parentDefinition));
+          return;
+        }
+        setCompositionError(null);
+        onPushHistory();
+        onChange(moveNodeNear(root, data.nodeId, drop.nodeId, drop.mode));
+        handleSelect(data.nodeId);
+        return;
+      }
       const subtreeIds = collectIds(findNode(root, data.nodeId) ?? root);
       if (subtreeIds.has(targetId)) return; // não soltar um nó dentro de si mesmo/seus próprios filhos
       const movedNode = findNode(root, data.nodeId);

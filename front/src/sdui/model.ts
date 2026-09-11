@@ -151,6 +151,27 @@ export function insertNode(root: SduiNode, parentId: string, node: SduiNode): Sd
   return { ...root, children: root.children.map((c) => insertNode(c, parentId, node)) };
 }
 
+export type SduiSiblingPosition = 'before' | 'after';
+
+/** Insere `node` como irmão de `targetId`. Usado pelo canvas de autoria para representar
+ * exatamente a intenção visual do usuário: soltar antes ou depois de um componente existente. */
+export function insertNodeNear(root: SduiNode, targetId: string, node: SduiNode, position: SduiSiblingPosition): SduiNode {
+  if (!root.children) return root;
+  const index = root.children.findIndex((child) => child.id === targetId);
+  if (index >= 0) {
+    const insertionIndex = position === 'before' ? index : index + 1;
+    return {
+      ...root,
+      children: [
+        ...root.children.slice(0, insertionIndex),
+        node,
+        ...root.children.slice(insertionIndex),
+      ],
+    };
+  }
+  return { ...root, children: root.children.map((child) => insertNodeNear(child, targetId, node, position)) };
+}
+
 /** Reordena `id` um passo pra cima/baixo entre os irmãos do MESMO pai — não muda de container (ver
  * LayerPanel, que oferece isto porque o canvas de arrastar sempre insere no fim, sem posição
  * fina dentro de um nível). */
@@ -170,6 +191,13 @@ export function moveNode(root: SduiNode, nodeId: string, newParentId: string): S
   if (!node) return root;
   const withoutNode = removeNode(root, nodeId);
   return insertNode(withoutNode, newParentId, node);
+}
+
+export function moveNodeNear(root: SduiNode, nodeId: string, targetId: string, position: SduiSiblingPosition): SduiNode {
+  const node = findNode(root, nodeId);
+  if (!node || nodeId === targetId) return root;
+  const withoutNode = removeNode(root, nodeId);
+  return insertNodeNear(withoutNode, targetId, node, position);
 }
 
 let counter = 0;

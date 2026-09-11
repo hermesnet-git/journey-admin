@@ -12,7 +12,7 @@
 	<artifactId>ms-espec-registry</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>ms-espec-registry</name>
-	<description>Wrapper fino da REST API do Camunda 7 para o simulador da Dynamic Journey: inicia/avança instâncias de processo e enriquece o passo atual com o formulário SDUI da User Task (buscado no Admin Portal), sem reimplementar nenhuma capacidade do próprio Camunda.</description>
+	<description>Guardião do catálogo SDUI da Dynamic Journey: resolve interpolação/binding de tela (buscando o snapshot publicado no admin/back) e converte respostas de formulário em variáveis de processo, sem tocar o Runtime Engine diretamente — isso é responsabilidade do ms-journey e do admin/back.</description>
 
 	<properties>
 		<java.version>21</java.version>
@@ -28,12 +28,13 @@
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.kafka</groupId>
-			<artifactId>spring-kafka</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.jayway.jsonpath</groupId>
-			<artifactId>json-path</artifactId>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
 		</dependency>
 	</dependencies>
 

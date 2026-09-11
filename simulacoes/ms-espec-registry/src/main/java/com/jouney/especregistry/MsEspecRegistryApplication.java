@@ -1,15 +1,12 @@
 package com.jouney.especregistry;
 
-import com.jouney.especregistry.config.AdminBackProperties;
-import com.jouney.especregistry.config.CamundaProperties;
-import com.jouney.especregistry.config.KafkaProperties;
 import com.jouney.especregistry.config.StrapiProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties({CamundaProperties.class, AdminBackProperties.class, KafkaProperties.class, StrapiProperties.class})
+@EnableConfigurationProperties({StrapiProperties.class})
 public class MsEspecRegistryApplication {
 
     public static void main(String[] args) {

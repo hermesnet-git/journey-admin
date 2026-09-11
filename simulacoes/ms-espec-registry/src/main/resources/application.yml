@@ -4,16 +4,19 @@ server:
 spring:
   application:
     name: ms-espec-registry
+  datasource:
+    # Mesmo Postgres do admin/back (journey_admin) — leitura direta de journey_publication/
+    # journey_version, sem HTTP: o espec-registry não é dono desse schema, por isso não roda
+    # migração nenhuma aqui (ddl-auto: none, sem Flyway).
+    url: jdbc:postgresql://localhost:5432/journey_admin
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
 
 app:
-  camunda:
-    base-url: http://localhost:8080/engine-rest
-  kafka:
-    bootstrap-servers: localhost:9092
-  admin-back:
-    base-url: http://localhost:8081
-    service-username: admin
-    service-password: admin
   strapi:
     base-url: http://localhost:1337
     # Sem default de propósito — gerar manualmente no admin do Strapi (Settings > API Tokens,

@@ -7,11 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import com.jouney.especregistry.sdui.SduiActionValidationException;
-import com.jouney.especregistry.sdui.StrapiSnapshotException;
-import com.jouney.especregistry.simulation.StartFailureDiagnosedException;
-import com.jouney.especregistry.simulation.SynchronousChainUnsupportedException;
-import com.jouney.especregistry.simulation.UnsupportedChannelException;
+import com.jouney.especregistry.domain.journey.SynchronousChainUnsupportedException;
+import com.jouney.especregistry.infrastructure.sdui.StrapiSnapshotException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.RestClientException;
@@ -26,48 +23,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "SIMULATION_STATE_ERROR", ex.getMessage());
     }
 
-    // SimulationController checks this proactively (SynchronousChainCheck) before ever calling
-    // Camunda, so this is the normal path now — the RestClientException branch below is only a
-    // fallback for a shape that check doesn't yet recognize.
+    // FormSpecController.convertStartVariables checa isso proativamente (SynchronousChainCheck)
+    // antes de a jornada ser iniciada pelo admin/back — o RestClientException branch abaixo é só um
+    // fallback pra um formato de erro que essa checagem ainda não reconhece.
     @ExceptionHandler(SynchronousChainUnsupportedException.class)
     public ResponseEntity<Map<String, Object>> handleSynchronousChainUnsupported(SynchronousChainUnsupportedException ex) {
         return build(HttpStatus.BAD_GATEWAY, "SYNCHRONOUS_CHAIN_UNSUPPORTED", ex.getMessage());
-    }
-
-    // SimulationController.start() already ran StartFailureDiagnostic before throwing this (it has
-    // the snapshot/variables in scope right where the failure happens) — this just carries that
-    // result into the response body, so the front can highlight the exact node in the flow preview
-    // from this one response, no second call needed.
-    @ExceptionHandler(StartFailureDiagnosedException.class)
-    public ResponseEntity<Map<String, Object>> handleStartFailureDiagnosed(StartFailureDiagnosedException ex) {
-        log.error("Falha síncrona ao iniciar jornada — diagnóstico: {}", ex.diagnosis());
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", OffsetDateTime.now().toString());
-        body.put("status", HttpStatus.BAD_GATEWAY.value());
-        body.put("code", "SYNCHRONOUS_CHAIN_JSONPATH_FAILURE");
-        body.put("message", "Uma integração REST executada de forma síncrona (antes do primeiro checkpoint da "
-                + "jornada) tentou ler, pelo Mapeamento de Saída, um campo que a resposta real não trouxe.");
-        body.put("diagnosis", ex.diagnosis());
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
-    }
-
-    // Tela publicada com ação fora do Action Registry — nunca chega ao canal (regra "falha
-    // previsível", seção 3 do catálogo). 422: conteúdo da própria jornada, não indisponibilidade de
-    // infraestrutura (mesmo raciocínio de handleSynchronousChainUnsupported vs. RestClientException).
-    @ExceptionHandler(SduiActionValidationException.class)
-    public ResponseEntity<Map<String, Object>> handleSduiActionValidation(SduiActionValidationException ex) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", OffsetDateTime.now().toString());
-        body.put("status", HttpStatus.UNPROCESSABLE_CONTENT.value());
-        body.put("code", "SDUI_ACTION_INVALID");
-        body.put("message", ex.getMessage());
-        body.put("violations", ex.violations());
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(body);
-    }
-
-    @ExceptionHandler(UnsupportedChannelException.class)
-    public ResponseEntity<Map<String, Object>> handleUnsupportedChannel(UnsupportedChannelException ex) {
-        return build(HttpStatus.UNPROCESSABLE_CONTENT, "UNSUPPORTED_CHANNEL", ex.getMessage());
     }
 
     @ExceptionHandler(StrapiSnapshotException.class)
@@ -78,7 +39,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RestClientException.class)
     public ResponseEntity<Map<String, Object>> handleUpstream(RestClientException ex) {
-        log.error("Chamada a serviço upstream (Camunda/admin-back) falhou", ex);
+        log.error("Chamada a serviço upstream (admin-back) falhou", ex);
         if (isSynchronousChainEngineBug(ex)) {
             return build(HttpStatus.BAD_GATEWAY, "SYNCHRONOUS_CHAIN_UNSUPPORTED",
                     "Esta jornada tenta executar um trecho inteiro do fluxo (uma ou mais integrações REST) sem "
@@ -87,10 +48,6 @@ public class GlobalExceptionHandler {
                             + "Task (pode ser sem formulário) antes desse Fim e publique a jornada novamente.");
         }
         if (isSpinJsonPathFailure(ex)) {
-            // start() already converts this same shape into StartFailureDiagnosedException (with a
-            // diagnosis attached) before it ever reaches here — this fallback only covers the same
-            // error surfacing from some other endpoint (e.g. resuming past a checkpoint into another
-            // synchronous REST chain), where there's no equivalent "diagnose from the start" context.
             return build(HttpStatus.BAD_GATEWAY, "SYNCHRONOUS_CHAIN_JSONPATH_FAILURE",
                     "Uma integração REST executada de forma síncrona tentou ler, pelo Mapeamento de Saída, um "
                             + "campo que a resposta real não trouxe.");

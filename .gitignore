@@ -1,3 +1,4 @@
 requisitos/admin/bd/backup_*.sql
 requisitos/admin/bd/journey_admin_backup_*.dump
 simulacoes/ms-runtime-camunda/camunda-h2-default/
+simulacoes/emulador-canais/emulador-canais.code-workspace

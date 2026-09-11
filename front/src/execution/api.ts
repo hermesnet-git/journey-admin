@@ -1,8 +1,13 @@
-// Cliente dedicado ao ms-espec-registry (simulacoes/ms-espec-registry, porta 8083) — um serviço
-// à parte do admin/back, sem sessão/token: só um wrapper fino da API do motor de runtime, por isso
-// não usa o cliente autenticado de ../api/client.
+// Cliente da funcionalidade de Execução/Diagnóstico — hoje no próprio admin/back (porta 8081,
+// migrado do antigo ms-espec-registry/SimulationController+InstanceHistoryController). Client
+// próprio (não ../api/client) porque mantém retry de rede e o hook de log de integrações
+// (setApiCallLogger) que a aba Log da tela de Execução usa — mas agora autentica igual ao resto do
+// admin/back (Bearer token de getStoredToken), já que virou um endpoint protegido como qualquer
+// outro.
 
-const BASE_URL = 'http://localhost:8083/api/v1';
+import { getStoredToken } from '../api/client';
+
+const BASE_URL = 'http://localhost:8081/api/v1';
 
 export class ExecutionApiError extends Error {
   status: number;
@@ -105,11 +110,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = init?.method ?? 'GET';
   // Todo chamador deste módulo passa headers como objeto simples (nunca Headers/array de tuplas),
   // então o cast é seguro — só estreita o tipo largo de RequestInit['headers'] pro que de fato é usado.
+  // requestHeaders (sem Authorization) é o que vai pro log visível da aba Log — o token nunca deve
+  // aparecer ali; a chamada de fato (requestInit) leva o header separadamente.
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(init?.headers as Record<string, string> | undefined),
   };
-  const requestInit: RequestInit = { ...init, headers: requestHeaders };
+  const token = getStoredToken();
+  const requestInit: RequestInit = {
+    ...init,
+    headers: { ...requestHeaders, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  };
   const requestBody = parseBodyForLog(init?.body);
 
   let response: Response | undefined;
@@ -121,7 +132,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       if (attempt === NETWORK_RETRY_ATTEMPTS) {
         onApiCall?.({ method, path, error: 'não foi possível conectar', requestHeaders, requestBody });
         throw new ExecutionNetworkError(
-          'Não foi possível conectar ao ms-espec-registry (localhost:8083). Verifique se o serviço está rodando.',
+          'Não foi possível conectar ao admin/back (localhost:8081). Verifique se o serviço está rodando.',
         );
       }
       await delay(NETWORK_RETRY_DELAY_MS);
@@ -313,7 +324,7 @@ export function startInstance(
 /** Diagrama da jornada sem iniciar instância — usado só pra descobrir o tipo do nó de início antes
  * de decidir entre o botão "Executar" e o painel de envio de mensagem (MESSAGE_START_EVENT). */
 export function getJourneyFlow(journeyId: string): Promise<FlowBundle> {
-  return apiGet(`/journeys/${journeyId}/flow`);
+  return apiGet(`/journeys/${journeyId}/execution-flow`);
 }
 
 // `since` (ISO 8601) opcional: quando presente, o backend inclui a trilha do que o worker

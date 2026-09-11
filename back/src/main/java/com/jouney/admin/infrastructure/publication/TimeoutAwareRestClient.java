@@ -9,14 +9,16 @@ import org.springframework.web.client.RestClient;
 
 /** {@link RestClient#create()} usa o HttpClient do JDK sem nenhum timeout — um serviço que aceita
  * a conexão mas nunca responde trava a chamada pra sempre. Usado por {@link PublicationAdapter} e
- * {@link EspecRegistrySduiAdapter}, que também precisam identificar esse caso específico (em vez
- * do texto genérico de {@link Throwable#getMessage()}) pra dar uma mensagem legível ao usuário. */
-final class TimeoutAwareRestClient {
+ * {@link EspecRegistrySduiAdapter}, e por qualquer outro adapter deste pacote pra frente que fale
+ * HTTP com um serviço externo — todos precisam identificar esse caso específico (em vez do texto
+ * genérico de {@link Throwable#getMessage()}) pra dar uma mensagem legível ao usuário. Público:
+ * reaproveitado fora deste pacote (ex.: infrastructure.execution). */
+public final class TimeoutAwareRestClient {
 
     private TimeoutAwareRestClient() {
     }
 
-    static RestClient create(Duration connectTimeout, Duration readTimeout) {
+    public static RestClient create(Duration connectTimeout, Duration readTimeout) {
         // version(HTTP_1_1): o default do HttpClient do JDK tenta negociar upgrade HTTP/2 (h2c)
         // mesmo em conexão sem TLS — contra um servidor Node/Koa (ex.: o Strapi por trás do
         // ms-espec-registry) que não suporta esse upgrade, a negociação trava a conexão inteira sem
@@ -29,7 +31,7 @@ final class TimeoutAwareRestClient {
         return RestClient.builder().requestFactory(factory).build();
     }
 
-    static boolean isTimeout(Throwable e) {
+    public static boolean isTimeout(Throwable e) {
         for (Throwable current = e; current != null; current = current.getCause()) {
             if (current instanceof HttpTimeoutException || current instanceof SocketTimeoutException) {
                 return true;

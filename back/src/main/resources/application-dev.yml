@@ -20,3 +20,8 @@ app:
     # catálogo (FT-14, US-14.04) é delegado ao ms-espec-registry, o único componente que resolve
     # credencial e abre conexão de verdade.
     base-url: ${ESPEC_REGISTRY_BASE_URL:http://localhost:8083}
+  kafka:
+    # exceção à regra acima: o envio manual de mensagem de teste (tela de Execução) publica direto
+    # no broker, mesmo cluster que o worker automático do ms-runtime-camunda usa — não tem credencial
+    # nem broker externo real envolvido, é o mesmo Kafka local de dev.
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}

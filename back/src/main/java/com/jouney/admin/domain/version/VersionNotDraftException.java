@@ -5,6 +5,6 @@ import java.util.UUID;
 public class VersionNotDraftException extends RuntimeException {
 
     public VersionNotDraftException(UUID versionId) {
-        super("Journey version is not a draft and cannot be published: " + versionId);
+        super("Journey version is not a draft: " + versionId);
     }
 }

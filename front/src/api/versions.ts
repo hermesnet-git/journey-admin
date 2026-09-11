@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client';
+import { apiGet, apiPost, apiDelete } from './client';
 
 export type VersionStatus = 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED' | 'INACTIVE';
 
@@ -71,4 +71,8 @@ export function unpublishJourneyVersion(journeyId: string, versionId: string): P
 
 export function republishJourneyVersion(journeyId: string, versionId: string): Promise<JourneyVersion> {
   return apiPost<JourneyVersion>(`/journeys/${journeyId}/versions/${versionId}/republish`);
+}
+
+export function deleteJourneyVersion(journeyId: string, versionId: string): Promise<void> {
+  return apiDelete<void>(`/journeys/${journeyId}/versions/${versionId}`);
 }

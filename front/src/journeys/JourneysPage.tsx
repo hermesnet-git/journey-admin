@@ -36,6 +36,7 @@ import {
   publishJourneyVersion,
   unpublishJourneyVersion,
   republishJourneyVersion,
+  deleteJourneyVersion,
   type JourneyVersion,
   type VersionStatus,
 } from '../api/versions';
@@ -637,6 +638,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
   const [publishingVersion, setPublishingVersion] = useState<JourneyVersion | null>(null);
   const [unpublishingVersion, setUnpublishingVersion] = useState<JourneyVersion | null>(null);
   const [republishingVersion, setRepublishingVersion] = useState<JourneyVersion | null>(null);
+  const [deletingVersion, setDeletingVersion] = useState<JourneyVersion | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<JourneyVersion | null>(null);
   const [jsonVersion, setJsonVersion] = useState<JourneyVersion | null>(null);
 
@@ -752,6 +754,29 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
     }
   }
 
+  async function confirmDeleteVersion() {
+    if (!deletingVersion) return;
+    const versionId = deletingVersion.versionId;
+    setBusyVersionId(versionId);
+    setError(null);
+    try {
+      await deleteJourneyVersion(journeyId, versionId);
+      reload();
+      showToast('Versão excluída com sucesso.');
+    } catch (err) {
+      const message =
+        err instanceof ApiClientError && err.status === 409
+          ? 'Essa versão não é mais um rascunho e não pode ser excluída.'
+          : err instanceof Error
+            ? err.message
+            : 'Erro ao excluir versão.';
+      setError(message);
+    } finally {
+      setBusyVersionId(null);
+      setDeletingVersion(null);
+    }
+  }
+
   return (
     <div className="border-t" style={{ borderColor: c.border, background: c.bg }}>
       {error && (
@@ -823,6 +848,13 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
                             disabled: v.snapshot.flowNodes.length === 0,
                             loading: busyVersionId === v.versionId,
                           },
+                          {
+                            icon: Trash2,
+                            label: 'Excluir versão',
+                            onClick: () => setDeletingVersion(v),
+                            variant: 'danger' as const,
+                            loading: busyVersionId === v.versionId,
+                          },
                         ]
                       : []),
                     ...(v.status === 'PUBLISHED'
@@ -886,6 +918,17 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
           loading={busyVersionId === republishingVersion.versionId}
           onConfirm={confirmRepublish}
           onCancel={() => setRepublishingVersion(null)}
+        />
+      )}
+
+      {deletingVersion && (
+        <ConfirmDialog
+          title="Excluir versão"
+          message={`Tem certeza que deseja excluir permanentemente o rascunho v${deletingVersion.versionNumber}? Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          loading={busyVersionId === deletingVersion.versionId}
+          onConfirm={confirmDeleteVersion}
+          onCancel={() => setDeletingVersion(null)}
         />
       )}
 

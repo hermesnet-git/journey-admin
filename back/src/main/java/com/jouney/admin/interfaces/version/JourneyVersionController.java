@@ -1,6 +1,7 @@
 package com.jouney.admin.interfaces.version;
 
 import com.jouney.admin.application.version.CreateJourneyVersion;
+import com.jouney.admin.application.version.DeleteJourneyVersion;
 import com.jouney.admin.application.version.GetJourneyVersion;
 import com.jouney.admin.application.version.ListJourneyVersions;
 import com.jouney.admin.application.version.PublishJourneyVersion;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,19 +32,22 @@ public class JourneyVersionController {
     private final PublishJourneyVersion publishJourneyVersion;
     private final UnpublishJourneyVersion unpublishJourneyVersion;
     private final RepublishJourneyVersion republishJourneyVersion;
+    private final DeleteJourneyVersion deleteJourneyVersion;
 
     public JourneyVersionController(ListJourneyVersions listJourneyVersions,
                                      CreateJourneyVersion createJourneyVersion,
                                      GetJourneyVersion getJourneyVersion,
                                      PublishJourneyVersion publishJourneyVersion,
                                      UnpublishJourneyVersion unpublishJourneyVersion,
-                                     RepublishJourneyVersion republishJourneyVersion) {
+                                     RepublishJourneyVersion republishJourneyVersion,
+                                     DeleteJourneyVersion deleteJourneyVersion) {
         this.listJourneyVersions = listJourneyVersions;
         this.createJourneyVersion = createJourneyVersion;
         this.getJourneyVersion = getJourneyVersion;
         this.publishJourneyVersion = publishJourneyVersion;
         this.unpublishJourneyVersion = unpublishJourneyVersion;
         this.republishJourneyVersion = republishJourneyVersion;
+        this.deleteJourneyVersion = deleteJourneyVersion;
     }
 
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
@@ -83,5 +88,12 @@ public class JourneyVersionController {
     @PostMapping("/{versionId}/republish")
     public JourneyVersionResponse republish(@PathVariable UUID journeyId, @PathVariable UUID versionId) {
         return JourneyVersionResponse.from(republishJourneyVersion.execute(journeyId, versionId));
+    }
+
+    @PreAuthorize("hasAnyRole('EDITOR','ADMIN')")
+    @DeleteMapping("/{versionId}")
+    public ResponseEntity<Void> delete(@PathVariable UUID journeyId, @PathVariable UUID versionId) {
+        deleteJourneyVersion.execute(journeyId, versionId);
+        return ResponseEntity.noContent().build();
     }
 }

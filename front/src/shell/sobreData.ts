@@ -130,12 +130,11 @@ export const EPICS: Epic[] = [
           d('REQ-02.03.003', 'O sistema deve permitir filtrar jornadas por tipo de canal.'),
           d('REQ-02.03.004', 'O sistema deve permitir ordenar jornadas por data de criação.'),
           d('REQ-02.03.005', 'O sistema deve permitir ordenar jornadas por data de alteração.'),
-          partial(
+          d(
             'REQ-02.03.006',
             'O sistema deve permitir agrupar a listagem de jornadas por produto, por produto e canal, por canal, ou sem agrupamento algum.',
-            'Agrupamento por produto implementado (cabeçalho de grupo com contagem); falta o seletor de modo (produto+canal, só canal, sem agrupar).',
           ),
-          todo(
+          d(
             'REQ-02.03.007',
             'O sistema deve permitir ordenar a listagem de jornadas, em ordem crescente ou decrescente, pelos campos jornada (nome), canal, status ou data de atualização.',
           ),
@@ -1949,6 +1948,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-09-10 21:28 (não commitado)',
+    source: 'progresso',
+    summary:
+      'FT-02 fecha 100%: REQ-02.03.006/007 já estavam implementados, só não tinham sido marcados. Conferido no código de JourneysPage.tsx que o seletor de modo de agrupamento (Produto/Produto+Canal/Canal/Sem agrupamento) e a ordenação clicável por coluna (Jornada/Canal/Status/Atualizada em, crescente/decrescente) já existiam por completo desde o commit 689466d (2026-08-16) — a mesma sessão que escreveu as notas de in_progress/todo nunca voltou pra atualizá-las depois de terminar a implementação. Nenhuma mudança de código; usuário confirmou visualmente os dois fluxos no browser. Total FT-02: 48 → 50 concluídos (100%); total geral: 449 → 451 concluídos (90%).',
+  },
   {
     date: '2026-09-10 21:07 (não commitado)',
     source: 'progresso',

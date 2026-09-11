@@ -5,15 +5,12 @@ import com.jouney.admin.application.execution.CompleteExecutionTask;
 import com.jouney.admin.application.execution.ExecutionStepResolver;
 import com.jouney.admin.application.execution.ExecutionVariables;
 import com.jouney.admin.application.execution.GetExecutionFlow;
-import com.jouney.admin.application.execution.GetExecutionHistoryDetail;
 import com.jouney.admin.application.execution.GetLatestInstance;
 import com.jouney.admin.application.execution.PreviewKafkaMessage;
-import com.jouney.admin.application.execution.SearchExecutionHistory;
 import com.jouney.admin.application.execution.SendKafkaMessage;
 import com.jouney.admin.application.execution.SendTestMessage;
 import com.jouney.admin.application.execution.SkipStep;
 import com.jouney.admin.application.execution.StartExecution;
-import com.jouney.admin.domain.execution.HistoricInstanceEntry;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -31,17 +28,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Roda uma jornada publicada passo a passo pra teste dentro do próprio Admin Portal — a migração
- * completa do {@code SimulationController}/{@code InstanceHistoryController} do ms-espec-registry
- * pra dentro do admin/back: Execução (iniciar inclusive por MESSAGE_START_EVENT, consultar passo
- * atual com trilha síncrona, completar tarefa com resposta coercionada pro tipo certo e atribuição
- * heurística de erro a um nó, ver/editar variável manualmente, enviar mensagem Kafka manual quando
- * a instância foi iniciada em controle manual) e Diagnóstico (busca e detalhe histórico de
- * qualquer instância, ativa ou já terminada). Fala direto com o motor de runtime ({@link
+ * Roda uma jornada publicada passo a passo pra teste dentro do próprio Admin Portal (FT-05
+ * Execução — iniciar inclusive por MESSAGE_START_EVENT, consultar passo atual com trilha síncrona,
+ * completar tarefa com resposta coercionada pro tipo certo e atribuição heurística de erro a um
+ * nó, ver/editar variável manualmente, enviar mensagem Kafka manual quando a instância foi
+ * iniciada em controle manual). Fala direto com o motor de runtime ({@link
  * com.jouney.admin.application.execution.RuntimeExecutionPort}, produtor Kafka incluso) e com o
  * ms-espec-registry só pra resolver a tela de cada User Task ({@link
  * com.jouney.admin.application.execution.FormResolutionPort}) — nenhuma lógica de catálogo/binding
- * SDUI vive aqui. {@code DELETE /instances/{id}} (parar execução) reaproveita o mesmo {@link
+ * SDUI vive aqui. Busca/detalhe histórico de qualquer instância (ativa ou já terminada) é FT-15
+ * Diagnóstico, funcionalidade separada por design (REQ-15.04.001) — ver
+ * {@link com.jouney.admin.interfaces.diagnostico.DiagnosticoController}. {@code DELETE
+ * /instances/{id}} (parar execução) reaproveita o mesmo {@link
  * com.jouney.admin.application.dashboard.RuntimeInstanceControlPort} do Dashboard, mas é um
  * endpoint próprio aqui — o de lá é {@code /api/v1/dashboard/instances/{id}}, path diferente,
  * ação de monitoramento geral (matar instância abandonada), não desta tela.
@@ -55,8 +53,6 @@ public class ExecutionController {
     private final ExecutionStepResolver stepResolver;
     private final CompleteExecutionTask completeExecutionTask;
     private final ExecutionVariables executionVariables;
-    private final SearchExecutionHistory searchExecutionHistory;
-    private final GetExecutionHistoryDetail getExecutionHistoryDetail;
     private final SendKafkaMessage sendKafkaMessage;
     private final PreviewKafkaMessage previewKafkaMessage;
     private final RuntimeInstanceControlPort runtimeInstanceControlPort;
@@ -66,8 +62,7 @@ public class ExecutionController {
 
     public ExecutionController(GetExecutionFlow getExecutionFlow, StartExecution startExecution,
                                 ExecutionStepResolver stepResolver, CompleteExecutionTask completeExecutionTask,
-                                ExecutionVariables executionVariables, SearchExecutionHistory searchExecutionHistory,
-                                GetExecutionHistoryDetail getExecutionHistoryDetail, SendKafkaMessage sendKafkaMessage,
+                                ExecutionVariables executionVariables, SendKafkaMessage sendKafkaMessage,
                                 PreviewKafkaMessage previewKafkaMessage, RuntimeInstanceControlPort runtimeInstanceControlPort,
                                 SkipStep skipStep, SendTestMessage sendTestMessage, GetLatestInstance getLatestInstance) {
         this.getExecutionFlow = getExecutionFlow;
@@ -75,8 +70,6 @@ public class ExecutionController {
         this.stepResolver = stepResolver;
         this.completeExecutionTask = completeExecutionTask;
         this.executionVariables = executionVariables;
-        this.searchExecutionHistory = searchExecutionHistory;
-        this.getExecutionHistoryDetail = getExecutionHistoryDetail;
         this.sendKafkaMessage = sendKafkaMessage;
         this.previewKafkaMessage = previewKafkaMessage;
         this.runtimeInstanceControlPort = runtimeInstanceControlPort;
@@ -86,19 +79,25 @@ public class ExecutionController {
     }
 
     // execution-flow, não /flow: esse já é o path do FlowController (editor de fluxo, Flow editável)
-    // — este devolve a publicação ativa (Publication), não o rascunho em edição.
+    // — este devolve a publicação ativa (Publication) por padrão, ou uma versão publicada
+    // específica quando `version` é informado (REQ-05.07.007), nunca o rascunho em edição.
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @GetMapping("/journeys/{journeyId}/execution-flow")
-    public FlowBundleResponse flow(@PathVariable UUID journeyId) {
-        return FlowBundleResponse.from(getExecutionFlow.execute(journeyId));
+    public FlowBundleResponse flow(@PathVariable UUID journeyId, @RequestParam(required = false) Integer version) {
+        GetExecutionFlow.ResolvedFlow resolved = getExecutionFlow.execute(journeyId, version);
+        return FlowBundleResponse.of(resolved.channelTypes(), resolved.flowNodes(), resolved.flowConnections());
     }
 
+    // `version` (número de negócio, não o UUID) opcional — REQ-05.07.007: só faz sentido informar
+    // quando a jornada tem mais de uma versão publicada simultaneamente; ausente, usa a publicação
+    // ativa (comportamento de sempre).
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
     @PostMapping("/journeys/{journeyId}/instances")
     public InstanceResponse start(@PathVariable UUID journeyId, @RequestParam String channel,
                                    @RequestParam(defaultValue = "false") boolean manualKafkaControl,
+                                   @RequestParam(required = false) Integer version,
                                    @RequestBody(required = false) Map<String, Object> variables) {
-        return InstanceResponse.from(startExecution.execute(journeyId, channel, variables, manualKafkaControl));
+        return InstanceResponse.from(startExecution.execute(journeyId, channel, variables, manualKafkaControl, version));
     }
 
     // `since` (ISO 8601) opcional: quando presente, inclui a trilha do que o motor atravessou
@@ -187,24 +186,5 @@ public class ExecutionController {
                 .map(InstanceResponse::from)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
-    }
-
-    // --- Diagnóstico (histórico — ao contrário do resto acima, responde pra qualquer instância,
-    // ativa ou já terminada) ---
-
-    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
-    @GetMapping("/instances/search")
-    public List<HistoricInstanceEntry> search(@RequestParam(required = false) UUID journeyId,
-                                               @RequestParam(required = false) String businessKey,
-                                               @RequestParam(required = false) Boolean finished,
-                                               @RequestParam(required = false) Instant startedFrom,
-                                               @RequestParam(required = false) Instant startedTo) {
-        return searchExecutionHistory.execute(journeyId, businessKey, finished, startedFrom, startedTo);
-    }
-
-    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
-    @GetMapping("/instances/{processInstanceId}/history")
-    public InstanceHistoryResponse history(@PathVariable String processInstanceId) {
-        return InstanceHistoryResponse.from(getExecutionHistoryDetail.execute(processInstanceId));
     }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Lock, Search, Square } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Lock, Search, Square } from 'lucide-react';
 import { Text, skinVars } from '@telefonica/mistica';
 import type { JourneySummary } from './api';
 
@@ -17,11 +17,29 @@ interface Props {
   // porque só existe uma aba de Execuções: trocar de jornada no meio precisa ser um ato explícito
   // (o botão "Parar execução" abaixo), nunca um efeito colateral de digitar na busca.
   running: JourneySummary | null;
+  // Jornada chegou em ENDED — troca "Em execução"/"Parar execução" por "Concluída" + os botões de
+  // pós-conclusão (nada pra encerrar no motor, a instância já terminou sozinha).
+  isEnded: boolean;
   onStop: () => void;
   stopping: boolean;
+  onRestart: () => void;
+  onChooseNew: () => void;
 }
 
-export function ExecutionToolbar({ journeys, loadError, query, onQueryChange, selected, onSelect, running, onStop, stopping }: Props) {
+export function ExecutionToolbar({
+  journeys,
+  loadError,
+  query,
+  onQueryChange,
+  selected,
+  onSelect,
+  running,
+  isEnded,
+  onStop,
+  stopping,
+  onRestart,
+  onChooseNew,
+}: Props) {
   return (
     <div
       className="shrink-0 flex items-center gap-3 px-4 border-b"
@@ -55,7 +73,15 @@ export function ExecutionToolbar({ journeys, loadError, query, onQueryChange, se
         )}
       </div>
 
-      {running && (
+      {running && isEnded && (
+        <>
+          <CompletedIndicator />
+          <div className="flex-1" />
+          <SecondaryButton onPress={onChooseNew}>Escolher nova jornada</SecondaryButton>
+          <PrimaryButton onPress={onRestart}>Executar novamente</PrimaryButton>
+        </>
+      )}
+      {running && !isEnded && (
         <>
           <LiveIndicator />
           <div className="flex-1" />
@@ -174,7 +200,6 @@ export function JourneySearchBox({ journeys, loadError, query, onQueryChange, se
                 </Text>
                 <Text size={11.5} color={skinVars.colors.textSecondary}>
                   {journey.productName} · {journey.channelTypes.join(', ')}
-                  {journey.publishedVersionNumber != null && ` · v${journey.publishedVersionNumber}`}
                 </Text>
               </button>
             ))
@@ -199,6 +224,47 @@ function LiveIndicator() {
         Em execução
       </Text>
     </div>
+  );
+}
+
+function CompletedIndicator() {
+  return (
+    <div className="flex items-center gap-[6px] shrink-0">
+      <CheckCircle2 size={14} color={skinVars.colors.success} />
+      <Text size={12.5} weight="medium" color={skinVars.colors.success}>
+        Concluída
+      </Text>
+    </div>
+  );
+}
+
+function PrimaryButton({ onPress, children }: { onPress: () => void; children: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      className="h-9 px-3 rounded-lg text-[13px] font-medium cursor-pointer border-0 shrink-0"
+      style={{ background: skinVars.colors.buttonPrimaryBackground, color: skinVars.colors.textButtonPrimary }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SecondaryButton({ onPress, children }: { onPress: () => void; children: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      className="h-9 px-3 rounded-lg text-[13px] font-medium cursor-pointer shrink-0"
+      style={{
+        background: 'transparent',
+        color: skinVars.colors.textPrimary,
+        border: `1px solid ${skinVars.colors.border}`,
+      }}
+    >
+      {children}
+    </button>
   );
 }
 

@@ -28,6 +28,9 @@ interface RunningExecution {
   flow: FlowBundle;
   step: StepResponse;
   manualKafkaControl: boolean;
+  // Canal escolhido pelo usuário no StartPanel (REQ-05.07.003) — ausente só quando a instância
+  // nasceu por mensagem (sem seletor); a prévia cai de volta pro primeiro canal da jornada nesse caso.
+  channelType?: string;
 }
 
 interface Props {
@@ -53,6 +56,10 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
   const [selected, setSelected] = useState<JourneySummary | null>(initialJourney ?? null);
   const [running, setRunning] = useState<RunningExecution | null>(null);
   const [stopping, setStopping] = useState(false);
+  // Estado do passo atual mora em ExecutionWorkspace (via onStepChange) — precisa dele aqui só pra
+  // saber quando a jornada chegou em ENDED e trocar "Parar execução" pelos botões de conclusão.
+  const [currentStep, setCurrentStep] = useState<StepResponse | null>(null);
+  const isEnded = currentStep?.type === 'ENDED';
   // Chamadas feitas antes de existir uma instância pra chamar de "running" (getJourneyFlow ao
   // selecionar, startInstance/sendTestMessage ao executar) — sem log próprio ainda pra guardá-las, a
   // aba Log do ExecutionWorkspace só nasce quando `running` é setado, então acumula aqui até lá.
@@ -111,7 +118,7 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
     if (selected && value !== selected.name) setSelected(null);
   }
 
-  function handleStarted(instance: InstanceResponse) {
+  function handleStarted(instance: InstanceResponse, channelType?: string) {
     if (!selected) return;
     setRunning({
       processInstanceId: instance.processInstanceId,
@@ -120,6 +127,7 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
       flow: instance.flow,
       step: instance.step,
       manualKafkaControl: instance.manualKafkaControl,
+      channelType,
     });
   }
 
@@ -135,10 +143,30 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
     } finally {
       setStopping(false);
       setRunning(null);
+      setCurrentStep(null);
       setSelected(null);
       setQuery('');
       preStartLogRef.current = [];
     }
+  }
+
+  // Jornada já concluída (ENDED) — nada pra encerrar no motor, só voltar pra tela de início. Sem
+  // chamar stopInstance: é exatamente o cenário que fazia handleStop cair no catch acima.
+  function handleRestart() {
+    if (!running) return;
+    setSelected(running.journey);
+    setQuery(running.journey.name);
+    setRunning(null);
+    setCurrentStep(null);
+    preStartLogRef.current = [];
+  }
+
+  function handleChooseNew() {
+    setRunning(null);
+    setCurrentStep(null);
+    setSelected(null);
+    setQuery('');
+    preStartLogRef.current = [];
   }
 
   if (!running) {
@@ -165,8 +193,11 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
         selected={selected}
         onSelect={handleSelect}
         running={running.journey}
+        isEnded={isEnded}
         onStop={handleStop}
         stopping={stopping}
+        onRestart={handleRestart}
+        onChooseNew={handleChooseNew}
       />
       <ExecutionWorkspace
         processInstanceId={running.processInstanceId}
@@ -175,8 +206,10 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
         flow={running.flow}
         initialStep={running.step}
         manualKafkaControl={running.manualKafkaControl}
+        channelType={running.channelType}
         initialApiLog={preStartLogRef.current}
         onApiCallHandlerChange={handleApiCallHandlerChange}
+        onStepChange={setCurrentStep}
       />
     </div>
   );

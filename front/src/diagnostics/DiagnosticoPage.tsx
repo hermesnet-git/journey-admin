@@ -16,15 +16,15 @@ import {
 import type { ComponentType } from 'react';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { CHANNEL_TYPE_LABELS, type ChannelType } from '../api/products';
-import { formatDateTime, formatDuration, HistoryWorkspace, STATE_LABEL } from '../execution/HistoryWorkspace';
+import { formatDateTime, formatDuration, HistoryWorkspace, STATE_LABEL } from './HistoryWorkspace';
 import {
   getInstanceHistory,
   searchInstanceHistory,
   type HistoricInstanceSummary,
   type InstanceHistoryResponse,
   type InstanceHistorySearchFilters,
-  type JourneySummary,
-} from '../execution/api';
+} from './api';
+import type { JourneySummary } from '../execution/api';
 import { listJourneys } from '../api/journeys';
 
 type Bucket = 'active' | 'completed' | 'other';
@@ -318,9 +318,6 @@ export function DiagnosticoPage({ initialInstanceId }: Props) {
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
                         {j.name}
-                        {j.publishedVersionNumber != null && (
-                          <span style={{ color: c.textMuted }}> · v{j.publishedVersionNumber}</span>
-                        )}
                       </button>
                     ))
                   )}

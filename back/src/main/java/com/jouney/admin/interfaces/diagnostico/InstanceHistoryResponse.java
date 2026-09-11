@@ -1,7 +1,8 @@
-package com.jouney.admin.interfaces.execution;
+package com.jouney.admin.interfaces.diagnostico;
 
-import com.jouney.admin.domain.execution.ExecutionHistoryDetail;
-import com.jouney.admin.domain.execution.HistoryStep;
+import com.jouney.admin.domain.diagnostico.ExecutionHistoryDetail;
+import com.jouney.admin.domain.diagnostico.HistoryStep;
+import com.jouney.admin.interfaces.execution.FlowBundleResponse;
 import java.util.List;
 import java.util.UUID;
 

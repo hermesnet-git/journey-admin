@@ -1,4 +1,4 @@
-package com.jouney.admin.domain.execution;
+package com.jouney.admin.domain.diagnostico;
 
 import java.util.Map;
 

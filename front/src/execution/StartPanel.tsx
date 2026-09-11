@@ -16,6 +16,7 @@ import {
 import { recordExecutionStart } from './auditApi';
 import { SendTestMessagePanel } from './SendTestMessagePanel';
 import { FlowDiagramViewer } from './FlowDiagramViewer';
+import { listJourneyVersions, type JourneyVersion } from '../api/versions';
 
 const LATEST_INSTANCE_POLL_MS = 2000;
 const LATEST_INSTANCE_MAX_ATTEMPTS = 20; // ~40s
@@ -26,7 +27,9 @@ function delay(ms: number): Promise<void> {
 
 interface Props {
   journey: JourneySummary;
-  onStarted: (instance: InstanceResponse) => void;
+  // channelType só vem preenchido quando o usuário de fato escolheu um (fluxo de "Executar") — o
+  // início por mensagem (handleSendStartMessage) não tem seletor, ninguém escolheu nada.
+  onStarted: (instance: InstanceResponse, channelType?: string) => void;
 }
 
 // Configuração de início de uma jornada selecionada — variáveis de entrada, controle manual de
@@ -46,6 +49,12 @@ export function StartPanel({ journey, onStarted }: Props) {
   // session.channel/{{channel}} do jeito certo (Gateway e visibilidade condicional variam por
   // canal); só mostra o seletor quando há mais de um, senão usa o único direto.
   const [channelType, setChannelType] = useState(() => journey.channelTypes[0] ?? '');
+  // REQ-05.07.007: uma jornada pode ter mais de uma versão publicada simultaneamente (versões mais
+  // antigas continuam com deployment de pé no motor pras instâncias que já as iniciaram) — deixa
+  // escolher qual testar, só quando há mais de uma; com uma só, usa a publicação ativa direto
+  // (versionNumber undefined = publicação ativa, mesmo comportamento de sempre).
+  const [publishedVersions, setPublishedVersions] = useState<JourneyVersion[]>([]);
+  const [versionNumber, setVersionNumber] = useState<number | undefined>(undefined);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   // Só presente quando startError veio de uma falha SYNCHRONOUS_CHAIN_JSONPATH_FAILURE — o backend
@@ -56,14 +65,33 @@ export function StartPanel({ journey, onStarted }: Props) {
   // START — chave é o nome da variável, sempre string aqui (convertida pro tipo certo em handleExecute).
   const [startVariableValues, setStartVariableValues] = useState<Record<string, string>>({});
 
+  // Refaz a busca quando a versão escolhida muda (REQ-05.07.007) — sem isso, o diagrama e as
+  // variáveis de entrada abaixo continuariam mostrando a publicação ativa mesmo com outra versão
+  // selecionada no seletor logo abaixo.
   useEffect(() => {
     let cancelled = false;
-    getJourneyFlow(journey.journeyId)
+    setFlow(null);
+    setFlowError(false);
+    getJourneyFlow(journey.journeyId, versionNumber)
       .then((f) => {
         if (!cancelled) setFlow(f);
       })
       .catch(() => {
         if (!cancelled) setFlowError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [journey.journeyId, versionNumber]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listJourneyVersions(journey.journeyId)
+      .then((versions) => {
+        if (!cancelled) setPublishedVersions(versions.filter((v) => v.status === 'PUBLISHED'));
+      })
+      .catch(() => {
+        /* seletor de versão só não aparece; publicação ativa continua funcionando normalmente */
       });
     return () => {
       cancelled = true;
@@ -81,11 +109,11 @@ export function StartPanel({ journey, onStarted }: Props) {
     setDiagnosis(null);
     try {
       const variables = toStartVariablePayload(startVariables, startVariableValues);
-      const instance = await startInstance(journey.journeyId, channelType, variables, manualKafkaControl);
+      const instance = await startInstance(journey.journeyId, channelType, variables, manualKafkaControl, versionNumber);
       recordExecutionStart(journey.journeyId, journey.name, instance.processInstanceId).catch(() => {
         /* falha ao registrar auditoria não deve impedir a execução de continuar */
       });
-      onStarted(instance);
+      onStarted(instance, channelType);
     } catch (e) {
       setStartError(errorMessage(e));
       if (e instanceof ExecutionApiError && e.diagnosis) setDiagnosis(e.diagnosis);
@@ -190,6 +218,37 @@ export function StartPanel({ journey, onStarted }: Props) {
                     {t}
                   </option>
                 ))}
+              </select>
+            </Stack>
+          )}
+
+          {publishedVersions.length > 1 && (
+            <Stack space={8}>
+              <Text size={12.5} weight="medium" color={skinVars.colors.textSecondary}>
+                Versão publicada a executar
+              </Text>
+              <select
+                value={versionNumber ?? ''}
+                onChange={(e) => setVersionNumber(e.target.value ? Number(e.target.value) : undefined)}
+                className="w-full box-border"
+                style={{
+                  fontSize: 13,
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  border: `1px solid ${skinVars.colors.border}`,
+                  background: skinVars.colors.background,
+                  color: skinVars.colors.textPrimary,
+                }}
+              >
+                <option value="">Publicação ativa{journey.publishedVersionNumber != null ? ` · v${journey.publishedVersionNumber}` : ''}</option>
+                {publishedVersions
+                  .slice()
+                  .sort((a, b) => b.versionNumber - a.versionNumber)
+                  .map((v) => (
+                    <option key={v.versionId} value={v.versionNumber}>
+                      v{v.versionNumber}
+                    </option>
+                  ))}
               </select>
             </Stack>
           )}

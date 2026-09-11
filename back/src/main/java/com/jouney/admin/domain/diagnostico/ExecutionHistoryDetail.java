@@ -1,4 +1,4 @@
-package com.jouney.admin.domain.execution;
+package com.jouney.admin.domain.diagnostico;
 
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.FlowConnection;

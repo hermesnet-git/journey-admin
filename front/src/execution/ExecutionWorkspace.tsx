@@ -26,7 +26,7 @@ import {
 } from './api';
 import { DevicePreview } from './DevicePreview';
 import { InspectorPanel, type LogEntry } from './InspectorPanel';
-import { SummaryField } from './HistoryWorkspace';
+import { SummaryField } from './SummaryField';
 
 const WAITING_POLL_MS = 2000;
 
@@ -37,6 +37,9 @@ interface Props {
   flow: FlowBundle;
   initialStep: StepResponse;
   manualKafkaControl: boolean;
+  // Canal que o usuário de fato escolheu no StartPanel (REQ-05.07.003) — ausente só quando a
+  // instância nasceu por mensagem (sem seletor de canal envolvido).
+  channelType?: string;
   // Chamadas já feitas antes desta tela montar (busca da jornada, o próprio start) — capturadas por
   // quem orquestra a tela anterior (ExecutionsPage) e passadas pra cá pra abrir o log já com a
   // linha do zero, em vez de só a partir do momento em que este componente existe.
@@ -46,6 +49,10 @@ interface Props {
   // uma corrida entre o cleanup de um registro e o setup do outro no mesmo commit (ver
   // ExecutionsPage.handleApiCallHandlerChange).
   onApiCallHandlerChange?: (handler: ((entry: ApiCallLogEntry) => void) | null) => void;
+  // ExecutionToolbar precisa saber quando a jornada chega em ENDED pra trocar "Parar execução" por
+  // "Executar novamente"/"Escolher nova jornada" — o estado do passo atual mora aqui dentro
+  // (applyNewStep), não em ExecutionsPage, então avisa o pai a cada mudança.
+  onStepChange?: (step: StepResponse) => void;
 }
 
 const NODE_TYPE_LABEL: Record<string, string> = {
@@ -175,8 +182,10 @@ export function ExecutionWorkspace({
   flow,
   initialStep,
   manualKafkaControl,
+  channelType,
   initialApiLog,
   onApiCallHandlerChange,
+  onStepChange,
 }: Props) {
   const startNodeId = flow.flowNodes.find((n) => n.type === 'START')?.id;
   const connectorTypeByNodeId: Record<string, string> = {};
@@ -185,6 +194,10 @@ export function ExecutionWorkspace({
   });
 
   const [step, setStep] = useState(initialStep);
+  useEffect(() => {
+    onStepChange?.(initialStep);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [busy, setBusy] = useState(false);
   const [erroredNodeId, setErroredNodeId] = useState<string | null>(null);
   const [erroredNodeName, setErroredNodeName] = useState<string | null>(null);
@@ -259,6 +272,7 @@ export function ExecutionWorkspace({
 
   function applyNewStep(newStep: StepResponse, skipTrailNodeIds?: Set<string>) {
     setStep(newStep);
+    onStepChange?.(newStep);
     // errorMessage é a fonte da verdade de "houve erro", não errorNodeId: a heurística que tenta
     // achar QUAL nó falhou pode não conseguir (ex.: o ramo que falhou nem chegou a rodar de novo
     // por causa de um loop no fluxo) e volta null mesmo com um erro real — tratar isso como "sem
@@ -424,10 +438,9 @@ export function ExecutionWorkspace({
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="max-w-[1040px] mx-auto px-6 py-8">
           <DevicePreview
-            // Jornada pode ter vários canais agora; a prévia só precisa de um pra escolher a
-            // moldura (telefone vs. navegador) — usa o primeiro, sem rastrear qual foi o canal
-            // escolhido de fato ao iniciar esta instância (StartPanel).
-            channelType={flow.channelTypes[0] ?? 'WEB'}
+            // REQ-05.07.003: usa o canal que o usuário de fato escolheu no StartPanel — só cai pro
+            // primeiro canal da jornada quando não há escolha (instância nascida por mensagem).
+            channelType={channelType ?? flow.channelTypes[0] ?? 'WEB'}
             step={step}
             busy={busy}
             connectorConfig={waitingConnectorConfig}

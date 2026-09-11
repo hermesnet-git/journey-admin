@@ -152,7 +152,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return responseBody as T;
 }
 
-function apiGet<T>(path: string): Promise<T> {
+// Exportado pra diagnostics/api.ts reaproveitar (busca/detalhe de histórico é só GET) — sem
+// duplicar o client (retry, log de integrações, token) numa segunda cópia.
+export function apiGet<T>(path: string): Promise<T> {
   return request<T>(path);
 }
 
@@ -315,16 +317,22 @@ export function startInstance(
   channel: string,
   variables?: Record<string, unknown>,
   manualKafkaControl?: boolean,
+  // Número de versão de negócio (não UUID) — REQ-05.07.007, ausente usa a publicação ativa.
+  version?: number,
 ): Promise<InstanceResponse> {
   const params = new URLSearchParams({ channel });
   if (manualKafkaControl) params.set('manualKafkaControl', 'true');
+  if (version !== undefined) params.set('version', String(version));
   return apiPost(`/journeys/${journeyId}/instances?${params.toString()}`, variables);
 }
 
-/** Diagrama da jornada sem iniciar instância — usado só pra descobrir o tipo do nó de início antes
- * de decidir entre o botão "Executar" e o painel de envio de mensagem (MESSAGE_START_EVENT). */
-export function getJourneyFlow(journeyId: string): Promise<FlowBundle> {
-  return apiGet(`/journeys/${journeyId}/execution-flow`);
+/** Diagrama da jornada sem iniciar instância — usado pra descobrir o tipo do nó de início antes de
+ * decidir entre o botão "Executar" e o painel de envio de mensagem (MESSAGE_START_EVENT), e pra
+ * mostrar as variáveis de entrada certas da versão escolhida (REQ-05.07.007) — sem `version`, a
+ * publicação ativa. */
+export function getJourneyFlow(journeyId: string, version?: number): Promise<FlowBundle> {
+  const qs = version !== undefined ? `?version=${version}` : '';
+  return apiGet(`/journeys/${journeyId}/execution-flow${qs}`);
 }
 
 // `since` (ISO 8601) opcional: quando presente, o backend inclui a trilha do que o worker
@@ -405,32 +413,11 @@ export function getLatestInstance(journeyId: string, since: string): Promise<Ins
   return apiGet(`/journeys/${journeyId}/latest-instance?since=${encodeURIComponent(since)}`);
 }
 
-// --- Histórico (aba "Histórico" de Execução & Diagnóstico) ---
-// Ao contrário de tudo acima (que só funciona enquanto a instância existe no runtime do Camunda),
-// estas duas batem nas APIs de história do motor (via InstanceHistoryController do
-// ms-espec-registry) — respondem pra qualquer instância, ativa ou já terminada.
-
-export interface HistoricInstanceSummary {
-  id: string;
-  businessKey: string;
-  journeyName: string;
-  // processDefinitionVersion do Camunda — usado só pra agrupar por versão de jornada na tela
-  // Diagnóstico, não é necessariamente o mesmo número da versão de negócio (versionTag).
-  version: number | null;
-  startTime: string;
-  endTime: string | null;
-  durationMillis: number | null;
-  state: string;
-  // Canal (WEB/MOBILE/WHATSAPP) declarado ao iniciar a instância — null pra execuções de antes do
-  // conceito multicanal existir.
-  channel: string | null;
-}
-
-/** Um nó que a instância visitou, com o que ele recebeu/produziu — mesmo mapa de campos por tipo de
- * nó que TrailEntry já usa pra execução ao vivo (REST: method/url/headers/body no input, response no
- * output; Kafka: topic/payload no input; USER_TASK: respostas submetidas no input), só que
- * estruturado como objeto em vez de campos soltos, e cobrindo a instância inteira de uma vez — não
- * incremental feito TrailEntry. */
+// Um nó que a instância visitou, com o que ele recebeu/produziu — mesmo mapa de campos por tipo de
+// nó que TrailEntry usa pra execução ao vivo (REST: method/url/headers/body no input, response no
+// output; Kafka: topic/payload no input; USER_TASK: respostas submetidas no input), só que
+// estruturado como objeto em vez de campos soltos. Compartilhado com o Diagnóstico
+// (diagnostics/api.ts importa este tipo) — o mesmo InspectorPanel renderiza os dois casos.
 export interface NodeIODetail {
   nodeId: string;
   nodeName: string;
@@ -440,51 +427,4 @@ export interface NodeIODetail {
   durationMillis: number | null;
   input: Record<string, unknown> | null;
   output: Record<string, unknown> | null;
-}
-
-export interface InstanceHistoryResponse {
-  processInstanceId: string;
-  businessKey: string;
-  journeyId: string;
-  journeyName: string;
-  versionNumber: number | null;
-  state: string;
-  startTime: string;
-  endTime: string | null;
-  durationMillis: number | null;
-  flow: FlowBundle;
-  steps: NodeIODetail[];
-}
-
-export interface InstanceHistorySearchFilters {
-  journeyId?: string;
-  businessKey?: string;
-  finished?: boolean;
-  // Datas soltas ("AAAA-MM-DD", direto de um <input type="date">) — o backend espera um
-  // java.time.Instant completo, então viram início/fim do dia (hora local) antes de ir pra query.
-  startedFrom?: string;
-  startedTo?: string;
-}
-
-function startOfDayInstant(date: string): string {
-  return new Date(`${date}T00:00:00`).toISOString();
-}
-
-function endOfDayInstant(date: string): string {
-  return new Date(`${date}T23:59:59.999`).toISOString();
-}
-
-export function searchInstanceHistory(filters: InstanceHistorySearchFilters): Promise<HistoricInstanceSummary[]> {
-  const params = new URLSearchParams();
-  if (filters.journeyId) params.set('journeyId', filters.journeyId);
-  if (filters.businessKey) params.set('businessKey', filters.businessKey);
-  if (filters.finished !== undefined) params.set('finished', String(filters.finished));
-  if (filters.startedFrom) params.set('startedFrom', startOfDayInstant(filters.startedFrom));
-  if (filters.startedTo) params.set('startedTo', endOfDayInstant(filters.startedTo));
-  const qs = params.toString();
-  return apiGet(`/instances/search${qs ? `?${qs}` : ''}`);
-}
-
-export function getInstanceHistory(processInstanceId: string): Promise<InstanceHistoryResponse> {
-  return apiGet(`/instances/${processInstanceId}/history`);
 }

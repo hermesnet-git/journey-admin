@@ -1,9 +1,10 @@
 package com.jouney.admin.application.messaging;
 
 /**
- * Delega o teste de conexão (FT-14, US-14.04) ao componente de runtime que de fato resolve
- * credencial e abre conexão com o broker — o admin-back nunca acessa o Key Vault nem o broker
- * diretamente (REQ-14.04.003).
+ * Teste de conexão (FT-14, US-14.04) — metadado apenas (describeCluster), nunca publica/consome
+ * uma mensagem real (REQ-14.04.002). A credencial em si é resolvida por
+ * {@link com.jouney.admin.infrastructure.messaging.CredentialResolver}, hoje sem Key Vault real
+ * (ponytail, ver {@link com.jouney.admin.infrastructure.messaging.LocalCredentialResolver}).
  */
 public interface MessagingConnectionTestPort {
 

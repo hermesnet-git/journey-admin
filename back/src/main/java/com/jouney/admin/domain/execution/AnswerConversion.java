@@ -79,7 +79,7 @@ public final class AnswerConversion {
         Map<String, Object> source = raw != null ? raw : Map.of();
         Map<String, Object> variables = new LinkedHashMap<>();
         List<String> missing = new ArrayList<>();
-        for (Map<String, Object> declaration : declarations) {
+        for (Map<String, Object> declaration : declarations != null ? declarations : List.<Map<String, Object>>of()) {
             if (!(declaration.get("name") instanceof String name) || name.isBlank()) {
                 continue;
             }

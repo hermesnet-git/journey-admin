@@ -253,16 +253,41 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
     // pra virar uma mensagem de erro útil, não o texto genérico de indisponibilidade do call().
 
     @Override
-    public String startProcessInstance(String processDefinitionKey, Map<String, Object> variables, String businessKey) {
+    public String startProcessInstance(String processDefinitionKey, Map<String, Object> variables, String businessKey,
+                                        Integer versionNumber) {
         Map<String, Object> body = Map.of("variables", wrapValues(variables), "businessKey", businessKey);
-        Map<String, Object> response = restClient.post()
-                .uri(baseUrl + "/process-definition/key/{key}/start", processDefinitionKey)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(body)
-                .retrieve()
-                .body(new ParameterizedTypeReference<Map<String, Object>>() {
-                });
+        Map<String, Object> response = versionNumber != null
+                ? restClient.post()
+                        .uri(baseUrl + "/process-definition/{id}/start", resolveProcessDefinitionId(processDefinitionKey, versionNumber))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(body)
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<Map<String, Object>>() {
+                        })
+                : restClient.post()
+                        .uri(baseUrl + "/process-definition/key/{key}/start", processDefinitionKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(body)
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<Map<String, Object>>() {
+                        });
         return String.valueOf(response.get("id"));
+    }
+
+    // REQ-05.07.007: a REST API do motor só inicia "a mais recente" direto por key — pra mirar uma
+    // versão de negócio específica é preciso primeiro achar o processDefinitionId de verdade,
+    // filtrando por versionTag ("v"+N, mesma convenção de getVersionTag).
+    private String resolveProcessDefinitionId(String processDefinitionKey, int versionNumber) {
+        List<Map<String, Object>> definitions = restClient.get()
+                .uri(baseUrl + "/process-definition?key={key}&versionTag={tag}", processDefinitionKey, "v" + versionNumber)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                });
+        if (definitions == null || definitions.isEmpty()) {
+            throw new IllegalStateException("Versão v" + versionNumber + " de " + processDefinitionKey
+                    + " não tem deployment no motor de runtime");
+        }
+        return String.valueOf(definitions.get(0).get("id"));
     }
 
     @Override

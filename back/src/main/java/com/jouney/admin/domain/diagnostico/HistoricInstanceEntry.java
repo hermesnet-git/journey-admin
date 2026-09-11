@@ -1,4 +1,4 @@
-package com.jouney.admin.domain.execution;
+package com.jouney.admin.domain.diagnostico;
 
 /** Uma linha da busca de histórico (Diagnóstico) — instância em qualquer estado, ativa ou já
  * terminada. {@code version} é a versão do process-definition do motor (não necessariamente igual

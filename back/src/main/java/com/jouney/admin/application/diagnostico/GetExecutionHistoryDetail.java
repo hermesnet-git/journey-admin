@@ -1,9 +1,10 @@
-package com.jouney.admin.application.execution;
+package com.jouney.admin.application.diagnostico;
 
+import com.jouney.admin.application.execution.RuntimeExecutionPort;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.ActivityHistoryEntry;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.HistoricInstance;
-import com.jouney.admin.domain.execution.ExecutionHistoryDetail;
-import com.jouney.admin.domain.execution.HistoryStep;
+import com.jouney.admin.domain.diagnostico.ExecutionHistoryDetail;
+import com.jouney.admin.domain.diagnostico.HistoryStep;
 import com.jouney.admin.domain.execution.KafkaVariableNames;
 import com.jouney.admin.domain.execution.ProcessIds;
 import com.jouney.admin.domain.flow.ConnectorConfig;
@@ -22,9 +23,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /** Detalhe completo de uma instância no histórico — a aba "Histórico" do Diagnóstico, ao clicar
- * numa linha da busca ({@link SearchExecutionHistory}). Sem depender de {@link
- * ExecutionStepResolver} (esse presume instância viva no motor): tudo aqui vem das APIs de
- * história, respondem pra qualquer estado. */
+ * numa linha da busca ({@link SearchExecutionHistory}). Sem depender de
+ * {@code application.execution.ExecutionStepResolver} (esse presume instância viva no motor):
+ * tudo aqui vem das APIs de história, respondem pra qualquer estado. */
 @Service
 public class GetExecutionHistoryDetail {
 

@@ -35,7 +35,6 @@ import com.jouney.admin.infrastructure.connector.SsrfBlockedException;
 import com.jouney.admin.infrastructure.dashboard.RuntimeMonitoringException;
 import com.jouney.admin.application.publication.RuntimeUnpublishBlockedException;
 import com.jouney.admin.application.publication.SduiPublicationUnavailableException;
-import com.jouney.admin.infrastructure.messaging.MessagingConnectionTestException;
 import com.jouney.admin.infrastructure.publication.EspecRegistrySduiException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationRejectedException;
@@ -143,12 +142,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EspecRegistrySduiException.class)
     public ResponseEntity<ApiError> handleEspecRegistrySdui(EspecRegistrySduiException ex, HttpServletRequest request) {
         log.error("ms-espec-registry SDUI publication call failed", ex);
-        return build(HttpStatus.BAD_GATEWAY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
-    }
-
-    @ExceptionHandler(MessagingConnectionTestException.class)
-    public ResponseEntity<ApiError> handleMessagingConnectionTest(MessagingConnectionTestException ex, HttpServletRequest request) {
-        log.error("Messaging connection test call failed", ex);
         return build(HttpStatus.BAD_GATEWAY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
     }
 

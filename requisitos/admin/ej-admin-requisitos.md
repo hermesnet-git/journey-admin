@@ -690,6 +690,14 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.07.004 - O sistema deve exibir o número da versão publicada da jornada (`v<N>`) tanto na lista de busca quanto no cabeçalho de uma execução em andamento.
 #### REQ-05.07.005 - O sistema deve permitir iniciar a execução de uma jornada publicada diretamente do grid de Jornadas (FT-02), abrindo uma aba de Execução dedicada já com essa jornada selecionada.
 #### REQ-05.07.006 - Quando a jornada tiver mais de um tipo de canal habilitado, o sistema deve permitir escolher qual tipo simular antes de iniciar a execução; com um único tipo habilitado, o sistema deve usá-lo automaticamente, sem exigir escolha do usuário.
+#### REQ-05.07.007 - Quando uma jornada tiver mais de uma versão publicada simultaneamente (REQ-06.04.004), o sistema deve permitir escolher qual versão executar antes de iniciar a instância; com uma única versão publicada, o sistema deve usá-la automaticamente, sem exigir escolha do usuário.
+
+> **Nota de revisão (2026-09-11):** implementado. `StartExecution` (admin/back) resolve a versão
+> escolhida via `JourneyVersionRepository` (precisa estar `PUBLISHED`) em vez da publicação ativa;
+> `RuntimeEngineMonitoringAdapter.startProcessInstance` mira o deployment certo no motor via
+> `versionTag`. Front: `StartPanel.tsx` mostra o seletor só quando há mais de uma versão publicada
+> (`listJourneyVersions`, já existente). Testado em runtime: instâncias iniciadas com e sem versão
+> explícita confirmadas rodando nos `processDefinitionId`s corretos (v1 vs. v3) direto no motor.
 ---
 
 ### US-05.08 Tratamento de falhas de integração

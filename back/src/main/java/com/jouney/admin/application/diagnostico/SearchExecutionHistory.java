@@ -1,7 +1,8 @@
-package com.jouney.admin.application.execution;
+package com.jouney.admin.application.diagnostico;
 
+import com.jouney.admin.application.execution.RuntimeExecutionPort;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.HistoricInstance;
-import com.jouney.admin.domain.execution.HistoricInstanceEntry;
+import com.jouney.admin.domain.diagnostico.HistoricInstanceEntry;
 import com.jouney.admin.domain.execution.ProcessIds;
 import java.time.Instant;
 import java.util.List;
@@ -9,9 +10,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
-/** Busca de instâncias no histórico — a aba "Histórico" do Diagnóstico. Ao contrário do resto da
- * Execução (que só enxerga instâncias ainda vivas no motor), aqui vem sempre da API de história,
- * que responde pra qualquer estado, ativa ou já terminada. */
+/** Busca de instâncias no histórico — a aba "Histórico" do Diagnóstico. Ao contrário da Execução
+ * (que só enxerga instâncias ainda vivas no motor), aqui vem sempre da API de história, que
+ * responde pra qualquer estado, ativa ou já terminada. */
 @Service
 public class SearchExecutionHistory {
 

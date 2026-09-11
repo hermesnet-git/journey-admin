@@ -33,7 +33,11 @@ public interface RuntimeExecutionPort {
     record TypedVariable(Object value, String type) {
     }
 
-    String startProcessInstance(String processDefinitionKey, Map<String, Object> variables, String businessKey);
+    /** {@code versionNumber} nulo inicia a versão mais recente implantada (comportamento de sempre);
+     * um valor explícito mira o deployment daquela versão de negócio via versionTag ("v"+N),
+     * REQ-05.07.007 — precisa ter sido publicada (deployment de verdade existe no motor). */
+    String startProcessInstance(String processDefinitionKey, Map<String, Object> variables, String businessKey,
+                                 Integer versionNumber);
 
     Optional<ProcessInstance> getProcessInstance(String processInstanceId);
 

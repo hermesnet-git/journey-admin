@@ -43,6 +43,7 @@ public class GetLatestInstance {
         Publication publication = publicationRepository.findByJourneyId(journeyId)
                 .orElseThrow(() -> new JourneyNotPublishedException(journeyId));
         ExecutionStep step = stepResolver.resolve(processInstanceId);
-        return Optional.of(new ExecutionInstance(processInstanceId, instance.businessKey(), publication, step, false));
+        return Optional.of(new ExecutionInstance(processInstanceId, instance.businessKey(), publication.getChannelTypes(),
+                publication.getFlowNodes(), publication.getFlowConnections(), step, false));
     }
 }

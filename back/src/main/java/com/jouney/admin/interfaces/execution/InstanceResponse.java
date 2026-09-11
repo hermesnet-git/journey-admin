@@ -7,7 +7,7 @@ public record InstanceResponse(String processInstanceId, String businessKey, Flo
 
     public static InstanceResponse from(ExecutionInstance instance) {
         return new InstanceResponse(instance.processInstanceId(), instance.businessKey(),
-                FlowBundleResponse.from(instance.flow()), StepResponse.from(instance.step()),
-                instance.manualKafkaControl());
+                FlowBundleResponse.of(instance.channelTypes(), instance.flowNodes(), instance.flowConnections()),
+                StepResponse.from(instance.step()), instance.manualKafkaControl());
     }
 }

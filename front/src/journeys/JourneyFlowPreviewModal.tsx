@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { getFlow, type Flow } from '../api/flows';
@@ -19,10 +19,27 @@ interface Props {
 // Reaproveita o mesmo visualizador somente-leitura da aba "Fluxo da Jornada" das Execuções — mesma
 // linguagem visual (cores por tipo, ícones, fundo pontilhado, zoom), sem o comportamento de execução
 // (não há passo atual/concluído/erro aqui, é só a estrutura do fluxo).
+const MIN_WIDTH = 480;
+const MIN_HEIGHT = 320;
+const DEFAULT_WIDTH = 960;
+
 export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Props) {
   const { colors: c } = useAppTheme();
   const [flow, setFlow] = useState<Flow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Tamanho inicial aplicado direto no DOM (não via state/style do React) — resize:both é nativo do
+  // navegador, que muta width/height do elemento por fora do React; se width/height também
+  // estivessem no objeto style controlado por aqui, todo re-render (ex.: quando `flow` chega)
+  // reconciliaria de volta pro valor antigo, desfazendo o redimensionamento manual do usuário.
+  // 75vh * 0.6 = 45vh — pedido do usuário pra reduzir a altura inicial em 40%.
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    el.style.width = `${DEFAULT_WIDTH}px`;
+    el.style.height = `${Math.round(window.innerHeight * 0.45)}px`;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,9 +88,20 @@ export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Pro
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={onClose}>
       <div
+        ref={boxRef}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[960px] h-[75vh] rounded-2xl flex flex-col box-border"
-        style={{ background: c.surface, border: `1px solid ${c.border}`, boxShadow: `0 20px 50px -12px ${c.shadow}` }}
+        className="rounded-2xl flex flex-col box-border"
+        style={{
+          resize: 'both',
+          overflow: 'auto',
+          minWidth: MIN_WIDTH,
+          minHeight: MIN_HEIGHT,
+          maxWidth: '95vw',
+          maxHeight: '90vh',
+          background: c.surface,
+          border: `1px solid ${c.border}`,
+          boxShadow: `0 20px 50px -12px ${c.shadow}`,
+        }}
       >
         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b shrink-0" style={{ borderColor: c.border }}>
           <div className="min-w-0">

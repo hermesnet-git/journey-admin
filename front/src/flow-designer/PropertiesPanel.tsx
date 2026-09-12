@@ -592,38 +592,63 @@ export const METHODS_WITH_BODY = new Set(['POST', 'PUT', 'PATCH']);
 export const OUTPUT_MAPPING_FIELD = 'outputMapping';
 
 // Resumo em prosa da configuração atual — não é mais tabela propriedade/valor (isso agora vive só
-// dentro do ConnectorWizard, o único lugar onde o conector é editado). Cada linha já junta os fatos
-// relevantes daquele aspecto (conexão, dados enviados, mapeamento) em vez de um campo por linha.
+// dentro do ConnectorWizard, o único lugar onde o conector é editado). Uma linha por fato (cluster,
+// tópico, credencial, contagem) — só a contagem, sem listar os nomes dos campos (fica grande demais
+// com muitos campos e o usuário pode sempre abrir "Configurar conector" pra ver o detalhe).
 function describeConnector(connectorConfig: ConnectorConfig, brokerOperation?: 'PRODUCE' | 'CONSUME'): string[] {
   const cfg = connectorConfig.config ?? {};
-  const mappingCount = ((cfg[OUTPUT_MAPPING_FIELD] as OutputMappingRule[]) ?? []).length;
-  const mappingLine =
-    mappingCount > 0
-      ? `${mappingCount} variável${mappingCount > 1 ? 'is' : ''} de saída mapeada${mappingCount > 1 ? 's' : ''}`
-      : 'Nenhuma variável de saída mapeada';
 
   if (connectorConfig.connectorType === 'REST') {
+    const mappingCount = ((cfg[OUTPUT_MAPPING_FIELD] as OutputMappingRule[]) ?? []).length;
     const method = (cfg.method as string) || null;
     const url = (cfg.url as string) || null;
     const headersCount = Object.keys((cfg.headers as Record<string, string>) ?? {}).length;
     const hasBody = !!cfg.body && Object.keys(cfg.body as object).length > 0;
-    const details = [
-      headersCount > 0 ? `${headersCount} header${headersCount > 1 ? 's' : ''}` : null,
-      hasBody ? 'Body configurado' : null,
-      connectorConfig.credentialRef ? `Credencial: ${connectorConfig.credentialRef}` : null,
-    ].filter((v): v is string => !!v);
     return [
       method && url ? `${method} ${url}` : 'URL ainda não configurada',
-      ...(details.length > 0 ? [details.join(' · ')] : []),
-      mappingLine,
+      ...(headersCount > 0 ? [`${headersCount} header${headersCount > 1 ? 's' : ''}`] : []),
+      ...(hasBody ? ['Body configurado'] : []),
+      `Credencial: ${connectorConfig.credentialRef || '—'}`,
+      mappingCount > 0
+        ? `${mappingCount} variável${mappingCount > 1 ? 'is' : ''} de saída mapeada${mappingCount > 1 ? 's' : ''}`
+        : 'Nenhuma variável de saída mapeada',
     ];
   }
 
+  // Kafka/Event Hubs/Service Bus: "Aproveitar/Enviar tudo automaticamente" (GENERIC_DUMP, a opção
+  // recomendada do assistente — ver ConnectorWizard) não grava nenhuma regra em payloadFields nem em
+  // outputMapping, de propósito (não precisa configurar nada). Contar essas listas — como este
+  // resumo fazia antes, pra REST e pra broker igual — dava sempre "nenhuma variável mapeada" pra todo
+  // conector automático, sugerindo que nada seria enviado/aproveitado, quando na prática TUDO é
+  // (a instância inteira, ou a mensagem inteira). payloadFields (só existe pra PRODUCE) é o campo
+  // certo pro que é enviado; outputMapping continua certo pro que é extraído ao consumir.
+  const payloadMode = (cfg.payloadMode as string) === 'CUSTOM' ? 'CUSTOM' : 'GENERIC_DUMP';
+  const isConsume = brokerOperation === 'CONSUME';
   const topicLabel = connectorConfig.connectorType === 'EVENT_HUBS' ? 'Event Hub' : 'Tópico';
-  return [
+  const header = [
     `${connectorConfig.connectorType}${brokerOperation ? ` · ${brokerOperation}` : ''}`,
-    `Cluster: ${(cfg.clusterId as string) || '—'} · ${topicLabel}: ${(cfg.topic as string) || '—'}`,
-    `Credencial: ${connectorConfig.credentialRef || '—'} · ${mappingLine}`,
+    `Cluster: ${(cfg.clusterId as string) || '—'}`,
+    `${topicLabel}: ${(cfg.topic as string) || '—'}`,
+    `Credencial: ${connectorConfig.credentialRef || '—'}`,
+  ];
+
+  if (payloadMode === 'GENERIC_DUMP') {
+    return [
+      ...header,
+      isConsume
+        ? 'Aproveita tudo que chegar na mensagem, automaticamente'
+        : 'Envia todas as variáveis da jornada até este ponto, automaticamente',
+    ];
+  }
+
+  const count = isConsume
+    ? ((cfg[OUTPUT_MAPPING_FIELD] as OutputMappingRule[]) ?? []).length
+    : ((cfg.payloadFields as PayloadField[]) ?? []).length;
+  return [
+    ...header,
+    count > 0
+      ? `${count} campo${count > 1 ? 's' : ''} mapeado${count > 1 ? 's' : ''}`
+      : 'Nenhum campo mapeado ainda',
   ];
 }
 

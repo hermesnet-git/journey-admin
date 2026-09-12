@@ -2,7 +2,9 @@ package com.jouney.admin.application.diagnostico;
 
 import com.jouney.admin.application.execution.RuntimeExecutionPort;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.ActivityHistoryEntry;
+import com.jouney.admin.application.execution.RuntimeExecutionPort.ExternalTaskAttempt;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.HistoricInstance;
+import com.jouney.admin.application.execution.RuntimeExecutionPort.TaskDetail;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.TypedVariable;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.VariableUpdate;
 import com.jouney.admin.domain.diagnostico.ExecutionHistoryDetail;
@@ -69,7 +71,8 @@ public class GetExecutionHistoryDetail {
                 // Nó não encontrado na versão resolvida (deploy legado sem versionTag correlacionável)
                 // — mostra o passo mesmo assim, só sem input/output.
                 steps.add(new HistoryStep(activity.activityId(), activity.activityName(), activity.activityType(),
-                        activity.startTime(), activity.endTime(), activity.durationInMillis(), null, null));
+                        activity.startTime(), activity.endTime(), activity.durationInMillis(), null, null, null, List.of(),
+                        activity.canceled(), activity.id()));
                 if (activity.endTime() == null) {
                     currentNodeId = activity.activityId();
                 }
@@ -78,9 +81,15 @@ public class GetExecutionHistoryDetail {
             nodeByActivityInstanceId.put(activity.id(), node);
             Map<String, Object> input = null;
             Map<String, Object> output = null;
+            TaskDetail taskDetail = null;
+            List<ExternalTaskAttempt> attempts = List.of();
             if (node.getType() == FlowNodeType.USER_TASK) {
                 Map<String, Object> answers = runtimeExecutionPort.getSubmittedFormValues(activity.id());
                 input = answers.isEmpty() ? null : answers;
+                // /history/task, nunca consultado antes — deleteReason distingue uma tarefa
+                // concluída de uma descartada/cancelada (ex.: instância terminada à força enquanto
+                // esperava resposta), coisa que HistoryStep sozinho não tinha como dizer.
+                taskDetail = runtimeExecutionPort.getHistoricTaskDetail(activity.id()).orElse(null);
             } else if (node.getType() == FlowNodeType.START) {
                 // "Entrada" do Início = as variáveis declaradas (REQ-03.12.001) com o valor que de
                 // fato chegou ao iniciar a instância — mesmo dado que StartVariablesSection já lia
@@ -91,14 +100,35 @@ public class GetExecutionHistoryDetail {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
                 if (connectorConfig != null && connectorConfig.getConnectorType() == ConnectorType.REST) {
                     Map<String, Object> local = runtimeExecutionPort.getLocalVariablesForActivity(activity.id());
-                    input = restInput(local);
-                    output = restOutput(local);
+                    Map<String, Object> request = restRequest(local);
+                    Map<String, Object> response = restResponse(local);
+                    // POST/PUT/PATCH/DELETE escrevem em algo externo — a chamada inteira (o que foi
+                    // enviado + o que voltou) é saída do motor. GET só lê, então o pedido continua
+                    // entrada e a resposta lida continua saída.
+                    if (isWriteVerb(local.get("method"))) {
+                        output = mergeMaps(request, response);
+                    } else {
+                        input = request;
+                        output = response;
+                    }
                 } else if (connectorConfig != null && connectorConfig.getConnectorType() == ConnectorType.KAFKA) {
-                    input = kafkaInput(currentValues, node.getId());
+                    Map<String, Object> kafka = kafkaPayload(currentValues, node.getId());
+                    // Service Task Kafka publica (o motor está enviando pra fora, é saída); Receive
+                    // Task espera uma mensagem chegar (o motor está recebendo, continua entrada).
+                    if (node.getType() == FlowNodeType.SERVICE_TASK) {
+                        output = kafka;
+                    } else {
+                        input = kafka;
+                    }
+                    // /history/external-task-log, nunca consultado antes — mostra tentativas
+                    // anteriores ao resultado final (falhas de retry), não só o incidente que só
+                    // existe depois que os retries acabam.
+                    attempts = runtimeExecutionPort.getExternalTaskAttempts(activity.id());
                 }
             }
             steps.add(new HistoryStep(node.getId(), node.getName(), node.getType().name(), activity.startTime(),
-                    activity.endTime(), activity.durationInMillis(), input, output));
+                    activity.endTime(), activity.durationInMillis(), input, output, taskDetail, attempts, activity.canceled(),
+                    activity.id()));
             if (activity.endTime() == null) {
                 currentNodeId = node.getId();
             }
@@ -184,25 +214,42 @@ public class GetExecutionHistoryDetail {
                                  List<FlowNode> flowNodes, List<com.jouney.admin.domain.flow.FlowConnection> flowConnections) {
     }
 
-    private static Map<String, Object> restInput(Map<String, Object> local) {
-        Map<String, Object> input = new LinkedHashMap<>();
-        putIfPresent(input, "method", local.get("method"));
-        putIfPresent(input, "url", local.get("url"));
-        putIfPresent(input, "headers", local.get("headers"));
-        putIfPresent(input, "body", local.get("payload"));
-        return input.isEmpty() ? null : input;
+    private static final java.util.Set<String> WRITE_VERBS = java.util.Set.of("POST", "PUT", "PATCH", "DELETE");
+
+    private static boolean isWriteVerb(Object method) {
+        return method != null && WRITE_VERBS.contains(String.valueOf(method).toUpperCase());
     }
 
-    private static Map<String, Object> restOutput(Map<String, Object> local) {
-        Object response = local.get("response");
-        return response != null ? Map.of("response", response) : null;
+    private static Map<String, Object> mergeMaps(Map<String, Object> first, Map<String, Object> second) {
+        Map<String, Object> merged = new LinkedHashMap<>();
+        if (first != null) merged.putAll(first);
+        if (second != null) merged.putAll(second);
+        return merged.isEmpty() ? null : merged;
     }
 
-    private static Map<String, Object> kafkaInput(Map<String, TypedVariable> processVariables, String nodeId) {
-        Map<String, Object> input = new LinkedHashMap<>();
-        putIfPresent(input, "topic", valueOf(processVariables, KafkaVariableNames.TOPIC_PREFIX + nodeId));
-        putIfPresent(input, "payload", valueOf(processVariables, KafkaVariableNames.PAYLOAD_PREFIX + nodeId));
-        return input.isEmpty() ? null : input;
+    private static Map<String, Object> restRequest(Map<String, Object> local) {
+        Map<String, Object> request = new LinkedHashMap<>();
+        putIfPresent(request, "method", local.get("method"));
+        putIfPresent(request, "url", local.get("url"));
+        putIfPresent(request, "headers", local.get("headers"));
+        putIfPresent(request, "body", local.get("payload"));
+        return request.isEmpty() ? null : request;
+    }
+
+    private static Map<String, Object> restResponse(Map<String, Object> local) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        // statusCode já era gravado pelo HttpConnectorDelegate (ms-runtime-camunda) desde sempre —
+        // só nunca tinha sido lido de volta aqui, então nunca apareceu na Saída do Diagnóstico.
+        putIfPresent(response, "statusCode", local.get("statusCode"));
+        putIfPresent(response, "response", local.get("response"));
+        return response.isEmpty() ? null : response;
+    }
+
+    private static Map<String, Object> kafkaPayload(Map<String, TypedVariable> processVariables, String nodeId) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        putIfPresent(payload, "topic", valueOf(processVariables, KafkaVariableNames.TOPIC_PREFIX + nodeId));
+        putIfPresent(payload, "payload", valueOf(processVariables, KafkaVariableNames.PAYLOAD_PREFIX + nodeId));
+        return payload.isEmpty() ? null : payload;
     }
 
     private static Object valueOf(Map<String, TypedVariable> variables, String name) {

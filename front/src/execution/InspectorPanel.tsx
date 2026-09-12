@@ -315,6 +315,21 @@ function NodeDetailDrawer({
                 </Text>
               </div>
             )}
+            {detail?.endTime && (
+              <div className="mt-[2px]">
+                <Text size={11} color={skinVars.colors.textSecondary}>
+                  concluída em {new Date(detail.endTime).toLocaleString('pt-BR')}
+                </Text>
+              </div>
+            )}
+            {(detail?.taskDetail?.taskId ?? detail?.activityInstanceId) && (
+              <div className="mt-[2px]">
+                <Text size={11} color={skinVars.colors.textSecondary}>
+                  task id: {detail?.taskDetail?.taskId ?? detail?.activityInstanceId}
+                </Text>
+                <CopyTextButton text={(detail?.taskDetail?.taskId ?? detail?.activityInstanceId)!} />
+              </div>
+            )}
           </div>
           <button
             type="button"
@@ -1136,6 +1151,35 @@ export function CopyJsonButton({ data }: { data: Record<string, unknown> }) {
     >
       {copied ? <Check size={11} /> : <Copy size={11} />}
       {copied ? 'Copiado' : 'Copiar'}
+    </button>
+  );
+}
+
+// Ícone de copiar pra um texto curto (ex.: task id) — mesma peça de diagnostics/CopyTextButton.tsx,
+// duplicada aqui em vez de importada de lá pra não criar uma dependência de execution sobre
+// diagnostics (a composição do Diagnóstico é que depende de execution, não o contrário).
+function CopyTextButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard indisponível (ex.: contexto não seguro) — sem feedback, sem quebrar a tela
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title="Copiar"
+      className="inline-flex items-center cursor-pointer border-0 bg-transparent p-0"
+      style={{ color: copied ? skinVars.colors.success : skinVars.colors.textSecondary, marginLeft: 6, verticalAlign: 'middle' }}
+    >
+      {copied ? <Check size={11} /> : <Copy size={11} />}
     </button>
   );
 }

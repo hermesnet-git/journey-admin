@@ -4,6 +4,7 @@ import com.jouney.admin.application.execution.RuntimeExecutionPort.ActiveTask;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.ActivityHistoryEntry;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.LeafActivity;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.ProcessInstance;
+import com.jouney.admin.application.execution.RuntimeExecutionPort.TaskDetail;
 import com.jouney.admin.domain.execution.ExecutionStep;
 import com.jouney.admin.domain.execution.FlowGraph;
 import com.jouney.admin.domain.execution.KafkaVariableNames;
@@ -99,7 +100,7 @@ public class ExecutionStepResolver {
                 continue;
             }
             String url = null, response = null, method = null, requestHeaders = null, requestBody = null,
-                    kafkaTopic = null, kafkaPayload = null;
+                    kafkaTopic = null, kafkaPayload = null, taskId = null;
             if (node.getType() == FlowNodeType.SERVICE_TASK) {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
                 if (connectorConfig != null && connectorConfig.getConnectorType() == ConnectorType.REST) {
@@ -119,9 +120,13 @@ public class ExecutionStepResolver {
                     kafkaTopic = stringValue(processVariables.get(KafkaVariableNames.TOPIC_PREFIX + node.getId()));
                     kafkaPayload = stringValue(processVariables.get(KafkaVariableNames.PAYLOAD_PREFIX + node.getId()));
                 }
+            } else if (node.getType() == FlowNodeType.USER_TASK) {
+                // /history/task, via história — responde igual pra instância ativa ou já terminada,
+                // mesmo método que o Diagnóstico já usa (GetExecutionHistoryDetail).
+                taskId = runtimeExecutionPort.getHistoricTaskDetail(activity.id()).map(TaskDetail::taskId).orElse(null);
             }
             trail.add(new TrailEntry(node.getId(), node.getName(), node.getType().name(), url, response, method,
-                    requestHeaders, requestBody, kafkaTopic, kafkaPayload));
+                    requestHeaders, requestBody, kafkaTopic, kafkaPayload, activity.id(), activity.endTime(), taskId));
         }
         return trail;
     }

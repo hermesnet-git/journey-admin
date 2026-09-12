@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw, ScrollText, Sliders } from 'lucide-react';
 import { skinVars, Text } from '@telefonica/mistica';
 import type { ComponentType } from 'react';
-import { LogPanel, type LogEntry } from '../execution/InspectorPanel';
 import { FlowDiagramViewer } from '../execution/FlowDiagramViewer';
 import type { NodeIODetail } from '../execution/api';
 import { SummaryField } from '../execution/SummaryField';
 import { getInstanceHistory, type IncidentEntry, type InstanceHistoryResponse } from './api';
 import { DiagnosticoNodeDrawer } from './DiagnosticoNodeDrawer';
 import { VariableTimeline } from './VariableTimeline';
+import { DiagnosticoLogPanel, type LogEntry } from './DiagnosticoLogPanel';
 
 interface Props {
   history: InstanceHistoryResponse;
@@ -88,7 +88,7 @@ export const STATE_LABEL: Record<string, string> = {
 type BottomTabKey = 'variaveis' | 'log';
 
 const BOTTOM_TABS: { key: BottomTabKey; label: string; icon: ComponentType<{ size?: number }> }[] = [
-  { key: 'variaveis', label: 'Variáveis', icon: Sliders },
+  { key: 'variaveis', label: 'Histórico de Variáveis', icon: Sliders },
   { key: 'log', label: 'Log', icon: ScrollText },
 ];
 
@@ -265,6 +265,7 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
               currentNodeId={history.currentNodeId}
               variables={history.variables}
               variableTimeline={history.variableTimeline}
+              incidents={history.incidents}
               onClose={() => setSelectedNodeId(null)}
             />
           )}
@@ -304,10 +305,7 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
                   <Icon size={14} />
                   {t.label}
                   {t.key === 'log' && log.length > 0 && (
-                    <span
-                      className="rounded-full text-[10.5px] px-[6px] leading-[16px]"
-                      style={{ background: skinVars.colors.backgroundAlternative, color: skinVars.colors.textSecondary }}
-                    >
+                    <span className="rounded-full text-[10.5px] px-[6px] leading-[16px]" style={{ background: skinVars.colors.backgroundAlternative, color: skinVars.colors.textSecondary }}>
                       {log.length}
                     </span>
                   )}
@@ -326,7 +324,7 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
                 />
               </div>
             ) : (
-              <LogPanel log={log} endRef={logEndRef} />
+              <DiagnosticoLogPanel log={log} endRef={logEndRef} />
             )}
           </div>
         </div>

@@ -409,7 +409,7 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                 .body(new ParameterizedTypeReference<List<ActivityInstanceHistoryRaw>>() {
                 }));
         if (raw == null) return List.of();
-        return raw.stream().map(r -> new ActivityHistoryEntry(r.id(), r.activityId(), r.activityName(), r.activityType(), r.startTime(), r.endTime(), r.durationInMillis())).toList();
+        return raw.stream().map(r -> new ActivityHistoryEntry(r.id(), r.activityId(), r.activityName(), r.activityType(), r.startTime(), r.endTime(), r.durationInMillis(), Boolean.TRUE.equals(r.canceled()))).toList();
     }
 
     @Override
@@ -515,7 +515,7 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                 .body(new ParameterizedTypeReference<List<ActivityInstanceHistoryRaw>>() {
                 }));
         if (raw == null) return List.of();
-        return raw.stream().map(r -> new ActivityHistoryEntry(r.id(), r.activityId(), r.activityName(), r.activityType(), r.startTime(), r.endTime(), r.durationInMillis())).toList();
+        return raw.stream().map(r -> new ActivityHistoryEntry(r.id(), r.activityId(), r.activityName(), r.activityType(), r.startTime(), r.endTime(), r.durationInMillis(), Boolean.TRUE.equals(r.canceled()))).toList();
     }
 
     @Override
@@ -650,6 +650,46 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                 .toList();
     }
 
+    @Override
+    public Optional<TaskDetail> getHistoricTaskDetail(String activityInstanceId) {
+        List<HistoricTaskInstanceRaw> raw = call(() -> restClient.get()
+                .uri(baseUrl + "/history/task?activityInstanceIdIn={id}", activityInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricTaskInstanceRaw>>() {
+                }));
+        if (raw == null || raw.isEmpty()) return Optional.empty();
+        HistoricTaskInstanceRaw t = raw.get(0);
+        // O motor grava deleteReason = "completed" pra uma conclusão normal (não é null como se
+        // esperaria) — só "deleted" e outros valores realmente indicam término anormal.
+        String deleteReason = "completed".equals(t.deleteReason()) ? null : t.deleteReason();
+        return Optional.of(new TaskDetail(t.id(), t.description(), deleteReason));
+    }
+
+    @Override
+    public List<ExternalTaskAttempt> getExternalTaskAttempts(String activityInstanceId) {
+        List<HistoricExternalTaskLogRaw> raw = call(() -> restClient.get()
+                .uri(baseUrl + "/history/external-task-log?activityInstanceIdIn={id}&sortBy=timestamp&sortOrder=asc",
+                        activityInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricExternalTaskLogRaw>>() {
+                }));
+        if (raw == null) return List.of();
+        return raw.stream()
+                .filter(l -> Boolean.TRUE.equals(l.failureLog()) || Boolean.TRUE.equals(l.successLog()))
+                .map(l -> new ExternalTaskAttempt(l.timestamp(), l.errorMessage(),
+                        Boolean.TRUE.equals(l.failureLog()), Boolean.TRUE.equals(l.successLog())))
+                .toList();
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record HistoricTaskInstanceRaw(String id, String description, String deleteReason) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record HistoricExternalTaskLogRaw(String timestamp, String errorMessage, Boolean failureLog,
+                                               Boolean successLog) {
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record ExternalTaskRaw(String id, String topicName) {
     }
@@ -673,7 +713,7 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record ActivityInstanceHistoryRaw(String id, String activityId, String activityName, String activityType,
-                                               String startTime, String endTime, Long durationInMillis) {
+                                               String startTime, String endTime, Long durationInMillis, Boolean canceled) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

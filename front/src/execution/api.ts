@@ -205,6 +205,11 @@ export interface TrailEntry {
   // Only set for a SERVICE_TASK with a Kafka connector: the topic and payload actually published.
   kafkaTopic: string | null;
   kafkaPayload: string | null;
+  // Vale pra qualquer tipo de nó (activity instance id sempre existe pra um passo concluído); endTime idem.
+  // taskId só existe pra USER_TASK (a Task de verdade do motor, diferente de activityInstanceId).
+  activityInstanceId: string | null;
+  endTime: string | null;
+  taskId: string | null;
 }
 
 export interface StepResponse {
@@ -418,6 +423,26 @@ export function getLatestInstance(journeyId: string, since: string): Promise<Ins
 // output; Kafka: topic/payload no input; USER_TASK: respostas submetidas no input), só que
 // estruturado como objeto em vez de campos soltos. Compartilhado com o Diagnóstico
 // (diagnostics/api.ts importa este tipo) — o mesmo InspectorPanel renderiza os dois casos.
+// Só o Diagnóstico preenche os dois — via /history/task e /history/external-task-log,
+// respectivamente (nunca consultados antes). A live Execução nunca manda nenhum dos dois (o
+// TrailEntry não tem de onde tirar isso ao vivo), por isso os dois são opcionais aqui.
+// Assignee/priority/dueDate existem no motor mas ficam de fora de propósito: este app nunca usa
+// atribuição de tarefa do Camunda, então vieram sempre vazios.
+export interface TaskDetail {
+  taskId: string | null;
+  description: string | null;
+  // null pra uma tarefa concluída normalmente; preenchido (ex.: "deleted") quando ela foi
+  // descartada/cancelada em vez de respondida.
+  deleteReason: string | null;
+}
+
+export interface ExternalTaskAttempt {
+  time: string;
+  errorMessage: string | null;
+  failed: boolean;
+  succeeded: boolean;
+}
+
 export interface NodeIODetail {
   nodeId: string;
   nodeName: string;
@@ -427,4 +452,8 @@ export interface NodeIODetail {
   durationMillis: number | null;
   input: Record<string, unknown> | null;
   output: Record<string, unknown> | null;
+  taskDetail?: TaskDetail | null;
+  attempts?: ExternalTaskAttempt[];
+  canceled?: boolean;
+  activityInstanceId?: string;
 }

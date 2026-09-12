@@ -22,9 +22,13 @@ public interface RuntimeExecutionPort {
     }
 
     /** {@code id} é o identificador da própria activity instance (não da definição do nó) — usado
-     * como chave pra buscar variáveis locais dela em {@link #getLocalVariablesForActivity}. */
+     * como chave pra buscar variáveis locais dela em {@link #getLocalVariablesForActivity}.
+     * {@code canceled} (activity-instance, sempre disponível pra qualquer tipo de nó, nunca
+     * consultado até então): {@code true} quando o nó não terminou por conclusão normal — foi
+     * interrompido por um evento de contorno ou a instância foi encerrada enquanto ele ainda
+     * estava ativo. */
     record ActivityHistoryEntry(String id, String activityId, String activityName, String activityType,
-                                 String startTime, String endTime, Long durationInMillis) {
+                                 String startTime, String endTime, Long durationInMillis, boolean canceled) {
     }
 
     /** {@code type} no formato do motor ("String"/"Boolean"/"Double"/"Integer"...) — só usado pra
@@ -143,4 +147,30 @@ public interface RuntimeExecutionPort {
     }
 
     List<IncidentEntry> getHistoricIncidents(String processInstanceId);
+
+    /** Metadados de uma User Task via {@code /history/task}, nunca consultado até então.
+     * {@code deleteReason} vem {@code null} pra uma tarefa concluída normalmente — o motor grava
+     * literalmente "completed" nesse caso, já normalizado pra {@code null} por quem implementa
+     * este método — ou preenchido (ex.: "deleted") quando ela foi descartada/cancelada em vez de
+     * respondida — sinal que o Diagnóstico não tinha como mostrar antes. {@code description} é
+     * texto livre da tela, quando
+     * configurado. Assignee/owner/priority/dueDate/followUpDate/parentTaskId existem no motor mas
+     * ficam de fora de propósito: este app nunca usa atribuição de tarefa do Camunda (sem
+     * candidate group, delegação ou SLA), então vieram sempre vazios — não valia adicionar campo
+     * que nunca teria dado real. {@code taskId} é o identificador da User Task no motor (diferente
+     * de {@code activityInstanceId}, a chave usada pra buscar este registro) — útil pra correlacionar
+     * com log do motor fora do app. */
+    record TaskDetail(String taskId, String description, String deleteReason) {
+    }
+
+    Optional<TaskDetail> getHistoricTaskDetail(String activityInstanceId);
+
+    /** Uma tentativa do log de um external task ({@code /history/external-task-log}) — só existe
+     * pra Service/Receive Task Kafka (via external task; REST é síncrono, não tem retry). Mostra
+     * falhas anteriores ao resultado final, informação que um incidente sozinho não dá (o
+     * incidente só aparece depois que os retries acabam). */
+    record ExternalTaskAttempt(String time, String errorMessage, boolean failed, boolean succeeded) {
+    }
+
+    List<ExternalTaskAttempt> getExternalTaskAttempts(String activityInstanceId);
 }

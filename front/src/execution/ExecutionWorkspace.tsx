@@ -168,10 +168,15 @@ function trailEntryToNodeIO(entry: TrailEntry): NodeIODetail {
     nodeName: entry.nodeName,
     nodeType: entry.nodeType,
     startTime: timestamp,
-    endTime: timestamp,
+    // endTime de verdade do motor quando disponível — usado pelo cabeçalho do drawer ("concluída
+    // em"), igual ao Diagnóstico; sem isso (nó ainda sem endTime na história) cai pro timestamp do
+    // front, como já era antes.
+    endTime: entry.endTime ?? timestamp,
     durationMillis: null,
     input: Object.keys(input).length > 0 ? input : null,
     output,
+    activityInstanceId: entry.activityInstanceId ?? undefined,
+    taskDetail: entry.taskId ? { taskId: entry.taskId, description: null, deleteReason: null } : null,
   };
 }
 

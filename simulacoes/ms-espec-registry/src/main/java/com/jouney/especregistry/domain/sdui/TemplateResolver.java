@@ -11,10 +11,20 @@ import tools.jackson.databind.node.ObjectNode;
 
 /** Resolve o formato Hiccup canônico da tela (seção 6 do catálogo) contra as variáveis de
  * processo: interpolação `{{namespace.path}}` em qualquer atributo textual (seção 8.2) e binding
- * `oneWay` em qualquer atributo homologado (seção 8.1) — sempre no ms-espec-registry, guardião do
- * contrato SDUI, antes de a árvore sair pra qualquer consumidor (ms-journey, admin). Binding
- * `twoWay` nunca é tocado aqui: é estado de edição de um formulário ainda não submetido, que só
- * existe no cliente enquanto o usuário preenche a tela. */
+ * `oneWay`/`twoWay` em qualquer atributo homologado (seção 8.1) — sempre no ms-espec-registry,
+ * guardião do contrato SDUI, antes de a árvore sair pra qualquer consumidor (ms-journey, admin).
+ * `oneWay` e `twoWay` resolvem o valor atual da variável do mesmo jeito aqui — a diferença entre os
+ * dois só importa pro cliente (se o campo aceita edição e envia de volta ao submeter, ver
+ * {@link #resolveTuple}), não pra montagem do valor inicial. Até 2026-09-12, `twoWay` nunca era
+ * tocado aqui, sob a premissa de que era sempre um campo "virgem": REQ-03.09.011 proibia o mesmo
+ * nome de variável em mais de um nó da jornada, então uma variável ligada por `twoWay` nunca podia
+ * já ter um valor gravado na primeira (e única) vez que a tela aparecia. Essa premissa deixou de
+ * valer quando REQ-03.09.011 passou a permitir reaproveitar o nome entre telas — pensado
+ * exatamente pra uma etapa posterior reler e deixar editar um valor já coletado (o "recebe o valor
+ * inicial... e devolve as alterações" da seção 8.1) — daí `twoWay` passar a ser resolvido igual a
+ * `oneWay`: numa tela nunca visitada a variável ainda não existe (`BindingResolver.resolve` volta
+ * null, campo nasce vazio como sempre), numa releitura ela já existe (o campo nasce com o valor
+ * certo, editável). */
 public final class TemplateResolver {
 
     // Token com namespace (form.nome) ou legado sem namespace ({{nome}}, ainda usado por messageText
@@ -60,7 +70,8 @@ public final class TemplateResolver {
         if (bindings.isObject()) {
             bindings.properties().forEach(entry -> {
                 JsonNode binding = entry.getValue();
-                if (!"oneWay".equals(binding.path("mode").asText(null))) {
+                String mode = binding.path("mode").asText(null);
+                if (!"oneWay".equals(mode) && !"twoWay".equals(mode)) {
                     return;
                 }
                 String path = binding.path("path").asText(null);

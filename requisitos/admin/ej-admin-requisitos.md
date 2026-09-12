@@ -352,9 +352,11 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.09.008 - A operação Kafka é determinada pelo tipo de nó, não é uma escolha livre do usuário: `SERVICE_TASK` deve usar `PRODUCE` (publica um evento como efeito da tarefa); `RECEIVE_TASK` e `MESSAGE_START_EVENT` devem usar `CONSUME` (aguardam uma mensagem chegar).
 #### REQ-03.09.009 - Headers (REST e Kafka) devem ser editados como uma lista de pares nome/valor (com opção de adicionar e remover pares), e não como texto declarativo livre. Params e Body (REST) seguem o mesmo padrão por padrão (REQ-03.13.003), com um modo avançado de JSON livre como alternativa; Payload (Kafka) permanece como configuração declarativa livre, por ainda não ter recebido o mesmo tratamento. O mapeamento de saída também não se enquadra nessa exceção (ver REQ-03.09.010).
 #### REQ-03.09.010 - O mapeamento de saída de uma integração (REST ou Kafka) deve ser declarado como uma lista de regras `nome da variável ← expressão JSONPath`, aplicada sobre o corpo da resposta (REST) ou o payload recebido (Kafka), em vez de configuração JSON livre.
-#### REQ-03.09.011 - O nome de cada variável de saída — seja de uma integração (outputMapping, REQ-03.09.010) ou de um campo que coleta valor na tela embutida de uma User Task (`embeddedScreen`, US-03.16) — deve ser único no escopo da jornada inteira e seguir a mesma regra de nome técnico dos campos de formulário (REQ-04.01.007).
+#### REQ-03.09.011 - O nome de cada variável de saída de integração (outputMapping, REQ-03.09.010) deve ser único no escopo da jornada inteira. O nome técnico de um campo que coleta valor na tela embutida de uma User Task (`embeddedScreen`, US-03.16) compartilha esse mesmo espaço de nomes em relação às variáveis de saída de integração e às variáveis de entrada da jornada (REQ-03.12.002) — não pode colidir com nenhuma delas — mas pode se repetir entre campos de telas diferentes, seguindo a mesma regra de nome técnico dos campos de formulário (REQ-04.01.007).
 
 > **Nota de revisão (2026-08-24):** requisito reescrito para deixar explícito que campos de tela embutida entram no mesmo espaço de nomes — mesma mudança que substituiu a associação por `formId` pelo desenho direto da tela no nó, motivada pela limitação da Runtime Engine a poucos tipos de campo nativos.
+
+> **Nota de revisão (2026-09-12):** requisito ajustado para permitir que um campo de tela reapareça em mais de uma etapa da jornada usando o mesmo nome técnico — releitura e edição de um valor já coletado, prevista desde sempre no vínculo de leitura-e-escrita do catálogo SDUI v1 (seção 8.1: o valor atual do caminho é lido antes de aceitar a alteração), mas até então bloqueada por uma checagem de unicidade mais rígida do que o necessário. A colisão continua proibida contra variável de saída de integração ou de entrada da jornada, onde reaproveitar o nome à revelia seria quase sempre um erro de digitação, nunca uma reedição intencional — e não há ambiguidade em tempo de execução ao permitir a repetição entre campos de tela, já que o gateway desta versão é sempre exclusivo (REQ-03.11.001): nunca há dois caminhos da jornada rodando ao mesmo tempo para colidir de verdade.
 #### REQ-03.09.012 - O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis produzidas por passos anteriores do fluxo (respostas de formulário e saídas de integrações), usando a sintaxe `{{nomeDaVariavel}}`.
 #### REQ-03.09.013 - O editor deve exibir, para cada `SERVICE_TASK`/`RECEIVE_TASK`, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado.
 #### REQ-03.09.014 - O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie `{{variavel}}` inexistente no contexto do nó (nome não declarado por nenhum passo anterior alcançável).
@@ -385,7 +387,9 @@ Permitir a construção visual do fluxo específico de cada jornada.
 
 ### US-03.12 Variáveis de entrada da jornada
 #### REQ-03.12.001 - O sistema deve permitir declarar, no nó START de um fluxo, uma lista de variáveis de entrada da jornada, cada uma com nome e tipo (mesmo vocabulário de REQ-03.11.008: texto, número, booleano, data, data e hora) — são as variáveis que a aplicação cliente (canal digital/BFF) deve fornecer ao iniciar uma instância. Não se aplica a `MESSAGE_START_EVENT`, que já declara suas variáveis via mapeamento de saída sobre o payload da mensagem recebida (REQ-03.09.004).
-#### REQ-03.12.002 - O nome de cada variável de entrada deve ser único no escopo da jornada, compartilhando o mesmo espaço de nomes das variáveis de saída (REQ-03.09.011) — uma variável de entrada não pode colidir com o nome de saída de nenhum nó do fluxo, nem com outra variável de entrada.
+#### REQ-03.12.002 - O nome de cada variável de entrada deve ser único no escopo da jornada, compartilhando o mesmo espaço de nomes das variáveis de saída (REQ-03.09.011) — uma variável de entrada não pode colidir com o nome de saída de integração de nenhum nó do fluxo, com outra variável de entrada, nem com o nome técnico de um campo de tela de User Task; um campo de tela, por sua vez, pode repetir seu próprio nome entre etapas diferentes (REQ-03.09.011), mas nunca reaproveitar o nome de uma variável de entrada.
+
+> **Nota de revisão (2026-09-12):** ajustado em conjunto com REQ-03.09.011 — a exceção de reaproveitamento de nome vale só entre campos de tela; variável de entrada continua com nome exclusivo na jornada, inclusive contra campo de tela.
 #### REQ-03.12.003 - As variáveis de entrada declaradas no nó START tornam-se disponíveis para referência `{{nome}}` em qualquer conector ou condição de gateway do fluxo, do mesmo jeito que uma variável de saída de integração já é (REQ-03.09.012/013) — o nó START é sempre alcançável a partir de qualquer outro nó do fluxo.
 #### REQ-03.12.004 - O endpoint de início de instância deve aceitar um mapa de valores no corpo da requisição e recusar a chamada, com mensagem indicando os nomes faltantes, se alguma variável declarada no nó START não vier preenchida.
 #### REQ-03.12.005 - Valores extras informados pelo chamador que não correspondam a nenhuma variável declarada são aceitos e repassados como variável de processo sem erro.
@@ -456,9 +460,11 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 
 #### ~~REQ-04.01.006~~ - ~~No editor de tela embutido de uma User Task (US-03.16), o sistema deve permitir importar os campos de um formulário existente do catálogo como ponto de partida (cópia, sem vínculo persistido) e, separadamente, salvar a tela atualmente desenhada no nó como um novo formulário reutilizável no catálogo.~~ *(removido em 2026-09-05)*
 
-#### REQ-04.01.007 - Na tela embutida de uma User Task (US-03.16), cada campo que coleta valor deve possuir um identificador técnico, editável a qualquer momento, com unicidade verificada na jornada inteira (não só na tela do nó) — ver REQ-03.09.011.
+#### REQ-04.01.007 - Na tela embutida de uma User Task (US-03.16), cada campo que coleta valor deve possuir um identificador técnico, editável a qualquer momento — com unicidade verificada em toda a jornada (não só na tela do nó) contra variável de saída de integração e variável de entrada da jornada, mas não contra outro campo de tela, que pode reaproveitar o mesmo nome numa etapa diferente (ver REQ-03.09.011).
 
 > **Nota de revisão (2026-09-05):** o campo já não guarda um atributo `name` próprio — o identificador técnico passou a ser o nome usado no vínculo de dados de leitura-e-escrita (US-04.10, REQ-04.10.005). A unicidade na jornada inteira permanece obrigatória.
+
+> **Nota de revisão (2026-09-12):** ver nota de REQ-03.09.011 — a unicidade deixou de valer entre dois campos de tela, só contra variável de saída de integração e de entrada.
 
 ---
 
@@ -584,7 +590,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.10.002 - O vínculo deve poder ser configurado como leitura-e-escrita ou somente leitura.
 #### REQ-04.10.003 - Um componente sem vínculo configurado não deve gerar variável de processo nem ser considerado no envio do formulário.
 #### REQ-04.10.004 - Ao configurar um vínculo de leitura-e-escrita no namespace de variável do fluxo, o sistema deve sugerir os nomes de variável já conhecidos até aquele ponto do fluxo.
-#### REQ-04.10.005 - O nome técnico de um campo que coleta valor passa a ser o nome usado no vínculo de leitura-e-escrita do namespace de variável do fluxo; sua unicidade deve continuar sendo verificada na jornada inteira, não só na tela do nó.
+#### REQ-04.10.005 - O nome técnico de um campo que coleta valor passa a ser o nome usado no vínculo de leitura-e-escrita do namespace de variável do fluxo; sua unicidade deve continuar sendo verificada na jornada inteira, não só na tela do nó, contra variável de saída de integração e de entrada — mas não contra outro campo de tela, que pode reaproveitar o mesmo nome numa etapa diferente (REQ-03.09.011).
 
 ---
 

@@ -329,24 +329,18 @@ public final class FlowValidator {
             }
         }
 
-        // REQ-03.09.011: nomes de variável de saída devem ser únicos em toda a jornada
-        // (seenOutputNames já carrega os nomes de startVariables do bloco acima). Os nomes de campo
-        // de formulário de uma USER_TASK agora compartilham esse mesmo namespace — dois campos
-        // alcançáveis com o mesmo nome tornariam um {{token}} que os referencia ambíguo sobre qual
-        // dos dois quer dizer. Isso foi cogitado e descartado: colocar um prefixo no token (ex.:
-        // formularioA.cpf) só funcionaria se o motor de runtime realmente gravasse o valor
-        // submetido sob essa chave prefixada — e a resolução de variáveis em runtime está fora do
-        // domínio deste portal (nota do REQ-03.09.012), então não há como confirmar isso daqui.
-        // Rejeitar a colisão como erro, igual já acontece pra choque de nome de outputMapping, não
-        // depende disso.
-        //
-        // ponytail: unicidade verificada em todo o fluxo (mesmo escopo que a checagem de
-        // outputMapping já usava), não restrita a quais nós realmente conseguem se alcançar — mais
-        // simples, e erra pro lado conservador (rejeita algum reuso de nome de campo que nunca
-        // colidiria de verdade em nenhum caminho real, ex.: o mesmo formulário reusado em dois
-        // ramos que nunca se reconvergem). Revisar se isso se mostrar restritivo demais na
-        // prática — restringir por alcançabilidade exigiria o mesmo BFS reverso que as checagens de
-        // {{token}} abaixo já fazem, rodado por par de nós em vez de uma vez só para o fluxo todo.
+        // REQ-03.09.011: nomes de variável de saída de integração (outputMapping) e de entrada
+        // (startVariables, já em seenOutputNames pelo bloco acima) precisam ser únicos entre si em
+        // toda a jornada — colidir aqui seria quase sempre um erro de digitação, nunca intencional.
+        // Nome de campo de tela (USER_TASK) não pode colidir com nenhum dos dois, mas PODE se
+        // repetir entre telas diferentes: o catálogo SDUI v1 (seção 8.1) já prevê essa releitura no
+        // vínculo de leitura-e-escrita (o valor atual do caminho é lido antes de aceitar a
+        // alteração) — uma etapa seguinte reaproveitando o nome está só editando o valor já
+        // coletado, sem ambiguidade em tempo de execução (o gateway desta versão é sempre exclusivo,
+        // REQ-03.11.001: nunca dois caminhos da jornada rodam ao mesmo tempo pra colidir de
+        // verdade). Por isso o nome de campo de tela só é CONSULTADO em seenOutputNames (pra pegar
+        // colisão contra saída de integração/entrada), nunca ADICIONADO a ele — não gera colisão
+        // contra outro campo de tela.
         for (FlowNode node : nodes) {
             if (node.getConnectorConfig() != null) {
                 for (Map<String, Object> rule : outputMappingOf(node.getConnectorConfig())) {
@@ -358,7 +352,7 @@ public final class FlowValidator {
             }
             if (node.getType() == FlowNodeType.USER_TASK && node.getEmbeddedScreenRoot() != null) {
                 for (String variableName : formVariableNames(node.getEmbeddedScreenRoot())) {
-                    if (!seenOutputNames.add(variableName)) {
+                    if (seenOutputNames.contains(variableName)) {
                         violations.add(new FlowViolation(node.getId(), "Variável de saída '" + variableName + "' foi declarada mais de uma vez no fluxo"));
                     }
                 }

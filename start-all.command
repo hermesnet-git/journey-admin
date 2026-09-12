@@ -5,14 +5,15 @@
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-titles=(front back ms-runtime-camunda front-mock-integracoes ms-espec-registry ms-mock-api-rest ms-transform-publication)
-paths=(front back simulacoes/ms-runtime-camunda simulacoes/front-mock-integracoes simulacoes/ms-espec-registry simulacoes/ms-mock-api-rest simulacoes/ms-transform-publication)
-types=(react spring spring react spring spring spring)
+titles=(front back ms-runtime-camunda front-mock-integracoes ms-espec-registry ms-mock-api-rest ms-transform-publication ms-journey strapi-sdui-registry emulador-canais)
+paths=(front back simulacoes/ms-runtime-camunda simulacoes/front-mock-integracoes simulacoes/ms-espec-registry simulacoes/ms-mock-api-rest simulacoes/ms-transform-publication simulacoes/ms-journey simulacoes/strapi-sdui-registry simulacoes/emulador-canais)
+types=(react spring spring react spring spring spring spring react react)
+scripts=(dev dev dev dev dev dev dev dev dev dev:all)
 
 build_command() {
-  local path="$1" type="$2"
+  local path="$1" type="$2" script="$3"
   if [ "$type" = "react" ]; then
-    echo "cd '$ROOT/$path' && ([ -d node_modules ] || npm install) && npm run dev"
+    echo "cd '$ROOT/$path' && ([ -d node_modules ] || npm install) && npm run $script"
   else
     echo "cd '$ROOT/$path' && ./mvnw compile && ./mvnw spring-boot:run"
   fi
@@ -28,7 +29,7 @@ if [ -d "/Applications/iTerm.app" ]; then
     echo '  activate'
     echo '  set newWindow to (create window with default profile)'
     for i in "${!titles[@]}"; do
-      cmd=$(build_command "${paths[$i]}" "${types[$i]}")
+      cmd=$(build_command "${paths[$i]}" "${types[$i]}" "${scripts[$i]}")
       esc_cmd=$(escape_for_applescript "$cmd")
       if [ "$i" -eq 0 ]; then
         echo '  tell current session of newWindow'
@@ -50,7 +51,7 @@ else
     echo 'tell application "Terminal"'
     echo '  activate'
     for i in "${!titles[@]}"; do
-      cmd=$(build_command "${paths[$i]}" "${types[$i]}")
+      cmd=$(build_command "${paths[$i]}" "${types[$i]}" "${scripts[$i]}")
       esc_cmd=$(escape_for_applescript "$cmd")
       if [ "$i" -eq 0 ]; then
         echo "  do script \"$esc_cmd\""

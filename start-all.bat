@@ -17,18 +17,26 @@ ping -n 2 127.0.0.1 >nul
 wt.exe -w last new-tab --suppressApplicationTitle --title "ms-mock-api-rest"         cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-mock-api-rest" spring
 ping -n 2 127.0.0.1 >nul
 wt.exe -w last new-tab --suppressApplicationTitle --title "ms-transform-publication" cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-transform-publication" spring
+ping -n 2 127.0.0.1 >nul
+wt.exe -w last new-tab --suppressApplicationTitle --title "ms-journey"               cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-journey" spring
+ping -n 2 127.0.0.1 >nul
+wt.exe -w last new-tab --suppressApplicationTitle --title "strapi-sdui-registry"     cmd /k call "%~f0" --run-app "%ROOT%simulacoes\strapi-sdui-registry" react
+ping -n 2 127.0.0.1 >nul
+wt.exe -w last new-tab --suppressApplicationTitle --title "emulador-canais"          cmd /k call "%~f0" --run-app "%ROOT%simulacoes\emulador-canais" react dev:all
 goto :eof
 
 :run_app
 set "APP_PATH=%~2"
 set "APP_TYPE=%~3"
+set "NPM_SCRIPT=%~4"
+if "%NPM_SCRIPT%"=="" set "NPM_SCRIPT=dev"
 cd /d "%APP_PATH%"
 if /i "%APP_TYPE%"=="react" (
     if not exist "node_modules" (
         call npm install
         if errorlevel 1 exit /b 1
     )
-    call npm run dev
+    call npm run %NPM_SCRIPT%
 ) else (
     call .\mvnw.cmd compile
     if errorlevel 1 exit /b 1

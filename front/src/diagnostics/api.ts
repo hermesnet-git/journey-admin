@@ -22,6 +22,33 @@ export interface HistoricInstanceSummary {
   channel: string | null;
 }
 
+export interface VariableSnapshot {
+  name: string;
+  value: unknown;
+  type: string;
+}
+
+// Uma mudança de valor, na ordem em que aconteceu — nodeId/nodeName vêm null quando a mudança não
+// foi correlacionável a um nó da versão resolvida (mesmo caso raro de HistoryStep sem nó).
+export interface VariableTimelineEntry {
+  name: string;
+  value: unknown;
+  type: string;
+  nodeId: string | null;
+  nodeName: string | null;
+  time: string;
+}
+
+export interface IncidentEntry {
+  nodeId: string;
+  nodeName: string | null;
+  incidentType: string;
+  message: string | null;
+  createTime: string;
+  endTime: string | null;
+  open: boolean;
+}
+
 export interface InstanceHistoryResponse {
   processInstanceId: string;
   businessKey: string;
@@ -34,6 +61,12 @@ export interface InstanceHistoryResponse {
   durationMillis: number | null;
   flow: FlowBundle;
   steps: NodeIODetail[];
+  variables: VariableSnapshot[];
+  variableTimeline: VariableTimelineEntry[];
+  incidents: IncidentEntry[];
+  // Nó onde a instância está parada agora (activityHistory ainda sem endTime) — null pra instância
+  // já terminada, ou se por algum motivo nenhum passo estiver em aberto.
+  currentNodeId: string | null;
 }
 
 export interface InstanceHistorySearchFilters {

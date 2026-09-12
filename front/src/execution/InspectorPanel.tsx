@@ -201,7 +201,12 @@ export function InspectorPanel({
   );
 }
 
-const NODE_TYPE_LABEL_PT: Record<string, string> = {
+// Exportado (junto com ConnectorConfigSection/GatewaySection/nodeDurationLabel/CollapsibleJsonSection/
+// CopyJsonButton/prettifyJson/LogPanel abaixo) pro Diagnóstico montar seu próprio drawer/timeline sem
+// duplicar essas peças puramente apresentacionais (sem estado compartilhado, zero risco pra Execução
+// ao vivo) — decisão explícita de manter o Diagnóstico como composição própria, não uma variação do
+// InspectorPanel em si.
+export const NODE_TYPE_LABEL_PT: Record<string, string> = {
   START: 'Início',
   USER_TASK: 'Tarefa de usuário',
   SERVICE_TASK: 'Tarefa de serviço',
@@ -354,7 +359,7 @@ function NodeDetailDrawer({
 // percorrido" que já colore as arestas no diagrama (FlowDiagramViewer): a aresta cujo destino está
 // em `visitedNodeIds` (ou é o `currentNodeId` atual) foi a escolhida por esta decisão. Sem instância
 // (staticView) nada fica marcado como tomado — só a lista de condições configuradas.
-function GatewaySection({
+export function GatewaySection({
   gatewayId,
   flowNodes,
   flowConnections,
@@ -420,7 +425,7 @@ function GatewaySection({
 // pra onde. Kafka/Event Hubs/Service Bus mostram tópico + cluster, e "Produção"/"Consumo" conforme o
 // tipo do nó (SERVICE_TASK publica, RECEIVE_TASK consome) — mesmo tratamento pros três, só troca o
 // rótulo "Tópico"/"Event Hub".
-function ConnectorConfigSection({ connectorConfig, nodeType }: { connectorConfig: ConnectorConfigInfo; nodeType?: string }) {
+export function ConnectorConfigSection({ connectorConfig, nodeType }: { connectorConfig: ConnectorConfigInfo; nodeType?: string }) {
   const cfg = connectorConfig.config ?? {};
   const typeLabel = CONNECTOR_TYPE_LABEL[connectorConfig.connectorType] ?? connectorConfig.connectorType;
 
@@ -563,7 +568,7 @@ function TopicConnectorDetails({
   );
 }
 
-function nodeDurationLabel(detail?: NodeIODetail): string {
+export function nodeDurationLabel(detail?: NodeIODetail): string {
   if (!detail || detail.durationMillis == null) return detail?.endTime ? 'concluído' : 'em andamento';
   const seconds = detail.durationMillis / 1000;
   return seconds < 60 ? `${seconds.toFixed(1)} s` : `${(seconds / 60).toFixed(1)} min`;
@@ -574,7 +579,7 @@ function nodeDurationLabel(detail?: NodeIODetail): string {
 // gravado em __kafkaPayload__) — sem isso, a tela mostrava aspas escapadas (\") em vez do JSON de
 // verdade. Tenta reparsear qualquer string que pareça JSON, recursivamente, só pra exibição/cópia;
 // nunca muda o dado guardado no motor, e uma string que não é JSON de verdade sai ilesa (catch).
-function prettifyJson(value: unknown): unknown {
+export function prettifyJson(value: unknown): unknown {
   if (typeof value === 'string') {
     const trimmed = value.trim();
     const looksLikeJson = (trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'));
@@ -592,7 +597,7 @@ function prettifyJson(value: unknown): unknown {
   return value;
 }
 
-function CollapsibleJsonSection({ title, data }: { title: string; data: Record<string, unknown> }) {
+export function CollapsibleJsonSection({ title, data }: { title: string; data: Record<string, unknown> }) {
   const [open, setOpen] = useState(true);
   const pretty = useMemo(() => prettifyJson(data) as Record<string, unknown>, [data]);
   return (
@@ -767,7 +772,7 @@ function VariablesTable({
 // Alça de redimensionar coluna: arrasta livremente (cada coluna redimensiona independente das
 // vizinhas — a tabela como um todo só cresce/encolhe, sem "roubar" espaço de outra coluna), com
 // feedback visual só no hover/drag pra não poluir o cabeçalho quando parado.
-function ColumnResizeHandle({ onResize }: { onResize: (deltaX: number) => void }) {
+export function ColumnResizeHandle({ onResize }: { onResize: (deltaX: number) => void }) {
   const [active, setActive] = useState(false);
 
   function handleMouseDown(e: React.MouseEvent) {
@@ -840,7 +845,7 @@ function highlightText(text: string, query: string, strong: boolean): ReactNode 
   return parts;
 }
 
-function LogPanel({ log, endRef }: { log: LogEntry[]; endRef: React.RefObject<HTMLDivElement | null> }) {
+export function LogPanel({ log, endRef }: { log: LogEntry[]; endRef: React.RefObject<HTMLDivElement | null> }) {
   const [query, setQuery] = useState('');
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -1108,7 +1113,7 @@ function LogRow({
   );
 }
 
-function CopyJsonButton({ data }: { data: Record<string, unknown> }) {
+export function CopyJsonButton({ data }: { data: Record<string, unknown> }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {

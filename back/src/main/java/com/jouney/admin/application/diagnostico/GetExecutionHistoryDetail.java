@@ -3,8 +3,13 @@ package com.jouney.admin.application.diagnostico;
 import com.jouney.admin.application.execution.RuntimeExecutionPort;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.ActivityHistoryEntry;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.HistoricInstance;
+import com.jouney.admin.application.execution.RuntimeExecutionPort.TypedVariable;
+import com.jouney.admin.application.execution.RuntimeExecutionPort.VariableUpdate;
 import com.jouney.admin.domain.diagnostico.ExecutionHistoryDetail;
 import com.jouney.admin.domain.diagnostico.HistoryStep;
+import com.jouney.admin.domain.diagnostico.IncidentEntry;
+import com.jouney.admin.domain.diagnostico.VariableSnapshot;
+import com.jouney.admin.domain.diagnostico.VariableTimelineEntry;
 import com.jouney.admin.domain.execution.KafkaVariableNames;
 import com.jouney.admin.domain.execution.ProcessIds;
 import com.jouney.admin.domain.flow.ConnectorConfig;
@@ -29,8 +34,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class GetExecutionHistoryDetail {
 
-    private static final String BOUNDARY_ACTIVITY_TYPE = "startEvent";
-
     private final RuntimeExecutionPort runtimeExecutionPort;
     private final JourneyVersionRepository journeyVersionRepository;
     private final PublicationRepository publicationRepository;
@@ -49,14 +52,16 @@ public class GetExecutionHistoryDetail {
         UUID journeyId = ProcessIds.journeyIdFromKey(instance.processDefinitionKey());
         ResolvedFlow resolved = resolveFlow(journeyId, instance.processDefinitionId());
 
+        // Variáveis de processo (escopo global) via história — nunca runtime, ao contrário do resto
+        // da tela: precisa responder pra qualquer estado (REQ-15.04.001), inclusive instância já
+        // terminada. Buscadas uma vez só, alimentam o Kafka-input de cada nó abaixo e os campos
+        // `variables`/`variableTimeline` da resposta.
+        Map<String, TypedVariable> currentValues = runtimeExecutionPort.getHistoricProcessVariables(processInstanceId);
+
         List<HistoryStep> steps = new ArrayList<>();
-        // Variáveis de processo (só usadas pelo conector Kafka, prefixadas por nó) — buscadas no
-        // máximo uma vez, na primeira atividade Kafka encontrada.
-        Map<String, Object> processVariables = null;
+        Map<String, FlowNode> nodeByActivityInstanceId = new LinkedHashMap<>();
+        String currentNodeId = null;
         for (ActivityHistoryEntry activity : runtimeExecutionPort.getFullActivityHistory(processInstanceId)) {
-            if (BOUNDARY_ACTIVITY_TYPE.equals(activity.activityType())) {
-                continue;
-            }
             FlowNode node = resolved.flowNodes().stream()
                     .filter(n -> n.getId().equals(activity.activityId()))
                     .findFirst().orElse(null);
@@ -65,13 +70,23 @@ public class GetExecutionHistoryDetail {
                 // — mostra o passo mesmo assim, só sem input/output.
                 steps.add(new HistoryStep(activity.activityId(), activity.activityName(), activity.activityType(),
                         activity.startTime(), activity.endTime(), activity.durationInMillis(), null, null));
+                if (activity.endTime() == null) {
+                    currentNodeId = activity.activityId();
+                }
                 continue;
             }
+            nodeByActivityInstanceId.put(activity.id(), node);
             Map<String, Object> input = null;
             Map<String, Object> output = null;
             if (node.getType() == FlowNodeType.USER_TASK) {
                 Map<String, Object> answers = runtimeExecutionPort.getSubmittedFormValues(activity.id());
                 input = answers.isEmpty() ? null : answers;
+            } else if (node.getType() == FlowNodeType.START) {
+                // "Entrada" do Início = as variáveis declaradas (REQ-03.12.001) com o valor que de
+                // fato chegou ao iniciar a instância — mesmo dado que StartVariablesSection já lia
+                // no front (por nome, contra a lista de variáveis), só que resolvido aqui agora que
+                // o Início passa a ser um HistoryStep normal, com Entrada/Saída como qualquer outro.
+                input = startInput(node, currentValues);
             } else if (node.getType() == FlowNodeType.SERVICE_TASK || node.getType() == FlowNodeType.RECEIVE_TASK) {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
                 if (connectorConfig != null && connectorConfig.getConnectorType() == ConnectorType.REST) {
@@ -79,19 +94,50 @@ public class GetExecutionHistoryDetail {
                     input = restInput(local);
                     output = restOutput(local);
                 } else if (connectorConfig != null && connectorConfig.getConnectorType() == ConnectorType.KAFKA) {
-                    if (processVariables == null) {
-                        processVariables = runtimeExecutionPort.getProcessVariables(processInstanceId);
-                    }
-                    input = kafkaInput(processVariables, node.getId());
+                    input = kafkaInput(currentValues, node.getId());
                 }
             }
             steps.add(new HistoryStep(node.getId(), node.getName(), node.getType().name(), activity.startTime(),
                     activity.endTime(), activity.durationInMillis(), input, output));
+            if (activity.endTime() == null) {
+                currentNodeId = node.getId();
+            }
         }
+
+        List<VariableSnapshot> variables = currentValues.entrySet().stream()
+                .filter(e -> !isInternalVariableName(e.getKey()))
+                .map(e -> new VariableSnapshot(e.getKey(), e.getValue().value(), e.getValue().type()))
+                .toList();
+
+        List<VariableTimelineEntry> variableTimeline = runtimeExecutionPort.getVariableUpdateHistory(processInstanceId).stream()
+                .filter(u -> currentValues.containsKey(u.name()))
+                .map(u -> {
+                    FlowNode node = nodeByActivityInstanceId.get(u.activityInstanceId());
+                    return new VariableTimelineEntry(u.name(), u.value(), u.type(),
+                            node != null ? node.getId() : null, node != null ? node.getName() : null, u.time());
+                })
+                .toList();
+
+        List<IncidentEntry> incidents = runtimeExecutionPort.getHistoricIncidents(processInstanceId).stream()
+                .map(i -> {
+                    FlowNode node = resolved.flowNodes().stream()
+                            .filter(n -> n.getId().equals(i.nodeId()))
+                            .findFirst().orElse(null);
+                    return new IncidentEntry(i.nodeId(), node != null ? node.getName() : null, i.incidentType(),
+                            i.message(), i.createTime(), i.endTime(), i.open());
+                })
+                .toList();
 
         return new ExecutionHistoryDetail(instance.id(), instance.businessKey(), journeyId, resolved.journeyName(),
                 resolved.versionNumber(), instance.state(), instance.startTime(), instance.endTime(),
-                instance.durationInMillis(), resolved.channelTypes(), resolved.flowNodes(), resolved.flowConnections(), steps);
+                instance.durationInMillis(), resolved.channelTypes(), resolved.flowNodes(), resolved.flowConnections(),
+                steps, variables, variableTimeline, incidents, currentNodeId);
+    }
+
+    // Mesmos nomes reservados de KafkaVariableNames (todos com o prefixo "__") — técnicos, nunca
+    // devem aparecer como variável de processo comum na aba Variáveis do Diagnóstico.
+    private static boolean isInternalVariableName(String name) {
+        return name.startsWith("__");
     }
 
     /** Resolve a versão que RODOU de fato (via versionTag do process-definition), não a atualmente
@@ -152,10 +198,29 @@ public class GetExecutionHistoryDetail {
         return response != null ? Map.of("response", response) : null;
     }
 
-    private static Map<String, Object> kafkaInput(Map<String, Object> processVariables, String nodeId) {
+    private static Map<String, Object> kafkaInput(Map<String, TypedVariable> processVariables, String nodeId) {
         Map<String, Object> input = new LinkedHashMap<>();
-        putIfPresent(input, "topic", processVariables.get(KafkaVariableNames.TOPIC_PREFIX + nodeId));
-        putIfPresent(input, "payload", processVariables.get(KafkaVariableNames.PAYLOAD_PREFIX + nodeId));
+        putIfPresent(input, "topic", valueOf(processVariables, KafkaVariableNames.TOPIC_PREFIX + nodeId));
+        putIfPresent(input, "payload", valueOf(processVariables, KafkaVariableNames.PAYLOAD_PREFIX + nodeId));
+        return input.isEmpty() ? null : input;
+    }
+
+    private static Object valueOf(Map<String, TypedVariable> variables, String name) {
+        TypedVariable v = variables.get(name);
+        return v != null ? v.value() : null;
+    }
+
+    private static Map<String, Object> startInput(FlowNode node, Map<String, TypedVariable> currentValues) {
+        List<Map<String, Object>> declared = node.getStartVariables();
+        if (declared == null || declared.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> input = new LinkedHashMap<>();
+        for (Map<String, Object> declaration : declared) {
+            if (declaration.get("name") instanceof String name) {
+                putIfPresent(input, name, valueOf(currentValues, name));
+            }
+        }
         return input.isEmpty() ? null : input;
     }
 

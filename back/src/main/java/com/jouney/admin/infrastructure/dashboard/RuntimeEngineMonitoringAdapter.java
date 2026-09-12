@@ -604,6 +604,52 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
         return Optional.ofNullable(found.get(0).get("id")).map(String::valueOf);
     }
 
+    @Override
+    public Map<String, TypedVariable> getHistoricProcessVariables(String processInstanceId) {
+        List<HistoricVariableInstanceRaw> raw = call(() -> restClient.get()
+                .uri(baseUrl + "/history/variable-instance?processInstanceId={id}", processInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricVariableInstanceRaw>>() {
+                }));
+        Map<String, TypedVariable> result = new LinkedHashMap<>();
+        if (raw != null) {
+            for (HistoricVariableInstanceRaw v : raw) {
+                if (processInstanceId.equals(v.activityInstanceId())) {
+                    result.put(v.name(), new TypedVariable(v.value(), v.type()));
+                }
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public List<VariableUpdate> getVariableUpdateHistory(String processInstanceId) {
+        List<HistoricVariableUpdateRaw> raw = call(() -> restClient.get()
+                .uri(baseUrl + "/history/detail?processInstanceId={id}&type=variableUpdate&sortBy=time&sortOrder=asc",
+                        processInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricVariableUpdateRaw>>() {
+                }));
+        if (raw == null) return List.of();
+        return raw.stream()
+                .map(v -> new VariableUpdate(v.variableName(), v.value(), v.variableType(), v.activityInstanceId(), v.time()))
+                .toList();
+    }
+
+    @Override
+    public List<IncidentEntry> getHistoricIncidents(String processInstanceId) {
+        List<HistoricIncidentRaw> raw = call(() -> restClient.get()
+                .uri(baseUrl + "/history/incident?processInstanceId={id}", processInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<HistoricIncidentRaw>>() {
+                }));
+        if (raw == null) return List.of();
+        return raw.stream()
+                .map(i -> new IncidentEntry(i.activityId(), i.incidentType(), i.incidentMessage(), i.createTime(),
+                        i.endTime(), Boolean.TRUE.equals(i.open())))
+                .toList();
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record ExternalTaskRaw(String id, String topicName) {
     }
@@ -631,7 +677,17 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record HistoricVariableInstanceRaw(String name, Object value) {
+    private record HistoricVariableInstanceRaw(String name, Object value, String type, String activityInstanceId) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record HistoricVariableUpdateRaw(String variableName, Object value, String variableType,
+                                              String activityInstanceId, String time) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record HistoricIncidentRaw(String activityId, String incidentType, String incidentMessage,
+                                        String createTime, String endTime, Boolean open) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

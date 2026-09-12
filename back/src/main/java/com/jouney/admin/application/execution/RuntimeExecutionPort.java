@@ -112,4 +112,35 @@ public interface RuntimeExecutionPort {
      * pelo polling do front depois de enviar uma mensagem de teste pra um MESSAGE_START_EVENT (não
      * existe processInstanceId nenhum antes disso pra consultar diretamente). */
     Optional<String> findMostRecentInstanceStartedAfter(String processDefinitionKey, Instant since);
+
+    /** Valor atual/final de cada variável de PROCESSO (escopo global) de qualquer instância, ativa ou
+     * já terminada — via história, ao contrário de {@link #getTypedProcessVariables} (runtime, só
+     * instância viva). Filtrado a {@code activityInstanceId == processInstanceId} (convenção do motor
+     * pra variável dona do escopo raiz do processo): sem isso viriam junto variáveis LOCAIS de nó
+     * específico (url/method/headers/payload/response do conector REST, ver
+     * {@link #getLocalVariablesForActivity}), que têm o mesmo endpoint de história mas
+     * activityInstanceId do próprio nó. Base do Diagnóstico (nunca presume instância viva). */
+    Map<String, TypedVariable> getHistoricProcessVariables(String processInstanceId);
+
+    /** Uma mudança de valor de variável, na ordem em que aconteceu — {@code activityInstanceId} aqui é
+     * "em qual atividade a mudança ocorreu" (semântica de auditoria), diferente do campo de mesmo nome
+     * em {@link #getHistoricProcessVariables} (que é "dono do escopo"); por isso o filtro global-vs-
+     * local dessa lista é feito por quem chama, cruzando os nomes já resolvidos por
+     * {@link #getHistoricProcessVariables}. */
+    record VariableUpdate(String name, Object value, String type, String activityInstanceId, String time) {
+    }
+
+    /** Todas as mudanças de todas as variáveis de uma instância, do início ao fim, em ordem
+     * cronológica — timeline completa usada pela aba Variáveis do Diagnóstico. */
+    List<VariableUpdate> getVariableUpdateHistory(String processInstanceId);
+
+    /** Um incidente (erro) de uma instância — {@code nodeId} é o id do nó no BPMN (bate direto com
+     * {@code FlowNode.getId()}, sem precisar de resolução por activityInstanceId). Via história: existe
+     * pra incidente já resolvido ou instância já terminada, ao contrário do {@code /incident} runtime
+     * (usado no Dashboard, só incidente ainda aberto). */
+    record IncidentEntry(String nodeId, String incidentType, String message, String createTime, String endTime,
+                          boolean open) {
+    }
+
+    List<IncidentEntry> getHistoricIncidents(String processInstanceId);
 }

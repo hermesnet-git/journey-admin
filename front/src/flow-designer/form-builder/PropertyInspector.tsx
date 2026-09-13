@@ -336,6 +336,11 @@ export function PropertyInspector({
                     style={{ ...gridInputStyle(c), fontFamily: 'monospace', borderColor: nodeIdError ? c.danger : c.border }}
                     value={draftNodeId}
                     title={draftNodeId}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    name="sdui-node-id"
                     onChange={(event) => setDraftNodeId(event.target.value)}
                     onBlur={commitNodeId}
                     onKeyDown={(event) => {

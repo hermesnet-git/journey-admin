@@ -1,0 +1,137 @@
+---
+name: sync-sobre
+description: Sincroniza a página estática "Sobre" (front/src/shell/sobreData.ts) com o estado real de requisitos/admin/progresso.md e ej-admin-requisitos.md. Use quando progresso.md mudar (novos requisitos, status atualizado, requisitos mockados) ou quando o usuário pedir para "atualizar a página Sobre", "sincronizar o progresso", "atualizar o status do MVP".
+---
+
+# Sincronizar página Sobre
+
+A página `front/src/shell/SobrePage.tsx` (aba "Sobre", acessível pelo link no rodapé do menu) é um
+**dashboard estático e temporário** (não lê dados ao vivo). Todo o conteúdo vem de
+`front/src/shell/sobreData.ts`, que precisa ser mantido manualmente em sincronia com:
+
+- `requisitos/admin/progresso.md` — fonte de verdade do status de cada requisito (é o "registro
+  vivo" do projeto).
+- `requisitos/admin/ej-admin-requisitos.md` — fonte da seção "Fora do Escopo do MVP" (§5).
+- O painel "Changelog de progresso" mescla **duas** fontes em ordem cronológica, cada uma com seu
+  próprio array em `sobreData.ts` (`CHANGELOG_GIT` e `CHANGELOG_PROGRESSO`), unidas no export
+  `CHANGELOG` com um campo `source: 'git' | 'progresso'` para a UI diferenciar:
+  - `CHANGELOG_GIT`: um resumo por commit do histórico da branch `main`.
+  - `CHANGELOG_PROGRESSO`: cópia verbatim da tabela em `## Changelog deste arquivo`, ao final de
+    `progresso.md`.
+
+## Passo a passo
+
+1. **Leia `requisitos/admin/progresso.md` por completo** (é longo — use offset/limit ou grep por
+   `^## EP-` e `^### FT-` para navegar). Para cada requisito, extraia:
+   - código (`REQ-xx.xx.xxx`)
+   - descrição
+   - status: checkbox `[x]` + coluna Status `done` → `done`; `in_progress` → **`partial`** (use o
+     helper `partial(code, description, notes)`, com a nota explicando exatamente o que falta —
+     essa é a mesma informação da coluna Notas do `progresso.md`); `todo` → `todo`; `blocked` →
+     `todo` (não há status dedicado ainda); `n/a` → `na`.
+   - coluna **Notas**: se não vazia, vira o campo `notes` do requisito (obrigatório para `partial`
+     e `mock`; opcional nos demais).
+
+2. **Requisitos mockados**: se a descrição ou a nota deixar claro que o comportamento é atendido
+   apenas por um mock/simulação no MVP (ex.: "deve ser mockada", "API representada por um mock",
+   "usuário mockado"), o status correto é **`todo`** (não conta como entregue), com nota
+   `"Implementado, porém mockado — não é uma integração real."`. Use o helper `mock()` já existente
+   em `sobreData.ts` para isso — não marque como `done`.
+
+3. **Compare contagem por feature**: para cada `### FT-xx.xx`, o número de linhas de requisito no
+   `progresso.md` deve bater exatamente com o array `requirements` da feature correspondente em
+   `sobreData.ts`. Rode este comando para conferir rapidamente:
+
+   ```bash
+   awk '
+   /^### FT-[0-9]+\.[0-9]+/{ft=$2}
+   /^\| \[.\] \| REQ-[0-9]+\.[0-9]+\.[0-9]+ \|/{c[ft]++}
+   END{for (k in c) print k, c[k]}' requisitos/admin/progresso.md | sort
+   ```
+
+   Compare a saída com a contagem de `requirements.length` de cada feature no arquivo TS. Qualquer
+   divergência é sinal de requisito faltando ou sobrando — corrija antes de prosseguir.
+
+4. **Edite `front/src/shell/sobreData.ts`**:
+   - Adicione/remova/atualize requisitos usando os helpers `d()` (done), `todo()` (não iniciado),
+     `na()` (não aplicável) e `mock()` (implementado porém mockado).
+   - **Não** edite números totais/percentuais à mão — `TOTAL_EPICS`, `TOTAL_FEATURES`,
+     `TOTAL_REQS`, `TOTAL_REQS_DONE`, `TOTAL_REQS_NA` e `OVERALL_PERCENT`, além de
+     `epicCounts`/`featureCounts`, são todos derivados dinamicamente do array `EPICS` — apenas os
+     dados de requisito precisam mudar.
+   - Se `ej-admin-requisitos.md` §5 (Fora do Escopo) mudou, atualize `OUT_OF_SCOPE` também.
+   - Se a versão do produto mudou, atualize `APP_VERSION` em `front/src/shell/appInfo.ts` (usada
+     no título da aba "Sobre vX.Y.Z" e no rodapé do menu).
+
+5. **Se `progresso.md` tiver sua própria tabela de resumo/por-épico desatualizada** em relação às
+   seções detalhadas (já aconteceu — ver histórico), corrija também os números do próprio
+   `progresso.md` para os dois documentos ficarem coerentes entre si.
+
+6. **Só crie uma linha nova em `## Changelog deste arquivo` (progresso.md) quando os requisitos em
+   si mudarem** — REQ novo, REQ removido, texto de um REQ reescrito, ou status de um REQ alterado
+   (`todo`→`done`, `done`→`in_progress`, etc.). Detalhe de implementação, refactor interno, ajuste
+   de configuração/log ou passo de depuração **não** justifica uma linha nova, mesmo que tenha sido
+   um trabalho grande — só entra no changelog se mudou o que está documentado sobre algum requisito
+   (o quê está pronto, o quê falta, ou a evidência/nota de um REQ específico).
+
+   **Atualize `CHANGELOG_PROGRESSO`**: compare a primeira linha da tabela em
+   `## Changelog deste arquivo` (final de `progresso.md`) com a primeira entrada de
+   `CHANGELOG_PROGRESSO` em `sobreData.ts`. Se houver linhas novas no topo da tabela, copie cada
+   uma **verbatim** — mesma data/hora, mesmo texto de "Alteração" — para o topo do array, como
+   `{ date, source: 'progresso', summary }`. Não reescreva, resuma ou corrija o texto.
+
+   **Data e hora de cada entrada nova** (coluna `Data/Hora` da tabela em `progresso.md`) — nunca só
+   a data:
+   - Se a mudança que gerou a entrada **já foi commitada**, use o horário real do commit:
+     ```bash
+     git log -1 --format='%ad' --date=format:'%Y-%m-%d %H:%M' -- requisitos/admin/progresso.md
+     ```
+     (ou `git log -1 --format='%ad' --date=format:'%Y-%m-%d %H:%M' <hash>` se souber o commit
+     exato). Não invente o horário — se não for possível correlacionar com segurança a um commit,
+     caia no caso abaixo.
+   - Se a mudança **ainda não foi commitada** (a maioria dos casos, já que normalmente se registra
+     o requisito antes de commitar), use a data/hora atual do sistema:
+     ```bash
+     date '+%Y-%m-%d %H:%M'
+     ```
+     e marque a entrada como `2026-08-10 14:32 (não commitado)` — mantendo o horário real, não
+     apenas a data. Quando o commit for feito depois, uma futura rodada da skill pode trocar esse
+     valor pelo horário real do commit (passo acima), removendo o sufixo "(não commitado)".
+   - Replique o mesmo valor de `date` (já formatado com hora) tanto na tabela de `progresso.md`
+     quanto no campo `date` do objeto em `CHANGELOG_PROGRESSO` — são a mesma informação em dois
+     formatos (Markdown e TS).
+
+7. **Atualize `CHANGELOG_GIT`**: compare o topo do array com o histórico de commits, sempre
+   incluindo data **e hora** (nunca só data — `--date=short` corta a hora, não usar):
+
+   ```bash
+   git log --reverse --pretty=format:'%ad|%s' --date=format:'%Y-%m-%d %H:%M'
+   ```
+
+   Localize o último commit já registrado e acrescente, no topo do array (mais recente primeiro),
+   uma entrada `{ date, source: 'git', summary, epics? }` para cada commit novo, com `date` no
+   formato `'YYYY-MM-DD HH:MM'` (o horário real do commit, vindo do comando acima — nunca
+   aproximado). `summary`: reescreva a mensagem do commit em uma frase curta e legível (corrija
+   capitalização/typos óbvios), sem inventar conteúdo que não esteja na mensagem ou no diff.
+   `epics`: códigos `EP-xx` citados na mensagem ou claramente identificáveis pelo escopo do commit;
+   omita se não for possível atribuir com segurança.
+
+   Em ambos os arrays, não reordene nem edite entradas já existentes — são históricos append-only.
+   O export `CHANGELOG` (mesclagem cronológica dos dois, usada pela UI) é derivado automaticamente
+   por `.sort()` — não o edite diretamente.
+
+8. **Valide**:
+   ```bash
+   cd front && npx tsc --noEmit -p .
+   ```
+   Type-check limpo é o critério mínimo de sucesso.
+
+9. Ao final, resuma para o usuário: quantos requisitos mudaram de status, quais épicos tiveram o
+   percentual alterado, se algum requisito mockado novo foi identificado, e quantas entradas novas
+   entraram no changelog.
+
+## Não fazer
+
+- Não torne a página dinâmica (sem fetch/API) — ela é deliberadamente estática, é um retrato
+  pontual do MVP, não deve refletir o progresso "ao vivo" do projeto.
+- Não invente evidências/notas que não estejam em `progresso.md`.

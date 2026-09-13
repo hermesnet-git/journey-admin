@@ -23,10 +23,25 @@ public class FlowNode {
     // pro editor ao vivo e pra snapshot publicada (sem compilação/projeção separada como antes:
     // FormSduiSerializer sumiu — o que é editado já é o nó publicável).
     private final SduiNode embeddedScreenRoot;
+    // Foto do envelope canônico (tupla Hiccup, seção 14.1) exatamente como foi enviado ao Strapi na
+    // última (re)publicação desta versão — null em qualquer nó do fluxo ao vivo (nunca publicado) ou
+    // sem tela. embeddedScreenRoot continua a fonte de verdade pra editar/republicar (ver
+    // JourneyVersion.attachPublishedScreens); este campo é só pra "o que está aqui bate com o que
+    // saiu", sem precisar recalcular via SduiEnvelopeBuilder pra conferir.
+    private final SduiScreenEnvelope sdui;
 
+    /** Nasce sem sdui — todo nó do fluxo ao vivo (nunca publicado) e qualquer entrada externa
+     * (template, geração por IA) usa este construtor. */
     public FlowNode(String id, FlowNodeType type, String name, String description, int positionX, int positionY,
                      ConnectorConfig connectorConfig, List<Map<String, Object>> startVariables,
                      String messageText, SduiNode embeddedScreenRoot) {
+        this(id, type, name, description, positionX, positionY, connectorConfig, startVariables, messageText,
+                embeddedScreenRoot, null);
+    }
+
+    public FlowNode(String id, FlowNodeType type, String name, String description, int positionX, int positionY,
+                     ConnectorConfig connectorConfig, List<Map<String, Object>> startVariables,
+                     String messageText, SduiNode embeddedScreenRoot, SduiScreenEnvelope sdui) {
         this.id = id;
         this.type = type;
         this.name = name;
@@ -37,6 +52,7 @@ public class FlowNode {
         this.startVariables = startVariables;
         this.messageText = messageText;
         this.embeddedScreenRoot = embeddedScreenRoot;
+        this.sdui = sdui;
     }
 
     public String getId() {
@@ -77,5 +93,9 @@ public class FlowNode {
 
     public SduiNode getEmbeddedScreenRoot() {
         return embeddedScreenRoot;
+    }
+
+    public SduiScreenEnvelope getSdui() {
+        return sdui;
     }
 }

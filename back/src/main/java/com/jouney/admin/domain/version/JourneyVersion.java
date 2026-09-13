@@ -3,9 +3,12 @@ package com.jouney.admin.domain.version;
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
+import com.jouney.admin.domain.flow.SduiScreenEnvelope;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * A point-in-time snapshot of a journey's flow/product/channel-types data (EP-06). Each journey
@@ -89,6 +92,23 @@ public class JourneyVersion {
         this.status = VersionStatus.PUBLISHED;
         this.publishedAt = OffsetDateTime.now();
         this.runtimeDeploymentId = runtimeDeploymentId;
+    }
+
+    // Chamado por PublishJourneyVersion.goLive logo depois de montar os envelopes SDUI (publish e
+    // republish passam pelo mesmo goLive), antes de montar a Publication e salvar — assim
+    // journey_publication.snapshot e journey_version.version_snapshot já saem com a foto do que foi
+    // enviado ao Strapi nesta (re)publicação. Nó sem tela ou fora da lista de envelopes (sem
+    // embeddedScreenRoot) fica como estava, sdui continua null.
+    public void attachPublishedScreens(List<SduiScreenEnvelope> envelopes) {
+        Map<String, SduiScreenEnvelope> byNodeId = envelopes.stream()
+                .collect(Collectors.toMap(SduiScreenEnvelope::uiStepId, e -> e));
+        this.flowNodes = flowNodes.stream()
+                .map(n -> byNodeId.containsKey(n.getId())
+                        ? new FlowNode(n.getId(), n.getType(), n.getName(), n.getDescription(), n.getPositionX(),
+                                n.getPositionY(), n.getConnectorConfig(), n.getStartVariables(), n.getMessageText(),
+                                n.getEmbeddedScreenRoot(), byNodeId.get(n.getId()))
+                        : n)
+                .toList();
     }
 
     // Companion to Journey.deactivate(): used when a journey that was once published can't be

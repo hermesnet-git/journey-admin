@@ -106,14 +106,19 @@ public class PublishJourneyVersion {
         FlowValidator.validate(version.getFlowNodes(), version.getFlowConnections(), componentRegistry,
                 version.getChannelTypes());
 
+        List<SduiScreenEnvelope> sduiEnvelopes = SduiEnvelopeBuilder.buildAll(journeyId, version.getVersionNumber(),
+                version.getChannelTypes(), version.getFlowNodes(), componentRegistry);
+        // Anexa a foto de cada tela publicada de volta no próprio FlowNode (FlowNode.sdui) antes de
+        // montar a Publication — assim journey_publication.snapshot e journey_version.version_snapshot
+        // já saem com o envelope exato que vai pro Strapi logo abaixo, não só a árvore de autoria.
+        version.attachPublishedScreens(sduiEnvelopes);
+
         UUID existingPublicationId = publicationRepository.findByJourneyId(journeyId)
                 .map(Publication::getId).orElse(null);
         Publication publication = Publication.create(existingPublicationId, journeyId, version.getJourneyName(),
                 version.getJourneyDescription(), version.getProductId(), version.getProductName(),
                 version.getChannelTypes(), version.getFlowNodes(), version.getFlowConnections(), version.getId(),
                 version.getVersionNumber());
-        List<SduiScreenEnvelope> sduiEnvelopes = SduiEnvelopeBuilder.buildAll(journeyId, version.getVersionNumber(),
-                version.getChannelTypes(), version.getFlowNodes(), componentRegistry);
         String deploymentId;
         try {
             // Checa disponibilidade antes de qualquer efeito colateral (deploy no runtime incluso)

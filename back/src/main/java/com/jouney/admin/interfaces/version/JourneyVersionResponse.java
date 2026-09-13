@@ -20,7 +20,7 @@ public record JourneyVersionResponse(UUID versionId, UUID journeyId, int version
                         .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
                                 n.getPositionX(), n.getPositionY(),
                                 FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
-                                n.getStartVariables(), n.getMessageText(), n.getEmbeddedScreenRoot()))
+                                n.getStartVariables(), n.getMessageText(), n.getEmbeddedScreenRoot(), n.getSdui()))
                         .toList(),
                 version.getFlowConnections());
         return new JourneyVersionResponse(version.getId(), version.getJourneyId(), version.getVersionNumber(),

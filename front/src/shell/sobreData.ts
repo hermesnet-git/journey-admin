@@ -1029,6 +1029,13 @@ export const EPICS: Epic[] = [
             'REQ-05.07.006',
             'Quando a jornada tiver mais de um tipo de canal habilitado, o sistema deve permitir escolher qual tipo simular antes de iniciar; com um único tipo, deve usá-lo automaticamente.',
           ),
+          {
+            code: 'REQ-05.07.007',
+            description:
+              'Quando uma jornada tiver mais de uma versão publicada simultaneamente, o sistema deve permitir escolher qual versão executar antes de iniciar; com uma única versão publicada, deve usá-la automaticamente.',
+            status: 'done',
+            notes: 'Testado em runtime: instâncias iniciadas com/sem version confirmadas rodando nos deployments corretos (v1 vs v3) direto no motor.',
+          },
         ],
       },
       {
@@ -1153,6 +1160,28 @@ export const EPICS: Epic[] = [
             status: 'done',
             notes: 'Antes, scroll do mouse fazia pan em vez de zoom.',
           },
+        ],
+      },
+      {
+        code: 'US-05.11',
+        name: 'Retomada de instância em andamento',
+        requirements: [
+          d(
+            'REQ-05.11.001',
+            'O sistema deve permitir retomar, na própria tela de Execução, uma instância em andamento (ACTIVE), buscando por ID da instância ou business key, sem passar pelo Diagnóstico.',
+          ),
+          d(
+            'REQ-05.11.002',
+            'Ao retomar, o sistema deve reconstruir o estado da execução (fluxo, passo atual, variáveis, canal e controle manual de Kafka) a partir do estado real da instância no motor de runtime, sem depender de nenhum histórico acumulado no navegador antes da retomada.',
+          ),
+          d(
+            'REQ-05.11.003',
+            'Buscar por uma instância que exista mas não esteja ACTIVE (concluída ou encerrada) deve informar isso ao usuário na própria busca, sem tentar retomá-la ao vivo.',
+          ),
+          d(
+            'REQ-05.11.004',
+            'Buscar por um ID de instância ou business key que não corresponda a nenhuma instância deve mostrar erro claro na própria busca, sem navegar.',
+          ),
         ],
       },
     ],
@@ -1949,6 +1978,24 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-09-12 17:59 (não commitado)',
+    source: 'progresso',
+    summary:
+      'FT-05 ganhou US-05.11 Retomada de instância em andamento (4 REQs). A tela de Execução só sabia iniciar instância nova; agora também permite buscar (por ID de instância ou business key, direto na própria tela, sem passar pelo Diagnóstico) uma instância ACTIVE já em andamento e voltar a interagir com ela ao vivo — útil quando o usuário fechou a aba, atualizou o navegador, ou saiu no meio de uma execução em espera. Reaproveita a resolução de versão/fluxo do Diagnóstico (FlowVersionResolver, extraído de GetExecutionHistoryDetail) e o resolvedor de passo atual já existente (ExecutionStepResolver) — nenhum mecanismo novo no motor, só um novo caminho de entrada pro que já existia. De quebra, corrigida uma regressão real encontrada na mesma sessão: REQ-05.08.005 (checagem de cadeia 100% síncrona antes de iniciar/completar/pular) tinha ficado só no caminho do canal digital (ms-journey → ms-espec-registry) depois da migração de Execução para admin/back em 2026-09-11 — portada de volta (SynchronousChainCheck, domain/execution). Também corrigidas ~21 células de evidência do FT-05 (e uma do FT-03/US-03.12) que ainda citavam classes removidas nessa mesma migração (ms-espec-registry/SimulationController/CamundaClient/KafkaBridgeScheduler), e reescritos REQ-14.02.003/REQ-14.04.003 (FT-14): o teste de conexão do catálogo de integrações roda no admin-back e resolve a credencial dinamicamente via Key Vault (nunca por configuração estática), lendo o segredo em memória sem nunca persisti-lo/exibi-lo/logá-lo — o texto antigo dizia o oposto ("admin-back nunca acessa o Key Vault"), o que já não era mais verdade desde a migração de ontem. Total do FT-05: 58 → 62 REQs; total geral: 502 → 506 REQs, 452 → 456 concluídos.',
+  },
+  {
+    date: '2026-09-11 19:38 (não commitado)',
+    source: 'progresso',
+    summary:
+      'REQ-05.07.007 implementado e testado em runtime. StartExecution (admin/back) passa a resolver a versão escolhida via JourneyVersionRepository (validando PUBLISHED) em vez de sempre a publicação ativa; RuntimeEngineMonitoringAdapter.startProcessInstance mira o processDefinitionId certo no motor via versionTag quando uma versão é informada. StartPanel.tsx mostra o seletor só quando a jornada tem mais de uma versão publicada simultaneamente. Testado direto contra o motor: duas instâncias da mesma jornada ("Testes", v1 e v3 publicadas simultaneamente) iniciadas com/sem version confirmadas rodando nos deployments corretos. Sem relação com REQ nenhum, aproveitado no mesmo lote: domínio Diagnóstico (FT-15) separado de Execução (FT-05) na estrutura de pacotes do admin/back (application/diagnostico, domain/diagnostico, interfaces/diagnostico/DiagnosticoController) e do front (diagnostics/api.ts, diagnostics/HistoryWorkspace.tsx, movido de execution/ onde só estava por herança histórica) — mesmo comportamento, sem mudança de contrato HTTP. Total FT-05: 57 → 58 concluídos (100%); total geral: 451 → 452 concluídos.',
+  },
+  {
+    date: '2026-09-11 19:16 (não commitado)',
+    source: 'progresso',
+    summary:
+      'REQ-05.07.007 novo (US-05.07): escolher qual versão publicada executar. Hoje a busca da tela de Execução só lista a publicação corrente da jornada (journey_publication, uma linha por jornada) — quando uma jornada tem mais de uma versão PUBLISHED simultaneamente (REQ-06.04.004, deployments antigos continuam de pé no runtime pras instâncias que já os iniciaram), não há como escolher testar uma versão mais antiga a partir da tela de Execução, só a mais recente. Registrado como todo, ainda não implementado. Total FT-05: 57 → 58 REQs; total geral: 501 → 502 REQs.',
+  },
+  {
     date: '2026-09-10 21:28 (não commitado)',
     source: 'progresso',
     summary:
@@ -2318,6 +2365,79 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-09-12 04:06',
+    source: 'git',
+    summary: 'Consolida o Inspector do Diagnóstico e leva task id/conclusão pra Execução.',
+    epics: ['FT-05', 'FT-15'],
+  },
+  {
+    date: '2026-09-12 01:26',
+    source: 'git',
+    summary: 'Adiciona skill criar_jornada_publicada.',
+  },
+  {
+    date: '2026-09-12 01:26',
+    source: 'git',
+    summary: 'Torna o modal de prévia do fluxo redimensionável e reduz altura inicial.',
+  },
+  {
+    date: '2026-09-12 01:25',
+    source: 'git',
+    summary: 'Corrige resumo do conector pra refletir envio/aproveitamento automático.',
+  },
+  {
+    date: '2026-09-12 01:25',
+    source: 'git',
+    summary: 'Reformula Diagnóstico: histórico sempre via API de história, timeline de variáveis e no Início.',
+    epics: ['FT-15'],
+  },
+  {
+    date: '2026-09-12 01:25',
+    source: 'git',
+    summary: 'Permite reaproveitar nome de campo de tela entre etapas da jornada (REQ-03.09.011).',
+    epics: ['FT-03'],
+  },
+  {
+    date: '2026-09-11 21:09',
+    source: 'git',
+    summary: 'Ajuste de start all.',
+  },
+  {
+    date: '2026-09-11 20:06',
+    source: 'git',
+    summary: 'Separa Diagnóstico de Execução e permite escolher versão publicada (REQ-05.07.007).',
+    epics: ['FT-05', 'FT-15'],
+  },
+  {
+    date: '2026-09-11 20:05',
+    source: 'git',
+    summary: 'Reduz ms-espec-registry a guardião puro do catálogo SDUI.',
+  },
+  {
+    date: '2026-09-11 14:10',
+    source: 'git',
+    summary: 'Migra Execução/Diagnóstico do ms-espec-registry para admin/back.',
+    epics: ['FT-05', 'FT-15'],
+  },
+  {
+    date: '2026-09-11 12:22',
+    source: 'git',
+    summary: 'Aprimora drop visual do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-10 23:34',
+    source: 'git',
+    summary: 'Permite excluir versão em rascunho e corrige status do FT-02.',
+    epics: ['FT-06', 'FT-02'],
+  },
+  {
+    date: '2026-09-10 21:21',
+    source: 'git',
+    summary: 'Sincroniza requisitos, progresso e página Sobre com o Form Builder e Component Registry.',
+    epics: ['FT-04'],
+  },
   {
     date: '2026-09-10 19:56',
     source: 'git',

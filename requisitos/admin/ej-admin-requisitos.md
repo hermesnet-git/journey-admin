@@ -744,6 +744,13 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.10.010 - O diagrama do fluxo deve permitir aumentar e diminuir o zoom com o scroll do mouse.
 ---
 
+### US-05.11 Retomada de instância em andamento
+#### REQ-05.11.001 - O sistema deve permitir retomar, na própria tela de Execução, uma instância em andamento (`ACTIVE`), buscando por ID da instância ou business key, sem passar pelo Diagnóstico.
+#### REQ-05.11.002 - Ao retomar, o sistema deve reconstruir o estado da execução (fluxo, passo atual, variáveis, canal e controle manual de Kafka) a partir do estado real da instância no motor de runtime, sem depender de nenhum histórico acumulado no navegador antes da retomada.
+#### REQ-05.11.003 - Buscar por uma instância que exista mas não esteja `ACTIVE` (concluída ou encerrada) deve informar isso ao usuário na própria busca, sem tentar retomá-la ao vivo — essa consulta continua sendo papel do Diagnóstico (FT-15).
+#### REQ-05.11.004 - Buscar por um ID de instância ou business key que não corresponda a nenhuma instância deve mostrar erro claro na própria busca, sem navegar.
+---
+
 <br/><br/>
 
 # FT-06 Versionamento de jornadas
@@ -1080,7 +1087,7 @@ empresa.
 ### US-14.02 Catálogo de credenciais
 #### REQ-14.02.001 - O sistema deve permitir cadastrar uma credencial associada a um cluster do catálogo (US-14.01), composta por nome de referência (o valor usado como `credentialRef` na configuração do conector), URI do Azure Key Vault e nome do secret dentro dele.
 #### REQ-14.02.002 - Cada credencial deve possuir identificador único (`credentialId`), nome de referência único na plataforma, cluster associado e status (ativa/inativa).
-#### REQ-14.02.003 - O sistema não deve, em nenhuma tela, campo, log ou registro de auditoria, armazenar ou exibir o valor do secret — apenas a referência (URI do Key Vault + nome do secret). O valor real do segredo nunca deve ser lido pelo Admin Portal, em nenhuma circunstância.
+#### REQ-14.02.003 - O sistema não deve, em nenhuma tela, campo, log ou registro de auditoria, armazenar ou exibir o valor do secret — apenas a referência (URI do Key Vault + nome do secret). O admin-back pode ler o valor real do segredo em memória, no momento de uma conexão de teste ou de integração real, para autenticar contra o broker/API — nunca para persisti-lo, logá-lo ou expô-lo de volta ao usuário.
 #### REQ-14.02.004 - O sistema deve permitir editar, consultar e desativar uma credencial cadastrada.
 #### REQ-14.02.005 - O sistema deve impedir a desativação de uma credencial referenciada por algum conector de jornada publicada.
 #### REQ-14.02.006 - O sistema deve permitir pesquisar e filtrar credenciais por cluster associado e por status.
@@ -1095,7 +1102,7 @@ empresa.
 ### US-14.04 Teste de conexão
 #### REQ-14.04.001 - O sistema deve permitir, a partir do catálogo, disparar um teste de conexão para um par cluster + credencial cadastrado, validando alcançabilidade do cluster e validade da credencial associada.
 #### REQ-14.04.002 - O teste de conexão deve se limitar a uma operação de metadado (ex.: descrever/listar o tópico, fila ou hub) — o sistema não deve, em nenhuma hipótese, publicar ou consumir uma mensagem real como parte do teste.
-#### REQ-14.04.003 - A execução do teste de conexão deve ser delegada ao componente de runtime responsável por resolver credenciais junto ao Key Vault (o mesmo worker que executa a integração de verdade), nunca executada diretamente pelo admin-back ou pelo navegador — preservando a regra de que o admin-back nunca acessa o Key Vault.
+#### REQ-14.04.003 - A execução do teste de conexão deve ocorrer no admin-back (nunca no navegador). Em ambiente local sem broker corporativo, a credencial pode ser dispensada (broker sem autenticação); no ambiente corporativo, o admin-back deve resolver a credencial cadastrada (US-14.02) e obter o segredo do Key Vault dinamicamente a cada chamada — nunca via configuração estática (YAML/properties) por ambiente.
 #### REQ-14.04.004 - O resultado do teste deve indicar sucesso, ou falha traduzida para uma causa reconhecível (cluster inacessível, credencial inválida, sem permissão/ACL no recurso) — nunca repassar ao usuário o erro cru do broker ou do Key Vault sem tradução.
 #### REQ-14.04.005 - O teste de conexão também deve estar disponível a partir do painel/assistente de configuração de um conector de mensageria na jornada (US-03.14), reaproveitando o par cluster + credencial já selecionado naquele conector.
 ---

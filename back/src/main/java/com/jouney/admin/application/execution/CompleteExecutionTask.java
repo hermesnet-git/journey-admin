@@ -2,6 +2,7 @@ package com.jouney.admin.application.execution;
 
 import com.jouney.admin.domain.execution.AnswerConversion;
 import com.jouney.admin.domain.execution.ExecutionStep;
+import com.jouney.admin.domain.execution.SynchronousChainCheck;
 import com.jouney.admin.domain.version.JourneyVersion;
 import java.time.Instant;
 import java.util.Map;
@@ -28,12 +29,14 @@ public class CompleteExecutionTask {
         if (!"USER_TASK".equals(current.type()) || !taskId.equals(current.taskId())) {
             throw new IllegalStateException("Task " + taskId + " não é o passo ativo atual da instância " + processInstanceId);
         }
+        JourneyVersion version = stepResolver.versionOf(processInstanceId);
+        SynchronousChainCheck.verify(version.getFlowNodes(), version.getFlowConnections());
+
         Instant before = Instant.now();
         Map<String, Object> converted = AnswerConversion.fromAnswers(current.form().sdui(), answers != null ? answers : Map.of());
         try {
             runtimeExecutionPort.completeTask(taskId, converted);
         } catch (RestClientException e) {
-            JourneyVersion version = stepResolver.versionOf(processInstanceId);
             return ExecutionErrorAttribution.attribute(current, version, stepResolver, e);
         }
         return stepResolver.resolve(processInstanceId, before);

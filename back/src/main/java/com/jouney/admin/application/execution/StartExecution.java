@@ -6,6 +6,7 @@ import com.jouney.admin.domain.execution.ExecutionInstance;
 import com.jouney.admin.domain.execution.ExecutionStep;
 import com.jouney.admin.domain.execution.KafkaVariableNames;
 import com.jouney.admin.domain.execution.ProcessIds;
+import com.jouney.admin.domain.execution.SynchronousChainCheck;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
@@ -52,6 +53,7 @@ public class StartExecution {
     public ExecutionInstance execute(UUID journeyId, String channel, Map<String, Object> variables,
                                       boolean manualKafkaControl, Integer versionNumber) {
         ResolvedTarget target = resolveTarget(journeyId, versionNumber);
+        SynchronousChainCheck.verify(target.flowNodes(), target.flowConnections());
 
         ChannelType channelType = ChannelType.valueOf(channel);
         if (!target.channelTypes().contains(channelType)) {

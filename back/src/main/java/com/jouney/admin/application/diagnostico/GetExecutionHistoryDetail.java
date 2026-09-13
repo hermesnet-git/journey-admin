@@ -1,5 +1,7 @@
 package com.jouney.admin.application.diagnostico;
 
+import com.jouney.admin.application.execution.FlowVersionResolver;
+import com.jouney.admin.application.execution.FlowVersionResolver.ResolvedFlow;
 import com.jouney.admin.application.execution.RuntimeExecutionPort;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.ActivityHistoryEntry;
 import com.jouney.admin.application.execution.RuntimeExecutionPort.ExternalTaskAttempt;
@@ -18,10 +20,6 @@ import com.jouney.admin.domain.flow.ConnectorConfig;
 import com.jouney.admin.domain.flow.ConnectorType;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
-import com.jouney.admin.domain.publication.Publication;
-import com.jouney.admin.domain.publication.PublicationRepository;
-import com.jouney.admin.domain.version.JourneyVersion;
-import com.jouney.admin.domain.version.JourneyVersionRepository;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,22 +35,19 @@ import org.springframework.stereotype.Service;
 public class GetExecutionHistoryDetail {
 
     private final RuntimeExecutionPort runtimeExecutionPort;
-    private final JourneyVersionRepository journeyVersionRepository;
-    private final PublicationRepository publicationRepository;
+    private final FlowVersionResolver flowVersionResolver;
 
     public GetExecutionHistoryDetail(RuntimeExecutionPort runtimeExecutionPort,
-                                      JourneyVersionRepository journeyVersionRepository,
-                                      PublicationRepository publicationRepository) {
+                                      FlowVersionResolver flowVersionResolver) {
         this.runtimeExecutionPort = runtimeExecutionPort;
-        this.journeyVersionRepository = journeyVersionRepository;
-        this.publicationRepository = publicationRepository;
+        this.flowVersionResolver = flowVersionResolver;
     }
 
     public ExecutionHistoryDetail execute(String processInstanceId) {
         HistoricInstance instance = runtimeExecutionPort.getHistoricProcessInstance(processInstanceId)
                 .orElseThrow(() -> new IllegalStateException("Instância " + processInstanceId + " não encontrada no histórico"));
         UUID journeyId = ProcessIds.journeyIdFromKey(instance.processDefinitionKey());
-        ResolvedFlow resolved = resolveFlow(journeyId, instance.processDefinitionId());
+        ResolvedFlow resolved = flowVersionResolver.resolve(journeyId, instance.processDefinitionId());
 
         // Variáveis de processo (escopo global) via história — nunca runtime, ao contrário do resto
         // da tela: precisa responder pra qualquer estado (REQ-15.04.001), inclusive instância já
@@ -168,50 +163,6 @@ public class GetExecutionHistoryDetail {
     // devem aparecer como variável de processo comum na aba Variáveis do Diagnóstico.
     private static boolean isInternalVariableName(String name) {
         return name.startsWith("__");
-    }
-
-    /** Resolve a versão que RODOU de fato (via versionTag do process-definition), não a atualmente
-     * publicada — só cai na publicação ativa se o deploy não tiver versionTag ou a versão não
-     * existir mais em admin/back. */
-    private ResolvedFlow resolveFlow(UUID journeyId, String processDefinitionId) {
-        Integer versionNumber = parseVersionNumber(safeVersionTag(processDefinitionId));
-        if (versionNumber != null) {
-            JourneyVersion match = journeyVersionRepository.findByJourneyId(journeyId).stream()
-                    .filter(v -> v.getVersionNumber() == versionNumber)
-                    .findFirst().orElse(null);
-            if (match != null) {
-                return new ResolvedFlow(match.getJourneyName(), versionNumber, match.getChannelTypes(),
-                        match.getFlowNodes(), match.getFlowConnections());
-            }
-        }
-        Publication publication = publicationRepository.findByJourneyId(journeyId)
-                .orElseThrow(() -> new IllegalStateException("Jornada " + journeyId + " não tem publicação ativa nem versão correlacionável"));
-        return new ResolvedFlow(publication.getJourneyName(), versionNumber, publication.getChannelTypes(),
-                publication.getFlowNodes(), publication.getFlowConnections());
-    }
-
-    private String safeVersionTag(String processDefinitionId) {
-        try {
-            return runtimeExecutionPort.getVersionTag(processDefinitionId);
-        } catch (RuntimeException e) {
-            return null;
-        }
-    }
-
-    private static Integer parseVersionNumber(String versionTag) {
-        if (versionTag == null || !versionTag.startsWith("v")) {
-            return null;
-        }
-        try {
-            return Integer.parseInt(versionTag.substring(1));
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private record ResolvedFlow(String journeyName, Integer versionNumber,
-                                 List<com.jouney.admin.domain.channel.ChannelType> channelTypes,
-                                 List<FlowNode> flowNodes, List<com.jouney.admin.domain.flow.FlowConnection> flowConnections) {
     }
 
     private static final java.util.Set<String> WRITE_VERBS = java.util.Set.of("POST", "PUT", "PATCH", "DELETE");

@@ -5,6 +5,8 @@ import {
   FileCheck2,
   ChevronDown,
   ChevronRight,
+  ChevronsDown,
+  ChevronsUp,
   CircleCheck,
   CircleDashed,
   MinusCircle,
@@ -405,6 +407,18 @@ function sourceMeta(source: ChangelogSource, c: Colors) {
   return { label: 'progresso.md', Icon: FileCheck2, fg: c.accent, bg: c.accentSoft };
 }
 
+// Entradas vindas de progresso.md tendem a ser um parágrafo único e longo (várias frases sobre
+// requisitos diferentes) — só cosmético, quebra em frases pra facilitar a leitura, uma por linha com
+// selo de check (mesmo estilo da lista de capacidades entregues no topo da página). Frases genuínas
+// terminam com ".!?" seguido de espaço e maiúscula/dígito/crase — evita quebrar no meio de um código
+// tipo `REQ-05.11.001` (nunca tem espaço logo após o ponto interno) ou de uma versão `1.0.0`.
+function splitIntoSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+(?=[A-ZÀ-Ú0-9`])/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function ChangelogPanel() {
   const { colors: c } = useAppTheme();
   const [search, setSearch] = useState('');
@@ -468,9 +482,20 @@ function ChangelogPanel() {
                         </span>
                       ))}
                     </div>
-                    <p className="m-0 mt-[2px] text-[12.5px] leading-[18px]" style={{ color: c.textPrimary }}>
-                      {entry.summary}
-                    </p>
+                    {entry.source === 'progresso' ? (
+                      <ul className="m-0 mt-[6px] p-0 flex flex-col gap-[6px]" style={{ listStyle: 'none' }}>
+                        {splitIntoSentences(entry.summary).map((sentence, si) => (
+                          <li key={si} className="flex items-start gap-[7px] text-[12.5px] leading-[18px]" style={{ color: c.textPrimary }}>
+                            <CircleCheck size={13} className="shrink-0 mt-[2px]" style={{ color: c.success }} />
+                            <span>{sentence}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="m-0 mt-[2px] text-[12.5px] leading-[18px]" style={{ color: c.textPrimary }}>
+                        {entry.summary}
+                      </p>
+                    )}
                   </div>
                 </div>
               );
@@ -486,6 +511,9 @@ export function SobrePage() {
   const { colors: c } = useAppTheme();
   const [filter, setFilter] = useState<'all' | 'done' | 'partial'>('all');
   const [search, setSearch] = useState('');
+  // Sobrepõe o comportamento padrão (aberto durante busca, fechado ao navegar) até a próxima busca
+  // — que volta a decidir sozinha, ver handleSearchChange abaixo.
+  const [expandOverride, setExpandOverride] = useState<boolean | null>(null);
 
   const statusFilteredEpics = useMemo(() => {
     if (filter === 'all') return EPICS;
@@ -498,6 +526,12 @@ export function SobrePage() {
 
   const visibleEpics = useMemo(() => filterEpicsByQuery(statusFilteredEpics, search), [statusFilteredEpics, search]);
   const searchActive = search.trim().length > 0;
+  const epicDefaultOpen = expandOverride ?? searchActive;
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    setExpandOverride(null);
+  }
 
   return (
     <div className="flex-1 overflow-auto p-[32px_40px] box-border">
@@ -594,7 +628,7 @@ export function SobrePage() {
           Features, user stories e requisitos
         </h2>
         <div className="flex items-center gap-2 flex-wrap">
-          <SearchInput value={search} onChange={setSearch} placeholder="Buscar feature, user story ou requisito..." />
+          <SearchInput value={search} onChange={handleSearchChange} placeholder="Buscar feature, user story ou requisito..." />
           <div className="flex gap-[6px]">
             {(
               [
@@ -615,6 +649,26 @@ export function SobrePage() {
                 {label}
               </button>
             ))}
+          </div>
+          <div className="flex gap-[6px]">
+            <button
+              onClick={() => setExpandOverride(true)}
+              title="Expandir tudo"
+              aria-label="Expandir tudo"
+              className="flex items-center justify-center w-[30px] h-[30px] rounded-md cursor-pointer border-0"
+              style={{ background: c.chipBg, color: c.textSecondary }}
+            >
+              <ChevronsDown size={14} />
+            </button>
+            <button
+              onClick={() => setExpandOverride(false)}
+              title="Recolher tudo"
+              aria-label="Recolher tudo"
+              className="flex items-center justify-center w-[30px] h-[30px] rounded-md cursor-pointer border-0"
+              style={{ background: c.chipBg, color: c.textSecondary }}
+            >
+              <ChevronsUp size={14} />
+            </button>
           </div>
         </div>
       </div>
@@ -643,7 +697,7 @@ export function SobrePage() {
           </p>
         ) : (
           visibleEpics.map((epic) => (
-            <EpicRows key={`${epic.code}-${searchActive ? 'search' : 'browse'}`} epic={epic} defaultOpen={searchActive} />
+            <EpicRows key={`${epic.code}-${epicDefaultOpen ? 'open' : 'closed'}`} epic={epic} defaultOpen={epicDefaultOpen} />
           ))
         )}
       </div>

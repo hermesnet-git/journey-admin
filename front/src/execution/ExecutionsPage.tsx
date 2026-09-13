@@ -4,6 +4,7 @@ import { Text, skinVars } from '@telefonica/mistica';
 import { ExecutionToolbar, JourneySearchBox } from './ExecutionToolbar';
 import { StartPanel } from './StartPanel';
 import { ExecutionWorkspace } from './ExecutionWorkspace';
+import { ResumeExecutionBox } from './ResumeExecutionBox';
 import {
   apiCallLogData,
   formatApiCallLog,
@@ -15,6 +16,7 @@ import {
   type FlowBundle,
   type InstanceResponse,
   type JourneySummary,
+  type ResumeInstanceResponse,
   type StepResponse,
 } from './api';
 import type { LogEntry } from './InspectorPanel';
@@ -131,6 +133,32 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
     });
   }
 
+  // Jornada só é conhecida pelo id/nome que o backend devolveu junto da instância retomada — a
+  // lista já carregada de jornadas publicadas cobre o caso comum (mesmo objeto que a busca por
+  // nome usaria); sem ela (ex.: jornada despublicada nesse meio-tempo), monta um resumo mínimo só
+  // com o suficiente pro cabeçalho da execução funcionar.
+  function handleResumed(response: ResumeInstanceResponse) {
+    const journey: JourneySummary = journeys?.find((j) => j.journeyId === response.journeyId) ?? {
+      journeyId: response.journeyId,
+      name: response.journeyName,
+      description: null,
+      productName: '',
+      channelTypes: response.channel ? [response.channel] : [],
+      publishedVersionNumber: null,
+    };
+    setSelected(journey);
+    setQuery(journey.name);
+    setRunning({
+      processInstanceId: response.instance.processInstanceId,
+      businessKey: response.instance.businessKey,
+      journey,
+      flow: response.instance.flow,
+      step: response.instance.step,
+      manualKafkaControl: response.instance.manualKafkaControl,
+      channelType: response.channel ?? undefined,
+    });
+  }
+
   async function handleStop() {
     if (!running) return;
     setStopping(true);
@@ -179,6 +207,7 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
         selected={selected}
         onSelect={handleSelect}
         onStarted={handleStarted}
+        onResumed={handleResumed}
       />
     );
   }
@@ -227,6 +256,7 @@ function SetupState({
   selected,
   onSelect,
   onStarted,
+  onResumed,
 }: {
   journeys: JourneySummary[] | null;
   loadError: string | null;
@@ -235,6 +265,7 @@ function SetupState({
   selected: JourneySummary | null;
   onSelect: (journey: JourneySummary) => void;
   onStarted: (instance: InstanceResponse) => void;
+  onResumed: (response: ResumeInstanceResponse) => void;
 }) {
   return (
     <div className="flex-1 min-h-0 overflow-auto p-[32px_40px] box-border">
@@ -259,6 +290,16 @@ function SetupState({
         <div className="max-w-[420px]">
           <JourneySearchBox journeys={journeys} loadError={loadError} query={query} onQueryChange={onQueryChange} selected={selected} onSelect={onSelect} />
         </div>
+
+        <div className="flex items-center gap-3 my-3 max-w-[420px]">
+          <div className="flex-1 h-px" style={{ background: skinVars.colors.border }} />
+          <Text size={11} color={skinVars.colors.textSecondary}>
+            ou
+          </Text>
+          <div className="flex-1 h-px" style={{ background: skinVars.colors.border }} />
+        </div>
+
+        <ResumeExecutionBox onResumed={onResumed} />
       </div>
 
       {selected ? (

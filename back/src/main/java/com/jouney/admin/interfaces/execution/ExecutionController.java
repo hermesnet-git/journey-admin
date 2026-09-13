@@ -7,6 +7,7 @@ import com.jouney.admin.application.execution.ExecutionVariables;
 import com.jouney.admin.application.execution.GetExecutionFlow;
 import com.jouney.admin.application.execution.GetLatestInstance;
 import com.jouney.admin.application.execution.PreviewKafkaMessage;
+import com.jouney.admin.application.execution.ResumeExecution;
 import com.jouney.admin.application.execution.SendKafkaMessage;
 import com.jouney.admin.application.execution.SendTestMessage;
 import com.jouney.admin.application.execution.SkipStep;
@@ -59,12 +60,14 @@ public class ExecutionController {
     private final SkipStep skipStep;
     private final SendTestMessage sendTestMessage;
     private final GetLatestInstance getLatestInstance;
+    private final ResumeExecution resumeExecution;
 
     public ExecutionController(GetExecutionFlow getExecutionFlow, StartExecution startExecution,
                                 ExecutionStepResolver stepResolver, CompleteExecutionTask completeExecutionTask,
                                 ExecutionVariables executionVariables, SendKafkaMessage sendKafkaMessage,
                                 PreviewKafkaMessage previewKafkaMessage, RuntimeInstanceControlPort runtimeInstanceControlPort,
-                                SkipStep skipStep, SendTestMessage sendTestMessage, GetLatestInstance getLatestInstance) {
+                                SkipStep skipStep, SendTestMessage sendTestMessage, GetLatestInstance getLatestInstance,
+                                ResumeExecution resumeExecution) {
         this.getExecutionFlow = getExecutionFlow;
         this.startExecution = startExecution;
         this.stepResolver = stepResolver;
@@ -76,6 +79,7 @@ public class ExecutionController {
         this.skipStep = skipStep;
         this.sendTestMessage = sendTestMessage;
         this.getLatestInstance = getLatestInstance;
+        this.resumeExecution = resumeExecution;
     }
 
     // execution-flow, não /flow: esse já é o path do FlowController (editor de fluxo, Flow editável)
@@ -186,5 +190,15 @@ public class ExecutionController {
                 .map(InstanceResponse::from)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    // Busca própria da Execução (não passa pelo Diagnóstico, FT-15) pra reabrir uma instância
+    // ACTIVE já em andamento e voltar a interagir com ela ao vivo — ex.: usuário fechou a aba ou
+    // atualizou o navegador enquanto uma instância ficou esperando um passo. `query` aceita tanto o
+    // processInstanceId quanto o business key.
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
+    @GetMapping("/instances/resume")
+    public ResumeInstanceResponse resume(@RequestParam String query) {
+        return ResumeInstanceResponse.from(resumeExecution.execute(query));
     }
 }

@@ -2,6 +2,7 @@ package com.jouney.admin.application.execution;
 
 import com.jouney.admin.domain.execution.AnswerConversion;
 import com.jouney.admin.domain.execution.ExecutionStep;
+import com.jouney.admin.domain.execution.SynchronousChainCheck;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
 import com.jouney.admin.domain.version.JourneyVersion;
@@ -30,6 +31,7 @@ public class SkipStep {
             throw new IllegalStateException("Instância " + processInstanceId + " não está aguardando um passo não-usuário");
         }
         JourneyVersion version = stepResolver.versionOf(processInstanceId);
+        SynchronousChainCheck.verify(version.getFlowNodes(), version.getFlowConnections());
         FlowNode node = stepResolver.findNode(version, current.nodeId());
         Map<String, Object> variables = AnswerConversion.fabricateFromOutputMapping(node.getConnectorConfig());
 

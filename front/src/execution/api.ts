@@ -331,6 +331,22 @@ export function startInstance(
   return apiPost(`/journeys/${journeyId}/instances?${params.toString()}`, variables);
 }
 
+export interface ResumeInstanceResponse {
+  journeyId: string;
+  journeyName: string;
+  // Canal (variável de processo reservada) com que a instância foi de fato iniciada — ausente só
+  // quando a instância nasceu por MESSAGE_START_EVENT (nunca passou pelo seletor de canal).
+  channel: string | null;
+  instance: InstanceResponse;
+}
+
+/** Reabre uma instância ACTIVE já em andamento, achada por processInstanceId ou business key —
+ * busca própria da tela de Execução (REQ-05.07, não passa pelo Diagnóstico). 404 quando não existe
+ * nenhuma instância pra esse valor; 409 quando existe mas já concluiu/encerrou. */
+export function resumeInstance(query: string): Promise<ResumeInstanceResponse> {
+  return apiGet(`/instances/resume?query=${encodeURIComponent(query)}`);
+}
+
 /** Diagrama da jornada sem iniciar instância — usado pra descobrir o tipo do nó de início antes de
  * decidir entre o botão "Executar" e o painel de envio de mensagem (MESSAGE_START_EVENT), e pra
  * mostrar as variáveis de entrada certas da versão escolhida (REQ-05.07.007) — sem `version`, a

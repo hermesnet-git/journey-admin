@@ -8,6 +8,9 @@ import com.jouney.admin.domain.componentregistry.ComponentDefinitionNotFoundExce
 import com.jouney.admin.domain.componentregistry.ComponentTypeVersionAlreadyExistsException;
 import com.jouney.admin.domain.componentregistry.ComponentDefinition.SystemComponentRemovalException;
 import com.jouney.admin.domain.componentregistry.UnknownRenderTargetException;
+import com.jouney.admin.domain.execution.InstanceNotFoundException;
+import com.jouney.admin.domain.execution.InstanceNotResumableException;
+import com.jouney.admin.domain.execution.SynchronousChainUnsupportedException;
 import com.jouney.admin.domain.flow.FlowNodeNotFoundException;
 import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.domain.journey.ChannelTypeNotAllowedException;
@@ -57,7 +60,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ProductNotFoundException.class,
             JourneyNotFoundException.class, JourneyVersionNotFoundException.class,
             MessagingClusterNotFoundException.class, CredentialReferenceNotFoundException.class,
-            FlowNodeNotFoundException.class, ComponentDefinitionNotFoundException.class})
+            FlowNodeNotFoundException.class, ComponentDefinitionNotFoundException.class,
+            InstanceNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
     }
@@ -66,7 +70,7 @@ public class GlobalExceptionHandler {
             JourneyInactiveException.class, VersionNotDraftException.class, VersionNotPublishedException.class,
             VersionNotUnpublishedException.class, ClusterInUseException.class, CredentialInUseException.class,
             ClusterNameAlreadyExistsException.class, CredentialReferenceNameAlreadyExistsException.class,
-            ComponentTypeVersionAlreadyExistsException.class})
+            ComponentTypeVersionAlreadyExistsException.class, InstanceNotResumableException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }
@@ -87,6 +91,15 @@ public class GlobalExceptionHandler {
             ProductChannelTypesEmptyException.class})
     public ResponseEntity<ApiError> handleUnprocessable(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(), request, null);
+    }
+
+    // Checagem proativa (REQ-05.08.005), nunca deveria deixar o motor chegar a crashar com o erro
+    // cru "execution ... doesn't exist" — mesma regra que já protege o canal digital (ms-journey via
+    // ms-espec-registry), agora também na própria tela de Execução do Admin Portal.
+    @ExceptionHandler(SynchronousChainUnsupportedException.class)
+    public ResponseEntity<ApiError> handleSynchronousChainUnsupported(SynchronousChainUnsupportedException ex,
+                                                                        HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "SYNCHRONOUS_CHAIN_UNSUPPORTED", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler({SsrfBlockedException.class, ConnectorTestException.class})

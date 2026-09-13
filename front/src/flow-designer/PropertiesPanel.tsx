@@ -11,6 +11,7 @@ import {
   connectorMissingFields,
   availableVariableRulesAt,
   availableVariableOriginsAt,
+  engineVariableToken,
   flattenJsonToOutputMappingRules,
   type ConnectorConfig,
   type ConnectorType,
@@ -204,7 +205,10 @@ export function VariablePickerButton({ variables, onInsert }: { variables: Varia
                     key={v.name}
                     type="button"
                     onClick={() => {
-                      onInsert(`{{${v.name}}}`);
+                      // Insere o nome real da variável no motor (form_nome/data_pedido), não o
+                      // caminho lógico — este campo vira expressão JUEL (URL/header/body de conector),
+                      // sem noção de namespace com ponto (ver engineVariableToken).
+                      onInsert(`{{${engineVariableToken(v.kind, v.name)}}}`);
                       setOpen(false);
                     }}
                     style={{
@@ -242,6 +246,9 @@ function VariableOriginsPanel({ variables }: { variables: VariableOrigin[] }) {
   const { c } = useFlowTheme();
   const [copied, setCopied] = useState<string | null>(null);
 
+  // Copia o nome real da variável no motor (form_nome/data_pedido — ver engineVariableToken), não
+  // o caminho lógico: é o que precisa ir dentro de {{...}} num campo de conector/Gateway pra
+  // resolver de verdade (viram expressão JUEL, sem noção de namespace com ponto).
   function copy(name: string) {
     navigator.clipboard.writeText(`{{${name}}}`);
     setCopied(name);
@@ -262,26 +269,29 @@ function VariableOriginsPanel({ variables }: { variables: VariableOrigin[] }) {
         <div key={label} style={{ marginBottom: 10 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: c.textSecondary, marginBottom: 4 }}>{label}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {vars.map((v) => (
-              <button
-                key={v.name}
-                type="button"
-                onClick={() => copy(v.name)}
-                title="Clique para copiar {{nome}}"
-                style={{
-                  fontSize: 11,
-                  fontFamily: 'monospace',
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  border: `1px solid ${c.border}`,
-                  background: c.cardBg,
-                  color: c.textSecondary,
-                  cursor: 'pointer',
-                }}
-              >
-                {copied === v.name ? 'copiado!' : `{{${v.name}}}`}
-              </button>
-            ))}
+            {vars.map((v) => {
+              const token = engineVariableToken(v.kind, v.name);
+              return (
+                <button
+                  key={v.name}
+                  type="button"
+                  onClick={() => copy(token)}
+                  title="Clique para copiar {{nome}}"
+                  style={{
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    border: `1px solid ${c.border}`,
+                    background: c.cardBg,
+                    color: c.textSecondary,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {copied === token ? 'copiado!' : `{{${token}}}`}
+                </button>
+              );
+            })}
           </div>
         </div>
       ))}
@@ -477,7 +487,10 @@ function GatewayFields({
 }) {
   const { c } = useFlowTheme();
   const outgoing = allEdges.filter((e) => e.source === nodeId);
-  const typeByVariable = new Map(availableRules.map((r) => [r.name, r.type ?? 'string']));
+  // A condição vira expressão JUEL literal na publicação (BpmnTransformer.resolveCondition) — o
+  // que fica dentro de {{...}} precisa ser o nome real da variável no motor (form_nome/data_pedido),
+  // não o nome cru do campo. O rótulo mostrado ao autor continua o nome cru (mais legível).
+  const typeByVariable = new Map(availableRules.map((r) => [engineVariableToken(r.kind, r.name), r.type ?? 'string']));
 
   function toggleDefault(edge: WFEdge, checked: boolean) {
     onUpdateEdge(edge.id, { isDefault: checked, condition: checked ? undefined : edge.data?.condition });
@@ -496,10 +509,10 @@ function GatewayFields({
             const target = allNodes.find((n) => n.id === edge.target);
             const isDefault = !!edge.data?.isDefault;
             const parsed = parseCondition(edge.data?.condition);
-            const variableNames = availableRules.map((r) => r.name);
-            const variableOptions = parsed.variable && !variableNames.includes(parsed.variable)
-              ? [parsed.variable, ...variableNames]
-              : variableNames;
+            const variableTokens = availableRules.map((r) => ({ token: engineVariableToken(r.kind, r.name), label: r.name }));
+            const variableOptions = parsed.variable && !variableTokens.some((v) => v.token === parsed.variable)
+              ? [{ token: parsed.variable, label: parsed.variable }, ...variableTokens]
+              : variableTokens;
             const type: VariableType = typeByVariable.get(parsed.variable) ?? 'string';
             const operators = OPERATORS_BY_TYPE[type];
 
@@ -533,8 +546,8 @@ function GatewayFields({
                       >
                         <option value="">Variável...</option>
                         {variableOptions.map((v) => (
-                          <option key={v} value={v}>
-                            {v}
+                          <option key={v.token} value={v.token}>
+                            {v.label}
                           </option>
                         ))}
                       </select>

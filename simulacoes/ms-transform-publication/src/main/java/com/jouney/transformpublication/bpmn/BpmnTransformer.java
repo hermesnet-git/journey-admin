@@ -405,7 +405,10 @@ public class BpmnTransformer {
                 String expression = "$httpStatus".equals(jsonPath)
                         ? "${statusCode}"
                         : "${statusCode >= 200 && statusCode < 300 ? S(response).jsonPath(\"" + jsonPath + "\").element().value() : null}";
-                addOutputParameter(modelInstance, element, name, expression);
+                // Saída de conector é sempre namespace "data" (ver BindingResolver/VariableConversion,
+                // ms-espec-registry) — a variável de PROCESSO fica com o prefixo; a expressão acima só
+                // lê variáveis LOCAIS desta atividade (response/statusCode), não a variável final.
+                addOutputParameter(modelInstance, element, "data_" + name, expression);
             }
         }
     }
@@ -484,7 +487,9 @@ public class BpmnTransformer {
                 // perdendo a coerção number/boolean/date que VariableConversion.resolveOutputMapping
                 // faz hoje a partir do type declarado no admin/back.
                 addInputParameter(modelInstance, element, "outputMapping." + name + ".type", type);
-                addOutputParameter(modelInstance, element, name, "${" + name + "}");
+                // "${" + name + "}" lê a variável LOCAL que o worker (ms-runtime-camunda) gravou com o
+                // nome cru declarado — só a variável de PROCESSO final (namespace "data") leva prefixo.
+                addOutputParameter(modelInstance, element, "data_" + name, "${" + name + "}");
             }
         }
     }

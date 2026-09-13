@@ -43,6 +43,24 @@ export interface OutputMappingRule {
   name: string;
   jsonPath: string;
   type?: VariableType;
+  // Só populado por availableVariableRulesAt (lista pro seletor de variável do Gateway) — uma regra
+  // sendo EDITADA no config do conector não carrega isso, é sempre implicitamente "data" ali.
+  kind?: VariableKind;
+}
+
+// Namespace real de uma variável no motor (ver BindingResolver/VariableConversion, ms-espec-
+// registry, e AnswerConversion, admin/back): "form" e "data" viram form_<nome>/data_<nome> na
+// variável de processo de verdade; "channel" é o único caso especial sem prefixo (injetado direto
+// por StartExecution/ms-journey, fora dessa convenção).
+export type VariableKind = 'form' | 'data' | 'channel';
+
+// Nome real da variável no motor — o que precisa ir dentro de {{...}} em condição de Gateway ou
+// campo de conector (URL/headers/body), já que os dois viram expressão JUEL literal (BpmnTransformer)
+// e o motor nunca viu o namespace com ponto, só esse prefixo com underscore.
+export function engineVariableToken(kind: VariableKind | undefined, name: string): string {
+  if (kind === 'form') return `form_${name}`;
+  if (kind === 'data') return `data_${name}`;
+  return name;
 }
 
 // REQ-03.12.001: {name, type} declared on the START node — the variables the caller (canal
@@ -60,6 +78,7 @@ export interface VariableOrigin {
   type: VariableType;
   sourceNodeId: string;
   sourceLabel: string;
+  kind: VariableKind;
 }
 
 export interface WFNodeData extends Record<string, unknown> {
@@ -404,10 +423,10 @@ export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges:
   // "channel" é implícito — o ms-espec-registry injeta o canal declarado ao iniciar a instância
   // como variável de processo real, sem o autor precisar declarar nada no nó START (mesma regra
   // do FlowValidator no admin/back).
-  const rules: OutputMappingRule[] = [{ name: 'channel', jsonPath: '', type: 'string' }];
+  const rules: OutputMappingRule[] = [{ name: 'channel', jsonPath: '', type: 'string', kind: 'channel' }];
   nodes.forEach((n) => {
     if (n.type === 'start') {
-      (n.data.startVariables ?? []).forEach((v) => v.name && rules.push({ name: v.name, jsonPath: '', type: v.type }));
+      (n.data.startVariables ?? []).forEach((v) => v.name && rules.push({ name: v.name, jsonPath: '', type: v.type, kind: 'data' }));
     }
   });
   nodes.forEach((n) => {
@@ -416,11 +435,11 @@ export function availableVariableRulesAt(nodeId: string, nodes: WFNode[], edges:
     if (Array.isArray(nodeRules)) {
       nodeRules.forEach((r) => {
         if (r && typeof r === 'object' && typeof (r as { name?: unknown }).name === 'string' && (r as { name: string }).name) {
-          rules.push(r as OutputMappingRule);
+          rules.push({ ...(r as OutputMappingRule), kind: 'data' });
         }
       });
     }
-    userTaskFormVariables(n).forEach((v) => rules.push({ name: v.name, jsonPath: '', type: v.type }));
+    userTaskFormVariables(n).forEach((v) => rules.push({ name: v.name, jsonPath: '', type: v.type, kind: 'form' }));
   });
   return rules;
 }
@@ -482,12 +501,12 @@ export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edge
   }
 
   const origins: VariableOrigin[] = [
-    { name: 'channel', type: 'string', sourceNodeId: '', sourceLabel: 'Canal da execução' },
+    { name: 'channel', type: 'string', sourceNodeId: '', sourceLabel: 'Canal da execução', kind: 'channel' },
   ];
   nodes.forEach((n) => {
     if (n.type === 'start') {
       (n.data.startVariables ?? []).forEach((v) => {
-        if (v.name) origins.push({ name: v.name, type: v.type, sourceNodeId: n.id, sourceLabel: originLabelFor(n) });
+        if (v.name) origins.push({ name: v.name, type: v.type, sourceNodeId: n.id, sourceLabel: originLabelFor(n), kind: 'data' });
       });
     }
   });
@@ -498,12 +517,12 @@ export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edge
       rules.forEach((r) => {
         if (r && typeof r === 'object' && typeof (r as { name?: unknown }).name === 'string' && (r as { name: string }).name) {
           const rule = r as OutputMappingRule;
-          origins.push({ name: rule.name, type: rule.type ?? 'string', sourceNodeId: n.id, sourceLabel: originLabelFor(n) });
+          origins.push({ name: rule.name, type: rule.type ?? 'string', sourceNodeId: n.id, sourceLabel: originLabelFor(n), kind: 'data' });
         }
       });
     }
     userTaskFormVariables(n).forEach((v) =>
-      origins.push({ name: v.name, type: v.type, sourceNodeId: n.id, sourceLabel: originLabelFor(n) }),
+      origins.push({ name: v.name, type: v.type, sourceNodeId: n.id, sourceLabel: originLabelFor(n), kind: 'form' }),
     );
   });
   return origins;

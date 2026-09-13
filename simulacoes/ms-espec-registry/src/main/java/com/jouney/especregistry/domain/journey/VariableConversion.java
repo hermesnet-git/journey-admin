@@ -5,6 +5,7 @@ import com.jouney.especregistry.domain.sdui.CanonicalFormat;
 import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +18,9 @@ public final class VariableConversion {
     private VariableConversion() {
     }
 
+    // Resposta de tela é sempre namespace "form" — o próprio catálogo SDUI só permite `$bindings.value`
+    // com twoWay em `form.*` pra componente de entrada (seção 7.1.3); a variável real do motor carrega
+    // esse namespace no nome (form_<nome>, underscore — ver BindingResolver).
     public static Map<String, EngineVariable> fromAnswers(JsonNode sdui, Map<String, Object> answers) {
         Map<String, CanonicalFormat.FieldSpec> specs = CanonicalFormat.fields(sdui).stream()
                 .collect(Collectors.toMap(CanonicalFormat.FieldSpec::name, f -> f, (a, b) -> a));
@@ -25,7 +29,7 @@ public final class VariableConversion {
             if (entry.getValue() == null) {
                 continue;
             }
-            variables.put(entry.getKey(), convertAnswer(specs.get(entry.getKey()), entry.getValue()));
+            variables.put("form_" + entry.getKey(), convertAnswer(specs.get(entry.getKey()), entry.getValue()));
         }
         return variables;
     }
@@ -48,29 +52,34 @@ public final class VariableConversion {
      * controller, mapeado pra 409 pelo GlobalExceptionHandler). Chaves de {@code raw} que não
      * batem com nenhuma declaração são aceitas e incluídas também (REQ-03.12.005), tipadas por
      * inferência simples do tipo Java recebido do Jackson. */
+    // Variável de entrada da jornada é sempre namespace "data" (somente leitura pro formulário, vinda
+    // de quem iniciou a instância) — variável real do motor vira data_<nome>. "channel" nunca passa
+    // por aqui: é injetado à parte por StartExecution/ms-journey, sem prefixo, e o FlowValidator já
+    // proíbe declará-lo aqui.
     public static Map<String, EngineVariable> fromDeclaredVariables(Map<String, Object> raw,
                                                                       List<Map<String, Object>> declarations) {
         Map<String, Object> source = raw != null ? raw : Map.of();
         Map<String, EngineVariable> variables = new HashMap<>();
         List<String> missing = new ArrayList<>();
+        Set<String> declaredNames = new HashSet<>();
         for (Map<String, Object> declaration : declarations) {
             if (!(declaration.get("name") instanceof String name) || name.isBlank()) {
                 continue;
             }
+            declaredNames.add(name);
             if (!source.containsKey(name)) {
                 missing.add(name);
                 continue;
             }
             String type = declaration.get("type") instanceof String t ? t : "string";
-            variables.put(name, coerce(source.get(name), type));
+            variables.put("data_" + name, coerce(source.get(name), type));
         }
         if (!missing.isEmpty()) {
             throw new IllegalStateException("Variáveis de entrada obrigatórias não informadas: " + missing);
         }
-        Set<String> declaredNames = variables.keySet();
         source.forEach((name, value) -> {
             if (!declaredNames.contains(name)) {
-                variables.put(name, inferType(value));
+                variables.put("data_" + name, inferType(value));
             }
         });
         return variables;

@@ -331,29 +331,24 @@ public final class FlowValidator {
 
         // REQ-03.09.011: nomes de variável de saída de integração (outputMapping) e de entrada
         // (startVariables, já em seenOutputNames pelo bloco acima) precisam ser únicos entre si em
-        // toda a jornada — colidir aqui seria quase sempre um erro de digitação, nunca intencional.
-        // Nome de campo de tela (USER_TASK) não pode colidir com nenhum dos dois, mas PODE se
-        // repetir entre telas diferentes: o catálogo SDUI v1 (seção 8.1) já prevê essa releitura no
-        // vínculo de leitura-e-escrita (o valor atual do caminho é lido antes de aceitar a
-        // alteração) — uma etapa seguinte reaproveitando o nome está só editando o valor já
-        // coletado, sem ambiguidade em tempo de execução (o gateway desta versão é sempre exclusivo,
-        // REQ-03.11.001: nunca dois caminhos da jornada rodam ao mesmo tempo pra colidir de
-        // verdade). Por isso o nome de campo de tela só é CONSULTADO em seenOutputNames (pra pegar
-        // colisão contra saída de integração/entrada), nunca ADICIONADO a ele — não gera colisão
-        // contra outro campo de tela.
+        // toda a jornada — colidir aqui seria quase sempre um erro de digitação, nunca intencional
+        // (duas integrações diferentes gravando na mesma variável "data_x").
+        //
+        // Nome de campo de tela (USER_TASK) não entra mais nessa checagem: desde que a variável real
+        // do motor passou a carregar o namespace no nome (form_<nome> vs. data_<nome> — ver
+        // BindingResolver/VariableConversion no ms-espec-registry e AnswerConversion aqui), um campo
+        // de tela nunca mais colide com uma saída de integração/entrada, mesmo com o mesmo nome
+        // técnico — são literalmente variáveis diferentes no motor. Campo de tela PODE (e deve poder)
+        // se repetir entre telas diferentes: o catálogo SDUI v1 (seção 8.1) já prevê essa releitura
+        // no vínculo de leitura-e-escrita — uma etapa seguinte reaproveitando o nome está só editando
+        // o valor já coletado, sem ambiguidade em tempo de execução (gateway desta versão é sempre
+        // exclusivo, REQ-03.11.001: nunca dois caminhos da jornada rodam ao mesmo tempo).
         for (FlowNode node : nodes) {
             if (node.getConnectorConfig() != null) {
                 for (Map<String, Object> rule : outputMappingOf(node.getConnectorConfig())) {
                     Object name = rule.get("name");
                     if (name instanceof String s && !s.isBlank() && !seenOutputNames.add(s)) {
                         violations.add(new FlowViolation(node.getId(), "Variável de saída '" + s + "' foi declarada mais de uma vez no fluxo"));
-                    }
-                }
-            }
-            if (node.getType() == FlowNodeType.USER_TASK && node.getEmbeddedScreenRoot() != null) {
-                for (String variableName : formVariableNames(node.getEmbeddedScreenRoot())) {
-                    if (seenOutputNames.contains(variableName)) {
-                        violations.add(new FlowViolation(node.getId(), "Variável de saída '" + variableName + "' foi declarada mais de uma vez no fluxo"));
                     }
                 }
             }

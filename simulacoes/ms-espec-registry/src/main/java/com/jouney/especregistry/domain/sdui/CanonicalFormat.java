@@ -83,11 +83,16 @@ public final class CanonicalFormat {
         if (tuple.size() == 3) for (JsonNode child : tuple.get(2)) collectReferences(child, names);
     }
 
+    // Guarda o nome JÁ com o prefixo de namespace (form_x/data_x) — é assim que a variável existe de
+    // verdade no motor (ver BindingResolver/VariableConversion); guardar só o sufixo cru fazia
+    // ResolveScreenForNode.runtimeContext nunca encontrar a variável real ao comparar contra
+    // rawVariables (que já vêm prefixadas).
     private static void collectPath(JsonNode node, Set<String> names) {
         if (node.isObject()) {
             String path = node.path("path").asText("");
-            if (path.startsWith("form.") || path.startsWith("data.")) {
-                names.add(path.substring(path.indexOf('.') + 1));
+            int dot = path.indexOf('.');
+            if (dot > 0 && (path.startsWith("form.") || path.startsWith("data."))) {
+                names.add(path.substring(0, dot) + "_" + path.substring(dot + 1));
             }
             node.properties().forEach(entry -> collectPath(entry.getValue(), names));
         } else if (node.isArray()) {

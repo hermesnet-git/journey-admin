@@ -260,22 +260,39 @@ public class KafkaConnectorWorker {
 
     /** Mesma promoção do wf-journey-v1 ({@code ServiceBusResponseListener.buildVariables}):
      * {@code status}/{@code code} viram variáveis de processo de topo, o resto de {@code payload.data}
-     * é despejado solto (sem allowlist). */
+     * é despejado solto (sem allowlist). Grava direto via API do motor (startProcessInstanceByKey/
+     * correlate, mais abaixo) — não passa pelo camunda:outputParameter que BpmnTransformer declara
+     * pra Service Task, então precisa prefixar "data_" aqui na mão (mesma convenção de qualquer
+     * variável de origem de integração, ver BindingResolver/VariableConversion). */
     private Map<String, Object> buildVariables(EventMessageDTO envelope) {
         Map<String, Object> variables = new HashMap<>();
         PayloadMessageDTO payload = envelope.payload();
         if (payload != null) {
             if (payload.status() != null) {
-                variables.put("status", payload.status());
+                putWithNamespaceFallback(variables, "status", payload.status());
             }
             if (payload.code() != null) {
-                variables.put("code", payload.code());
+                putWithNamespaceFallback(variables, "code", payload.code());
             }
             if (payload.data() != null) {
-                variables.putAll(payload.data());
+                payload.data().forEach((name, value) -> putWithNamespaceFallback(variables, name, value));
             }
         }
         return variables;
+    }
+
+    // ponytail: fallback de transição — enquanto nem toda jornada publicada antes do ajuste de
+    // namespace foi republicada, o mesmo worker consome tópicos de jornadas antigas (esperam nome
+    // cru) e novas (esperam "data_<nome>") ao mesmo tempo. Grava as duas formas; se o nome já vier
+    // com namespace (uma regra de outputMapping já declarada como "data_x", por exemplo), respeita
+    // como está e grava uma vez só. Remover quando não houver mais jornada antiga rodando.
+    private void putWithNamespaceFallback(Map<String, Object> variables, String name, Object value) {
+        if (name.startsWith("data_") || name.startsWith("form_")) {
+            variables.put(name, value);
+        } else {
+            variables.put("data_" + name, value);
+            variables.put(name, value);
+        }
     }
 
     /** Mesmo fallback do wf-journey-v1 ({@code ServiceBusResponseListener.correlateAndReturn}):
@@ -296,12 +313,14 @@ public class KafkaConnectorWorker {
         }
     }
 
+    // Mesmo motivo do buildVariables acima: grava direto via API, sem passar pelo outputParameter
+    // declarativo — precisa do mesmo fallback de namespace (putWithNamespaceFallback).
     private Map<String, Object> resolveOutputMapping(String jsonBody, List<OutputMappingRule> rules) {
         Map<String, Object> variables = new HashMap<>();
         for (OutputMappingRule rule : rules) {
             try {
                 Object raw = JsonPath.read(jsonBody, rule.jsonPath());
-                variables.put(rule.name(), coerce(raw, rule.type()));
+                putWithNamespaceFallback(variables, rule.name(), coerce(raw, rule.type()));
             } catch (PathNotFoundException e) {
                 log.warn("Payload Kafka não tem o campo '{}' (regra de mapeamento '{}') — ignorando", rule.jsonPath(), rule.name());
             }

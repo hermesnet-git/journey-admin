@@ -27,8 +27,9 @@ import tools.jackson.databind.node.ObjectNode;
  * certo, editável). */
 public final class TemplateResolver {
 
-    // Token com namespace (form.nome) ou legado sem namespace ({{nome}}, ainda usado por messageText
-    // de USER_TASK — sintaxe REQ-03.09.012, não faz parte do binding namespace-aware do catálogo SDUI).
+    // Token sempre com namespace (form.nome, data.pedido, session.channel...) — {{\w.]*}} aceita
+    // ponto no meio pra isso; sem namespace o token não resolve nada (BindingResolver.resolve exige
+    // pelo menos um ponto).
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z_][\\w.]*)\\s*\\}\\}");
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -87,6 +88,10 @@ public final class TemplateResolver {
         return resolved;
     }
 
+    // Todo token passa por BindingResolver, sempre com namespace explícito ({{form.nome}},
+    // {{data.pedido}}) — não existe mais um caminho "sem namespace" batendo direto na variável crua
+    // do motor (era o antigo {{nome}}, removido: jornadas publicadas antes dessa mudança serão
+    // revisadas/republicadas, não precisa de compatibilidade aqui).
     public static String resolveTemplate(String text, Map<String, EngineVariable> variables, ResolutionContext ctx) {
         Matcher matcher = PLACEHOLDER.matcher(text);
         if (!matcher.find()) {
@@ -95,20 +100,11 @@ public final class TemplateResolver {
         StringBuilder result = new StringBuilder();
         do {
             String token = matcher.group(1);
-            Object resolved = token.indexOf('.') >= 0
-                    ? BindingResolver.resolve(token, variables, ctx)
-                    : legacyLookup(token, variables);
+            Object resolved = BindingResolver.resolve(token, variables, ctx);
             String replacement = resolved != null ? String.valueOf(resolved) : "";
             matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
         } while (matcher.find());
         matcher.appendTail(result);
         return result.toString();
-    }
-
-    // {{nome}} sem namespace — sintaxe legada de messageText (REQ-03.09.012), continua batendo
-    // direto no nome da variável Camunda, sem passar por BindingResolver.
-    private static String legacyLookup(String name, Map<String, EngineVariable> variables) {
-        EngineVariable variable = variables.get(name);
-        return variable != null && variable.value() != null ? String.valueOf(variable.value()) : "";
     }
 }

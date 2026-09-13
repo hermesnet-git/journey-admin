@@ -4,9 +4,11 @@ import com.jouney.admin.domain.flow.ConnectorConfig;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -30,6 +32,8 @@ public final class AnswerConversion {
     /** {@code sduiEnvelope} é o {@code sdui} opaco de {@link ResolvedForm} (o envelope inteiro,
      * schemaVersion/.../data) — navegado aqui só pra achar, por nome de campo, o tipo do componente
      * e seu {@code inputMode}. */
+    // Resposta de tela é sempre namespace "form" — variável real do motor vira form_<nome>, mesma
+    // convenção do VariableConversion.fromAnswers (ms-espec-registry, ver BindingResolver lá).
     public static Map<String, Object> fromAnswers(Object sduiEnvelope, Map<String, Object> answers) {
         JsonNode data = MAPPER.valueToTree(sduiEnvelope).path("data");
         Map<String, FieldSpec> specs = new LinkedHashMap<>();
@@ -37,7 +41,7 @@ public final class AnswerConversion {
         Map<String, Object> converted = new LinkedHashMap<>();
         answers.forEach((name, raw) -> {
             if (raw != null) {
-                converted.put(name, convert(specs.get(name), raw));
+                converted.put("form_" + name, convert(specs.get(name), raw));
             }
         });
         return converted;
@@ -75,25 +79,35 @@ public final class AnswerConversion {
      * declarado no nó START. Toda declaração precisa ter valor correspondente — nomes faltantes
      * acumulam e lançam {@link IllegalStateException}. Chaves não declaradas são aceitas do mesmo
      * jeito (REQ-03.12.005), sem coerção (o motor infere pelo tipo Java já recebido do JSON). */
+    // Variável de entrada da jornada é sempre namespace "data" — variável real do motor vira
+    // data_<nome>, mesma convenção do VariableConversion.fromDeclaredVariables (ms-espec-registry).
+    // "channel" nunca passa por aqui: StartExecution injeta à parte, sem prefixo, e o FlowValidator
+    // já proíbe declará-lo.
     public static Map<String, Object> fromDeclaredVariables(Map<String, Object> raw, List<Map<String, Object>> declarations) {
         Map<String, Object> source = raw != null ? raw : Map.of();
         Map<String, Object> variables = new LinkedHashMap<>();
         List<String> missing = new ArrayList<>();
+        Set<String> declaredNames = new HashSet<>();
         for (Map<String, Object> declaration : declarations != null ? declarations : List.<Map<String, Object>>of()) {
             if (!(declaration.get("name") instanceof String name) || name.isBlank()) {
                 continue;
             }
+            declaredNames.add(name);
             if (!source.containsKey(name)) {
                 missing.add(name);
                 continue;
             }
             String type = declaration.get("type") instanceof String t ? t : "string";
-            variables.put(name, coerce(source.get(name), type));
+            variables.put("data_" + name, coerce(source.get(name), type));
         }
         if (!missing.isEmpty()) {
             throw new IllegalStateException("Variáveis de entrada obrigatórias não informadas: " + missing);
         }
-        source.forEach(variables::putIfAbsent);
+        source.forEach((name, value) -> {
+            if (!declaredNames.contains(name)) {
+                variables.put("data_" + name, value);
+            }
+        });
         return variables;
     }
 
@@ -111,6 +125,8 @@ public final class AnswerConversion {
     /** Valores fabricados pro outputMapping de um MESSAGE_START_EVENT — usado quando o usuário
      * inicia pelo botão "Iniciar" em vez de mandar uma mensagem de teste de verdade (o payload real
      * nunca existiu, então não há nada pra extrair; só simula que a mensagem trouxe esses campos). */
+    // Saída de conector é sempre namespace "data" — mesma convenção do BpmnTransformer
+    // (addOutputParameter) e do VariableConversion do ms-espec-registry.
     @SuppressWarnings("unchecked")
     public static Map<String, Object> fabricateFromOutputMapping(ConnectorConfig connectorConfig) {
         Map<String, Object> variables = new LinkedHashMap<>();
@@ -129,7 +145,7 @@ public final class AnswerConversion {
                 continue;
             }
             String type = rule.get("type") instanceof String t ? t : "string";
-            variables.put(name, fabricate(type));
+            variables.put("data_" + name, fabricate(type));
         }
         return variables;
     }

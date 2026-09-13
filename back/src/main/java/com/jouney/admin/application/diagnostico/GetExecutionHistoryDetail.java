@@ -14,6 +14,7 @@ import com.jouney.admin.domain.diagnostico.HistoryStep;
 import com.jouney.admin.domain.diagnostico.IncidentEntry;
 import com.jouney.admin.domain.diagnostico.VariableSnapshot;
 import com.jouney.admin.domain.diagnostico.VariableTimelineEntry;
+import com.jouney.admin.domain.execution.ConnectorIO;
 import com.jouney.admin.domain.execution.KafkaVariableNames;
 import com.jouney.admin.domain.execution.ProcessIds;
 import com.jouney.admin.domain.flow.ConnectorConfig;
@@ -95,19 +96,21 @@ public class GetExecutionHistoryDetail {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
                 if (connectorConfig != null && connectorConfig.getConnectorType() == ConnectorType.REST) {
                     Map<String, Object> local = runtimeExecutionPort.getLocalVariablesForActivity(activity.id());
-                    Map<String, Object> request = restRequest(local);
-                    Map<String, Object> response = restResponse(local);
+                    Map<String, Object> request = ConnectorIO.restRequest(local);
+                    Map<String, Object> response = ConnectorIO.restResponse(local);
                     // POST/PUT/PATCH/DELETE escrevem em algo externo — a chamada inteira (o que foi
                     // enviado + o que voltou) é saída do motor. GET só lê, então o pedido continua
                     // entrada e a resposta lida continua saída.
-                    if (isWriteVerb(local.get("method"))) {
-                        output = mergeMaps(request, response);
+                    if (ConnectorIO.isWriteVerb(local.get("method"))) {
+                        output = ConnectorIO.mergeMaps(request, response);
                     } else {
                         input = request;
                         output = response;
                     }
                 } else if (connectorConfig != null && connectorConfig.getConnectorType() == ConnectorType.KAFKA) {
-                    Map<String, Object> kafka = kafkaPayload(currentValues, node.getId());
+                    Map<String, Object> kafka = ConnectorIO.kafkaPayload(
+                            valueOf(currentValues, KafkaVariableNames.TOPIC_PREFIX + node.getId()),
+                            valueOf(currentValues, KafkaVariableNames.PAYLOAD_PREFIX + node.getId()));
                     // Service Task Kafka publica (o motor está enviando pra fora, é saída); Receive
                     // Task espera uma mensagem chegar (o motor está recebendo, continua entrada).
                     if (node.getType() == FlowNodeType.SERVICE_TASK) {
@@ -165,43 +168,8 @@ public class GetExecutionHistoryDetail {
         return name.startsWith("__");
     }
 
-    private static final java.util.Set<String> WRITE_VERBS = java.util.Set.of("POST", "PUT", "PATCH", "DELETE");
-
-    private static boolean isWriteVerb(Object method) {
-        return method != null && WRITE_VERBS.contains(String.valueOf(method).toUpperCase());
-    }
-
-    private static Map<String, Object> mergeMaps(Map<String, Object> first, Map<String, Object> second) {
-        Map<String, Object> merged = new LinkedHashMap<>();
-        if (first != null) merged.putAll(first);
-        if (second != null) merged.putAll(second);
-        return merged.isEmpty() ? null : merged;
-    }
-
-    private static Map<String, Object> restRequest(Map<String, Object> local) {
-        Map<String, Object> request = new LinkedHashMap<>();
-        putIfPresent(request, "method", local.get("method"));
-        putIfPresent(request, "url", local.get("url"));
-        putIfPresent(request, "headers", local.get("headers"));
-        putIfPresent(request, "body", local.get("payload"));
-        return request.isEmpty() ? null : request;
-    }
-
-    private static Map<String, Object> restResponse(Map<String, Object> local) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        // statusCode já era gravado pelo HttpConnectorDelegate (ms-runtime-camunda) desde sempre —
-        // só nunca tinha sido lido de volta aqui, então nunca apareceu na Saída do Diagnóstico.
-        putIfPresent(response, "statusCode", local.get("statusCode"));
-        putIfPresent(response, "response", local.get("response"));
-        return response.isEmpty() ? null : response;
-    }
-
-    private static Map<String, Object> kafkaPayload(Map<String, TypedVariable> processVariables, String nodeId) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        putIfPresent(payload, "topic", valueOf(processVariables, KafkaVariableNames.TOPIC_PREFIX + nodeId));
-        putIfPresent(payload, "payload", valueOf(processVariables, KafkaVariableNames.PAYLOAD_PREFIX + nodeId));
-        return payload.isEmpty() ? null : payload;
-    }
+    // isWriteVerb/mergeMaps/restRequest/restResponse/kafkaPayload viraram ConnectorIO (domain.execution)
+    // — compartilhados com ExecutionStepResolver (Execução ao vivo), que precisa do mesmo critério.
 
     private static Object valueOf(Map<String, TypedVariable> variables, String name) {
         TypedVariable v = variables.get(name);
@@ -216,7 +184,9 @@ public class GetExecutionHistoryDetail {
         Map<String, Object> input = new LinkedHashMap<>();
         for (Map<String, Object> declaration : declared) {
             if (declaration.get("name") instanceof String name) {
-                putIfPresent(input, name, valueOf(currentValues, name));
+                // Variável de entrada da jornada é sempre namespace "data" no motor (ver
+                // AnswerConversion.fromDeclaredVariables) — a chave exibida continua o nome cru.
+                putIfPresent(input, name, valueOf(currentValues, "data_" + name));
             }
         }
         return input.isEmpty() ? null : input;

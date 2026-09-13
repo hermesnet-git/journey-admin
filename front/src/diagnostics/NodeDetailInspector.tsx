@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { skinVars } from '@telefonica/mistica';
 import type { NodeLayoutProps } from './nodeLayoutTypes';
 import { CopyTextButton } from './CopyTextButton';
@@ -23,6 +24,36 @@ const CONNECTOR_TYPE_LABEL: Record<BackendConnectorType, string> = {
 };
 
 const CONSUMER_NODE_TYPES = new Set(['RECEIVE_TASK', 'MESSAGE_START_EVENT']);
+
+const NAME_COL_MIN = 70;
+const NAME_COL_MAX = 320;
+
+/** Linha nome/valor de Entrada e Saída — nome truncado com reticências (nunca mais sobrepõe o
+ * valor, mesmo sem redimensionar) e uma faixa fina arrastável na borda pra alargar a coluna quando
+ * o nome (agora com prefixo form_/data_, mais comprido que antes) não couber. `width` é compartilhado
+ * entre as duas seções pra ficarem alinhadas. */
+function KeyValueRow({ name, value, width, onResizeStart }: {
+  name: string;
+  value: React.ReactNode;
+  width: number;
+  onResizeStart: (e: React.PointerEvent) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 10, padding: '5px 0', borderTop: `1px solid ${skinVars.colors.border}`, position: 'relative' }}>
+      <span title={name} style={{ color: skinVars.colors.textSecondary, flexShrink: 0, width, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {name}
+      </span>
+      <div
+        onPointerDown={onResizeStart}
+        title="Arrastar para redimensionar"
+        style={{ position: 'absolute', left: width, marginLeft: -4, top: 0, bottom: 0, width: 8, cursor: 'col-resize' }}
+      />
+      <span style={{ color: skinVars.colors.textPrimary, wordBreak: 'break-all', whiteSpace: 'pre-wrap', minWidth: 0, flex: 1 }}>
+        {value}
+      </span>
+    </div>
+  );
+}
 
 function ConnectorDetails({ connectorConfig, nodeType }: { connectorConfig: ConnectorConfigInfo; nodeType?: string }) {
   const cfg = connectorConfig.config ?? {};
@@ -115,6 +146,26 @@ export function NodeDetailInspector({
   // poder correlacionar qualquer etapa concluída, não só User Task.
   const stepId = detail?.taskDetail?.taskId ?? detail?.activityInstanceId;
 
+  const [nameColWidth, setNameColWidth] = useState(130);
+  const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  function onResizeStart(e: React.PointerEvent) {
+    e.preventDefault();
+    resizeRef.current = { startX: e.clientX, startWidth: nameColWidth };
+    window.addEventListener('pointermove', onResizeMove);
+    window.addEventListener('pointerup', onResizeEnd);
+  }
+  function onResizeMove(e: PointerEvent) {
+    if (!resizeRef.current) return;
+    const next = resizeRef.current.startWidth + (e.clientX - resizeRef.current.startX);
+    setNameColWidth(Math.min(NAME_COL_MAX, Math.max(NAME_COL_MIN, next)));
+  }
+  function onResizeEnd() {
+    resizeRef.current = null;
+    window.removeEventListener('pointermove', onResizeMove);
+    window.removeEventListener('pointerup', onResizeEnd);
+  }
+
   return (
     <div style={{ background: skinVars.colors.background, color: skinVars.colors.textPrimary, minHeight: '100%', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {/* Header */}
@@ -197,10 +248,7 @@ export function NodeDetailInspector({
           </summary>
           <div style={{ padding: '0 18px 14px 18px', fontFamily: MONO, fontSize: 12 }}>
             {Object.entries(detail.input).map(([key, value]) => (
-              <div key={key} style={{ display: 'flex', gap: 10, padding: '5px 0', borderTop: `1px solid ${skinVars.colors.border}` }}>
-                <span style={{ color: skinVars.colors.textSecondary, flexShrink: 0, width: 96 }}>{key}</span>
-                <span style={{ color: skinVars.colors.textPrimary, wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>{formatValue(value)}</span>
-              </div>
+              <KeyValueRow key={key} name={key} value={formatValue(value)} width={nameColWidth} onResizeStart={onResizeStart} />
             ))}
           </div>
         </details>
@@ -215,10 +263,7 @@ export function NodeDetailInspector({
           <div style={{ padding: '0 18px 14px 18px', fontFamily: MONO, fontSize: 12 }}>
             {detail.output ? (
               Object.entries(detail.output).map(([key, value]) => (
-                <div key={key} style={{ display: 'flex', gap: 10, padding: '5px 0', borderTop: `1px solid ${skinVars.colors.border}` }}>
-                  <span style={{ color: skinVars.colors.textSecondary, flexShrink: 0, width: 96 }}>{key}</span>
-                  <span style={{ color: skinVars.colors.textPrimary, wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>{formatValue(value)}</span>
-                </div>
+                <KeyValueRow key={key} name={key} value={formatValue(value)} width={nameColWidth} onResizeStart={onResizeStart} />
               ))
             ) : (
               <span style={{ color: skinVars.colors.textSecondary, fontStyle: 'italic' }}>Sem resposta{incident ? ' — a chamada não completou' : ''}.</span>

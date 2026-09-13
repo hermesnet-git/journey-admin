@@ -149,18 +149,41 @@ function parseMaybeJson(value: string | null): unknown {
 // Sem timestamp por nó no fluxo ao vivo hoje (o backend só manda a trilha em si, não quando cada
 // etapa individualmente começou/terminou) — usa o instante em que o front recebeu a resposta pros
 // dois campos, então a duração fica sempre "—"/"concluído" em vez de um tempo real decorrido.
+// Mesmo critério do ConnectorIO.isWriteVerb (admin/back, ConnectorIO.java) — POST/PUT/PATCH/DELETE
+// escrevem em algo externo, a chamada inteira (pedido + resposta) é saída do motor; GET só lê, o
+// pedido continua entrada e a resposta lida continua saída. Precisa bater com o Diagnóstico
+// (GetExecutionHistoryDetail), que já aplica essa mesma regra pro histórico da mesma etapa.
+const WRITE_VERBS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 function trailEntryToNodeIO(entry: TrailEntry): NodeIODetail {
   const input: Record<string, unknown> = {};
   let output: Record<string, unknown> | null = null;
   if (entry.url || entry.response) {
-    if (entry.method) input.method = entry.method;
-    if (entry.url) input.url = entry.url;
-    if (entry.requestHeaders) input.headers = parseMaybeJson(entry.requestHeaders);
-    if (entry.requestBody) input.body = parseMaybeJson(entry.requestBody);
-    if (entry.response) output = { response: parseMaybeJson(entry.response) };
+    const request: Record<string, unknown> = {};
+    if (entry.method) request.method = entry.method;
+    if (entry.url) request.url = entry.url;
+    if (entry.requestHeaders) request.headers = parseMaybeJson(entry.requestHeaders);
+    if (entry.requestBody) request.body = parseMaybeJson(entry.requestBody);
+    const response = entry.response ? { response: parseMaybeJson(entry.response) } : null;
+    if (entry.method && WRITE_VERBS.has(entry.method.toUpperCase())) {
+      output = { ...request, ...response };
+    } else {
+      Object.assign(input, request);
+      output = response;
+    }
   } else if (entry.kafkaTopic || entry.kafkaPayload) {
-    if (entry.kafkaTopic) input.topic = entry.kafkaTopic;
-    Object.assign(input, unwrapKafkaEnvelope(entry.kafkaPayload));
+    const kafka: Record<string, unknown> = {};
+    if (entry.kafkaTopic) kafka.topic = entry.kafkaTopic;
+    Object.assign(kafka, unwrapKafkaEnvelope(entry.kafkaPayload));
+    // Service Task Kafka publica (o motor está enviando pra fora, é saída); Receive Task espera uma
+    // mensagem chegar (o motor está recebendo, continua entrada) — mesma regra do Diagnóstico.
+    if (entry.nodeType === 'RECEIVE_TASK') {
+      Object.assign(input, kafka);
+    } else {
+      output = kafka;
+    }
+  } else if (entry.formAnswers) {
+    Object.assign(input, entry.formAnswers);
   }
   const timestamp = now();
   return {

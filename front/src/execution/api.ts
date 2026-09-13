@@ -210,6 +210,9 @@ export interface TrailEntry {
   activityInstanceId: string | null;
   endTime: string | null;
   taskId: string | null;
+  // Only set for a USER_TASK: the answers actually submitted for that step (same data the
+  // Diagnóstico screen already shows as "Entrada" for the equivalent history step).
+  formAnswers: Record<string, unknown> | null;
 }
 
 export interface StepResponse {

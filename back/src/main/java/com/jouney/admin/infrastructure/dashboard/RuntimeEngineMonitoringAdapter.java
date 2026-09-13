@@ -359,16 +359,26 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
 
     @Override
     public Map<String, Object> getProcessVariables(String processInstanceId) {
-        Map<String, Map<String, Object>> raw = call(() -> restClient.get()
-                .uri(baseUrl + "/process-instance/{id}/variables", processInstanceId)
-                .retrieve()
-                .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
-                }));
-        Map<String, Object> result = new LinkedHashMap<>();
-        if (raw != null) {
-            raw.forEach((name, v) -> result.put(name, v.get("value")));
+        // Mesmo problema e mesmo fallback de getTypedProcessVariables logo abaixo: instância já
+        // terminada faz esse endpoint responder 500 ("execution is null"), não 404 — cai pro
+        // histórico. Sem isso, ExecutionStepResolver.buildTrail perde o tópico/payload Kafka de um
+        // Service Task que terminou de rodar bem na hora em que o processo já tinha concluído.
+        try {
+            Map<String, Map<String, Object>> raw = restClient.get()
+                    .uri(baseUrl + "/process-instance/{id}/variables", processInstanceId)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
+                    });
+            Map<String, Object> result = new LinkedHashMap<>();
+            if (raw != null) {
+                raw.forEach((name, v) -> result.put(name, v.get("value")));
+            }
+            return result;
+        } catch (RestClientException e) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            getHistoricProcessVariables(processInstanceId).forEach((name, v) -> result.put(name, v.value()));
+            return result;
         }
-        return result;
     }
 
     @Override
@@ -428,16 +438,24 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
 
     @Override
     public Map<String, TypedVariable> getTypedProcessVariables(String processInstanceId) {
-        Map<String, Map<String, Object>> raw = call(() -> restClient.get()
-                .uri(baseUrl + "/process-instance/{id}/variables", processInstanceId)
-                .retrieve()
-                .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
-                }));
-        Map<String, TypedVariable> result = new LinkedHashMap<>();
-        if (raw != null) {
-            raw.forEach((name, v) -> result.put(name, new TypedVariable(v.get("value"), String.valueOf(v.get("type")))));
+        // Instância já terminada: a execution em runtime não existe mais, e esse endpoint responde
+        // 500 ("execution is null"), não 404 — cai pro histórico, que responde igual pra qualquer
+        // estado (mesmo dado que o Diagnóstico já usa via getHistoricProcessVariables). Se o motor
+        // estiver mesmo fora do ar, o fallback também passa pelo call() abaixo e gera o mesmo erro.
+        try {
+            Map<String, Map<String, Object>> raw = restClient.get()
+                    .uri(baseUrl + "/process-instance/{id}/variables", processInstanceId)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
+                    });
+            Map<String, TypedVariable> result = new LinkedHashMap<>();
+            if (raw != null) {
+                raw.forEach((name, v) -> result.put(name, new TypedVariable(v.get("value"), String.valueOf(v.get("type")))));
+            }
+            return result;
+        } catch (RestClientException e) {
+            return getHistoricProcessVariables(processInstanceId);
         }
-        return result;
     }
 
     @Override

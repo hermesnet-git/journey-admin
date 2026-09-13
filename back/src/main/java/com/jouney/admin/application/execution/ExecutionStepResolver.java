@@ -61,7 +61,11 @@ public class ExecutionStepResolver {
     public ExecutionStep resolve(String processInstanceId, Instant since) {
         ProcessInstance instance = runtimeExecutionPort.getProcessInstance(processInstanceId).orElse(null);
         if (instance == null) {
-            return ExecutionStep.ended();
+            // A execution em runtime já não existe (processo concluído entre a última consulta e
+            // esta) — sem isso, a trilha do que rodou nesse meio-tempo (ex.: o Service Task Kafka
+            // final + o próprio evento de Fim) se perdia pra sempre: o front nunca chegava a saber
+            // que esses nós rodaram, então nem o log nem o fluxo visual os marcavam como concluídos.
+            return since != null ? endedWithTrail(processInstanceId, since) : ExecutionStep.ended();
         }
         UUID journeyId = ProcessIds.journeyIdFromKey(instance.definitionKey());
         int versionNumber = versionNumberOf(instance);
@@ -69,6 +73,17 @@ public class ExecutionStepResolver {
 
         ExecutionStep step = resolveStep(processInstanceId, journeyId, versionNumber, version);
         return since != null ? step.withTrail(buildTrail(processInstanceId, version, since)) : step;
+    }
+
+    private ExecutionStep endedWithTrail(String processInstanceId, Instant since) {
+        return runtimeExecutionPort.getHistoricProcessInstance(processInstanceId)
+                .map(historic -> {
+                    UUID journeyId = ProcessIds.journeyIdFromKey(historic.processDefinitionKey());
+                    String tag = runtimeExecutionPort.getVersionTag(historic.processDefinitionId());
+                    JourneyVersion version = version(journeyId, Integer.parseInt(tag.substring(1)));
+                    return ExecutionStep.ended().withTrail(buildTrail(processInstanceId, version, since));
+                })
+                .orElseGet(ExecutionStep::ended);
     }
 
     private ExecutionStep resolveStep(String processInstanceId, UUID journeyId, int versionNumber, JourneyVersion version) {
@@ -101,7 +116,8 @@ public class ExecutionStepResolver {
             }
             String url = null, response = null, method = null, requestHeaders = null, requestBody = null,
                     kafkaTopic = null, kafkaPayload = null, taskId = null;
-            if (node.getType() == FlowNodeType.SERVICE_TASK) {
+            Map<String, Object> formAnswers = null;
+            if (node.getType() == FlowNodeType.SERVICE_TASK || node.getType() == FlowNodeType.RECEIVE_TASK) {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
                 if (connectorConfig != null && connectorConfig.getConnectorType() == ConnectorType.REST) {
                     // HttpConnectorDelegate (ms-runtime-camunda) grava url/method/headers/payload/response
@@ -124,9 +140,14 @@ public class ExecutionStepResolver {
                 // /history/task, via história — responde igual pra instância ativa ou já terminada,
                 // mesmo método que o Diagnóstico já usa (GetExecutionHistoryDetail).
                 taskId = runtimeExecutionPort.getHistoricTaskDetail(activity.id()).map(TaskDetail::taskId).orElse(null);
+                // Mesma chamada que o Diagnóstico já faz pra mostrar "Entrada" dessa etapa — sem
+                // isso, o drawer de nó da Execução ao vivo nunca tinha o que exibir pra uma User Task.
+                Map<String, Object> answers = runtimeExecutionPort.getSubmittedFormValues(activity.id());
+                formAnswers = answers.isEmpty() ? null : answers;
             }
             trail.add(new TrailEntry(node.getId(), node.getName(), node.getType().name(), url, response, method,
-                    requestHeaders, requestBody, kafkaTopic, kafkaPayload, activity.id(), activity.endTime(), taskId));
+                    requestHeaders, requestBody, kafkaTopic, kafkaPayload, activity.id(), activity.endTime(), taskId,
+                    formAnswers));
         }
         return trail;
     }

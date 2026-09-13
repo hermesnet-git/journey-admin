@@ -189,6 +189,7 @@ function InspectorHeader({ node, definition, designChannel }: { node: SduiNode; 
  * curada em código. Bindings/events/visibility ganham editores estruturados dedicados (pedido
  * explícito: aderência total ao contrato, sem cair pra JSON bruto). */
 export function PropertyInspector({
+  root,
   node,
   definition,
   variables,
@@ -203,6 +204,9 @@ export function PropertyInspector({
   onUpdateVisibility,
   onUpdateActive,
 }: {
+  /** Árvore inteira da tela em edição — usada só pra sugerir caminhos `form.*` já usados por outros
+   * campos da mesma tela no editor de binding (BindingEditor). */
+  root: SduiNode | null;
   node: SduiNode | null;
   definition: ComponentDefinition | null;
   variables: VariableOrigin[];
@@ -423,11 +427,12 @@ export function PropertyInspector({
             <section data-inspector-section="bindings" style={{ borderBottom: `1px solid ${c.border}` }}>
               <button type="button" onClick={() => toggleSection('bindings')} className="w-full flex items-center gap-1.5 px-3 py-2 border-0 bg-transparent cursor-pointer text-left" style={{ color: c.textSecondary }}>
                 {collapsedSections.has('bindings') ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Valor</span>
+                <span className="text-[10px] font-bold uppercase tracking-[.06em] flex-1">Binding</span>
                 <span className="text-[9px]">{bindingsConfig.names.length}</span>
               </button>
               {!collapsedSections.has('bindings') && (
                 <BindingEditor
+                  root={root}
                   bindings={node.bindings}
                   bindingNames={bindingsConfig.names}
                   requiredBindingNames={bindingsConfig.required}

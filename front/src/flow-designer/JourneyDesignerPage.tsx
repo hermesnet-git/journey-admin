@@ -309,7 +309,7 @@ function DesignerInner({
   const savedSnapshotRef = useRef<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const { screenToFlowPosition, zoomIn, zoomOut, zoomTo, fitView, getNodesBounds, getViewport, setViewport } = useReactFlow();
+  const { screenToFlowPosition, zoomIn, zoomOut, zoomTo, getNodesBounds, getViewport, setViewport } = useReactFlow();
   const { zoom } = useViewport();
 
   // Padrão pedido pelo usuário: sempre 100% de zoom (nunca reduz pra caber o fluxo inteiro na tela,
@@ -564,7 +564,7 @@ function DesignerInner({
       }
       pushHistory();
       const spot = findFreeSpot(nodesRef.current, x, y);
-      const node = { ...makeNode(type, spot.x, spot.y), selected: true };
+      const node = { ...makeNode(type, spot.x, spot.y, nodesRef.current), selected: true };
       if (type === 'userTask' && screenDefinition) {
         node.data.embeddedScreenRoot = createSduiNode(screenDefinition);
         node.data.messageText = null;
@@ -695,7 +695,7 @@ function DesignerInner({
       const sourceCenterY = source.position.y + NODE_DIMENSIONS[source.type].height / 2;
       const targetY = sourceCenterY - NODE_DIMENSIONS[type].height / 2 + branchYOffset;
       const node = {
-        ...makeNode(type, source.position.x + NODE_DIMENSIONS[source.type].width + gapX, targetY),
+        ...makeNode(type, source.position.x + NODE_DIMENSIONS[source.type].width + gapX, targetY, nodesRef.current),
         selected: true,
       };
       // A criação rápida segue a mesma invariável da paleta: uma Tarefa de Usuário já
@@ -726,35 +726,6 @@ function DesignerInner({
   const onPaneClick = useCallback(() => {
     setPropertiesNodeId(null);
   }, []);
-
-  // 2+ selecionados: organiza só o grupo (mantém o resto do canvas onde está). 0 ou 1 selecionado:
-  // organiza o canvas inteiro, comportamento de sempre.
-  const organize = useCallback(() => {
-    pushHistory();
-    const selectedIds = new Set(nodesRef.current.filter((n) => n.selected).map((n) => n.id));
-    setNodes((nds) =>
-      selectedIds.size >= 2 ? computeLayoutForSelection(nds, edgesRef.current, selectedIds) : computeLayout(nds, edgesRef.current),
-    );
-    // Recentraliza o resultado sem trocar o zoom atual do usuário — fitView recalcularia um zoom
-    // novo pra caber tudo, o que não é o que "Organizar" deveria fazer (só reposiciona os nós).
-    requestAnimationFrame(() => {
-      const paneEl = wrapperRef.current;
-      if (!paneEl || nodesRef.current.length === 0) return;
-      const bounds = getNodesBounds(nodesRef.current.map((n) => n.id));
-      if (bounds.width === 0 && bounds.height === 0) return;
-      const { width: paneWidth, height: paneHeight } = paneEl.getBoundingClientRect();
-      if (!paneWidth || !paneHeight) return;
-      const { zoom: currentZoom } = getViewport();
-      setViewport(
-        {
-          x: paneWidth / 2 - (bounds.x + bounds.width / 2) * currentZoom,
-          y: paneHeight / 2 - (bounds.y + bounds.height / 2) * currentZoom,
-          zoom: currentZoom,
-        },
-        { duration: 200 },
-      );
-    });
-  }, [pushHistory, getNodesBounds, getViewport, setViewport]);
 
   // Mesmo padrão de alinhar/distribuir do editor de tela (FormScreenCanvasWeb) — só que operando em
   // WFNode.position direto (não em positionX/positionY de FormField), já que aqui não tem um
@@ -1070,6 +1041,69 @@ function DesignerInner({
   const hasUnsavedChanges = savedSnapshotRef.current !== null
     && savedSnapshotRef.current !== buildFlowSnapshot(name, description, nodes, edges, annotations);
 
+  // 2+ selecionados: organiza só o grupo (mantém o resto do canvas onde está). 0 ou 1 selecionado:
+  // organiza o canvas inteiro, comportamento de sempre.
+  const organize = useCallback(() => {
+    pushHistory();
+    const selectedIds = new Set(nodesRef.current.filter((n) => n.selected).map((n) => n.id));
+    setNodes((nds) =>
+      selectedIds.size >= 2 ? computeLayoutForSelection(nds, edgesRef.current, selectedIds) : computeLayout(nds, edgesRef.current),
+    );
+    // Recentraliza o resultado sem trocar o zoom atual do usuário — fitView recalcularia um zoom
+    // novo pra caber tudo, o que não é o que "Organizar" deveria fazer (só reposiciona os nós).
+    requestAnimationFrame(() => {
+      const paneEl = wrapperRef.current;
+      if (!paneEl || nodesRef.current.length === 0) return;
+      const bounds = getNodesBounds(nodesRef.current.map((n) => n.id));
+      if (bounds.width === 0 && bounds.height === 0) return;
+      const { width: paneWidth, height: paneHeight } = paneEl.getBoundingClientRect();
+      if (!paneWidth || !paneHeight) return;
+      const { zoom: currentZoom } = getViewport();
+      // Mesma correção do "Ajustar à tela" (fitToVisibleArea): descontar a altura do Form Builder
+      // quando aberto, senão o recentro considera espaço que na prática está coberto pelo dock.
+      const occupiedBottom = previewNode ? dockHeight : 0;
+      const visibleHeight = Math.max(paneHeight - occupiedBottom, 1);
+      setViewport(
+        {
+          x: paneWidth / 2 - (bounds.x + bounds.width / 2) * currentZoom,
+          y: visibleHeight / 2 - (bounds.y + bounds.height / 2) * currentZoom,
+          zoom: currentZoom,
+        },
+        { duration: 200 },
+      );
+    });
+  }, [pushHistory, getNodesBounds, getViewport, setViewport, previewNode, dockHeight]);
+
+  // Botão "Ajustar à tela" da Toolbar: o fitView nativo do React Flow calcula contra a altura
+  // inteira do pane, sem saber que o Form Builder (FormDesignerDock, position:absolute) cobre a
+  // parte de baixo do mesmo container quando aberto — resultado, nós ficavam ajustados atrás do
+  // dock. Reaproveita o cálculo manual de fitViewLeftAligned, mas centralizado e restrito à área
+  // realmente visível acima do dock.
+  const fitToVisibleArea = useCallback(() => {
+    const paneEl = wrapperRef.current;
+    if (!paneEl || nodesRef.current.length === 0) return;
+    const bounds = getNodesBounds(nodesRef.current.map((n) => n.id));
+    if (bounds.width === 0 && bounds.height === 0) return;
+    const { width: paneWidth, height: paneHeight } = paneEl.getBoundingClientRect();
+    if (!paneWidth || !paneHeight) return;
+    // ponytail: usa a altura do dock no modo docked padrão — não distingue dock recolhido (bem
+    // menor, resultado só fica um pouco mais afastado do que precisaria) nem expandido em tela
+    // cheia (cobre o canvas inteiro, botão fica inacessível de qualquer forma). Ajustar se o estado
+    // recolhido/expandido algum dia subir de FormDesignerDock pra este componente.
+    const occupiedBottom = previewNode ? dockHeight : 0;
+    const visibleHeight = Math.max(paneHeight - occupiedBottom, 1);
+    const padding = 0.2;
+    const zoom = Math.min(
+      (paneWidth * (1 - padding)) / bounds.width,
+      (visibleHeight * (1 - padding)) / bounds.height,
+      1.6, // mesmo maxZoom configurado no <ReactFlow> abaixo
+    );
+    const boundedZoom = Math.max(zoom, 0.4); // mesmo minZoom configurado no <ReactFlow> abaixo
+    const x = paneWidth / 2 - (bounds.x + bounds.width / 2) * boundedZoom;
+    const y = visibleHeight / 2 - (bounds.y + bounds.height / 2) * boundedZoom;
+    setViewport({ x, y, zoom: boundedZoom }, { duration: 200 });
+  }, [getNodesBounds, setViewport, previewNode, dockHeight]);
+
   useEffect(() => {
     if (isValidPreviewTarget && propertiesNode) setPinnedPreviewNodeId(propertiesNode.id);
   }, [isValidPreviewTarget, propertiesNode?.id]);
@@ -1107,7 +1141,7 @@ function DesignerInner({
             onZoomIn={() => zoomIn({ duration: 150 })}
             onZoomOut={() => zoomOut({ duration: 150 })}
             onZoomChange={(pct) => zoomTo(pct / 100, { duration: 150 })}
-            onFitToScreen={() => fitView({ padding: 0.2, duration: 200 })}
+            onFitToScreen={fitToVisibleArea}
             onSave={handleSave}
             saving={saving}
             onValidate={handleValidate}

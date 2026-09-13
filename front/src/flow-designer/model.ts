@@ -551,13 +551,23 @@ export function newConnectionId() {
   return `Flow_${crypto.randomUUID()}`;
 }
 
-export function makeNode(type: NodeType, x: number, y: number): WFNode {
+// Toda Tarefa de Usuário nascia com o mesmo nome fixo ("Tarefa de Usuário", sem numeração) — várias
+// no mesmo fluxo ficavam indistinguíveis no navegador de tarefas do Form Builder. Numera pela
+// contagem atual de userTask no fluxo (simples: se uma for apagada e outra criada depois, o número
+// pode se repetir — aceitável, o autor sempre pode renomear).
+function nextUserTaskName(existingNodes: WFNode[]): string {
+  const count = existingNodes.filter((n) => n.type === 'userTask').length;
+  return `tarefa_de_usuario_${count + 1}`;
+}
+
+export function makeNode(type: NodeType, x: number, y: number, existingNodes: WFNode[] = []): WFNode {
   const meta = NODE_META[type];
+  const name = type === 'userTask' ? nextUserTaskName(existingNodes) : meta.title;
   return {
     id: newNodeId(),
     type,
     position: { x, y },
-    data: { name: meta.title, description: meta.subtitle, connectorConfig: null },
+    data: { name, description: meta.subtitle, connectorConfig: null },
   };
 }
 

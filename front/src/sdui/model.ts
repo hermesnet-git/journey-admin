@@ -215,6 +215,10 @@ export function createNode(definition: ComponentDefinition): SduiNode {
     if (prop.defaultValue !== null && prop.defaultValue !== undefined) props[prop.name] = prop.defaultValue;
   }
   const id = nextNodeId(definition.type);
+  // Nasce igual ao id (mesmo nome feio e tudo) — FormBuilder.handleRenameNode mantém os dois em
+  // sincronia sempre que o autor renomear "Nome" (Identificação), então não precisa de um segundo
+  // passo manual pra apontar o binding pro nome certo. Só fica desalinhado se o autor customizar o
+  // caminho do binding na mão (a mesma checagem de handleRenameNode para de seguir nesse caso).
   const inputBinding = definition.category === 'INPUT' && definition.allowedReservedFields.includes('$bindings')
     ? { value: { path: `form.${id}`, mode: 'twoWay' as const } }
     : null;

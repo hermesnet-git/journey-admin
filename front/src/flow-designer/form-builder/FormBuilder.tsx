@@ -222,8 +222,18 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
 
   function handleRenameNode(id: string, nextId: string) {
     if (!root || id === nextId) return;
+    const node = findNode(root, id);
     onPushHistory();
-    onChange(renameNode(root, id, nextId));
+    let nextRoot = renameNode(root, id, nextId);
+    // "Nome" (identidade do nó) e o caminho do binding "value" (form.<nome>) representam a mesma
+    // coisa pro autor de um campo de entrada — mantém os dois em sincronia (padrão "slug segue o
+    // título") enquanto o autor não tiver digitado um caminho diferente por conta própria. Nunca no
+    // sentido contrário: editar o caminho do binding não deve renomear o nó na árvore.
+    const valueBinding = node?.bindings?.value;
+    if (valueBinding && (valueBinding.path === `form.${id}` || valueBinding.path === 'form.' || !valueBinding.path)) {
+      nextRoot = updateBindings(nextRoot, nextId, { ...node.bindings, value: { ...valueBinding, path: `form.${nextId}` } });
+    }
+    onChange(nextRoot);
     setSelectedId(nextId);
   }
 
@@ -404,6 +414,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
           />
           {layersOpen && <LayerPanel root={root} selectedId={selectedId} onSelect={handleSelect} onMove={handleMove} />}
           {inspectorOpen && <PropertyInspector
+            root={root}
             node={selectedNode}
             definition={selectedDefinition}
             variables={variables}

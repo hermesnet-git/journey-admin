@@ -17,7 +17,7 @@ import {
   type PayloadField,
 } from './PropertiesPanel';
 import { SearchSelect } from './SearchSelect';
-import { type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin, type VariableType } from './model';
+import { engineVariableToken, type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin, type VariableType } from './model';
 import { testCredentialConnection, listClusterTopics, type MessagingCluster, type CredentialReference } from '../api/messaging';
 
 const inputStyle = (c: FlowColors): React.CSSProperties => ({
@@ -77,7 +77,9 @@ function payloadFieldsToObject(fields: PayloadField[]): Record<string, string> {
 }
 
 function suggestedPayloadFields(vars: VariableOrigin[]): PayloadField[] {
-  return vars.map((v) => ({ name: v.name, value: `{{${v.name}}}`, type: v.type }));
+  // Nome real da variável no motor (form_nome/data_pedido), não o nome lógico do campo — mesma regra
+  // do VariablePickerButton (PropertiesPanel.tsx), já que este valor também vira expressão JUEL.
+  return vars.map((v) => ({ name: v.name, value: `{{${engineVariableToken(v.kind, v.name)}}}`, type: v.type }));
 }
 
 function buildEnvelopePreview(payload: Record<string, unknown>, messageName: string | undefined) {
@@ -540,8 +542,8 @@ export function ConnectorWizard({
             title="Exemplo de como a mensagem precisa chegar"
             note={
               payloadMode === 'CUSTOM'
-                ? 'Cada linha do mapeamento vira uma variável com o nome que você escolheu, lida de dentro de "payload.data".'
-                : 'Cada informação dentro de "data" vira uma variável do processo com esse mesmo nome, automaticamente.'
+                ? 'Cada linha do mapeamento vira a variável data_<nome que você escolheu> dentro da jornada (ex.: "pedidoId" vira {{data_pedidoId}}), lida de dentro de "payload.data".'
+                : 'Cada informação dentro de "data" vira uma variável dentro da jornada com esse nome prefixado por "data_" (ex.: "pedidoId" vira {{data_pedidoId}}), automaticamente.'
             }
             envelope={{
               correlationId: '<precisa ser igual ao identificador da execução que está esperando>',
@@ -549,10 +551,14 @@ export function ConnectorWizard({
               payload: {
                 status: '<opcional>',
                 code: '<opcional>',
-                data:
-                  payloadMode === 'CUSTOM' && outputMappingRules.length > 0
-                    ? Object.fromEntries(outputMappingRules.map((rule) => [rule.name, `<valor de exemplo, tipo ${rule.type}>`]))
-                    : { exemploDeCampo: 'valor de exemplo' },
+                data: (() => {
+                  // Ignora linha recém-criada ainda sem nome (só "data_" fixo, nada digitado depois) —
+                  // mostrar uma chave "data_" sozinha no exemplo não ajuda em nada.
+                  const named = outputMappingRules.filter((rule) => rule.name.trim() !== 'data_' && rule.name.trim() !== '');
+                  return payloadMode === 'CUSTOM' && named.length > 0
+                    ? Object.fromEntries(named.map((rule) => [rule.name, `<valor de exemplo, tipo ${rule.type}>`]))
+                    : { data_exemplo: 'valor de exemplo' };
+                })(),
               },
             }}
           />
@@ -626,10 +632,15 @@ export function ConnectorWizard({
 
             {activeTab === 'MAPPING' &&
               (isConsume ? (
+                // Sem hideSourcePreview, o editor mostra a seção "Origem (resposta da API)" —
+                // não existe "Testar API" pra Kafka/mensageria (não é uma chamada síncrona pra
+                // testar), então essa seção nunca teria nada pra exibir aqui.
                 <OutputMappingEditor
                   rules={outputMappingRules}
                   onChange={(rules) => updateDraftConfig(OUTPUT_MAPPING_FIELD, rules)}
                   sourceResponse={null}
+                  hideSourcePreview
+                  variant="entrada"
                 />
               ) : (
                 <PayloadFieldsEditor

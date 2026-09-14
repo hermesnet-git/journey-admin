@@ -159,7 +159,13 @@ public final class FlowValidator {
                     violations.add(new FlowViolation(node.getId(), "Variável de saída '" + s + "' foi declarada mais de uma vez no fluxo"));
                     continue;
                 }
+                // Aceita tanto o nome declarado quanto o nome real da variável no motor (data_<nome>
+                // — mesmo namespace de outputMapping, ver VariableConversion.fromDeclaredVariables no
+                // ms-espec-registry): o assistente de configuração de conector (front) já insere o
+                // token com esse prefixo (engineVariableToken), então {{nome}} (uso legado/geração por
+                // IA) e {{data_nome}} (o que o assistente produz hoje) precisam validar os dois.
                 startVariableNames.add(s);
+                startVariableNames.add("data_" + s);
             }
         }
 
@@ -397,6 +403,14 @@ public final class FlowValidator {
     // declared by an ancestor reachable backwards from it (REQ-03.09.013), and every field name of
     // an ancestor USER_TASK's own tela desenhada — what the end user actually fills in becomes a
     // process variable the same way a connector's outputMapping does.
+    //
+    // Cada nome entra duas vezes: o nome declarado (uso legado, e o que FlowGenerationPrompt ainda
+    // ensina a IA a gerar) e o nome real da variável no motor com o prefixo de namespace
+    // (data_<nome> pra outputMapping, form_<nome> pra campo de tela — mesma regra de
+    // engineVariableToken no front e VariableConversion/BindingResolver no ms-espec-registry). O
+    // assistente de configuração de conector (ConnectorWizard/VariablePickerButton) só insere a
+    // forma com prefixo, então sem isso {{form_nome}}/{{data_nome}} nunca validava, mesmo sendo
+    // exatamente o valor que o próprio editor acabou de inserir.
     private static Set<String> availableVarsFor(FlowNode node, List<FlowNode> nodes, Map<String, List<String>> backward,
                                                   Set<String> startVariableNames) {
         Set<String> ancestorIds = bfs(node.getId(), backward);
@@ -410,11 +424,15 @@ public final class FlowValidator {
                     Object name = rule.get("name");
                     if (name instanceof String s && !s.isBlank()) {
                         availableVars.add(s);
+                        availableVars.add("data_" + s);
                     }
                 }
             }
             if (other.getType() == FlowNodeType.USER_TASK && other.getEmbeddedScreenRoot() != null) {
-                availableVars.addAll(formVariableNames(other.getEmbeddedScreenRoot()));
+                for (String fieldName : formVariableNames(other.getEmbeddedScreenRoot())) {
+                    availableVars.add(fieldName);
+                    availableVars.add("form_" + fieldName);
+                }
             }
         }
         return availableVars;

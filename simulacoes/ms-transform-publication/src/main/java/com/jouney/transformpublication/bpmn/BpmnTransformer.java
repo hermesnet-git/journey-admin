@@ -309,6 +309,15 @@ public class BpmnTransformer {
         attachConnectorConfig(modelInstance, element, node);
     }
 
+    // Mesma regra de KafkaConnectorWorker.putWithNamespaceFallback (ms-runtime-camunda): uma regra de
+    // outputMapping declarada com o nome já namespaced (o assistente de configuração do admin passou
+    // a sugerir "data_<nome>" como ponto de partida) não pode levar o prefixo de novo — sem essa
+    // guarda, "data_pedidoId" viraria a variável de processo "data_data_pedidoId" em vez de
+    // "data_pedidoId", e {{data_pedidoId}} nunca resolveria.
+    private String namespacedDataVariable(String name) {
+        return (name.startsWith("data_") || name.startsWith("form_")) ? name : "data_" + name;
+    }
+
     private String resolveVariables(String text) {
         if (text == null) {
             return null;
@@ -408,7 +417,7 @@ public class BpmnTransformer {
                 // Saída de conector é sempre namespace "data" (ver BindingResolver/VariableConversion,
                 // ms-espec-registry) — a variável de PROCESSO fica com o prefixo; a expressão acima só
                 // lê variáveis LOCAIS desta atividade (response/statusCode), não a variável final.
-                addOutputParameter(modelInstance, element, "data_" + name, expression);
+                addOutputParameter(modelInstance, element, namespacedDataVariable(name), expression);
             }
         }
     }
@@ -487,9 +496,12 @@ public class BpmnTransformer {
                 // perdendo a coerção number/boolean/date que VariableConversion.resolveOutputMapping
                 // faz hoje a partir do type declarado no admin/back.
                 addInputParameter(modelInstance, element, "outputMapping." + name + ".type", type);
-                // "${" + name + "}" lê a variável LOCAL que o worker (ms-runtime-camunda) gravou com o
-                // nome cru declarado — só a variável de PROCESSO final (namespace "data") leva prefixo.
-                addOutputParameter(modelInstance, element, "data_" + name, "${" + name + "}");
+                // "${" + name + "}" lê a variável LOCAL que o worker (ms-runtime-camunda) gravou —
+                // KafkaConnectorWorker.putWithNamespaceFallback grava tanto o nome cru quanto
+                // data_<nome> quando `name` ainda não vem com namespace, e só data_<nome> quando já
+                // vem (novo padrão sugerido pelo assistente de configuração) — namespacedDataVariable
+                // evita prefixar de novo um nome que o autor já declarou como "data_<algo>".
+                addOutputParameter(modelInstance, element, namespacedDataVariable(name), "${" + name + "}");
             }
         }
     }

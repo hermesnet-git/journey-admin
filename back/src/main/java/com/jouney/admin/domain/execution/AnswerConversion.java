@@ -145,7 +145,19 @@ public final class AnswerConversion {
                 continue;
             }
             String type = rule.get("type") instanceof String t ? t : "string";
-            variables.put("data_" + name, fabricate(type));
+            Object value = fabricate(type);
+            // Mesma regra de KafkaConnectorWorker.putWithNamespaceFallback (ms-runtime-camunda): o
+            // camunda:outputParameter do BPMN publicado (BpmnTransformer.attachConnectorConfig) lê
+            // "${name}" — a variável LOCAL com o nome cru declarado — antes de promover pra
+            // "data_<nome>" no escopo do processo. Sem gravar também o nome cru aqui, essa promoção
+            // falha com "Cannot resolve identifier" assim que a correlação/complete acontece — foi
+            // isso que quebrou tanto "Pular etapa" quanto iniciar por MESSAGE_START_EVENT fabricado.
+            if (name.startsWith("data_") || name.startsWith("form_")) {
+                variables.put(name, value);
+            } else {
+                variables.put("data_" + name, value);
+                variables.put(name, value);
+            }
         }
         return variables;
     }

@@ -200,36 +200,40 @@ export function VariablePickerButton({ variables, onInsert }: { variables: Varia
             {groups.map(([label, vars]) => (
               <div key={label} style={{ marginBottom: 6 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: c.textSecondary, padding: '2px 6px' }}>{label}</div>
-                {vars.map((v) => (
-                  <button
-                    key={v.name}
-                    type="button"
-                    onClick={() => {
-                      // Insere o nome real da variável no motor (form_nome/data_pedido), não o
-                      // caminho lógico — este campo vira expressão JUEL (URL/header/body de conector),
-                      // sem noção de namespace com ponto (ver engineVariableToken).
-                      onInsert(`{{${engineVariableToken(v.kind, v.name)}}}`);
-                      setOpen(false);
-                    }}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '4px 6px',
-                      border: 'none',
-                      background: 'transparent',
-                      color: c.textPrimary,
-                      fontSize: 12.5,
-                      fontFamily: 'monospace',
-                      cursor: 'pointer',
-                      borderRadius: 4,
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = c.canvasBg)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    {v.name}
-                  </button>
-                ))}
+                {vars.map((v) => {
+                  const token = engineVariableToken(v.kind, v.name);
+                  return (
+                    <button
+                      key={token}
+                      type="button"
+                      onClick={() => {
+                        // Insere o nome real da variável no motor (form_nome/data_pedido), não o
+                        // caminho lógico — este campo vira expressão JUEL (URL/header/body de conector),
+                        // sem noção de namespace com ponto (ver engineVariableToken).
+                        onInsert(`{{${token}}}`);
+                        setOpen(false);
+                      }}
+                      title={v.name !== token ? `Campo "${v.name}"` : undefined}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '4px 6px',
+                        border: 'none',
+                        background: 'transparent',
+                        color: c.textPrimary,
+                        fontSize: 12.5,
+                        fontFamily: 'monospace',
+                        cursor: 'pointer',
+                        borderRadius: 4,
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = c.canvasBg)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      {token}
+                    </button>
+                  );
+                })}
               </div>
             ))}
           </div>,
@@ -1088,12 +1092,18 @@ export function OutputMappingEditor({
   onChange,
   sourceResponse,
   hideSourcePreview,
+  variant = 'saida',
 }: {
   rules: OutputMappingRule[];
   onChange: (rules: OutputMappingRule[]) => void;
   sourceResponse?: ConnectorTestResponse | null;
   // ConnectorWizard shows its own ResponsePreview before the rules instead of this trailing one.
   hideSourcePreview?: boolean;
+  // 'saida': REST/produce — extrai variáveis de uma resposta/chamada que a própria jornada fez.
+  // 'entrada': consumo de mensagem (RECEIVE_TASK/MESSAGE_START_EVENT) — a mensagem TRAZ dado pra
+  // dentro da jornada, "variável de saída" fica invertido do ponto de vista de quem está lendo.
+  // Nos dois casos a variável real do motor é sempre namespace "data" (data_<nome>).
+  variant?: 'saida' | 'entrada';
 }) {
   const { c } = useFlowTheme();
   const [colWidths, setColWidths] = useState(DEFAULT_MAPPING_COL_WIDTHS);
@@ -1157,7 +1167,7 @@ export function OutputMappingEditor({
           cursor: 'pointer',
         }}
       >
-        <Plus size={14} /> Adicionar variável de saída
+        <Plus size={14} /> {variant === 'entrada' ? 'Adicionar variável de entrada' : 'Adicionar variável de saída'}
       </button>
 
       {rules.length > 0 && (
@@ -1166,7 +1176,7 @@ export function OutputMappingEditor({
             {(
               [
                 ['name', 'Nome'],
-                ['jsonPath', 'JSONPath (ex.: $.campo)'],
+                ['jsonPath', 'JSONPath (ex.: $.nome_do_campo)'],
                 ['type', 'Tipo'],
               ] as const
             ).map(([col, label]) => (
@@ -1198,18 +1208,24 @@ export function OutputMappingEditor({
               key={i}
               style={{ display: 'grid', gridTemplateColumns, borderTop: i === 0 ? 'none' : cellBorder }}
             >
-              <div style={{ borderRight: cellBorder }}>
+              <div style={{ borderRight: cellBorder, display: 'flex', alignItems: 'center' }}>
+                {/* "data_" é fixo, não editável — é sempre o namespace real dessa variável no motor
+                    (ver engineVariableToken); o usuário só escreve o que vem depois dele, então nunca
+                    existe uma linha sem o prefixo por esquecimento ou edição acidental. */}
+                <span style={{ paddingLeft: 8, fontSize: 12, fontFamily: 'monospace', color: c.textSecondary, userSelect: 'none', flex: '0 0 auto' }}>
+                  data_
+                </span>
                 <input
-                  style={cellInputStyle(c)}
-                  placeholder="nome"
-                  value={rule.name}
-                  onChange={(e) => commit(rules.map((r, ri) => (ri === i ? { ...r, name: e.target.value } : r)))}
+                  style={{ ...cellInputStyle(c), paddingLeft: 2 }}
+                  placeholder="exemplo"
+                  value={rule.name.startsWith('data_') ? rule.name.slice(5) : rule.name}
+                  onChange={(e) => commit(rules.map((r, ri) => (ri === i ? { ...r, name: `data_${e.target.value}` } : r)))}
                 />
               </div>
               <div style={{ borderRight: cellBorder }}>
                 <input
                   style={{ ...cellInputStyle(c), fontFamily: 'monospace' }}
-                  placeholder="$.campo"
+                  placeholder="$.nome_do_campo"
                   value={rule.jsonPath}
                   onChange={(e) => commit(rules.map((r, ri) => (ri === i ? { ...r, jsonPath: e.target.value } : r)))}
                 />

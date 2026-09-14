@@ -116,6 +116,123 @@ export function datePicker(id, label, varName, opts = {}) {
   };
 }
 
+// --- Componentes de conteúdo/layout/feedback/ação restantes do catálogo v1 (seção 7.1) ---------
+// `visibility`: { path, rule: 'equals'|'notEquals'|'in'|'notIn', value } — só os campos reservados
+// listados em allowed_reserved_fields (V21__component_reserved_fields.sql) por tipo são aceitos:
+// ui.icon/divider/spacer: só $visibility. ui.container/stack/card: $visibility + $active (sem
+// $bindings). ui.text/ui.progress: $bindings (oneWay) + $visibility. ui.alert: os quatro. ui.button/
+// ui.link: $events + $visibility + $active (sem $bindings).
+
+export function icon(id, name, accessibilityLabel, opts = {}) {
+  return {
+    id, type: 'ui.icon', version: '1.0.0',
+    props: { name, sizeToken: opts.sizeToken ?? 'size.icon.md', colorToken: opts.colorToken ?? null, accessibilityLabel },
+    bindings: null, events: null, visibility: opts.visibility ?? null, active: null, children: null,
+  };
+}
+
+export function divider(id, opts = {}) {
+  return {
+    id, type: 'ui.divider', version: '1.0.0',
+    props: { orientation: opts.orientation ?? 'horizontal', colorToken: opts.colorToken ?? null, spacingToken: opts.spacingToken ?? 'spacing.md' },
+    bindings: null, events: null, visibility: opts.visibility ?? null, active: null, children: null,
+  };
+}
+
+export function spacer(id, sizeToken, opts = {}) {
+  return {
+    id, type: 'ui.spacer', version: '1.0.0',
+    props: { sizeToken, axis: opts.axis ?? 'vertical' },
+    bindings: null, events: null, visibility: opts.visibility ?? null, active: null, children: null,
+  };
+}
+
+export function container(id, children, opts = {}) {
+  return {
+    id, type: 'ui.container', version: '1.0.0',
+    props: {
+      backgroundToken: opts.backgroundToken ?? null, paddingToken: opts.paddingToken ?? 'spacing.md',
+      borderRadiusToken: opts.borderRadiusToken ?? null,
+    },
+    bindings: null, events: null, visibility: opts.visibility ?? null, active: null, children,
+  };
+}
+
+export function stack(id, children, opts = {}) {
+  return {
+    id, type: 'ui.stack', version: '1.0.0',
+    props: {
+      direction: opts.direction ?? 'vertical', spacingToken: opts.spacingToken ?? 'spacing.sm',
+      alignment: opts.alignment ?? 'stretch',
+    },
+    bindings: null, events: null, visibility: opts.visibility ?? null, active: null, children,
+  };
+}
+
+export function card(id, children, opts = {}) {
+  return {
+    id, type: 'ui.card', version: '1.0.0',
+    props: { variant: opts.variant ?? 'default', paddingToken: opts.paddingToken ?? 'spacing.md', elevationToken: opts.elevationToken ?? 'elevation.low' },
+    bindings: null, events: null, visibility: opts.visibility ?? null, active: null, children,
+  };
+}
+
+// severity: string livre (ex.: 'informative'|'positive'|'warning') — kind TEXT no props_schema, sem enum fechado.
+export function alert(id, severity, message, opts = {}) {
+  return {
+    id, type: 'ui.alert', version: '1.0.0',
+    props: { severity, title: opts.title ?? null, message, dismissible: opts.dismissible ?? false },
+    bindings: null, events: null, visibility: opts.visibility ?? null, active: null, children: null,
+  };
+}
+
+// value: 0..1 (VALIDADO por FlowValidator.validateCanonicalPropertyValues).
+export function progress(id, value, opts = {}) {
+  return {
+    id, type: 'ui.progress', version: '1.0.0',
+    props: { value, label: opts.label ?? null, showValue: opts.showValue ?? false },
+    bindings: null, events: null, visibility: opts.visibility ?? null, active: null, children: null,
+  };
+}
+
+// action: uma das 6 do Action Registry (seção 9) — 'action.navigate' pra destino interno,
+// nunca 'action.openUrl' com uma URL fabricada aqui (fica sujeita a allowlist/domínio autorizado).
+export function link(id, label, opts = {}) {
+  return {
+    id, type: 'ui.link', version: '1.0.0',
+    props: { label, emphasis: opts.emphasis ?? null, external: opts.external ?? false, accessibilityLabel: opts.accessibilityLabel ?? null },
+    bindings: null,
+    events: { onPress: { action: opts.action ?? 'action.navigate', params: opts.params ?? {} } },
+    visibility: opts.visibility ?? null, active: null, children: null,
+  };
+}
+
+// --- Nós de fluxo adicionais: Decisão (GATEWAY) e integrações (SERVICE_TASK/RECEIVE_TASK) -------
+
+export function gatewayNode(id, name, positionX, positionY, description = 'Decisão') {
+  return { nodeId: id, nodeType: 'GATEWAY', name, description, positionX, positionY, userTaskConfig: null, connectorConfig: null, startVariables: null };
+}
+
+// connectorType: 'REST' | 'KAFKA' | 'EVENT_HUBS' | 'SERVICE_BUS' (SOAP existe no enum mas está
+// desabilitado, FlowValidator rejeita). config: ver FlowGenerationPrompt.connectorConfigProps —
+// REST usa {method,url,headers,body,outputMapping}; mensageria usa {operation,topic,payload
+// (só quando produz, isto é, num SERVICE_TASK),outputMapping}.
+export function serviceTaskNode(id, name, description, positionX, positionY, connectorType, config, credentialRef = null) {
+  return {
+    nodeId: id, nodeType: 'SERVICE_TASK', name, description, positionX, positionY,
+    userTaskConfig: null, startVariables: null,
+    connectorConfig: { connectorType, config, credentialRef },
+  };
+}
+
+export function receiveTaskNode(id, name, description, positionX, positionY, connectorType, config, credentialRef = null) {
+  return {
+    nodeId: id, nodeType: 'RECEIVE_TASK', name, description, positionX, positionY,
+    userTaskConfig: null, startVariables: null,
+    connectorConfig: { connectorType, config, credentialRef },
+  };
+}
+
 // --- Layout em linha ---------------------------------------------------------------------------
 
 // Tamanho de cada tipo de nó no canvas (front/src/flow-designer/model.ts, NODE_DIMENSIONS — todos

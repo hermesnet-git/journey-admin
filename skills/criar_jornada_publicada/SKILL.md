@@ -28,10 +28,12 @@ não um mock.
    com o mesmo nome em vez de duplicar; `channelTypes` é um subconjunto de `WEB`/`MOBILE`/`WHATSAPP`.
 4. `ensureJourney(token, { productId, channelTypes, name, description })` — idem para a jornada.
 5. Monte `nodes`/`connections` com os construtores de `sdui_helpers.mjs`:
-   - `startNode`/`endNode`/`userTaskNode` — os três tipos de nó de fluxo que este helper cobre hoje
-     (sem GATEWAY/SERVICE_TASK/RECEIVE_TASK — acrescente à mão seguindo o mesmo formato de
-     `FlowNodeInput`, `back/src/main/java/com/jouney/admin/interfaces/flow/FlowNodeInput.java`, se
-     precisar de decisão/integração).
+   - `startNode`/`endNode`/`userTaskNode`/`gatewayNode`/`serviceTaskNode`/`receiveTaskNode` — os seis
+     tipos de nó de fluxo cobertos hoje (falta só `MESSAGE_START_EVENT`, mutuamente exclusivo com
+     `START` — acrescente à mão seguindo `FlowNodeInput`,
+     `back/src/main/java/com/jouney/admin/interfaces/flow/FlowNodeInput.java`, se precisar dele).
+   - **Conector REST/Kafka aponta pra endpoint/tópico REAIS, nunca inventados** — ver "Erros comuns"
+     abaixo (`ms-mock-api-rest` pra REST, `GET /messaging-clusters` pra Kafka).
    - Dentro de `userTaskNode`, os filhos da tela vêm de `text`/`textInput`/`textArea`/`select`/
      `checkbox`/e um botão de ação (`{ type: 'ui.button', events: { onPress: { action:
      'action.submit', params: {} } } }` — copie o padrão do exemplo).
@@ -95,6 +97,23 @@ de **entrada da jornada** (`startVariables` do nó START) — ver `FlowValidator
   `FlowValidator.validate`).
 - **401 depois de reiniciar o admin/back** — sessões ficam em memória (`SessionStore`); refaça o
   login, o token antigo não sobrevive a um restart do serviço.
+- **Kafka: `UnknownTopicOrPartitionException` ao mandar mensagem de teste, ou instância nunca avança
+  depois de publicar** — o `topic` do connectorConfig precisa ser um tópico que EXISTE de verdade no
+  cluster (nunca invente um nome tipo `vivo.pedidos.confirmada`, mesmo que pareça plausível pro
+  domínio da jornada). Descubra o cluster/tópicos reais antes de montar o fluxo:
+  `GET /messaging-clusters` (pega `clusterId`) e `GET /messaging-clusters/{clusterId}/topics`.
+  Correlação usa `businessKey`, não o tópico — está tudo bem em vários `RECEIVE_TASK`/
+  `MESSAGE_START_EVENT` da mesma jornada compartilharem o mesmo tópico real. **Também precisa do
+  `credentialRef`** (o 7º argumento de `serviceTaskNode`/`receiveTaskNode`) — sem ele o conector fica
+  sem credencial pra autenticar no cluster. No ambiente local, a credencial do cluster Kafka Local
+  (`6590dbdc-6ab8-433f-9baf-0c271486157b`) é `'teste'`.
+- **REST: outputMapping do Kafka não é o mesmo jsonPath do REST** — pro REST, o jsonPath do
+  `outputMapping` lê a resposta crua da API (`$.campo`). Pro Kafka (RECEIVE_TASK/MESSAGE_START_EVENT),
+  o worker já promove automaticamente todo campo de `payload.data` pra uma variável `data_<nome>` —
+  **não declare `outputMapping` nesses nós** a menos que precise extrair algo de um caminho aninhado
+  de verdade; uma regra com jsonPath errado (ex.: `$.status` tentando ler algo que só existe dentro
+  de `payload.data`) nunca resolve, e o erro só aparece quando o BPMN tenta promover a variável —
+  trava a instância pra sempre, sem nenhum aviso na tela (mensagem Kafka já foi consumida).
 
 ## Conexão com a geração de jornada por IA
 

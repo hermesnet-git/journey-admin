@@ -695,16 +695,73 @@ function shiftSubtree(rootId: string, dx: number, dy: number, positions: Map<str
   edges.filter((e) => e.source === rootId).forEach((e) => shiftSubtree(e.target, dx, dy, positions, edges, visited));
 }
 
+// Conta quantos nós são alcançáveis a partir de `rootId` (incluindo ele mesmo), seguindo as arestas
+// de saída — usado só pra ordenar em que sequência os Gateways são espaçados (ver
+// applyGatewayBranchSpacing): o subconjunto alcançável a partir de um Gateway aninhado num ramo de
+// outro Gateway é sempre um subconjunto PRÓPRIO (estritamente menor) do alcançável a partir do
+// Gateway externo, então ordenar por esse tamanho crescente processa sempre o mais interno primeiro.
+function countReachable(rootId: string, edges: WFEdge[]): number {
+  const seen = new Set([rootId]);
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    edges.filter((e) => e.source === current).forEach((e) => {
+      if (!seen.has(e.target)) {
+        seen.add(e.target);
+        queue.push(e.target);
+      }
+    });
+  }
+  return seen.size;
+}
+
+// Extensão vertical (topo/base) da subárvore alcançável a partir de `rootId`, nas posições ATUAIS —
+// se essa subárvore já contém um Gateway cujo espaçamento foi aplicado antes (ver ordem em
+// applyGatewayBranchSpacing), essa extensão já reflete os dois ramos internos dele, não só a altura
+// de um nó solto.
+function subtreeVerticalBounds(rootId: string, positions: Map<string, { x: number; y: number }>, edges: WFEdge[], byId: Map<string, WFNode>): { top: number; bottom: number } {
+  let top = Infinity;
+  let bottom = -Infinity;
+  const seen = new Set([rootId]);
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const pos = positions.get(current);
+    const node = byId.get(current);
+    if (pos && node) {
+      const dim = dimensionsOf(node);
+      top = Math.min(top, pos.y);
+      bottom = Math.max(bottom, pos.y + dim.height);
+    }
+    edges.filter((e) => e.source === current).forEach((e) => {
+      if (!seen.has(e.target)) {
+        seen.add(e.target);
+        queue.push(e.target);
+      }
+    });
+  }
+  return { top, bottom };
+}
+
 // Reaplica a regra do Gateway (GATEWAY_BRANCH_GAP/GATEWAY_GAP_X) por cima do resultado do dagre —
 // "Organizar" usa o mesmo dagreLayout genérico de todo o resto do fluxo, então sem isso os dois
 // ramos saíam espaçados pelo NODE_SEP/RANK_SEP genérico, não pela regra específica do Gateway que o
-// quick-add (onQuickAdd, JourneyDesignerPage) já segue. Reposiciona o filho direto do Gateway e
-// arrasta o resto da subárvore dele junto (shiftSubtree), preservando a posição relativa que o
-// dagre calculou pro resto do ramo.
+// quick-add (onQuickAdd, JourneyDesignerPage) já segue.
+//
+// Processa os Gateways do mais interno pro mais externo (ver countReachable) e, pra cada ramo, usa a
+// extensão vertical REAL da subárvore inteira dele (subtreeVerticalBounds) — não só a altura do nó
+// filho direto — pra decidir o quanto afastar do centro do Gateway. Sem isso, um Gateway encadeado
+// dentro de um ramo (ex.: uma segunda Decisão a poucos passos da primeira) tinha seu próprio
+// espaçamento aplicado DEPOIS, ignorado pelo cálculo do Gateway externo: o ramo que contém esse
+// Gateway aninhado acaba precisando de bem mais altura do que um nó sozinho, e reservar só
+// `dim.height/2 + GATEWAY_BRANCH_GAP` pra ele deixava os dois ramos próximos demais — o ramo aninhado
+// (já aberto em dois) caía por cima do OUTRO ramo do Gateway externo.
 function applyGatewayBranchSpacing(positions: Map<string, { x: number; y: number }>, nodes: WFNode[], edges: WFEdge[]): void {
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  for (const n of nodes) {
-    if (n.type !== 'gateway' || !positions.has(n.id)) continue;
+  const gateways = nodes.filter((n) => n.type === 'gateway' && positions.has(n.id));
+  const order = [...gateways].sort((a, b) => countReachable(a.id, edges) - countReachable(b.id, edges));
+
+  for (const n of order) {
     const outIds = [...new Set(edges.filter((e) => e.source === n.id).map((e) => e.target))].filter((id) => positions.has(id));
     if (outIds.length < 2) continue;
     // Um Gateway tem no máximo 2 saídas (REQ-03.02.007) — ordena pelo Y atual só pra decidir quem
@@ -722,10 +779,12 @@ function applyGatewayBranchSpacing(positions: Map<string, { x: number; y: number
       const target = byId.get(id);
       const oldPos = positions.get(id);
       if (!target || !oldPos) return;
-      const dim = dimensionsOf(target);
-      const centerY = gwCenterY + sign * (dim.height / 2 + GATEWAY_BRANCH_GAP);
-      const newPos = { x: gwRight + GATEWAY_GAP_X, y: centerY - dim.height / 2 };
-      shiftSubtree(id, newPos.x - oldPos.x, newPos.y - oldPos.y, positions, edges, visited);
+      const { top, bottom } = subtreeVerticalBounds(id, positions, edges, byId);
+      const halfSpan = (bottom - top) / 2;
+      const currentCenterY = (top + bottom) / 2;
+      const desiredCenterY = gwCenterY + sign * (halfSpan + GATEWAY_BRANCH_GAP);
+      const newX = gwRight + GATEWAY_GAP_X;
+      shiftSubtree(id, newX - oldPos.x, desiredCenterY - currentCenterY, positions, edges, visited);
     });
   }
 }

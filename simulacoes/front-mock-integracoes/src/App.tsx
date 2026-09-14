@@ -142,6 +142,31 @@ const ENDPOINTS: Endpoint[] = [
     bodyExemplo: {},
   },
   {
+    metodo: 'POST',
+    path: '/v1/credito/score',
+    descricao: 'Consulta de crédito/elegibilidade',
+    nota:
+      'Simula a análise de crédito do CPF na jornada "Vivo Fibra + Total", logo após a etapa de ' +
+      'identificação (CPF, nome, data de nascimento). "aprovado" decide o gateway "Cliente elegível?": ' +
+      'true segue para a escolha de plano e a contratação completa; false leva à oferta alternativa ' +
+      '(pré-pago ou revisão manual). "score" e "limiteSugerido" só ficam disponíveis como variáveis ' +
+      'para as telas seguintes, sem efeito na decisão. O mock devolve aprovado=true por padrão (caminho ' +
+      'de contratação aprovada) — troque para false para testar o ramo alternativo.',
+    bodyExemplo: { cpf: '12345678900', nomeCompleto: 'Nome Exemplo', dataNascimento: '1990-01-01' },
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/pedidos',
+    descricao: 'Ativação do pedido',
+    nota:
+      'Envia o pedido para ativação nos sistemas da Vivo, no ramo aprovado da jornada "Vivo Fibra + ' +
+      'Total", logo após o cliente escolher o plano, informar o endereço e a forma de pagamento. ' +
+      '"numeroPedido" e "dataAtivacaoPrevista" são exibidos na tela final de confirmação; a jornada só ' +
+      'segue depois de aguardar (via Kafka) a confirmação real de ativação. Fluxo linear, sem gateway ' +
+      'aqui — o status devolvido não alimenta nenhuma decisão.',
+    bodyExemplo: { cpf: '12345678900', plano: 'fibra_500_pos_total', velocidade: '500', cep: '01310-100', formaPagamento: 'cartao' },
+  },
+  {
     metodo: 'GET',
     path: '/v1/clientes/45537128000127/bilhetes-defeito',
     descricao: 'Consultar bilhete de defeito em atendimento',

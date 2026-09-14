@@ -83,6 +83,16 @@ public class MockApiController {
         return respond("/v1/iot/provisionar");
     }
 
+    @PostMapping("/v1/credito/score")
+    public Map<String, Object> creditoScore(@RequestBody(required = false) Map<String, Object> body) {
+        return respond("/v1/credito/score");
+    }
+
+    @PostMapping("/v1/pedidos")
+    public Map<String, Object> pedidos(@RequestBody(required = false) Map<String, Object> body) {
+        return respond("/v1/pedidos");
+    }
+
     private static final String CNPJ_COM_BILHETE_DEFEITO = "45537128000127";
 
     @GetMapping("/v1/clientes/{cnpj}/bilhetes-defeito")

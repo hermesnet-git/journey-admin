@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dynamic Journey</title>
+<style>
+  :root{
+    --bg:#f6f5fa;
+    --bg-2:#ffffff;
+    --text:#1a1625;
+    --text-dim:#5c5570;
+    --border:rgba(20,10,40,0.10);
+    --card:#ffffff;
+    --card-border:rgba(20,10,40,0.08);
+    --accent:#7c3aed;
+    --accent-2:#c026d3;
+    --accent-soft:rgba(124,58,237,0.12);
+    --shadow:0 20px 60px -20px rgba(80,40,160,0.25);
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      --bg:#0e0b16;
+      --bg-2:#161222;
+      --text:#f1eefb;
+      --text-dim:#a79fc2;
+      --border:rgba(255,255,255,0.09);
+      --card:#181425;
+      --card-border:rgba(255,255,255,0.08);
+      --accent:#a78bfa;
+      --accent-2:#e879f9;
+      --accent-soft:rgba(167,139,250,0.16);
+      --shadow:0 20px 60px -20px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e0b16;
+    --bg-2:#161222;
+    --text:#f1eefb;
+    --text-dim:#a79fc2;
+    --border:rgba(255,255,255,0.09);
+    --card:#181425;
+    --card-border:rgba(255,255,255,0.08);
+    --accent:#a78bfa;
+    --accent-2:#e879f9;
+    --accent-soft:rgba(167,139,250,0.16);
+    --shadow:0 20px 60px -20px rgba(0,0,0,0.6);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- background ---------- */
+  .bg-glow{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(600px 400px at 12% 8%, var(--accent-soft), transparent 60%),
+      radial-gradient(700px 500px at 90% 85%, var(--accent-soft), transparent 60%);
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome{
+    position:fixed;inset:0;z-index:5;pointer-events:none;
+  }
+  .chrome > *{pointer-events:auto;}
+
+  .topbar{
+    position:fixed;top:0;left:0;right:0;height:4px;
+    background:var(--border);z-index:20;
+  }
+  .topbar-fill{
+    height:100%;width:100%;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    transform:scaleX(0);transform-origin:left;
+    transition:transform .4s cubic-bezier(.4,0,.2,1);
+  }
+
+  .brand{
+    position:fixed;top:22px;left:28px;z-index:10;
+    display:flex;align-items:center;gap:9px;
+    font-weight:700;letter-spacing:.02em;font-size:14px;color:var(--text-dim);
+  }
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));}
+
+  .controls{
+    position:fixed;top:18px;right:22px;z-index:10;
+    display:flex;align-items:center;gap:8px;
+  }
+  .iconbtn{
+    width:38px;height:38px;border-radius:11px;
+    background:var(--card);border:1px solid var(--card-border);
+    color:var(--text-dim);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:all .15s ease;
+  }
+  .iconbtn:hover{color:var(--accent);border-color:var(--accent);transform:translateY(-1px);}
+  .iconbtn svg{width:18px;height:18px;}
+
+  .counter{
+    position:fixed;bottom:24px;left:28px;z-index:10;
+    font-size:13px;color:var(--text-dim);font-variant-numeric:tabular-nums;
+    letter-spacing:.02em;
+  }
+  .counter b{color:var(--text);}
+
+  .navbtns{
+    position:fixed;bottom:20px;right:22px;z-index:10;
+    display:flex;gap:8px;
+  }
+  .navbtn{
+    width:44px;height:44px;border-radius:13px;
+    background:var(--card);border:1px solid var(--card-border);
+    color:var(--text);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:all .15s ease;box-shadow:var(--shadow);
+  }
+  .navbtn:hover{border-color:var(--accent);color:var(--accent);}
+  .navbtn:disabled{opacity:.3;cursor:default;}
+  .navbtn:disabled:hover{border-color:var(--card-border);color:var(--text);}
+  .navbtn svg{width:20px;height:20px;}
+
+  .dots{
+    position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:10;
+    display:flex;gap:7px;
+  }
+  .dots button{
+    width:7px;height:7px;border-radius:50%;border:none;background:var(--border);
+    cursor:pointer;padding:0;transition:all .2s ease;
+  }
+  .dots button.active{width:22px;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent-2));}
+
+  /* ---------- menu overlay ---------- */
+  .menu-overlay{
+    position:fixed;inset:0;z-index:30;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .18s ease;
+  }
+  .menu-overlay.open{opacity:1;pointer-events:auto;}
+  .menu-list{
+    width:min(560px,88vw);max-height:78vh;overflow:auto;
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .menu-list button{
+    display:flex;align-items:center;gap:14px;
+    text-align:left;padding:14px 18px;border-radius:14px;
+    background:var(--card);border:1px solid var(--card-border);
+    color:var(--text);font-size:16px;cursor:pointer;transition:all .15s ease;
+  }
+  .menu-list button:hover{border-color:var(--accent);}
+  .menu-list button .n{
+    font-size:12px;color:var(--text-dim);min-width:20px;font-variant-numeric:tabular-nums;
+  }
+  .menu-list button.active{border-color:var(--accent);background:var(--accent-soft);}
+
+  /* ---------- slides ---------- */
+  .stage{position:relative;z-index:1;height:100%;}
+  .slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:110px 8vw 90px;
+    opacity:0;visibility:hidden;
+    transform:translateX(40px);
+    transition:opacity .5s cubic-bezier(.4,0,.2,1), transform .5s cubic-bezier(.4,0,.2,1);
+  }
+  .slide.active{opacity:1;visibility:visible;transform:translateX(0);z-index:2;overflow-y:auto;}
+  .slide.prev{transform:translateX(-40px);}
+
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:18px;
+  }
+  .eyebrow::before{content:"";width:22px;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:2px;}
+
+  h1{
+    font-size:clamp(34px,5vw,58px);line-height:1.06;margin:0 0 18px;font-weight:800;
+    letter-spacing:-.02em;
+  }
+  h2{
+    font-size:clamp(26px,3.4vw,40px);line-height:1.12;margin:0 0 16px;font-weight:800;
+    letter-spacing:-.015em;
+  }
+  .lede{font-size:clamp(15px,1.3vw,19px);color:var(--text-dim);line-height:1.55;max-width:720px;margin:0 0 8px;}
+  .accent-text{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+  .slide-body{width:100%;max-width:1040px;}
+  .slide[data-cover] .slide-body{max-width:760px;text-align:center;display:flex;flex-direction:column;align-items:center;}
+
+  /* grid of feature cards */
+  .grid{display:grid;gap:14px;margin-top:26px;}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr);}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .card{
+    background:var(--card);border:1px solid var(--card-border);border-radius:16px;
+    padding:18px 20px;box-shadow:var(--shadow);
+  }
+  .card h3{margin:0 0 6px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:9px;}
+  .card h3 .ic{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));flex:none;}
+  .card p{margin:0;font-size:13.5px;color:var(--text-dim);line-height:1.5;}
+
+  /* flow steps */
+  .flow{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:30px;}
+  .flow .step{
+    background:var(--card);border:1px solid var(--card-border);border-radius:14px;
+    padding:14px 18px;font-size:14px;font-weight:600;box-shadow:var(--shadow);
+    display:flex;align-items:center;gap:9px;
+  }
+  .num{
+    width:22px;height:22px;border-radius:7px;background:var(--accent-soft);color:var(--accent);
+    font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .flow .arrow{color:var(--text-dim);font-size:16px;flex:none;}
+
+  /* chips */
+  .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px;}
+  .chip{
+    font-size:13px;font-weight:600;padding:8px 14px;border-radius:999px;
+    background:var(--card);border:1px solid var(--card-border);color:var(--text);
+  }
+  .chip.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+  .chip.dim{color:var(--text-dim);}
+  .chip.ghost{border-style:dashed;color:var(--text-dim);background:transparent;}
+
+  .col-title{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin:22px 0 0;}
+  .col-title:first-child{margin-top:0;}
+
+  /* simple boundary diagram */
+  .diagram{
+    display:flex;align-items:center;gap:16px;margin-top:30px;flex-wrap:wrap;
+  }
+  .box{
+    background:var(--card);border:1px solid var(--card-border);border-radius:16px;
+    padding:20px 22px;box-shadow:var(--shadow);min-width:180px;
+  }
+  .box.accent{border-color:var(--accent);background:var(--accent-soft);}
+  .box.dashed{border-style:dashed;color:var(--text-dim);}
+  .box .t{font-weight:700;font-size:15px;margin-bottom:4px;}
+  .box .s{font-size:12.5px;color:var(--text-dim);}
+  .diagram .link{color:var(--text-dim);font-size:20px;}
+
+  footer.tag{margin-top:30px;font-size:13px;color:var(--text-dim);}
+
+  @media (max-width:820px){
+    .grid.cols-2,.grid.cols-3{grid-template-columns:1fr;}
+    .brand{display:none;}
+    .slide{padding:96px 6vw 120px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<div class="topbar"><div class="topbar-fill" id="progressFill"></div></div>
+
+<div class="brand"><span class="dot"></span>Dynamic Journey</div>
+
+<div class="controls">
+  <button class="iconbtn" id="menuBtn" title="Índice (M)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/></svg>
+  </button>
+  <button class="iconbtn" id="themeBtn" title="Alternar tema (T)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="themeIcon"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+  <button class="iconbtn" id="fsBtn" title="Tela cheia (F)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+  </button>
+</div>
+
+<div class="stage" id="stage">
+
+  <section class="slide" data-title="Dynamic Journey" data-cover>
+    <div class="slide-body">
+      <div class="eyebrow">Elastic Journey Admin Portal · v1.0.0</div>
+      <h1>Dynamic <span class="accent-text">Journey</span></h1>
+      <p class="lede">Portal de administração para modelar, publicar e executar jornadas multicanal: Web, Mobile e WhatsApp.</p>
+      <div class="grid cols-2" style="text-align:left;margin-top:34px;">
+        <div class="card"><h3><span class="num">1</span>Problema</h3><p>O que falta hoje pra rodar a mesma jornada em mais de um canal sem duplicar trabalho.</p></div>
+        <div class="card"><h3><span class="num">2</span>Solução</h3><p>Como o portal cobre esse ciclo, do cadastro do produto até a jornada publicada.</p></div>
+        <div class="card"><h3><span class="num">3</span>Visão geral da arquitetura</h3><p>Os domínios que compõem o portal e a fronteira com o runtime que executa.</p></div>
+        <div class="card"><h3><span class="num">4</span>Capacidades</h3><p>O que já está implementado e disponível para uso na versão atual.</p></div>
+      </div>
+      <footer class="tag">Use as setas do teclado, a roda do mouse ou toque para navegar →</footer>
+    </div>
+  </section>
+
+  <section class="slide" data-title="Problema">
+    <div class="slide-body">
+      <div class="eyebrow">Problema</div>
+      <h2>Cada canal resolve a jornada do seu jeito</h2>
+      <p class="lede">Sem um lugar comum para desenhar, publicar e versionar a jornada, esse trabalho se repete a cada canal novo.</p>
+      <div class="grid cols-2">
+        <div class="card"><h3><span class="ic"></span>Fluxo duplicado</h3><p>A mesma regra de negócio reimplementada em Web, Mobile e WhatsApp, cada canal com a sua própria versão.</p></div>
+        <div class="card"><h3><span class="ic"></span>Tela sem contrato comum</h3><p>Sem um catálogo compartilhado de componentes, cada time desenha e mantém a sua própria tela.</p></div>
+        <div class="card"><h3><span class="ic"></span>Publicação sem controle de versão</h3><p>Mudar um fluxo em produção é arriscado quando não existe um jeito único de publicar e voltar atrás.</p></div>
+        <div class="card"><h3><span class="ic"></span>Execução difícil de investigar</h3><p>Quando uma jornada falha, não há um lugar central para ver o caminho percorrido e as integrações chamadas.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-title="Solução">
+    <div class="slide-body">
+      <div class="eyebrow">Solução</div>
+      <h2>Modelar, publicar e executar em um portal só</h2>
+      <p class="lede">O Admin Portal cobre o ciclo inteiro da jornada, do cadastro do produto até a execução real no runtime.</p>
+      <div class="flow">
+        <div class="step"><span class="num">1</span>Cadastrar produto</div><span class="arrow">→</span>
+        <div class="step"><span class="num">2</span>Criar jornada</div><span class="arrow">→</span>
+        <div class="step"><span class="num">3</span>Modelar fluxo</div><span class="arrow">→</span>
+        <div class="step"><span class="num">4</span>Compor tela SDUI</div><span class="arrow">→</span>
+        <div class="step"><span class="num">5</span>Publicar</div><span class="arrow">→</span>
+        <div class="step"><span class="num">6</span>Executar</div>
+      </div>
+      <p class="col-title">Um detalhe importante</p>
+      <p class="lede">Uma mesma jornada pode atender mais de um canal ao mesmo tempo, com o mesmo fluxo e as mesmas telas: o canal que inicia a execução vira variável de processo, usada para caminhos e visibilidade condicionais.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-title="Visão Geral da Arquitetura">
+    <div class="slide-body">
+      <div class="eyebrow">Arquitetura</div>
+      <h2>Onze domínios, seis grupos</h2>
+      <p class="lede">Do cadastro do produto até a jornada publicada, cada etapa tem um domínio responsável por ela.</p>
+      <div class="grid cols-3">
+        <div class="card"><h3><span class="ic"></span>Administração</h3><p>Product &amp; Channel Management · Integration Catalog</p></div>
+        <div class="card"><h3><span class="ic"></span>Autoria</h3><p>Journey Management · Journey Modeler · SDUI Catalog · Execution</p></div>
+        <div class="card"><h3><span class="ic"></span>Publicação</h3><p>Publication Management</p></div>
+        <div class="card"><h3><span class="ic"></span>Governança de acesso</h3><p>Authentication &amp; Authorization</p></div>
+        <div class="card"><h3><span class="ic"></span>Governança operacional</h3><p>Version Management · Audit Management</p></div>
+        <div class="card"><h3><span class="ic"></span>Observabilidade</h3><p>Transversal a todos os domínios de negócio</p></div>
+      </div>
+      <div class="diagram" style="margin-top:22px;">
+        <div class="box accent"><div class="t">Admin Portal</div><div class="s">Autoria e publicação</div></div>
+        <span class="link">→</span>
+        <div class="box"><div class="t">API de Publicação</div><div class="s">Chamada outbound</div></div>
+        <span class="link">→</span>
+        <div class="box dashed"><div class="t">Runtime Engine</div><div class="s">não conhece o Admin Portal</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-title="Capacidades">
+    <div class="slide-body">
+      <div class="eyebrow">Capacidades</div>
+      <h2>O que já está implementado</h2>
+      <p class="lede">Escopo funcional coberto pela versão 1.0.0.</p>
+      <p class="col-title">Autoria</p>
+      <div class="chips">
+        <span class="chip on">Produtos &amp; canais</span>
+        <span class="chip on">Jornadas multicanal</span>
+        <span class="chip on">Modelagem visual de fluxo</span>
+        <span class="chip on">Geração de fluxo por IA</span>
+        <span class="chip on">Catálogo SDUI</span>
+      </div>
+      <p class="col-title">Integrações</p>
+      <div class="chips">
+        <span class="chip on">REST</span>
+        <span class="chip on">Kafka</span>
+        <span class="chip on">Azure Event Hubs</span>
+        <span class="chip on">Azure Service Bus</span>
+        <span class="chip on">Catálogo de clusters e credenciais</span>
+      </div>
+      <p class="col-title">Operação</p>
+      <div class="chips">
+        <span class="chip on">Publicação versionada</span>
+        <span class="chip on">Execução</span>
+        <span class="chip on">Diagnóstico</span>
+        <span class="chip on">Dashboard operacional</span>
+        <span class="chip on">Auditoria</span>
+        <span class="chip on">Observabilidade</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="counter"><b id="curNum">1</b> / <span id="totalNum"></span></div>
+<div class="dots" id="dots"></div>
+<div class="navbtns">
+  <button class="navbtn" id="prevBtn" title="Anterior (←)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <button class="navbtn" id="nextBtn" title="Próximo (→)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+</div>
+
+<div class="menu-overlay" id="menuOverlay">
+  <div class="menu-list" id="menuList"></div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total = slides.length;
+  var idx = 0;
+
+  var progressFill = document.getElementById('progressFill');
+  var curNum = document.getElementById('curNum');
+  var totalNum = document.getElementById('totalNum');
+  var dotsEl = document.getElementById('dots');
+  var prevBtn = document.getElementById('prevBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var menuBtn = document.getElementById('menuBtn');
+  var menuOverlay = document.getElementById('menuOverlay');
+  var menuList = document.getElementById('menuList');
+  var themeBtn = document.getElementById('themeBtn');
+  var fsBtn = document.getElementById('fsBtn');
+
+  totalNum.textContent = total;
+
+  slides.forEach(function(s, i){
+    var d = document.createElement('button');
+    d.addEventListener('click', function(){ goTo(i); });
+    dotsEl.appendChild(d);
+
+    var m = document.createElement('button');
+    m.innerHTML = '<span class="n">' + String(i+1).padStart(2,'0') + '</span><span>' + (s.dataset.title || 'Slide') + '</span>';
+    m.addEventListener('click', function(){ goTo(i); closeMenu(); });
+    menuList.appendChild(m);
+  });
+  var dots = Array.prototype.slice.call(dotsEl.children);
+  var menuItems = Array.prototype.slice.call(menuList.children);
+
+  function render(){
+    slides.forEach(function(s, i){
+      s.classList.remove('active','prev');
+      if (i === idx) s.classList.add('active');
+      else if (i < idx) s.classList.add('prev');
+    });
+    dots.forEach(function(d,i){ d.classList.toggle('active', i===idx); });
+    menuItems.forEach(function(m,i){ m.classList.toggle('active', i===idx); });
+    progressFill.style.transform = 'scaleX(' + (idx / (total-1)) + ')';
+    curNum.textContent = idx+1;
+    prevBtn.disabled = idx===0;
+    nextBtn.disabled = idx===total-1;
+  }
+
+  function goTo(i){
+    idx = Math.max(0, Math.min(total-1, i));
+    render();
+  }
+  function next(){ if (idx < total-1) goTo(idx+1); }
+  function prev(){ if (idx > 0) goTo(idx-1); }
+
+  prevBtn.addEventListener('click', prev);
+  nextBtn.addEventListener('click', next);
+
+  function openMenu(){ menuOverlay.classList.add('open'); }
+  function closeMenu(){ menuOverlay.classList.remove('open'); }
+  menuBtn.addEventListener('click', function(){ menuOverlay.classList.contains('open') ? closeMenu() : openMenu(); });
+  menuOverlay.addEventListener('click', function(e){ if (e.target === menuOverlay) closeMenu(); });
+
+  document.addEventListener('keydown', function(e){
+    if (menuOverlay.classList.contains('open')){
+      if (e.key === 'Escape') closeMenu();
+      return;
+    }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') goTo(0);
+    else if (e.key === 'End') goTo(total-1);
+    else if (e.key.toLowerCase() === 'm') openMenu();
+    else if (e.key.toLowerCase() === 't') toggleTheme();
+    else if (e.key.toLowerCase() === 'f') toggleFullscreen();
+  });
+
+  // wheel navigation (debounced)
+  var wheelLock = false;
+  document.addEventListener('wheel', function(e){
+    if (wheelLock) return;
+    if (Math.abs(e.deltaY) < 12) return;
+    wheelLock = true;
+    setTimeout(function(){ wheelLock = false; }, 550);
+    e.deltaY > 0 ? next() : prev();
+  }, { passive:true });
+
+  // touch swipe
+  var touchX = null;
+  document.addEventListener('touchstart', function(e){ touchX = e.touches[0].clientX; }, { passive:true });
+  document.addEventListener('touchend', function(e){
+    if (touchX === null) return;
+    var dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) dx < 0 ? next() : prev();
+    touchX = null;
+  }, { passive:true });
+
+  // theme
+  var root = document.documentElement;
+  var themeIcon = document.getElementById('themeIcon');
+  var MOON = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+  var SUN = '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>';
+  function systemDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
+  function applyThemeIcon(){
+    var dark = root.getAttribute('data-theme') ? root.getAttribute('data-theme')==='dark' : systemDark();
+    themeIcon.innerHTML = dark ? SUN : MOON;
+  }
+  function toggleTheme(){
+    var current = root.getAttribute('data-theme') || (systemDark() ? 'dark' : 'light');
+    var next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('dj-theme', next); } catch(e){}
+    applyThemeIcon();
+  }
+  try {
+    var saved = localStorage.getItem('dj-theme');
+    if (saved) root.setAttribute('data-theme', saved);
+  } catch(e){}
+  applyThemeIcon();
+  themeBtn.addEventListener('click', toggleTheme);
+
+  // fullscreen
+  function toggleFullscreen(){
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
+    else document.exitFullscreen();
+  }
+  fsBtn.addEventListener('click', toggleFullscreen);
+
+  render();
+})();
+</script>
+</body>
+</html>

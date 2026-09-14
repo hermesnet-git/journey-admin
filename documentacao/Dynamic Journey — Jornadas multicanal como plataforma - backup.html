@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<!-- saved from url=(0072)file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html -->
+<html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dynamic Journey: plataforma corporativa para modelar, publicar e operar jornadas multicanal com fluxo versionado e experiências SDUI.">
+    <meta name="theme-color" content="#07142c">
+    <title>Dynamic Journey — Jornadas multicanal como plataforma</title>
+
+    <!-- Favicon autocontido para manter esta prévia em um único arquivo. -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=&#39;http://www.w3.org/2000/svg&#39; viewBox=&#39;0 0 32 32&#39;%3E%3Crect width=&#39;32&#39; height=&#39;32&#39; rx=&#39;9&#39; fill=&#39;%2307142c&#39;/%3E%3Cpath d=&#39;M8 10h7a6 6 0 1 1 0 12H8V10Zm5 4v4h2a2 2 0 1 0 0-4h-2Z&#39; fill=&#39;%2387f5d2&#39;/%3E%3Cpath d=&#39;M22 9v14&#39; stroke=&#39;%235b7cff&#39; stroke-width=&#39;3&#39; stroke-linecap=&#39;round&#39;/%3E%3C/svg%3E">
+
+    <!-- Tailwind via CDN, conforme a direção técnica da página. -->
+    <script src="./Dynamic Journey — Jornadas multicanal como plataforma - backup_files/saved_resource"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              ink: '#07142c',
+              electric: '#5b7cff',
+              mint: '#87f5d2',
+              paper: '#f5f7fb',
+              orange: '#ff9f5a'
+            },
+            boxShadow: {
+              soft: '0 24px 70px -34px rgba(7,20,44,.28)',
+              panel: '0 18px 60px -32px rgba(7,20,44,.34)'
+            }
+          }
+        }
+      };
+    </script>
+
+    <style>
+      :root {
+        --ink: #07142c;
+        --ink-2: #10213f;
+        --electric: #5b7cff;
+        --electric-soft: #e8ecff;
+        --mint: #87f5d2;
+        --orange: #ff9f5a;
+        --paper: #f5f7fb;
+        --surface: #ffffff;
+        --muted: #5d6980;
+        --line: #dce2ec;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        min-width: 320px;
+        overflow-x: hidden;
+        color: var(--ink);
+        background: var(--paper);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body.menu-open { overflow: hidden; }
+      ::selection { background: var(--mint); color: var(--ink); }
+      a, button, input { -webkit-tap-highlight-color: transparent; }
+      a:focus-visible, button:focus-visible, input:focus-visible {
+        outline: 3px solid rgba(91, 124, 255, .4);
+        outline-offset: 3px;
+      }
+
+      .noise {
+        background-image: radial-gradient(rgba(255,255,255,.08) .7px, transparent .7px);
+        background-size: 8px 8px;
+      }
+
+      .hero-grid {
+        background-image:
+          linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: linear-gradient(to bottom, black 15%, transparent 92%);
+      }
+
+      .display {
+        letter-spacing: -.055em;
+        line-height: .97;
+        text-wrap: balance;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: .65rem;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: '';
+        width: 1.7rem;
+        height: 2px;
+        background: currentColor;
+      }
+
+      .section-title {
+        letter-spacing: -.035em;
+        line-height: 1.04;
+        text-wrap: balance;
+      }
+
+      .glass {
+        border: 1px solid rgba(255,255,255,.14);
+        background: rgba(255,255,255,.08);
+        box-shadow: 0 30px 80px -34px rgba(0,0,0,.7);
+        backdrop-filter: blur(14px);
+      }
+
+      .product-shot {
+        box-shadow: 0 32px 90px -32px rgba(0,0,0,.86);
+      }
+
+      .value-card {
+        transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+      }
+
+      .value-card:hover {
+        transform: translateY(-4px);
+        border-color: #bdc8ff;
+        box-shadow: 0 24px 64px -38px rgba(7,20,44,.46);
+      }
+
+      .step-number {
+        font-variant-numeric: tabular-nums;
+        -webkit-text-stroke: 1px rgba(91,124,255,.4);
+        color: transparent;
+      }
+
+      .arch-tab[aria-selected="true"] {
+        color: #fff;
+        border-color: rgba(255,255,255,.18);
+        background: rgba(255,255,255,.12);
+      }
+
+      .arch-node, .arch-edge { transition: opacity .25s ease, filter .25s ease; }
+      .architecture[data-focus]:not([data-focus="all"]) .arch-node.dim,
+      .architecture[data-focus]:not([data-focus="all"]) .arch-edge.dim {
+        opacity: .18;
+        filter: saturate(.25);
+      }
+
+      .architecture svg text {
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .status-bar > span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--bar-color, var(--electric));
+        transform-origin: left;
+      }
+
+      .doc-card[hidden] { display: none; }
+      .doc-card { transition: border-color .2s ease, transform .2s ease; }
+      .doc-card:hover { border-color: #aebcff; transform: translateY(-2px); }
+      .doc-filter[aria-pressed="true"] { color: #fff; background: var(--ink); }
+
+      dialog {
+        width: min(620px, calc(100vw - 2rem));
+        max-height: calc(100vh - 2rem);
+        margin: auto;
+        padding: 0;
+        border: 0;
+        border-radius: 1.35rem;
+        color: var(--ink);
+        box-shadow: 0 28px 100px -22px rgba(7,20,44,.65);
+      }
+
+      dialog::backdrop {
+        background: rgba(7,20,44,.7);
+        backdrop-filter: blur(5px);
+      }
+
+      .reveal { opacity: 0; transform: translateY(16px); transition: opacity .55s ease, transform .55s ease; }
+      .reveal.visible { opacity: 1; transform: none; }
+
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+        .reveal { opacity: 1; transform: none; }
+      }
+
+      @media (max-width: 767px) {
+        .desktop-nav { display: none; }
+        .mobile-panel { display: none; }
+        .mobile-panel.open { display: flex; }
+        .architecture svg { min-width: 900px; }
+      }
+    </style>
+  <style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0, 0, 0, 0);white-space:nowrap;border-width:0}.visible{visibility:visible}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0px}.inset-x-0{left:0px;right:0px}.-left-40{left:-10rem}.-right-40{right:-10rem}.bottom-0{bottom:0px}.left-4{left:1rem}.top-0{top:0px}.top-1\/2{top:50%}.top-20{top:5rem}.z-50{z-index:50}.m-4{margin:1rem}.mx-auto{margin-left:auto;margin-right:auto}.mb-2{margin-bottom:0.5rem}.mb-5{margin-bottom:1.25rem}.mb-7{margin-bottom:1.75rem}.mb-8{margin-bottom:2rem}.mt-1{margin-top:0.25rem}.mt-10{margin-top:2.5rem}.mt-12{margin-top:3rem}.mt-14{margin-top:3.5rem}.mt-2{margin-top:0.5rem}.mt-3{margin-top:0.75rem}.mt-4{margin-top:1rem}.mt-5{margin-top:1.25rem}.mt-6{margin-top:1.5rem}.mt-7{margin-top:1.75rem}.mt-8{margin-top:2rem}.mt-9{margin-top:2.25rem}.block{display:block}.flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}.hidden{display:none}.h-1\.5{height:0.375rem}.h-10{height:2.5rem}.h-11{height:2.75rem}.h-12{height:3rem}.h-2{height:0.5rem}.h-3{height:0.75rem}.h-9{height:2.25rem}.h-\[360px\]{height:360px}.h-\[520px\]{height:520px}.h-\[72px\]{height:72px}.h-auto{height:auto}.h-full{height:100%}.min-h-5{min-height:1.25rem}.w-1\.5{width:0.375rem}.w-10{width:2.5rem}.w-11{width:2.75rem}.w-2{width:0.5rem}.w-3{width:0.75rem}.w-9{width:2.25rem}.w-\[360px\]{width:360px}.w-\[520px\]{width:520px}.w-\[72px\]{width:72px}.w-\[90\%\]{width:90%}.w-full{width:100%}.min-w-0{min-width:0px}.min-w-\[900px\]{min-width:900px}.max-w-\[1240px\]{max-width:1240px}.max-w-\[1380px\]{max-width:1380px}.max-w-\[520px\]{max-width:520px}.max-w-\[560px\]{max-width:560px}.max-w-\[620px\]{max-width:620px}.max-w-\[670px\]{max-width:670px}.max-w-\[680px\]{max-width:680px}.max-w-\[760px\]{max-width:760px}.max-w-\[780px\]{max-width:780px}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.-translate-y-1\/2{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.list-none{list-style-type:none}.grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.place-items-center{place-items:center}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-10{gap:2.5rem}.gap-14{gap:3.5rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-5{gap:1.25rem}.gap-6{gap:1.5rem}.gap-7{gap:1.75rem}.gap-8{gap:2rem}.gap-px{gap:1px}.gap-x-8{column-gap:2rem}.gap-x-9{column-gap:2.25rem}.gap-y-3{row-gap:0.75rem}.gap-y-5{row-gap:1.25rem}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-y-5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.25rem * var(--tw-space-y-reverse))}.divide-x > :not([hidden]) ~ :not([hidden]){--tw-divide-x-reverse:0;border-right-width:calc(1px * var(--tw-divide-x-reverse));border-left-width:calc(1px * calc(1 - var(--tw-divide-x-reverse)))}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.rounded-2xl{border-radius:1rem}.rounded-3xl{border-radius:1.5rem}.rounded-\[1\.4rem\]{border-radius:1.4rem}.rounded-\[1\.5rem\]{border-radius:1.5rem}.rounded-\[1rem\]{border-radius:1rem}.rounded-\[2rem\]{border-radius:2rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-sm{border-radius:0.125rem}.rounded-xl{border-radius:0.75rem}.border{border-width:1px}.border-y{border-top-width:1px;border-bottom-width:1px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-dashed{border-style:dashed}.border-mint\/20{border-color:rgb(135 245 210 / 0.2)}.border-mint\/25{border-color:rgb(135 245 210 / 0.25)}.border-mint\/30{border-color:rgb(135 245 210 / 0.3)}.border-orange\/20{border-color:rgb(255 159 90 / 0.2)}.border-white\/10{border-color:rgb(255 255 255 / 0.1)}.border-white\/15{border-color:rgb(255 255 255 / 0.15)}.border-white\/20{border-color:rgb(255 255 255 / 0.2)}.bg-\[\#0a1a35\]{--tw-bg-opacity:1;background-color:rgb(10 26 53 / var(--tw-bg-opacity, 1))}.bg-\[\#121319\]{--tw-bg-opacity:1;background-color:rgb(18 19 25 / var(--tw-bg-opacity, 1))}.bg-\[\#e8fff7\]{--tw-bg-opacity:1;background-color:rgb(232 255 247 / var(--tw-bg-opacity, 1))}.bg-\[\#f0eaff\]{--tw-bg-opacity:1;background-color:rgb(240 234 255 / var(--tw-bg-opacity, 1))}.bg-\[\#f3f6fb\]{--tw-bg-opacity:1;background-color:rgb(243 246 251 / var(--tw-bg-opacity, 1))}.bg-\[\#fff1e6\]{--tw-bg-opacity:1;background-color:rgb(255 241 230 / var(--tw-bg-opacity, 1))}.bg-electric{--tw-bg-opacity:1;background-color:rgb(91 124 255 / var(--tw-bg-opacity, 1))}.bg-electric\/10{background-color:rgb(91 124 255 / 0.1)}.bg-electric\/20{background-color:rgb(91 124 255 / 0.2)}.bg-ink{--tw-bg-opacity:1;background-color:rgb(7 20 44 / var(--tw-bg-opacity, 1))}.bg-ink\/90{background-color:rgb(7 20 44 / 0.9)}.bg-mint{--tw-bg-opacity:1;background-color:rgb(135 245 210 / var(--tw-bg-opacity, 1))}.bg-mint\/10{background-color:rgb(135 245 210 / 0.1)}.bg-orange{--tw-bg-opacity:1;background-color:rgb(255 159 90 / var(--tw-bg-opacity, 1))}.bg-orange\/10{background-color:rgb(255 159 90 / 0.1)}.bg-paper{--tw-bg-opacity:1;background-color:rgb(245 247 251 / var(--tw-bg-opacity, 1))}.bg-slate-100{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.bg-slate-200{--tw-bg-opacity:1;background-color:rgb(226 232 240 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-white\/10{background-color:rgb(255 255 255 / 0.1)}.bg-white\/5{background-color:rgb(255 255 255 / 0.05)}.p-2{padding:0.5rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.p-7{padding:1.75rem}.p-8{padding:2rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-3\.5{padding-left:0.875rem;padding-right:0.875rem}.px-4{padding-left:1rem;padding-right:1rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-10{padding-top:2.5rem;padding-bottom:2.5rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-24{padding-top:6rem;padding-bottom:6rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-3\.5{padding-top:0.875rem;padding-bottom:0.875rem}.py-4{padding-top:1rem;padding-bottom:1rem}.py-7{padding-top:1.75rem;padding-bottom:1.75rem}.pb-2{padding-bottom:0.5rem}.pb-20{padding-bottom:5rem}.pl-11{padding-left:2.75rem}.pl-5{padding-left:1.25rem}.pr-4{padding-right:1rem}.pr-5{padding-right:1.25rem}.pt-3{padding-top:0.75rem}.pt-32{padding-top:8rem}.pt-6{padding-top:1.5rem}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-5xl{font-size:3rem;line-height:1}.text-6xl{font-size:3.75rem;line-height:1}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-\[15px\]{font-size:15px}.text-\[3rem\]{font-size:3rem}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-5{line-height:1.25rem}.leading-6{line-height:1.5rem}.leading-7{line-height:1.75rem}.leading-8{line-height:2rem}.leading-none{line-height:1}.tracking-\[-\.025em\]{letter-spacing:-.025em}.tracking-\[-\.02em\]{letter-spacing:-.02em}.tracking-\[-\.03em\]{letter-spacing:-.03em}.tracking-\[-\.04em\]{letter-spacing:-.04em}.tracking-\[-\.05em\]{letter-spacing:-.05em}.tracking-\[-\.08em\]{letter-spacing:-.08em}.tracking-\[\.12em\]{letter-spacing:.12em}.tracking-\[\.13em\]{letter-spacing:.13em}.tracking-\[\.14em\]{letter-spacing:.14em}.tracking-\[\.15em\]{letter-spacing:.15em}.tracking-\[\.16em\]{letter-spacing:.16em}.text-\[\#0b7258\]{--tw-text-opacity:1;color:rgb(11 114 88 / var(--tw-text-opacity, 1))}.text-\[\#13715b\]{--tw-text-opacity:1;color:rgb(19 113 91 / var(--tw-text-opacity, 1))}.text-\[\#6838b6\]{--tw-text-opacity:1;color:rgb(104 56 182 / var(--tw-text-opacity, 1))}.text-\[\#a44b0b\]{--tw-text-opacity:1;color:rgb(164 75 11 / var(--tw-text-opacity, 1))}.text-electric{--tw-text-opacity:1;color:rgb(91 124 255 / var(--tw-text-opacity, 1))}.text-ink{--tw-text-opacity:1;color:rgb(7 20 44 / var(--tw-text-opacity, 1))}.text-mint{--tw-text-opacity:1;color:rgb(135 245 210 / var(--tw-text-opacity, 1))}.text-orange{--tw-text-opacity:1;color:rgb(255 159 90 / var(--tw-text-opacity, 1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.text-slate-700{--tw-text-opacity:1;color:rgb(51 65 85 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-white\/30{color:rgb(255 255 255 / 0.3)}.text-white\/45{color:rgb(255 255 255 / 0.45)}.text-white\/50{color:rgb(255 255 255 / 0.5)}.text-white\/55{color:rgb(255 255 255 / 0.55)}.text-white\/60{color:rgb(255 255 255 / 0.6)}.text-white\/65{color:rgb(255 255 255 / 0.65)}.text-white\/70{color:rgb(255 255 255 / 0.7)}.text-white\/75{color:rgb(255 255 255 / 0.75)}.no-underline{-webkit-text-decoration-line:none;text-decoration-line:none}.opacity-70{opacity:0.7}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-soft{--tw-shadow:0 24px 70px -34px rgba(7,20,44,.28);--tw-shadow-colored:0 24px 70px -34px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.outline-none{outline:2px solid transparent;outline-offset:2px}.blur-\[100px\]{--tw-blur:blur(100px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.blur-\[110px\]{--tw-blur:blur(110px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-xl{--tw-backdrop-blur:blur(24px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.hover\:-translate-y-0\.5:hover{--tw-translate-y:-0.125rem;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.hover\:border-white\/45:hover{border-color:rgb(255 255 255 / 0.45)}.hover\:bg-\[\#14294e\]:hover{--tw-bg-opacity:1;background-color:rgb(20 41 78 / var(--tw-bg-opacity, 1))}.hover\:bg-mint:hover{--tw-bg-opacity:1;background-color:rgb(135 245 210 / var(--tw-bg-opacity, 1))}.hover\:bg-white:hover{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.hover\:bg-white\/5:hover{background-color:rgb(255 255 255 / 0.05)}.hover\:text-ink:hover{--tw-text-opacity:1;color:rgb(7 20 44 / var(--tw-text-opacity, 1))}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.focus\:border-electric:focus{--tw-border-opacity:1;border-color:rgb(91 124 255 / var(--tw-border-opacity, 1))}.focus\:bg-white:focus{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.group[open] .group-open\:rotate-45{--tw-rotate:45deg;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@media (min-width: 640px){.sm\:m-6{margin:1.5rem}.sm\:translate-y-7{--tw-translate-y:1.75rem;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.sm\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.sm\:grid-cols-\[\.78fr_1\.22fr\]{grid-template-columns:.78fr 1.22fr}.sm\:grid-cols-\[84px_1fr\]{grid-template-columns:84px 1fr}.sm\:flex-row{flex-direction:row}.sm\:items-end{align-items:flex-end}.sm\:items-center{align-items:center}.sm\:justify-between{justify-content:space-between}.sm\:p-12{padding:3rem}.sm\:p-6{padding:1.5rem}.sm\:p-8{padding:2rem}.sm\:px-8{padding-left:2rem;padding-right:2rem}.sm\:py-7{padding-top:1.75rem;padding-bottom:1.75rem}.sm\:text-5xl{font-size:3rem;line-height:1}.sm\:text-\[4rem\]{font-size:4rem}}@media (min-width: 768px){.md\:hidden{display:none}.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}.md\:items-center{align-items:center}.md\:justify-between{justify-content:space-between}.md\:border-t-0{border-top-width:0px}}@media (min-width: 1024px){.lg\:sticky{position:sticky}.lg\:top-28{top:7rem}.lg\:ml-auto{margin-left:auto}.lg\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.lg\:grid-cols-\[\.85fr_1\.15fr\]{grid-template-columns:.85fr 1.15fr}.lg\:grid-cols-\[\.8fr_1\.2fr\]{grid-template-columns:.8fr 1.2fr}.lg\:grid-cols-\[\.9fr_1\.1fr\]{grid-template-columns:.9fr 1.1fr}.lg\:grid-cols-\[1\.05fr_\.95fr\]{grid-template-columns:1.05fr .95fr}.lg\:grid-cols-\[1\.1fr_\.9fr\]{grid-template-columns:1.1fr .9fr}.lg\:grid-cols-\[1fr_\.85fr\]{grid-template-columns:1fr .85fr}.lg\:items-end{align-items:flex-end}.lg\:gap-16{gap:4rem}.lg\:gap-20{gap:5rem}.lg\:self-start{align-self:flex-start}.lg\:p-16{padding:4rem}.lg\:p-8{padding:2rem}.lg\:px-8{padding-left:2rem;padding-right:2rem}.lg\:py-32{padding-top:8rem;padding-bottom:8rem}.lg\:pb-28{padding-bottom:7rem}.lg\:pt-40{padding-top:10rem}.lg\:text-\[4\.9rem\]{font-size:4.9rem}}@media (min-width: 1280px){.xl\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}}</style></head>
+
+  <body>
+    <!-- Navegação principal -->
+    <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-ink/90 text-white backdrop-blur-xl">
+      <div class="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-5 lg:px-8">
+        <a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#inicio" class="flex items-center gap-3 no-underline" aria-label="Dynamic Journey — início">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-mint font-black tracking-[-.08em] text-ink">DJ</span>
+          <span>
+            <span class="block text-[15px] font-extrabold leading-none tracking-[-.02em]">Dynamic Journey</span>
+            <span class="mt-1 block text-[10px] font-semibold uppercase tracking-[.14em] text-white/45">nome provisório</span>
+          </span>
+        </a>
+
+        <nav class="desktop-nav flex items-center gap-7 text-sm font-semibold text-white/65" aria-label="Navegação principal">
+          <a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#valor" class="transition hover:text-white">Valor</a>
+          <a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#funcionamento" class="transition hover:text-white">Como funciona</a>
+          <a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#arquitetura" class="transition hover:text-white">Arquitetura</a>
+          <a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#maturidade" class="transition hover:text-white">Maturidade</a>
+          <a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#documentacao" class="rounded-full bg-white px-4 py-2.5 font-bold text-ink transition hover:bg-mint">Documentação</a>
+        </nav>
+
+        <button id="menuButton" class="grid h-10 w-10 place-items-center rounded-xl border border-white/15 md:hidden" aria-label="Abrir menu" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+        </button>
+      </div>
+
+      <nav id="mobileMenu" class="mobile-panel flex-col gap-1 border-t border-white/10 bg-ink px-5 py-4 text-sm font-semibold text-white/75 md:hidden" aria-label="Navegação mobile">
+        <a class="rounded-lg px-3 py-3 hover:bg-white/5 hover:text-white" href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#valor">Valor</a>
+        <a class="rounded-lg px-3 py-3 hover:bg-white/5 hover:text-white" href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#funcionamento">Como funciona</a>
+        <a class="rounded-lg px-3 py-3 hover:bg-white/5 hover:text-white" href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#arquitetura">Arquitetura</a>
+        <a class="rounded-lg px-3 py-3 hover:bg-white/5 hover:text-white" href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#maturidade">Maturidade</a>
+        <a class="rounded-lg px-3 py-3 hover:bg-white/5 hover:text-white" href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#documentacao">Documentação</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Hero: apresenta o produto e já expõe seu modelo mental -->
+      <section id="inicio" class="noise relative overflow-hidden bg-ink pb-20 pt-32 text-white lg:pb-28 lg:pt-40">
+        <div class="hero-grid absolute inset-0 opacity-70" aria-hidden="true"></div>
+        <div class="absolute -right-40 top-20 h-[520px] w-[520px] rounded-full bg-electric/20 blur-[110px]" aria-hidden="true"></div>
+        <div class="absolute -left-40 bottom-0 h-[360px] w-[360px] rounded-full bg-mint/10 blur-[100px]" aria-hidden="true"></div>
+
+        <div class="relative mx-auto grid max-w-[1380px] items-center gap-14 px-5 lg:grid-cols-[.9fr_1.1fr] lg:px-8">
+          <div>
+            <div class="mb-7 flex flex-wrap items-center gap-3">
+              <span class="rounded-full border border-mint/25 bg-mint/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.14em] text-mint">Visão institucional · v0.1</span>
+              <span class="text-xs font-medium text-white/45">Versão de produto 1.0.0</span>
+            </div>
+            <p class="eyebrow mb-5 text-mint">Plataforma corporativa de jornadas</p>
+            <h1 class="display max-w-[780px] text-[3rem] font-black sm:text-[4rem] lg:text-[4.9rem]">
+              Uma linguagem comum para jornadas que atravessam canais.
+            </h1>
+            <p class="mt-7 max-w-[670px] text-lg leading-8 text-white/68">
+              Modele o fluxo, componha a experiência e publique versões executáveis para Web, Mobile e WhatsApp — com a lógica de negócio preservada e a apresentação adaptada a cada canal.
+            </p>
+            <div class="mt-9 flex flex-wrap gap-3">
+              <a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#arquitetura" class="inline-flex items-center gap-2 rounded-full bg-mint px-6 py-3.5 text-sm font-extrabold text-ink transition hover:-translate-y-0.5 hover:bg-white">
+                Explorar a arquitetura
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </a>
+              <a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#documentacao" class="inline-flex items-center rounded-full border border-white/20 px-6 py-3.5 text-sm font-bold text-white transition hover:border-white/45 hover:bg-white/5">Acessar o acervo técnico</a>
+            </div>
+            <div class="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 pt-6 text-xs font-semibold text-white/50">
+              <span class="flex items-center gap-2"><i class="h-2 w-2 rounded-full bg-mint"></i> Web</span>
+              <span class="flex items-center gap-2"><i class="h-2 w-2 rounded-full bg-electric"></i> Mobile</span>
+              <span class="flex items-center gap-2"><i class="h-2 w-2 rounded-full bg-orange"></i> WhatsApp</span>
+              <span class="text-white/30">Um fluxo · múltiplas projeções</span>
+            </div>
+          </div>
+
+          <!-- Tela real do produto: a interface entra como evidência, não como ilustração decorativa. -->
+          <figure class="product-shot glass relative mx-auto w-full max-w-[760px] overflow-hidden rounded-[1.4rem] p-2 lg:ml-auto">
+            <img src="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/assets/dynamic-journey-modeler-dark.png" width="2199" height="1163" alt="Editor visual do Dynamic Journey mostrando a jornada Vivo Fibra mais Total, com tarefas, integrações e caminhos alternativos." class="block h-auto w-full rounded-[1rem] border border-white/10 bg-[#121319]" loading="eager" fetchpriority="high">
+            <figcaption class="flex flex-col gap-1 px-3 pb-2 pt-3 text-[11px] sm:flex-row sm:items-center sm:justify-between">
+              <span class="flex items-center gap-2 font-bold uppercase tracking-[.13em] text-mint"><i class="h-1.5 w-1.5 rounded-full bg-mint"></i>Tela do produto</span>
+              <span class="text-white/48">Vivo Fibra + Total · Contratação</span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Indicadores de contexto, sem confundir progresso funcional com produção. -->
+      <section class="border-b border-line bg-white">
+        <div class="mx-auto grid max-w-[1240px] grid-cols-2 divide-x divide-line px-5 md:grid-cols-4 lg:px-8">
+          <div class="py-7 pr-5"><strong class="block text-3xl font-black tracking-[-.04em]">506</strong><span class="mt-1 block text-sm text-slate-500">requisitos mapeados</span></div>
+          <div class="px-5 py-7"><strong class="block text-3xl font-black tracking-[-.04em]">90%</strong><span class="mt-1 block text-sm text-slate-500">escopo funcional concluído</span></div>
+          <div class="border-t border-line px-5 py-7 md:border-t-0"><strong class="block text-3xl font-black tracking-[-.04em]">15</strong><span class="mt-1 block text-sm text-slate-500">frentes de produto</span></div>
+          <div class="border-t border-line py-7 pl-5 md:border-t-0"><strong class="block text-3xl font-black tracking-[-.04em]">3</strong><span class="mt-1 block text-sm text-slate-500">tipos de canal oficiais</span></div>
+        </div>
+      </section>
+
+      <!-- Proposta de valor -->
+      <section id="valor" class="py-24 lg:py-32">
+        <div class="mx-auto max-w-[1240px] px-5 lg:px-8">
+          <div class="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
+            <div class="reveal visible">
+              <p class="eyebrow mb-5 text-electric">Onde nasce o valor</p>
+              <h2 class="section-title text-4xl font-black sm:text-5xl">Menos reinvenção entre canais. Mais foco na jornada.</h2>
+              <p class="mt-6 max-w-[560px] text-base leading-7 text-slate-600">
+                O Dynamic Journey transforma fluxo, integração e interface em capacidades de plataforma. Times digitais deixam de reconstruir a mesma regra em cada front e passam a consumir uma versão publicada, validada e observável.
+              </p>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+              <article class="value-card reveal rounded-2xl border border-line bg-white p-6 visible">
+                <span class="mb-8 grid h-11 w-11 place-items-center rounded-xl bg-electric-soft font-black text-electric">01</span>
+                <h3 class="text-xl font-extrabold tracking-[-.025em]">Velocidade com coerência</h3>
+                <p class="mt-3 leading-7 text-slate-600">O fluxo é definido uma vez e executado por diferentes canais, reduzindo duplicação de regra e desalinhamento entre jornadas equivalentes.</p>
+              </article>
+              <article class="value-card reveal rounded-2xl border border-line bg-white p-6 sm:translate-y-7 visible">
+                <span class="mb-8 grid h-11 w-11 place-items-center rounded-xl bg-[#e8fff7] font-black text-[#0b7258]">02</span>
+                <h3 class="text-xl font-extrabold tracking-[-.025em]">Experiência adaptável</h3>
+                <p class="mt-3 leading-7 text-slate-600">A tela nasce como árvore SDUI e cada renderer a projeta no repertório nativo de Web, Mobile, Flutter ou conversa no WhatsApp.</p>
+              </article>
+              <article class="value-card reveal rounded-2xl border border-line bg-white p-6 visible">
+                <span class="mb-8 grid h-11 w-11 place-items-center rounded-xl bg-[#fff1e6] font-black text-[#a44b0b]">03</span>
+                <h3 class="text-xl font-extrabold tracking-[-.025em]">Mudança controlada</h3>
+                <p class="mt-3 leading-7 text-slate-600">Versões imutáveis e deployments independentes permitem evoluir sem alterar instâncias que já começaram em uma versão anterior.</p>
+              </article>
+              <article class="value-card reveal rounded-2xl border border-line bg-white p-6 sm:translate-y-7 visible">
+                <span class="mb-8 grid h-11 w-11 place-items-center rounded-xl bg-[#f0eaff] font-black text-[#6838b6]">04</span>
+                <h3 class="text-xl font-extrabold tracking-[-.025em]">Diagnóstico no mesmo lugar</h3>
+                <p class="mt-3 leading-7 text-slate-600">Fluxo percorrido, variáveis, integrações e log cronológico ajudam produto e engenharia a explicar o que aconteceu em cada execução.</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fluxo ponta a ponta -->
+      <section id="funcionamento" class="bg-white py-24 lg:py-32">
+        <div class="mx-auto max-w-[1240px] px-5 lg:px-8">
+          <div class="reveal max-w-[760px] visible">
+            <p class="eyebrow mb-5 text-electric">Do desenho à execução</p>
+            <h2 class="section-title text-4xl font-black sm:text-5xl">Um ciclo completo, com fronteiras explícitas.</h2>
+            <p class="mt-5 text-lg leading-8 text-slate-600">A plataforma separa o plano de autoria do plano de execução. O canal recebe uma jornada pronta para operar; não precisa conhecer o domínio administrativo.</p>
+          </div>
+
+          <div class="mt-14 grid gap-px overflow-hidden rounded-3xl border border-line bg-line md:grid-cols-2 xl:grid-cols-4">
+            <article class="reveal bg-white p-7 lg:p-8 visible">
+              <span class="step-number text-6xl font-black">01</span>
+              <p class="mt-8 text-xs font-extrabold uppercase tracking-[.14em] text-electric">Definir</p>
+              <h3 class="mt-2 text-xl font-extrabold">Produto e alcance</h3>
+              <p class="mt-3 leading-7 text-slate-600">O produto habilita Web, Mobile e/ou WhatsApp; a jornada escolhe um subconjunto desses canais.</p>
+            </article>
+            <article class="reveal bg-white p-7 lg:p-8 visible">
+              <span class="step-number text-6xl font-black">02</span>
+              <p class="mt-8 text-xs font-extrabold uppercase tracking-[.14em] text-electric">Modelar</p>
+              <h3 class="mt-2 text-xl font-extrabold">Fluxo e integrações</h3>
+              <p class="mt-3 leading-7 text-slate-600">Eventos, tarefas humanas, serviços REST, Kafka e decisões formam o processo visual; IA pode gerar um rascunho editável.</p>
+            </article>
+            <article class="reveal bg-white p-7 lg:p-8 visible">
+              <span class="step-number text-6xl font-black">03</span>
+              <p class="mt-8 text-xs font-extrabold uppercase tracking-[.14em] text-electric">Compor</p>
+              <h3 class="mt-2 text-xl font-extrabold">Tela como contrato</h3>
+              <p class="mt-3 leading-7 text-slate-600">Cada User Task pode carregar uma árvore SDUI com bindings, eventos, visibilidade e compatibilidade por alvo.</p>
+            </article>
+            <article class="reveal bg-white p-7 lg:p-8 visible">
+              <span class="step-number text-6xl font-black">04</span>
+              <p class="mt-8 text-xs font-extrabold uppercase tracking-[.14em] text-electric">Publicar e operar</p>
+              <h3 class="mt-2 text-xl font-extrabold">Versão executável</h3>
+              <p class="mt-3 leading-7 text-slate-600">O snapshot é validado, publicado no runtime e consumido por canais; execução e diagnóstico fecham o ciclo.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Atlas de arquitetura interativo -->
+      <section id="arquitetura" class="architecture overflow-hidden bg-ink py-24 text-white lg:py-32" data-focus="all">
+        <div class="mx-auto max-w-[1240px] px-5 lg:px-8">
+          <div class="grid gap-8 lg:grid-cols-[.85fr_1.15fr] lg:items-end">
+            <div class="reveal visible">
+              <p class="eyebrow mb-5 text-mint">Atlas de arquitetura</p>
+              <h2 class="section-title text-4xl font-black sm:text-5xl">Quem fala com quem — e por quê.</h2>
+            </div>
+            <p class="reveal max-w-[680px] text-lg leading-8 text-white/60 lg:ml-auto visible">
+              Selecione um caminho para isolar a responsabilidade de cada peça. A visão abaixo consolida o estado atual do protótipo e distingue autoria, publicação e execução por canais.
+            </p>
+          </div>
+
+          <div class="mt-10 flex flex-wrap gap-2" role="tablist" aria-label="Filtrar caminhos da arquitetura">
+            <button class="arch-tab rounded-full border border-white/10 px-4 py-2.5 text-sm font-bold text-white/50" data-arch="all" role="tab" aria-selected="true">Visão completa</button>
+            <button class="arch-tab rounded-full border border-white/10 px-4 py-2.5 text-sm font-bold text-white/50" data-arch="authoring" role="tab" aria-selected="false">Autoria</button>
+            <button class="arch-tab rounded-full border border-white/10 px-4 py-2.5 text-sm font-bold text-white/50" data-arch="publication" role="tab" aria-selected="false">Publicação</button>
+            <button class="arch-tab rounded-full border border-white/10 px-4 py-2.5 text-sm font-bold text-white/50" data-arch="channels" role="tab" aria-selected="false">Execução por canais</button>
+          </div>
+
+          <div class="mt-6 overflow-x-auto rounded-3xl border border-white/10 bg-[#0a1a35] p-4 shadow-2xl sm:p-6" aria-label="Diagrama da arquitetura do Dynamic Journey">
+            <svg viewBox="0 0 1120 660" class="block h-auto min-w-[900px] w-full" role="img" aria-labelledby="archTitle archDesc">
+              <title id="archTitle">Arquitetura lógica e integrações do Dynamic Journey</title>
+              <desc id="archDesc">Diagrama com os caminhos de autoria, publicação e execução por canais, incluindo Admin Portal, serviços de publicação, registry SDUI, motor Camunda e canais digitais.</desc>
+              <defs>
+                <marker id="arrowMint" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#87f5d2"></path></marker>
+                <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#7f96ff"></path></marker>
+                <marker id="arrowOrange" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#ff9f5a"></path></marker>
+                <filter id="nodeShadow" x="-30%" y="-40%" width="160%" height="190%"><fedropshadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity=".22"></fedropshadow></filter>
+              </defs>
+
+              <!-- Faixas conceituais -->
+              <rect x="18" y="20" width="1084" height="142" rx="20" fill="#0f2448" stroke="#263c62"></rect>
+              <rect x="18" y="184" width="1084" height="238" rx="20" fill="#0c203f" stroke="#263c62"></rect>
+              <rect x="18" y="444" width="1084" height="194" rx="20" fill="#0f2448" stroke="#263c62"></rect>
+              <text x="42" y="51" fill="#71809a" font-size="11" font-weight="800" letter-spacing="1.7">EXPERIÊNCIAS</text>
+              <text x="42" y="215" fill="#71809a" font-size="11" font-weight="800" letter-spacing="1.7">SERVIÇOS DA PLATAFORMA</text>
+              <text x="42" y="475" fill="#71809a" font-size="11" font-weight="800" letter-spacing="1.7">RUNTIME, DADOS E INTEGRAÇÕES</text>
+
+              <!-- Arestas: autoria -->
+              <path class="arch-edge" data-layers="authoring" d="M190 120 C190 165 192 191 192 254" stroke="#87f5d2" stroke-width="2.5" fill="none" marker-end="url(#arrowMint)"></path>
+              <text class="arch-edge" data-layers="authoring" x="202" y="184" fill="#87f5d2" font-size="11" font-weight="700">REST + sessão</text>
+
+              <!-- Arestas: publicação -->
+              <path class="arch-edge" data-layers="publication" d="M292 300 C350 300 342 300 394 300" stroke="#7f96ff" stroke-width="2.5" fill="none" marker-end="url(#arrowBlue)"></path>
+              <path class="arch-edge" data-layers="publication" d="M504 344 C504 405 535 431 535 500" stroke="#7f96ff" stroke-width="2.5" fill="none" marker-end="url(#arrowBlue)"></path>
+              <path class="arch-edge" data-layers="publication channels" d="M292 328 C360 395 662 404 733 344" stroke="#7f96ff" stroke-width="2.5" fill="none" marker-end="url(#arrowBlue)"></path>
+              <path class="arch-edge" data-layers="publication channels" d="M787 388 C787 430 787 452 787 500" stroke="#7f96ff" stroke-width="2.5" fill="none" marker-end="url(#arrowBlue)"></path>
+
+              <!-- Arestas: canais -->
+              <path class="arch-edge" data-layers="channels" d="M855 120 C855 160 950 180 950 254" stroke="#ff9f5a" stroke-width="2.5" fill="none" marker-end="url(#arrowOrange)"></path>
+              <path class="arch-edge" data-layers="channels" d="M887 120 C940 150 1020 183 1020 254" stroke="#ff9f5a" stroke-width="2.5" fill="none" marker-end="url(#arrowOrange)"></path>
+              <path class="arch-edge" data-layers="channels" d="M870 300 C820 300 855 300 830 300" stroke="#ff9f5a" stroke-width="2.5" fill="none" marker-end="url(#arrowOrange)"></path>
+              <path class="arch-edge" data-layers="channels" d="M944 344 C900 430 635 430 610 500" stroke="#ff9f5a" stroke-width="2.5" fill="none" marker-end="url(#arrowOrange)"></path>
+
+              <!-- Nós de experiência -->
+              <g class="arch-node" data-layers="authoring publication" filter="url(#nodeShadow)">
+                <rect x="82" y="72" width="216" height="58" rx="12" fill="#17365f" stroke="#87f5d2"></rect>
+                <circle cx="108" cy="101" r="8" fill="#87f5d2"></circle><text x="126" y="97" fill="white" font-size="14" font-weight="800">Admin Portal</text><text x="126" y="114" fill="#aab7ca" font-size="10.5">autoria · execução · diagnóstico</text>
+              </g>
+              <g class="arch-node" data-layers="channels" filter="url(#nodeShadow)">
+                <rect x="696" y="72" width="316" height="58" rx="12" fill="#332844" stroke="#ff9f5a"></rect>
+                <circle cx="722" cy="101" r="8" fill="#ff9f5a"></circle><text x="740" y="97" fill="white" font-size="14" font-weight="800">Canais digitais</text><text x="740" y="114" fill="#c2b8ca" font-size="10.5">React Web · Mobile · Flutter · WhatsApp</text>
+              </g>
+
+              <!-- Nós de serviços -->
+              <g class="arch-node" data-layers="authoring publication" filter="url(#nodeShadow)">
+                <rect x="82" y="254" width="210" height="90" rx="13" fill="#17365f" stroke="#87f5d2"></rect>
+                <text x="106" y="284" fill="white" font-size="14" font-weight="800">Admin Backend</text><text x="106" y="304" fill="#aab7ca" font-size="10.5">domínio · PostgreSQL · auditoria</text><text x="106" y="322" fill="#87f5d2" font-size="10.5" font-weight="700">:8081</text>
+              </g>
+              <g class="arch-node" data-layers="publication" filter="url(#nodeShadow)">
+                <rect x="394" y="254" width="220" height="90" rx="13" fill="#1b2d55" stroke="#7f96ff"></rect>
+                <text x="418" y="284" fill="white" font-size="14" font-weight="800">Transform Publication</text><text x="418" y="304" fill="#aab7ca" font-size="10.5">snapshot → BPMN → deploy</text><text x="418" y="322" fill="#7f96ff" font-size="10.5" font-weight="700">:8082</text>
+              </g>
+              <g class="arch-node" data-layers="publication channels authoring" filter="url(#nodeShadow)">
+                <rect x="678" y="254" width="220" height="90" rx="13" fill="#263052" stroke="#9b8cff"></rect>
+                <text x="702" y="284" fill="white" font-size="14" font-weight="800">Espec Registry</text><text x="702" y="304" fill="#aab7ca" font-size="10.5">snapshots · resolução SDUI</text><text x="702" y="322" fill="#b3a9ff" font-size="10.5" font-weight="700">:8083</text>
+              </g>
+              <g class="arch-node" data-layers="channels" filter="url(#nodeShadow)">
+                <rect x="918" y="254" width="166" height="90" rx="13" fill="#402a3c" stroke="#ff9f5a"></rect>
+                <text x="942" y="284" fill="white" font-size="14" font-weight="800">ms-journey</text><text x="942" y="304" fill="#c2b8ca" font-size="10.5">fachada de execução</text><text x="942" y="322" fill="#ffb981" font-size="10.5" font-weight="700">:8085</text>
+              </g>
+
+              <!-- Nós de runtime e dados -->
+              <g class="arch-node" data-layers="publication channels authoring" filter="url(#nodeShadow)">
+                <rect x="422" y="500" width="228" height="92" rx="13" fill="#152d4d" stroke="#87f5d2"></rect>
+                <text x="446" y="530" fill="white" font-size="14" font-weight="800">Runtime Camunda</text><text x="446" y="550" fill="#aab7ca" font-size="10.5">processos · instâncias · histórico</text><text x="446" y="569" fill="#87f5d2" font-size="10.5" font-weight="700">:8080</text>
+              </g>
+              <g class="arch-node" data-layers="authoring publication" filter="url(#nodeShadow)">
+                <rect x="82" y="506" width="174" height="80" rx="13" fill="#192944" stroke="#5b7cff"></rect>
+                <text x="106" y="537" fill="white" font-size="14" font-weight="800">PostgreSQL</text><text x="106" y="557" fill="#aab7ca" font-size="10.5">domínio administrativo</text>
+              </g>
+              <path class="arch-edge" data-layers="authoring publication" d="M192 344 L192 498" stroke="#7f96ff" stroke-width="2.5" fill="none" marker-end="url(#arrowBlue)"></path>
+              <g class="arch-node" data-layers="publication channels" filter="url(#nodeShadow)">
+                <rect x="700" y="500" width="174" height="92" rx="13" fill="#27274c" stroke="#9b8cff"></rect>
+                <text x="724" y="530" fill="white" font-size="14" font-weight="800">Strapi</text><text x="724" y="550" fill="#aab7ca" font-size="10.5">repositório de telas</text><text x="724" y="568" fill="#b3a9ff" font-size="10.5">snapshots SDUI</text>
+              </g>
+              <g class="arch-node" data-layers="publication channels" filter="url(#nodeShadow)">
+                <rect x="916" y="500" width="168" height="92" rx="13" fill="#3a2c2c" stroke="#ff9f5a"></rect>
+                <text x="940" y="530" fill="white" font-size="14" font-weight="800">Integrações</text><text x="940" y="550" fill="#c2b8ca" font-size="10.5">REST · Kafka</text><text x="940" y="568" fill="#c2b8ca" font-size="10.5">Event Hubs · Service Bus</text>
+              </g>
+              <path class="arch-edge" data-layers="publication channels" d="M650 546 L908 546" stroke="#ff9f5a" stroke-width="2.5" fill="none" marker-end="url(#arrowOrange)"></path>
+
+              <!-- Legendas de fluxo -->
+              <g class="arch-edge" data-layers="publication"><rect x="334" y="270" width="52" height="20" rx="7" fill="#14284b"></rect><text x="360" y="284" text-anchor="middle" fill="#7f96ff" font-size="9.5" font-weight="800">PUBLICA</text></g>
+              <g class="arch-edge" data-layers="channels"><rect x="848" y="361" width="75" height="20" rx="7" fill="#2f2639"></rect><text x="885" y="375" text-anchor="middle" fill="#ffb981" font-size="9.5" font-weight="800">RESOLVE TELA</text></g>
+            </svg>
+          </div>
+
+          <div class="mt-5 grid gap-3 text-sm text-white/60 md:grid-cols-3">
+            <p class="rounded-2xl border border-white/10 bg-white/5 p-5"><strong class="mb-2 block text-white">Plano administrativo</strong>Admin Front e Admin Backend concentram autoria, catálogo, versionamento, auditoria, execução assistida e diagnóstico.</p>
+            <p class="rounded-2xl border border-white/10 bg-white/5 p-5"><strong class="mb-2 block text-white">Plano de publicação</strong>O snapshot segue em dois trilhos: processo BPMN para o runtime e envelopes SDUI para o repositório de especificações.</p>
+            <p class="rounded-2xl border border-white/10 bg-white/5 p-5"><strong class="mb-2 block text-white">Plano de canais</strong>Os canais executam via fachada própria e recebem a tela resolvida sem consultar nem conhecer o domínio do Admin.</p>
+          </div>
+
+          <div class="mt-12 grid gap-5 lg:grid-cols-[.9fr_1.1fr]">
+            <article class="rounded-3xl border border-mint/20 bg-mint/10 p-7">
+              <p class="text-xs font-extrabold uppercase tracking-[.15em] text-mint">Fronteira essencial</p>
+              <h3 class="mt-3 text-2xl font-black tracking-[-.03em]">O canal não carrega a complexidade da plataforma.</h3>
+              <p class="mt-4 leading-7 text-white/65">Contratos headless resolvem binding, interpolação, visibilidade e ações. Renderers fazem a última milha no framework visual; o fluxo continua no runtime.</p>
+            </article>
+            <article class="rounded-3xl border border-orange/20 bg-orange/10 p-7">
+              <p class="text-xs font-extrabold uppercase tracking-[.15em] text-orange">Ponto de evolução</p>
+              <h3 class="mt-3 text-2xl font-black tracking-[-.03em]">Protótipo funcional não é sinônimo de produção.</h3>
+              <p class="mt-4 leading-7 text-white/65">Integrações reais de identidade, SIEM, infraestrutura, testes e operação precisam amadurecer antes de uma adoção corporativa ampla. Essa distinção orienta o roadmap.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Canais: explica projeção e reutilização -->
+      <section class="py-24 lg:py-32">
+        <div class="mx-auto max-w-[1240px] px-5 lg:px-8">
+          <div class="grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:gap-16">
+            <div class="reveal lg:sticky lg:top-28 lg:self-start visible">
+              <p class="eyebrow mb-5 text-electric">Para times de canais digitais</p>
+              <h2 class="section-title text-4xl font-black sm:text-5xl">A mesma intenção. Uma expressão nativa em cada canal.</h2>
+              <p class="mt-6 text-lg leading-8 text-slate-600">O que se compartilha é o contrato da jornada — não uma tela rígida. Cada canal mantém seu renderer, seus componentes e sua identidade visual.</p>
+            </div>
+
+            <div class="space-y-4">
+              <article class="reveal grid gap-5 rounded-3xl border border-line bg-white p-6 sm:grid-cols-[84px_1fr] sm:p-8 visible">
+                <span class="grid h-[72px] w-[72px] place-items-center rounded-2xl bg-electric-soft text-xs font-black text-electric">WEB</span>
+                <div><h3 class="text-2xl font-black tracking-[-.03em]">React Web e Flutter Web</h3><p class="mt-2 leading-7 text-slate-600">Recebem o mesmo envelope, resolvem estado no runtime headless e projetam a árvore em componentes de interface adequados ao navegador.</p><p class="mt-4 text-sm font-bold text-electric">Ganho principal: padronização sem bloquear evolução visual.</p></div>
+              </article>
+              <article class="reveal grid gap-5 rounded-3xl border border-line bg-white p-6 sm:grid-cols-[84px_1fr] sm:p-8 visible">
+                <span class="grid h-[72px] w-[72px] place-items-center rounded-2xl bg-[#e8fff7] text-xs font-black text-[#0b7258]">APP</span>
+                <div><h3 class="text-2xl font-black tracking-[-.03em]">React Native e Flutter Mobile</h3><p class="mt-2 leading-7 text-slate-600">Executam a jornada no app real, com adaptadores próprios e bootstrap controlado, preservando capacidades e ergonomia nativas do dispositivo.</p><p class="mt-4 text-sm font-bold text-[#0b7258]">Ganho principal: acelerar jornadas sem transformar o app em webview.</p></div>
+              </article>
+              <article class="reveal grid gap-5 rounded-3xl border border-line bg-white p-6 sm:grid-cols-[84px_1fr] sm:p-8 visible">
+                <span class="grid h-[72px] w-[72px] place-items-center rounded-2xl bg-[#fff1e6] text-[10px] font-black text-[#a44b0b]">WHATSAPP</span>
+                <div><h3 class="text-2xl font-black tracking-[-.03em]">Projeção conversacional</h3><p class="mt-2 leading-7 text-slate-600">Layout vira sequência: textos, perguntas, botões, listas e CTAs são convertidos para o repertório conversacional sem reimplementar a regra da jornada.</p><p class="mt-4 text-sm font-bold text-[#a44b0b]">Ganho principal: reaproveitar processo, dados e decisão em outra linguagem.</p></div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Maturidade e transparência do progresso -->
+      <section id="maturidade" class="border-y border-line bg-white py-24 lg:py-32">
+        <div class="mx-auto max-w-[1240px] px-5 lg:px-8">
+          <div class="grid gap-8 lg:grid-cols-[1fr_.85fr] lg:items-end">
+            <div class="reveal visible">
+              <p class="eyebrow mb-5 text-electric">Leitura de maturidade</p>
+              <h2 class="section-title text-4xl font-black sm:text-5xl">O produto está avançado. A industrialização ainda tem trabalho.</h2>
+            </div>
+            <p class="reveal text-lg leading-8 text-slate-600 visible">Este recorte é factual e vem do acompanhamento da versão 1.0.0. Ele evita que 90% de entrega funcional seja interpretado como 90% de prontidão produtiva.</p>
+          </div>
+
+          <div class="mt-12 grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
+            <div class="rounded-3xl border border-line bg-paper p-6 sm:p-8">
+              <div class="flex items-end justify-between gap-4">
+                <div><p class="text-xs font-extrabold uppercase tracking-[.15em] text-slate-500">Escopo funcional v1.0.0</p><strong class="mt-2 block text-5xl font-black tracking-[-.05em]">90%</strong></div>
+                <span class="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-600">456 de 506 REQs</span>
+              </div>
+              <div class="mt-7 h-3 overflow-hidden rounded-full bg-slate-200"><span class="block h-full w-[90%] rounded-full bg-electric"></span></div>
+              <div class="mt-7 grid grid-cols-3 gap-3 text-center">
+                <div class="rounded-2xl bg-white p-4"><strong class="block text-2xl font-black text-[#13715b]">456</strong><span class="text-xs text-slate-500">concluídos</span></div>
+                <div class="rounded-2xl bg-white p-4"><strong class="block text-2xl font-black text-[#a44b0b]">3</strong><span class="text-xs text-slate-500">em andamento</span></div>
+                <div class="rounded-2xl bg-white p-4"><strong class="block text-2xl font-black text-slate-700">45</strong><span class="text-xs text-slate-500">não iniciados</span></div>
+              </div>
+            </div>
+
+            <div class="rounded-3xl bg-ink p-6 text-white sm:p-8">
+              <p class="text-xs font-extrabold uppercase tracking-[.15em] text-orange">Trilhas críticas antes de produção</p>
+              <ul class="mt-6 space-y-5">
+                <li class="flex gap-4"><span class="mt-1 h-3 w-3 shrink-0 rounded-sm bg-orange"></span><div><strong class="block">Identidade corporativa real</strong><span class="mt-1 block text-sm leading-6 text-white/55">Autenticação e autorização ainda carregam pontos mockados.</span></div></li>
+                <li class="flex gap-4"><span class="mt-1 h-3 w-3 shrink-0 rounded-sm bg-orange"></span><div><strong class="block">SIEM e trilha de auditoria</strong><span class="mt-1 block text-sm leading-6 text-white/55">Transporte confiável, segurança do canal e operação do SIEM estão planejados.</span></div></li>
+                <li class="flex gap-4"><span class="mt-1 h-3 w-3 shrink-0 rounded-sm bg-orange"></span><div><strong class="block">Testes e infraestrutura</strong><span class="mt-1 block text-sm leading-6 text-white/55">São as duas frentes sem conclusão funcional no acompanhamento atual.</span></div></li>
+              </ul>
+            </div>
+          </div>
+
+          <details class="group mt-5 overflow-hidden rounded-3xl border border-line bg-white">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-5 p-6 font-extrabold sm:px-8">
+              Ver progresso das 15 frentes
+              <span class="grid h-9 w-9 place-items-center rounded-full bg-paper transition group-open:rotate-45">+</span>
+            </summary>
+            <div class="grid gap-x-9 gap-y-5 border-t border-line p-6 sm:grid-cols-2 sm:p-8">
+              <div data-progress="100" data-color="#24a286"><div class="flex justify-between text-sm"><span>FT-01 · Produtos e Canais</span><b>100%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:100%;--bar-color:#24a286"></span></div></div>
+              <div data-progress="100" data-color="#24a286"><div class="flex justify-between text-sm"><span>FT-02 · Jornadas</span><b>100%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:100%;--bar-color:#24a286"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-03 · Modelagem Visual</span><b>100%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:100%;--bar-color:#24a286"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-04 · Catálogo SDUI</span><b>100%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:100%;--bar-color:#24a286"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-05 · Execução</span><b>100%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:100%;--bar-color:#24a286"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-06 · Versionamento</span><b>100%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:100%;--bar-color:#24a286"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-07 · Autenticação</span><b>84%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:84%;--bar-color:#ff9f5a"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-08 · Auditoria</span><b>57%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:57%;--bar-color:#ff9f5a"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-09 · Ajuda e suporte</span><b>100%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:100%;--bar-color:#24a286"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-10 · Observabilidade</span><b>92%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:92%;--bar-color:#5b7cff"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-11 · Testes</span><b>0%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:0%;--bar-color:#ff9f5a"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-12 · Infraestrutura</span><b>0%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:0%;--bar-color:#ff9f5a"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-13 · Dashboard</span><b>100%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:100%;--bar-color:#24a286"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-14 · Integrações</span><b>96%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:96%;--bar-color:#5b7cff"></span></div></div>
+              <div><div class="flex justify-between text-sm"><span>FT-15 · Diagnóstico</span><b>100%</b></div><div class="status-bar mt-2 h-2 rounded-full bg-slate-100"><span style="width:100%;--bar-color:#24a286"></span></div></div>
+            </div>
+          </details>
+          <p class="mt-4 text-xs text-slate-400">Fonte: registro vivo de requisitos do projeto, recorte de 12/09/2026.</p>
+        </div>
+      </section>
+
+      <!-- Hub de documentação -->
+      <section id="documentacao" class="py-24 lg:py-32">
+        <div class="mx-auto max-w-[1240px] px-5 lg:px-8">
+          <div class="grid gap-8 lg:grid-cols-[.85fr_1.15fr] lg:items-end">
+            <div class="reveal visible">
+              <p class="eyebrow mb-5 text-electric">Repositório de conhecimento</p>
+              <h2 class="section-title text-4xl font-black sm:text-5xl">Do conceito ao detalhe de implementação.</h2>
+            </div>
+            <p class="reveal text-lg leading-8 text-slate-600 visible">Uma porta de entrada única para executivos, produto, arquitetura, desenvolvimento e operação — com níveis diferentes de profundidade, mas a mesma fonte de verdade.</p>
+          </div>
+
+          <div class="mt-10 grid gap-4 lg:grid-cols-3" aria-label="Trilhas de leitura por público">
+            <article class="reveal rounded-3xl bg-navy p-7 text-white visible">
+              <div class="flex items-center justify-between gap-4">
+                <span class="rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[.12em] text-mint">Leitura de 3 min</span>
+                <span class="text-2xl" aria-hidden="true">↗</span>
+              </div>
+              <h3 class="mt-7 text-2xl font-black">Para liderança</h3>
+              <p class="mt-3 leading-7 text-white/70">Problema, valor, alcance e maturidade. O suficiente para decidir por que investir e onde começar.</p>
+            </article>
+            <article class="reveal rounded-3xl border border-line bg-white p-7 visible">
+              <div class="flex items-center justify-between gap-4">
+                <span class="rounded-full bg-electric/10 px-3 py-1 text-[11px] font-black uppercase tracking-[.12em] text-electric">Leitura de 10 min</span>
+                <span class="text-2xl text-electric" aria-hidden="true">↗</span>
+              </div>
+              <h3 class="mt-7 text-2xl font-black text-navy">Para Produto e Canais</h3>
+              <p class="mt-3 leading-7 text-slate-600">Capacidades, jornada ponta a ponta e divisão de responsabilidades entre plataforma, UX e cada canal.</p>
+            </article>
+            <article class="reveal rounded-3xl border border-mint/30 bg-mint/10 p-7 visible">
+              <div class="flex items-center justify-between gap-4">
+                <span class="rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[.12em] text-[#0b7258]">Aprofundamento</span>
+                <span class="text-2xl text-[#0b7258]" aria-hidden="true">↗</span>
+              </div>
+              <h3 class="mt-7 text-2xl font-black text-navy">Para Tecnologia</h3>
+              <p class="mt-3 leading-7 text-slate-600">Arquitetura, contratos, dados, integrações, infraestrutura, segurança e guias operacionais.</p>
+            </article>
+          </div>
+
+          <div class="mt-10 flex flex-col gap-4 rounded-2xl border border-line bg-white p-4 md:flex-row md:items-center md:justify-between">
+            <label class="relative block min-w-0 flex-1">
+              <span class="sr-only">Buscar documentação</span>
+              <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"></circle><path d="m20 20-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+              <input id="docSearch" type="search" class="h-12 w-full rounded-xl border border-line bg-paper pl-11 pr-4 text-sm outline-none transition focus:border-electric focus:bg-white" placeholder="Buscar por arquitetura, SDUI, API, canal...">
+            </label>
+            <div class="flex flex-wrap gap-2" aria-label="Filtrar documentação">
+              <button class="doc-filter rounded-full px-3.5 py-2 text-xs font-extrabold text-slate-600" data-filter="all" aria-pressed="true">Todos</button>
+              <button class="doc-filter rounded-full px-3.5 py-2 text-xs font-extrabold text-slate-600" data-filter="negocio" aria-pressed="false">Negócio</button>
+              <button class="doc-filter rounded-full px-3.5 py-2 text-xs font-extrabold text-slate-600" data-filter="arquitetura" aria-pressed="false">Arquitetura</button>
+              <button class="doc-filter rounded-full px-3.5 py-2 text-xs font-extrabold text-slate-600" data-filter="contratos" aria-pressed="false">Contratos</button>
+              <button class="doc-filter rounded-full px-3.5 py-2 text-xs font-extrabold text-slate-600" data-filter="operacao" aria-pressed="false">Operação</button>
+            </div>
+          </div>
+
+          <div id="docsGrid" class="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <article class="doc-card rounded-2xl border border-line bg-white p-6" data-category="negocio" data-search="visão executiva produto objetivo conceitos glossário index">
+              <div class="flex items-start justify-between gap-4"><span class="rounded-full bg-electric-soft px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-electric">Comece aqui</span><span class="text-xs text-slate-400">12 min</span></div>
+              <h3 class="mt-6 text-xl font-extrabold">Visão executiva do produto</h3><p class="mt-2 text-sm leading-6 text-slate-600">Objetivo, escopo, conceitos centrais, ciclo de vida e vocabulário comum.</p>
+              <button class="doc-open mt-6 text-sm font-extrabold text-electric" data-doc="visao">Ver resumo →</button>
+            </article>
+            <article class="doc-card rounded-2xl border border-line bg-white p-6" data-category="negocio" data-search="requisitos progresso features user stories escopo roadmap">
+              <div class="flex items-start justify-between gap-4"><span class="rounded-full bg-[#e8fff7] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[#0b7258]">Fonte viva</span><span class="text-xs text-slate-400">506 REQs</span></div>
+              <h3 class="mt-6 text-xl font-extrabold">Requisitos e progresso</h3><p class="mt-2 text-sm leading-6 text-slate-600">As 15 frentes, suas user stories, evidências e status de implementação.</p>
+              <button class="doc-open mt-6 text-sm font-extrabold text-electric" data-doc="requisitos">Ver resumo →</button>
+            </article>
+            <article class="doc-card rounded-2xl border border-line bg-white p-6" data-category="arquitetura" data-search="arquitetura lógica domínios serviços responsabilidades fronteiras">
+              <div class="flex items-start justify-between gap-4"><span class="rounded-full bg-[#f0eaff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[#6838b6]">Arquitetura</span><span class="text-xs text-slate-400">21 capítulos</span></div>
+              <h3 class="mt-6 text-xl font-extrabold">Arquitetura lógica</h3><p class="mt-2 text-sm leading-6 text-slate-600">Domínios, responsabilidades, fronteira com runtime e fluxos de publicação.</p>
+              <button class="doc-open mt-6 text-sm font-extrabold text-electric" data-doc="arquitetura">Ver resumo →</button>
+            </article>
+            <article class="doc-card rounded-2xl border border-line bg-white p-6" data-category="arquitetura" data-search="canais emulador bff ms-journey renderers react flutter whatsapp runtime">
+              <div class="flex items-start justify-between gap-4"><span class="rounded-full bg-[#fff1e6] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[#a44b0b]">Canais</span><span class="text-xs text-slate-400">5 alvos</span></div>
+              <h3 class="mt-6 text-xl font-extrabold">Arquitetura de canais</h3><p class="mt-2 text-sm leading-6 text-slate-600">Channel Lab, Emulator BFF, SDKs headless, renderers e projeção conversacional.</p>
+              <button class="doc-open mt-6 text-sm font-extrabold text-electric" data-doc="canais">Ver resumo →</button>
+            </article>
+            <article class="doc-card rounded-2xl border border-line bg-white p-6" data-category="contratos" data-search="sdui catálogo component registry 19 componentes bindings eventos visibilidade">
+              <div class="flex items-start justify-between gap-4"><span class="rounded-full bg-[#e8fff7] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[#0b7258]">Contrato v1</span><span class="text-xs text-slate-400">19 tipos</span></div>
+              <h3 class="mt-6 text-xl font-extrabold">Catálogo corporativo SDUI</h3><p class="mt-2 text-sm leading-6 text-slate-600">Componentes, schemas, targets, eventos, bindings e condições de visibilidade.</p>
+              <button class="doc-open mt-6 text-sm font-extrabold text-electric" data-doc="sdui">Ver resumo →</button>
+            </article>
+            <article class="doc-card rounded-2xl border border-line bg-white p-6" data-category="contratos" data-search="openapi api endpoints schemas dados dicionário modelo er físico conceitual">
+              <div class="flex items-start justify-between gap-4"><span class="rounded-full bg-electric-soft px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-electric">Referência</span><span class="text-xs text-slate-400">API + dados</span></div>
+              <h3 class="mt-6 text-xl font-extrabold">Contratos e modelo de dados</h3><p class="mt-2 text-sm leading-6 text-slate-600">OpenAPI, modelo conceitual, modelo físico e dicionário de dados.</p>
+              <button class="doc-open mt-6 text-sm font-extrabold text-electric" data-doc="contratos">Ver resumo →</button>
+            </article>
+            <article class="doc-card rounded-2xl border border-line bg-white p-6" data-category="arquitetura" data-search="adr integração resilience4j external task kafka decisões tradeoffs">
+              <div class="flex items-start justify-between gap-4"><span class="rounded-full bg-[#fff1e6] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[#a44b0b]">Decisão</span><span class="text-xs text-slate-400">ADR-001</span></div>
+              <h3 class="mt-6 text-xl font-extrabold">Decisões arquiteturais</h3><p class="mt-2 text-sm leading-6 text-slate-600">Critérios para chamadas síncronas, External Tasks e custos para o BFF.</p>
+              <button class="doc-open mt-6 text-sm font-extrabold text-electric" data-doc="adr">Ver resumo →</button>
+            </article>
+            <article class="doc-card rounded-2xl border border-line bg-white p-6" data-category="operacao" data-search="channel lab operação bootstrap diagnóstico portas ambiente">
+              <div class="flex items-start justify-between gap-4"><span class="rounded-full bg-[#f0eaff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[#6838b6]">Manual</span><span class="text-xs text-slate-400">Laboratório</span></div>
+              <h3 class="mt-6 text-xl font-extrabold">Operação do Channel Lab</h3><p class="mt-2 text-sm leading-6 text-slate-600">Como selecionar publicações, iniciar hosts e observar o comportamento por canal.</p>
+              <button class="doc-open mt-6 text-sm font-extrabold text-electric" data-doc="lab">Ver resumo →</button>
+            </article>
+            <article class="doc-card rounded-2xl border border-line bg-white p-6" data-category="operacao" data-search="react native flutter whatsapp wce guias setup mobile web">
+              <div class="flex items-start justify-between gap-4"><span class="rounded-full bg-[#e8fff7] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[#0b7258]">Guias</span><span class="text-xs text-slate-400">Por alvo</span></div>
+              <h3 class="mt-6 text-xl font-extrabold">Manuais de canal</h3><p class="mt-2 text-sm leading-6 text-slate-600">React Native, Flutter e WhatsApp/WCE, com setup e critérios de validação.</p>
+              <button class="doc-open mt-6 text-sm font-extrabold text-electric" data-doc="manuais">Ver resumo →</button>
+            </article>
+          </div>
+          <p id="emptyDocs" class="mt-8 hidden rounded-2xl border border-dashed border-line bg-white p-8 text-center text-slate-500">Nenhum documento corresponde a esta busca.</p>
+        </div>
+      </section>
+
+      <!-- Encerramento e CTA interno -->
+      <section class="px-5 pb-20 lg:px-8 lg:pb-28">
+        <div class="mx-auto grid max-w-[1240px] overflow-hidden rounded-[2rem] bg-electric text-white shadow-soft lg:grid-cols-[1.1fr_.9fr]">
+          <div class="p-8 sm:p-12 lg:p-16">
+            <p class="text-xs font-extrabold uppercase tracking-[.16em] text-white/60">Leve um caso real para a conversa</p>
+            <h2 class="section-title mt-4 text-4xl font-black sm:text-5xl">Qual jornada deveria ser nosso melhor exemplo?</h2>
+            <p class="mt-5 max-w-[620px] text-lg leading-8 text-white/75">A próxima versão desta página pode explicar a plataforma por meio de um caso ponta a ponta: entrada, integrações, decisões, telas, canais, publicação e operação.</p>
+          </div>
+          <form id="interestForm" class="m-4 rounded-[1.5rem] bg-white p-6 text-ink sm:m-6 sm:p-8" novalidate="">
+            <label class="block text-sm font-extrabold" for="caseEmail">Seu e-mail corporativo</label>
+            <input id="caseEmail" name="email" type="email" required="" class="mt-2 h-12 w-full rounded-xl border border-line bg-paper px-4 text-sm outline-none transition focus:border-electric focus:bg-white" placeholder="nome@empresa.com">
+            <label class="mt-5 block text-sm font-extrabold" for="caseName">Jornada ou área</label>
+            <input id="caseName" name="case" type="text" required="" class="mt-2 h-12 w-full rounded-xl border border-line bg-paper px-4 text-sm outline-none transition focus:border-electric focus:bg-white" placeholder="Ex.: onboarding, vendas, atendimento">
+            <button type="submit" class="mt-5 w-full rounded-xl bg-ink px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#14294e]">Sugerir caso piloto</button>
+            <p id="formMessage" class="mt-3 min-h-5 text-xs leading-5 text-slate-500" aria-live="polite">Na prévia, o envio é apenas demonstrativo.</p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-line bg-white">
+      <div class="mx-auto flex max-w-[1240px] flex-col gap-6 px-5 py-10 sm:flex-row sm:items-end sm:justify-between lg:px-8">
+        <div><strong class="text-lg font-black tracking-[-.03em]">Dynamic Journey</strong><p class="mt-2 max-w-[520px] text-sm leading-6 text-slate-500">Prévia institucional baseada no estado atual de requisitos, código, decisões arquiteturais e simuladores do projeto.</p></div>
+        <div class="flex flex-wrap gap-5 text-sm font-bold text-slate-500"><a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#inicio" class="hover:text-ink">Voltar ao topo</a><a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#maturidade" class="hover:text-ink">Maturidade</a><a href="file:///D:/her/desenv/projetos/jouney/admin/documentacao/dist/index.html#documentacao" class="hover:text-ink">Documentação</a></div>
+      </div>
+    </footer>
+
+    <!-- Modal de leitura rápida dos documentos. -->
+    <dialog id="docDialog" aria-labelledby="dialogTitle">
+      <div class="border-b border-line p-6 sm:px-8">
+        <div class="flex items-start justify-between gap-5">
+          <div><p id="dialogTag" class="text-[10px] font-black uppercase tracking-[.14em] text-electric">Documento</p><h2 id="dialogTitle" class="mt-2 text-2xl font-black tracking-[-.03em]">Título</h2></div>
+          <button id="dialogClose" class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-paper text-xl" aria-label="Fechar">×</button>
+        </div>
+      </div>
+      <div class="p-6 sm:px-8 sm:py-7">
+        <p id="dialogBody" class="text-lg leading-8 text-slate-600"></p>
+        <div class="mt-7 grid gap-4 sm:grid-cols-[.78fr_1.22fr]">
+          <div class="rounded-2xl bg-[#f3f6fb] p-5">
+            <p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Leitura indicada para</p>
+            <p id="dialogAudience" class="mt-2 font-bold leading-6 text-navy"></p>
+          </div>
+          <div class="rounded-2xl bg-mint/10 p-5">
+            <p class="text-[10px] font-black uppercase tracking-[.14em] text-[#0b7258]">Decisão que este conteúdo apoia</p>
+            <p id="dialogDecision" class="mt-2 font-bold leading-6 text-navy"></p>
+          </div>
+        </div>
+        <div class="mt-6 border-t border-line pt-6">
+          <p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">O que você encontra aqui</p>
+          <ul id="dialogHighlights" class="mt-3 grid gap-3 text-sm leading-6 text-slate-600 sm:grid-cols-2"></ul>
+        </div>
+        <p class="mt-6 text-xs leading-5 text-slate-400">Conteúdo institucional em preparação. As evidências de implementação permanecem rastreáveis no repositório técnico, sem expor caminhos internos nesta experiência.</p>
+      </div>
+    </dialog>
+
+    <script>
+      // Menu mobile
+      const menuButton = document.querySelector('#menuButton');
+      const mobileMenu = document.querySelector('#mobileMenu');
+      menuButton.addEventListener('click', () => {
+        const open = mobileMenu.classList.toggle('open');
+        menuButton.setAttribute('aria-expanded', String(open));
+        menuButton.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+        document.body.classList.toggle('menu-open', open);
+      });
+      mobileMenu.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+        menuButton.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('menu-open');
+      }));
+
+      // Realce seletivo dos caminhos do diagrama.
+      const architecture = document.querySelector('.architecture');
+      const archTabs = [...document.querySelectorAll('.arch-tab')];
+      const archItems = [...document.querySelectorAll('.arch-node, .arch-edge')];
+      archTabs.forEach(tab => tab.addEventListener('click', () => {
+        const focus = tab.dataset.arch;
+        architecture.dataset.focus = focus;
+        archTabs.forEach(item => item.setAttribute('aria-selected', String(item === tab)));
+        archItems.forEach(item => {
+          const layers = (item.dataset.layers || '').split(' ');
+          item.classList.toggle('dim', focus !== 'all' && !layers.includes(focus));
+        });
+      }));
+
+      // Catálogo pesquisável de documentos.
+      const docSearch = document.querySelector('#docSearch');
+      const filters = [...document.querySelectorAll('.doc-filter')];
+      const docCards = [...document.querySelectorAll('.doc-card')];
+      const emptyDocs = document.querySelector('#emptyDocs');
+      let activeFilter = 'all';
+
+      function filterDocs() {
+        const query = docSearch.value.trim().toLocaleLowerCase('pt-BR');
+        let visible = 0;
+        docCards.forEach(card => {
+          const categoryMatch = activeFilter === 'all' || card.dataset.category === activeFilter;
+          const searchable = `${card.dataset.search} ${card.textContent}`.toLocaleLowerCase('pt-BR');
+          const searchMatch = !query || searchable.includes(query);
+          card.hidden = !(categoryMatch && searchMatch);
+          if (!card.hidden) visible += 1;
+        });
+        emptyDocs.classList.toggle('hidden', visible !== 0);
+      }
+
+      docSearch.addEventListener('input', filterDocs);
+      filters.forEach(button => button.addEventListener('click', () => {
+        activeFilter = button.dataset.filter;
+        filters.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+        filterDocs();
+      }));
+
+      // Resumos editoriais baseados nas fontes atuais do repositório.
+      const docs = {
+        visao: {
+          tag: 'Comece por aqui',
+          title: 'Dynamic Journey, em linguagem de negócio',
+          body: 'Uma visão direta do problema que a plataforma resolve: reduzir o esforço de criar e manter a mesma jornada em canais diferentes, preservando governança, velocidade de evolução e uma experiência adequada a cada contexto.',
+          audience: 'Lideranças, Produto e áreas de negócio',
+          decision: 'Entender onde a plataforma gera valor e quais jornadas são boas candidatas para adoção.',
+          highlights: ['O problema e a oportunidade', 'Valor para canais digitais', 'Como a solução funciona em alto nível', 'Limites atuais e próximos marcos']
+        },
+        requisitos: {
+          tag: 'Governança de produto',
+          title: 'O que já existe — e o que ainda falta',
+          body: 'Uma leitura transparente da evolução da versão 1.0.0. O progresso é apresentado por capacidade, com distinção clara entre funcionalidade demonstrável, item em construção e condição necessária para produção.',
+          audience: 'Patrocinadores, Produto e gestão de portfólio',
+          decision: 'Priorizar investimentos e alinhar expectativa de piloto, industrialização e adoção.',
+          highlights: ['Capacidades entregues', 'Frentes em andamento', 'Dependências para produção', 'Critérios para o próximo marco']
+        },
+        arquitetura: {
+          tag: 'Visão de arquitetura',
+          title: 'Como as responsabilidades se distribuem',
+          body: 'Explica a separação entre autoria, publicação e execução. A leitura parte das responsabilidades de cada bloco e aprofunda, sob demanda, os contratos e dependências entre administração, runtime, catálogo de telas e canais.',
+          audience: 'Arquitetura, plataformas e engenharia',
+          decision: 'Avaliar aderência ao ecossistema corporativo e definir fronteiras de responsabilidade.',
+          highlights: ['Mapa de componentes', 'Quem chama quem', 'Fluxo de publicação', 'Dependências e pontos de evolução']
+        },
+        canais: {
+          tag: 'Experiência multicanal',
+          title: 'Como a jornada chega a Web, App e WhatsApp',
+          body: 'Mostra como uma intenção comum é projetada de forma nativa em cada canal. O fluxo e os dados são reaproveitados; cada canal mantém seu renderer, seus componentes e sua linguagem de interação.',
+          audience: 'Produto, UX, Canais Digitais e engenharia de front',
+          decision: 'Definir o que é compartilhado pela plataforma e o que continua sendo responsabilidade de cada canal.',
+          highlights: ['Jornada compartilhada', 'Experiência nativa por alvo', 'Bootstrap e execução', 'Papel dos renderers']
+        },
+        sdui: {
+          tag: 'Contrato de experiência',
+          title: 'Catálogo corporativo de componentes',
+          body: 'Apresenta o vocabulário comum usado para descrever telas e interações. O catálogo estabelece quais componentes existem, como se comportam e em quais canais podem ser usados, sem impor uma interface visual idêntica.',
+          audience: 'Design System, UX, Produto e desenvolvimento',
+          decision: 'Governar consistência e evolução da experiência sem engessar os canais.',
+          highlights: ['19 tipos de componente', 'Eventos e dados', 'Compatibilidade por canal', 'Evolução e versionamento']
+        },
+        contratos: {
+          tag: 'Referência técnica',
+          title: 'APIs, eventos e modelo de informação',
+          body: 'Organiza os contratos que conectam as peças da plataforma e o modelo que sustenta produtos, jornadas, versões, publicações e execuções. É a ponte entre a visão arquitetural e a implementação.',
+          audience: 'Tech leads, arquitetura e times integradores',
+          decision: 'Planejar integrações, responsabilidades de dados e impactos de evolução.',
+          highlights: ['Contratos de API', 'Entidades e relacionamentos', 'Persistência e versionamento', 'Regras de compatibilidade']
+        },
+        adr: {
+          tag: 'Decisões de engenharia',
+          title: 'Por que a integração muda conforme o caso',
+          body: 'Resume os critérios que orientam chamadas rápidas, processamento assíncrono e integrações orientadas a eventos. O objetivo é tornar explícitos os trade-offs de resiliência, tempo de resposta e custo operacional.',
+          audience: 'Arquitetura, engenharia e operação',
+          decision: 'Escolher o padrão de integração adequado para cada etapa de uma jornada.',
+          highlights: ['Critérios de decisão', 'Chamadas síncronas', 'Processamento assíncrono', 'Riscos e trade-offs']
+        },
+        lab: {
+          tag: 'Demonstração e validação',
+          title: 'Como experimentar uma jornada publicada',
+          body: 'Guia o uso do ambiente de demonstração: escolher uma jornada, informar os dados iniciais e acompanhar sua execução no canal desejado. Também deixa claro o que é laboratório e o que pertence ao produto.',
+          audience: 'Produto, qualidade, engenharia e áreas interessadas',
+          decision: 'Validar hipóteses e preparar uma demonstração ou piloto com critérios objetivos.',
+          highlights: ['Seleção da jornada', 'Dados de entrada', 'Execução por canal', 'Limites do laboratório']
+        },
+        manuais: {
+          tag: 'Guias por canal',
+          title: 'Preparação dos canais de referência',
+          body: 'Reúne as orientações práticas para executar os hosts de referência em Web, Mobile e WhatsApp. É o nível operacional do acervo, destinado a quem precisa instalar, testar ou diagnosticar cada alvo.',
+          audience: 'Desenvolvimento, qualidade e sustentação',
+          decision: 'Preparar ambientes e comprovar o comportamento da jornada em cada canal.',
+          highlights: ['Pré-requisitos por alvo', 'Inicialização do host', 'Cenários de validação', 'Diagnóstico de falhas']
+        }
+      };
+
+      const dialog = document.querySelector('#docDialog');
+      const dialogTitle = document.querySelector('#dialogTitle');
+      const dialogTag = document.querySelector('#dialogTag');
+      const dialogBody = document.querySelector('#dialogBody');
+      const dialogAudience = document.querySelector('#dialogAudience');
+      const dialogDecision = document.querySelector('#dialogDecision');
+      const dialogHighlights = document.querySelector('#dialogHighlights');
+      document.querySelectorAll('.doc-open').forEach(button => button.addEventListener('click', () => {
+        const data = docs[button.dataset.doc];
+        dialogTag.textContent = data.tag;
+        dialogTitle.textContent = data.title;
+        dialogBody.textContent = data.body;
+        dialogAudience.textContent = data.audience;
+        dialogDecision.textContent = data.decision;
+        dialogHighlights.innerHTML = data.highlights.map(item => `<li class="flex gap-2"><span class="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-mint/15 text-[11px] font-black text-[#0b7258]">✓</span><span>${item}</span></li>`).join('');
+        dialog.showModal();
+      }));
+      document.querySelector('#dialogClose').addEventListener('click', () => dialog.close());
+      dialog.addEventListener('click', event => {
+        const rect = dialog.getBoundingClientRect();
+        const outside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+        if (outside) dialog.close();
+      });
+
+      // Formulário demonstrativo da prévia.
+      document.querySelector('#interestForm').addEventListener('submit', event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const message = document.querySelector('#formMessage');
+        if (!form.checkValidity()) {
+          message.textContent = 'Preencha um e-mail válido e descreva a jornada ou área.';
+          message.className = 'mt-3 min-h-5 text-xs leading-5 text-red-600';
+          form.reportValidity();
+          return;
+        }
+        message.textContent = 'Sugestão registrada nesta prévia. O canal oficial de envio será definido na versão final.';
+        message.className = 'mt-3 min-h-5 text-xs font-semibold leading-5 text-[#0b7258]';
+        form.reset();
+      });
+
+      // Entrada sutil de conteúdo, respeitando prefers-reduced-motion.
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: .12 });
+      document.querySelectorAll('.reveal').forEach(element => observer.observe(element));
+    </script>
+  
+
+</body></html>

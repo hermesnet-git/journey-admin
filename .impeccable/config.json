@@ -26,6 +26,15 @@
         ],
         "createdAt": "2026-09-08T19:23:36.862Z",
         "reason": "Pré-existente: .event-log article usa border-left de 2px como indicador semântico de severidade (info/erro) no log de diagnóstico, cor vem do nível do evento — não é acento decorativo de card, é dado de estado."
+      },
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "documentacao/apresentacao-dynamic-journey.html"
+        ],
+        "createdAt": "2026-09-14T02:24:14.686Z",
+        "reason": "user asked for purple accent color explicitly; used once on hero word only (cover slide), not on metrics or repeated headings"
       }
     ]
   }

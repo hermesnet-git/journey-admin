@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Apresentação e documentação interativa da arquitetura da plataforma Dynamic Journey."
+    />
+    <title>Dynamic Journey — Arquitetura da Solução</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#slide-1">Ir para a apresentação</a>
+
+    <header class="topbar" aria-label="Controles da apresentação">
+      <button class="brand" type="button" data-go="1" aria-label="Ir para a capa">
+        <span class="brand-orbit" aria-hidden="true"><span>DJ</span></span>
+        <span class="brand-copy">
+          <strong>Dynamic Journey</strong>
+          <small>Arquitetura da solução</small>
+        </span>
+      </button>
+
+      <div class="topbar-actions">
+        <button class="control-button" id="overviewButton" type="button" aria-haspopup="dialog">
+          <span aria-hidden="true">⌘</span><span class="control-label">Visões</span>
+        </button>
+        <button class="control-button" id="readingButton" type="button" aria-pressed="false">
+          <span aria-hidden="true">▤</span><span class="control-label">Modo leitura</span>
+        </button>
+        <button class="control-button" id="themeButton" type="button" aria-label="Alternar tema">
+          <span id="themeIcon" aria-hidden="true">☼</span><span class="control-label">Tema</span>
+        </button>
+        <button class="control-button" id="fullscreenButton" type="button" aria-label="Tela cheia">
+          <span aria-hidden="true">⛶</span><span class="control-label">Tela cheia</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="deck" id="deck" aria-live="polite">
+      <section class="slide cover active" id="slide-1" data-title="Capa" aria-labelledby="title-1">
+        <div class="cover-grid">
+          <div class="cover-copy">
+            <p class="eyebrow"><span class="eyebrow-dot"></span> Plataforma multijornada · multicanal</p>
+            <h1 id="title-1">Uma jornada.<br /><span class="gradient-text">Múltiplas experiências.</span></h1>
+            <p class="lead">
+              Arquitetura de solução da <strong>Dynamic Journey</strong>: autoria visual, publicação
+              versionada, execução com estado e projeção SDUI para canais digitais e conversacionais.
+            </p>
+            <div class="cover-tags" aria-label="Principais capacidades">
+              <span>Design time</span><span>Runtime engine</span><span>SDUI V1</span><span>Channel Lab</span>
+            </div>
+            <p class="cover-hint">Use <kbd>←</kbd> <kbd>→</kbd> para navegar ou abra <strong>Visões</strong>.</p>
+          </div>
+
+          <div class="cover-visual" aria-label="Ciclo da plataforma Dynamic Journey">
+            <div class="orbit orbit-a"></div>
+            <div class="orbit orbit-b"></div>
+            <div class="center-core">
+              <span class="core-kicker">estado + UI</span>
+              <strong>Journey<br />Runtime</strong>
+              <small>execução governada</small>
+            </div>
+            <button class="satellite sat-author" type="button" data-go="4">
+              <span>01</span><strong>Autoria</strong><small>fluxo · tela · integrações</small>
+            </button>
+            <button class="satellite sat-publish" type="button" data-go="5">
+              <span>02</span><strong>Publicação</strong><small>BPMN + snapshots SDUI</small>
+            </button>
+            <button class="satellite sat-channel" type="button" data-go="9">
+              <span>03</span><strong>Canais</strong><small>Web · Mobile · WhatsApp</small>
+            </button>
+          </div>
+        </div>
+        <footer class="slide-footer"><span>Visão de arquitetura</span><span>15 set. 2026</span></footer>
+      </section>
+
+      <section class="slide" id="slide-2" data-title="Tese arquitetural" aria-labelledby="title-2">
+        <div class="slide-heading">
+          <p class="eyebrow">01 · Leitura executiva</p>
+          <h2 id="title-2">A plataforma separa intenção, execução e experiência</h2>
+          <p class="subtitle">O fluxo define <em>o que acontece</em>; o SDUI define <em>como cada etapa interage</em>; o canal decide <em>como apresentar</em>.</p>
+        </div>
+
+        <div class="thesis-grid">
+          <article class="thesis-card authoring">
+            <div class="big-number">01</div>
+            <span class="card-icon">✦</span>
+            <h3>Intenção</h3>
+            <p>O Portal Administrativo compõe jornadas, telas e integrações em uma versão imutável.</p>
+            <ul class="compact-list"><li>Workflow visual</li><li>Árvore SDUI</li><li>REST e mensageria</li></ul>
+          </article>
+          <div class="thesis-arrow" aria-hidden="true">→</div>
+          <article class="thesis-card runtime">
+            <div class="big-number">02</div>
+            <span class="card-icon">⌁</span>
+            <h3>Execução</h3>
+            <p>O motor mantém o estado e avança a instância; o `ms-journey` oferece a fachada aos canais.</p>
+            <ul class="compact-list"><li>Estado durável</li><li>Próximo passo</li><li>Correlação</li></ul>
+          </article>
+          <div class="thesis-arrow" aria-hidden="true">→</div>
+          <article class="thesis-card channels">
+            <div class="big-number">03</div>
+            <span class="card-icon">◉</span>
+            <h3>Experiência</h3>
+            <p>Renderers projetam o mesmo contrato para interfaces visuais ou conversa.</p>
+            <ul class="compact-list"><li>React</li><li>Flutter</li><li>WhatsApp</li></ul>
+          </article>
+        </div>
+
+        <aside class="principle-bar">
+          <strong>Princípio de desacoplamento</strong>
+          <span>Canais não acessam o motor, o Strapi ou o Admin diretamente. Contratos estáveis protegem cada fronteira.</span>
+        </aside>
+        <footer class="slide-footer"><span>Mensagem-chave</span><span>Intent → State → Experience</span></footer>
+      </section>
+
+      <section class="slide" id="slide-3" data-title="Visão de contexto" aria-labelledby="title-3">
+        <div class="slide-heading compact">
+          <p class="eyebrow">02 · Contexto</p>
+          <h2 id="title-3">Três soluções, dois momentos, uma plataforma</h2>
+          <p class="subtitle">Selecione uma camada para destacar suas responsabilidades e integrações.</p>
+        </div>
+
+        <div class="focus-controls" role="group" aria-label="Destacar camada arquitetural">
+          <button class="focus-chip active" type="button" data-focus="all">Visão completa</button>
+          <button class="focus-chip" type="button" data-focus="design">Design</button>
+          <button class="focus-chip" type="button" data-focus="publication">Publicação</button>
+          <button class="focus-chip" type="button" data-focus="runtime">Runtime</button>
+          <button class="focus-chip" type="button" data-focus="channels">Canais</button>
+        </div>
+
+        <div class="landscape" id="landscape">
+          <div class="landscape-zone zone-design" data-layer="design">
+            <div class="zone-label"><span>DESIGN TIME</span><small>Autoria e governança</small></div>
+            <button class="architecture-node node-admin" type="button" data-detail="admin">
+              <span class="node-code">PORTAL</span><strong>Admin Front</strong><small>Autoria visual + operação</small>
+            </button>
+            <button class="architecture-node" type="button" data-detail="admin-back">
+              <span class="node-code">API</span><strong>Admin Backend</strong><small>Domínio, versões e validação</small>
+            </button>
+            <div class="node-connector vertical"><span>HTTP / JSON</span></div>
+          </div>
+
+          <div class="landscape-zone zone-publication" data-layer="publication">
+            <div class="zone-label"><span>PUBLICAÇÃO</span><small>Transformação e distribuição</small></div>
+            <button class="architecture-node accent-purple" type="button" data-detail="transform">
+              <span class="node-code">BPMN</span><strong>ms-transform-publication</strong><small>Flow → processo executável</small>
+            </button>
+            <button class="architecture-node accent-pink" type="button" data-detail="registry">
+              <span class="node-code">SDUI</span><strong>ms-espec-registry</strong><small>Contrato + snapshots</small>
+            </button>
+          </div>
+
+          <div class="landscape-zone zone-runtime" data-layer="runtime">
+            <div class="zone-label"><span>RUNTIME</span><small>Estado e orquestração</small></div>
+            <button class="architecture-node accent-blue" type="button" data-detail="journey">
+              <span class="node-code">FACHADA</span><strong>ms-journey</strong><small>APIs para qualquer canal</small>
+            </button>
+            <button class="architecture-node accent-green" type="button" data-detail="engine">
+              <span class="node-code">ENGINE</span><strong>ms-runtime-engine</strong><small>Instâncias, tarefas e conectores</small>
+            </button>
+            <button class="architecture-node small-node" type="button" data-detail="strapi">
+              <span class="node-code">STORE</span><strong>Strapi</strong><small>Snapshots SDUI</small>
+            </button>
+          </div>
+
+          <div class="landscape-zone zone-channels" data-layer="channels">
+            <div class="zone-label"><span>CANAIS</span><small>Experiências finais</small></div>
+            <button class="architecture-node channel-node" type="button" data-detail="emulator">
+              <span class="node-code">LAB</span><strong>Emulador de Canais</strong><small>BFF + hosts + adapters</small>
+            </button>
+            <div class="channel-pills"><span>React Web</span><span>React Native</span><span>Flutter</span><span>WhatsApp</span></div>
+          </div>
+
+          <div class="flow-rail rail-design-publish" aria-hidden="true"><span>versão publicada</span></div>
+          <div class="flow-rail rail-publish-runtime" aria-hidden="true"><span>BPMN + UI Spec</span></div>
+          <div class="flow-rail rail-runtime-channel" aria-hidden="true"><span>próximo passo</span></div>
+        </div>
+
+        <footer class="slide-footer"><span>Clique nos componentes para ver responsabilidades</span><span>Contexto C4 · adaptado</span></footer>
+      </section>
+
+      <section class="slide" id="slide-4" data-title="Portal Administrativo" aria-labelledby="title-4">
+        <div class="slide-heading compact">
+          <p class="eyebrow">03 · Design time</p>
+          <h2 id="title-4">O Portal Administrativo é a fábrica de jornadas</h2>
+          <p class="subtitle">Uma superfície de autoria governa fluxo, experiência, integrações, versões e publicação.</p>
+        </div>
+
+        <div class="factory-layout">
+          <div class="factory-canvas" aria-label="Fluxo de autoria">
+            <div class="canvas-toolbar"><span></span><span></span><span></span><strong>Journey Designer · v7 DRAFT</strong></div>
+            <div class="canvas-stage">
+              <div class="flow-line line-1"></div><div class="flow-line line-2"></div><div class="flow-line line-3"></div>
+              <div class="flow-mini start"><span>▶</span><small>Início</small></div>
+              <div class="flow-mini user"><span>UI</span><small>Dados</small></div>
+              <div class="flow-mini gateway"><span>◇</span><small>Elegível?</small></div>
+              <div class="flow-mini service"><span>API</span><small>Consulta</small></div>
+              <div class="flow-mini message"><span>TOPIC</span><small>Aguarda</small></div>
+              <div class="flow-mini end"><span>■</span><small>Fim</small></div>
+              <div class="screen-builder">
+                <div class="screen-title"><span>Form Builder</span><b>WEB</b></div>
+                <div class="screen-card"><strong>Dados do cliente</strong><span>Nome completo</span><i></i><span>Plano</span><i></i><button type="button">Continuar</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="capability-stack">
+            <article><span class="capability-index">A</span><div><h3>Modelar</h3><p>Fluxo visual, decisões, tarefas humanas, REST e tópicos.</p></div></article>
+            <article><span class="capability-index">B</span><div><h3>Compor</h3><p>Árvore de 19 componentes SDUI, bindings, eventos e visibilidade.</p></div></article>
+            <article><span class="capability-index">C</span><div><h3>Validar</h3><p>Estrutura, compatibilidade por canal e versão mínima de renderer.</p></div></article>
+            <article><span class="capability-index">D</span><div><h3>Versionar</h3><p>Snapshots imutáveis; múltiplas versões publicadas podem coexistir.</p></div></article>
+            <article><span class="capability-index">E</span><div><h3>Operar</h3><p>Execução, diagnóstico, dashboard, auditoria e observabilidade.</p></div></article>
+          </div>
+        </div>
+
+        <div class="fact-strip">
+          <div><strong>506</strong><span>requisitos rastreados</span></div>
+          <div><strong>456</strong><span>concluídos</span></div>
+          <div><strong>90%</strong><span>progresso geral</span></div>
+          <div><strong>100%</strong><span>autoria, SDUI, execução e versões</span></div>
+        </div>
+        <footer class="slide-footer"><span>Fonte: requisitos/admin/progresso.md</span><span>Autoria orientada a contrato</span></footer>
+      </section>
+
+      <section class="slide" id="slide-5" data-title="Publicação" aria-labelledby="title-5">
+        <div class="slide-heading compact">
+          <p class="eyebrow">04 · Plano de publicação</p>
+          <h2 id="title-5">Uma publicação sincroniza processo e experiência</h2>
+          <p class="subtitle">O snapshot da versão é validado uma vez e distribuído em duas projeções complementares.</p>
+        </div>
+
+        <div class="split-publication">
+          <div class="publication-source">
+            <span class="artifact-label">SNAPSHOT IMUTÁVEL</span>
+            <div class="artifact-stack"><i></i><i></i><i></i><strong>Journey v7</strong><small>Flow + Screen Tree + Channels</small></div>
+            <div class="validation-list"><span>✓ estrutura do fluxo</span><span>✓ catálogo SDUI</span><span>✓ compatibilidade por alvo</span><span>✓ produto e versão</span></div>
+          </div>
+
+          <div class="publication-fork" aria-hidden="true"><span></span><i></i><b></b></div>
+
+          <div class="publication-targets">
+            <article class="publication-lane lane-bpmn">
+              <div class="lane-head"><span>PROCESSO</span><strong>Flow → BPMN</strong></div>
+              <button type="button" data-detail="transform"><b>ms-transform-publication</b><small>gera BPMN, versionTag e deployment</small></button>
+              <div class="lane-arrow">↓</div>
+              <button type="button" data-detail="engine"><b>ms-runtime-engine</b><small>mantém definições e instâncias</small></button>
+            </article>
+            <article class="publication-lane lane-sdui">
+              <div class="lane-head"><span>EXPERIÊNCIA</span><strong>Screen Tree → UI Spec</strong></div>
+              <button type="button" data-detail="registry"><b>ms-espec-registry</b><small>valida envelopes canônicos</small></button>
+              <div class="lane-arrow">↓</div>
+              <button type="button" data-detail="strapi"><b>Strapi</b><small>persiste snapshots por etapa</small></button>
+            </article>
+          </div>
+        </div>
+
+        <aside class="callout warning">
+          <span>!</span><div><strong>Consistência antes do efeito colateral</strong><p>Quando há telas, o Admin verifica a disponibilidade do serviço SDUI antes de implantar o processo. Falhas de publicação não alteram o estado local.</p></div>
+        </aside>
+        <footer class="slide-footer"><span>PublishJourneyVersion</span><span>Dois artefatos · mesma journeyVersion</span></footer>
+      </section>
+
+      <section class="slide" id="slide-6" data-title="Runtime" aria-labelledby="title-6">
+        <div class="slide-heading compact">
+          <p class="eyebrow">05 · Runtime</p>
+          <h2 id="title-6">O `ms-journey` entrega o próximo passo, não detalhes do motor</h2>
+          <p class="subtitle">A fachada cruza o estado da instância com a especificação da etapa atual e devolve um contrato orientado ao canal.</p>
+        </div>
+
+        <div class="runtime-map">
+          <div class="runtime-entry">
+            <div class="channel-device web-device"><span></span><strong>Canal digital</strong><small>WEB · MOBILE · WHATSAPP</small></div>
+            <div class="api-ribbon"><span>start</span><span>current-step</span><span>complete</span><span>stop</span></div>
+          </div>
+          <div class="runtime-center">
+            <button class="journey-gateway" type="button" data-detail="journey">
+              <small>API /api/v1</small><strong>ms-journey</strong><span>fachada de execução</span>
+            </button>
+            <div class="resolver-ring">
+              <span>JourneyStepResolver</span><strong>estado + spec</strong><small>monta StepResponse</small>
+            </div>
+          </div>
+          <div class="runtime-dependencies">
+            <button class="dependency-card engine-card" type="button" data-detail="engine">
+              <span class="dependency-icon">⌁</span><div><strong>ms-runtime-engine</strong><small>process instance · task · variables · history</small></div>
+            </button>
+            <button class="dependency-card registry-card" type="button" data-detail="registry">
+              <span class="dependency-icon">⌘</span><div><strong>ms-espec-registry</strong><small>flow · resolve screen · convert answers</small></div>
+            </button>
+          </div>
+          <div class="runtime-arrows" aria-hidden="true"><span class="to-engine">estado</span><span class="to-registry">especificação</span></div>
+        </div>
+
+        <div class="step-response">
+          <span class="response-label">STEP RESPONSE</span>
+          <code><b>USER_TASK</b> · taskId · nodeId · form.sdui · context</code>
+          <code><b>WAITING</b> · nodeId · nodeType</code>
+          <code><b>ENDED</b></code>
+        </div>
+        <footer class="slide-footer"><span>Fachada agnóstica ao canal</span><span>Estado e apresentação continuam separados</span></footer>
+      </section>
+
+      <section class="slide" id="slide-7" data-title="Sequência de execução" aria-labelledby="title-7">
+        <div class="slide-heading compact">
+          <p class="eyebrow">06 · Sequência</p>
+          <h2 id="title-7">Da abertura do canal à conclusão da etapa</h2>
+          <p class="subtitle">Use os passos para percorrer a troca de mensagens de uma instância interativa.</p>
+        </div>
+
+        <div class="sequence-layout">
+          <div class="sequence-actors" aria-hidden="true">
+            <div><span>CANAL</span><strong>Host / BFF</strong></div>
+            <div><span>FACHADA</span><strong>ms-journey</strong></div>
+            <div><span>ESTADO</span><strong>runtime-engine</strong></div>
+            <div><span>SPEC</span><strong>espec-registry</strong></div>
+          </div>
+
+          <div class="sequence-stage" id="sequenceStage">
+            <div class="lifeline l1"></div><div class="lifeline l2"></div><div class="lifeline l3"></div><div class="lifeline l4"></div>
+            <div class="sequence-event event-1 active" data-sequence="1"><span>1</span><b>POST /journeys/{id}/instances</b><small>canal + variáveis iniciais</small></div>
+            <div class="sequence-event event-2" data-sequence="2"><span>2</span><b>Inicia instância</b><small>business key + channel</small></div>
+            <div class="sequence-event event-3 reverse" data-sequence="3"><span>3</span><b>Consulta tarefa e variáveis</b><small>estado ativo da instância</small></div>
+            <div class="sequence-event event-4" data-sequence="4"><span>4</span><b>Resolve UI Spec</b><small>journeyVersion + nodeId + contexto</small></div>
+            <div class="sequence-event event-5 reverse" data-sequence="5"><span>5</span><b>StepResponse</b><small>form.sdui já resolvido</small></div>
+            <div class="sequence-event event-6" data-sequence="6"><span>6</span><b>Completa tarefa</b><small>answers → variáveis do motor</small></div>
+          </div>
+
+          <div class="sequence-explain" id="sequenceExplain">
+            <span class="sequence-number">01</span>
+            <div><h3>O canal inicia a jornada</h3><p>O host informa `channelType` e variáveis. O `ms-journey` gera uma business key e adiciona o canal ao contexto da instância.</p></div>
+          </div>
+
+          <div class="sequence-controls" role="group" aria-label="Navegar pelos passos da sequência">
+            <button type="button" data-seq-go="prev" aria-label="Passo anterior">←</button>
+            <div class="sequence-dots">
+              <button class="active" type="button" data-seq="1">1</button><button type="button" data-seq="2">2</button><button type="button" data-seq="3">3</button><button type="button" data-seq="4">4</button><button type="button" data-seq="5">5</button><button type="button" data-seq="6">6</button>
+            </div>
+            <button type="button" data-seq-go="next" aria-label="Próximo passo">→</button>
+          </div>
+        </div>
+        <footer class="slide-footer"><span>Fluxo interativo de referência</span><span>Falhas mantêm a etapa atual para nova tentativa</span></footer>
+      </section>
+
+      <section class="slide" id="slide-8" data-title="Contrato SDUI" aria-labelledby="title-8">
+        <div class="slide-heading compact">
+          <p class="eyebrow">07 · Contrato corporativo</p>
+          <h2 id="title-8">SDUI V1 é a linguagem comum entre autoria e canais</h2>
+          <p class="subtitle">Frameworks e bibliotecas visuais implementam o contrato; não o definem.</p>
+        </div>
+
+        <div class="contract-layout">
+          <div class="contract-code">
+            <div class="code-head"><span>UI SPEC · canônico</span><b>catalogVersion 1.0.0</b></div>
+            <pre aria-label="Exemplo resumido do contrato SDUI"><code>{
+  <span class="code-key">"journeyVersion"</span>: <span class="code-number">7</span>,
+  <span class="code-key">"uiStepId"</span>: <span class="code-string">"Node_dados"</span>,
+  <span class="code-key">"supportedTargets"</span>: [<span class="code-string">"react.web"</span>, ...],
+  <span class="code-key">"minRendererVersion"</span>: { ... },
+  <span class="code-key">"data"</span>: [
+    <span class="code-string">"ui.screen"</span>,
+    { <span class="code-key">"id"</span>: <span class="code-string">"personal-data"</span>, <span class="code-key">"version"</span>: <span class="code-string">"1.0.0"</span> },
+    [[<span class="code-string">"ui.textInput"</span>, {
+      <span class="code-key">"label"</span>: <span class="code-string">"Nome"</span>,
+      <span class="code-key">"$bindings"</span>: { <span class="code-key">"value"</span>: <span class="code-string">"form.name"</span> }
+    }]]
+  ]
+}</code></pre>
+          </div>
+
+          <div class="contract-principles">
+            <article><span>19</span><div><h3>componentes v1</h3><p>Conteúdo, layout, entrada, ação e feedback.</p></div></article>
+            <article><span>5</span><div><h3>alvos explícitos</h3><p>React Web/Mobile, Flutter Web/Mobile e WhatsApp.</p></div></article>
+            <article><span>1</span><div><h3>formato canônico</h3><p>Árvore declarativa, bindings seguros e ações controladas.</p></div></article>
+            <article class="wide"><span>≠</span><div><h3>Paridade funcional não é cópia visual</h3><p>No WhatsApp, layout vira ordem conversacional; significado, validação e resultado da ação permanecem.</p></div></article>
+          </div>
+        </div>
+
+        <div class="ownership-row">
+          <span><b>Elastic Journey</b> governa o contrato</span><span><b>Registry</b> descreve capacidades</span><span><b>Strapi</b> armazena snapshots</span><span><b>Renderers</b> projetam por alvo</span>
+        </div>
+        <footer class="slide-footer"><span>elastic-journey-sdui-component-catalog-v1.md</span><span>Contrato independente de tecnologia</span></footer>
+      </section>
+
+      <section class="slide" id="slide-9" data-title="Emulador de Canais" aria-labelledby="title-9">
+        <div class="slide-heading compact">
+          <p class="eyebrow">08 · Prova multicanal</p>
+          <h2 id="title-9">O Emulador de Canais prova a arquitetura com hosts reais</h2>
+          <p class="subtitle">O Channel Lab descobre jornadas publicadas, cria o bootstrap e abre a implementação escolhida.</p>
+        </div>
+
+        <div class="emulator-map">
+          <div class="lab-console">
+            <div class="lab-head"><span class="lab-logo">DJ</span><div><strong>Channel Lab</strong><small>cockpit Mística Vivo-evolution</small></div><i></i></div>
+            <div class="lab-body">
+              <span class="input-label">CANAL</span><div class="segmented"><b>Web</b><span>Mobile</span><span>WhatsApp</span></div>
+              <span class="input-label">JORNADA PUBLICADA</span><div class="fake-select">Laboratório Multicanal <b>⌄</b></div>
+              <span class="input-label">VARIÁVEIS</span><div class="fake-input">customerId · 123456</div>
+              <button type="button">Abrir canal <span>↗</span></button>
+            </div>
+          </div>
+
+          <div class="bff-core">
+            <span>BORDA ÚNICA</span><strong>Emulator BFF</strong><small>bootstrap · proxy · sessões · CORS · correlação</small>
+            <div class="bff-ports"><b>Admin :8081</b><b>Journey :8085</b></div>
+          </div>
+
+          <div class="host-grid">
+            <article><span class="host-icon">W</span><div><strong>React Web</strong><small>Mística Web</small></div></article>
+            <article><span class="host-icon">RN</span><div><strong>React Native</strong><small>Expo / Mobile</small></div></article>
+            <article><span class="host-icon">F</span><div><strong>Flutter</strong><small>Web + Android</small></div></article>
+            <article><span class="host-icon">WA</span><div><strong>WhatsApp</strong><small>WCE Bridge + UI</small></div></article>
+          </div>
+
+          <div class="emulator-connectors" aria-hidden="true"><span class="lab-to-bff">bootstrap</span><span class="bff-to-host">contexto</span><span class="bff-to-upstream">execução</span></div>
+        </div>
+
+        <aside class="principle-bar emulator-principle">
+          <strong>Fronteira protegida</strong>
+          <span>Nenhum host acessa Admin, motor, `ms-espec-registry` ou Strapi. O BFF é o único consumidor upstream; a UI SDUI continua opaca para ele.</span>
+        </aside>
+        <footer class="slide-footer"><span>simulacoes/emulador-canais</span><span>Conceito exercitado em 5 alvos</span></footer>
+      </section>
+
+      <section class="slide" id="slide-10" data-title="Renderers e SDKs" aria-labelledby="title-10">
+        <div class="slide-heading compact">
+          <p class="eyebrow">09 · Portabilidade</p>
+          <h2 id="title-10">Runtime headless no centro; renderer específico na borda</h2>
+          <p class="subtitle">A árvore, os bindings e as ações são comuns. Apenas a última milha conhece React, Flutter, Mística ou conversa.</p>
+        </div>
+
+        <div class="sdk-stack">
+          <div class="sdk-layer apps-layer">
+            <span class="layer-name">HOSTS</span>
+            <div><b>React Web</b><b>React Native</b><b>Flutter Web</b><b>Flutter Mobile</b><b>WhatsApp</b></div>
+          </div>
+          <div class="down-arrows" aria-hidden="true"><span>↓</span><span>↓</span><span>↓</span><span>↓</span><span>↓</span></div>
+          <div class="sdk-layer renderers-layer">
+            <span class="layer-name">ADAPTERS</span>
+            <div><b>renderer-react-web-mistica</b><b>renderer-react-native-mistica</b><b>renderer-flutter-mistica</b><b>renderer-whatsapp</b></div>
+          </div>
+          <div class="down-arrows center-arrows" aria-hidden="true"><span>↓</span><span>↓</span><span>↓</span></div>
+          <div class="sdk-foundation">
+            <article><span>CONTRATO</span><strong>sdui-contract</strong><small>tipos + validação</small></article>
+            <article><span>RUNTIME</span><strong>sdui-runtime-ts / dart</strong><small>bindings + visibilidade + ações</small></article>
+            <article><span>CLIENTE</span><strong>journey-client-ts / dart</strong><small>contrato HTTP do ms-journey</small></article>
+          </div>
+        </div>
+
+        <div class="sdk-readiness">
+          <div class="readiness-badge">FORMA DE SDK <strong>confirmada</strong></div>
+          <p>Pacotes versionados, compiláveis e sem dependência reversa do laboratório.</p>
+          <div class="readiness-gap"><span>Para publicar</span><b>remover `private`</b><b>exports → dist</b><b>README de consumo</b></div>
+        </div>
+        <footer class="slide-footer"><span>Dependência sempre aponta para o contrato</span><span>Trocar a UI não altera a jornada</span></footer>
+      </section>
+
+      <section class="slide" id="slide-11" data-title="Matriz multicanal" aria-labelledby="title-11">
+        <div class="slide-heading compact">
+          <p class="eyebrow">10 · Projeção por alvo</p>
+          <h2 id="title-11">A mesma semântica assume formas nativas em cada canal</h2>
+          <p class="subtitle">Catálogo completo dos 19 componentes SDUI V1 comparado nas cinco tecnologias de apresentação.</p>
+        </div>
+
+        <div class="channel-matrix-wrap complete-matrix" aria-label="Matriz dos 19 componentes SDUI V1 nas cinco tecnologias">
+          <table class="channel-matrix">
+            <thead>
+              <tr><th>Componente SDUI</th><th>React Web</th><th>React Native</th><th>Flutter Web</th><th>Flutter Mobile</th><th>WhatsApp</th></tr>
+            </thead>
+            <tbody>
+              <tr><th><code>ui.screen</code></th><td>Page shell + layout</td><td>Screen + Safe Area + Scroll</td><td>Scaffold + layout responsivo</td><td>Scaffold + SafeArea</td><td>Título em destaque + filhos em ordem</td></tr>
+              <tr><th><code>ui.container</code></th><td>Box / View wrapper</td><td>View</td><td>Container</td><td>Container</td><td>Agrupa filhos; não gera mensagem</td></tr>
+              <tr><th><code>ui.stack</code></th><td>Flex</td><td>View / Flex</td><td>Row / Column / Flex</td><td>Row / Column / Flex</td><td>Lineariza os filhos na ordem</td></tr>
+              <tr><th><code>ui.card</code></th><td>Mística Card</td><td>Card / Pressable adapter</td><td>Card adapter</td><td>Card adapter</td><td>Preserva conteúdo; descarta superfície</td></tr>
+              <tr><th><code>ui.text</code></th><td>Mística Text / Typography</td><td>Text adapter</td><td>Text adapter</td><td>Text adapter</td><td>Mensagem textual</td></tr>
+              <tr><th><code>ui.image</code></th><td>Image component</td><td>Image adapter</td><td>Image</td><td>Image</td><td>Imagem com `alt` como legenda</td></tr>
+              <tr><th><code>ui.icon</code></th><td>Mística Icon</td><td>Icon registry adapter</td><td>Icon registry adapter</td><td>Icon registry adapter</td><td>Omite com diagnóstico informativo</td></tr>
+              <tr><th><code>ui.divider</code></th><td>Divider</td><td>View / Divider adapter</td><td>Divider</td><td>Divider</td><td>Omite com diagnóstico informativo</td></tr>
+              <tr><th><code>ui.spacer</code></th><td>Spacing box</td><td>View spacer</td><td>SizedBox</td><td>SizedBox</td><td>Omite sem criar mensagem vazia</td></tr>
+              <tr><th><code>ui.textInput</code></th><td>Mística TextField</td><td>TextInput adapter</td><td>TextFormField adapter</td><td>TextFormField adapter</td><td>Pergunta + resposta textual</td></tr>
+              <tr><th><code>ui.textArea</code></th><td>TextArea / multiline</td><td>TextInput multiline</td><td>TextFormField multiline</td><td>TextFormField multiline</td><td>Captura resposta textual longa</td></tr>
+              <tr><th><code>ui.select</code></th><td>Select / Dropdown</td><td>Picker / Bottom sheet</td><td>Dropdown adapter</td><td>Dropdown / Bottom sheet</td><td>Até 3 botões; acima disso, lista</td></tr>
+              <tr><th><code>ui.checkbox</code></th><td>Mística Checkbox</td><td>Checkbox / Pressable</td><td>Checkbox adapter</td><td>Checkbox adapter</td><td>Opções Sim e Não</td></tr>
+              <tr><th><code>ui.datePicker</code></th><td>DateField / DatePicker</td><td>Date picker adapter</td><td>Date picker adapter</td><td>Date picker nativo</td><td>Texto validado e normalizado</td></tr>
+              <tr><th><code>ui.button</code></th><td>Mística Button</td><td>Button / Pressable</td><td>Button adapter</td><td>Button adapter</td><td>Resposta rápida compatível</td></tr>
+              <tr><th><code>ui.link</code></th><td>Mística Link</td><td>Text / Pressable</td><td>Link / TextButton</td><td>TextButton</td><td>CTA com URL autorizada</td></tr>
+              <tr><th><code>ui.alert</code></th><td>Mística Feedback / Alert</td><td>Alert / View adapter</td><td>Alert adapter</td><td>Alert adapter</td><td>Mensagem com severidade</td></tr>
+              <tr><th><code>ui.progress</code></th><td>Mística Progress bar</td><td>Progress adapter</td><td>LinearProgressIndicator</td><td>LinearProgressIndicator</td><td>Rótulo + percentual</td></tr>
+              <tr><th><code>ui.loading</code></th><td>Mística Spinner</td><td>Activity indicator</td><td>CircularProgressIndicator</td><td>CircularProgressIndicator</td><td>Mensagem textual de espera</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="matrix-legend">
+          <span><i class="legend-dot functional"></i><b>Preservar</b> conteúdo, valor, validação e ação</span>
+          <span><i class="legend-dot adaptive"></i><b>Adaptar</b> layout, interação nativa e apresentação</span>
+          <span><i class="legend-dot diagnostic"></i><b>Diagnosticar</b> omissões e fallbacks previstos</span>
+        </div>
+        <footer class="slide-footer"><span>19 componentes · Catálogo SDUI V1 completo</span><span>WhatsApp é projeção conversacional</span></footer>
+      </section>
+
+      <section class="slide" id="slide-12" data-title="Princípios e fronteiras" aria-labelledby="title-12">
+        <div class="slide-heading compact">
+          <p class="eyebrow">11 · Guardrails</p>
+          <h2 id="title-12">Fronteiras explícitas reduzem acoplamento e risco</h2>
+          <p class="subtitle">As decisões abaixo permitem evoluir motor, catálogo, UI e canal em ritmos diferentes.</p>
+        </div>
+
+        <div class="guardrail-grid">
+          <article><span class="guardrail-icon">01</span><h3>Canal fala com fachada</h3><p>`ms-journey` é a única API de execução exposta; detalhes do motor ficam internos.</p></article>
+          <article><span class="guardrail-icon">02</span><h3>Strapi não define contrato</h3><p>Armazena snapshots imutáveis; autoria, semântica e versão pertencem ao Elastic Journey.</p></article>
+          <article><span class="guardrail-icon">03</span><h3>BFF não interpreta SDUI</h3><p>Em Web/Mobile, apenas encaminha. No WhatsApp, hospeda o adapter conversacional.</p></article>
+          <article><span class="guardrail-icon">04</span><h3>Segredos ficam no servidor</h3><p>Credenciais administrativas não chegam ao navegador; logs sanitizam caminhos e payloads sensíveis.</p></article>
+          <article><span class="guardrail-icon">05</span><h3>Versão publicada é imutável</h3><p>Novas mudanças geram outra versão; deployments anteriores permanecem para instâncias ativas.</p></article>
+          <article><span class="guardrail-icon">06</span><h3>Incompatibilidade falha cedo</h3><p>Componentes e versões não suportados bloqueiam publicação ou geram fallback homologado.</p></article>
+        </div>
+
+        <aside class="callout success"><span>✓</span><div><strong>Resultado</strong><p>Cada parte pode ser substituída — engine, repositório, biblioteca visual ou BSP de WhatsApp — preservando os contratos que ligam a plataforma.</p></div></aside>
+        <footer class="slide-footer"><span>Arquitetura orientada a contratos</span><span>Baixo acoplamento · evolução independente</span></footer>
+      </section>
+
+      <section class="slide" id="slide-13" data-title="Estado atual" aria-labelledby="title-13">
+        <div class="slide-heading compact">
+          <p class="eyebrow">12 · Evidência e prontidão</p>
+          <h2 id="title-13">O núcleo está construído; a próxima etapa é homologar ponta a ponta</h2>
+          <p class="subtitle">Capacidades centrais do portal estão concluídas; os hosts do laboratório aguardam validação integrada e visual.</p>
+        </div>
+
+        <div class="readiness-layout">
+          <div class="progress-panel">
+            <div class="progress-ring" style="--progress: 90"><div><strong>90%</strong><span>portal</span></div></div>
+            <div class="progress-copy"><h3>456 de 506 requisitos</h3><p>Design, gestão de jornadas, workflow, SDUI, execução, versionamento, dashboard e diagnóstico estão em 100%.</p></div>
+            <div class="feature-bars">
+              <div><span>Autoria + Jornada</span><i><b style="width:100%"></b></i><strong>100%</strong></div>
+              <div><span>SDUI + Execução</span><i><b style="width:100%"></b></i><strong>100%</strong></div>
+              <div><span>Integrações</span><i><b style="width:96%"></b></i><strong>96%</strong></div>
+              <div><span>Observabilidade</span><i><b style="width:92%"></b></i><strong>92%</strong></div>
+            </div>
+          </div>
+
+          <div class="validation-panel">
+            <h3>Emulador de Canais</h3>
+            <div class="validation-item done"><span>✓</span><div><b>Fundação</b><small>Monorepo, contrato, BFF e runtimes headless</small></div><em>concluído</em></div>
+            <div class="validation-item pending"><span>◌</span><div><b>React Web</b><small>Implementado e compilado</small></div><em>validar E2E</em></div>
+            <div class="validation-item pending"><span>◌</span><div><b>React Native</b><small>19 componentes implementados</small></div><em>validar device</em></div>
+            <div class="validation-item pending"><span>◌</span><div><b>Flutter Web / Mobile</b><small>Web e Android compilados</small></div><em>validar visual</em></div>
+            <div class="validation-item pending"><span>◌</span><div><b>WhatsApp + Channel Lab</b><small>Cadeia completa implementada</small></div><em>validar jornada</em></div>
+          </div>
+        </div>
+
+        <aside class="callout info"><span>→</span><div><strong>Critério de saída recomendado</strong><p>Executar a mesma jornada publicada nos cinco alvos, cobrindo bindings, decisão, integração, retomada, falha controlada e término — com evidência visual e correlação.</p></div></aside>
+        <footer class="slide-footer"><span>Estado documental: 12 set. 2026</span><span>Emulador: 7 set. 2026</span></footer>
+      </section>
+
+      <section class="slide" id="slide-14" data-title="Evolução recomendada" aria-labelledby="title-14">
+        <div class="slide-heading compact">
+          <p class="eyebrow">13 · Próximos passos</p>
+          <h2 id="title-14">Da prova técnica para uma plataforma consumível</h2>
+          <p class="subtitle">Quatro movimentos convertem o laboratório em capacidade corporativa operável.</p>
+        </div>
+
+        <div class="roadmap">
+          <article class="roadmap-item now"><span class="roadmap-phase">AGORA</span><div class="roadmap-marker">1</div><h3>Homologar o E2E</h3><p>Matriz de testes por alvo, versão do renderer e componente; evidência automática de contrato e visual.</p><small>reduz risco funcional</small></article>
+          <article class="roadmap-item next"><span class="roadmap-phase">PRÓXIMO</span><div class="roadmap-marker">2</div><h3>Produto SDK</h3><p>Publicar pacotes internos, definir API pública, compatibilidade, exemplos e ciclo de suporte.</p><small>acelera adoção dos canais</small></article>
+          <article class="roadmap-item next"><span class="roadmap-phase">PRÓXIMO</span><div class="roadmap-marker">3</div><h3>Industrializar a borda</h3><p>Substituir estado efêmero do laboratório, integrar autenticação, secrets e BSP real quando aplicável.</p><small>prepara operação</small></article>
+          <article class="roadmap-item later"><span class="roadmap-phase">DEPOIS</span><div class="roadmap-marker">4</div><h3>Governar evolução</h3><p>Depreciação, migração de catálogo, rollout de renderer, SLOs, telemetria e ownership por domínio.</p><small>sustenta escala</small></article>
+        </div>
+
+        <div class="decision-row">
+          <div><span>DECISÃO 01</span><strong>Quem é o owner do contrato SDUI?</strong></div>
+          <div><span>DECISÃO 02</span><strong>Qual política de compatibilidade dos SDKs?</strong></div>
+          <div><span>DECISÃO 03</span><strong>Qual topologia de BFF por canal?</strong></div>
+        </div>
+        <footer class="slide-footer"><span>Roadmap arquitetural</span><span>Homologar → Empacotar → Operar → Governar</span></footer>
+      </section>
+
+      <section class="slide" id="slide-15" data-title="Referências" aria-labelledby="title-15">
+        <div class="slide-heading compact">
+          <p class="eyebrow">14 · Documentação viva</p>
+          <h2 id="title-15">Fontes, escopo e premissas</h2>
+          <p class="subtitle">Esta apresentação consolida documentação e código existentes; os links abaixo são relativos ao repositório.</p>
+        </div>
+
+        <div class="reference-layout">
+          <div class="reference-list">
+            <a href="../../requisitos/admin/progresso.md"><span>01</span><div><strong>Progresso de implementação</strong><small>capacidades, evidências e estado por feature</small></div><b>↗</b></a>
+            <a href="../../requisitos/admin/ej-admin-arquitetura-logica.md"><span>02</span><div><strong>Arquitetura lógica do Admin</strong><small>domínios e responsabilidades de design time</small></div><b>↗</b></a>
+            <a href="../../requisitos/admin/sdui/elastic-journey-sdui-component-catalog-v1.md"><span>03</span><div><strong>Catálogo SDUI V1</strong><small>contrato normativo, componentes e compatibilidade</small></div><b>↗</b></a>
+            <a href="../../simulacoes/emulador-canais/docs/arquitetura.md"><span>04</span><div><strong>Arquitetura do Emulador</strong><small>processos, pacotes, fluxos e fronteiras</small></div><b>↗</b></a>
+            <a href="../../simulacoes/emulador-canais/docs/status-implementacao.md"><span>05</span><div><strong>Status do Emulador</strong><small>etapas concluídas e pendências de validação</small></div><b>↗</b></a>
+          </div>
+
+          <div class="assumption-panel">
+            <h3>Premissas adotadas</h3>
+            <ul>
+              <li>`ms-runtime-engine` é apresentado como nome lógico; a implementação atual documentada é `ms-runtime-camunda`.</li>
+              <li>O Admin envia o processo ao `ms-transform-publication` e os envelopes de tela ao `ms-espec-registry` na mesma operação de publicação.</li>
+              <li>O Emulador é uma prova de arquitetura; bootstraps e sessões conversacionais ainda vivem em memória.</li>
+              <li>As versões publicadas podem coexistir; despublicação é dirigida ao deployment e bloqueada quando há instâncias ativas.</li>
+              <li>Datas e percentuais refletem as fontes disponíveis nesta sessão.</li>
+            </ul>
+            <div class="usage-note"><strong>Atalhos</strong><span><kbd>←</kbd>/<kbd>→</kbd> navegar</span><span><kbd>O</kbd> visões</span><span><kbd>R</kbd> leitura</span><span><kbd>F</kbd> tela cheia</span></div>
+          </div>
+        </div>
+        <footer class="slide-footer"><span>Dynamic Journey · Arquitetura da Solução</span><span>Documento navegável e imprimível</span></footer>
+      </section>
+    </main>
+
+    <nav class="deck-nav" aria-label="Navegação entre slides">
+      <button id="prevButton" type="button" aria-label="Slide anterior">←</button>
+      <button class="slide-status" id="slideStatus" type="button" aria-label="Abrir visão geral"><strong>01</strong><span>/ 15</span></button>
+      <button id="nextButton" type="button" aria-label="Próximo slide">→</button>
+    </nav>
+    <div class="progress-track" aria-hidden="true"><div id="progressBar"></div></div>
+
+    <dialog class="overview-dialog" id="overviewDialog" aria-labelledby="overviewTitle">
+      <div class="dialog-head"><div><p class="eyebrow">Mapa da apresentação</p><h2 id="overviewTitle">Escolha uma visão</h2></div><button type="button" data-close-dialog aria-label="Fechar">×</button></div>
+      <div class="overview-grid" id="overviewGrid"></div>
+      <div class="dialog-foot"><span>As visões também funcionam como sumário da documentação.</span><kbd>Esc</kbd></div>
+    </dialog>
+
+    <aside class="detail-drawer" id="detailDrawer" aria-hidden="true" aria-labelledby="detailTitle">
+      <button class="drawer-close" type="button" id="drawerClose" aria-label="Fechar detalhes">×</button>
+      <p class="eyebrow" id="detailKicker">Componente</p>
+      <h2 id="detailTitle">Detalhes</h2>
+      <p class="drawer-summary" id="detailSummary"></p>
+      <div class="drawer-section"><span>RESPONSABILIDADES</span><ul id="detailResponsibilities"></ul></div>
+      <div class="drawer-section"><span>CONTRATOS / INTEGRAÇÕES</span><ul id="detailContracts"></ul></div>
+      <div class="drawer-source" id="detailSource"></div>
+    </aside>
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

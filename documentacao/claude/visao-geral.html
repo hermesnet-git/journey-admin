@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Visão Geral — Dynamic Journey</title>
+<style>
+  :root{
+    --brand:#660099; --brand-high:#380057; --brand-low:#eee7f3; --brand-mid:#dcc3ea;
+    --accent-lime:#99cc33; --accent-lime-dark:#5c7a1f;
+    --success:#99cc33; --success-low:#edf8e8; --error:#cc1f59; --error-low:#fce4ef;
+    --neutral-0:#ffffff; --neutral-25:#f1eff6; --neutral-100:#eae6f0; --neutral-200:#dcd8e5;
+    --text:#3a3650; --text-high:#252233; --text-dim:#6b6580;
+    --shadow:0 20px 48px -24px rgba(56,0,87,0.28); --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--neutral-25);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:64px;}
+  a{color:inherit;}
+  .topnav{position:sticky;top:0;z-index:30;background:var(--neutral-0);border-bottom:1px solid var(--neutral-200);}
+  .topnav-inner{max-width:1180px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;color:var(--text-high);text-decoration:none;letter-spacing:-0.01em;}
+  .brand .mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand-high));display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
+  .brand .mark::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--accent-lime);}
+  .navlinks{display:flex;gap:4px;flex-wrap:wrap;}
+  .navlinks a{padding:8px 14px;border-radius:999px;font-size:13.5px;font-weight:600;text-decoration:none;color:var(--text-dim);transition:all .15s ease;}
+  .navlinks a:hover{color:var(--brand);background:var(--brand-low);}
+  .navlinks a.active{color:var(--neutral-0);background:var(--brand);}
+  main{max-width:1000px;margin:0 auto;padding:0 24px;}
+  .hero{padding:48px 0 8px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand);background:var(--brand-low);padding:6px 14px;border-radius:999px;margin-bottom:18px;}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent-lime);}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.15;color:var(--text-high);margin:0 0 14px;letter-spacing:-0.02em;font-weight:800;}
+  .lead{max-width:720px;font-size:16.5px;line-height:1.65;color:var(--text-dim);margin:0 0 8px;}
+  section.block{margin:52px 0;}
+  h2{font-size:22px;color:var(--text-high);margin:0 0 14px;letter-spacing:-0.01em;}
+  h3{font-size:15px;color:var(--text-high);margin:0 0 6px;}
+  p{font-size:15px;line-height:1.65;color:var(--text);}
+  .diagram-card{background:var(--neutral-0);border:1px solid var(--neutral-200);border-radius:var(--radius);padding:28px 20px 18px;box-shadow:var(--shadow);}
+  .diagram-caption{text-align:center;font-size:12.5px;color:var(--text-dim);margin-top:10px;}
+  svg{width:100%;height:auto;display:block;}
+  .box-title{font-size:14px;font-weight:800;fill:var(--text-high);}
+  .box-sub{font-size:10.5px;fill:var(--text-dim);}
+  .arrow-label{font-size:10.5px;fill:var(--text-dim);}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media (max-width:720px){ .twocol{grid-template-columns:1fr;} }
+  .stepcard{background:var(--neutral-0);border:1px solid var(--neutral-200);border-radius:14px;padding:20px;}
+  .stepcard .n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:var(--brand-low);color:var(--brand);font-weight:800;font-size:13px;margin-bottom:10px;}
+  details.tech{background:var(--brand-low);border-radius:12px;padding:4px 16px;margin-top:14px;}
+  details.tech summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--brand-high);padding:12px 0;list-style:none;}
+  details.tech summary::-webkit-details-marker{display:none;}
+  details.tech summary::before{content:"⚙ ";}
+  details.tech[open] summary{padding-bottom:4px;}
+  details.tech .inner{padding:0 0 16px;font-size:13.5px;line-height:1.6;color:var(--text-high);}
+  details.tech .inner code{background:var(--neutral-0);padding:1px 6px;border-radius:6px;font-size:12.5px;}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--success-low);color:var(--accent-lime-dark);margin-left:8px;}
+  .pager{display:flex;justify-content:space-between;margin-top:64px;padding-top:24px;border-top:1px solid var(--neutral-200);}
+  .pager a{font-size:14px;font-weight:700;color:var(--brand);text-decoration:none;}
+  .pager a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<header class="topnav">
+  <div class="topnav-inner">
+    <a class="brand" href="index.html"><span class="mark"></span>Dynamic Journey</a>
+    <nav class="navlinks">
+      <a href="index.html">Início</a>
+      <a href="visao-geral.html" class="active">Visão Geral</a>
+      <a href="design-time.html">Design-time</a>
+      <a href="runtime.html">Runtime</a>
+      <a href="emulador-canais.html">Emulador de Canais</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="eyebrow"><span class="dot"></span>Visão Geral</div>
+    <h1>Da autoria de uma jornada até sua execução em qualquer canal</h1>
+    <p class="lead">
+      A plataforma existe em dois momentos: <strong>Design</strong>, onde a jornada é construída e publicada,
+      e <strong>Runtime</strong>, onde ela é executada de fato para o usuário final. Uma mesma jornada,
+      publicada uma única vez, atende canais interativos (web, mobile) e conversacionais (WhatsApp, URA)
+      sem retrabalho.
+    </p>
+  </section>
+
+  <section class="block">
+    <div class="diagram-card">
+      <svg viewBox="0 0 1000 340" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#b77ddb"/>
+          </marker>
+          <marker id="arrowDashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#99cc33"/>
+          </marker>
+        </defs>
+
+        <!-- stage boxes -->
+        <g>
+          <rect x="20" y="40" width="190" height="110" rx="14" fill="#eee7f3" stroke="#dcc3ea"/>
+          <text x="115" y="80" text-anchor="middle" class="box-title">Autoria</text>
+          <text x="115" y="100" text-anchor="middle" class="box-sub">Portal Administrativo</text>
+          <text x="115" y="118" text-anchor="middle" class="box-sub">produto · jornada · fluxo</text>
+          <text x="115" y="134" text-anchor="middle" class="box-sub">telas SDUI · integrações</text>
+        </g>
+
+        <g>
+          <rect x="270" y="40" width="190" height="110" rx="14" fill="#eee7f3" stroke="#dcc3ea"/>
+          <text x="365" y="80" text-anchor="middle" class="box-title">Publicação</text>
+          <text x="365" y="100" text-anchor="middle" class="box-sub">versão imutável</text>
+          <text x="365" y="118" text-anchor="middle" class="box-sub">fluxo + telas + integrações</text>
+          <text x="365" y="134" text-anchor="middle" class="box-sub">um snapshot por vez</text>
+        </g>
+
+        <g>
+          <rect x="520" y="40" width="190" height="110" rx="14" fill="#660099" stroke="#380057"/>
+          <text x="615" y="80" text-anchor="middle" class="box-title" fill="#ffffff">Execução</text>
+          <text x="615" y="100" text-anchor="middle" class="box-sub" fill="#eee7f3">Runtime</text>
+          <text x="615" y="118" text-anchor="middle" class="box-sub" fill="#eee7f3">mantém o estado</text>
+          <text x="615" y="134" text-anchor="middle" class="box-sub" fill="#eee7f3">da jornada do usuário</text>
+        </g>
+
+        <g>
+          <rect x="770" y="40" width="210" height="110" rx="14" fill="#eee7f3" stroke="#dcc3ea"/>
+          <text x="875" y="76" text-anchor="middle" class="box-title">Canais Digitais</text>
+          <text x="875" y="96" text-anchor="middle" class="box-sub">Web · Mobile</text>
+          <text x="875" y="114" text-anchor="middle" class="box-sub">WhatsApp · URA</text>
+          <text x="875" y="132" text-anchor="middle" class="box-sub">(conversacional)</text>
+        </g>
+
+        <line x1="210" y1="95" x2="266" y2="95" stroke="#b77ddb" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="460" y1="95" x2="516" y2="95" stroke="#b77ddb" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="710" y1="95" x2="766" y2="95" stroke="#b77ddb" stroke-width="2" marker-end="url(#arrow)"/>
+
+        <!-- emulador box -->
+        <rect x="520" y="230" width="460" height="80" rx="14" fill="#ffffff" stroke="#99cc33" stroke-width="2" stroke-dasharray="6 5"/>
+        <text x="750" y="262" text-anchor="middle" class="box-title">Emulador de Canais</text>
+        <text x="750" y="282" text-anchor="middle" class="box-sub">laboratório: prova a mesma jornada em 5 renderizadores</text>
+        <text x="750" y="298" text-anchor="middle" class="box-sub">React Web/Native · Flutter Web/Mobile · WhatsApp</text>
+
+        <line x1="750" y1="230" x2="750" y2="154" stroke="#99cc33" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arrowDashed)"/>
+        <text x="770" y="195" class="arrow-label" fill="#5c7a1f">consome pela fachada de execução</text>
+      </svg>
+      <div class="diagram-caption">Fluxo ponta a ponta: uma jornada publicada uma única vez atende qualquer canal. O Emulador de Canais valida essa promessa em laboratório.</div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Os dois momentos da plataforma</h2>
+    <div class="twocol">
+      <div class="stepcard">
+        <div class="n">D</div>
+        <h3>Design — autoria</h3>
+        <p>Um usuário de negócio ou TI usa o Portal Administrativo para cadastrar um produto, criar uma
+        jornada, desenhar seu fluxo visualmente, compor a tela de cada etapa e configurar as integrações
+        necessárias, tudo sem escrever código. Ao concluir, publica a jornada, que passa a existir como
+        uma versão imutável.</p>
+      </div>
+      <div class="stepcard">
+        <div class="n">R</div>
+        <h3>Runtime — execução</h3>
+        <p>Um canal digital qualquer solicita a execução da jornada publicada. O Runtime mantém o estado
+        de cada instância em andamento, resolve a tela correta para o passo atual e aciona as integrações
+        configuradas, devolvendo ao canal exatamente o que ele precisa mostrar, no formato certo para
+        aquele canal.</p>
+      </div>
+    </div>
+
+    <details class="tech">
+      <summary>Detalhe técnico — como isso é implementado hoje</summary>
+      <div class="inner">
+        O Portal Administrativo é composto por um <code>front</code> e um <code>back</code>. Ao publicar,
+        o back envia o fluxo transformado para o Runtime (que o traduz e implanta como processo executável)
+        e, em paralelo, envia o envelope de cada tela para o repositório de especificação de UI, que a
+        versiona de forma imutável. Em runtime, uma fachada única de execução para canais digitais consulta
+        o motor para saber o passo atual e o repositório de especificação para resolver a tela correspondente.
+        Detalhes completos nas páginas <a href="design-time.html">Design-time</a> e <a href="runtime.html">Runtime</a>.
+      </div>
+    </details>
+  </section>
+
+  <section class="block">
+    <h2>Por que isso importa <span class="badge">90% concluído</span></h2>
+    <p>
+      Separar autoria de execução significa que uma nova jornada, ou uma mudança numa jornada existente,
+      não depende de um novo deploy de aplicativo em nenhum canal. A mesma capacidade de renderização
+      server-driven (SDUI) que resolve a tela em tempo de execução é o que permite atender web, mobile e
+      canais conversacionais a partir da mesma definição de jornada, com paridade funcional entre eles.
+    </p>
+  </section>
+
+  <div class="pager">
+    <a href="index.html">← Início</a>
+    <a href="design-time.html">Design-time →</a>
+  </div>
+</main>
+
+</body>
+</html>

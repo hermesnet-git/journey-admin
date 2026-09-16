@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dynamic Journey — Arquitetura de Solução</title>
+<style>
+  :root{
+    --brand:#660099;
+    --brand-high:#380057;
+    --brand-low:#eee7f3;
+    --brand-mid:#dcc3ea;
+    --accent-lime:#99cc33;
+    --accent-lime-dark:#5c7a1f;
+    --success:#99cc33;
+    --success-low:#edf8e8;
+    --error:#cc1f59;
+    --error-low:#fce4ef;
+    --neutral-0:#ffffff;
+    --neutral-25:#f1eff6;
+    --neutral-100:#eae6f0;
+    --neutral-200:#dcd8e5;
+    --text:#3a3650;
+    --text-high:#252233;
+    --text-dim:#6b6580;
+    --shadow:0 20px 48px -24px rgba(56,0,87,0.28);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--neutral-25);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:64px;
+  }
+  a{color:inherit;}
+
+  /* ---------- top nav ---------- */
+  .topnav{
+    position:sticky;top:0;z-index:30;
+    background:var(--neutral-0);
+    border-bottom:1px solid var(--neutral-200);
+  }
+  .topnav-inner{
+    max-width:1180px;margin:0 auto;
+    padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-weight:800;font-size:16px;color:var(--text-high);
+    text-decoration:none;
+    letter-spacing:-0.01em;
+  }
+  .brand .mark{
+    width:26px;height:26px;border-radius:8px;
+    background:linear-gradient(135deg,var(--brand),var(--brand-high));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:var(--shadow);
+  }
+  .brand .mark::after{
+    content:"";width:9px;height:9px;border-radius:50%;
+    background:var(--accent-lime);
+  }
+  .navlinks{display:flex;gap:4px;flex-wrap:wrap;}
+  .navlinks a{
+    padding:8px 14px;border-radius:999px;
+    font-size:13.5px;font-weight:600;text-decoration:none;
+    color:var(--text-dim);
+    transition:all .15s ease;
+  }
+  .navlinks a:hover{color:var(--brand);background:var(--brand-low);}
+  .navlinks a.active{color:var(--neutral-0);background:var(--brand);}
+
+  main{max-width:1180px;margin:0 auto;padding:0 24px;}
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:64px 0 40px;
+    text-align:center;
+  }
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--brand);background:var(--brand-low);
+    padding:6px 14px;border-radius:999px;margin-bottom:20px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent-lime);}
+  h1{
+    font-size:clamp(28px,4.4vw,44px);
+    line-height:1.12;color:var(--text-high);
+    margin:0 0 18px;letter-spacing:-0.02em;
+    font-weight:800;
+  }
+  h1 em{
+    font-style:normal;
+    background:linear-gradient(90deg,var(--brand),var(--brand-high));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .lead{
+    max-width:680px;margin:0 auto;
+    font-size:17px;line-height:1.6;color:var(--text-dim);
+  }
+
+  /* ---------- stage strip ---------- */
+  .stagestrip{
+    display:flex;align-items:center;justify-content:center;
+    gap:0;margin:44px 0 8px;flex-wrap:wrap;
+  }
+  .stage{
+    background:var(--neutral-0);border:1px solid var(--neutral-200);
+    border-radius:14px;padding:14px 20px;min-width:130px;text-align:center;
+    font-size:13px;font-weight:700;color:var(--text-high);
+  }
+  .stage span{display:block;font-size:11px;font-weight:600;color:var(--text-dim);margin-top:2px;text-transform:none;}
+  .stagearrow{color:var(--brand-mid);font-size:20px;padding:0 10px;}
+
+  /* ---------- cards grid ---------- */
+  .grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:18px;
+    margin:56px 0 40px;
+  }
+  @media (max-width:920px){ .grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .grid{grid-template-columns:1fr;} .stagestrip{flex-direction:column;} .stagearrow{transform:rotate(90deg);padding:6px 0;} }
+
+  .card{
+    background:var(--neutral-0);border:1px solid var(--neutral-200);
+    border-radius:var(--radius);padding:24px;
+    text-decoration:none;color:inherit;
+    display:flex;flex-direction:column;gap:10px;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--brand-mid);}
+  .card .icn{
+    width:42px;height:42px;border-radius:11px;
+    background:var(--brand-low);color:var(--brand);
+    display:flex;align-items:center;justify-content:center;
+    font-size:19px;font-weight:800;
+  }
+  .card h3{margin:4px 0 0;font-size:16.5px;color:var(--text-high);}
+  .card p{margin:0;font-size:13.5px;line-height:1.55;color:var(--text-dim);flex:1;}
+  .card .go{font-size:13px;font-weight:700;color:var(--brand);margin-top:4px;}
+
+  /* ---------- footer strip ---------- */
+  .foot{
+    display:flex;align-items:center;justify-content:center;gap:28px;
+    flex-wrap:wrap;margin-top:40px;padding-top:32px;border-top:1px solid var(--neutral-200);
+  }
+  .metric{text-align:center;}
+  .metric b{display:block;font-size:26px;color:var(--brand-high);font-weight:800;}
+  .metric span{font-size:12px;color:var(--text-dim);}
+</style>
+</head>
+<body>
+
+<header class="topnav">
+  <div class="topnav-inner">
+    <a class="brand" href="index.html"><span class="mark"></span>Dynamic Journey</a>
+    <nav class="navlinks">
+      <a href="index.html" class="active">Início</a>
+      <a href="visao-geral.html">Visão Geral</a>
+      <a href="design-time.html">Design-time</a>
+      <a href="runtime.html">Runtime</a>
+      <a href="emulador-canais.html">Emulador de Canais</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="eyebrow"><span class="dot"></span>Arquitetura de Solução</div>
+    <h1>Uma plataforma para <em>construir</em> e <em>executar</em><br/>jornadas multicanal</h1>
+    <p class="lead">
+      O Dynamic Journey separa quem desenha a experiência de quem a executa. Um Portal Administrativo
+      permite construir jornadas guiadas — fluxo, telas e integrações — sem escrever código de canal;
+      um Runtime as executa e entrega para qualquer canal digital, interativo ou conversacional, a
+      partir da mesma jornada publicada.
+    </p>
+
+    <div class="stagestrip">
+      <div class="stage">Autoria<span>Portal Administrativo</span></div>
+      <div class="stagearrow">→</div>
+      <div class="stage">Publicação<span>versionada e imutável</span></div>
+      <div class="stagearrow">→</div>
+      <div class="stage">Execução<span>Runtime</span></div>
+      <div class="stagearrow">→</div>
+      <div class="stage">Canais<span>web · mobile · conversacional</span></div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <a class="card" href="visao-geral.html">
+      <div class="icn">1</div>
+      <h3>Visão Geral</h3>
+      <p>O fluxo ponta a ponta da plataforma: como uma jornada nasce no design-time, é publicada e chega executável em qualquer canal.</p>
+      <div class="go">Explorar →</div>
+    </a>
+    <a class="card" href="design-time.html">
+      <div class="icn">2</div>
+      <h3>Design-time</h3>
+      <p>O Portal Administrativo: como produtos, jornadas, fluxos, telas SDUI e integrações são construídos e publicados.</p>
+      <div class="go">Explorar →</div>
+    </a>
+    <a class="card" href="runtime.html">
+      <div class="icn">3</div>
+      <h3>Runtime</h3>
+      <p>Como uma jornada publicada é executada de fato: o motor de execução, a resolução de telas e as integrações em tempo real.</p>
+      <div class="go">Explorar →</div>
+    </a>
+    <a class="card" href="emulador-canais.html">
+      <div class="icn">4</div>
+      <h3>Emulador de Canais</h3>
+      <p>A prova de conceito multicanal: um mesmo BFF e cinco renderizadores diferentes consumindo a mesma jornada publicada.</p>
+      <div class="go">Explorar →</div>
+    </a>
+  </section>
+
+  <div class="foot">
+    <div class="metric"><b>90%</b><span>da plataforma concluída</span></div>
+    <div class="metric"><b>3</b><span>macro-componentes</span></div>
+    <div class="metric"><b>5</b><span>canais provados na prática</span></div>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Design-time — Dynamic Journey</title>
+<style>
+  :root{
+    --brand:#660099; --brand-high:#380057; --brand-low:#eee7f3; --brand-mid:#dcc3ea;
+    --accent-lime:#99cc33; --accent-lime-dark:#5c7a1f;
+    --success:#99cc33; --success-low:#edf8e8; --error:#cc1f59; --error-low:#fce4ef;
+    --neutral-0:#ffffff; --neutral-25:#f1eff6; --neutral-100:#eae6f0; --neutral-200:#dcd8e5;
+    --text:#3a3650; --text-high:#252233; --text-dim:#6b6580;
+    --shadow:0 20px 48px -24px rgba(56,0,87,0.28); --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--neutral-25);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:64px;}
+  a{color:inherit;}
+  .topnav{position:sticky;top:0;z-index:30;background:var(--neutral-0);border-bottom:1px solid var(--neutral-200);}
+  .topnav-inner{max-width:1180px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;color:var(--text-high);text-decoration:none;letter-spacing:-0.01em;}
+  .brand .mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--brand),var(--brand-high));display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
+  .brand .mark::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--accent-lime);}
+  .navlinks{display:flex;gap:4px;flex-wrap:wrap;}
+  .navlinks a{padding:8px 14px;border-radius:999px;font-size:13.5px;font-weight:600;text-decoration:none;color:var(--text-dim);transition:all .15s ease;}
+  .navlinks a:hover{color:var(--brand);background:var(--brand-low);}
+  .navlinks a.active{color:var(--neutral-0);background:var(--brand);}
+  main{max-width:1000px;margin:0 auto;padding:0 24px;}
+  .hero{padding:48px 0 8px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand);background:var(--brand-low);padding:6px 14px;border-radius:999px;margin-bottom:18px;}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent-lime);}
+  h1{font-size:clamp(26px,4vw,38px);line-height:1.15;color:var(--text-high);margin:0 0 14px;letter-spacing:-0.02em;font-weight:800;}
+  .lead{max-width:720px;font-size:16.5px;line-height:1.65;color:var(--text-dim);margin:0 0 8px;}
+  section.block{margin:52px 0;}
+  h2{font-size:22px;color:var(--text-high);margin:0 0 14px;letter-spacing:-0.01em;}
+  h3{font-size:15px;color:var(--text-high);margin:0 0 6px;}
+  p{font-size:15px;line-height:1.65;color:var(--text);}
+  .diagram-card{background:var(--neutral-0);border:1px solid var(--neutral-200);border-radius:var(--radius);padding:28px 20px 18px;box-shadow:var(--shadow);}
+  .diagram-caption{text-align:center;font-size:12.5px;color:var(--text-dim);margin-top:10px;}
+  svg{width:100%;height:auto;display:block;}
+  .box-title{font-size:14px;font-weight:800;fill:var(--text-high);}
+  .box-sub{font-size:10.5px;fill:var(--text-dim);}
+  .arrow-label{font-size:10.5px;fill:var(--text-dim);}
+  .domaingrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media (max-width:760px){ .domaingrid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:520px){ .domaingrid{grid-template-columns:1fr;} }
+  .domaincard{background:var(--neutral-0);border:1px solid var(--neutral-200);border-radius:14px;padding:16px 18px;}
+  .domaincard .grp{font-size:11px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .domaincard h3{margin:0 0 6px;font-size:14.5px;}
+  .domaincard p{font-size:13px;margin:0;color:var(--text-dim);line-height:1.5;}
+  details.tech{background:var(--brand-low);border-radius:12px;padding:4px 16px;margin-top:14px;}
+  details.tech summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--brand-high);padding:12px 0;list-style:none;}
+  details.tech summary::-webkit-details-marker{display:none;}
+  details.tech summary::before{content:"⚙ ";}
+  details.tech .inner{padding:0 0 16px;font-size:13.5px;line-height:1.6;color:var(--text-high);}
+  details.tech .inner code{background:var(--neutral-0);padding:1px 6px;border-radius:6px;font-size:12.5px;}
+  details.tech .inner ul{margin:8px 0 0;padding-left:20px;}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--success-low);color:var(--accent-lime-dark);margin-left:8px;}
+  .badge.soft{background:var(--brand-low);color:var(--brand-high);}
+  .pager{display:flex;justify-content:space-between;margin-top:64px;padding-top:24px;border-top:1px solid var(--neutral-200);}
+  .pager a{font-size:14px;font-weight:700;color:var(--brand);text-decoration:none;}
+  .pager a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<header class="topnav">
+  <div class="topnav-inner">
+    <a class="brand" href="index.html"><span class="mark"></span>Dynamic Journey</a>
+    <nav class="navlinks">
+      <a href="index.html">Início</a>
+      <a href="visao-geral.html">Visão Geral</a>
+      <a href="design-time.html" class="active">Design-time</a>
+      <a href="runtime.html">Runtime</a>
+      <a href="emulador-canais.html">Emulador de Canais</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="eyebrow"><span class="dot"></span>Design-time</div>
+    <h1>O Portal Administrativo: onde a jornada é construída</h1>
+    <p class="lead">
+      É onde um produto é cadastrado, uma jornada é modelada visualmente, cada tela é composta a partir
+      de um catálogo corporativo de componentes e as integrações necessárias são configuradas. Ao final,
+      um clique publica tudo como uma versão imutável, pronta para ser executada.
+    </p>
+  </section>
+
+  <section class="block">
+    <div class="diagram-card">
+      <svg viewBox="0 0 1000 320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#b77ddb"/>
+          </marker>
+        </defs>
+
+        <rect x="20" y="110" width="180" height="90" rx="14" fill="#eee7f3" stroke="#dcc3ea"/>
+        <text x="110" y="145" text-anchor="middle" class="box-title">Front Admin</text>
+        <text x="110" y="163" text-anchor="middle" class="box-sub">construção visual</text>
+        <text x="110" y="179" text-anchor="middle" class="box-sub">do fluxo e das telas</text>
+
+        <rect x="250" y="110" width="180" height="90" rx="14" fill="#660099" stroke="#380057"/>
+        <text x="340" y="145" text-anchor="middle" class="box-title" fill="#fff">Back Admin</text>
+        <text x="340" y="163" text-anchor="middle" class="box-sub" fill="#eee7f3">dono do domínio</text>
+        <text x="340" y="179" text-anchor="middle" class="box-sub" fill="#eee7f3">administrativo</text>
+
+        <line x1="200" y1="155" x2="246" y2="155" stroke="#b77ddb" stroke-width="2" marker-end="url(#arrow2)"/>
+
+        <!-- two publish branches -->
+        <line x1="430" y1="140" x2="600" y2="60" stroke="#b77ddb" stroke-width="2" marker-end="url(#arrow2)"/>
+        <line x1="430" y1="170" x2="600" y2="250" stroke="#b77ddb" stroke-width="2" marker-end="url(#arrow2)"/>
+
+        <rect x="610" y="20" width="200" height="90" rx="14" fill="#eee7f3" stroke="#dcc3ea"/>
+        <text x="710" y="52" text-anchor="middle" class="box-title">Publica o Fluxo</text>
+        <text x="710" y="72" text-anchor="middle" class="box-sub">transforma em processo</text>
+        <text x="710" y="88" text-anchor="middle" class="box-sub">executável no Runtime</text>
+
+        <rect x="610" y="210" width="200" height="90" rx="14" fill="#eee7f3" stroke="#dcc3ea"/>
+        <text x="710" y="242" text-anchor="middle" class="box-title">Publica as Telas</text>
+        <text x="710" y="262" text-anchor="middle" class="box-sub">envia cada tela SDUI ao</text>
+        <text x="710" y="278" text-anchor="middle" class="box-sub">repositório de especificação</text>
+
+        <line x1="810" y1="65" x2="860" y2="65" stroke="#b77ddb" stroke-width="2" marker-end="url(#arrow2)"/>
+        <text x="875" y="60" class="box-sub">Runtime</text>
+        <text x="875" y="76" class="box-sub">Engine</text>
+
+        <line x1="810" y1="255" x2="860" y2="255" stroke="#b77ddb" stroke-width="2" marker-end="url(#arrow2)"/>
+        <text x="875" y="250" class="box-sub">Strapi</text>
+        <text x="875" y="266" class="box-sub">(versões)</text>
+      </svg>
+      <div class="diagram-caption">Ao publicar, o Back Admin envia o fluxo para o Runtime e, em paralelo, cada tela para o repositório de especificação corporativo.</div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>O que se constrói no Portal Administrativo</h2>
+    <div class="domaingrid">
+      <div class="domaincard"><div class="grp">Administração</div><h3>Produtos e Canais</h3><p>Cada produto declara os tipos de canal que habilita para suas jornadas: web, mobile ou conversacional.</p></div>
+      <div class="domaincard"><div class="grp">Administração</div><h3>Catálogo de Integrações</h3><p>Clusters de mensageria e credenciais corporativas, centralizados e reutilizados pelas jornadas.</p></div>
+      <div class="domaincard"><div class="grp">Autoria</div><h3>Jornadas</h3><p>Ciclo de vida completo de cada jornada, associada a um produto e a um subconjunto de canais.</p></div>
+      <div class="domaincard"><div class="grp">Autoria</div><h3>Modelador de Fluxo</h3><p>Construção visual do fluxo por arrastar-e-soltar, com caminhos condicionais e integrações em cada etapa.</p></div>
+      <div class="domaincard"><div class="grp">Autoria</div><h3>Catálogo SDUI</h3><p>Componentes corporativos reutilizáveis, combinados para compor a tela de cada etapa da jornada.</p></div>
+      <div class="domaincard"><div class="grp">Publicação</div><h3>Publicação</h3><p>Uma única publicação ativa por jornada, versionada e imutável, enviada para o Runtime.</p></div>
+    </div>
+
+    <details class="tech">
+      <summary>Detalhe técnico — domínios e fluxo de publicação</summary>
+      <div class="inner">
+        A arquitetura lógica do Portal Administrativo tem 11 domínios agrupados em 6 grupos funcionais:
+        Administração, Autoria, Publicação, Governança de Acesso, Governança Operacional e Observabilidade
+        Técnica. Na publicação, o back admin faz duas chamadas de saída: uma para o serviço que transforma
+        o fluxo em processo executável e o implanta no Runtime, e outra para o serviço guardião do catálogo
+        SDUI, que grava o envelope de cada tela no repositório de especificação (Strapi). O Runtime Engine
+        nunca conhece o domínio do Portal Administrativo, nem acessa suas APIs diretamente.
+        <ul>
+          <li>Componentes SDUI: catálogo corporativo com 19 componentes em 5 níveis de composição.</li>
+          <li>Toda árvore de tela referencia componentes por <code>tipo + versão</code>, nunca por chave interna.</li>
+          <li>Ao publicar, a árvore da tela é congelada no snapshot: editar o catálogo depois não afeta jornadas já publicadas.</li>
+          <li>O modelador também permite gerar um rascunho de fluxo assistido por IA, revisável como qualquer edição manual.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <section class="block">
+    <h2>Maturidade <span class="badge">FT-01 a FT-04: 100%</span> <span class="badge soft">demais domínios: 90%+</span></h2>
+    <p>
+      As capacidades de cadastro de produtos, gestão de jornadas, modelagem visual de fluxo e catálogo SDUI
+      estão completas. Autenticação, auditoria, observabilidade e catálogo de integrações estão em estágio
+      avançado; testes automatizados e a esteira de infraestrutura de implantação ainda são trabalho futuro.
+    </p>
+  </section>
+
+  <div class="pager">
+    <a href="visao-geral.html">← Visão Geral</a>
+    <a href="runtime.html">Runtime →</a>
+  </div>
+</main>
+
+</body>
+</html>

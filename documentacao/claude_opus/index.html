@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dynamic Journey — Arquitetura de Solução</title>
+<meta name="description" content="Apresentação interativa e documentação navegável da arquitetura da plataforma Dynamic Journey: portal administrativo, motor de runtime e emulador de canais." />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="ambient"><div class="grid"></div></div>
+
+<header class="topbar">
+  <div class="logo">
+    <span class="mark"></span>
+    <span>Dynamic Journey<small>Arquitetura de Solução</small></span>
+  </div>
+  <div class="tools">
+    <button class="tool" id="btnToc" title="Sumário (O)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      <span class="lbl">Sumário</span>
+    </button>
+    <button class="tool" id="btnRead" title="Modo leitura (R)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h7v15H4zM13 5h7v15h-7z"/></svg>
+      <span class="lbl">Leitura</span>
+    </button>
+    <button class="tool" id="btnTheme" title="Tema (T)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+    </button>
+    <button class="tool" id="btnFull" title="Tela cheia (F)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="deck" id="deck">
+
+  <!-- ══════════════ 01 · CAPA ══════════════ -->
+  <section class="view" data-title="Capa" data-desc="Posicionamento da plataforma">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Plataforma multijornada e multicanal</span></div>
+      <h1 class="display reveal">Uma jornada, escrita uma vez.<br/><span class="glow">Executada em qualquer canal.</span></h1>
+      <p class="lead reveal">
+        O Dynamic Journey separa a <span class="em">autoria</span> de uma jornada guiada da sua <span class="em">execução</span>.
+        Um portal administrativo desenha o fluxo, as telas e as integrações; um motor de runtime mantém o estado de
+        cada jornada em andamento; e a abordagem Server-Driven UI entrega a experiência pronta para web, mobile e
+        canais conversacionais, sem um novo deploy de aplicativo a cada mudança.
+      </p>
+      <div class="reveal mt-l"><span class="kicker">As ineficiências de construir jornada canal a canal</span></div>
+      <div class="row c4 mt-s reveal">
+        <div class="card">
+          <span class="tag">Retrabalho</span>
+          <h3>A mesma jornada, refeita em cada canal</h3>
+          <p>Fluxo, telas, validações e chamadas de integração são reconstruídos em cada tecnologia. O que muda é a implementação; a regra de negócio é idêntica.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Time to market</span>
+          <h3>Trocar uma pergunta vira um ciclo de release</h3>
+          <p>Um ajuste de campo percorre desenvolvimento, homologação e publicação. No aplicativo, ainda depende da loja e de o cliente atualizar a versão.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Divergência</span>
+          <h3>Os canais derivam entre si</h3>
+          <p>Sem fonte única, a correção feita em um canal não alcança os outros. A experiência passa a depender de por onde o cliente entrou.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Governança</span>
+          <h3>A regra de negócio mora dentro do aplicativo</h3>
+          <p>Jornada espalhada em código de cliente não se versiona, não se audita e não se reverte como um artefato único.</p>
+        </div>
+      </div>
+      <p class="sub mt-l reveal">
+        Navegue com <span class="kbd">←</span> <span class="kbd">→</span> · sumário com <span class="kbd">O</span> ·
+        modo leitura com <span class="kbd">R</span> · tema com <span class="kbd">T</span>. Cartões com “detalhes →” abrem
+        a fonte no código.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════ 02 · ANTES E DEPOIS ══════════════ -->
+  <section class="view" data-title="Antes e depois" data-desc="O que acontece com as responsabilidades de cada canal">
+    <div class="view-inner" id="cmpWrap" data-state="before">
+      <div class="reveal"><span class="kicker">Comparativo</span></div>
+      <h2 class="title reveal">A mesma responsabilidade, cinco vezes. Ou uma vez só.</h2>
+      <p class="lead reveal">
+        Alterne entre os dois cenários e observe o que acontece com as responsabilidades de uma jornada.
+        Sem orquestração central, cada canal carrega as suas. Com a plataforma, elas passam a existir uma
+        única vez, compartilhadas por todos.
+      </p>
+
+      <div class="chips mt-s reveal" id="cmpChips">
+        <button class="chip on" data-state="before">Sem plataforma de orquestração</button>
+        <button class="chip" data-state="after">Com Dynamic Journey</button>
+        <span class="pill" style="margin-left:6px">
+          <span class="dot"></span>
+          <span class="s-off">30 blocos de responsabilidade para manter</span>
+          <span class="s-on">6 blocos, compartilhados por todos os canais</span>
+        </span>
+      </div>
+
+      <figure class="diagram mt-s reveal">
+        <svg viewBox="0 0 1240 430" role="img" aria-label="Comparativo entre construir jornada em cada canal e centralizar na plataforma">
+          <defs>
+            <marker id="ah6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <!-- canais, colunas duplicadas e conexões: gerados em app.js -->
+          <g id="cmpChannels"></g>
+          <g id="cmpCols"></g>
+          <g id="cmpEdges" color="var(--brand-bright)"></g>
+
+          <!-- plataforma: existe só no cenário com Dynamic Journey -->
+          <g class="cmp-plat">
+            <rect class="n-box brand" x="230" y="108" width="780" height="176" rx="18"/>
+            <text class="n-t" x="620" y="136" text-anchor="middle" style="font-size:18px">Dynamic Journey</text>
+
+            <rect class="n-box ghost" x="250" y="146" width="240" height="126" rx="12"/>
+            <text class="n-cap" x="370" y="166" text-anchor="middle">SDUI</text>
+            <rect class="n-box brand" x="262" y="176" width="216" height="26" rx="7"/>
+            <text class="n-s" x="370" y="193" text-anchor="middle">Renderização de telas</text>
+            <text class="n-s" x="370" y="224" text-anchor="middle">telas definidas uma vez</text>
+            <text class="n-s" x="370" y="240" text-anchor="middle">e reutilizadas por</text>
+            <text class="n-s" x="370" y="256" text-anchor="middle">todos os canais</text>
+
+            <rect class="n-box ghost" x="510" y="146" width="480" height="126" rx="12"/>
+            <text class="n-cap" x="750" y="166" text-anchor="middle">Motor de orquestração</text>
+            <rect class="n-box brand" x="522" y="176" width="222" height="26" rx="7"/>
+            <text class="n-s" x="633" y="193" text-anchor="middle">Orquestração</text>
+            <rect class="n-box brand" x="756" y="176" width="222" height="26" rx="7"/>
+            <text class="n-s" x="867" y="193" text-anchor="middle">Regras de negócio</text>
+            <rect class="n-box brand" x="522" y="208" width="222" height="26" rx="7"/>
+            <text class="n-s" x="633" y="225" text-anchor="middle">Controle de estado</text>
+            <rect class="n-box brand" x="756" y="208" width="222" height="26" rx="7"/>
+            <text class="n-s" x="867" y="225" text-anchor="middle">Integrações</text>
+            <rect class="n-box brand" x="522" y="240" width="222" height="26" rx="7"/>
+            <text class="n-s" x="633" y="257" text-anchor="middle">Tratamento de erros</text>
+            <rect class="n-box lime" x="756" y="240" width="222" height="26" rx="7"/>
+            <text class="n-s" x="867" y="257" text-anchor="middle" style="font-size:11px">+ Observabilidade e governança</text>
+          </g>
+
+          <!-- sistemas corporativos: destino nos dois cenários -->
+          <rect class="n-box" x="110" y="300" width="1020" height="64" rx="14"/>
+          <text class="n-t" x="620" y="326" text-anchor="middle">Sistemas Corporativos</text>
+          <text class="n-s" x="620" y="346" text-anchor="middle">CRM · ERP · Billing · Catálogo · Legado</text>
+        </svg>
+        <figcaption>As mesmas seis responsabilidades nos dois cenários. A diferença é quantas vezes elas existem, e quantos times precisam mantê-las.</figcaption>
+      </figure>
+
+      <div class="row c5 mt-s reveal">
+        <div class="card pad-s kpi"><span class="tag">Time to market</span><b class="s-off">Lento</b><b class="s-on">Rápido</b></div>
+        <div class="card pad-s kpi"><span class="tag">Custo total</span><b class="s-off">Alto</b><b class="s-on">Menor</b></div>
+        <div class="card pad-s kpi"><span class="tag">Risco operacional</span><b class="s-off">Alto</b><b class="s-on">Baixo</b></div>
+        <div class="card pad-s kpi"><span class="tag">Consistência entre canais</span><b class="s-off">Baixa</b><b class="s-on">Alta</b></div>
+        <div class="card pad-s kpi"><span class="tag">Foco do time em inovação</span><b class="s-off">Baixo</b><b class="s-on">Alto</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 03 · TESE ══════════════ -->
+  <section class="view" data-title="A tese" data-desc="Por que separar autoria de execução">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">O problema</span></div>
+      <h2 class="title reveal">Mudar uma jornada não deveria exigir um novo aplicativo</h2>
+      <div class="row split mt reveal">
+        <div>
+          <p class="body">
+            No modelo tradicional, o fluxo de uma jornada guiada vive espalhado: parte no código do app web, parte no
+            app mobile, parte no atendimento conversacional. Uma mudança de regra ou de tela vira três implementações,
+            três filas de release e três oportunidades de divergência.
+          </p>
+          <p class="body mt-s">
+            A plataforma inverte isso. O fluxo passa a ser um artefato publicado e versionado; a tela passa a ser uma
+            especificação declarativa que cada canal sabe interpretar. O canal deixa de conhecer a jornada e passa a
+            perguntar, a cada passo, <span class="em">o que devo mostrar agora?</span>
+          </p>
+        </div>
+        <div class="card accent">
+          <span class="tag">Três separações</span>
+          <ul class="ticks">
+            <li><b>Intenção:</b>o fluxo desenhado no portal, independente de canal.</li>
+            <li><b>Execução:</b>o estado da jornada, mantido pelo motor de runtime.</li>
+            <li><b>Experiência:</b>a tela, resolvida por contrato e projetada por canal.</li>
+          </ul>
+          <p class="sub mt-s">
+            Nenhuma das três conhece as outras por dentro: conversam por contratos explícitos.
+          </p>
+        </div>
+      </div>
+      <div class="row c3 mt reveal">
+        <div class="card"><h3>Sem novo deploy por canal</h3><p>Publicar uma versão da jornada atualiza a experiência em todos os canais habilitados ao mesmo tempo.</p></div>
+        <div class="card"><h3>Uma definição, várias formas</h3><p>A mesma árvore de tela vira formulário no web, tela nativa no mobile e sequência de mensagens no WhatsApp.</p></div>
+        <div class="card"><h3>Versão imutável</h3><p>Cada publicação congela fluxo e telas; instâncias em andamento continuam na versão em que nasceram.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 03 · MAPA DA PLATAFORMA ══════════════ -->
+  <section class="view" data-title="Mapa da plataforma" data-desc="As três soluções e os dois momentos">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Visão de contexto</span></div>
+      <h2 class="title reveal">Três soluções, dois momentos, um contrato</h2>
+      <div class="chips mt-s reveal" id="mapChips">
+        <button class="chip on" data-map="all">Tudo</button>
+        <button class="chip" data-map="design">Autoria</button>
+        <button class="chip" data-map="publish">Publicação</button>
+        <button class="chip" data-map="runtime">Execução</button>
+        <button class="chip" data-map="channel">Canais</button>
+      </div>
+      <figure class="diagram mt-s reveal" id="mapDiagram" data-focus="all">
+        <svg viewBox="0 0 1240 470" role="img" aria-label="Mapa da arquitetura da plataforma Dynamic Journey">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <text class="zone-t" x="30" y="52">Design-time · autoria</text>
+          <text class="zone-t" x="270" y="52">Publicação</text>
+          <text class="zone-t" x="784" y="52">Runtime · execução</text>
+
+          <!-- design -->
+          <g class="layer" data-layer="design">
+            <rect class="n-box" x="30" y="96" width="200" height="64" rx="13"/>
+            <text class="n-t" x="130" y="124" text-anchor="middle">Portal · Front</text>
+            <text class="n-s" x="130" y="142" text-anchor="middle">modelador visual e editor de telas</text>
+
+            <rect class="n-box solid" x="266" y="96" width="210" height="64" rx="13"/>
+            <text class="n-t on-solid" x="371" y="124" text-anchor="middle">Portal · Back</text>
+            <text class="n-s on-solid" x="371" y="142" text-anchor="middle">dono do domínio e da publicação</text>
+
+            <g color="var(--brand-bright)"><line class="edge brand" x1="230" y1="128" x2="262" y2="128" marker-end="url(#ah)"/></g>
+          </g>
+
+          <!-- publish -->
+          <g class="layer" data-layer="publish">
+            <rect class="n-box" x="512" y="96" width="232" height="64" rx="13"/>
+            <text class="n-t" x="628" y="122" text-anchor="middle">Transformação</text>
+            <text class="n-s" x="628" y="140" text-anchor="middle">fluxo → processo executável</text>
+
+            <rect class="n-box" x="266" y="290" width="230" height="64" rx="13"/>
+            <text class="n-t" x="381" y="316" text-anchor="middle">Registro de Especificação</text>
+            <text class="n-s" x="381" y="334" text-anchor="middle">guardião do contrato SDUI</text>
+
+            <rect class="n-box" x="532" y="290" width="180" height="64" rx="13"/>
+            <text class="n-t" x="622" y="316" text-anchor="middle">Repositório</text>
+            <text class="n-s" x="622" y="334" text-anchor="middle">snapshots imutáveis</text>
+
+            <g color="var(--brand-bright)">
+              <line class="edge brand" x1="476" y1="128" x2="508" y2="128" marker-end="url(#ah)"/>
+              <line class="edge brand" x1="371" y1="160" x2="371" y2="286" marker-end="url(#ah)"/>
+              <line class="edge brand" x1="496" y1="322" x2="528" y2="322" marker-end="url(#ah)"/>
+            </g>
+            <text class="edge-t" x="384" y="228">envelope de cada tela</text>
+          </g>
+
+          <!-- runtime -->
+          <g class="layer" data-layer="runtime">
+            <rect class="n-box brand" x="778" y="96" width="210" height="64" rx="13"/>
+            <text class="n-t" x="883" y="122" text-anchor="middle">Runtime Engine</text>
+            <text class="n-s" x="883" y="140" text-anchor="middle">executa e mantém o estado</text>
+
+            <rect class="n-box solid" x="778" y="290" width="210" height="64" rx="13"/>
+            <text class="n-t on-solid" x="883" y="316" text-anchor="middle">Journey</text>
+            <text class="n-s on-solid" x="883" y="334" text-anchor="middle">único ponto de entrada do canal</text>
+
+            <g color="var(--brand-bright)">
+              <line class="edge brand" x1="744" y1="128" x2="774" y2="128" marker-end="url(#ah)"/>
+              <line class="edge brand" x1="883" y1="286" x2="883" y2="164" marker-end="url(#ah)"/>
+              <path class="edge brand" d="M778 338 L760 338 L760 400 L381 400 L381 358" marker-end="url(#ah)"/>
+            </g>
+            <text class="edge-t" x="898" y="230">avança a instância</text>
+            <text class="edge-t" x="520" y="394">resolve a tela do passo atual</text>
+          </g>
+
+          <!-- channels -->
+          <g class="layer" data-layer="channel">
+            <rect class="n-box lime" x="1024" y="252" width="190" height="42" rx="11"/>
+            <text class="n-t" x="1119" y="278" text-anchor="middle">Canal Web</text>
+            <rect class="n-box lime" x="1024" y="300" width="190" height="42" rx="11"/>
+            <text class="n-t" x="1119" y="326" text-anchor="middle">Canal Mobile</text>
+            <rect class="n-box lime" x="1024" y="348" width="190" height="42" rx="11"/>
+            <text class="n-t" x="1119" y="374" text-anchor="middle">WhatsApp · URA</text>
+            <g color="var(--lime)">
+              <line class="edge lime" x1="1020" y1="273" x2="992" y2="310" marker-end="url(#ah)"/>
+              <line class="edge lime" x1="1020" y1="321" x2="992" y2="321" marker-end="url(#ah)"/>
+              <line class="edge lime" x1="1020" y1="369" x2="992" y2="332" marker-end="url(#ah)"/>
+            </g>
+          </g>
+        </svg>
+        <figcaption>O domínio administrativo publica em duas direções; a execução converge num ponto único, o Journey. Nenhum canal alcança o motor ou o repositório de telas diretamente.</figcaption>
+      </figure>
+      <div class="row c3 mt-s reveal">
+        <button class="card clickable pad-s" data-detail="portal"><span class="tag">Solução 1</span><h3>Portal Administrativo</h3><p>Onde a jornada é construída, validada e publicada.</p></button>
+        <button class="card clickable pad-s" data-detail="runtime"><span class="tag">Solução 2</span><h3>Motor de Runtime</h3><p>Onde a jornada publicada vira estado e passos reais.</p></button>
+        <button class="card clickable pad-s" data-detail="emulador"><span class="tag">Solução 3</span><h3>Emulador de Canais</h3><p>Onde a promessa multicanal é provada com hosts reais.</p></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 04 · PORTAL ══════════════ -->
+  <section class="view" data-title="Portal Administrativo" data-desc="A fábrica de jornadas">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Design-time</span></div>
+      <h2 class="title reveal">O portal é a fábrica de jornadas</h2>
+      <p class="lead reveal">Onze domínios lógicos em seis grupos funcionais. O usuário de negócio cadastra, modela, compõe e publica; o domínio administrativo é o dono de tudo isso até o instante da publicação.</p>
+      <div class="row c3 mt reveal">
+        <div class="card"><span class="tag">Administração</span><h3>Produtos e canais</h3><p>Cada produto declara os tipos de canal que habilita. Canal é valor de domínio fixo (web, mobile, WhatsApp), não um cadastro solto.</p></div>
+        <div class="card"><span class="tag">Autoria</span><h3>Jornadas</h3><p>Ciclo de vida completo, com uma jornada atendendo um subconjunto dos canais do seu produto, mesmo fluxo e mesmas telas.</p></div>
+        <div class="card"><span class="tag">Autoria</span><h3>Modelador de fluxo</h3><p>Início, tarefas de usuário, tarefas de integração, recebimento de mensagem e desvio condicional, com arrastar-e-soltar, desfazer e refazer.</p></div>
+        <div class="card"><span class="tag">Autoria</span><h3>Editor de telas</h3><p>A tela de cada tarefa de usuário é uma árvore de componentes do catálogo corporativo, editada dentro do próprio nó do fluxo.</p></div>
+        <div class="card"><span class="tag">Administração</span><h3>Catálogo de integrações</h3><p>Clusters de mensageria e referências de credencial centralizados. O portal nunca guarda segredo nem abre conexão por conta própria.</p></div>
+        <div class="card"><span class="tag">Governança</span><h3>Versões e auditoria</h3><p>Versões imutáveis por publicação, trilha de auditoria de negócio e log técnico correlacionado por requisição.</p></div>
+      </div>
+      <div class="row split mt reveal">
+        <div class="card lime">
+          <span class="tag">Diferencial de autoria</span>
+          <h3>Rascunho de fluxo assistido por IA</h3>
+          <p>O editor gera um rascunho a partir de uma descrição em linguagem natural, recebendo como contexto o fluxo já desenhado: um pedido pontual não recria o que não tem relação com ele. O resultado entra como rascunho comum, sujeito à mesma validação e à mesma revisão de qualquer edição manual.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Regra de ouro</span>
+          <h3>Salvar não valida; publicar valida</h3>
+          <p>O rascunho pode ficar temporariamente inconsistente enquanto se trabalha nele. A publicação é o único ponto que garante a jornada estruturalmente válida antes de ir ao ar, e é por isso que ela concentra todas as verificações da próxima visão.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 05 · PUBLICAÇÃO ══════════════ -->
+  <section class="view" data-title="Publicação" data-desc="Duas projeções coordenadas">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">A fronteira</span></div>
+      <h2 class="title reveal">Publicar é projetar a mesma jornada em duas direções</h2>
+      <p class="lead reveal">O fluxo vira um processo executável no motor. As telas viram envelopes imutáveis no repositório de especificação. As duas projeções saem da mesma versão e carregam o mesmo número de versão.</p>
+
+      <figure class="diagram mt reveal">
+        <svg viewBox="0 0 1180 330" role="img" aria-label="Sequência da publicação de uma jornada">
+          <defs>
+            <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+          <g color="var(--brand-bright)">
+            <rect class="n-box solid" x="24" y="120" width="180" height="68" rx="13"/>
+            <text class="n-t on-solid" x="114" y="148" text-anchor="middle">Portal · Back</text>
+            <text class="n-s on-solid" x="114" y="166" text-anchor="middle">coordena a publicação</text>
+
+            <rect class="n-box" x="244" y="120" width="180" height="68" rx="13"/>
+            <text class="n-t" x="334" y="148" text-anchor="middle">Validar fluxo</text>
+            <text class="n-s" x="334" y="166" text-anchor="middle">estrutura, telas e variáveis</text>
+
+            <rect class="n-box" x="464" y="120" width="180" height="68" rx="13"/>
+            <text class="n-t" x="554" y="148" text-anchor="middle">Montar envelopes</text>
+            <text class="n-s" x="554" y="166" text-anchor="middle">alvos e versões calculados</text>
+
+            <rect class="n-box lime" x="684" y="128" width="160" height="52" rx="13"/>
+            <text class="n-t" x="764" y="150" text-anchor="middle">Verificar telas</text>
+            <text class="n-s" x="764" y="166" text-anchor="middle">falha rápido, antes do efeito</text>
+
+            <line class="edge brand" x1="204" y1="154" x2="240" y2="154" marker-end="url(#ah2)"/>
+            <line class="edge brand" x1="424" y1="154" x2="460" y2="154" marker-end="url(#ah2)"/>
+            <line class="edge brand" x1="644" y1="154" x2="680" y2="154" marker-end="url(#ah2)"/>
+
+            <path class="edge brand" d="M844 142 L884 142 L884 76" marker-end="url(#ah2)"/>
+            <path class="edge brand" d="M844 166 L884 166 L884 232" marker-end="url(#ah2)"/>
+          </g>
+
+          <rect class="n-box brand" x="904" y="44" width="252" height="64" rx="13"/>
+          <text class="n-t" x="1030" y="70" text-anchor="middle">Implantar no Runtime Engine</text>
+          <text class="n-s" x="1030" y="88" text-anchor="middle">processo executável, marcado com a versão</text>
+
+          <rect class="n-box brand" x="904" y="200" width="252" height="64" rx="13"/>
+          <text class="n-t" x="1030" y="226" text-anchor="middle">Gravar telas publicadas</text>
+          <text class="n-s" x="1030" y="244" text-anchor="middle">um envelope por tarefa de usuário</text>
+
+          <text class="n-cap" x="890" y="128">1º</text>
+          <text class="n-cap" x="890" y="200">2º</text>
+        </svg>
+        <figcaption>A verificação de disponibilidade acontece antes de qualquer efeito colateral; só depois das duas chamadas externas terem sucesso a publicação é persistida.</figcaption>
+      </figure>
+
+      <div class="row c3 mt-s reveal">
+        <button class="card clickable pad-s" data-detail="validacao"><span class="tag">Antes de ir ao ar</span><h3>O que é validado</h3><p>Da forma do grafo até a árvore de cada tela e a cobertura por canal.</p></button>
+        <button class="card clickable pad-s" data-detail="envelope-build"><span class="tag">Cálculo, não configuração</span><h3>Alvos compatíveis</h3><p>Os canais suportados por uma tela são deduzidos dos componentes que ela usa.</p></button>
+        <button class="card clickable pad-s" data-detail="imutabilidade"><span class="tag">Garantia</span><h3>Imutabilidade</h3><p>Nova versão gera registro novo; a anterior segue atendendo quem já está nela.</p></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 06 · RUNTIME ══════════════ -->
+  <section class="view" data-title="Runtime" data-desc="O Journey como porta única dos canais">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Execução</span></div>
+      <h2 class="title reveal">O canal pergunta o próximo passo, não como o motor funciona</h2>
+      <div class="row split-wide mt reveal">
+        <figure class="diagram">
+          <svg viewBox="0 0 1100 330" role="img" aria-label="Topologia de execução em runtime">
+            <defs>
+              <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+              </marker>
+            </defs>
+            <rect class="n-box lime" x="30" y="128" width="180" height="72" rx="13"/>
+            <text class="n-t" x="120" y="158" text-anchor="middle">Canal digital</text>
+            <text class="n-s" x="120" y="176" text-anchor="middle">web · mobile · conversacional</text>
+
+            <rect class="n-box solid" x="310" y="128" width="200" height="72" rx="13"/>
+            <text class="n-t on-solid" x="410" y="158" text-anchor="middle">Journey</text>
+            <text class="n-s on-solid" x="410" y="176" text-anchor="middle">cruza motor e especificação</text>
+
+            <rect class="n-box brand" x="610" y="36" width="220" height="68" rx="13"/>
+            <text class="n-t" x="720" y="64" text-anchor="middle">Runtime Engine</text>
+            <text class="n-s" x="720" y="82" text-anchor="middle">estado da instância</text>
+
+            <rect class="n-box" x="610" y="222" width="220" height="68" rx="13"/>
+            <text class="n-t" x="720" y="250" text-anchor="middle">Registro de Especificação</text>
+            <text class="n-s" x="720" y="268" text-anchor="middle">resolve e interpola a tela</text>
+
+            <rect class="n-box" x="880" y="222" width="180" height="68" rx="13"/>
+            <text class="n-t" x="970" y="250" text-anchor="middle">Repositório</text>
+            <text class="n-s" x="970" y="268" text-anchor="middle">tela publicada</text>
+
+            <g color="var(--brand-bright)">
+              <line class="edge brand" x1="210" y1="164" x2="306" y2="164" marker-end="url(#ah3)"/>
+              <path class="edge brand" d="M510 150 L560 150 L560 70 L606 70" marker-end="url(#ah3)"/>
+              <path class="edge brand" d="M510 178 L560 178 L560 256 L606 256" marker-end="url(#ah3)"/>
+              <line class="edge brand" x1="830" y1="256" x2="876" y2="256" marker-end="url(#ah3)"/>
+            </g>
+            <text class="edge-t" x="568" y="112">passo atual</text>
+            <text class="edge-t" x="568" y="308">tela do passo</text>
+          </svg>
+          <figcaption>Um Journey, dois upstreams. O canal nunca vê nenhum dos dois.</figcaption>
+        </figure>
+        <div>
+          <div class="card accent"><span class="tag">Contrato do canal</span><h3>Cinco operações</h3>
+            <ul class="ticks mt-s">
+              <li>consultar o fluxo publicado</li>
+              <li>iniciar uma instância informando o canal</li>
+              <li>consultar o passo atual</li>
+              <li>concluir a tarefa ativa com as respostas</li>
+              <li>encerrar a instância</li>
+            </ul>
+          </div>
+          <div class="card mt-s"><span class="tag">Três estados</span>
+            <p>O passo atual responde sempre um entre <span class="mono-inline">USER_TASK</span> (há tela para mostrar),
+            <span class="mono-inline">WAITING</span> (a jornada aguarda um evento externo) e
+            <span class="mono-inline">ENDED</span> (a instância terminou).</p>
+          </div>
+          <button class="card clickable pad-s mt-s" data-detail="journey"><span class="tag">Fronteira</span><h3>O que o Journey não faz</h3><p>Não interpreta a tela e não expõe diagnóstico interno do motor.</p></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 07 · SEQUÊNCIA ══════════════ -->
+  <section class="view" data-title="Ciclo de uma etapa" data-desc="Execução passo a passo, com as chamadas reais">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Sequência interativa</span></div>
+      <h2 class="title reveal">Da abertura do canal à conclusão de uma etapa</h2>
+      <div class="seq mt reveal">
+        <ul class="seq-steps" id="seqSteps"></ul>
+        <div>
+          <figure class="diagram">
+            <svg viewBox="0 0 1000 300" role="img" aria-label="Diagrama animado do ciclo de execução de uma etapa">
+              <defs>
+                <marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+                </marker>
+              </defs>
+              <rect class="n-box lime" x="20" y="116" width="150" height="66" rx="12"/>
+              <text class="n-t" x="95" y="145" text-anchor="middle">Canal</text>
+              <text class="n-s" x="95" y="163" text-anchor="middle">web · mobile · chat</text>
+
+              <rect class="n-box solid" x="270" y="116" width="180" height="66" rx="12"/>
+              <text class="n-t on-solid" x="360" y="145" text-anchor="middle">ms-journey</text>
+              <text class="n-s on-solid" x="360" y="163" text-anchor="middle">porta única do canal</text>
+
+              <rect class="n-box brand" x="560" y="26" width="200" height="62" rx="12"/>
+              <text class="n-t" x="660" y="52" text-anchor="middle">Runtime Engine</text>
+              <text class="n-s" x="660" y="70" text-anchor="middle">instância e tarefas</text>
+
+              <rect class="n-box" x="560" y="208" width="200" height="62" rx="12"/>
+              <text class="n-t" x="660" y="234" text-anchor="middle">Especificação</text>
+              <text class="n-s" x="660" y="252" text-anchor="middle">telas e variáveis</text>
+
+              <rect class="n-box" x="820" y="208" width="150" height="62" rx="12"/>
+              <text class="n-t" x="895" y="240" text-anchor="middle">Repositório</text>
+
+              <g color="var(--brand-bright)" id="seqEdges">
+                <line class="edge hop" data-hop="canal" x1="170" y1="149" x2="266" y2="149" marker-end="url(#ah4)"/>
+                <path class="edge hop" data-hop="engine" d="M450 136 L505 136 L505 57 L556 57" marker-end="url(#ah4)"/>
+                <path class="edge hop" data-hop="spec" d="M450 162 L505 162 L505 239 L556 239" marker-end="url(#ah4)"/>
+                <line class="edge hop" data-hop="repo" x1="760" y1="239" x2="816" y2="239" marker-end="url(#ah4)"/>
+                <line class="edge hop" data-hop="back" x1="266" y1="170" x2="174" y2="170" marker-end="url(#ah4)"/>
+              </g>
+            </svg>
+            <figcaption>Os saltos acesos correspondem à chamada real feita naquele passo.</figcaption>
+          </figure>
+          <div class="seq-stage mt-s">
+            <div class="seq-bar"><span class="seq-hop" id="seqHop">—</span><span class="pill" id="seqActor">—</span></div>
+            <pre class="code" id="seqCode">—</pre>
+            <p class="seq-note" id="seqNote">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 08 · CONTRATO SDUI ══════════════ -->
+  <section class="view" data-title="Contrato SDUI v1" data-desc="A linguagem comum entre autoria e canais">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">O normativo</span></div>
+      <h2 class="title reveal">O catálogo SDUI é a linguagem comum entre autoria e canais</h2>
+      <div class="row split mt reveal">
+        <div>
+          <p class="body">O contrato é corporativo e independente de framework: descreve o que cada componente significa, o que ele aceita e como deve se comportar em cada alvo. O repositório apenas armazena os snapshots publicados: não é dono do contrato nem pode reinterpretá-lo.</p>
+          <div class="row c2 mt-s">
+            <div class="card pad-s"><h3>Cinco níveis</h3><p>Do primitivo visual ao componente de domínio. O v1 entrega os níveis 0 a 3; o nível 4 fica fora de escopo.</p></div>
+            <div class="card pad-s"><h3>Paridade funcional</h3><p>Mesma semântica em todos os alvos, admitindo diferenças nativas de apresentação.</p></div>
+            <div class="card pad-s"><h3>Sem execução</h3><p>Nenhum renderizador executa expressão, consulta ou URL declarada na especificação.</p></div>
+            <div class="card pad-s"><h3>Ordem é contrato</h3><p>A ordem dos filhos define leitura, foco e projeção conversacional.</p></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">Envelope canônico</span>
+          <pre class="code mt-s"><span class="k">"schemaVersion"</span>: <span class="s">"1.0.0"</span>,
+<span class="k">"catalogVersion"</span>: <span class="s">"1.0.0"</span>,
+<span class="k">"journeyId"</span>: <span class="s">"12f6d6e2…"</span>,
+<span class="k">"journeyVersion"</span>: <span class="n">7</span>,
+<span class="k">"uiStepId"</span>: <span class="s">"Node_3f865d35…"</span>,
+<span class="k">"status"</span>: <span class="s">"published"</span>,
+<span class="k">"supportedTargets"</span>: [<span class="s">"react.web"</span>, …],
+<span class="k">"minRendererVersion"</span>: { … },
+<span class="k">"dataSources"</span>: {},   <span class="c">// reservado no v1</span>
+<span class="k">"data"</span>: [<span class="s">"ui.screen"</span>, { … }, [ … ]]</pre>
+          <p class="sub mt-s">A raiz de <span class="mono-inline">data</span> é sempre uma tela única. Versionamento em SemVer para catálogo, componente e renderizador; a versão da jornada é um inteiro sequencial.</p>
+        </div>
+      </div>
+      <div class="row c4 mt-s reveal">
+        <button class="card clickable pad-s" data-detail="bindings"><span class="tag">Seção 8</span><h3>Vínculos e placeholders</h3><p>Como um valor entra na tela sem lógica na árvore.</p></button>
+        <button class="card clickable pad-s" data-detail="acoes"><span class="tag">Seção 9</span><h3>Ações fechadas</h3><p>Seis ações homologadas, nada além delas.</p></button>
+        <button class="card clickable pad-s" data-detail="compat"><span class="tag">Seção 11</span><h3>Compatibilidade</h3><p>Quando um alvo simplesmente não suporta um componente.</p></button>
+        <button class="card clickable pad-s" data-detail="datasources"><span class="tag">Seção 14.4</span><h3>dataSources reservado</h3><p>O que precisa ser decidido antes de qualquer uso.</p></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 09 · PLAYGROUND ══════════════ -->
+  <section class="view" data-title="Projeção multicanal" data-desc="A mesma tela, renderizada ao vivo em três canais">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Demonstração ao vivo</span></div>
+      <h2 class="title reveal">A mesma especificação, três formas nativas</h2>
+      <p class="lead reveal">As telas abaixo são geradas nesta página a partir do envelope à esquerda, aplicando as regras de projeção do próprio contrato. Troque a tela e observe o que muda em cada canal.</p>
+      <div class="chips mt-s reveal" id="labChips"></div>
+      <div class="lab mt-s reveal">
+        <div>
+          <div class="lab-src">
+            <header><span>Envelope publicado</span><span id="labMeta">—</span></header>
+            <pre class="code" id="labCode">—</pre>
+          </div>
+          <div class="diag-note" id="labRules">—</div>
+        </div>
+        <div class="targets">
+          <div class="target">
+            <h4><span class="dot"></span>Web</h4>
+            <div class="frame-web">
+              <div class="bar"><i></i><i></i><i></i><span class="url">app.vivo.com.br/jornada</span></div>
+              <div class="render" id="renderWeb"></div>
+            </div>
+          </div>
+          <div class="target">
+            <h4><span class="dot"></span>Mobile</h4>
+            <div class="frame-phone">
+              <div class="status"><span>09:41</span><span>▮▮▮</span></div>
+              <div class="render" id="renderApp"></div>
+            </div>
+          </div>
+          <div class="target">
+            <h4><span class="dot"></span>WhatsApp</h4>
+            <div class="frame-wa">
+              <div class="wa-bar"><span class="av"></span><span>Vivo</span></div>
+              <div class="wa-body" id="renderWa"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 10 · EMULADOR ══════════════ -->
+  <section class="view" data-title="Emulador de Canais" data-desc="A prova arquitetural com hosts reais">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Solução 3</span></div>
+      <h2 class="title reveal">A prova de que qualquer host executa a mesma jornada</h2>
+      <div class="row split-wide mt reveal">
+        <figure class="diagram">
+          <svg viewBox="0 0 1060 360" role="img" aria-label="Arquitetura do emulador de canais">
+            <defs>
+              <marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+              </marker>
+            </defs>
+            <rect class="n-box" x="20" y="34" width="180" height="42" rx="11"/><text class="n-t" x="110" y="60" text-anchor="middle">React Web</text>
+            <rect class="n-box" x="20" y="88" width="180" height="42" rx="11"/><text class="n-t" x="110" y="114" text-anchor="middle">React Native</text>
+            <rect class="n-box" x="20" y="142" width="180" height="42" rx="11"/><text class="n-t" x="110" y="168" text-anchor="middle">Flutter Web</text>
+            <rect class="n-box" x="20" y="196" width="180" height="42" rx="11"/><text class="n-t" x="110" y="222" text-anchor="middle">Flutter Mobile</text>
+            <rect class="n-box" x="20" y="250" width="180" height="42" rx="11"/><text class="n-t" x="110" y="276" text-anchor="middle">WhatsApp</text>
+
+            <rect class="n-box ghost" x="300" y="300" width="220" height="44" rx="12"/>
+            <text class="n-t" x="410" y="328" text-anchor="middle">Cockpit de laboratório</text>
+
+            <rect class="n-box solid" x="300" y="118" width="220" height="86" rx="14"/>
+            <text class="n-t on-solid" x="410" y="152" text-anchor="middle">BFF único</text>
+            <text class="n-s on-solid" x="410" y="170" text-anchor="middle">única borda de saída</text>
+            <text class="n-s on-solid" x="410" y="186" text-anchor="middle">não interpreta a tela</text>
+
+            <rect class="n-box brand" x="640" y="118" width="210" height="86" rx="14"/>
+            <text class="n-t" x="745" y="152" text-anchor="middle">Journey</text>
+            <text class="n-s" x="745" y="170" text-anchor="middle">plataforma real</text>
+
+            <rect class="n-box ghost" x="640" y="26" width="210" height="44" rx="11"/>
+            <text class="n-t" x="745" y="54" text-anchor="middle">Portal · Back</text>
+
+            <g color="var(--brand-bright)">
+              <line class="edge brand" x1="200" y1="55" x2="296" y2="140" marker-end="url(#ah5)"/>
+              <line class="edge brand" x1="200" y1="109" x2="296" y2="150" marker-end="url(#ah5)"/>
+              <line class="edge brand" x1="200" y1="163" x2="296" y2="161" marker-end="url(#ah5)"/>
+              <line class="edge brand" x1="200" y1="217" x2="296" y2="172" marker-end="url(#ah5)"/>
+              <line class="edge brand" x1="200" y1="271" x2="296" y2="182" marker-end="url(#ah5)"/>
+              <line class="edge brand" x1="520" y1="161" x2="636" y2="161" marker-end="url(#ah5)"/>
+            </g>
+            <g color="var(--lime)">
+              <line class="edge lime" x1="410" y1="296" x2="410" y2="208" marker-end="url(#ah5)"/>
+              <path class="edge lime" d="M520 130 L580 130 L580 48 L636 48" marker-end="url(#ah5)"/>
+            </g>
+            <text class="edge-t" x="424" y="262">abre o host escolhido</text>
+            <text class="edge-t" x="560" y="86">descobre jornadas publicadas</text>
+          </svg>
+          <figcaption>Cinco hosts de tecnologias diferentes, uma única borda de saída.</figcaption>
+        </figure>
+        <div>
+          <div class="card"><span class="tag">Por que existe</span><h3>Provar, não produzir</h3><p>O laboratório demonstra que qualquer aplicação cliente executa qualquer jornada publicada sem conhecer o motor nem o formato interno das telas. Não é topologia de produção.</p></div>
+          <div class="card mt-s"><span class="tag">Regra dura</span><h3>Uma borda só</h3><p>Nenhum host fala com o motor, com o registro de especificação ou com o repositório. Tudo passa pelo BFF, que por sua vez só conhece o Journey.</p></div>
+          <button class="card clickable pad-s mt-s" data-detail="whatsapp"><span class="tag">Caso especial</span><h3>A cadeia do WhatsApp</h3><p>Como uma tela vira conversa e uma resposta vira conclusão de tarefa.</p></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 11 · RENDERERS ══════════════ -->
+  <section class="view" data-title="Renderizadores" data-desc="Runtime headless no centro, adapter na borda">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Última milha</span></div>
+      <h2 class="title reveal">Runtime headless no centro, adapter específico na borda</h2>
+      <p class="lead reveal">A lógica que interpreta o contrato (vínculos, interpolação, visibilidade e ações) é independente de framework. Só a tradução final para componentes visuais é específica de cada alvo.</p>
+      <div class="row c3 mt reveal">
+        <div class="card accent"><span class="tag">Compartilhado</span><h3>Contrato</h3><p>Tipos e validação do catálogo v1, com uma implementação por linguagem.</p></div>
+        <div class="card accent"><span class="tag">Compartilhado</span><h3>Runtime headless</h3><p>Resolve vínculos, interpolação, visibilidade e ações sem desenhar um pixel.</p></div>
+        <div class="card"><span class="tag">Por alvo</span><h3>Adapter visual</h3><p>Converte a árvore resolvida em componentes nativos daquele alvo.</p></div>
+      </div>
+      <div class="row c5 mt-s reveal">
+        <div class="card pad-s"><h3>React Web</h3><p class="sub">Biblioteca oficial do design system.</p></div>
+        <div class="card pad-s"><h3>React Native</h3><p class="sub">Tokens equivalentes, sem biblioteca oficial.</p></div>
+        <div class="card pad-s"><h3>Flutter Web</h3><p class="sub">Tokens equivalentes, alvo homologado à parte.</p></div>
+        <div class="card pad-s"><h3>Flutter Mobile</h3><p class="sub">Mesmo código do web, homologação separada.</p></div>
+        <div class="card pad-s"><h3>WhatsApp</h3><p class="sub">Adapter conversacional, sem layout.</p></div>
+      </div>
+      <div class="card lime mt reveal">
+        <span class="tag">Leitura honesta do estado atual</span>
+        <h3>São renderizadores a caminho de virar SDKs — ainda não são SDKs</h3>
+        <p>A forma de pacote já existe e a separação entre runtime headless e adapter é a correta para distribuição. O que falta para um time externo consumi-los é o trabalho de produto: publicação versionada, superfície de exportação estável e documentação de integração. Chamá-los de SDK hoje seria vender uma promessa que o repositório ainda não cumpre.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 12 · FRONTEIRAS ══════════════ -->
+  <section class="view" data-title="Fronteiras" data-desc="Os guardrails que sustentam a arquitetura">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Princípios</span></div>
+      <h2 class="title reveal">Fronteiras explícitas são o que impede o acoplamento de voltar</h2>
+      <div class="row c2 mt reveal">
+        <div class="card"><h3>O runtime não conhece o portal</h3><p>Nenhum serviço de execução consulta o domínio administrativo nem suas APIs. A publicação é a única direção de contato, e ela é de saída.</p></div>
+        <div class="card"><h3>O canal não conhece o motor</h3><p>Nenhum canal ou BFF alcança o motor de execução ou o repositório de telas. Só o Journey, e só as operações que um canal real precisa.</p></div>
+        <div class="card"><h3>O portal não guarda segredo</h3><p>O catálogo de integrações guarda referências de credencial, nunca o segredo. Abrir conexão e resolver credencial é responsabilidade do runtime.</p></div>
+        <div class="card"><h3>O repositório não é dono do contrato</h3><p>O armazenamento de snapshots apenas persiste e distribui. Não define, não valida e não reinterpreta a árvore publicada.</p></div>
+        <div class="card"><h3>A tela não executa lógica</h3><p>A árvore publicada não carrega expressão nem código. Valor computado e chamada de dados estão explicitamente fora do v1.</p></div>
+        <div class="card"><h3>Publicado é imutável</h3><p>Editar o catálogo depois não afeta jornadas já publicadas. A validação só se aplica no momento de uma nova publicação.</p></div>
+      </div>
+      <div class="card accent mt reveal">
+        <span class="tag">Consequência prática</span>
+        <p>Cada fronteira acima é verificável no código: existe um ponto único onde ela é atravessada, e esse ponto tem nome. É isso que permite trocar uma peça (o motor, o repositório de telas, o design system de um canal) sem renegociar a arquitetura inteira.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 13 · ACHADOS ══════════════ -->
+  <section class="view" data-title="Achados de arquitetura" data-desc="O que a leitura do código revelou">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Auditoria</span></div>
+      <h2 class="title reveal">O que a leitura do código revelou</h2>
+      <p class="lead reveal">Esta visão não veio da documentação: veio de ler a implementação. São pontos em que o comportamento real diverge do que está escrito, ou em que uma garantia assumida não existe ainda. Nenhum deles impede a plataforma de funcionar; todos merecem decisão consciente.</p>
+      <div class="row c2 mt reveal">
+        <div class="card"><span class="tag">Risco de consistência</span><h3>Publicação sem compensação</h3><p>A implantação do processo acontece antes da gravação das telas. Se a segunda falhar, a primeira não é desfeita. Hoje o risco é mitigado por uma verificação prévia de disponibilidade, que reduz a janela, mas não a elimina.</p></div>
+        <div class="card"><span class="tag">Divergência documentação × código</span><h3>Revisão anterior não é marcada</h3><p>O contrato do repositório afirma que publicar uma revisão marca a anterior como substituída. A implementação apenas insere. Republicar a mesma versão cria um segundo registro ativo com a mesma chave lógica, e a leitura não desempata explicitamente.</p></div>
+        <div class="card"><span class="tag">Contrato silenciosamente reduzido</span><h3>Lista de canais descartada na transformação</h3><p>O portal envia a lista de canais da jornada; o serviço de transformação declara campos de canal no singular e ignora o que não reconhece. Nenhum deles é usado para gerar o processo, então não há efeito hoje, mas o contrato entre os dois está desalinhado.</p></div>
+        <div class="card"><span class="tag">Comportamento não realizado</span><h3>O canal da instância não chega à tela</h3><p>O tipo de canal é injetado como variável de execução e funciona em condições de desvio. Porém o contexto entregue ao renderizador é filtrado apenas pelas variáveis com prefixo de formulário e de dados, e a variável de canal não tem prefixo, de modo que um vínculo de visibilidade por canal não resolve por esse caminho.</p></div>
+      </div>
+      <div class="card lime mt-s reveal">
+        <span class="tag">Por que isso está na apresentação</span>
+        <p>Uma visão de arquitetura que só mostra o desenho feliz envelhece rápido. Documentar onde a implementação ainda não alcançou o contrato é o que transforma este material em ferramenta de decisão, e cada um destes pontos é uma tarefa pequena, desde que alguém decida.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 14 · ESTADO ══════════════ -->
+  <section class="view" data-title="Estado atual" data-desc="Prontidão real e lacunas assumidas">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Prontidão</span></div>
+      <h2 class="title reveal">O núcleo está construído; falta homologar ponta a ponta</h2>
+      <div class="row c4 mt reveal">
+        <div class="card stat"><b>506</b><span>requisitos especificados</span></div>
+        <div class="card stat"><b>456</b><span>concluídos</span></div>
+        <div class="card stat"><b>15</b><span>features funcionais</span></div>
+        <div class="card stat"><b>103</b><span>histórias de usuário</span></div>
+      </div>
+      <div class="row split mt reveal">
+        <div class="card">
+          <span class="tag">Completo</span>
+          <ul class="ticks lime">
+            <li><b>Produtos, jornadas e modelagem de fluxo:</b>integralmente entregues.</li>
+            <li><b>Catálogo SDUI e editor de telas:</b>incluindo validação na publicação.</li>
+            <li><b>Execução e versionamento:</b>publicação real contra o motor, com versão rastreável.</li>
+            <li><b>Dashboard e diagnóstico:</b>operação e investigação de falhas.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">Em aberto</span>
+          <ul class="ticks cross">
+            <li><b>Testes automatizados:</b>frente ainda não iniciada.</li>
+            <li><b>Esteira de infraestrutura:</b>implantação e ambientes.</li>
+            <li><b>Integração com monitoramento de segurança:</b>trilha de auditoria pendente.</li>
+            <li><b>Emulador de canais:</b>implementado, aguardando validação ponta a ponta com todos os serviços ativos.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pills mt reveal">
+        <span class="pill on"><span class="dot"></span>Autoria</span>
+        <span class="pill on"><span class="dot"></span>Publicação</span>
+        <span class="pill on"><span class="dot"></span>Execução</span>
+        <span class="pill on"><span class="dot"></span>Contrato SDUI</span>
+        <span class="pill warn"><span class="dot"></span>Homologação multicanal</span>
+        <span class="pill warn"><span class="dot"></span>Testes</span>
+        <span class="pill warn"><span class="dot"></span>Infraestrutura</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 15 · EVOLUÇÃO ══════════════ -->
+  <section class="view" data-title="Evolução" data-desc="Da prova técnica para plataforma consumível">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Próximos passos</span></div>
+      <h2 class="title reveal">Da prova técnica para uma plataforma consumível</h2>
+      <div class="row c3 mt reveal">
+        <div class="card"><span class="tag">Horizonte 1</span><h3>Fechar a prova</h3><p>Homologar os cinco alvos ponta a ponta contra uma jornada publicada real, com todos os serviços ativos. É o que separa “implementado” de “comprovado”.</p></div>
+        <div class="card"><span class="tag">Horizonte 1</span><h3>Endurecer a publicação</h3><p>Resolver a compensação entre as duas projeções e o desempate de revisões no repositório. São os dois achados com efeito direto sobre consistência.</p></div>
+        <div class="card"><span class="tag">Horizonte 2</span><h3>Transformar renderizadores em SDKs</h3><p>Publicação versionada, superfície estável e documentação de integração, para que um time de canal consuma sem ler o código do laboratório.</p></div>
+        <div class="card"><span class="tag">Horizonte 2</span><h3>Decidir o acesso a dados</h3><p>O campo reservado no envelope exige uma decisão explícita sobre origem, cache, autenticação e dados sensíveis antes de qualquer uso.</p></div>
+        <div class="card"><span class="tag">Horizonte 2</span><h3>Fechar a governança</h3><p>Testes automatizados e esteira de implantação, as duas frentes hoje em zero, são pré-requisito para operar isto fora do laboratório.</p></div>
+        <div class="card"><span class="tag">Horizonte 3</span><h3>Ampliar o catálogo</h3><p>Os componentes de domínio previstos para o nível 4 são o próximo salto de produtividade na autoria de jornadas.</p></div>
+      </div>
+      <div class="card accent mt reveal">
+        <span class="tag">A pergunta que organiza a prioridade</span>
+        <p>O que falta não é capacidade técnica: é o conjunto de garantias que um time externo precisa para depender da plataforma sem falar com quem a construiu. Homologação, consistência na publicação e superfície de consumo, nessa ordem.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 16 · FONTES ══════════════ -->
+  <section class="view" data-title="Fontes e premissas" data-desc="Rastreabilidade do que foi apresentado">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Rastreabilidade</span></div>
+      <h2 class="title reveal">Fontes, premissas e como navegar</h2>
+      <div class="row split mt reveal">
+        <div>
+          <div class="card">
+            <span class="tag">Fontes consolidadas</span>
+            <ul class="ticks">
+              <li>Contrato corporativo do catálogo SDUI v1</li>
+              <li>Arquitetura lógica e requisitos do portal administrativo</li>
+              <li>Registro de progresso por feature, história e requisito</li>
+              <li>Documentação de arquitetura do emulador de canais</li>
+              <li>Código-fonte do portal e dos serviços de publicação, especificação e execução</li>
+            </ul>
+          </div>
+          <div class="card mt-s">
+            <span class="tag">Premissas editoriais</span>
+            <ul class="ticks">
+              <li><b>Runtime Engine</b> é o nome lógico usado aqui; o módulo correspondente no repositório embarca um motor BPMN de mercado.</li>
+              <li>Os nomes de serviço aparecem por papel, não por identificador técnico, exceto quando a precisão exige.</li>
+              <li>Percentuais e estados refletem o registro de progresso na data de elaboração.</li>
+              <li>O emulador é descrito como laboratório, nunca como topologia produtiva.</li>
+            </ul>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <span class="tag">Atalhos</span>
+            <ul class="ticks">
+              <li><span class="kbd">←</span> <span class="kbd">→</span> navegam entre visões</li>
+              <li><span class="kbd">O</span> abre o sumário completo</li>
+              <li><span class="kbd">R</span> alterna o modo leitura contínua</li>
+              <li><span class="kbd">T</span> alterna entre tema claro e escuro</li>
+              <li><span class="kbd">F</span> alterna tela cheia</li>
+              <li><span class="kbd">Esc</span> fecha sumário e painel de detalhe</li>
+            </ul>
+          </div>
+          <div class="card mt-s">
+            <span class="tag">Uso como documento</span>
+            <p>O modo leitura exibe todas as visões em sequência, adequado para consulta. A impressão gera uma página por visão em proporção de apresentação, servindo como versão em PDF sem ajustes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="rail" id="rail"></div>
+  <div class="counter"><b id="cNow">01</b> / <span id="cAll">17</span></div>
+  <div class="arrows">
+    <button class="arrow" id="btnPrev" title="Anterior (←)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="arrow" id="btnNext" title="Próxima (→)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+</footer>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-head">
+    <h2>Escolha uma visão</h2>
+    <button class="tool" id="btnTocClose">Fechar <span class="kbd">Esc</span></button>
+  </div>
+  <div class="toc" id="toc"></div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header>
+    <div><span class="tag" id="drawerTag">Detalhe</span><h3 id="drawerTitle">—</h3></div>
+    <button class="tool" id="btnDrawerClose" title="Fechar (Esc)">✕</button>
+  </header>
+  <div class="content" id="drawerBody"></div>
+</aside>
+
+<script src="app.js"></script>
+</body>
+</html>

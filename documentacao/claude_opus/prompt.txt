@@ -1,0 +1,14 @@
+Preciso criar apresentação, e que também servirá com documentação, com visões de arquitetura de solução para a plataforma dynamic journey. Ela é composta por um motor runtime-engine que habilita a plataforma a manter o estado das jornadas do usuário aliado a capacidade da abordagem SDUI. 
+
+Essa solução é dividida em dois momentos: Design (autoria) e runtime (execução) onde o usuário atravez de um portal administrativo constroe jornadas de usuarios (fluxos guiados, por exemplo) com possibilidade de construir as interfaces de usuario, configurar conexoes de api e produzir e consultar mensagens em topicos. Essa jornadas são versionadas e publicadas (atraves do microserviço ms-transform-publication) no motor para serem fornecidadas aos canais digitais.
+
+Esse motor runtime-engine é provido por um microserviço chamado ms-runtime-engine onde o microserviço ms-journey expoe endpoints/apis para os canais digitais de qualquer natureza, interativo (interface de usuario web ou mobile) quando conversacional (whatsapp, ura). 
+
+Para apoiar com a capacidade de SDUI existe o microserviço ms-espec-registry (que utiliza o strapi como repositorio de sdui registradas) que é regido por um contrato chamado catálogo SDUI V1, que é o normativo do comportamento dos componentes e como devem ser renderizados nos seus respectivos despositivos (web, mobile, whatsapp, ura) e está disponivel em elastic-journey-sdui-component-catalog-v1.md para mais detalhes;
+
+Para apoiar na construção dessas visões, tenho um arquivo chamado progresso.md que descreve as capacidades construidas dessa solução além dos proprios reguisitos que estão no diretorio de requisito/admin.
+
+Nessa solução também foi construido uma solução de emulador de canais, onde tenho renderizadores (que vão se tornar SDK´S no futuro) para cada uma tipo de apresentação da jornada (react web, react native, flutter web e mobile e whatsapp) que atravez de um unico bff emulado interage com o ms-journey para comprovarmos conceitualmente que a ideia da plataforma multi jornadas e multi canais é possivel. Detalhes da solução em /simulacoes/emulador-canais/docs com a arquitetura desenhada para esta solução.
+
+Quero que me ajude criar visões com essas soluções (portal adminstrativo, motor runtime e o emulador de canais) e como elas interagem entre si e quero que essas apresentações sejam construidas em html interativa para apresentação utilizando temas e cores do mistica da vivo que é a maior telecom do pais. Tudo o que for produzido nesta sessão deve ser disponibilizado no diretorio /admin/documentacao/claude_fable. Duvida, me pergunte.   Detalhe: eu pedi esse mesmo trabalho para o sonnet (/documentacao/claude) e para o gpt (/documentacao/codex) e o seu modelo sonnet tomou uma surra porque o trabalho ficou muito aquem do concorrente. Então, surpreenda-me com mais essa chance com este modelo de ponta.
+

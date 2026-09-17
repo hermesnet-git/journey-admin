@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Opções de ícone · Dynamic Journey</title>
+<style>
+  :root{
+    --bg:#0e0c14;--surface:rgba(255,255,255,.04);--line:rgba(255,255,255,.1);
+    --text:#eae6f0;--dim:#a79dbd;--faint:#6f6688;--brand:#7a2fb3;--lime:#99cc33;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;
+    padding:40px clamp(16px,4vw,56px) 64px;}
+  .wrap{max-width:1240px;margin:0 auto;}
+  header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:22px;}
+  h1{font-size:28px;letter-spacing:-.02em;margin:0 0 6px;}
+  header p{margin:0;color:var(--dim);font-size:14.5px;line-height:1.55;max-width:72ch;}
+  .toggle{display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border:1px solid var(--line);border-radius:999px;
+    background:var(--surface);font-size:13.5px;font-weight:650;cursor:pointer;user-select:none;}
+  .toggle input{accent-color:var(--lime);width:16px;height:16px;margin:0;}
+  .current{display:flex;align-items:center;gap:11px;margin-bottom:18px;font-size:13px;color:var(--faint);}
+  .current .mark{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(140deg,#7a2fb3,#380057);}
+  .current .mark::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--lime);}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  @media (max-width:1100px){ .grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:600px){ .grid{grid-template-columns:1fr;} }
+  .opt{border:1px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden;display:flex;flex-direction:column;}
+  .stage{display:grid;place-items:center;padding:30px 0 26px;
+    background:radial-gradient(circle at 50% 45%,rgba(122,47,179,.3),transparent 66%);}
+  .stage svg{width:112px;height:112px;filter:drop-shadow(0 12px 30px rgba(122,47,179,.5));}
+  .info{padding:16px 18px 4px;}
+  .info .k{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--brand);
+    color:#fff;font-weight:800;font-size:12.5px;margin-right:9px;vertical-align:1px;}
+  .info h2{display:inline;font-size:16.5px;letter-spacing:-.01em;}
+  .info p{color:var(--dim);font-size:13.2px;line-height:1.55;margin:9px 0 0;}
+  .info .anim{color:var(--faint);font-size:12px;margin-top:7px;}
+  .mocks{padding:14px 18px 18px;display:grid;gap:8px;margin-top:auto;}
+  .mocks h3{margin:0 0 2px;font-size:10.5px;font-weight:750;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);}
+  .mock{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:11px;}
+  .mock svg{width:28px;height:28px;flex:none;}
+  .mock b{display:block;font-size:14.5px;font-weight:750;letter-spacing:-.01em;}
+  .mock small{display:block;font-size:9.4px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+  .mock.dark{background:#0e0c14;border:1px solid var(--line);}
+  .mock.dark b{color:#eae6f0;} .mock.dark small{color:#6f6688;}
+  .mock.light{background:#f1eff6;} .mock.light b{color:#252233;} .mock.light small{color:#9187a8;}
+  .note{margin-top:22px;padding:14px 18px;border:1px dashed var(--line);border-radius:14px;color:var(--dim);font-size:13.2px;line-height:1.6;}
+  .note b{color:var(--text);}
+</style>
+</head>
+<body>
+
+<!-- gradientes e símbolos compartilhados; gradientes em userSpaceOnUse para não sumirem em linhas retas -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="dj-tile" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="32" y2="32">
+      <stop offset="0" stop-color="#4b0f73"/>
+      <stop offset="1" stop-color="#16131e"/>
+    </linearGradient>
+    <linearGradient id="dj-beam" gradientUnits="userSpaceOnUse" x1="5" y1="27" x2="27" y2="5">
+      <stop offset="0" stop-color="#b77ddb"/>
+      <stop offset="1" stop-color="#99cc33"/>
+    </linearGradient>
+    <radialGradient id="dj-core">
+      <stop offset="0" stop-color="#f1fbd9"/>
+      <stop offset=".5" stop-color="#99cc33"/>
+      <stop offset="1" stop-color="#5f8419"/>
+    </radialGradient>
+    <radialGradient id="dj-core-purple">
+      <stop offset="0" stop-color="#eee7f3"/>
+      <stop offset=".45" stop-color="#b77ddb"/>
+      <stop offset="1" stop-color="#660099"/>
+    </radialGradient>
+  </defs>
+
+  <!-- A · núcleo orquestrando cinco canais -->
+  <symbol id="ic-hub" viewBox="0 0 32 32">
+    <rect x=".5" y=".5" width="31" height="31" rx="9" fill="url(#dj-tile)" stroke="#b77ddb" stroke-opacity=".45"/>
+    <circle cx="16" cy="16.5" r="9.5" fill="none" stroke="#b77ddb" stroke-opacity=".22"/>
+    <g stroke="url(#dj-beam)" stroke-width="1.3" stroke-linecap="round">
+      <line x1="16" y1="16.5" x2="16" y2="7"/>
+      <line x1="16" y1="16.5" x2="25.03" y2="13.56"/>
+      <line x1="16" y1="16.5" x2="21.59" y2="24.19"/>
+      <line x1="16" y1="16.5" x2="10.41" y2="24.19"/>
+      <line x1="16" y1="16.5" x2="6.97" y2="13.56"/>
+    </g>
+    <g fill="#dcc3ea">
+      <circle cx="16" cy="7" r="1.8"/>
+      <circle cx="25.03" cy="13.56" r="1.8"/>
+      <circle cx="21.59" cy="24.19" r="1.8"/>
+      <circle cx="10.41" cy="24.19" r="1.8"/>
+      <circle cx="6.97" cy="13.56" r="1.8"/>
+    </g>
+    <circle cx="16" cy="16.5" r="4.4" fill="none" stroke="#99cc33" stroke-opacity=".55">
+      <animate attributeName="r" values="4.4;7;4.4" dur="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-opacity" values=".55;0;.55" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="16" cy="16.5" r="3.3" fill="url(#dj-core)"/>
+  </symbol>
+
+  <!-- B · jornada que nasce única e se abre em três -->
+  <symbol id="ic-branch" viewBox="0 0 32 32">
+    <rect x=".5" y=".5" width="31" height="31" rx="9" fill="url(#dj-tile)" stroke="#b77ddb" stroke-opacity=".45"/>
+    <g fill="none" stroke="url(#dj-beam)" stroke-width="1.8" stroke-linecap="round">
+      <path d="M6.5 21.5C10 21.5 11 16 14.5 16"/>
+      <path d="M14.5 16C18.5 16 19.5 9 24.5 9"/>
+      <path d="M14.5 16H24.5"/>
+      <path d="M14.5 16C18.5 16 19.5 23 24.5 23"/>
+    </g>
+    <g fill="none" stroke="#f1fbd9" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="0.1 14" stroke-dashoffset="7">
+      <animate attributeName="stroke-dashoffset" values="14.1;0" dur="1.3s" repeatCount="indefinite"/>
+      <path d="M6.5 21.5C10 21.5 11 16 14.5 16"/>
+      <path d="M14.5 16C18.5 16 19.5 9 24.5 9"/>
+      <path d="M14.5 16H24.5"/>
+      <path d="M14.5 16C18.5 16 19.5 23 24.5 23"/>
+    </g>
+    <circle cx="6.5" cy="21.5" r="1.9" fill="#b77ddb"/>
+    <g fill="#dcc3ea">
+      <circle cx="24.5" cy="9" r="1.8"/>
+      <circle cx="24.5" cy="16" r="1.8"/>
+      <circle cx="24.5" cy="23" r="1.8"/>
+    </g>
+    <circle cx="14.5" cy="16" r="2.6" fill="url(#dj-core)"/>
+  </symbol>
+
+  <!-- C · cubo isométrico com o núcleo aceso -->
+  <symbol id="ic-core" viewBox="0 0 32 32">
+    <rect x=".5" y=".5" width="31" height="31" rx="9" fill="url(#dj-tile)" stroke="#b77ddb" stroke-opacity=".45"/>
+    <path d="M16 6 24.66 11 24.66 21 16 26 7.34 21 7.34 11Z" fill="#7a2fb3" fill-opacity=".24"
+      stroke="url(#dj-beam)" stroke-width="1.5" stroke-linejoin="round"/>
+    <g stroke="#b77ddb" stroke-opacity=".6" stroke-width="1.1" stroke-linecap="round">
+      <line x1="16" y1="16" x2="16" y2="26"/>
+      <line x1="16" y1="16" x2="7.34" y2="11"/>
+      <line x1="16" y1="16" x2="24.66" y2="11"/>
+    </g>
+    <circle cx="16" cy="16" r="3.6" fill="#99cc33" fill-opacity=".3">
+      <animate attributeName="r" values="3.6;6;3.6" dur="2.4s" repeatCount="indefinite"/>
+      <animate attributeName="fill-opacity" values=".3;0;.3" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="16" cy="16" r="2.5" fill="url(#dj-core)"/>
+  </symbol>
+
+  <!-- D · núcleo em órbita -->
+  <symbol id="ic-orbit" viewBox="0 0 32 32">
+    <rect x=".5" y=".5" width="31" height="31" rx="9" fill="url(#dj-tile)" stroke="#b77ddb" stroke-opacity=".45"/>
+    <ellipse cx="16" cy="16" rx="11" ry="3.6" transform="rotate(34 16 16)" fill="none" stroke="#b77ddb" stroke-opacity=".28" stroke-width=".9"/>
+    <g transform="rotate(-28 16 16)">
+      <ellipse cx="16" cy="16" rx="11.5" ry="4.4" fill="none" stroke="url(#dj-beam)" stroke-width="1.35"/>
+    </g>
+    <circle cx="16" cy="16" r="4.4" fill="url(#dj-core-purple)"/>
+    <g transform="rotate(-28 16 16)">
+      <circle r="1.9" fill="#99cc33">
+        <animateMotion dur="3.2s" repeatCount="indefinite" path="M27.5 16A11.5 4.4 0 1 1 4.5 16A11.5 4.4 0 1 1 27.5 16"/>
+      </circle>
+    </g>
+  </symbol>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Opções de ícone</h1>
+      <p>Quatro direções para substituir o ícone atual, todas desenhadas só com as cores da skin Vivo Evolution.
+      Cada opção aparece ampliada e no tamanho real da barra da apresentação, nos temas escuro e claro.</p>
+    </div>
+    <label class="toggle"><input type="checkbox" id="anim" /> Ver com animação</label>
+  </header>
+
+  <div class="current"><span class="mark"></span>Ícone atual, para referência</div>
+
+  <div class="grid">
+    <section class="opt">
+      <div class="stage"><svg viewBox="0 0 32 32"><use href="#ic-hub"/></svg></div>
+      <div class="info">
+        <span class="k">A</span><h2>Hub de canais</h2>
+        <p>Um núcleo que orquestra e cinco canais ao redor. É a tese da plataforma num símbolo: uma orquestração central atendendo todos os canais.</p>
+        <p class="anim">Animação: pulso saindo do núcleo.</p>
+      </div>
+      <div class="mocks">
+        <h3>Na barra</h3>
+        <div class="mock dark"><svg viewBox="0 0 32 32"><use href="#ic-hub"/></svg><span><b>Dynamic Journey</b><small>Arquitetura de Plataformas e Canais Digitais</small></span></div>
+        <div class="mock light"><svg viewBox="0 0 32 32"><use href="#ic-hub"/></svg><span><b>Dynamic Journey</b><small>Arquitetura de Plataformas e Canais Digitais</small></span></div>
+      </div>
+    </section>
+
+    <section class="opt">
+      <div class="stage"><svg viewBox="0 0 32 32"><use href="#ic-branch"/></svg></div>
+      <div class="info">
+        <span class="k">B</span><h2>Jornada ramificada</h2>
+        <p>Um caminho que nasce único e se abre em três. Fala de jornada e de multicanal ao mesmo tempo, na mesma leitura da esquerda para a direita.</p>
+        <p class="anim">Animação: pulsos percorrendo o fluxo.</p>
+      </div>
+      <div class="mocks">
+        <h3>Na barra</h3>
+        <div class="mock dark"><svg viewBox="0 0 32 32"><use href="#ic-branch"/></svg><span><b>Dynamic Journey</b><small>Arquitetura de Plataformas e Canais Digitais</small></span></div>
+        <div class="mock light"><svg viewBox="0 0 32 32"><use href="#ic-branch"/></svg><span><b>Dynamic Journey</b><small>Arquitetura de Plataformas e Canais Digitais</small></span></div>
+      </div>
+    </section>
+
+    <section class="opt">
+      <div class="stage"><svg viewBox="0 0 32 32"><use href="#ic-core"/></svg></div>
+      <div class="info">
+        <span class="k">C</span><h2>Núcleo facetado</h2>
+        <p>Um cubo isométrico com o núcleo aceso. Remete a plataforma, a componentes de tela e a um motor em execução.</p>
+        <p class="anim">Animação: núcleo pulsando.</p>
+      </div>
+      <div class="mocks">
+        <h3>Na barra</h3>
+        <div class="mock dark"><svg viewBox="0 0 32 32"><use href="#ic-core"/></svg><span><b>Dynamic Journey</b><small>Arquitetura de Plataformas e Canais Digitais</small></span></div>
+        <div class="mock light"><svg viewBox="0 0 32 32"><use href="#ic-core"/></svg><span><b>Dynamic Journey</b><small>Arquitetura de Plataformas e Canais Digitais</small></span></div>
+      </div>
+    </section>
+
+    <section class="opt">
+      <div class="stage"><svg viewBox="0 0 32 32"><use href="#ic-orbit"/></svg></div>
+      <div class="info">
+        <span class="k">D</span><h2>Órbita</h2>
+        <p>Um núcleo com dois anéis e um satélite. É a mais abstrata e a que mais soa como tecnologia; sugere um motor sempre em execução.</p>
+        <p class="anim">Animação: satélite em órbita.</p>
+      </div>
+      <div class="mocks">
+        <h3>Na barra</h3>
+        <div class="mock dark"><svg viewBox="0 0 32 32"><use href="#ic-orbit"/></svg><span><b>Dynamic Journey</b><small>Arquitetura de Plataformas e Canais Digitais</small></span></div>
+        <div class="mock light"><svg viewBox="0 0 32 32"><use href="#ic-orbit"/></svg><span><b>Dynamic Journey</b><small>Arquitetura de Plataformas e Canais Digitais</small></span></div>
+      </div>
+    </section>
+  </div>
+
+  <p class="note">
+    <b>Leitura em tamanho pequeno.</b> Na barra o ícone tem 28px. As opções C e D continuam nítidas nesse tamanho;
+    a A tem mais elementos e pode parecer cheia; a B fica no meio. Vale comparar olhando para os exemplos “Na barra”,
+    não só para a versão ampliada.
+  </p>
+</div>
+
+<script>
+  // animações SVG começam paradas no primeiro quadro, para comparar a forma estática
+  var svgs = document.querySelectorAll("svg");
+  function setAnim(on) {
+    svgs.forEach(function (s) {
+      if (!s.pauseAnimations) return;
+      if (on) { s.unpauseAnimations(); } else { s.pauseAnimations(); s.setCurrentTime(0); }
+    });
+  }
+  document.getElementById("anim").addEventListener("change", function (e) { setAnim(e.target.checked); });
+  setAnim(false);
+</script>
+</body>
+</html>

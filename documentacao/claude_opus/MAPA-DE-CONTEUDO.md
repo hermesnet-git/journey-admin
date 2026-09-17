@@ -4,25 +4,26 @@ Cada visão da apresentação e onde sua afirmação foi verificada. As fontes m
 
 | # | Visão | O que afirma | Verificado em |
 |---:|---|---|---|
-| 01 | Capa | Posicionamento e as ineficiências de construir jornada canal a canal | Briefing; catálogo SDUI v1 |
-| 02 | Antes e depois | As mesmas seis responsabilidades existindo cinco vezes ou uma só; indicadores de negócio que viram junto | Visão funcional fornecida pelo autor; `ej-admin-arquitetura-logica.md` §16 |
-| 03 | A tese | Separação entre intenção, execução e experiência | Catálogo SDUI v1 §§3–4; `ej-admin-arquitetura-logica.md` §2, §16 |
-| 04 | Mapa da plataforma | As três soluções, os dois momentos e quem fala com quem | **Código**: adapters de publicação do portal, cliente de especificação e cliente do motor no `ms-journey` |
-| 05 | Portal Administrativo | Onze domínios em seis grupos; validação só na publicação | `ej-admin-arquitetura-logica.md` §5–§6; **código**: comentário do caso de uso de publicação |
-| 06 | Publicação | Duas projeções coordenadas e verificação prévia de disponibilidade | **Código**: caso de uso de publicação de versão, ordem literal das etapas |
-| 07 | Runtime | `ms-journey` como porta única, cinco operações, três estados de passo | **Código**: controlador do `ms-journey` e o tipo de resposta de passo |
-| 08 | Ciclo de uma etapa | As oito chamadas reais de uma etapa, com corpos | **Código**: `ms-journey`, resolvedor de passo, cliente do motor e conversão de variáveis |
-| 09 | Contrato SDUI v1 | Envelope canônico, níveis, invariantes e versionamento | Catálogo SDUI v1 §§5, 6, 12, 13, 14 |
-| 10 | Projeção multicanal | Mesma árvore, três formas; regras de projeção aplicadas ao vivo | Catálogo SDUI v1 §7 e §7.1 (tabelas normativas por componente) |
-| 11 | Emulador de Canais | Cockpit, BFF único, cinco hosts, uma borda de saída | `simulacoes/emulador-canais/docs/arquitetura.md` |
-| 12 | Renderizadores | Runtime headless no centro, adapter na borda; ainda não são SDKs | Estrutura de pacotes do emulador; `docs/status-implementacao.md` |
-| 13 | Fronteiras | Os seis guardrails que sustentam o desacoplamento | **Código**: comentários de fronteira nas classes de borda; `ej-admin-arquitetura-logica.md` §16 |
-| 14 | Achados de arquitetura | Quatro divergências entre contrato declarado e implementação | **Código**: ver detalhamento abaixo |
-| 15 | Estado atual | 456 de 506 requisitos concluídos, com as lacunas nomeadas | `requisitos/admin/progresso.md` |
-| 16 | Evolução | Prioridade organizada por horizonte | Inferência a partir das lacunas documentadas e dos achados |
-| 17 | Fontes e premissas | Rastreabilidade e convenções editoriais | Todos os itens acima |
+| 01 | Capa | Posicionamento; o Dynamic Journey decidindo cada passo e entregando a mesma especificação sdui a web, app e WhatsApp, com consulta ao catálogo de ofertas; os três pilares da plataforma | Briefing; `ej-admin-arquitetura-logica.md` §5–§6, §14; catálogo SDUI v1 §7 (respostas rápidas até três opções, confirmação por Sim e Não); **código**: caso de uso de publicação de versão |
+| 02 | Antes e depois | Mesmas capacidades replicadas por canal geram ineficiência e custo; seis capacidades existindo cinco vezes ou uma só, com indicadores de negócio que viram junto | Visão funcional fornecida pelo autor; `ej-admin-arquitetura-logica.md` §16 |
+| 03 | Catálogo SDUI | O catálogo como única dependência comum a editor, publicação, runtime e renderizadores | **Código**: inspetor de propriedades do editor, validador de fluxo e montador de envelope, domínio SDUI do registro de especificação; catálogo SDUI v1 §4, §11–§13 |
+| 04 | Explorador do catálogo | Os 19 componentes, propriedades obrigatórias, campos reservados e forma nativa em cada alvo; classificação por alvo ainda uniforme | Catálogo SDUI v1 §5, §7 e §7.1; **código**: migrações V18 e V22 do registro de componentes |
+| 05 | Envelope SDUI | Envelope canônico, alvos calculados, invariantes e versionamento | Catálogo SDUI v1 §§6, 12, 13, 14 |
+| 06 | Projeção multicanal | Mesma árvore, três formas; regras de projeção aplicadas ao vivo | Catálogo SDUI v1 §7 e §7.1 (tabelas normativas por componente) |
+| 07 | Mapa da plataforma | As três soluções, os dois momentos e quem fala com quem | **Código**: adapters de publicação do portal, cliente de especificação e cliente do motor no `ms-journey` |
+| 08 | Portal Administrativo | Onze domínios em seis grupos; validação só na publicação | `ej-admin-arquitetura-logica.md` §5–§6; **código**: comentário do caso de uso de publicação |
+| 09 | Publicação | Duas projeções coordenadas e verificação prévia de disponibilidade | **Código**: caso de uso de publicação de versão, ordem literal das etapas |
+| 10 | Runtime | `ms-journey` como porta única, cinco operações, três estados de passo | **Código**: controlador do `ms-journey` e o tipo de resposta de passo |
+| 11 | Ciclo de uma etapa | As oito chamadas reais de uma etapa, com corpos | **Código**: `ms-journey`, resolvedor de passo, cliente do motor e conversão de variáveis |
+| 12 | Emulador de Canais | Cockpit, BFF único, cinco hosts, uma borda de saída | `simulacoes/emulador-canais/docs/arquitetura.md` |
+| 13 | Renderizadores | Runtime headless no centro, adapter na borda; ainda não são SDKs | Estrutura de pacotes do emulador; `docs/status-implementacao.md` |
+| 14 | Fronteiras | Os seis guardrails que sustentam o desacoplamento | **Código**: comentários de fronteira nas classes de borda; `ej-admin-arquitetura-logica.md` §16 |
+| 15 | Achados de arquitetura | Quatro divergências entre contrato declarado e implementação | **Código**: ver detalhamento abaixo |
+| 16 | Estado atual | 456 de 506 requisitos concluídos, com as lacunas nomeadas | `requisitos/admin/progresso.md` |
+| 17 | Evolução | Prioridade organizada por horizonte | Inferência a partir das lacunas documentadas e dos achados |
+| 18 | Fontes e premissas | Rastreabilidade e convenções editoriais | Todos os itens acima |
 
-## Detalhamento dos achados (visão 13)
+## Detalhamento dos achados (visão 15)
 
 | Achado | Evidência | Efeito prático |
 |---|---|---|
@@ -39,3 +40,6 @@ Cada visão da apresentação e onde sua afirmação foi verificada. As fontes m
 4. O repositório de snapshots aparece como armazenamento, nunca como dono do contrato, conforme o catálogo v1.
 5. Os renderizadores são apresentados como caminho para SDKs, não como SDKs: a separação entre runtime headless e adapter existe, mas publicação versionada, superfície estável e documentação de consumo são lacunas explícitas.
 6. Os números de maturidade aparecem por frente, não por feature individual, para que a visão executiva não dependa de familiaridade com a numeração interna de requisitos.
+7. O catálogo SDUI abre o conteúdo técnico, antes do mapa da plataforma, porque jornadas multicanal dependem estritamente dele e ele é a única dependência compartilhada pelas quatro peças. A antiga visão "A tese" foi removida: o comparativo antes e depois e o catálogo cobrem seu argumento.
+8. O explorador exibe todos os alvos como suportados porque é o que o registro de componentes contém hoje (migração V18: suportado nos cinco alvos, versão mínima 1.0.0). A nota na própria visão deixa explícito que o cálculo de compatibilidade está implementado e a diferenciação por alvo ainda não foi aplicada.
+9. O painel do editor registra que quais propriedades aceitam vínculo ainda está fixo no editor para os componentes de fábrica, e não no catálogo. Afirmar que o editor é inteiramente dirigido pelo catálogo seria impreciso.

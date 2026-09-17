@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Dynamic Journey — Arquitetura de Solução
+   Dynamic Journey — Arquitetura de Plataformas e Canais Digitais
    Navegação da apresentação, player de sequência e renderizador SDUI.
    Vanilla JS, sem dependências.
    ========================================================================== */
@@ -15,6 +15,7 @@
 
   /* ---------------------------------------------------------------- deck */
   var views = $$(".view");
+  var cmpToggle = null; // definido junto do comparativo; usado pelo atalho A
   var total = views.length;
   var idx = 0;
   var seen = {};
@@ -57,7 +58,6 @@
 
   $("#btnPrev").addEventListener("click", function () { go(idx - 1); });
   $("#btnNext").addEventListener("click", function () { go(idx + 1); });
-
   /* --------------------------------------------------------- ferramentas */
   var overlay = $("#overlay");
   function openToc() { overlay.classList.add("open"); $("#btnToc").classList.add("on"); }
@@ -109,6 +109,8 @@
     else if (k === "r") { toggleReading(); }
     else if (k === "t") { $("#btnTheme").click(); }
     else if (k === "f") { $("#btnFull").click(); }
+    else if (k === "a" && cmpToggle &&
+      (document.body.classList.contains("reading") || views[idx].querySelector("#cmpWrap"))) { cmpToggle(); }
     else if (k === "escape") { closeToc(); closeDrawer(); }
   });
 
@@ -152,7 +154,7 @@
       cmpChannels.appendChild(svgEl("rect", { class: "n-box", x: left, y: 8, width: COL_W, height: 34, rx: 10 }));
       cmpChannels.appendChild(svgText(cx, 30, nome, "n-t"));
 
-      // cenário sem plataforma: cada canal repete as seis responsabilidades
+      // cenário sem plataforma: cada canal replica as seis capacidades
       var col = svgEl("g", { class: "cmp-col", style: "--dx:" + (CENTRO - cx) + "px" });
       RESPONSA.forEach(function (r, j) {
         var y = 56 + j * 29;
@@ -176,17 +178,222 @@
     }));
 
     var cmpWrap = $("#cmpWrap");
-    $$("#cmpChips .chip").forEach(function (c) {
-      c.addEventListener("click", function () {
-        $$("#cmpChips .chip").forEach(function (o) { o.classList.remove("on"); });
-        c.classList.add("on");
-        cmpWrap.setAttribute("data-state", c.dataset.state);
+    var cmpBtns = $$("#cmpChips .seg-btn");
+    var setCmp = function (state) {
+      cmpWrap.setAttribute("data-state", state);
+      cmpBtns.forEach(function (b) {
+        var on = b.getAttribute("data-state") === state;
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
       });
+    };
+    cmpToggle = function () {
+      setCmp(cmpWrap.getAttribute("data-state") === "after" ? "before" : "after");
+    };
+    cmpBtns.forEach(function (b) {
+      b.addEventListener("click", function (e) { e.stopPropagation(); setCmp(b.getAttribute("data-state")); });
     });
+    $("#cmpFigure").addEventListener("click", cmpToggle);
+  }
+
+  /* ------------------------------------------- explorador do catálogo 04 */
+  var ALVOS = ["React Web", "React Mobile", "Flutter Web", "Flutter Mobile", "WhatsApp"];
+  var NIVEIS = ["Nível 0 · Conteúdo", "Nível 1 · Layout", "Nível 2 · Entrada", "Nível 3 · Ação e feedback"];
+  var RES_ESTRUTURA = "$visibility e $active. Não aceita $bindings nem $events.";
+  var RES_ENTRADA = "$bindings.value obrigatório, bidirecional e no namespace form; aceita também $visibility e $active.";
+  var RES_ACAO = "$events.onPress obrigatório; aceita $visibility e $active. Não aceita $bindings.";
+  var RES_VISUAL = "Somente $visibility.";
+  var WA_OMITE = "Omitido, com diagnóstico informativo; o adapter não inventa substituto";
+
+  // Transcrição do de/para normativo do catálogo SDUI v1, §7 e §7.1. Propriedade com 1 = obrigatória.
+  var CATALOGO = [
+    { t: "ui.text", n: 0, cat: "Conteúdo", filhos: "Folha",
+      props: [["text", 1], ["variant"], ["colorToken"], ["align"], ["maxLines"]],
+      res: "$bindings.text somente leitura e $visibility.",
+      alvos: ["Mística Text/Typography", "Text adapter", "Text adapter", "Text adapter", "Envia mensagem de texto"] },
+    { t: "ui.image", n: 0, cat: "Conteúdo", filhos: "Folha",
+      props: [["source", 1], ["alt", 1], ["fit"], ["aspectRatio"]],
+      res: "$bindings somente leitura para source e alt, e $visibility.",
+      alvos: ["Image component", "Image adapter", "Image", "Image", "Envia mensagem de imagem, usando alt como legenda"] },
+    { t: "ui.icon", n: 0, cat: "Conteúdo", filhos: "Folha",
+      props: [["name", 1], ["accessibilityLabel", 1], ["sizeToken"], ["colorToken"]],
+      res: RES_VISUAL,
+      alvos: ["Mística Icon", "Icon registry adapter", "Icon registry adapter", "Icon registry adapter", WA_OMITE] },
+    { t: "ui.divider", n: 0, cat: "Conteúdo", filhos: "Folha",
+      props: [["orientation"], ["colorToken"], ["spacingToken"]],
+      res: RES_VISUAL,
+      alvos: ["Divider", "View/Divider adapter", "Divider", "Divider", WA_OMITE] },
+    { t: "ui.spacer", n: 0, cat: "Conteúdo", filhos: "Folha",
+      props: [["sizeToken", 1], ["axis"]],
+      res: RES_VISUAL,
+      alvos: ["Spacing box", "View spacer", "SizedBox", "SizedBox", WA_OMITE] },
+
+    { t: "ui.screen", n: 1, cat: "Layout", filhos: "Raiz única da tela",
+      props: [["title"], ["backgroundToken"], ["scrollable"], ["paddingToken"]],
+      res: "Não aceita campos reservados. É a raiz obrigatória e não pode ser aninhada.",
+      alvos: ["Page shell com layout responsivo", "Screen, Safe Area e Scroll", "Scaffold com layout responsivo", "Scaffold e SafeArea",
+        "O título abre a conversa em negrito; layout descartado, ordem dos filhos preservada"] },
+    { t: "ui.container", n: 1, cat: "Layout", filhos: "Aceita filhos",
+      props: [["backgroundToken"], ["paddingToken"], ["borderRadiusToken"]],
+      res: RES_ESTRUTURA,
+      alvos: ["Box/View wrapper", "View", "Container", "Container", "Não gera mensagem; agrupa os filhos e preserva a ordem"] },
+    { t: "ui.stack", n: 1, cat: "Layout", filhos: "Aceita filhos",
+      props: [["direction"], ["spacingToken"], ["alignment"]],
+      res: RES_ESTRUTURA,
+      alvos: ["Flex", "View/Flex", "Row/Column/Flex", "Row/Column/Flex", "Não gera mensagem; lineariza os filhos e descarta direção e espaçamento"] },
+    { t: "ui.card", n: 1, cat: "Layout", filhos: "Aceita filhos",
+      props: [["variant"], ["paddingToken"], ["elevationToken"]],
+      res: RES_ESTRUTURA,
+      alvos: ["Mística Card", "Card/Pressable adapter", "Card adapter", "Card adapter", "Não gera superfície; preserva os filhos e descarta aparência e elevação"] },
+
+    { t: "ui.textInput", n: 2, cat: "Entrada", filhos: "Folha",
+      props: [["label", 1], ["placeholder"], ["inputMode"], ["required"], ["readOnly"], ["maxLength"], ["validation"]],
+      res: RES_ENTRADA,
+      alvos: ["Mística TextField", "TextInput adapter", "TextFormField adapter", "TextFormField adapter",
+        "Pede a informação, aguarda a próxima mensagem, valida e grava no vínculo"] },
+    { t: "ui.textArea", n: 2, cat: "Entrada", filhos: "Folha",
+      props: [["label", 1], ["placeholder"], ["required"], ["minLines"], ["maxLines"], ["maxLength"], ["validation"]],
+      res: RES_ENTRADA,
+      alvos: ["Mística TextArea multilinha", "TextInput multilinha", "TextFormField multilinha", "TextFormField multilinha",
+        "Pede um texto longo, aguarda a resposta, valida e grava no vínculo"] },
+    { t: "ui.select", n: 2, cat: "Entrada", filhos: "Folha",
+      props: [["label", 1], ["options", 1], ["placeholder"], ["required"], ["searchable"]],
+      res: RES_ENTRADA,
+      alvos: ["Mística Select/Dropdown", "Picker ou bottom sheet", "Dropdown adapter", "Dropdown ou bottom sheet",
+        "Até três opções viram botões de resposta rápida; acima disso, lista interativa"] },
+    { t: "ui.checkbox", n: 2, cat: "Entrada", filhos: "Folha",
+      props: [["label", 1], ["required"], ["indeterminate"]],
+      res: RES_ENTRADA,
+      alvos: ["Mística Checkbox", "Checkbox/Pressable adapter", "Checkbox adapter", "Checkbox adapter",
+        "Confirmação por Sim e Não, gravando o valor booleano no vínculo"] },
+    { t: "ui.datePicker", n: 2, cat: "Entrada", filhos: "Folha",
+      props: [["label", 1], ["mode", 1], ["minDate"], ["maxDate"], ["format"], ["required"]],
+      res: RES_ENTRADA,
+      alvos: ["Mística DateField/DatePicker", "Date picker adapter", "Date picker adapter", "Date picker nativo",
+        "Pede a data por texto no formato aceito, valida e normaliza antes de gravar"] },
+
+    { t: "ui.button", n: 3, cat: "Ação", filhos: "Folha",
+      props: [["label", 1], ["variant"], ["size"], ["fullWidth"], ["loading"], ["disabled"]],
+      res: RES_ACAO,
+      alvos: ["Mística Button", "Button/Pressable adapter", "Button adapter", "Button adapter",
+        "Vira botão de resposta rápida, respeitando o limite de três por mensagem"] },
+    { t: "ui.link", n: 3, cat: "Ação", filhos: "Folha",
+      props: [["label", 1], ["emphasis"], ["external"], ["accessibilityLabel"]],
+      res: RES_ACAO,
+      alvos: ["Mística Link", "Text/Pressable adapter", "Link/TextButton adapter", "TextButton adapter",
+        "Abrir URL vira chamada para ação com link; outras ações, resposta rápida"] },
+    { t: "ui.alert", n: 3, cat: "Feedback", filhos: "Folha",
+      props: [["severity", 1], ["message", 1], ["title"], ["dismissible"]],
+      res: "$visibility, $active, $bindings somente leitura para title e message, e $events.onDismiss quando dismissible.",
+      alvos: ["Mística Feedback/Alert", "Alert/View adapter", "Alert adapter", "Alert adapter",
+        "Mensagem de texto com indicação de severidade, sem reproduzir o visual"] },
+    { t: "ui.progress", n: 3, cat: "Feedback", filhos: "Folha",
+      props: [["value", 1], ["label"], ["showValue"]],
+      res: "$bindings.value somente leitura e $visibility.",
+      alvos: ["Mística Progress bar", "Progress adapter", "LinearProgressIndicator", "LinearProgressIndicator",
+        "Mensagem de texto com rótulo e percentual, sem barra gráfica"] },
+    { t: "ui.loading", n: 3, cat: "Feedback", filhos: "Folha",
+      props: [["label"], ["sizeToken"], ["overlay"]],
+      res: RES_VISUAL,
+      alvos: ["Mística Spinner", "Activity indicator adapter", "CircularProgressIndicator", "CircularProgressIndicator",
+        "Mensagem de espera só quando necessária, sem animação nem overlay"] }
+  ];
+
+  var catList = $("#catList");
+  if (catList) {
+    NIVEIS.forEach(function (rotulo, nivel) {
+      var grupo = document.createElement("div");
+      grupo.className = "cat-level";
+      var chips = CATALOGO.filter(function (c) { return c.n === nivel; }).map(function (c) {
+        return '<button class="chip mono" data-cat="' + c.t + '">' + esc(c.t.replace("ui.", "")) + "</button>";
+      }).join("");
+      grupo.innerHTML = "<h4>" + esc(rotulo) + '</h4><div class="chips">' + chips + "</div>";
+      catList.appendChild(grupo);
+    });
+    var fora = document.createElement("p");
+    fora.className = "cat-out";
+    fora.textContent = "Nível 4 · Domínio (endereço, identificação, consentimento): fora do escopo do v1.";
+    catList.appendChild(fora);
+
+    $$("[data-cat]", catList).forEach(function (b) {
+      b.addEventListener("click", function () { catSelect(b.getAttribute("data-cat")); });
+    });
+    catSelect("ui.select");
+  }
+
+  function catSelect(tipo) {
+    var c = CATALOGO.filter(function (x) { return x.t === tipo; })[0];
+    if (!c) return;
+    $$("[data-cat]", catList).forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-cat") === tipo);
+    });
+    var props = c.props.map(function (p) {
+      return '<span class="pill' + (p[1] ? " req" : "") + '">' + esc(p[0]) + "</span>";
+    }).join("");
+    var linhas = ALVOS.map(function (alvo, i) {
+      return '<tr' + (i === 4 ? ' class="wa"' : "") + '><td><span class="tdot"></span>' + esc(alvo) +
+        "</td><td>" + esc(c.alvos[i]) + "</td></tr>";
+    }).join("");
+    $("#catPanel").innerHTML =
+      '<span class="cat-type">' + esc(c.t) + "</span>" +
+      '<div class="pills mt-s"><span class="pill">' + esc(NIVEIS[c.n].replace(/ · .*/, "") + " · " + c.cat) + "</span>" +
+      '<span class="pill">' + esc(c.filhos) + "</span>" +
+      '<span class="pill on"><span class="dot"></span>Estável · de fábrica</span></div>' +
+      "<h4>Propriedades · obrigatórias em destaque</h4><div class=\"pills\">" + props + "</div>" +
+      '<h4>Campos reservados</h4><p class="cat-res">' + esc(c.res) + "</p>" +
+      '<h4>Forma em cada alvo</h4><div class="table-wrap"><table class="table cat-targets"><tbody>' +
+      linhas + "</tbody></table></div>";
   }
 
   /* ------------------------------------------------- painel de detalhes */
   var DETAILS = {
+    "cat-governanca": {
+      tag: "Contrato central", title: "Governança do catálogo",
+      body: [
+        ["Identidade", "Cada componente é identificado pelo par tipo e versão. Uma tela nunca referencia um componente por chave interna, o que permite versões diferentes do mesmo componente coexistirem."],
+        ["Ciclo de vida", ["experimental", "estável", "descontinuado", "removido: qualquer tela que ainda o use é rejeitada na próxima publicação"]],
+        ["Origem", "Os 19 componentes do v1 vêm de fábrica, marcados como estáveis. A instalação pode registrar componentes próprios, identificados à parte para não se misturarem à massa oficial."],
+        ["Imutabilidade", "Alterar o catálogo não afeta jornadas já publicadas. A árvore de cada tela é congelada na publicação, e a validação só volta a se aplicar numa nova publicação."],
+        ["Versionamento", "Catálogo, componentes, schema do envelope e renderizadores seguem versionamento semântico. A versão da jornada, por sua vez, é um inteiro sequencial."],
+        ["Fonte", "catálogo SDUI v1 §12–§13 · back/ db/migration V18 e V22"]
+      ]
+    },
+    "cat-editor": {
+      tag: "Autoria", title: "O que o editor de telas lê do catálogo",
+      body: [
+        ["Lido do catálogo", ["quais componentes existem e em que estado estão", "o esquema de propriedades: tipo, obrigatoriedade, valor padrão e grupo de token aceito", "se o componente aceita filhos, e quais", "quais campos reservados são permitidos: vínculo, evento, visibilidade e estado ativo", "a compatibilidade com o canal que está sendo desenhado, com aviso quando não há"]],
+        ["Consequência", "A paleta e o painel de propriedades são dirigidos pelo catálogo: o editor não oferece ao autor nada que a publicação vá rejeitar depois."],
+        ["Limite atual", "Quais propriedades aceitam vínculo ainda está definido no próprio editor para os componentes de fábrica. Um componente customizado com vínculos permitidos no catálogo não ganha, hoje, vínculo por propriedade."],
+        ["Fonte", "front/ · flow-designer/form-builder/PropertyInspector"]
+      ]
+    },
+    "cat-publicacao": {
+      tag: "Publicação", title: "Validação e cálculo de alvos",
+      body: [
+        ["Validação de cada tela", ["raiz obrigatoriamente ui.screen, com identificadores únicos", "todo tipo e versão existe no catálogo e não está removido", "propriedades permitidas e obrigatórias conferidas por componente", "filhos apenas onde o componente aceita", "vínculos restritos aos namespaces reconhecidos e ações restritas às seis homologadas", "campos reservados apenas onde o catálogo autoriza"]],
+        ["Cálculo", "Os canais suportados por uma tela são a interseção dos alvos suportados por todos os componentes que ela usa. A versão mínima de renderizador por alvo é a maior exigida entre eles. Nada disso é configurado à mão."],
+        ["Consequência", "Usar um componente sem suporte num canal remove aquele canal da tela na publicação, e não na frente do cliente."],
+        ["Fonte", "back/ · domain/flow/FlowValidator e SduiEnvelopeBuilder"]
+      ]
+    },
+    "cat-runtime": {
+      tag: "Runtime", title: "Resolução da tela em execução",
+      body: [
+        ["Validação do envelope", "Antes de gravar e antes de servir uma tela, o registro de especificação confere a versão do schema e do catálogo, a raiz da árvore e a identidade de cada componente."],
+        ["Vínculos e placeholders", "Textos com placeholder e vínculos de leitura são resolvidos contra as variáveis da instância num único ponto, para que nenhum canal precise repetir essa lógica."],
+        ["O que o contrato proíbe", "Valor computado nunca é resolvido: o catálogo veta a execução de expressão arbitrária, e a plataforma não tem motor de regras para isso."],
+        ["Fonte", "simulacoes/ms-espec-registry · domain/sdui"]
+      ]
+    },
+    "cat-renderers": {
+      tag: "Canais", title: "O que os renderizadores exigem do catálogo",
+      body: [
+        ["Mapa controlado", "Cada renderizador resolve tipo e versão por um mapa explícito. Reflexão dinâmica, importação de código remoto e componentes não registrados são vetados pelo contrato."],
+        ["Paridade funcional", "O mesmo componente mantém a mesma semântica em todos os alvos, admitindo diferenças nativas de apresentação. No WhatsApp, isso significa projetar a tela como conversa em vez de layout."],
+        ["Decisão antes de renderizar", "O envelope informa os alvos suportados e a versão mínima de renderizador. Um canal desatualizado sabe, antes de desenhar qualquer coisa, que não deve tentar exibir aquela tela."],
+        ["Fonte", "catálogo SDUI v1 §4, §11 e §12 · simulacoes/emulador-canais/packages"]
+      ]
+    },
     portal: {
       tag: "Solução 1", title: "Portal Administrativo",
       body: [
@@ -332,7 +539,14 @@
   $("#btnDrawerClose").addEventListener("click", closeDrawer);
   scrim.addEventListener("click", closeDrawer);
   $$("[data-detail]").forEach(function (el) {
-    el.addEventListener("click", function () { openDrawer(el.dataset.detail); });
+    var key = el.getAttribute("data-detail");
+    el.addEventListener("click", function () { openDrawer(key); });
+    // nós de SVG não são botões: Enter e espaço precisam abrir o detalhe sem avançar a visão
+    if (el.tagName.toLowerCase() !== "button") {
+      el.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); openDrawer(key); }
+      });
+    }
   });
 
   function esc(s) {
@@ -699,6 +913,15 @@
     var seenIt = {}, out = [];
     arr.forEach(function (x) { if (!seenIt[x]) { seenIt[x] = 1; out.push(x); } });
     return out;
+  }
+
+  /* ------------------------------------------------- capa: jornada guiada */
+  // o fluxo é desenhado a 732×600 px; a escala acompanha a largura real da coluna
+  var coverFlow = $(".cover-flow");
+  if (coverFlow && typeof ResizeObserver === "function") {
+    new ResizeObserver(function () {
+      coverFlow.style.setProperty("--k", coverFlow.clientWidth / 732);
+    }).observe(coverFlow);
   }
 
   /* ---------------------------------------------------------- inicializa */

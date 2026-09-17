@@ -35,6 +35,24 @@
         ],
         "createdAt": "2026-09-14T02:24:14.686Z",
         "reason": "user asked for purple accent color explicitly; used once on hero word only (cover slide), not on metrics or repeated headings"
+      },
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "documentacao/claude_opus/opcoes-capa.html"
+        ],
+        "createdAt": "2026-09-17T01:06:02.662Z",
+        "reason": "user confirmed: título da capa com segunda linha em gradiente pedido explicitamente com imagem de referência (2026-09-16); a prévia reproduz esse título"
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          "documentacao/claude_opus/index.html"
+        ],
+        "createdAt": "2026-09-17T04:49:16.824Z",
+        "reason": "falso positivo verificado: os tamanhos definidos no HTML são 11.5px, 15px e 20px (proporções 1.30 e 1.33, acima do limite de 1.25), ajustados em 2026-09-16; os demais tamanhos ficam em styles.css"
       }
     ]
   }

@@ -3,18 +3,54 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Dynamic Journey — Arquitetura de Solução</title>
+<title>Dynamic Journey · Arquitetura de Plataformas e Canais Digitais</title>
 <meta name="description" content="Apresentação interativa e documentação navegável da arquitetura da plataforma Dynamic Journey: portal administrativo, motor de runtime e emulador de canais." />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<div class="ambient"><div class="grid"></div></div>
+<div class="ambient"></div>
 
 <header class="topbar">
   <div class="logo">
-    <span class="mark"></span>
-    <span>Dynamic Journey<small>Arquitetura de Solução</small></span>
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="dj-tile" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="32" y2="32">
+          <stop offset="0" stop-color="#4b0f73"/>
+          <stop offset="1" stop-color="#16131e"/>
+        </linearGradient>
+        <linearGradient id="dj-beam" gradientUnits="userSpaceOnUse" x1="5" y1="27" x2="27" y2="5">
+          <stop offset="0" stop-color="#b77ddb"/>
+          <stop offset="1" stop-color="#99cc33"/>
+        </linearGradient>
+        <radialGradient id="dj-core">
+          <stop offset="0" stop-color="#f1fbd9"/>
+          <stop offset=".5" stop-color="#99cc33"/>
+          <stop offset="1" stop-color="#5f8419"/>
+        </radialGradient>
+      </defs>
+      <rect x=".5" y=".5" width="31" height="31" rx="9" fill="url(#dj-tile)" stroke="#b77ddb" stroke-opacity=".45"/>
+      <g fill="none" stroke="url(#dj-beam)" stroke-width="1.8" stroke-linecap="round">
+        <path d="M6.5 21.5C10 21.5 11 16 14.5 16"/>
+        <path d="M14.5 16C18.5 16 19.5 9 24.5 9"/>
+        <path d="M14.5 16H24.5"/>
+        <path d="M14.5 16C18.5 16 19.5 23 24.5 23"/>
+      </g>
+      <g class="mark-flow" fill="none" stroke="#f1fbd9" stroke-width="1.8" stroke-linecap="round">
+        <path d="M6.5 21.5C10 21.5 11 16 14.5 16"/>
+        <path d="M14.5 16C18.5 16 19.5 9 24.5 9"/>
+        <path d="M14.5 16H24.5"/>
+        <path d="M14.5 16C18.5 16 19.5 23 24.5 23"/>
+      </g>
+      <circle cx="6.5" cy="21.5" r="1.9" fill="#b77ddb"/>
+      <g fill="#dcc3ea">
+        <circle cx="24.5" cy="9" r="1.8"/>
+        <circle cx="24.5" cy="16" r="1.8"/>
+        <circle cx="24.5" cy="23" r="1.8"/>
+      </g>
+      <circle cx="14.5" cy="16" r="2.6" fill="url(#dj-core)"/>
+    </svg>
+    <span>Dynamic Journey<small>Arquitetura de Plataformas e Canais Digitais</small></span>
   </div>
   <div class="tools">
     <button class="tool" id="btnToc" title="Sumário (O)">
@@ -37,69 +73,222 @@
 <main class="deck" id="deck">
 
   <!-- ══════════════ 01 · CAPA ══════════════ -->
-  <section class="view" data-title="Capa" data-desc="Posicionamento da plataforma">
+  <section class="view view-cover" data-title="Capa" data-desc="Posicionamento, um passo em três canais e os três pilares">
     <div class="view-inner">
-      <div class="reveal"><span class="kicker">Plataforma multijornada e multicanal</span></div>
-      <h1 class="display reveal">Uma jornada, escrita uma vez.<br/><span class="glow">Executada em qualquer canal.</span></h1>
-      <p class="lead reveal">
-        O Dynamic Journey separa a <span class="em">autoria</span> de uma jornada guiada da sua <span class="em">execução</span>.
-        Um portal administrativo desenha o fluxo, as telas e as integrações; um motor de runtime mantém o estado de
-        cada jornada em andamento; e a abordagem Server-Driven UI entrega a experiência pronta para web, mobile e
-        canais conversacionais, sem um novo deploy de aplicativo a cada mudança.
-      </p>
-      <div class="reveal mt-l"><span class="kicker">As ineficiências de construir jornada canal a canal</span></div>
-      <div class="row c4 mt-s reveal">
-        <div class="card">
-          <span class="tag">Retrabalho</span>
-          <h3>A mesma jornada, refeita em cada canal</h3>
-          <p>Fluxo, telas, validações e chamadas de integração são reconstruídos em cada tecnologia. O que muda é a implementação; a regra de negócio é idêntica.</p>
+      <div class="cover">
+        <div>
+          <div class="reveal"><span class="kicker hero-kicker">Plataforma multijornada · multicanal</span></div>
+          <h1 class="display reveal">Uma jornada.<br/><span class="glow">Múltiplas<br/>experiências.</span></h1>
+          <p class="lead hero-lead reveal">
+            O <strong>Dynamic Journey</strong> separa a autoria da execução: jornadas desenhadas uma vez no portal, telas definidas
+            por contrato e estado mantido pelo motor, entregues a web, mobile e WhatsApp sem novo deploy.
+          </p>
         </div>
-        <div class="card">
-          <span class="tag">Time to market</span>
-          <h3>Trocar uma pergunta vira um ciclo de release</h3>
-          <p>Um ajuste de campo percorre desenvolvimento, homologação e publicação. No aplicativo, ainda depende da loja e de o cliente atualizar a versão.</p>
-        </div>
-        <div class="card">
-          <span class="tag">Divergência</span>
-          <h3>Os canais derivam entre si</h3>
-          <p>Sem fonte única, a correção feita em um canal não alcança os outros. A experiência passa a depender de por onde o cliente entrou.</p>
-        </div>
-        <div class="card">
-          <span class="tag">Governança</span>
-          <h3>A regra de negócio mora dentro do aplicativo</h3>
-          <p>Jornada espalhada em código de cliente não se versiona, não se audita e não se reverte como um artefato único.</p>
+
+        <div class="cover-flow reveal" role="img" aria-label="O Dynamic Journey decide cada passo da jornada e entrega a mesma especificação SDUI ao mesmo tempo para web, app e WhatsApp, cada um na sua forma, consultando o catálogo de ofertas no sistema corporativo.">
+          <div class="jflow">
+            <div class="jf-ehalo"></div>
+            <svg viewBox="0 0 732 600">
+              <defs>
+                <linearGradient id="dj-fan" gradientUnits="userSpaceOnUse" x1="0" y1="250" x2="0" y2="340">
+                  <stop offset="0" stop-color="#b77ddb"/><stop offset="1" stop-color="#eb3d7d"/>
+                </linearGradient>
+                <symbol id="dj-logo" viewBox="0 0 32 32">
+                  <rect x=".5" y=".5" width="31" height="31" rx="9" fill="url(#dj-tile)" stroke="#b77ddb" stroke-opacity=".45"/>
+                  <g fill="none" stroke="url(#dj-beam)" stroke-width="1.8" stroke-linecap="round">
+                    <path d="M6.5 21.5C10 21.5 11 16 14.5 16"/><path d="M14.5 16C18.5 16 19.5 9 24.5 9"/>
+                    <path d="M14.5 16H24.5"/><path d="M14.5 16C18.5 16 19.5 23 24.5 23"/>
+                  </g>
+                  <circle cx="6.5" cy="21.5" r="1.9" fill="#b77ddb"/>
+                  <g fill="#dcc3ea"><circle cx="24.5" cy="9" r="1.8"/><circle cx="24.5" cy="16" r="1.8"/><circle cx="24.5" cy="23" r="1.8"/></g>
+                  <circle cx="14.5" cy="16" r="2.6" fill="url(#dj-core)"/>
+                </symbol>
+              </defs>
+              <path class="jf-elane" d="M320 250 C320 300 155 290 155 340"/>
+              <path class="jf-elane" d="M366 250 C366 275 387 275 387 300"/>
+              <path class="jf-elane" d="M412 250 C412 300 599 270 599 320"/>
+              <path class="jf-elane" d="M476 118 L590 118"/>
+              <path class="jf-elane" d="M590 152 L476 152"/>
+              <path class="jf-eline jf-l-fan" d="M320 250 C320 300 155 290 155 336"/>
+              <path class="jf-eline jf-l-fan" d="M366 250 C366 275 387 275 387 296"/>
+              <path class="jf-eline jf-l-fan" d="M412 250 C412 300 599 270 599 316"/>
+              <path class="jf-eline jf-l-req" d="M476 118 L586 118"/>
+              <path class="jf-eline jf-l-res" d="M590 152 L480 152"/>
+              <polygon points="149,328 155,338 161,328" fill="#eb3d7d" opacity=".85"/>
+              <polygon points="381,288 387,298 393,288" fill="#eb3d7d" opacity=".85"/>
+              <polygon points="593,308 599,318 605,308" fill="#eb3d7d" opacity=".85"/>
+              <polygon points="578,112 588,118 578,124" fill="#eb3d7d" opacity=".85"/>
+              <polygon points="488,146 478,152 488,158" fill="#99cc33" opacity=".85"/>
+            </svg>
+
+            <span class="jf-etag jf-ereq">GET /ofertas</span>
+            <span class="jf-etag jf-eres">200 · ofertas</span>
+
+            <span class="jf-tok jf-tok-send jf-ts1">sdui</span><span class="jf-tok jf-tok-send jf-ts2">sdui</span><span class="jf-tok jf-tok-send jf-ts3">sdui</span>
+            <span class="jf-tok jf-tok-back jf-tb1"></span><span class="jf-tok jf-tok-back jf-tb2"></span><span class="jf-tok jf-tok-back jf-tb3"></span>
+            <span class="jf-tok jf-tok-req jf-tq"></span><span class="jf-tok jf-tok-res jf-tr"></span>
+
+            <div class="jf-hub">
+              <div class="jf-hub-top">
+                <svg class="jf-hub-logo" viewBox="0 0 32 32" aria-hidden="true"><use href="#dj-logo"/></svg>
+                <div><strong>Dynamic Journey</strong><small>decide o próximo passo</small></div>
+              </div>
+              <ol class="jf-steps">
+                <li class="jf-sp1"><i class="jf-dot"></i><i class="jf-chk">✓</i>Dados pessoais</li>
+                <li class="jf-sp2"><i class="jf-dot"></i><i class="jf-chk">✓</i>Ofertas para você</li>
+                <li class="jf-sp3"><i class="jf-dot"></i><i class="jf-chk">✓</i>Confirmação</li>
+              </ol>
+              <div class="jf-decide">
+                <span class="jf-lbl">Decisão agora</span>
+                <div class="jf-dec">
+                  <span class="jf-dd0">próxima: Dados pessoais</span>
+                  <span class="jf-dd1">aguardando respostas</span>
+                  <span class="jf-dd2">consultando ofertas…</span>
+                  <span class="jf-dd3">próxima: Ofertas</span>
+                  <span class="jf-dd5">próxima: Confirmação</span>
+                  <span class="jf-dd7">jornada concluída</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="jf-esys">
+              <svg class="jf-edb" viewBox="0 0 20 22" aria-hidden="true"><ellipse cx="10" cy="4.5" rx="7.5" ry="3"/><path d="M2.5 4.5v6.5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V4.5"/><path d="M2.5 11v6.5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V11"/></svg>
+              <strong>Catálogo de<br>ofertas</strong>
+              <div class="jf-estat"><span class="jf-ss0">aguardando</span><span class="jf-ss1">consultando…</span><span class="jf-ss2">aprovado</span></div>
+              <div class="jf-emeter"><i></i></div>
+            </div>
+            <span class="jf-esys-cap">sistema corporativo</span>
+
+            <!-- web -->
+            <div class="jf-frame jf-fweb">
+              <div class="jf-chrome"><i></i><i></i><i></i><span>app.vivo.com.br/jornada</span></div>
+              <div class="jf-fs jf-fs0"><svg class="jf-fsplash" viewBox="0 0 32 32" aria-hidden="true"><use href="#dj-logo"/></svg><p class="jf-wp">iniciando a jornada…</p></div>
+              <div class="jf-fs jf-fs1">
+                <span class="jf-wst">Passo 1</span><b class="jf-wt">Dados pessoais</b>
+                <div class="jf-wrow">
+                  <div class="jf-wf"><em>Nome completo</em><i><span class="jf-tbar jf-ft1"></span></i></div>
+                  <div class="jf-wf"><em>CPF</em><i><span class="jf-tbar jf-ft2"></span></i></div>
+                </div>
+                <span class="jf-wbtn jf-fb1">Ver ofertas</span>
+                <div class="jf-fov jf-fo1"><span class="jf-fspin"></span>aguardando a próxima tela</div>
+              </div>
+              <div class="jf-fs jf-fs2">
+                <span class="jf-wst">Passo 2</span>
+                <div class="jf-whead"><b class="jf-wt">Ofertas para você</b><span class="jf-wbadge">Pré-aprovado</span></div>
+                <div class="jf-wplans">
+                  <div class="jf-wplan"><i></i>Controle 50GB</div>
+                  <div class="jf-wplan jf-fpick"><i></i>Pós 100GB</div>
+                  <div class="jf-wplan"><i></i>Família 300GB</div>
+                </div>
+                <span class="jf-wbtn jf-fb2">Continuar</span>
+                <div class="jf-fov jf-fo2"><span class="jf-fspin"></span>aguardando a próxima tela</div>
+              </div>
+              <div class="jf-fs jf-fs3">
+                <span class="jf-wst">Passo 3</span><b class="jf-wt">Confirmação</b>
+                <div class="jf-wrow">
+                  <div class="jf-wsum"><strong>Pós 100GB</strong><small>R$ 119,90 por mês</small></div>
+                  <div class="jf-wtk"><i class="jf-fbox"></i>Li e aceito os termos</div>
+                </div>
+                <span class="jf-wbtn jf-fb3">Confirmar</span>
+                <div class="jf-fov jf-fo3"><span class="jf-fspin"></span>aguardando a próxima tela</div>
+              </div>
+              <div class="jf-fs jf-fs4"><span class="jf-wbig">✓</span><b class="jf-wt">Tudo certo!</b><p class="jf-wp">Contratação confirmada</p></div>
+            </div>
+
+            <!-- app -->
+            <div class="jf-frame jf-fapp">
+              <span class="jf-fnotch"></span>
+              <div class="jf-fs jf-fs0"><svg class="jf-fsplash" viewBox="0 0 32 32" aria-hidden="true"><use href="#dj-logo"/></svg><p class="jf-mp">iniciando…</p></div>
+              <div class="jf-fs jf-fs1">
+                <span class="jf-mst">Passo 1</span><b class="jf-mt">Dados pessoais</b><p class="jf-mp">Olá, Marina</p>
+                <div class="jf-mf"><em>Nome completo</em><i><span class="jf-tbar jf-ft1"></span></i></div>
+                <div class="jf-mf"><em>CPF</em><i><span class="jf-tbar jf-ft2"></span></i></div>
+                <span class="jf-mbtn jf-fb1">Ver ofertas</span>
+                <div class="jf-fov jf-fo1"><span class="jf-fspin"></span>aguardando</div>
+              </div>
+              <div class="jf-fs jf-fs2">
+                <span class="jf-mst">Passo 2</span><b class="jf-mt">Ofertas para você</b><span class="jf-mbadge">Pré-aprovado</span>
+                <div class="jf-mo"><i></i>Controle 50GB</div>
+                <div class="jf-mo jf-fpick"><i></i>Pós 100GB</div>
+                <div class="jf-mo"><i></i>Família 300GB</div>
+                <span class="jf-mbtn jf-fb2">Continuar</span>
+                <div class="jf-fov jf-fo2"><span class="jf-fspin"></span>aguardando</div>
+              </div>
+              <div class="jf-fs jf-fs3">
+                <span class="jf-mst">Passo 3</span><b class="jf-mt">Confirmação</b>
+                <div class="jf-msum"><strong>Pós 100GB</strong><small>R$ 119,90 por mês</small></div>
+                <div class="jf-mtk"><i class="jf-fbox"></i>Aceito os termos</div>
+                <span class="jf-mbtn jf-fb3">Confirmar</span>
+                <div class="jf-fov jf-fo3"><span class="jf-fspin"></span>aguardando</div>
+              </div>
+              <div class="jf-fs jf-fs4"><span class="jf-mbig">✓</span><b class="jf-mt">Tudo certo!</b><p class="jf-mp">Confirmada</p></div>
+            </div>
+
+            <!-- WhatsApp -->
+            <div class="jf-frame jf-fwa">
+              <div class="jf-wa-top"><i></i><div><b>Vivo</b><small>online</small></div></div>
+              <div class="jf-fs jf-fs0"><div class="jf-bub">Olá, Marina! Vou te ajudar com a sua contratação.</div></div>
+              <div class="jf-fs jf-fs1">
+                <div class="jf-bub">Vamos começar pelos seus dados. Qual é o seu nome completo?</div>
+                <div class="jf-bub jf-me jf-later jf-u15">Marina Duarte</div>
+                <div class="jf-bub jf-later jf-b17">E o seu CPF?</div>
+                <div class="jf-bub jf-me jf-later jf-u20">123.456.789-00</div>
+                <div class="jf-typing jf-ty1"><i></i><i></i><i></i></div>
+              </div>
+              <div class="jf-fs jf-fs2">
+                <div class="jf-bub">Encontrei 3 ofertas pré-aprovadas para você:</div>
+                <div class="jf-qr">Controle 50GB</div>
+                <div class="jf-qr jf-fpick">Pós 100GB</div>
+                <div class="jf-qr">Família 300GB</div>
+                <div class="jf-bub jf-me jf-later jf-u58">Pós 100GB</div>
+                <div class="jf-typing jf-ty2"><i></i><i></i><i></i></div>
+              </div>
+              <div class="jf-fs jf-fs3">
+                <div class="jf-bub">Confirma o Pós 100GB por R$ 119,90 por mês?</div>
+                <div class="jf-qrow"><div class="jf-qr jf-qyes">Sim</div><div class="jf-qr">Não</div></div>
+                <div class="jf-bub jf-me jf-later jf-u80">Sim</div>
+                <div class="jf-typing jf-ty3"><i></i><i></i><i></i></div>
+              </div>
+              <div class="jf-fs jf-fs4"><div class="jf-bub">Tudo certo! Sua contratação foi confirmada.</div></div>
+            </div>
+          </div>
         </div>
       </div>
-      <p class="sub mt-l reveal">
-        Navegue com <span class="kbd">←</span> <span class="kbd">→</span> · sumário com <span class="kbd">O</span> ·
-        modo leitura com <span class="kbd">R</span> · tema com <span class="kbd">T</span>. Cartões com “detalhes →” abrem
-        a fonte no código.
-      </p>
+
+      <div class="cover-pillars reveal">
+        <div class="cover-pillar"><span class="cover-num">01</span><em>Design e governança</em><strong>Portal administrativo de jornadas</strong><small>desenho visual, versão imutável e auditoria</small></div>
+        <div class="cover-pillar"><span class="cover-num">02</span><em>Contrato multicanal</em><strong>Catálogo de componentes SDUI</strong><small>19 componentes, forma nativa em cada canal</small></div>
+        <div class="cover-pillar"><span class="cover-num">03</span><em>Execução</em><strong>Motor de estados da jornada</strong><small>estado, integrações e o próximo passo</small></div>
+      </div>
     </div>
   </section>
 
   <!-- ══════════════ 02 · ANTES E DEPOIS ══════════════ -->
-  <section class="view" data-title="Antes e depois" data-desc="O que acontece com as responsabilidades de cada canal">
+  <section class="view" data-title="Antes e depois" data-desc="O custo de replicar as mesmas capacidades em cada canal">
     <div class="view-inner" id="cmpWrap" data-state="before">
       <div class="reveal"><span class="kicker">Comparativo</span></div>
-      <h2 class="title reveal">A mesma responsabilidade, cinco vezes. Ou uma vez só.</h2>
+      <h2 class="title reveal">Mesmas capacidades replicadas diversas vezes demonstram ineficiência e custos elevados</h2>
       <p class="lead reveal">
-        Alterne entre os dois cenários e observe o que acontece com as responsabilidades de uma jornada.
-        Sem orquestração central, cada canal carrega as suas. Com a plataforma, elas passam a existir uma
-        única vez, compartilhadas por todos.
+        Quando cada canal constrói a própria jornada, as mesmas seis capacidades são desenvolvidas, testadas e
+        mantidas uma vez por canal. Toda mudança se multiplica pelo número de canais, e com ela o custo, o prazo
+        de entrega e o risco de os canais se comportarem de formas diferentes. Com a orquestração centralizada,
+        essas capacidades passam a existir uma única vez.
       </p>
 
-      <div class="chips mt-s reveal" id="cmpChips">
-        <button class="chip on" data-state="before">Sem plataforma de orquestração</button>
-        <button class="chip" data-state="after">Com Dynamic Journey</button>
-        <span class="pill" style="margin-left:6px">
-          <span class="dot"></span>
-          <span class="s-off">30 blocos de responsabilidade para manter</span>
-          <span class="s-on">6 blocos, compartilhados por todos os canais</span>
-        </span>
+      <div class="cmp-control mt reveal">
+        <span class="cmp-control-label">Compare os cenários</span>
+        <div class="seg" id="cmpChips" role="tablist" aria-label="Cenário do comparativo">
+          <button class="seg-btn bad on" data-state="before" role="tab" aria-selected="true"><span class="dot"></span>Sem plataforma de orquestração</button>
+          <button class="seg-btn good" data-state="after" role="tab" aria-selected="false"><span class="dot"></span>Com Dynamic Journey</button>
+        </div>
+        <span class="sub">ou pressione <span class="kbd">A</span> para alternar</span>
       </div>
 
-      <figure class="diagram mt-s reveal">
+      <figure class="diagram mt-s reveal" id="cmpFigure" title="Clique para alternar o cenário">
+        <div class="cmp-status">
+          <span class="pill warn s-off"><span class="dot"></span>Sem plataforma · 30 capacidades replicadas em 5 canais</span>
+          <span class="pill on s-on"><span class="dot"></span>Com Dynamic Journey · 6 capacidades, compartilhadas por todos os canais</span>
+        </div>
         <svg viewBox="0 0 1240 430" role="img" aria-label="Comparativo entre construir jornada em cada canal e centralizar na plataforma">
           <defs>
             <marker id="ah6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -115,7 +304,7 @@
           <!-- plataforma: existe só no cenário com Dynamic Journey -->
           <g class="cmp-plat">
             <rect class="n-box brand" x="230" y="108" width="780" height="176" rx="18"/>
-            <text class="n-t" x="620" y="136" text-anchor="middle" style="font-size:18px">Dynamic Journey</text>
+            <text class="n-t" x="620" y="136" text-anchor="middle" style="font-size:20px">Dynamic Journey</text>
 
             <rect class="n-box ghost" x="250" y="146" width="240" height="126" rx="12"/>
             <text class="n-cap" x="370" y="166" text-anchor="middle">SDUI</text>
@@ -138,7 +327,7 @@
             <rect class="n-box brand" x="522" y="240" width="222" height="26" rx="7"/>
             <text class="n-s" x="633" y="257" text-anchor="middle">Tratamento de erros</text>
             <rect class="n-box lime" x="756" y="240" width="222" height="26" rx="7"/>
-            <text class="n-s" x="867" y="257" text-anchor="middle" style="font-size:11px">+ Observabilidade e governança</text>
+            <text class="n-s" x="867" y="257" text-anchor="middle" style="font-size:11.5px">+ Observabilidade e governança</text>
           </g>
 
           <!-- sistemas corporativos: destino nos dois cenários -->
@@ -146,7 +335,7 @@
           <text class="n-t" x="620" y="326" text-anchor="middle">Sistemas Corporativos</text>
           <text class="n-s" x="620" y="346" text-anchor="middle">CRM · ERP · Billing · Catálogo · Legado</text>
         </svg>
-        <figcaption>As mesmas seis responsabilidades nos dois cenários. A diferença é quantas vezes elas existem, e quantos times precisam mantê-las.</figcaption>
+        <figcaption>As mesmas seis capacidades nos dois cenários: a diferença é quantas vezes elas são construídas e mantidas. Clique no diagrama para alternar.</figcaption>
       </figure>
 
       <div class="row c5 mt-s reveal">
@@ -159,45 +348,181 @@
     </div>
   </section>
 
-  <!-- ══════════════ 03 · TESE ══════════════ -->
-  <section class="view" data-title="A tese" data-desc="Por que separar autoria de execução">
+  <!-- ══════════════ 03 · CATÁLOGO SDUI ══════════════ -->
+  <section class="view" data-title="Catálogo SDUI" data-desc="O contrato que todas as peças compartilham">
     <div class="view-inner">
-      <div class="reveal"><span class="kicker">O problema</span></div>
-      <h2 class="title reveal">Mudar uma jornada não deveria exigir um novo aplicativo</h2>
-      <div class="row split mt reveal">
-        <div>
-          <p class="body">
-            No modelo tradicional, o fluxo de uma jornada guiada vive espalhado: parte no código do app web, parte no
-            app mobile, parte no atendimento conversacional. Uma mudança de regra ou de tela vira três implementações,
-            três filas de release e três oportunidades de divergência.
-          </p>
-          <p class="body mt-s">
-            A plataforma inverte isso. O fluxo passa a ser um artefato publicado e versionado; a tela passa a ser uma
-            especificação declarativa que cada canal sabe interpretar. O canal deixa de conhecer a jornada e passa a
-            perguntar, a cada passo, <span class="em">o que devo mostrar agora?</span>
-          </p>
-        </div>
-        <div class="card accent">
-          <span class="tag">Três separações</span>
-          <ul class="ticks">
-            <li><b>Intenção:</b>o fluxo desenhado no portal, independente de canal.</li>
-            <li><b>Execução:</b>o estado da jornada, mantido pelo motor de runtime.</li>
-            <li><b>Experiência:</b>a tela, resolvida por contrato e projetada por canal.</li>
-          </ul>
-          <p class="sub mt-s">
-            Nenhuma das três conhece as outras por dentro: conversam por contratos explícitos.
-          </p>
-        </div>
-      </div>
-      <div class="row c3 mt reveal">
-        <div class="card"><h3>Sem novo deploy por canal</h3><p>Publicar uma versão da jornada atualiza a experiência em todos os canais habilitados ao mesmo tempo.</p></div>
-        <div class="card"><h3>Uma definição, várias formas</h3><p>A mesma árvore de tela vira formulário no web, tela nativa no mobile e sequência de mensagens no WhatsApp.</p></div>
-        <div class="card"><h3>Versão imutável</h3><p>Cada publicação congela fluxo e telas; instâncias em andamento continuam na versão em que nasceram.</p></div>
+      <div class="reveal"><span class="kicker">Catálogo SDUI</span></div>
+      <h2 class="title reveal">Não existe jornada multicanal sem um contrato comum</h2>
+      <p class="lead reveal">
+        O catálogo define o que cada componente significa, o que aceita e como se comporta em cada canal.
+        É a única dependência que editor, publicação, runtime e renderizadores compartilham. Sem ele, cada
+        peça interpretaria a tela do seu jeito, e voltaríamos às cinco implementações da visão anterior.
+      </p>
+
+      <figure class="diagram mt reveal">
+        <svg viewBox="0 0 1240 400" role="img" aria-label="O catálogo SDUI no centro, governando editor, publicação, runtime e renderizadores">
+          <defs>
+            <marker id="ah7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <g color="var(--brand-bright)">
+            <line class="edge brand pulse-edge" x1="620" y1="150" x2="620" y2="92" marker-end="url(#ah7)"/>
+            <line class="edge brand pulse-edge" x1="770" y1="200" x2="886" y2="200" marker-end="url(#ah7)"/>
+            <line class="edge brand pulse-edge" x1="620" y1="250" x2="620" y2="308" marker-end="url(#ah7)"/>
+            <line class="edge brand pulse-edge" x1="470" y1="200" x2="354" y2="200" marker-end="url(#ah7)"/>
+          </g>
+
+          <g data-detail="cat-governanca" tabindex="0" role="button" aria-label="Governança do catálogo">
+            <rect class="n-box solid" x="470" y="150" width="300" height="100" rx="16"/>
+            <text class="n-t on-solid" x="620" y="188" text-anchor="middle" style="font-size:20px">Catálogo SDUI v1</text>
+            <text class="n-s on-solid" x="620" y="210" text-anchor="middle" style="font-size:11.5px">19 componentes · 5 alvos · versionado</text>
+            <text class="n-s on-solid" x="620" y="230" text-anchor="middle" style="font-size:11.5px">governança →</text>
+          </g>
+
+          <g data-detail="cat-editor" tabindex="0" role="button" aria-label="Editor de telas">
+            <rect class="n-box" x="470" y="8" width="300" height="80" rx="13"/>
+            <text class="n-cap" x="620" y="30" text-anchor="middle">Autoria</text>
+            <text class="n-t" x="620" y="54" text-anchor="middle" style="font-size:15px">Editor de telas</text>
+            <text class="n-s" x="620" y="72" text-anchor="middle" style="font-size:11.5px">oferece só o que o catálogo permite</text>
+          </g>
+
+          <g data-detail="cat-publicacao" tabindex="0" role="button" aria-label="Validação na publicação">
+            <rect class="n-box" x="890" y="160" width="320" height="80" rx="13"/>
+            <text class="n-cap" x="1050" y="182" text-anchor="middle">Publicação</text>
+            <text class="n-t" x="1050" y="206" text-anchor="middle" style="font-size:15px">Validação e cálculo de alvos</text>
+            <text class="n-s" x="1050" y="224" text-anchor="middle" style="font-size:11.5px">rejeita o que não existe e deduz os canais</text>
+          </g>
+
+          <g data-detail="cat-runtime" tabindex="0" role="button" aria-label="Resolução da tela em execução">
+            <rect class="n-box" x="470" y="312" width="300" height="80" rx="13"/>
+            <text class="n-cap" x="620" y="334" text-anchor="middle">Runtime</text>
+            <text class="n-t" x="620" y="358" text-anchor="middle" style="font-size:15px">Resolução da tela</text>
+            <text class="n-s" x="620" y="376" text-anchor="middle" style="font-size:11.5px">vínculos e placeholders pelas regras</text>
+          </g>
+
+          <g data-detail="cat-renderers" tabindex="0" role="button" aria-label="Os cinco renderizadores">
+            <rect class="n-box lime" x="30" y="160" width="320" height="80" rx="13"/>
+            <text class="n-cap" x="190" y="182" text-anchor="middle">Canais</text>
+            <text class="n-t" x="190" y="206" text-anchor="middle" style="font-size:15px">Cinco renderizadores</text>
+            <text class="n-s" x="190" y="224" text-anchor="middle" style="font-size:11.5px">tipo + versão viram componente nativo</text>
+          </g>
+        </svg>
+        <figcaption>Clique em qualquer peça para ver exatamente do que ela depende no catálogo.</figcaption>
+      </figure>
+
+      <div class="row c4 mt-s reveal">
+        <div class="card stat"><b>19</b><span>componentes de fábrica, todos estáveis</span></div>
+        <div class="card stat"><b>5</b><span>alvos de renderização por componente</span></div>
+        <div class="card stat"><b>95</b><span>projeções definidas no contrato (19 × 5)</span></div>
+        <div class="card stat"><b>6</b><span>ações homologadas, e nenhuma além delas</span></div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════ 03 · MAPA DA PLATAFORMA ══════════════ -->
+  <!-- ══════════════ 04 · EXPLORADOR DO CATÁLOGO ══════════════ -->
+  <section class="view" data-title="Explorador do catálogo" data-desc="Os 19 componentes e sua forma em cada alvo">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Catálogo SDUI · explorador</span></div>
+      <h2 class="title reveal">Dezenove componentes, cada um com cinco formas nativas</h2>
+      <p class="lead reveal">Selecione um componente para ver o que ele aceita e como o mesmo significado assume uma forma diferente em cada canal.</p>
+      <div class="cat mt reveal">
+        <div id="catList"></div>
+        <div>
+          <div class="card cat-panel" id="catPanel"></div>
+          <div class="diag-note">
+            <b>Classificação atual.</b> Os 19 componentes de fábrica estão registrados como suportados nos cinco
+            alvos, todos com versão mínima de renderizador 1.0.0. O cálculo de compatibilidade por canal na
+            publicação já está implementado; a diferenciação por alvo ainda não foi aplicada ao catálogo.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 05 · CONTRATO SDUI ══════════════ -->
+  <section class="view" data-title="Envelope SDUI" data-desc="Como uma tela publicada trafega até o canal">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Catálogo SDUI · envelope</span></div>
+      <h2 class="title reveal">Toda tela publicada viaja no mesmo envelope</h2>
+      <div class="row split mt reveal">
+        <div>
+          <p class="body">O envelope é a forma canônica de uma tela publicada: carrega a árvore de componentes e os metadados que permitem a qualquer canal decidir, antes de renderizar, se é capaz de exibi-la. O repositório apenas armazena os snapshots publicados: não é dono do contrato nem pode reinterpretá-lo.</p>
+          <div class="row c2 mt-s">
+            <div class="card pad-s"><h3>Alvos calculados</h3><p>Os canais suportados e a versão mínima de renderizador são deduzidos dos componentes usados na tela, não configurados à mão.</p></div>
+            <div class="card pad-s"><h3>Paridade funcional</h3><p>Mesma semântica em todos os alvos, admitindo diferenças nativas de apresentação.</p></div>
+            <div class="card pad-s"><h3>Sem execução</h3><p>Nenhum renderizador executa expressão, consulta ou URL declarada na especificação.</p></div>
+            <div class="card pad-s"><h3>Ordem é contrato</h3><p>A ordem dos filhos define leitura, foco e projeção conversacional.</p></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">Envelope canônico</span>
+          <pre class="code mt-s"><span class="k">"schemaVersion"</span>: <span class="s">"1.0.0"</span>,
+<span class="k">"catalogVersion"</span>: <span class="s">"1.0.0"</span>,
+<span class="k">"journeyId"</span>: <span class="s">"12f6d6e2…"</span>,
+<span class="k">"journeyVersion"</span>: <span class="n">7</span>,
+<span class="k">"uiStepId"</span>: <span class="s">"Node_3f865d35…"</span>,
+<span class="k">"status"</span>: <span class="s">"published"</span>,
+<span class="k">"supportedTargets"</span>: [<span class="s">"react.web"</span>, …],
+<span class="k">"minRendererVersion"</span>: { … },
+<span class="k">"dataSources"</span>: {},   <span class="c">// reservado no v1</span>
+<span class="k">"data"</span>: [<span class="s">"ui.screen"</span>, { … }, [ … ]]</pre>
+          <p class="sub mt-s">A raiz de <span class="mono-inline">data</span> é sempre uma tela única. Versionamento em SemVer para catálogo, componente e renderizador; a versão da jornada é um inteiro sequencial.</p>
+        </div>
+      </div>
+      <div class="row c4 mt-s reveal">
+        <button class="card clickable pad-s" data-detail="bindings"><span class="tag">Seção 8</span><h3>Vínculos e placeholders</h3><p>Como um valor entra na tela sem lógica na árvore.</p></button>
+        <button class="card clickable pad-s" data-detail="acoes"><span class="tag">Seção 9</span><h3>Ações fechadas</h3><p>Seis ações homologadas, nada além delas.</p></button>
+        <button class="card clickable pad-s" data-detail="compat"><span class="tag">Seção 11</span><h3>Compatibilidade</h3><p>Quando um alvo simplesmente não suporta um componente.</p></button>
+        <button class="card clickable pad-s" data-detail="datasources"><span class="tag">Seção 14.4</span><h3>dataSources reservado</h3><p>O que precisa ser decidido antes de qualquer uso.</p></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 06 · PLAYGROUND ══════════════ -->
+  <section class="view" data-title="Projeção multicanal" data-desc="A mesma tela, renderizada ao vivo em três canais">
+    <div class="view-inner">
+      <div class="reveal"><span class="kicker">Demonstração ao vivo</span></div>
+      <h2 class="title reveal">A mesma especificação, três formas nativas</h2>
+      <p class="lead reveal">As telas abaixo são geradas nesta página a partir do envelope à esquerda, aplicando as regras de projeção do próprio contrato. Troque a tela e observe o que muda em cada canal.</p>
+      <div class="chips mt-s reveal" id="labChips"></div>
+      <div class="lab mt-s reveal">
+        <div>
+          <div class="lab-src">
+            <header><span>Envelope publicado</span><span id="labMeta"></span></header>
+            <pre class="code" id="labCode"></pre>
+          </div>
+          <div class="diag-note" id="labRules"></div>
+        </div>
+        <div class="targets">
+          <div class="target">
+            <h4><span class="dot"></span>Web</h4>
+            <div class="frame-web">
+              <div class="bar"><i></i><i></i><i></i><span class="url">app.vivo.com.br/jornada</span></div>
+              <div class="render" id="renderWeb"></div>
+            </div>
+          </div>
+          <div class="target">
+            <h4><span class="dot"></span>Mobile</h4>
+            <div class="frame-phone">
+              <div class="status"><span>09:41</span><span>▮▮▮</span></div>
+              <div class="render" id="renderApp"></div>
+            </div>
+          </div>
+          <div class="target">
+            <h4><span class="dot"></span>WhatsApp</h4>
+            <div class="frame-wa">
+              <div class="wa-bar"><span class="av"></span><span>Vivo</span></div>
+              <div class="wa-body" id="renderWa"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 07 · MAPA DA PLATAFORMA ══════════════ -->
   <section class="view" data-title="Mapa da plataforma" data-desc="As três soluções e os dois momentos">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Visão de contexto</span></div>
@@ -300,7 +625,7 @@
     </div>
   </section>
 
-  <!-- ══════════════ 04 · PORTAL ══════════════ -->
+  <!-- ══════════════ 08 · PORTAL ══════════════ -->
   <section class="view" data-title="Portal Administrativo" data-desc="A fábrica de jornadas">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Design-time</span></div>
@@ -329,7 +654,7 @@
     </div>
   </section>
 
-  <!-- ══════════════ 05 · PUBLICAÇÃO ══════════════ -->
+  <!-- ══════════════ 09 · PUBLICAÇÃO ══════════════ -->
   <section class="view" data-title="Publicação" data-desc="Duas projeções coordenadas">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">A fronteira</span></div>
@@ -390,7 +715,7 @@
     </div>
   </section>
 
-  <!-- ══════════════ 06 · RUNTIME ══════════════ -->
+  <!-- ══════════════ 10 · RUNTIME ══════════════ -->
   <section class="view" data-title="Runtime" data-desc="O Journey como porta única dos canais">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Execução</span></div>
@@ -455,7 +780,7 @@
     </div>
   </section>
 
-  <!-- ══════════════ 07 · SEQUÊNCIA ══════════════ -->
+  <!-- ══════════════ 11 · SEQUÊNCIA ══════════════ -->
   <section class="view" data-title="Ciclo de uma etapa" data-desc="Execução passo a passo, com as chamadas reais">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Sequência interativa</span></div>
@@ -500,97 +825,16 @@
             <figcaption>Os saltos acesos correspondem à chamada real feita naquele passo.</figcaption>
           </figure>
           <div class="seq-stage mt-s">
-            <div class="seq-bar"><span class="seq-hop" id="seqHop">—</span><span class="pill" id="seqActor">—</span></div>
-            <pre class="code" id="seqCode">—</pre>
-            <p class="seq-note" id="seqNote">—</p>
+            <div class="seq-bar"><span class="seq-hop" id="seqHop"></span><span class="pill" id="seqActor"></span></div>
+            <pre class="code" id="seqCode"></pre>
+            <p class="seq-note" id="seqNote"></p>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════ 08 · CONTRATO SDUI ══════════════ -->
-  <section class="view" data-title="Contrato SDUI v1" data-desc="A linguagem comum entre autoria e canais">
-    <div class="view-inner">
-      <div class="reveal"><span class="kicker">O normativo</span></div>
-      <h2 class="title reveal">O catálogo SDUI é a linguagem comum entre autoria e canais</h2>
-      <div class="row split mt reveal">
-        <div>
-          <p class="body">O contrato é corporativo e independente de framework: descreve o que cada componente significa, o que ele aceita e como deve se comportar em cada alvo. O repositório apenas armazena os snapshots publicados: não é dono do contrato nem pode reinterpretá-lo.</p>
-          <div class="row c2 mt-s">
-            <div class="card pad-s"><h3>Cinco níveis</h3><p>Do primitivo visual ao componente de domínio. O v1 entrega os níveis 0 a 3; o nível 4 fica fora de escopo.</p></div>
-            <div class="card pad-s"><h3>Paridade funcional</h3><p>Mesma semântica em todos os alvos, admitindo diferenças nativas de apresentação.</p></div>
-            <div class="card pad-s"><h3>Sem execução</h3><p>Nenhum renderizador executa expressão, consulta ou URL declarada na especificação.</p></div>
-            <div class="card pad-s"><h3>Ordem é contrato</h3><p>A ordem dos filhos define leitura, foco e projeção conversacional.</p></div>
-          </div>
-        </div>
-        <div class="card">
-          <span class="tag">Envelope canônico</span>
-          <pre class="code mt-s"><span class="k">"schemaVersion"</span>: <span class="s">"1.0.0"</span>,
-<span class="k">"catalogVersion"</span>: <span class="s">"1.0.0"</span>,
-<span class="k">"journeyId"</span>: <span class="s">"12f6d6e2…"</span>,
-<span class="k">"journeyVersion"</span>: <span class="n">7</span>,
-<span class="k">"uiStepId"</span>: <span class="s">"Node_3f865d35…"</span>,
-<span class="k">"status"</span>: <span class="s">"published"</span>,
-<span class="k">"supportedTargets"</span>: [<span class="s">"react.web"</span>, …],
-<span class="k">"minRendererVersion"</span>: { … },
-<span class="k">"dataSources"</span>: {},   <span class="c">// reservado no v1</span>
-<span class="k">"data"</span>: [<span class="s">"ui.screen"</span>, { … }, [ … ]]</pre>
-          <p class="sub mt-s">A raiz de <span class="mono-inline">data</span> é sempre uma tela única. Versionamento em SemVer para catálogo, componente e renderizador; a versão da jornada é um inteiro sequencial.</p>
-        </div>
-      </div>
-      <div class="row c4 mt-s reveal">
-        <button class="card clickable pad-s" data-detail="bindings"><span class="tag">Seção 8</span><h3>Vínculos e placeholders</h3><p>Como um valor entra na tela sem lógica na árvore.</p></button>
-        <button class="card clickable pad-s" data-detail="acoes"><span class="tag">Seção 9</span><h3>Ações fechadas</h3><p>Seis ações homologadas, nada além delas.</p></button>
-        <button class="card clickable pad-s" data-detail="compat"><span class="tag">Seção 11</span><h3>Compatibilidade</h3><p>Quando um alvo simplesmente não suporta um componente.</p></button>
-        <button class="card clickable pad-s" data-detail="datasources"><span class="tag">Seção 14.4</span><h3>dataSources reservado</h3><p>O que precisa ser decidido antes de qualquer uso.</p></button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════ 09 · PLAYGROUND ══════════════ -->
-  <section class="view" data-title="Projeção multicanal" data-desc="A mesma tela, renderizada ao vivo em três canais">
-    <div class="view-inner">
-      <div class="reveal"><span class="kicker">Demonstração ao vivo</span></div>
-      <h2 class="title reveal">A mesma especificação, três formas nativas</h2>
-      <p class="lead reveal">As telas abaixo são geradas nesta página a partir do envelope à esquerda, aplicando as regras de projeção do próprio contrato. Troque a tela e observe o que muda em cada canal.</p>
-      <div class="chips mt-s reveal" id="labChips"></div>
-      <div class="lab mt-s reveal">
-        <div>
-          <div class="lab-src">
-            <header><span>Envelope publicado</span><span id="labMeta">—</span></header>
-            <pre class="code" id="labCode">—</pre>
-          </div>
-          <div class="diag-note" id="labRules">—</div>
-        </div>
-        <div class="targets">
-          <div class="target">
-            <h4><span class="dot"></span>Web</h4>
-            <div class="frame-web">
-              <div class="bar"><i></i><i></i><i></i><span class="url">app.vivo.com.br/jornada</span></div>
-              <div class="render" id="renderWeb"></div>
-            </div>
-          </div>
-          <div class="target">
-            <h4><span class="dot"></span>Mobile</h4>
-            <div class="frame-phone">
-              <div class="status"><span>09:41</span><span>▮▮▮</span></div>
-              <div class="render" id="renderApp"></div>
-            </div>
-          </div>
-          <div class="target">
-            <h4><span class="dot"></span>WhatsApp</h4>
-            <div class="frame-wa">
-              <div class="wa-bar"><span class="av"></span><span>Vivo</span></div>
-              <div class="wa-body" id="renderWa"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════ 10 · EMULADOR ══════════════ -->
+  <!-- ══════════════ 12 · EMULADOR ══════════════ -->
   <section class="view" data-title="Emulador de Canais" data-desc="A prova arquitetural com hosts reais">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Solução 3</span></div>
@@ -650,7 +894,7 @@
     </div>
   </section>
 
-  <!-- ══════════════ 11 · RENDERERS ══════════════ -->
+  <!-- ══════════════ 13 · RENDERERS ══════════════ -->
   <section class="view" data-title="Renderizadores" data-desc="Runtime headless no centro, adapter na borda">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Última milha</span></div>
@@ -670,13 +914,13 @@
       </div>
       <div class="card lime mt reveal">
         <span class="tag">Leitura honesta do estado atual</span>
-        <h3>São renderizadores a caminho de virar SDKs — ainda não são SDKs</h3>
+        <h3>São renderizadores a caminho de virar SDKs, mas ainda não são SDKs</h3>
         <p>A forma de pacote já existe e a separação entre runtime headless e adapter é a correta para distribuição. O que falta para um time externo consumi-los é o trabalho de produto: publicação versionada, superfície de exportação estável e documentação de integração. Chamá-los de SDK hoje seria vender uma promessa que o repositório ainda não cumpre.</p>
       </div>
     </div>
   </section>
 
-  <!-- ══════════════ 12 · FRONTEIRAS ══════════════ -->
+  <!-- ══════════════ 14 · FRONTEIRAS ══════════════ -->
   <section class="view" data-title="Fronteiras" data-desc="Os guardrails que sustentam a arquitetura">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Princípios</span></div>
@@ -696,7 +940,7 @@
     </div>
   </section>
 
-  <!-- ══════════════ 13 · ACHADOS ══════════════ -->
+  <!-- ══════════════ 15 · ACHADOS ══════════════ -->
   <section class="view" data-title="Achados de arquitetura" data-desc="O que a leitura do código revelou">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Auditoria</span></div>
@@ -715,7 +959,7 @@
     </div>
   </section>
 
-  <!-- ══════════════ 14 · ESTADO ══════════════ -->
+  <!-- ══════════════ 16 · ESTADO ══════════════ -->
   <section class="view" data-title="Estado atual" data-desc="Prontidão real e lacunas assumidas">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Prontidão</span></div>
@@ -758,7 +1002,7 @@
     </div>
   </section>
 
-  <!-- ══════════════ 15 · EVOLUÇÃO ══════════════ -->
+  <!-- ══════════════ 17 · EVOLUÇÃO ══════════════ -->
   <section class="view" data-title="Evolução" data-desc="Da prova técnica para plataforma consumível">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Próximos passos</span></div>
@@ -778,7 +1022,7 @@
     </div>
   </section>
 
-  <!-- ══════════════ 16 · FONTES ══════════════ -->
+  <!-- ══════════════ 18 · FONTES ══════════════ -->
   <section class="view" data-title="Fontes e premissas" data-desc="Rastreabilidade do que foi apresentado">
     <div class="view-inner">
       <div class="reveal"><span class="kicker">Rastreabilidade</span></div>
@@ -814,6 +1058,7 @@
               <li><span class="kbd">R</span> alterna o modo leitura contínua</li>
               <li><span class="kbd">T</span> alterna entre tema claro e escuro</li>
               <li><span class="kbd">F</span> alterna tela cheia</li>
+              <li><span class="kbd">A</span> alterna o cenário no comparativo antes e depois</li>
               <li><span class="kbd">Esc</span> fecha sumário e painel de detalhe</li>
             </ul>
           </div>
@@ -830,7 +1075,7 @@
 
 <footer class="footer">
   <div class="rail" id="rail"></div>
-  <div class="counter"><b id="cNow">01</b> / <span id="cAll">17</span></div>
+  <div class="counter"><b id="cNow">01</b> / <span id="cAll">18</span></div>
   <div class="arrows">
     <button class="arrow" id="btnPrev" title="Anterior (←)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
     <button class="arrow" id="btnNext" title="Próxima (→)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
@@ -848,7 +1093,7 @@
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true">
   <header>
-    <div><span class="tag" id="drawerTag">Detalhe</span><h3 id="drawerTitle">—</h3></div>
+    <div><span class="tag" id="drawerTag">Detalhe</span><h3 id="drawerTitle"></h3></div>
     <button class="tool" id="btnDrawerClose" title="Fechar (Esc)">✕</button>
   </header>
   <div class="content" id="drawerBody"></div>

@@ -13,13 +13,11 @@
     --brand-050:#f2ebfa;
     --brand-025:#f8f5fc;
     --lime:#99cc33;
-    
     --page:#f4f2f8;
     --surface:#ffffff;
     --text:#313235;
-    --text-2:#6f6f77;
+    --text-2:#6b6b73;
     --border:#e9e6f0;
-    
     --error-low:#fce4ef;
     --warn-low:#fdf1de;
     --info-low:#eef3fb;
@@ -28,7 +26,6 @@
     --text-high:#252233;
     --text-3:#736b80;
     --nav-bg:rgba(255,255,255,.92);
-    
     
     
     --error-border:#f2c2d5;
@@ -41,10 +38,13 @@
     --code-fg:#e9dcf3;
     
     
-    
-    --cover-bg:#660099;
-    --cover-soft:#d9b8ec;
-    --cover-lead:#f2e6f8;
+    --arch-bg:linear-gradient(160deg,#fcfcfe 0%,#ebe9f2 100%);
+    --arch-border:#e2e0e9;
+    --ax-stroke:#e5d4ef;
+    --ax-hub:#660099;
+    --ax-line:#8433ab;
+    --ax-accent:#50691a;
+    --ax-band:#660099;
     --shadow:0 18px 44px -22px rgba(56,0,87,.28);
     --radius:18px;
     --pad:clamp(28px,4.2vw,76px);
@@ -65,7 +65,6 @@
     --brand-050:#2a2339;
     --brand-025:#221c2f;
     --lime:#a8d94a;
-    
     --page:#161320;
     --surface:#1e1a2b;
     --text:#ece9f3;
@@ -74,7 +73,6 @@
     --text-3:#a29ab3;
     --border:#322a45;
     --nav-bg:rgba(22,19,32,.93);
-    
     
     
     
@@ -91,16 +89,21 @@
     --code-fg:#e4d8ef;
     
     
-    
-    --cover-bg:#2b0c42;
-    --cover-soft:#c79ae8;
-    --cover-lead:#e8dcf2;
+    --arch-bg:linear-gradient(160deg,#241f2e 0%,#191622 100%);
+    --arch-border:#332c42;
+    --ax-stroke:transparent;
+    --ax-hub:#4d0073;
+    --ax-line:#ffffff;
+    --ax-accent:#a8d94a;
+    --ax-band:#d9b8ec;
     --shadow:0 18px 44px -22px rgba(0,0,0,.6);
     color-scheme:dark;
   }
 
   /* Grafite: mesmo tema escuro, com os neutros sem temperatura roxa. O roxo fica só nos acentos. */
   :root[data-theme="graphite"]{
+    --arch-bg:linear-gradient(160deg,#232328 0%,#18181c 100%);
+    --arch-border:#2f2f35;
     --page:#0f0f11;
     --surface:#1a1a1d;
     --border:#2c2c31;
@@ -114,11 +117,6 @@
     --brand-025:#1f1d23;
     --nav-bg:rgba(15,15,17,.93);
     --code-bg:#111013;
-    
-    
-    --cover-bg:#141416;
-    --cover-soft:#c78ce8;
-    --cover-lead:#e6e4ea;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;height:100%}
@@ -161,57 +159,40 @@
   .counter{font-size:12px;font-weight:700;color:var(--text-2);letter-spacing:.04em}
 
   /* ---------- capa (slide 1) ---------- */
-  body[data-cover="1"]{background:var(--cover-bg)}
-  body[data-cover="1"] .masthead{background:transparent;border-bottom-color:#ffffff2e}
-  body[data-cover="1"] .lockup,body[data-cover="1"] .lockup svg{color:#fff}
-  body[data-cover="1"] .lockup small,body[data-cover="1"] .proposal{color:var(--cover-soft)}
-  body[data-cover="1"] .switch{border-color:#ffffff55;background:#ffffff14}
-  body[data-cover="1"] .switch button{color:var(--cover-soft)}
-  body[data-cover="1"] .switch button:hover{background:#ffffff22;color:#fff}
-  body[data-cover="1"] .switch button[aria-pressed="true"]{background:#fff;color:var(--brand)}
-  body[data-cover="1"] .nav{background:var(--cover-bg);border-top-color:#ffffff2e}
-  body[data-cover="1"] .nav .hint,body[data-cover="1"] .nav .title{color:var(--cover-soft)}
-  body[data-cover="1"] .nav .hint kbd{background:#ffffff18;border-color:#ffffff44;color:#fff}
-  body[data-cover="1"] .nav button{background:transparent;border-color:#ffffff55;color:#fff}
-  body[data-cover="1"] .nav button:hover:not(:disabled){background:#fff;color:var(--brand);border-color:#fff}
-  body[data-cover="1"] .steps button{color:var(--cover-soft)}
-  body[data-cover="1"] .steps button:hover{background:#ffffff1f;color:#fff}
-  body[data-cover="1"] .steps button[aria-current="true"]{color:#fff}
-  body[data-cover="1"] .counter{color:var(--cover-soft)}
-  body[data-cover="1"] .progress{background:#ffffff2e}
-  body[data-cover="1"] .progress i{background:#fff}
 
-  .cover{display:grid;grid-template-columns:.88fr 1.12fr;gap:clamp(24px,3.4vw,60px);align-items:center;color:#fff}
+  .cover{display:grid;grid-template-columns:minmax(0,560px) 1fr;gap:clamp(26px,2.6vw,46px);align-items:center}
 
   /* Diagrama de runtime da capa. As superfícies ficam claras em todos os temas porque a capa
      é escura nos três; só o fundo dela muda. */
+  .arch{background:var(--arch-bg);border:1px solid var(--arch-border);border-radius:20px;padding:24px 24px 22px;box-shadow:var(--shadow)}
+  .arch-title{margin:0 0 14px;font-size:17px;font-weight:700;letter-spacing:-.015em;color:var(--text-high)}
   .arch svg{width:100%;height:auto;display:block}
-  .ax-card{fill:#ffffff}
-  .ax-soft{fill:#f4eefa}
-  .ax-hub{fill:#4d0073}
-  .ax-line{stroke:#ffffff;stroke-width:1.6;fill:none;opacity:.85}
-  .ax-back{stroke:#a8d94a;stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+  .ax-card{fill:#ffffff;stroke:var(--ax-stroke);stroke-width:1;filter:url(#ax-sombra)}
+  .ax-soft{fill:#f5f0fa;stroke:var(--ax-stroke);stroke-width:1;filter:url(#ax-sombra)}
+  .ax-hub{fill:var(--ax-hub);filter:url(#ax-sombra)}
+  .ax-line{stroke:var(--ax-line);stroke-width:1.6;fill:none;opacity:.9}
+  .ax-back{stroke:var(--ax-accent);stroke-width:1.6;fill:none;stroke-dasharray:5 4}
   .ax-t{fill:#252233;font-size:15px;font-weight:700}
-  .ax-s{fill:#6f6f77;font-size:12px}
+  .ax-s{fill:#6b6b73;font-size:12px}
   .ax-m{font-family:var(--mono);fill:#660099;font-size:11px;font-weight:600}
-  .ax-band{fill:var(--cover-soft);font-size:11px;font-weight:700;letter-spacing:.14em}
+  .ax-band{fill:var(--ax-band);font-size:11px;font-weight:700;letter-spacing:.14em}
   .ax-w{fill:#ffffff;font-size:20px;font-weight:700}
   .ax-ws{fill:#e0cceb;font-size:12.5px}
-  .ax-note{fill:#a8d94a;font-size:12px;font-weight:600}
+  .ax-note{fill:var(--ax-accent);font-size:12px;font-weight:600}
+  .ax-chip{fill:#3b0a59;stroke:var(--ax-accent);stroke-width:1}
   .ax-code{font-family:var(--mono);fill:#e9dcf3;font-size:11.5px}
-  .cover .eyebrow{color:var(--cover-soft);font-size:11px;letter-spacing:.2em;margin-bottom:24px}
-  .cover h1{font-size:clamp(44px,4.7vw,80px);line-height:1.07;letter-spacing:-.035em;color:#fff;margin:0}
-  .cover h1 em{color:var(--cover-soft)}
-  .cover .lead{font-size:clamp(19px,1.65vw,28px);line-height:1.45;color:var(--cover-lead);max-width:470px;margin-top:25px}
+  .cover .eyebrow{font-size:11px;letter-spacing:.2em;margin-bottom:24px}
+  .cover h1{font-size:clamp(40px,3.9vw,62px);line-height:1.08;letter-spacing:-.03em;margin:0}
+  .cover .lead{font-size:clamp(18px,1.5vw,24px);line-height:1.45;max-width:470px;margin-top:22px}
   .metrics{display:flex;gap:clamp(34px,4.6vw,64px);margin:34px 0 30px;flex-wrap:wrap}
-  .metrics b{display:block;font-size:clamp(42px,4.2vw,70px);font-weight:300;letter-spacing:-.045em;line-height:1.1;color:#fff}
-  .metrics span{display:block;font-size:14px;color:var(--cover-soft);margin-top:6px;max-width:160px;line-height:1.35}
-  .persp{border-top:1px solid #ffffff38;padding-top:23px;max-width:540px}
-  .persp .seg{display:flex;gap:2px;margin-left:-12px;flex-wrap:wrap}
-  .persp .seg button{font:inherit;cursor:pointer;border:0;background:transparent;color:var(--cover-soft);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700;transition:background .16s ease,color .16s ease}
-  .persp .seg button:hover{background:#ffffff1f;color:#fff}
-  .persp .seg button[aria-pressed="true"]{background:#fff;color:var(--brand)}
-  .persp p{font-size:17px;line-height:1.5;margin:16px 0 0;min-height:77px;color:var(--cover-lead)}
+  .metrics b{display:inline-block;background:var(--surface);color:var(--text);font-size:clamp(32px,2.9vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1;padding:12px 18px;border-radius:14px;box-shadow:0 2px 8px -2px rgba(40,10,60,.18),0 0 0 1px rgba(40,10,60,.05)}
+  .metrics span{display:block;font-size:13.5px;color:var(--text-2);margin-top:10px;max-width:160px;line-height:1.35}
+  .persp{border-top:1px solid var(--border);padding-top:23px;max-width:540px}
+  .persp .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .persp .seg button{font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);color:var(--brand-700);border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;transition:all .18s ease}
+  .persp .seg button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .persp .seg button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .persp p{font-size:16px;line-height:1.5;margin:16px 0 0;min-height:72px;color:var(--text-2)}
 
 
   main{flex:1;display:flex;justify-content:center;padding:20px var(--pad) 90px}
@@ -356,24 +337,17 @@
     /* Impressão sempre em claro, com os blocos de código sobre fundo leve, qualquer que seja
        o tema na tela. Mesma especificidade do bloco escuro, declarado depois: prevalece. */
     :root[data-theme]{
-      --page:#fff;--surface:#fff;--text:#313235;--text-2:#6f6f77;--text-high:#252233;--text-3:#736b80;
-      --border:#e9e6f0;--brand:#660099;--brand-ink:#660099;--brand-700:#4d0073;--brand-400:#8433ab;
+      --page:#fff;--surface:#fff;--text:#313235;--text-high:#252233;--text-3:#736b80;
+      --border:#e9e6f0;--text-2:#6b6b73;--brand:#660099;--brand-ink:#660099;--brand-700:#4d0073;--brand-400:#8433ab;
       --brand-100:#e5d4ef;--brand-050:#f2ebfa;--brand-025:#f8f5fc;
       --nav-bg:#fff;
-      --code-bg:#f7f4fb;--code-fg:#33124a;
-      
+      --code-bg:#f7f4fb;--code-fg:#33124a;--arch-bg:linear-gradient(160deg,#fcfcfe,#ebe9f2);--arch-border:#e2e0e9;--ax-stroke:#e5d4ef;--ax-hub:#660099;--ax-line:#8433ab;--ax-accent:#50691a;--ax-band:#660099;
       --error-low:#fce4ef;--error-border:#f2c2d5;--error-ink:#8d143c;
       --warn-low:#fdf1de;--warn-border:#ecd2a6;--warn-ink:#7d4b00;
       --info-low:#eef3fb;--info-border:#c8d8ef;--info-ink:#1f4478;
       color-scheme:light;
     }
     pre{border:1px solid var(--brand-100)}
-    body[data-cover]{background:#fff}
-    .cover{background:#660099;border-radius:20px;padding:30px;color:#fff}
-    .cover h1,.cover .metrics b{color:#fff}
-    .cover .eyebrow,.cover h1 em,.cover .metrics span{color:#d9b8ec}
-    .cover .lead,.persp p{color:#f2e6f8}
-    .persp .seg button[aria-pressed="true"]{background:#fff;color:#660099}
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .nav,.dots,.progress,.toc,.switch{display:none}
     .slide{display:block!important;break-after:page;max-width:none}
@@ -398,7 +372,7 @@
   })();
 </script>
 </head>
-<body data-cover="1">
+<body>
 <div class="deck">
   <div class="progress"><i id="bar" style="transform:scaleX(.3333)"></i></div>
   <header class="masthead">
@@ -428,7 +402,7 @@
             Uma linguagem de componentes para compor a tela uma vez e entregá-la em qualquer canal.
           </p>
           <div class="metrics">
-            <div><b>19</b><span>componentes no v1</span></div>
+            <div><b>19</b><span>componentes</span></div>
             <div><b>5</b><span>canais</span></div>
             <div><b>7</b><span>grupos de tokens</span></div>
           </div>
@@ -439,8 +413,8 @@
         </div>
 
         <div class="arch">
-          <svg viewBox="0 0 840 520" role="img" aria-label="Cada canal fala com o seu BFF, que chama o Journey; o Journey consulta o Runtime e o Espec Registry, que encapsula repositório próprio, Strapi ou AEM">
-            <text class="ax-band" x="0" y="18">CANAIS E SEUS RENDERIZADORES</text>
+          <p class="arch-title">Canais e seus renderizadores</p>
+          <svg viewBox="0 22 840 498" role="img" aria-label="Cada canal fala com o seu BFF, que chama o Journey; o Journey consulta o Runtime e o Espec Registry, que encapsula repositório próprio, Strapi ou AEM">
             <g>
               <rect class="ax-card" x="0" y="34" width="186" height="58" rx="12"/>
               <text class="ax-t" x="16" y="58">React Web</text><text class="ax-m" x="16" y="77">sdk/lib render</text>
@@ -479,7 +453,7 @@
             <text class="ax-t" x="688" y="236" style="font-size:13.5px">Espec Registry</text>
             <text class="ax-s" x="688" y="254">contrato daquela tela</text>
 
-            <path class="ax-line" d="M756 265 L756 302"/>
+            <path class="ax-line" d="M756 265 L756 282"/>
             <text class="ax-band" x="672" y="292">O REGISTRY ENCAPSULA</text>
             <g>
               <rect class="ax-soft" x="672" y="302" width="168" height="36" rx="10"/><text class="ax-t" x="686" y="325" style="font-size:12.5px">Repositório próprio</text>
@@ -488,13 +462,16 @@
             </g>
 
             <defs>
+              <filter id="ax-sombra" x="-12%" y="-25%" width="124%" height="150%">
+                <feDropShadow dx="0" dy="1" stdDeviation="1.6" flood-color="#2a0b3d" flood-opacity=".2"/>
+              </filter>
               <marker id="ax-seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-                <path d="M0 0 L10 5 L0 10 Z" fill="#a8d94a"/>
+                <path d="M0 0 L10 5 L0 10 Z" fill="var(--ax-accent)"/>
               </marker>
             </defs>
             <path class="ax-back" marker-end="url(#ax-seta)" d="M460 259 C 420 259 420 452 360 452 L 93 452 L 93 372"/>
 
-            <rect x="109" y="414" width="236" height="76" rx="12" fill="#3b0a59" stroke="#a8d94a" stroke-width="1"/>
+            <rect class="ax-chip" x="109" y="414" width="236" height="76" rx="12"/>
             <text class="ax-note" x="227" y="406" text-anchor="middle">contrato SDUI</text>
             <text class="ax-code" x="123" y="435">["ui.screen", {…}, [</text>
             <text class="ax-code" x="123" y="453">  ["ui.text", {…}],</text>
@@ -1888,7 +1865,6 @@ No contexto do Elastic Journey, o Strapi continua exercendo o papel definido nes
     slides.forEach(function(s, j){ s.classList.toggle('is-on', j === cur); });
     Array.prototype.forEach.call(dots.querySelectorAll('button'), function(d, j){ d.setAttribute('aria-current', String(j === cur)); });
     counter.textContent = pad(cur + 1) + ' / ' + pad(slides.length);
-    document.body.setAttribute('data-cover', cur === 0 ? '1' : '0');
     bar.style.transform = 'scaleX(' + ((cur + 1) / slides.length) + ')';
     title.textContent = slides[cur].getAttribute('data-title');
     prev.disabled = cur === 0;

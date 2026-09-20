@@ -1,0 +1,1912 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Catálogo SDUI v1 · Elastic Journey</title>
+<style>
+  :root{
+    --brand:#660099;
+    --brand-700:#4d0073;
+    --brand-400:#8433ab;
+    --brand-100:#e5d4ef;
+    --brand-050:#f2ebfa;
+    --brand-025:#f8f5fc;
+    --lime:#99cc33;
+    
+    --page:#f4f2f8;
+    --surface:#ffffff;
+    --text:#313235;
+    --text-2:#6f6f77;
+    --border:#e9e6f0;
+    
+    --error-low:#fce4ef;
+    --warn-low:#fdf1de;
+    --info-low:#eef3fb;
+    --brand-ink:#660099;
+    --on-brand:#ffffff;
+    --text-high:#252233;
+    --text-3:#736b80;
+    --nav-bg:rgba(255,255,255,.92);
+    
+    
+    
+    --error-border:#f2c2d5;
+    --error-ink:#8d143c;
+    --warn-border:#ecd2a6;
+    --warn-ink:#7d4b00;
+    --info-border:#c8d8ef;
+    --info-ink:#1f4478;
+    --code-bg:#2a0b3d;
+    --code-fg:#e9dcf3;
+    
+    
+    
+    --cover-bg:#660099;
+    --cover-soft:#d9b8ec;
+    --cover-lead:#f2e6f8;
+    --shadow:0 18px 44px -22px rgba(56,0,87,.28);
+    --radius:18px;
+    --pad:clamp(28px,4.2vw,76px);
+    --font:"Vivo Type","Segoe UI",Arial,sans-serif;
+    --mono:"Cascadia Code",Consolas,monospace;
+    color-scheme:light;
+  }
+
+  /* Base dos dois temas escuros. Os tokens de roxo invertem de papel: --brand continua sendo o
+     preenchimento (texto branco por cima) e --brand-ink/--brand-700 passam a ser os tons claros
+     usados em texto. O tema Grafite reaproveita tudo isto e só troca as cores de fundo. */
+  :root[data-theme="dark"],:root[data-theme="graphite"]{
+    --brand:#7a23b3;
+    --brand-ink:#d0a6ec;
+    --brand-700:#d0a6ec;
+    --brand-400:#b273db;
+    --brand-100:#3d3352;
+    --brand-050:#2a2339;
+    --brand-025:#221c2f;
+    --lime:#a8d94a;
+    
+    --page:#161320;
+    --surface:#1e1a2b;
+    --text:#ece9f3;
+    --text-2:#a79fb8;
+    --text-high:#ffffff;
+    --text-3:#a29ab3;
+    --border:#322a45;
+    --nav-bg:rgba(22,19,32,.93);
+    
+    
+    
+    
+    --error-low:#39182a;
+    --error-border:#5d2b40;
+    --error-ink:#ffb3c8;
+    --warn-low:#36291a;
+    --warn-border:#5a452a;
+    --warn-ink:#f0c58a;
+    --info-low:#1c2739;
+    --info-border:#33456b;
+    --info-ink:#a9c6ef;
+    --code-bg:#120c1c;
+    --code-fg:#e4d8ef;
+    
+    
+    
+    --cover-bg:#2b0c42;
+    --cover-soft:#c79ae8;
+    --cover-lead:#e8dcf2;
+    --shadow:0 18px 44px -22px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+
+  /* Grafite: mesmo tema escuro, com os neutros sem temperatura roxa. O roxo fica só nos acentos. */
+  :root[data-theme="graphite"]{
+    --page:#0f0f11;
+    --surface:#1a1a1d;
+    --border:#2c2c31;
+    --text:#ededf0;
+    --text-2:#a0a0a8;
+    --text-3:#98929f;
+    --brand-ink:#c78ce8;
+    --brand-700:#c78ce8;
+    --brand-100:#33303a;
+    --brand-050:#26232b;
+    --brand-025:#1f1d23;
+    --nav-bg:rgba(15,15,17,.93);
+    --code-bg:#111013;
+    
+    
+    --cover-bg:#141416;
+    --cover-soft:#c78ce8;
+    --cover-lead:#e6e4ea;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    background:var(--page);
+    color:var(--text);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- moldura ---------- */
+  .deck{min-height:100vh;display:flex;flex-direction:column}
+  .progress{height:3px;background:var(--brand-100)}
+  .progress i{display:block;height:100%;width:100%;background:var(--brand);transform-origin:left center;transition:transform .35s cubic-bezier(.2,.7,.3,1)}
+  .masthead{
+    min-height:100px;display:flex;align-items:center;justify-content:space-between;gap:24px;
+    padding:24px var(--pad);flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface);
+  }
+  .lockup{display:flex;align-items:center;gap:21px;font-size:12px;letter-spacing:.17em;font-weight:700;color:var(--text-high)}
+  .lockup svg{width:104px;height:38px;display:block;color:var(--brand)}
+  .lockup .rule{width:1px;height:29px;background:currentColor;opacity:.22}
+  .lockup small{display:block;font-weight:500;letter-spacing:.02em;font-size:12px;margin-top:4px;color:var(--text-2)}
+  .mast-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .proposal{font-size:12px;color:var(--text-2)}
+  .switch{display:flex;gap:3px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--brand-025)}
+  .switch button{font:inherit;cursor:pointer;border:0;background:transparent;color:var(--text-2);border-radius:999px;padding:6px 13px;font-size:11.5px;font-weight:700;transition:background .16s ease,color .16s ease}
+  .switch button:hover{background:var(--brand-050);color:var(--brand-ink)}
+  .switch button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand)}
+
+  .steps{display:flex;gap:2px;align-items:center;flex-wrap:wrap}
+  .steps button{
+    font:inherit;cursor:pointer;border:0;background:transparent;color:var(--text-2);
+    border-radius:999px;padding:8px 13px;font-size:12.5px;font-weight:600;
+    display:flex;align-items:center;gap:9px;transition:background .16s ease,color .16s ease;
+  }
+  .steps button .sn{font-size:11px;font-weight:700;opacity:.6;letter-spacing:.04em}
+  .steps button:hover{background:var(--brand-050);color:var(--brand-ink)}
+  .steps button[aria-current="true"]{color:var(--brand-ink);font-weight:700}
+  .steps button[aria-current="true"] .sn{opacity:1}
+  .counter{font-size:12px;font-weight:700;color:var(--text-2);letter-spacing:.04em}
+
+  /* ---------- capa (slide 1) ---------- */
+  body[data-cover="1"]{background:var(--cover-bg)}
+  body[data-cover="1"] .masthead{background:transparent;border-bottom-color:#ffffff2e}
+  body[data-cover="1"] .lockup,body[data-cover="1"] .lockup svg{color:#fff}
+  body[data-cover="1"] .lockup small,body[data-cover="1"] .proposal{color:var(--cover-soft)}
+  body[data-cover="1"] .switch{border-color:#ffffff55;background:#ffffff14}
+  body[data-cover="1"] .switch button{color:var(--cover-soft)}
+  body[data-cover="1"] .switch button:hover{background:#ffffff22;color:#fff}
+  body[data-cover="1"] .switch button[aria-pressed="true"]{background:#fff;color:var(--brand)}
+  body[data-cover="1"] .nav{background:var(--cover-bg);border-top-color:#ffffff2e}
+  body[data-cover="1"] .nav .hint,body[data-cover="1"] .nav .title{color:var(--cover-soft)}
+  body[data-cover="1"] .nav .hint kbd{background:#ffffff18;border-color:#ffffff44;color:#fff}
+  body[data-cover="1"] .nav button{background:transparent;border-color:#ffffff55;color:#fff}
+  body[data-cover="1"] .nav button:hover:not(:disabled){background:#fff;color:var(--brand);border-color:#fff}
+  body[data-cover="1"] .steps button{color:var(--cover-soft)}
+  body[data-cover="1"] .steps button:hover{background:#ffffff1f;color:#fff}
+  body[data-cover="1"] .steps button[aria-current="true"]{color:#fff}
+  body[data-cover="1"] .counter{color:var(--cover-soft)}
+  body[data-cover="1"] .progress{background:#ffffff2e}
+  body[data-cover="1"] .progress i{background:#fff}
+
+  .cover{display:grid;grid-template-columns:.88fr 1.12fr;gap:clamp(24px,3.4vw,60px);align-items:center;color:#fff}
+
+  /* Diagrama de runtime da capa. As superfícies ficam claras em todos os temas porque a capa
+     é escura nos três; só o fundo dela muda. */
+  .arch svg{width:100%;height:auto;display:block}
+  .ax-card{fill:#ffffff}
+  .ax-soft{fill:#f4eefa}
+  .ax-hub{fill:#4d0073}
+  .ax-line{stroke:#ffffff;stroke-width:1.6;fill:none;opacity:.85}
+  .ax-back{stroke:#a8d94a;stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+  .ax-t{fill:#252233;font-size:15px;font-weight:700}
+  .ax-s{fill:#6f6f77;font-size:12px}
+  .ax-m{font-family:var(--mono);fill:#660099;font-size:11px;font-weight:600}
+  .ax-band{fill:var(--cover-soft);font-size:11px;font-weight:700;letter-spacing:.14em}
+  .ax-w{fill:#ffffff;font-size:20px;font-weight:700}
+  .ax-ws{fill:#e0cceb;font-size:12.5px}
+  .ax-note{fill:#a8d94a;font-size:12px;font-weight:600}
+  .ax-code{font-family:var(--mono);fill:#e9dcf3;font-size:11.5px}
+  .cover .eyebrow{color:var(--cover-soft);font-size:11px;letter-spacing:.2em;margin-bottom:24px}
+  .cover h1{font-size:clamp(44px,4.7vw,80px);line-height:1.07;letter-spacing:-.035em;color:#fff;margin:0}
+  .cover h1 em{color:var(--cover-soft)}
+  .cover .lead{font-size:clamp(19px,1.65vw,28px);line-height:1.45;color:var(--cover-lead);max-width:470px;margin-top:25px}
+  .metrics{display:flex;gap:clamp(34px,4.6vw,64px);margin:34px 0 30px;flex-wrap:wrap}
+  .metrics b{display:block;font-size:clamp(42px,4.2vw,70px);font-weight:300;letter-spacing:-.045em;line-height:1.1;color:#fff}
+  .metrics span{display:block;font-size:14px;color:var(--cover-soft);margin-top:6px;max-width:160px;line-height:1.35}
+  .persp{border-top:1px solid #ffffff38;padding-top:23px;max-width:540px}
+  .persp .seg{display:flex;gap:2px;margin-left:-12px;flex-wrap:wrap}
+  .persp .seg button{font:inherit;cursor:pointer;border:0;background:transparent;color:var(--cover-soft);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700;transition:background .16s ease,color .16s ease}
+  .persp .seg button:hover{background:#ffffff1f;color:#fff}
+  .persp .seg button[aria-pressed="true"]{background:#fff;color:var(--brand)}
+  .persp p{font-size:17px;line-height:1.5;margin:16px 0 0;min-height:77px;color:var(--cover-lead)}
+
+
+  main{flex:1;display:flex;justify-content:center;padding:20px var(--pad) 90px}
+  .slide{display:none;width:100%;max-width:1680px}
+  .slide.is-on{display:block;animation:rise .36s cubic-bezier(.2,.7,.3,1) both}
+  /* só a capa centraliza na vertical; slides densos continuam a partir do topo, para não
+     empurrar o próprio começo para fora da tela quando o conteúdo passa da altura útil. */
+  .cover-slide.is-on{display:flex;flex-direction:column;justify-content:center}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ---------- tipografia ---------- */
+  .eyebrow{
+    display:block;margin-bottom:12px;
+    font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--brand-ink);
+  }
+  h1{font-size:clamp(28px,3.1vw,46px);line-height:1.12;letter-spacing:-.025em;font-weight:700;margin:0 0 14px;color:var(--text-high)}
+  h1 em{font-style:normal;color:var(--brand-ink)}
+  .lead{max-width:860px;font-size:16px;line-height:1.6;color:var(--text-2);margin:0}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-ink);margin:0 0 12px;font-weight:800}
+  h3{font-size:15px;margin:0 0 6px;font-weight:700;color:var(--text-high)}
+  p{margin:0 0 10px;line-height:1.55}
+  code{font-family:var(--mono);font-size:.92em;background:var(--brand-025);border:1px solid var(--brand-100);border-radius:6px;padding:1px 5px;color:var(--brand-700)}
+
+  /* ---------- blocos ---------- */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px}
+  .grid{display:grid;gap:16px}
+  .targets{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .targets button{
+    font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);
+    border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--brand-700);
+    display:flex;align-items:center;gap:8px;transition:all .18s ease;
+  }
+  .targets button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .targets button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .targets button i{width:7px;height:7px;border-radius:50%;background:var(--lime);font-style:normal}
+  .targets button[aria-pressed="true"] i{background:var(--on-brand)}
+
+  pre{
+    margin:0;font-family:var(--mono);font-size:12.5px;line-height:1.7;
+    background:var(--code-bg);color:var(--code-fg);border-radius:14px;padding:18px 20px;overflow:auto;
+  }
+
+  ul.rules{margin:0;padding-left:18px;font-size:13.2px;line-height:1.75;color:var(--text)}
+  ul.rules li::marker{color:var(--brand-400)}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:13px}
+  table.cmp th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-2);padding:0 10px 8px;font-weight:800}
+  table.cmp td{border-top:1px solid var(--border);padding:9px 10px;vertical-align:top}
+  table.cmp tr.head td{background:var(--brand-050);font-weight:800;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--brand-700);padding:6px 10px;border-top:1px solid var(--brand-100)}
+  table.cmp td.t{font-family:var(--mono);font-size:12px;color:var(--brand-700);white-space:nowrap}
+  table.cmp td.m{color:var(--text-2);line-height:1.45}
+  table.cmp tr.row:hover td{background:var(--brand-025)}
+  table.cmp .props{display:block;font-family:var(--mono);font-size:11px;color:var(--text-3);margin-top:3px}
+  .matrix-wrap{max-height:460px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:14px 8px 8px}
+  .lvl{display:inline-block;font-size:10.5px;font-weight:800;color:var(--on-brand);background:var(--brand-400);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+
+  .sev{display:flex;flex-direction:column;gap:8px}
+  .sev div{border-radius:10px;padding:9px 12px;font-size:12.5px;line-height:1.45;border:1px solid}
+  .sev .e{background:var(--error-low);border-color:var(--error-border);color:var(--error-ink)}
+  .sev .w{background:var(--warn-low);border-color:var(--warn-border);color:var(--warn-ink)}
+  .sev .i{background:var(--info-low);border-color:var(--info-border);color:var(--info-ink)}
+  .sev b{font-family:var(--mono);font-size:11.5px}
+
+  .ask{background:linear-gradient(135deg,var(--brand),var(--brand-700));color:var(--on-brand);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+  .ask h2{color:#d9b8ec}
+  .ask p{font-size:13.5px;color:#f0e4f7;line-height:1.55}
+  .ask ul{margin:0;padding-left:18px;font-size:13.2px;line-height:1.7;color:#f0e4f7}
+  .ask ul li::marker{color:var(--lime)}
+  .ask code{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:var(--on-brand)}
+
+  .out{font-size:12.5px;color:var(--text-2);line-height:1.6}
+  .out b{color:var(--text)}
+
+  /* ---------- slide 4: documento integral ---------- */
+  .doclayout{display:grid;grid-template-columns:268px 1fr;gap:16px;margin-top:22px;align-items:start}
+  .toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px 14px 14px;max-height:calc(100vh - 250px);overflow:auto;position:sticky;top:16px}
+  .toc h2{padding-left:4px}
+  .toc a{display:block;font-size:12.5px;line-height:1.35;color:var(--text-2);text-decoration:none;padding:6px 8px;border-radius:8px;transition:background .14s ease,color .14s ease}
+  .toc a:hover{background:var(--brand-025);color:var(--brand-700)}
+  .toc a.on{background:var(--brand-050);color:var(--brand-700);font-weight:700}
+  .docpane{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px 30px 30px;max-height:calc(100vh - 250px);overflow:auto}
+  .doc{font-size:13.6px;line-height:1.68;color:var(--text);max-width:960px}
+  .doc h1{font-size:25px;line-height:1.2;margin:22px 0 10px;letter-spacing:-.02em}
+  .doc h2{font-size:19px;text-transform:none;letter-spacing:-.01em;color:var(--text-high);margin:34px 0 12px;padding-top:16px;border-top:1px solid var(--border);scroll-margin-top:12px}
+  .doc h2:first-child{border-top:0;padding-top:0;margin-top:8px}
+  .doc h3{font-size:15.5px;color:var(--brand-700);margin:24px 0 8px}
+  .doc h4{font-size:12.5px;color:var(--text-2);margin:18px 0 6px;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+  .doc p{margin:0 0 12px}
+  .doc ul,.doc ol{margin:0 0 14px;padding-left:22px}
+  .doc li{margin-bottom:5px}
+  .doc li::marker{color:var(--brand-400)}
+  .doc strong{color:var(--text-high)}
+  .doc pre{font-size:11.8px;line-height:1.6;margin:0 0 16px}
+  .doc code{white-space:nowrap}
+  .tw{overflow-x:auto;margin:0 0 16px;border:1px solid var(--border);border-radius:12px}
+  .doc table{border-collapse:collapse;width:100%;font-size:12.2px;min-width:540px}
+  .doc th{text-align:left;background:var(--brand-050);color:var(--brand-700);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding:9px 12px;border-bottom:1px solid var(--brand-100)}
+  .doc td{padding:9px 12px;border-top:1px solid var(--border);vertical-align:top;line-height:1.5;color:var(--text-2)}
+  .doc tbody tr:hover td{background:var(--brand-025)}
+
+  /* ---------- navegação ---------- */
+  .nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    background:var(--nav-bg);backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px var(--pad);flex-wrap:wrap;
+  }
+  .nav .btns{align-items:center;gap:12px}
+  .nav .hint{font-size:11.5px;color:var(--text-2)}
+  @media (max-width:1420px){.nav .hint{display:none}}
+  .nav .hint kbd{font-family:var(--mono);font-size:11px;background:var(--brand-025);border:1px solid var(--brand-100);border-radius:5px;padding:1px 6px;color:var(--brand-700)}
+  .nav .btns{display:flex;gap:8px}
+  .nav button{
+    font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);
+    border-radius:999px;padding:9px 20px;font-size:13.5px;font-weight:700;color:var(--brand-700);transition:all .16s ease;
+  }
+  .nav button:hover:not(:disabled){background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .nav button:disabled{opacity:.38;cursor:not-allowed}
+  .nav .title{font-size:12.5px;font-weight:700;color:var(--text-2)}
+
+  @media (max-width:1040px){
+    .two,.doclayout,.cover{grid-template-columns:1fr!important}
+    .cover{gap:28px}
+    .arch{max-width:760px}
+    .toc{position:static;max-height:220px}
+    .docpane{max-height:calc(100vh - 200px)}
+  }
+  @media (min-width:1100px) and (max-height:860px){
+    .cover h1{font-size:54px}
+    .cover .lead{font-size:19px;margin-top:18px}
+    .metrics{margin:22px 0 20px}
+    .metrics b{font-size:46px}
+    .metrics span{font-size:12.5px}
+    .persp{padding-top:16px}
+    .persp p{font-size:15px;min-height:58px;margin-top:10px}
+  }
+  @media print{
+    /* Impressão sempre em claro, com os blocos de código sobre fundo leve, qualquer que seja
+       o tema na tela. Mesma especificidade do bloco escuro, declarado depois: prevalece. */
+    :root[data-theme]{
+      --page:#fff;--surface:#fff;--text:#313235;--text-2:#6f6f77;--text-high:#252233;--text-3:#736b80;
+      --border:#e9e6f0;--brand:#660099;--brand-ink:#660099;--brand-700:#4d0073;--brand-400:#8433ab;
+      --brand-100:#e5d4ef;--brand-050:#f2ebfa;--brand-025:#f8f5fc;
+      --nav-bg:#fff;
+      --code-bg:#f7f4fb;--code-fg:#33124a;
+      
+      --error-low:#fce4ef;--error-border:#f2c2d5;--error-ink:#8d143c;
+      --warn-low:#fdf1de;--warn-border:#ecd2a6;--warn-ink:#7d4b00;
+      --info-low:#eef3fb;--info-border:#c8d8ef;--info-ink:#1f4478;
+      color-scheme:light;
+    }
+    pre{border:1px solid var(--brand-100)}
+    body[data-cover]{background:#fff}
+    .cover{background:#660099;border-radius:20px;padding:30px;color:#fff}
+    .cover h1,.cover .metrics b{color:#fff}
+    .cover .eyebrow,.cover h1 em,.cover .metrics span{color:#d9b8ec}
+    .cover .lead,.persp p{color:#f2e6f8}
+    .persp .seg button[aria-pressed="true"]{background:#fff;color:#660099}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .nav,.dots,.progress,.toc,.switch{display:none}
+    .slide{display:block!important;break-after:page;max-width:none}
+    body{background:#fff}
+    .matrix-wrap{max-height:none}
+    .doclayout{display:block}
+    .docpane{max-height:none;overflow:visible;border:0;padding:0}
+    .doc h2{break-before:page}
+  }
+</style>
+<script>
+  /* Tema aplicado antes da primeira pintura, para não piscar: usa a escolha gravada e,
+     na primeira visita, o tema do sistema operacional. */
+  (function(){
+    var t = null;
+    try {
+      t = localStorage.getItem('sdui-tema') ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } catch (e) {}
+    if (['light','dark','graphite'].indexOf(t) < 0) t = 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+</head>
+<body data-cover="1">
+<div class="deck">
+  <div class="progress"><i id="bar" style="transform:scaleX(.3333)"></i></div>
+  <header class="masthead">
+    <div class="lockup">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 195 72" fill="currentColor" aria-hidden="true" focusable="false"><path d="M23.3761 61.4297H26.5561C27.0861 61.4297 29.1472 61.1549 30.266 59.0938L43.4176 35.7743C44.7721 33.301 43.1821 31.2006 41.7688 30.6903L38.2748 29.1199C36.3904 28.2759 34.133 29.1592 33.2693 31.1417L25.0054 47.7481H24.8876L16.6433 31.1417C15.7992 29.1788 13.5222 28.2759 11.6575 29.1199L8.16346 30.6903C6.75015 31.2006 5.16018 33.301 6.5146 35.7743L19.6858 59.0938C20.8047 61.1549 22.8462 61.4297 23.3761 61.4297Z" /><path d="M81.204 61.4297H84.3839C84.9139 61.4297 86.975 61.1549 88.0939 59.0938L101.265 35.7743C102.62 33.301 101.03 31.2006 99.6163 30.6903L96.1223 29.1199C94.2378 28.2759 91.9805 29.1592 91.1364 31.1417L82.8725 47.7481H82.7547L74.4908 31.1417C73.6467 29.1788 71.3697 28.2759 69.5049 29.1199L66.0109 30.6903C64.5976 31.2006 63.0077 33.301 64.3621 35.7743L77.5137 59.0938C78.6129 61.1549 80.674 61.4297 81.204 61.4297Z" /><path d="M119.815 28.904C110.746 28.904 103.385 36.265 103.385 45.3337C103.385 54.4024 110.746 61.7634 119.815 61.7634C128.884 61.7634 136.244 54.4024 136.244 45.3337C136.244 36.265 128.903 28.904 119.815 28.904ZM119.815 51.8114C116.242 51.8114 113.337 48.9062 113.337 45.3337C113.337 41.7612 116.242 38.8561 119.815 38.8561C123.387 38.8561 126.292 41.7612 126.292 45.3337C126.312 48.9062 123.407 51.8114 119.815 51.8114Z" /><path d="M60.3184 19.5603C60.3184 23.1132 57.4329 25.9987 53.88 25.9987C50.3271 25.9987 47.4416 23.1132 47.4416 19.5603C47.4416 16.0074 50.3271 13.1219 53.88 13.1219C57.4329 13.1219 60.3184 16.0074 60.3184 19.5603Z" /><path d="M48.2661 33.2226C48.2661 31.0241 50.0327 29.2574 52.2312 29.2574H55.5485C57.747 29.2574 59.5136 31.0241 59.5136 33.2226V57.4647C59.5136 59.6632 57.7274 61.4298 55.5485 61.4298H52.2312C50.0327 61.4298 48.2661 59.6632 48.2661 57.4647V33.2226Z" /><path d="M178.919 19.5409C178.919 21.5627 178.192 24.7427 175.974 26.9608C175.189 27.746 174.502 28.2171 173.952 28.5704C172.912 29.2574 172.146 29.7285 172.559 30.867C172.971 31.9859 174.266 31.6326 175.503 31.3577C175.896 31.2596 183.61 29.4144 183.708 29.4144C185.769 29.0219 187.771 30.337 188.262 32.3588C188.262 32.3588 188.871 34.9499 188.89 34.9695C189.381 36.9913 188.184 39.0721 186.162 39.6609C186.083 39.7002 177.662 41.722 177.643 41.722C176.053 42.1342 175.11 42.9194 175.11 44.4701C175.11 45.1571 175.503 45.903 175.994 46.5312C175.994 46.5312 185.141 57.8769 185.18 57.9554C186.417 59.6632 186.103 62.0187 184.493 63.3338C184.493 63.3338 182.432 65.0023 182.413 65.0219C180.803 66.3371 178.408 66.1604 177.014 64.5901C176.936 64.5312 171.263 57.5432 170.655 56.7973C170.046 56.0514 169.3 54.9325 168.24 54.9325C167.18 54.9325 166.434 56.0514 165.826 56.7973C165.217 57.5432 159.544 64.5116 159.466 64.5901C158.053 66.1604 155.677 66.3371 154.068 65.0219C154.048 65.0023 151.987 63.3338 151.987 63.3338C150.378 62.0187 150.044 59.6435 151.3 57.9554C151.339 57.8769 160.487 46.5312 160.487 46.5312C160.977 45.903 161.37 45.1571 161.37 44.4701C161.37 42.9194 160.428 42.1342 158.838 41.722C158.818 41.722 150.397 39.7002 150.319 39.6609C148.297 39.0721 147.119 36.9913 147.59 34.9695C147.59 34.9499 148.218 32.3785 148.218 32.3588C148.709 30.337 150.711 29.0219 152.772 29.4144C152.87 29.4144 160.565 31.2596 160.977 31.3577C162.214 31.6326 163.51 31.9859 163.922 30.867C164.354 29.7285 163.588 29.2574 162.528 28.5704C161.978 28.2171 161.311 27.746 160.526 26.9608C158.288 24.723 157.562 21.5627 157.562 19.5409C157.562 13.7307 162.41 9 168.24 9C174.07 9 178.919 13.711 178.919 19.5409Z" /></svg>
+      <span class="rule"></span>
+      <span>ELASTIC JOURNEY<small>Catálogo SDUI v1.0.0</small></span>
+    </div>
+    <div class="mast-actions">
+      <span class="proposal">Proposta para adoção corporativa</span>
+      <div class="switch" id="theme" role="group" aria-label="Tema da apresentação">
+        <button type="button" data-theme-choice="light" aria-pressed="true">Claro</button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false">Escuro</button>
+        <button type="button" data-theme-choice="graphite" aria-pressed="false">Grafite</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============================ SLIDE 1 ============================ -->
+    <section class="slide cover-slide is-on" data-title="Contrato e alcance">
+      <div class="cover">
+        <div>
+          <span class="eyebrow">01 / Contrato e alcance</span>
+          <h1>Catálogo SDUI<br><em>Elastic Journey</em></h1>
+          <p class="lead">
+            Uma linguagem de componentes para compor a tela uma vez e entregá-la em qualquer canal.
+          </p>
+          <div class="metrics">
+            <div><b>19</b><span>componentes no v1</span></div>
+            <div><b>5</b><span>canais</span></div>
+            <div><b>7</b><span>grupos de tokens</span></div>
+          </div>
+          <div class="persp">
+            <div class="seg" id="persp" role="group" aria-label="Perspectiva do público"></div>
+            <p id="persp-copy" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <div class="arch">
+          <svg viewBox="0 0 840 520" role="img" aria-label="Cada canal fala com o seu BFF, que chama o Journey; o Journey consulta o Runtime e o Espec Registry, que encapsula repositório próprio, Strapi ou AEM">
+            <text class="ax-band" x="0" y="18">CANAIS E SEUS RENDERIZADORES</text>
+            <g>
+              <rect class="ax-card" x="0" y="34" width="186" height="58" rx="12"/>
+              <text class="ax-t" x="16" y="58">React Web</text><text class="ax-m" x="16" y="77">sdk/lib render</text>
+              <rect class="ax-card" x="0" y="102" width="186" height="58" rx="12"/>
+              <text class="ax-t" x="16" y="126">React Mobile</text><text class="ax-m" x="16" y="145">sdk/lib render</text>
+              <rect class="ax-card" x="0" y="170" width="186" height="58" rx="12"/>
+              <text class="ax-t" x="16" y="194">Flutter Web</text><text class="ax-m" x="16" y="213">sdk/lib render</text>
+              <rect class="ax-card" x="0" y="238" width="186" height="58" rx="12"/>
+              <text class="ax-t" x="16" y="262">Flutter Mobile</text><text class="ax-m" x="16" y="281">sdk/lib render</text>
+              <rect class="ax-card" x="0" y="306" width="186" height="58" rx="12"/>
+              <text class="ax-t" x="16" y="330">WhatsApp</text><text class="ax-m" x="16" y="349">sdk/lib render</text>
+            </g>
+
+            <path class="ax-line" d="M186 63 L214 63 M186 131 L214 131 M186 199 L214 199 M186 267 L214 267 M186 335 L214 335"/>
+            <g>
+              <rect class="ax-soft" x="214" y="43" width="112" height="40" rx="11"/><text class="ax-t" x="228" y="68" style="font-size:12.5px">BFF web</text>
+              <rect class="ax-soft" x="214" y="111" width="112" height="40" rx="11"/><text class="ax-t" x="228" y="136" style="font-size:12.5px">BFF app</text>
+              <rect class="ax-soft" x="214" y="179" width="112" height="40" rx="11"/><text class="ax-t" x="228" y="204" style="font-size:12.5px">BFF web</text>
+              <rect class="ax-soft" x="214" y="247" width="112" height="40" rx="11"/><text class="ax-t" x="228" y="272" style="font-size:12.5px">BFF app</text>
+              <rect class="ax-soft" x="214" y="315" width="112" height="40" rx="11"/><text class="ax-t" x="228" y="340" style="font-size:12.5px">BFF conversa</text>
+            </g>
+
+            <path class="ax-line" d="M326 63 C 370 63 370 199 400 199 M326 131 C 370 131 370 199 400 199 M326 199 L400 199 M326 267 C 370 267 370 199 400 199 M326 335 C 370 335 370 199 400 199"/>
+
+            <rect class="ax-hub" x="400" y="139" width="240" height="120" rx="18"/>
+            <text class="ax-w" x="424" y="178">Elastic Journey</text>
+            <text class="ax-ws" x="424" y="204">recebe o pedido do BFF e devolve</text>
+            <text class="ax-ws" x="424" y="222">o próximo passo e o contrato da tela</text>
+            <text class="ax-note" x="424" y="244">dono da jornada</text>
+
+            <path class="ax-line" d="M640 175 L672 175 M640 239 L672 239"/>
+            <rect class="ax-card" x="672" y="149" width="168" height="52" rx="13"/>
+            <text class="ax-t" x="688" y="172" style="font-size:13.5px">Runtime</text>
+            <text class="ax-s" x="688" y="190">estado e passo atual</text>
+            <rect class="ax-card" x="672" y="213" width="168" height="52" rx="13"/>
+            <text class="ax-t" x="688" y="236" style="font-size:13.5px">Espec Registry</text>
+            <text class="ax-s" x="688" y="254">contrato daquela tela</text>
+
+            <path class="ax-line" d="M756 265 L756 302"/>
+            <text class="ax-band" x="672" y="292">O REGISTRY ENCAPSULA</text>
+            <g>
+              <rect class="ax-soft" x="672" y="302" width="168" height="36" rx="10"/><text class="ax-t" x="686" y="325" style="font-size:12.5px">Repositório próprio</text>
+              <rect class="ax-soft" x="672" y="344" width="168" height="36" rx="10"/><text class="ax-t" x="686" y="367" style="font-size:12.5px">Strapi</text>
+              <rect class="ax-soft" x="672" y="386" width="168" height="36" rx="10"/><text class="ax-t" x="686" y="409" style="font-size:12.5px">AEM</text>
+            </g>
+
+            <defs>
+              <marker id="ax-seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0 0 L10 5 L0 10 Z" fill="#a8d94a"/>
+              </marker>
+            </defs>
+            <path class="ax-back" marker-end="url(#ax-seta)" d="M460 259 C 420 259 420 452 360 452 L 93 452 L 93 372"/>
+
+            <rect x="109" y="414" width="236" height="76" rx="12" fill="#3b0a59" stroke="#a8d94a" stroke-width="1"/>
+            <text class="ax-note" x="227" y="406" text-anchor="middle">contrato SDUI</text>
+            <text class="ax-code" x="123" y="435">["ui.screen", {…}, [</text>
+            <text class="ax-code" x="123" y="453">  ["ui.text", {…}],</text>
+            <text class="ax-code" x="123" y="471">  ["ui.button", {…}] ]]</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 2 ============================ -->
+    <section class="slide" data-title="Governança e adoção">
+      <span class="eyebrow">02 / Governança e adoção</span>
+      <h1>Compatibilidade por canal</h1>
+      <p class="lead">
+        O mesmo nó preserva semântica, hierarquia de conteúdo, validação e resultado de ação nos cinco canais. Paridade de
+        layout e aparência vale só para os canais visuais, e uma tela não é publicada para um canal em que contenha
+        componente não suportado ou versão incompatível.
+      </p>
+
+      <div class="two" style="grid-template-columns:1.35fr 1fr;margin-top:22px;align-items:start">
+        <div>
+          <h2>De/para do catálogo, por canal</h2>
+          <div class="targets" id="targets2" aria-label="Canal do de/para"></div>
+          <div class="matrix-wrap" style="margin-top:12px">
+            <table class="cmp">
+              <thead><tr><th style="width:152px">Tipo SDUI</th><th id="mcol">Mapeamento</th></tr></thead>
+              <tbody id="matrix"></tbody>
+            </table>
+          </div>
+          <p class="out" style="margin-top:10px">
+            <b>Compartilhar código não implica compatibilidade automática.</b> Flutter Web e Flutter Mobile podem usar o
+            mesmo widget, mas são definidos separadamente por diferenças de entrada, acessibilidade, navegação e runtime.
+            React Mobile só compartilha implementação com a web quando for experiência responsiva/PWA; sendo React Native,
+            tem adapter próprio. O de/para é conceitual: o nome exato da classe ou widget varia conforme a versão das
+            bibliotecas e a implementação corporativa do adapter.
+          </p>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Antes de publicar, valida-se</h2>
+            <ul class="rules">
+              <li>Schema do envelope e de todos os nós, e unicidade de <code>id</code> na tela.</li>
+              <li>Existência de <code>type + version</code> no Registry e compatibilidade com todos os canais declarados.</li>
+              <li>Hierarquia e tipos de filhos permitidos.</li>
+              <li><code>$bindings</code> contra o contrato de dados da jornada.</li>
+              <li>Ações, parâmetros, rotas, URLs e tokens suportados.</li>
+              <li>Requisitos de acessibilidade, conteúdo e versão mínima dos renderizadores.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h2>Diagnóstico com severidade</h2>
+            <div class="sev">
+              <div class="e"><b>error</b>: bloqueia a publicação ou a execução da UI Spec.</div>
+              <div class="w"><b>warning</b>: só continua com fallback previamente definido no catálogo.</div>
+              <div class="i"><b>info</b>: adaptação ou omissão esperada, sem alterar a semântica funcional.</div>
+            </div>
+            <p class="out" style="margin-top:10px">
+              Códigos estáveis como <code>SDUI_COMPONENT_UNSUPPORTED</code> e <code>SDUI_BINDING_INVALID</code> carregam
+              <code>path</code>, <code>uiStepId</code>, <code>componentId</code>, <code>componentType</code> e
+              <code>target</code>, e nunca valor de formulário ou dado pessoal. O renderer não inventa conteúdo, ação,
+              token ou comportamento para contornar incompatibilidade.
+            </p>
+          </div>
+
+          <div class="card">
+            <h2>Versionamento</h2>
+            <p class="out">
+              Catálogo, componente, schema da UI Spec e renderizadores usam SemVer completo: major para mudança
+              incompatível, minor para adição compatível, patch para correção sem efeito contratual.
+              <code>journeyVersion</code> segue outra regra, porque é o inteiro sequencial da versão publicada da
+              jornada. Um snapshot publicado não muda mais: a correção volta ao Form Builder, passa por nova validação
+              e aprovação e gera outra versão publicada.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="two" style="margin-top:16px;grid-template-columns:1.35fr 1fr">
+        <div class="ask">
+          <h2>Decisão solicitada</h2>
+          <ul>
+            <li>Adotar <code>ui.*</code> como namespace estável do catálogo corporativo e o Node Tree como formato canônico do Elastic Journey.</li>
+            <li>Registrar <code>react.web</code>, <code>react.mobile</code>, <code>flutter.web</code>, <code>flutter.mobile</code> e <code>whatsapp</code> como canais com adapters explícitos e independentes do contrato.</li>
+            <li>Manter o Strapi como repositório e canal de entrega dos snapshots aprovados, sem responsabilidade por autoria, semântica ou evolução do SDUI.</li>
+          </ul>
+          <p style="margin:12px 0 0">
+            A separação preserva a portabilidade entre canais, reduz acoplamento tecnológico e permite evoluir Mística,
+            React, Flutter, WhatsApp ou Strapi sem alterar desnecessariamente as jornadas já publicadas.
+          </p>
+        </div>
+        <div class="card">
+          <h2>Pronto para adoção quando</h2>
+          <ul class="rules">
+            <li>Os 19 componentes têm schema e adapter definidos nos quatro canais visuais, e capacidade explicitamente classificada como suportada ou não em <code>whatsapp</code>.</li>
+            <li>O Form Builder consome o Registry e impede configuração inválida.</li>
+            <li>Os renderizadores passam por testes de contrato compartilhados.</li>
+            <li>Snapshots são versionados, auditáveis, imutáveis e publicados apenas após aprovação.</li>
+            <li>Versões não suportadas falham de forma segura e observável, com estratégia documentada de depreciação e migração.</li>
+          </ul>
+        </div>
+      </div>    </section>
+
+    <!-- ============================ SLIDE 4 ============================ -->
+    <section class="slide" data-title="Documento de referência">
+      <span class="eyebrow">03 / Documento de referência</span>
+      <h1>O catálogo na íntegra</h1>
+      <p class="lead">
+        As 18 seções do documento de referência: princípios, modelo de responsabilidade, estrutura do nó, contratos
+        normativos de cada componente, bindings, ações, tokens, compatibilidade entre canais, Registry, versionamento,
+        formato canônico da UI Spec, validação e publicação. Use o sumário para navegar.
+      </p>
+      <div class="doclayout">
+        <aside class="toc"><h2>Sumário</h2><nav id="toc"></nav></aside>
+        <div class="docpane" id="docpane"><article class="doc" id="doc"></article></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav">
+    <div class="steps" id="dots" role="tablist" aria-label="Slides"></div>
+    <div class="hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> navegam · <kbd>Ctrl+P</kbd> imprime tudo, com o documento</div>
+    <div class="btns">
+      <span class="counter" id="counter">01 / 03</span>
+      <button type="button" id="prev">Anterior</button>
+      <button type="button" id="next">Próximo</button>
+    </div>
+    <span class="title" id="slidetitle" hidden></span>
+  </nav>
+</div>
+
+<!-- Texto integral do catálogo, em markdown, renderizado no slide 4. Para atualizar numa próxima
+     versão, troque tudo que está entre a abertura e o fechamento desta tag pelo novo documento. -->
+<script type="text/markdown" id="mdsrc">
+# Elastic Journey — SDUI Component Catalog v1
+
+**Status:** Proposta para adoção corporativa  
+**Escopo:** Elastic Journey, React Web, React Mobile, Flutter Web, Flutter Mobile e WhatsApp
+**Design system:** Mística  
+**Versão do catálogo:** 1.0.0
+
+## 1. Resumo executivo
+
+Este documento define o catálogo inicial de componentes Server-Driven UI (SDUI) do **Elastic Journey**. O objetivo é permitir que telas e formulários sejam compostos no Form Builder próprio e projetados de forma consistente em cinco alvos: **React Web**, **React Mobile**, **Flutter Web**, **Flutter Mobile** e **WhatsApp**. Os quatro alvos visuais respeitam o design system **Mística**; o WhatsApp preserva a semântica do contrato por meio de uma representação conversacional compatível com as capacidades do canal.
+
+O contrato SDUI é corporativo e pertence ao **Elastic Journey**. Ele deve ser independente de frameworks, bibliotecas visuais, canais conversacionais e mecanismos de persistência. React, Flutter, Mística e WhatsApp são implementações ou meios de projeção do contrato; não fazem parte de sua definição.
+
+O **Strapi não é o proprietário do contrato SDUI**. Seu papel é armazenar e distribuir **snapshots imutáveis publicados pelo Elastic Journey após o fluxo de aprovação**. Rascunhos, validações, versionamento do catálogo, compatibilidade e governança permanecem sob responsabilidade do Elastic Journey.
+
+## 2. Objetivo
+
+O catálogo v1 estabelece:
+
+- uma linguagem comum de componentes com nomenclatura `ui.*`;
+- uma árvore de nós portável entre Web, Mobile e canais conversacionais e entre React, Flutter e WhatsApp;
+- propriedades, bindings, ações e eventos independentes de framework e canal;
+- o de/para entre o contrato corporativo e os cinco alvos de renderização ou projeção;
+- regras mínimas de compatibilidade, validação, versionamento e publicação;
+- uma base pequena e extensível para o Component Registry.
+
+Ficam fora do v1: componentes exclusivos de um canal, navegação complexa, tabelas avançadas, editores rich text, upload múltiplo, assinatura, biometria e componentes de domínio. Esses itens devem entrar apenas após comprovação de uso e análise de compatibilidade.
+
+## 3. Princípios arquiteturais
+
+1. **Contrato independente de tecnologia.** A árvore utiliza nomes semânticos, como `ui.textInput`, e nunca nomes como `MisticaTextField`, `ReactNode` ou `FlutterWidget`.
+2. **Paridade funcional antes da paridade visual absoluta.** O comportamento e a semântica devem ser equivalentes entre frameworks e canais; pequenas diferenças nativas de interação são aceitáveis.
+3. **Mística e canais por meio de adapters.** Cada alvo visual traduz propriedades e tokens corporativos para os componentes disponíveis em sua implementação do Mística. O alvo conversacional traduz conteúdo, entradas e ações para recursos suportados pelo WhatsApp, sem tentar reproduzir layout ou aparência visual inexistentes no canal.
+4. **Catálogo mínimo e composável.** Novas necessidades devem ser resolvidas primeiro por composição dos componentes existentes.
+5. **Node Tree declarativa.** Layout, conteúdo e interação são representados por tuplas Hiccup recursivas; lógica de negócio permanece fora da camada visual.
+6. **Bindings explícitos e seguros.** Dados dinâmicos são referenciados por caminhos conhecidos, sem avaliação arbitrária de código.
+7. **Tokens semânticos.** Cor, tipografia, espaçamento e forma são expressos por intenção, não por valores físicos.
+8. **Falha previsível.** Componentes, propriedades ou ações não suportados devem ser detectados antes da publicação e tratados de forma controlada em runtime.
+9. **Evolução compatível.** Mudanças aditivas são preferidas; mudanças incompatíveis exigem nova versão principal do contrato.
+10. **Publicação governada.** Somente snapshots validados e aprovados são enviados ao Strapi.
+
+## 4. Modelo de responsabilidade
+
+| Camada | Responsabilidade |
+|---|---|
+| Elastic Journey Form Builder | Autoria visual, configuração, preview, validação e fluxo de aprovação |
+| Contrato SDUI corporativo | Tipos `ui.*`, schema dos nós, propriedades, bindings, ações, tokens e regras de compatibilidade |
+| Component Registry | Metadados, schemas, versões, capacidades por alvo e vínculo com adapters |
+| React Web/Mística Renderer | Converter nós SDUI em componentes React para navegadores, aderentes ao Mística Web |
+| React Mobile/Mística Adapter | Converter nós SDUI em componentes da implementação React Mobile, preservando a semântica do Mística |
+| Flutter Web/Mística Adapter | Converter nós SDUI em widgets Flutter Web, com comportamento e aparência equivalentes ao Mística |
+| Flutter Mobile/Mística Adapter | Converter nós SDUI em widgets Flutter Mobile, com comportamento e aparência equivalentes ao Mística |
+| WhatsApp Adapter | Converter nós SDUI compatíveis em interações conversacionais do WhatsApp, preservando conteúdo, ordem, captura de respostas e ações suportadas, e registrando diagnóstico ou fallback para recursos sem representação no canal |
+| Strapi | Persistir e entregar snapshots publicados; não definir nem transformar o contrato |
+| Aplicações de canal | Resolver dados, executar ações permitidas, aplicar telemetria e renderizar ou projetar a árvore conforme o canal |
+
+Fluxo recomendado:
+
+```text
+Form Builder → validação pelo Component Registry → aprovação → snapshot publicado no Strapi
+                                                            ↓
+                 React Web / React Mobile / Flutter Web / Flutter Mobile / WhatsApp
+```
+
+Neste documento, **alvo de renderização ou projeção** é a combinação de tecnologia e canal. São identificadores distintos: `react.web`, `react.mobile`, `flutter.web`, `flutter.mobile` e `whatsapp`. Mesmo quando dois alvos compartilham código, eles mantêm entradas de compatibilidade separadas no Registry. Para `whatsapp`, renderizar significa projetar a árvore como uma sequência conversacional, e não produzir uma interface visual equivalente.
+
+## 5. Níveis e categorias de componentes
+
+### Nível 0 — Primitivos visuais
+
+Elementos sem estado de negócio, usados para conteúdo e separação: texto, imagem, ícone, divisor e espaçamento.
+
+### Nível 1 — Layout e composição
+
+Organizam outras tuplas por meio da lista de filhos na terceira posição: tela, container, pilha vertical/horizontal e card.
+
+### Nível 2 — Entrada de dados
+
+Capturam valores e integram-se ao estado do formulário: campo de texto, seleção, checkbox e seletor de data.
+
+### Nível 3 — Ação e feedback
+
+Disparam eventos ou comunicam estado ao usuário: botão, link, alerta, indicador de progresso e carregamento.
+
+### Nível 4 — Componentes de domínio
+
+Composições governadas para casos corporativos específicos, como endereço, identificação ou consentimento. Não fazem parte do catálogo v1; devem ser introduzidas em versões posteriores com semântica de domínio explícita.
+
+## 6. Estrutura padrão de um nó
+
+Todo componente é representado por uma tupla JSON no formato Hiccup. A posição possui significado estrutural e não pode ser reinterpretada pelo renderer.
+
+Componente folha:
+
+```json
+[
+  "ui.textInput",
+  {
+    "id": "customer-name",
+    "version": "1.0.0",
+    "label": "Nome completo",
+    "$bindings": {
+      "value": {
+        "path": "form.customer.name",
+        "mode": "twoWay"
+      }
+    }
+  }
+]
+```
+
+Componente contêiner:
+
+```json
+[
+  "ui.container",
+  {
+    "id": "customer-container",
+    "version": "1.0.0"
+  },
+  [
+    [
+      "ui.text",
+      {
+        "id": "customer-title",
+        "version": "1.0.0",
+        "text": "Dados do cliente"
+      }
+    ]
+  ]
+]
+```
+
+| Posição | Obrigatória | Descrição |
+|---:|---:|---|
+| 1 | Sim | Tipo corporativo registrado no padrão `ui.*` |
+| 2 | Sim | Objeto de atributos planos, incluindo `id`, `version`, propriedades e campos reservados autorizados |
+| 3 | Somente para contêineres | Lista ordenada de tuplas filhas; deve existir mesmo quando estiver vazia |
+
+Regras obrigatórias:
+
+- componentes folha possuem exatamente duas posições;
+- componentes contêineres possuem exatamente três posições;
+- `id` e `version` são obrigatórios em todos os componentes;
+- `id` deve ser único dentro da UI Spec;
+- `version` utiliza SemVer completo;
+- propriedades funcionais e visuais ficam diretamente no segundo item, sem objeto `props`;
+- `$bindings`, `$events`, `$visibility` e `$active` ficam no segundo item quando autorizados pelo contrato do componente;
+- `children` nunca é um atributo; filhos existem exclusivamente na terceira posição;
+- um campo reservado `$...` desconhecido é erro fatal;
+- tipo não registrado, versão principal incompatível ou propriedade obrigatória ausente impedem a publicação;
+- propriedade comum desconhecida é rejeitada na publicação. Em runtime, somente uma propriedade opcional, aditiva e explicitamente declarada como segura pelo schema pode ser ignorada, sempre com diagnóstico `warning`.
+
+## 7. Catálogo de componentes v1
+
+O v1 contém 19 componentes, distribuídos entre conteúdo, layout, entrada, ação e feedback. O de/para abaixo é conceitual: o nome exato da classe ou widget pode variar conforme a versão das bibliotecas e a implementação corporativa do adapter.
+
+| Tipo SDUI corporativo | Nível | React Web / Mística | React Mobile / Mística Adapter | Flutter Web / Mística Adapter | Flutter Mobile / Mística Adapter | WhatsApp / Conversacional<br>Adapter |
+|---|---:|---|---|---|---|---|
+| `ui.screen` | 1 | Page shell + layout responsivo | Screen + Safe Area + Scroll | Scaffold + layout responsivo | Scaffold + SafeArea | Se houver `title`, envia mensagem de texto em negrito; descarta o layout visual e preserva a ordem dos filhos |
+| `ui.container` | 1 | Box/View wrapper | View | Container | Container | Não gera mensagem própria; agrupa semanticamente os filhos e preserva sua ordem |
+| `ui.stack` | 1 | Flex | View/Flex | Row/Column/Flex | Row/Column/Flex | Não gera mensagem própria; preserva a ordem dos filhos e descarta direção, espaçamento e alinhamento visuais |
+| `ui.card` | 1 | Mística Card | Card/Pressable adapter | Card adapter | Card adapter | Não gera superfície própria; preserva o conteúdo dos filhos e descarta aparência e elevação |
+| `ui.text` | 0 | Mística Text/Typography | Text adapter | Text adapter | Text adapter | Envia mensagem de texto |
+| `ui.image` | 0 | Image component | Image adapter | Image | Image | Envia mensagem de imagem usando `source`; utiliza `alt` como legenda quando informado |
+| `ui.icon` | 0 | Mística Icon | Icon registry adapter | Icon registry adapter | Icon registry adapter | Não gera mensagem própria; omite o componente e registra diagnóstico informativo |
+| `ui.divider` | 0 | Divider | View/Divider adapter | Divider | Divider | Não gera mensagem própria; omite o componente e registra diagnóstico informativo |
+| `ui.spacer` | 0 | Spacing box | View spacer | SizedBox | SizedBox | Não gera mensagem própria; omite o componente e registra diagnóstico informativo |
+| `ui.textInput` | 2 | Mística TextField | TextInput adapter | TextFormField adapter | TextFormField adapter | Envia solicitação textual, aguarda a próxima mensagem do usuário, valida e grava a resposta no binding de valor |
+| `ui.textArea` | 2 | Mística TextArea/TextField multiline | TextInput multiline adapter | TextFormField multiline | TextFormField multiline | Envia solicitação textual longa, aguarda a próxima mensagem do usuário, valida e grava a resposta no binding de valor |
+| `ui.select` | 2 | Mística Select/Dropdown | Picker/Bottom-sheet adapter | Dropdown adapter | Dropdown/Bottom-sheet adapter | Projeta até três opções como botões de resposta rápida; acima disso, utiliza lista interativa, respeitando os limites do canal |
+| `ui.checkbox` | 2 | Mística Checkbox | Checkbox/Pressable adapter | Checkbox adapter | Checkbox adapter | Projeta confirmação por opções de resposta `Sim` e `Não` e grava o valor booleano no binding |
+| `ui.datePicker` | 2 | Mística DateField/DatePicker | Date picker adapter | Date picker adapter | Date picker nativo adapter | Solicita data/hora por texto, informa o formato aceito, valida e normaliza o valor antes de gravá-lo no binding |
+| `ui.button` | 3 | Mística Button | Button/Pressable adapter | Button adapter | Button adapter | Projeta `onPress` como botão de resposta rápida quando a ação for compatível; respeita o limite de três botões por mensagem |
+| `ui.link` | 3 | Mística Link | Text/Pressable adapter | Link/TextButton adapter | TextButton adapter | Projeta `action.openUrl` como CTA com URL; outras ações compatíveis podem ser apresentadas como resposta rápida |
+| `ui.alert` | 3 | Mística Feedback/Alert | Alert/View adapter | Alert adapter | Alert adapter | Envia mensagem textual com indicador semântico de severidade; não reproduz a apresentação visual do alerta |
+| `ui.progress` | 3 | Mística Progress bar | Progress adapter | LinearProgressIndicator | LinearProgressIndicator | Envia mensagem textual com rótulo e percentual; não representa barra gráfica |
+| `ui.loading` | 3 | Mística Spinner | Activity indicator adapter | CircularProgressIndicator | CircularProgressIndicator | Envia mensagem textual de espera; não representa animação ou overlay |
+
+Propriedades principais do contrato:
+
+| Tipo SDUI corporativo | Propriedades principais |
+|---|---|
+| `ui.screen` | `title`, `backgroundToken`, `scrollable`, `paddingToken` |
+| `ui.container` | `backgroundToken`, `paddingToken`, `borderRadiusToken` |
+| `ui.stack` | `direction`, `spacingToken`, `alignment` |
+| `ui.card` | `variant`, `paddingToken`, `elevationToken` |
+| `ui.text` | `text`, `variant`, `colorToken`, `align`, `maxLines` |
+| `ui.image` | `source`, `alt`, `fit`, `aspectRatio` |
+| `ui.icon` | `name`, `sizeToken`, `colorToken`, `accessibilityLabel` |
+| `ui.divider` | `orientation`, `colorToken`, `spacingToken` |
+| `ui.spacer` | `sizeToken`, `axis` |
+| `ui.textInput` | `label`, `placeholder`, `inputMode`, `required`, `readOnly`, `maxLength`, `validation` |
+| `ui.textArea` | `label`, `placeholder`, `required`, `minLines`, `maxLines`, `maxLength`, `validation` |
+| `ui.select` | `label`, `placeholder`, `options`, `required`, `searchable` |
+| `ui.checkbox` | `label`, `required`, `indeterminate` |
+| `ui.datePicker` | `label`, `mode`, `minDate`, `maxDate`, `format`, `required` |
+| `ui.button` | `label`, `variant`, `size`, `fullWidth`, `loading`, `disabled` |
+| `ui.link` | `label`, `emphasis`, `external`, `accessibilityLabel` |
+| `ui.alert` | `severity`, `title`, `message`, `dismissible` |
+| `ui.progress` | `value`, `label`, `showValue` |
+| `ui.loading` | `label`, `sizeToken`, `overlay` |
+
+### 7.1 Contratos normativos dos componentes
+
+As regras desta seção são normativas. Todo componente possui `id` único na UI Spec e `version` em SemVer, ambos obrigatórios. Atributos visuais aceitam somente valores e tokens homologados no Component Registry. Um atributo reservado iniciado por `$` somente pode ser utilizado quando estiver explicitamente autorizado para o componente.
+
+#### 7.1.1 Componentes de layout
+
+| Componente | Atributos | Campos reservados | Filhos e composição | Projeção no WhatsApp |
+|---|---|---|---|---|
+| `ui.screen` | Opcionais: `title`, `backgroundToken`, `scrollable`, `paddingToken` | Não aceita `$bindings`, `$events`, `$visibility` ou `$active` | Raiz única e obrigatória de `data`; aceita filhos ordenados; não pode ser aninhado | `title` inicia a conversa em destaque; preserva a ordem dos filhos; atributos exclusivamente visuais são descartados com diagnóstico `info` |
+| `ui.container` | Opcionais: `backgroundToken`, `paddingToken`, `borderRadiusToken` | Aceita `$visibility` e `$active`; não aceita `$bindings` ou `$events` | Aceita filhos ordenados; pode ser filho de `ui.screen`, `ui.container`, `ui.stack` ou `ui.card` | Não produz mensagem própria; preserva os filhos; atributos visuais são descartados com diagnóstico `info` |
+| `ui.stack` | Opcionais: `direction` (`vertical` ou `horizontal`, padrão `vertical`), `spacingToken`, `alignment` (`start`, `center`, `end` ou `stretch`, padrão `stretch`) | Aceita `$visibility` e `$active`; não aceita `$bindings` ou `$events` | Aceita filhos ordenados e pode conter componentes estruturais, de conteúdo, entrada, ação ou feedback | Não produz mensagem própria; lineariza os filhos na ordem declarada; direção, espaçamento e alinhamento são descartados com diagnóstico `info` |
+| `ui.card` | Opcionais: `variant`, `paddingToken`, `elevationToken` | Aceita `$visibility` e `$active`; não aceita `$bindings` ou `$events` | Aceita filhos ordenados; interação deve ser composta com `ui.button` ou `ui.link` | Não produz mensagem própria; preserva os filhos; superfície, variante, espaçamento e elevação são descartados com diagnóstico `info` |
+
+Em componentes estruturais, `$visibility: false` remove toda a subárvore e `$active: false` mantém a subárvore visível, mas desabilita seus descendentes interativos.
+
+#### 7.1.2 Componentes de conteúdo
+
+| Componente | Atributos | Campos reservados | Regras | Projeção no WhatsApp |
+|---|---|---|---|---|
+| `ui.text` | Obrigatório: `text`. Opcionais: `variant`, `colorToken`, `align`, `maxLines` | Aceita `$bindings.text` somente `oneWay` e `$visibility`; não aceita `$active` ou `$events` | `text` aceita placeholder textual | Produz mensagem textual; atributos visuais são descartados, admitindo apenas ênfase textual homologada |
+| `ui.image` | Obrigatórios: `source`, `alt`. Opcionais: `fit`, `aspectRatio` | Aceita `$bindings` `oneWay` para `source` e `alt`, e `$visibility`; não aceita `$active` ou `$events` | `alt` é obrigatório para acessibilidade, inclusive quando vazio por decisão editorial justificada | Envia mídia de fonte previamente resolvida e autorizada; usa `alt` como legenda; falha aplica fallback textual homologado ou erro quando o conteúdo for essencial |
+| `ui.icon` | Obrigatórios: `name`, `accessibilityLabel`. Opcionais: `sizeToken`, `colorToken` | Aceita `$visibility`; não aceita `$active`, `$bindings` ou `$events` | Ícone decorativo deve usar `accessibilityLabel` vazio | Omitido com diagnóstico `info`; o adapter não inventa emoji substituto |
+| `ui.divider` | Opcionais: `orientation`, `colorToken`, `spacingToken` | Aceita `$visibility`; não aceita `$active`, `$bindings` ou `$events` | Componente folha e exclusivamente visual | Omitido com diagnóstico `info`, sem gerar caracteres decorativos |
+| `ui.spacer` | Obrigatório: `sizeToken`. Opcional: `axis` | Aceita `$visibility`; não aceita `$active`, `$bindings` ou `$events` | Componente folha e exclusivamente visual | Omitido com diagnóstico `info`, sem introduzir mensagens vazias |
+
+#### 7.1.3 Componentes de entrada
+
+Todos os componentes de entrada aceitam `$bindings.value` em modo `twoWay`, `$visibility`, `$active` e validações declarativas homologadas. Não aceitam `$events` para submissão da etapa; a conclusão pertence a um componente de ação. Quando `$active` resultar em `false` ou `disabled`/`readOnly` for `true`, o valor pode ser exibido, mas não alterado.
+
+| Componente | Atributos | Binding | Regras | Projeção no WhatsApp |
+|---|---|---|---|---|
+| `ui.textInput` | Obrigatório: `label`. Opcionais: `placeholder`, `inputMode`, `required`, `readOnly`, `maxLength`, `validation` | `$bindings.value` obrigatório, modo `twoWay` | `inputMode` é intenção semântica homologada, não nome de teclado de plataforma | Envia rótulo e instrução, aguarda resposta textual, valida e grava o valor |
+| `ui.textArea` | Obrigatório: `label`. Opcionais: `placeholder`, `required`, `readOnly`, `minLines`, `maxLines`, `maxLength`, `validation` | `$bindings.value` obrigatório, modo `twoWay` | `minLines` e `maxLines` são exclusivamente visuais | Captura resposta textual; `minLines` e `maxLines` são descartados com diagnóstico `info` |
+| `ui.select` | Obrigatórios: `label`, `options`. Opcionais: `placeholder`, `required`, `searchable` | `$bindings.value` obrigatório, modo `twoWay` | Cada opção exige `value` e `label` e pode declarar `disabled` | Até três opções habilitadas podem ser respostas rápidas; acima disso, usa lista homologada; limite excedido sem fallback torna a UI Spec incompatível |
+| `ui.checkbox` | Obrigatório: `label`. Opcionais: `required`, `indeterminate` | `$bindings.value` obrigatório, modo `twoWay`, valor booleano | `indeterminate` é estado inicial e não cria terceiro valor de resposta | Solicita confirmação por `Sim` e `Não` e grava `true` ou `false` |
+| `ui.datePicker` | Obrigatórios: `label`, `mode`. Opcionais: `minDate`, `maxDate`, `format`, `required`, `validation` | `$bindings.value` obrigatório, modo `twoWay` | Valor canônico em ISO 8601; `format` controla somente apresentação e instrução | Solicita valor em formato explícito, valida, normaliza e grava o valor canônico; não simula seletor visual |
+
+#### 7.1.4 Componentes de ação
+
+| Componente | Atributos | Campos reservados | Regras | Projeção no WhatsApp |
+|---|---|---|---|---|
+| `ui.button` | Obrigatório: `label`. Opcionais: `variant`, `size`, `fullWidth`, `loading`, `disabled` | Exige `$events.onPress`; aceita `$visibility` e `$active`; não aceita `$bindings` | `action.submit` valida os campos aplicáveis e solicita a conclusão da etapa; o renderer não executa regra de negócio | Ação compatível vira resposta rápida; excesso de ações exige lista ou fallback homologado |
+| `ui.link` | Obrigatório: `label`. Opcionais: `emphasis`, `external`, `accessibilityLabel` | Exige `$events.onPress`; aceita `$visibility` e `$active`; não aceita `$bindings` | URL usa `action.openUrl` e está sujeita a esquema e domínio autorizados | URL vira CTA quando suportada; ação sem equivalência exige fallback homologado ou torna a UI Spec incompatível |
+
+#### 7.1.5 Componentes de feedback
+
+| Componente | Atributos | Campos reservados | Regras | Projeção no WhatsApp |
+|---|---|---|---|---|
+| `ui.alert` | Obrigatórios: `severity`, `message`. Opcionais: `title`, `dismissible` | Aceita `$visibility`, `$active`, `$bindings` `oneWay` para `title` e `message`; aceita `$events.onDismiss` somente quando `dismissible: true` | O descarte depende de ação homologada | Gera mensagem textual com indicação semântica de severidade; descarte somente é interativo quando homologado |
+| `ui.progress` | Obrigatório: `value`. Opcionais: `label`, `showValue` | Aceita `$bindings.value` `oneWay` e `$visibility`; não aceita `$active` ou `$events` | `value` é numérico no intervalo de `0` a `1` | Gera texto com rótulo e percentual; não simula barra gráfica |
+| `ui.loading` | Opcionais: `label`, `sizeToken`, `overlay` | Aceita `$visibility`; não aceita `$bindings`, `$events` ou `$active` | Feedback transitório; não pode bloquear indefinidamente a jornada | Gera mensagem textual de espera apenas quando necessário; animação, tamanho e overlay são descartados com diagnóstico `info` |
+
+### 7.2 Convenções de propriedades
+
+- `label`, `placeholder`, `title`, `message` e `text` aceitam texto literal ou placeholder seguro.
+- `variant` representa intenção visual corporativa, nunca uma classe CSS ou nome interno do framework.
+- `options` utiliza uma lista de objetos `{ "value": string, "label": string, "disabled"?: boolean }`.
+- Datas são transportadas em ISO 8601; a apresentação localizada é responsabilidade do adapter de cada alvo.
+- Dimensões, cores e tipografia devem referenciar tokens, exceto valores de conteúdo como `aspectRatio` ou `maxLength`.
+- Propriedades específicas de uma única plataforma não entram no contrato comum. Se indispensáveis, devem ser declaradas como extensão de canal e não podem alterar o comportamento principal.
+
+Exemplo de opções:
+
+```json
+[
+  "ui.select",
+  {
+    "id": "marital-status",
+    "version": "1.0.0",
+    "label": "Estado civil",
+    "placeholder": "Selecione",
+    "required": true,
+    "options": [
+      { "value": "single", "label": "Solteiro(a)" },
+      { "value": "married", "label": "Casado(a)" }
+    ],
+    "$bindings": {
+      "value": {
+        "path": "form.customer.maritalStatus",
+        "mode": "twoWay"
+      }
+    }
+  }
+]
+```
+
+## 8. Bindings e placeholders
+
+Bindings e placeholders conectam componentes ao contexto de execução sem inserir lógica de aplicação na árvore, mas possuem responsabilidades diferentes. **Placeholders** interpolam valores em conteúdo textual e produzem texto; **bindings** ligam uma propriedade inteira a um valor tipado e podem permitir leitura e escrita.
+
+O contrato separa os seguintes namespaces:
+
+| Namespace | Uso | Exemplo |
+|---|---|---|
+| `form` | Valores editáveis da jornada | `form.customer.name` |
+| `data` | Dados carregados e somente leitura | `data.customer.document` |
+| `session` | Contexto autorizado da sessão | `session.locale` |
+| `route` | Parâmetros de navegação permitidos | `route.orderId` |
+| `computed` | Valores derivados por regras registradas | `computed.isAdult` |
+
+### 8.1 Bindings tipados
+
+Um binding deve ser declarado em `$bindings`, informando a propriedade do componente, o caminho do dado e a direção do vínculo. No exemplo abaixo, a propriedade `value` recebe o valor inicial de `form.customer.email` e devolve ao mesmo caminho as alterações realizadas pelo usuário:
+
+```json
+[
+  "ui.textInput",
+  {
+    "id": "customer-email",
+    "version": "1.0.0",
+    "label": "E-mail",
+    "inputMode": "email",
+    "required": true,
+    "$bindings": {
+      "value": {
+        "path": "form.customer.email",
+        "mode": "twoWay"
+      }
+    }
+  }
+]
+```
+
+`mode: "twoWay"` estabelece o fluxo `contexto ⇄ componente` e deve ser usado apenas em propriedades editáveis. Para dados somente leitura, `mode: "oneWay"` estabelece o fluxo `contexto → componente` e preserva o tipo original do valor:
+
+```json
+[
+  "ui.progress",
+  {
+    "id": "order-progress",
+    "version": "1.0.0",
+    "label": "Andamento do pedido",
+    "$bindings": {
+      "value": {
+        "path": "data.order.progress",
+        "mode": "oneWay"
+      }
+    }
+  }
+]
+```
+
+Nesse caso, se `data.order.progress` contiver o número `0.75`, o renderer recebe o valor numérico `0.75`, e não o texto `"0.75"`.
+
+### 8.2 Placeholders textuais
+
+Placeholders destinam-se exclusivamente à interpolação somente leitura em propriedades textuais homologadas. Eles podem combinar texto literal com um ou mais valores do contexto:
+
+```json
+[
+  "ui.text",
+  {
+    "id": "customer-greeting",
+    "version": "1.0.0",
+    "text": "Olá, {{data.customer.firstName}}. Seu pedido é {{data.order.id}}.",
+    "variant": "typography.heading.medium"
+  }
+]
+```
+
+Se `data.customer.firstName` for `"Maria"` e `data.order.id` for `"ABC-123"`, o conteúdo apresentado será:
+
+```text
+Olá, Maria. Seu pedido é ABC-123.
+```
+
+Um placeholder converte o valor interpolado para sua representação textual. Ele não deve ser usado quando o componente precisa preservar o tipo original, editar o valor ou manter sincronização com o estado; nesses casos, deve-se usar `$bindings`.
+
+### 8.3 Uso combinado
+
+Um componente pode usar placeholder em uma propriedade textual e binding em uma propriedade tipada. No exemplo abaixo, o nome é interpolado no `label`, enquanto o valor editável permanece vinculado ao formulário:
+
+```json
+[
+  "ui.textInput",
+  {
+    "id": "customer-full-name",
+    "version": "1.0.0",
+    "label": "Nome completo de {{data.customer.firstName}}",
+    "$bindings": {
+      "value": {
+        "path": "form.customer.fullName",
+        "mode": "twoWay"
+      }
+    }
+  }
+]
+```
+
+### 8.4 Regras obrigatórias
+
+- usar placeholders somente em propriedades textuais explicitamente homologadas pelo schema do componente;
+- usar `$bindings` para valores tipados, valores editáveis e sincronização de estado;
+- aceitar `twoWay` somente em propriedades editáveis e caminhos autorizados;
+- preservar o tipo original do dado resolvido por binding;
+- converter para texto somente o valor interpolado por placeholder;
+- validar caminhos e namespaces contra um data contract conhecido;
+- distinguir binding ausente de valor `null` e definir fallback quando necessário;
+- definir comportamento previsível para placeholder cujo caminho não exista;
+- escapar conteúdo textual interpolado por padrão;
+- não registrar em telemetria valores pessoais obtidos por binding ou placeholder;
+- não permitir acesso a segredos, credenciais, headers, tokens ou objetos internos da aplicação;
+- não executar JavaScript, Dart, expressões de template ou qualquer código arbitrário.
+
+Resumo da escolha:
+
+| Necessidade | Mecanismo |
+|---|---|
+| Inserir um valor dentro de uma frase | Placeholder `{{...}}` |
+| Preservar número, booleano, data, lista ou objeto | `$bindings` |
+| Preencher um campo editável e receber alterações | `$bindings` com `twoWay` |
+| Exibir uma propriedade inteira somente para leitura | `$bindings` com `oneWay` |
+| Combinar texto literal e vários valores | Placeholder `{{...}}` |
+
+Regras gerais de segurança:
+
+- não executar JavaScript, Dart, expressões de template ou código arbitrário;
+- validar caminhos e namespaces contra um data contract conhecido;
+- escapar conteúdo textual por padrão;
+- impedir acesso a segredos, headers, tokens e objetos internos da aplicação;
+- distinguir binding ausente de valor `null` e definir fallback quando necessário;
+- registrar em telemetria apenas identificadores técnicos, nunca valores pessoais do formulário.
+
+### 8.5 Visibilidade e estado ativo
+
+`$visibility` e `$active` utilizam a mesma forma declarativa de condição:
+
+```json
+{
+  "rule": "equals",
+  "path": "computed.customerCanContinue",
+  "value": true
+}
+```
+
+As regras homologadas no v1 são `equals`, `notEquals`, `in` e `notIn`.
+
+- `$visibility` determina se o componente está presente e é apresentado. Em contêineres, `false` remove toda a subárvore.
+- `$active` determina se um componente visível pode receber interação. Em contêineres, `false` desabilita os descendentes interativos.
+- a ausência de `$visibility` significa visível;
+- a ausência de `$active` significa ativo;
+- `disabled: true` é uma desativação estática e sempre prevalece;
+- um componente está efetivamente habilitado apenas quando `disabled` não é `true` e `$active` não resulta em `false`;
+- condições não executam código e seus caminhos devem pertencer a namespaces autorizados;
+- `$visibility` e `$active` somente podem aparecer nos componentes que os homologam;
+- usos importados de `$active` com intenção de ocultação devem ser convertidos para `$visibility` antes da publicação.
+
+## 9. Ações e eventos
+
+Eventos do componente são declarados em `$events` e apontam para ações registradas. O renderer emite o evento; o host valida a ação no Action Registry e coordena sua execução. O renderer nunca executa regra de negócio.
+
+Eventos v1 recomendados:
+
+| Evento | Componentes típicos | Uso |
+|---|---|---|
+| `onPress` | `ui.button`, `ui.link` | Acionar navegação, conclusão da etapa ou ação registrada |
+| `onDismiss` | `ui.alert` | Fechar feedback dispensável |
+
+Ações mínimas:
+
+| Tipo de ação | Finalidade |
+|---|---|
+| `action.submit` | Validar os campos aplicáveis e solicitar a conclusão da etapa |
+| `action.navigate` | Navegar para destino interno permitido |
+| `action.openUrl` | Abrir URL validada conforme allowlist |
+| `action.setValue` | Atualizar um caminho autorizado do estado |
+| `action.track` | Emitir evento de telemetria sem dados sensíveis |
+| `action.dismiss` | Alterar estado visual descartável |
+
+Exemplo:
+
+```json
+[
+  "ui.button",
+  {
+    "id": "continue-button",
+    "version": "1.0.0",
+    "label": "Continuar",
+    "variant": "primary",
+    "fullWidth": true,
+    "$events": {
+      "onPress": {
+        "action": "action.submit"
+      }
+    }
+  }
+]
+```
+
+`action.submit` não contém destino de navegação nem identifica formulário. A continuidade é determinada pela jornada correspondente à UI Spec. O contrato não deve conter callbacks, URLs irrestritas ou comandos específicos de framework. A execução precisa passar por allowlist, validação de parâmetros, política de autorização e telemetria.
+
+## 10. Design tokens semânticos
+
+O SDUI referencia tokens corporativos. Cada adapter visual resolve esses tokens para a implementação vigente do Mística no respectivo alvo. O adapter `whatsapp` pode descartar tokens exclusivamente visuais; essa perda deve estar declarada na capacidade do componente e não pode alterar conteúdo, validação, captura de resposta ou resultado das ações.
+
+| Grupo | Exemplos de tokens | Uso |
+|---|---|---|
+| Cor | `color.background.primary`, `color.background.secondary`, `color.background.elevated`, `color.background.inverse`, `color.surface.default`, `color.surface.highlight`, `color.surface.selected`, `color.surface.disabled`, `color.text.primary`, `color.text.secondary`, `color.text.inverse`, `color.text.disabled`, `color.border.default`, `color.border.strong`, `color.border.focus`, `color.border.error`, `color.action.primary`, `color.action.secondary`, `color.action.danger`, `color.feedback.info`, `color.feedback.success`, `color.feedback.warning`, `color.feedback.negative` | Fundos, superfícies, conteúdo, bordas, ações e estados sem codificar hexadecimal |
+| Tipografia | `typography.heading.medium`, `typography.body.regular`, `typography.caption` | Hierarquia e leitura |
+| Espaçamento | `spacing.none`, `spacing.xs`, `spacing.sm`, `spacing.md`, `spacing.lg`, `spacing.xl` | Gap, padding e margin |
+| Forma | `radius.none`, `radius.sm`, `radius.md`, `radius.full` | Bordas e superfícies |
+| Elevação | `elevation.none`, `elevation.low`, `elevation.medium` | Hierarquia de superfícies |
+| Tamanho | `size.icon.sm`, `size.icon.md`, `size.control.lg` | Ícones e controles |
+| Largura | `layout.content.compact`, `layout.content.default`, `layout.content.wide` | Limites responsivos de conteúdo |
+
+Valores literais como `#0066FF`, `16px`, `12dp` ou nomes de classes CSS não devem ser publicados. A evolução visual do Mística deve ocorrer por atualização do mapeamento de tokens, preservando o snapshot SDUI. A ausência de representação para um token visual no WhatsApp não torna o componente incompatível quando sua semântica conversacional estiver homologada.
+
+Os tokens de cor são intencionais. Por exemplo, `color.background.primary` significa "fundo principal" e não uma cor fixa; `color.action.danger` significa "ação destrutiva" e pode mudar de valor físico conforme skin, tema, acessibilidade ou plataforma. O Builder pode apresentar rótulos amigáveis ao usuário, mas o contrato publicado deve preservar o identificador semântico.
+
+## 11. Regras de compatibilidade entre alvos
+
+1. Todo componente v1 precisa ter a capacidade explicitamente classificada nos cinco alvos antes de ser marcado como `stable` para todo o ecossistema. Nos alvos em que houver representação válida, a implementação ou projeção deve estar homologada; quando não houver representação válida no WhatsApp, o Registry deve declará-lo `unsupported` para `whatsapp`, sem exigir uma adaptação artificial.
+2. O mesmo nó deve preservar semântica, hierarquia de conteúdo, validação e resultado de ação equivalentes em React Web, React Mobile, Flutter Web, Flutter Mobile e WhatsApp. Paridade de layout e aparência aplica-se somente aos alvos visuais.
+3. Interações podem respeitar padrões nativos — por exemplo, a apresentação do date picker — desde que o valor e as regras sejam idênticos.
+4. Acessibilidade é obrigatória: nos alvos visuais, labels, foco, leitura por tecnologia assistiva, contraste e área mínima de toque devem seguir o Mística e as normas corporativas; no WhatsApp, conteúdo, instruções, alternativas textuais e opções interativas devem permanecer compreensíveis no fluxo conversacional.
+5. Nos alvos visuais, o layout deve ser responsivo e baseado em containers; coordenadas absolutas não são aceitas no contrato comum. No WhatsApp, propriedades de layout são descartadas e a ordem da árvore determina a ordem da conversa.
+6. Tokens não suportados em um alvo devem ser rejeitados na validação ou possuir fallback previamente declarado no Registry.
+7. Diferenças de capacidade devem ser registradas por alvo e versão mínima do renderer ou aplicativo.
+8. Uma tela não pode ser publicada para um alvo se contiver componente `unsupported` ou versão incompatível.
+9. Cada renderer ou adapter deve ter fallback técnico seguro para falhas inesperadas, com telemetria, sem expor stack trace ao usuário.
+10. A ordem de leitura, foco ou interação deve seguir a ordem da árvore, conforme a natureza do alvo, salvo regra de acessibilidade explicitamente homologada.
+11. Compartilhamento de código não implica compatibilidade automática: Flutter Web e Flutter Mobile, por exemplo, podem usar o mesmo widget, mas devem ser homologados separadamente devido a diferenças de entrada, acessibilidade, navegação e runtime.
+12. Se React Mobile for uma aplicação React Native, deve usar um adapter próprio. Se for apenas uma experiência Web responsiva/PWA, `react.web` e `react.mobile` podem compartilhar implementação, mantendo-se como alvos separados para validação e rollout.
+13. `whatsapp` deve possuir compatibilidade própria por componente. O adapter deve respeitar limites de mensagens, botões, listas e mídia do canal, transformar entradas visuais em turnos conversacionais quando houver equivalência segura e registrar diagnóstico ou fallback explícito quando não houver.
+
+## 12. Component Registry
+
+O Component Registry é a fonte de verdade operacional do catálogo. Ele não precisa armazenar o código dos componentes, mas deve descrever o que o Builder pode produzir e o que cada canal consegue renderizar.
+
+Registro mínimo por componente:
+
+```json
+{
+  "type": "ui.textInput",
+  "version": "1.0.0",
+  "status": "stable",
+  "level": 2,
+  "category": "input",
+  "attributesSchema": "schemas/ui.textInput/1.0.0.json",
+  "allowsChildren": false,
+  "reservedAttributes": ["$bindings", "$visibility", "$active"],
+  "events": [],
+  "targets": {
+    "react.web": { "status": "supported", "minRendererVersion": "1.2.0" },
+    "react.mobile": { "status": "supported", "minRendererVersion": "1.1.0" },
+    "flutter.web": { "status": "supported", "minRendererVersion": "1.0.0" },
+    "flutter.mobile": { "status": "supported", "minRendererVersion": "1.3.0" },
+    "whatsapp": { "status": "supported", "minRendererVersion": "1.0.0" }
+  },
+  "adapterKeys": {
+    "react.web": "textInput",
+    "react.mobile": "textInput",
+    "flutter.web": "textInput",
+    "flutter.mobile": "textInput",
+    "whatsapp": "textInput"
+  }
+}
+```
+
+O Registry deve fornecer ao Form Builder:
+
+- schema dos atributos planos e valores padrão;
+- indicação de container ou folha e tipos de filhos permitidos;
+- eventos e ações autorizados;
+- tokens aceitos;
+- compatibilidade por alvo e versão mínima do renderer;
+- status `experimental`, `stable`, `deprecated` ou `removed`;
+- documentação e exemplos de preview;
+- regras de migração entre versões.
+
+O renderer deve resolver `type + version` por um mapa controlado. Reflexão dinâmica, import de código remoto e componentes não registrados não são permitidos.
+
+## 13. Versionamento
+
+O catálogo, cada componente, o schema da UI Spec e os renderizadores utilizam Semantic Versioning completo (`MAJOR.MINOR.PATCH`):
+
+- **Major:** alteração incompatível, remoção ou mudança de significado;
+- **Minor:** novo componente, propriedade opcional, evento ou token compatível;
+- **Patch:** correção de documentação, adapter ou comportamento sem mudança contratual.
+
+Diretrizes:
+
+- a versão do snapshot identifica o schema geral (`schemaVersion`) e a versão do catálogo (`catalogVersion`);
+- cada nó informa sua própria `version` para resolução inequívoca;
+- componentes depreciados continuam renderizáveis durante uma janela corporativa definida;
+- `journeyVersion` não é SemVer: é o número inteiro sequencial da versão publicada da jornada;
+- snapshots já publicados permanecem imutáveis; correções geram uma nova versão publicada da jornada;
+- migrações devem ser automatizáveis, auditáveis e executadas no Elastic Journey antes da republicação;
+- a matriz de compatibilidade deve considerar catálogo, alvo, renderer e versão mínima da aplicação correspondente.
+
+## 14. Formato canônico da UI Spec
+
+### 14.1 Envelope do snapshot de tela
+
+O snapshot publicado deve transportar metadados suficientes para validação, cache, auditoria e compatibilidade:
+
+```json
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.0.0",
+  "journeyId": "12f6d6e2-e36d-4e67-9db4-8460a0f72cb6",
+  "journeyVersion": 7,
+  "uiStepId": "Node_3f865d35-06c4-4ba1-9e85-451d542d8302",
+  "status": "published",
+  "publishedAt": "2026-09-03T15:00:00Z",
+  "supportedTargets": ["react.web", "react.mobile", "flutter.web", "flutter.mobile", "whatsapp"],
+  "minRendererVersion": {
+    "react.web": "1.2.0",
+    "react.mobile": "1.1.0",
+    "flutter.web": "1.0.0",
+    "flutter.mobile": "1.3.0",
+    "whatsapp": "1.0.0"
+  },
+  "dataSources": {},
+  "data": [
+    "ui.screen",
+    {
+      "id": "personal-data-screen",
+      "version": "1.0.0",
+      "title": "Dados pessoais"
+    },
+    []
+  ]
+}
+```
+
+`data` contém exatamente uma tupla raiz `ui.screen`. A terceira posição das tuplas contêineres define a ordem visual, de leitura, de foco padrão, de projeção conversacional e de serialização determinística. `dataSources` permanece como objeto vazio no v1 e será refinado posteriormente; renderers não executam URLs nem APIs declaradas na UI Spec.
+
+| Campo | Tipo | Regra |
+|---|---|---|
+| `schemaVersion` | SemVer | Versão do schema do envelope |
+| `catalogVersion` | SemVer | Versão do catálogo usada na publicação |
+| `journeyId` | identificador | Identidade estável da jornada |
+| `journeyVersion` | inteiro positivo | Versão sequencial publicada da jornada, correlacionada à definição correspondente publicada no runtime-engine |
+| `uiStepId` | string | Identidade estável da etapa de interface dentro da jornada |
+| `status` | enum | `published` ou `deprecated`; rascunhos não são publicados no repositório de snapshots |
+| `publishedAt` | data/hora | Instante da publicação em ISO 8601 UTC |
+| `supportedTargets` | lista | Alvos homologados para o snapshot |
+| `minRendererVersion` | objeto | Versão mínima do renderer ou adapter por alvo |
+| `dataSources` | objeto | Reservado para refinamento posterior; no v1 deve ser `{}` |
+| `data` | tupla | Raiz única e obrigatória `ui.screen` |
+
+O envelope não possui `metadata` livre nem uma versão independente da UI Spec. O título visual pertence a `ui.screen`; informações administrativas permanecem sob responsabilidade do Elastic Journey. Referências de design pertencem ao processo de autoria e ao Component Registry, não ao contrato de runtime.
+
+### 14.2 Exemplo completo — tela de dados pessoais
+
+```json
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.0.0",
+  "journeyId": "12f6d6e2-e36d-4e67-9db4-8460a0f72cb6",
+  "journeyVersion": 7,
+  "uiStepId": "Node_3f865d35-06c4-4ba1-9e85-451d542d8302",
+  "status": "published",
+  "publishedAt": "2026-09-03T15:00:00Z",
+  "supportedTargets": [
+    "react.web",
+    "react.mobile",
+    "flutter.web",
+    "flutter.mobile",
+    "whatsapp"
+  ],
+  "minRendererVersion": {
+    "react.web": "1.2.0",
+    "react.mobile": "1.1.0",
+    "flutter.web": "1.0.0",
+    "flutter.mobile": "1.3.0",
+    "whatsapp": "1.0.0"
+  },
+  "dataSources": {},
+  "data": [
+    "ui.screen",
+    {
+      "id": "personal-data-screen",
+      "version": "1.0.0",
+      "title": "Dados pessoais",
+      "scrollable": true,
+      "backgroundToken": "color.background.primary",
+      "paddingToken": "spacing.md"
+    },
+    [
+      [
+        "ui.stack",
+        {
+          "id": "form-stack",
+          "version": "1.0.0",
+          "direction": "vertical",
+          "spacingToken": "spacing.md",
+          "alignment": "stretch"
+        },
+        [
+          [
+            "ui.text",
+            {
+              "id": "heading",
+              "version": "1.0.0",
+              "text": "Olá, {{data.customer.firstName}}",
+              "variant": "typography.heading.medium",
+              "colorToken": "color.text.primary"
+            }
+          ],
+          [
+            "ui.textInput",
+            {
+              "id": "name",
+              "version": "1.0.0",
+              "label": "Nome completo",
+              "inputMode": "text",
+              "required": true,
+              "maxLength": 120,
+              "validation": [
+                {
+                  "rule": "required",
+                  "message": "Informe seu nome completo."
+                },
+                {
+                  "rule": "minLength",
+                  "value": 3,
+                  "message": "Informe ao menos 3 caracteres."
+                }
+              ],
+              "$bindings": {
+                "value": {
+                  "path": "form.customer.name",
+                  "mode": "twoWay"
+                }
+              }
+            }
+          ],
+          [
+            "ui.datePicker",
+            {
+              "id": "birth-date",
+              "version": "1.0.0",
+              "label": "Data de nascimento",
+              "mode": "date",
+              "maxDate": "today",
+              "format": "locale",
+              "required": true,
+              "$bindings": {
+                "value": {
+                  "path": "form.customer.birthDate",
+                  "mode": "twoWay"
+                }
+              }
+            }
+          ],
+          [
+            "ui.checkbox",
+            {
+              "id": "marketing-consent",
+              "version": "1.0.0",
+              "label": "Aceito receber comunicações sobre produtos e serviços.",
+              "required": false,
+              "$bindings": {
+                "value": {
+                  "path": "form.consents.marketing",
+                  "mode": "twoWay"
+                }
+              }
+            }
+          ],
+          [
+            "ui.alert",
+            {
+              "id": "validation-alert",
+              "version": "1.0.0",
+              "severity": "negative",
+              "title": "Revise os dados",
+              "message": "Existem campos obrigatórios não preenchidos.",
+              "$visibility": {
+                "rule": "equals",
+                "path": "computed.showValidationSummary",
+                "value": true
+              }
+            }
+          ],
+          [
+            "ui.button",
+            {
+              "id": "continue",
+              "version": "1.0.0",
+              "label": "Continuar",
+              "variant": "primary",
+              "size": "large",
+              "fullWidth": true,
+              "$events": {
+                "onPress": {
+                  "action": "action.submit"
+                }
+              }
+            }
+          ]
+        ]
+      ]
+    ]
+  ]
+}
+```
+
+### 14.3 Exemplo de composição horizontal
+
+O contrato expressa a direção pretendida. Responsividade, quebra e breakpoints não são publicados na UI Spec; cada adapter visual aplica exclusivamente o comportamento homologado para o alvo.
+
+```json
+[
+  "ui.stack",
+  {
+    "id": "document-row",
+    "version": "1.0.0",
+    "direction": "horizontal",
+    "spacingToken": "spacing.sm",
+    "alignment": "stretch"
+  },
+  [
+    [
+      "ui.select",
+      {
+        "id": "document-type",
+        "version": "1.0.0",
+        "label": "Documento",
+        "options": [
+          { "value": "cpf", "label": "CPF" },
+          { "value": "passport", "label": "Passaporte" }
+        ],
+        "$bindings": {
+          "value": {
+            "path": "form.document.type",
+            "mode": "twoWay"
+          }
+        }
+      }
+    ],
+    [
+      "ui.textInput",
+      {
+        "id": "document-number",
+        "version": "1.0.0",
+        "label": "Número",
+        "inputMode": "text",
+        "required": true,
+        "$bindings": {
+          "value": {
+            "path": "form.document.number",
+            "mode": "twoWay"
+          }
+        }
+      }
+    ]
+  ]
+]
+```
+
+No WhatsApp, a pilha é linearizada conforme a ordem declarada e as propriedades de disposição visual são descartadas com diagnóstico `info`.
+
+### 14.4 `dataSources`
+
+`dataSources` é registrado no envelope para evolução compatível, mas permanece `{}` no v1. O refinamento posterior deve definir, antes de qualquer uso: tipos de fonte; fontes registradas ou estáticas; propriedade e execução; prefetch; cache; timeout; fallback; autenticação; tratamento de dados sensíveis; allowlist; namespace `data`; compatibilidade por alvo; e observabilidade.
+
+Nenhum renderer ou adapter pode interpretar `dataSources` como autorização para chamar URLs, executar consultas ou transportar credenciais. Os dados são entregues pelo serviço responsável pela jornada e pelo BFF do canal e consumidos pelos componentes por meio de `$bindings` e placeholders.
+
+## 15. Validação e publicação no Strapi
+
+Antes da publicação, o Elastic Journey deve validar:
+
+- schema do envelope e de todos os nós;
+- unicidade de `id` na tela;
+- existência de `type + version` no Registry;
+- compatibilidade com todos os alvos declarados;
+- hierarquia e tipos de filhos permitidos;
+- `$bindings` contra o contrato de dados da jornada;
+- ações, parâmetros, rotas e URLs permitidos;
+- tokens existentes e suportados;
+- requisitos de acessibilidade e conteúdo;
+- versões mínimas dos renderizadores.
+
+Após aprovação, o Elastic Journey gera um snapshot canônico associado a `journeyVersion`, registra auditoria e publica no Strapi. O snapshot não deve ser editado diretamente no Strapi. Qualquer alteração retorna ao Form Builder, passa por nova validação/aprovação e cria uma nova versão publicada da jornada.
+
+Recomenda-se que o Strapi armazene ao menos: `journeyId`, `journeyVersion`, `uiStepId`, status, datas, alvos, versões mínimas e o JSON do snapshot. `integrityHash` não é um campo de autoria nem integra o envelope canônico: deve ser calculado pelo serviço de armazenamento e mantido como metadado técnico. O modelo editorial do Strapi não deve reconstruir ou reinterpretar a árvore.
+
+### 15.1 Diagnósticos e fallbacks
+
+Os resultados de validação e adaptação possuem três severidades:
+
+| Severidade | Efeito |
+|---|---|
+| `error` | Bloqueia a publicação ou a execução da UI Spec |
+| `warning` | Permite continuar somente com fallback previamente homologado no catálogo |
+| `info` | Registra adaptação ou omissão esperada que não altera a semântica funcional |
+
+Todo diagnóstico deve conter `code`, `message`, `path`, `uiStepId`, `componentId`, `componentType`, `target` e `correlationId` quando disponível. Valores de formulário e dados pessoais não podem ser incluídos.
+
+Códigos estáveis do v1:
+
+- `SDUI_DOCUMENT_INVALID`;
+- `SDUI_ROOT_INVALID`;
+- `SDUI_COMPONENT_UNSUPPORTED`;
+- `SDUI_COMPONENT_VERSION_UNSUPPORTED`;
+- `SDUI_COMPONENT_ID_REQUIRED`;
+- `SDUI_COMPONENT_ID_DUPLICATED`;
+- `SDUI_PROP_REQUIRED`;
+- `SDUI_PROP_UNSUPPORTED`;
+- `SDUI_RESERVED_ATTRIBUTE_UNSUPPORTED`;
+- `SDUI_BINDING_INVALID`;
+- `SDUI_EVENT_INVALID`;
+- `SDUI_ACTION_UNSUPPORTED`;
+- `SDUI_CONDITION_INVALID`;
+- `SDUI_TARGET_UNSUPPORTED`;
+- `SDUI_RENDERER_VERSION_UNSUPPORTED`;
+- `SDUI_PROP_IGNORED`;
+- `SDUI_FALLBACK_APPLIED`;
+- `SDUI_COMPONENT_OMITTED`.
+
+Componente desconhecido, versão principal incompatível, propriedade obrigatória ausente e atributo reservado desconhecido são sempre erros. O renderer não pode inventar conteúdo, ação, token ou comportamento para contornar incompatibilidade.
+
+## 16. Critérios de aceite do v1
+
+O catálogo está pronto para adoção quando:
+
+- os 19 componentes possuem schemas e adapters homologados para `react.web`, `react.mobile`, `flutter.web` e `flutter.mobile`, além de capacidade explicitamente classificada como suportada ou não suportada em `whatsapp`;
+- o Form Builder consome o Registry e impede configurações inválidas;
+- os renderizadores passam por testes de contrato compartilhados;
+- tokens e ícones possuem mapeamento consistente nos quatro alvos visuais, e descarte ou representação conversacional explicitamente documentados para `whatsapp`;
+- acessibilidade e responsividade são validadas nos alvos visuais, e acessibilidade conversacional, ordem das mensagens e limites interativos são validados no WhatsApp;
+- snapshots são versionados, auditáveis, imutáveis e publicados apenas após aprovação;
+- versões não suportadas falham de forma segura e observável;
+- existe estratégia documentada de depreciação e migração.
+
+## 17. Decisão arquitetural recomendada
+
+Adotar `ui.*` como namespace estável do catálogo corporativo e o Node Tree deste documento como formato canônico do Elastic Journey. React Web, React Mobile, Flutter Web, Flutter Mobile e WhatsApp devem possuir targets e adapters explicitamente registrados e independentes desse contrato. O Strapi permanece como repositório e canal de entrega dos snapshots aprovados, sem responsabilidade por autoria, semântica ou evolução do SDUI.
+
+Essa separação preserva a portabilidade entre canais, reduz acoplamento tecnológico e permite evoluir Mística, React, Flutter, WhatsApp ou Strapi sem alterar desnecessariamente as jornadas publicadas.
+
+## 18. Strapi vs AEM
+
+### 18.1 Separação por canal — site corporativo vs. aplicações e apps
+
+- **O Adobe AEM cuida dos canais institucionais e de marketing.** O site principal da empresa — por exemplo, a página inicial global, os portais de notícias da marca e as páginas de campanhas de marketing — roda no AEM. O time de Marketing precisa de autonomia para arrastar e soltar blocos, realizar testes A/B com o Adobe Target e analisar métricas com o Adobe Analytics, sem depender de desenvolvedores para cada alteração de texto.
+- **O Strapi cuida de produtos digitais e microssites rápidos.** Quando a empresa precisa lançar um aplicativo móvel interno, um portal de clientes com dados dinâmicos ou um sistema para os funcionários, o Strapi pode ser utilizado. Ele entrega APIs limpas e rápidas em um ecossistema TypeScript/Node.js para que o time de Engenharia de Software alimente essas aplicações sem o peso e a complexidade da infraestrutura do AEM.
+
+### 18.2 Velocidade de desenvolvimento — time-to-market vs. governança
+
+- **AEM para governança rígida.** Alterações no AEM de uma grande empresa costumam passar por fluxos complexos de aprovação, envolvendo áreas como Compliance, Jurídico e Revisão de Marca. Essa governança é adequada ao site institucional principal, no qual é necessário reduzir o risco de erros graves, embora possa tornar a entrega mais lenta.
+- **Strapi para agilidade.** Se um time de Produto precisa criar uma landing page em duas semanas para testar um novo produto no mercado, fazer isso dentro do AEM corporativo pode levar meses em razão da complexidade técnica e dos processos de TI. O time pode criar um projeto no Strapi, utilizar uma infraestrutura mais leve e lançar o experimento com maior rapidez.
+
+### 18.3 Strapi como alimentador do próprio AEM — padrão Content Hub
+
+Em algumas arquiteturas avançadas, a empresa utiliza o **Strapi como gerenciador de dados estruturados**, como catálogos de produtos, listas de lojas físicas e documentações técnicas. Esses dados são expostos pelas APIs do Strapi, e o **AEM consome essas APIs** para apresentar as informações nas páginas de marketing do site principal.
+
+Nesse modelo, o Strapi cuida dos dados técnicos e estruturados, enquanto o AEM cuida da experiência editorial, da apresentação visual e do design.
+
+### 18.4 Resumo — onde cada solução se destaca
+
+- **Onde o AEM se destaca:** nas mãos dos times de **Marketing, Growth e Vendas**, controlando a identidade visual macro da marca, o conteúdo institucional e as campanhas globais.
+- **Onde o Strapi se destaca:** nas mãos dos times de **Engenharia de Software e Produto — squads**, criando sistemas dinâmicos, aplicações, experiências rápidas e APIs eficientes com maior autonomia.
+
+No contexto do Elastic Journey, o Strapi continua exercendo o papel definido neste catálogo: armazenar e distribuir snapshots SDUI publicados após aprovação. O comparativo não transfere para o Strapi a propriedade do contrato, da árvore de componentes ou da experiência de autoria, que permanecem sob governança do Elastic Journey e do catálogo corporativo.
+
+</script>
+
+<script>
+(function(){
+  /* ------------------------ canais ------------------------ */
+  var TARGETS = [
+    { k:'rw', id:'react.web', label:'React Web' },
+    { k:'rm', id:'react.mobile', label:'React Mobile' },
+    { k:'fw', id:'flutter.web', label:'Flutter Web' },
+    { k:'fm', id:'flutter.mobile', label:'Flutter Mobile' },
+    { k:'wa', id:'whatsapp', label:'WhatsApp' }
+  ];
+
+  /* -------------- catálogo v1: 19 componentes -------------- */
+  var CAT = [
+    { g:'Layout e composição', items:[
+      { t:'ui.screen', n:1, p:'title, backgroundToken, scrollable, paddingToken',
+        m:{ rw:'Page shell + layout responsivo', rm:'Screen + Safe Area + Scroll', fw:'Scaffold + layout responsivo', fm:'Scaffold + SafeArea',
+            wa:'Se houver title, envia mensagem de texto em negrito; descarta o layout visual e preserva a ordem dos filhos' } },
+      { t:'ui.container', n:1, p:'backgroundToken, paddingToken, borderRadiusToken',
+        m:{ rw:'Box/View wrapper', rm:'View', fw:'Container', fm:'Container',
+            wa:'Não gera mensagem própria; agrupa semanticamente os filhos e preserva sua ordem' } },
+      { t:'ui.stack', n:1, p:'direction, spacingToken, alignment',
+        m:{ rw:'Flex', rm:'View/Flex', fw:'Row/Column/Flex', fm:'Row/Column/Flex',
+            wa:'Não gera mensagem própria; preserva a ordem dos filhos e descarta direção, espaçamento e alinhamento visuais' } },
+      { t:'ui.card', n:1, p:'variant, paddingToken, elevationToken',
+        m:{ rw:'Mística Card', rm:'Card/Pressable adapter', fw:'Card adapter', fm:'Card adapter',
+            wa:'Não gera superfície própria; preserva o conteúdo dos filhos e descarta aparência e elevação' } }
+    ]},
+    { g:'Conteúdo', items:[
+      { t:'ui.text', n:0, p:'text, variant, colorToken, align, maxLines',
+        m:{ rw:'Mística Text/Typography', rm:'Text adapter', fw:'Text adapter', fm:'Text adapter',
+            wa:'Envia mensagem de texto' } },
+      { t:'ui.image', n:0, p:'source, alt, fit, aspectRatio',
+        m:{ rw:'Image component', rm:'Image adapter', fw:'Image', fm:'Image',
+            wa:'Envia mensagem de imagem usando source; utiliza alt como legenda quando informado' } },
+      { t:'ui.icon', n:0, p:'name, sizeToken, colorToken, accessibilityLabel',
+        m:{ rw:'Mística Icon', rm:'Icon registry adapter', fw:'Icon registry adapter', fm:'Icon registry adapter',
+            wa:'Não gera mensagem própria; omite o componente e registra diagnóstico informativo' } },
+      { t:'ui.divider', n:0, p:'orientation, colorToken, spacingToken',
+        m:{ rw:'Divider', rm:'View/Divider adapter', fw:'Divider', fm:'Divider',
+            wa:'Não gera mensagem própria; omite o componente e registra diagnóstico informativo' } },
+      { t:'ui.spacer', n:0, p:'sizeToken, axis',
+        m:{ rw:'Spacing box', rm:'View spacer', fw:'SizedBox', fm:'SizedBox',
+            wa:'Não gera mensagem própria; omite o componente e registra diagnóstico informativo' } }
+    ]},
+    { g:'Entrada de dados', items:[
+      { t:'ui.textInput', n:2, p:'label, placeholder, inputMode, required, readOnly, maxLength, validation',
+        m:{ rw:'Mística TextField', rm:'TextInput adapter', fw:'TextFormField adapter', fm:'TextFormField adapter',
+            wa:'Envia solicitação textual, aguarda a próxima mensagem do usuário, valida e grava a resposta no binding de valor' } },
+      { t:'ui.textArea', n:2, p:'label, placeholder, required, minLines, maxLines, maxLength, validation',
+        m:{ rw:'Mística TextArea/TextField multiline', rm:'TextInput multiline adapter', fw:'TextFormField multiline', fm:'TextFormField multiline',
+            wa:'Envia solicitação textual longa, aguarda a próxima mensagem do usuário, valida e grava a resposta no binding de valor' } },
+      { t:'ui.select', n:2, p:'label, placeholder, options, required, searchable',
+        m:{ rw:'Mística Select/Dropdown', rm:'Picker/Bottom-sheet adapter', fw:'Dropdown adapter', fm:'Dropdown/Bottom-sheet adapter',
+            wa:'Projeta até três opções como botões de resposta rápida; acima disso, utiliza lista interativa, respeitando os limites do canal' } },
+      { t:'ui.checkbox', n:2, p:'label, required, indeterminate',
+        m:{ rw:'Mística Checkbox', rm:'Checkbox/Pressable adapter', fw:'Checkbox adapter', fm:'Checkbox adapter',
+            wa:'Projeta confirmação por opções de resposta Sim e Não e grava o valor booleano no binding' } },
+      { t:'ui.datePicker', n:2, p:'label, mode, minDate, maxDate, format, required',
+        m:{ rw:'Mística DateField/DatePicker', rm:'Date picker adapter', fw:'Date picker adapter', fm:'Date picker nativo adapter',
+            wa:'Solicita data/hora por texto, informa o formato aceito, valida e normaliza o valor antes de gravá-lo no binding' } }
+    ]},
+    { g:'Ação', items:[
+      { t:'ui.button', n:3, p:'label, variant, size, fullWidth, loading, disabled',
+        m:{ rw:'Mística Button', rm:'Button/Pressable adapter', fw:'Button adapter', fm:'Button adapter',
+            wa:'Projeta onPress como botão de resposta rápida quando a ação for compatível; respeita o limite de três botões por mensagem' } },
+      { t:'ui.link', n:3, p:'label, emphasis, external, accessibilityLabel',
+        m:{ rw:'Mística Link', rm:'Text/Pressable adapter', fw:'Link/TextButton adapter', fm:'TextButton adapter',
+            wa:'Projeta action.openUrl como CTA com URL; outras ações compatíveis podem ser apresentadas como resposta rápida' } }
+    ]},
+    { g:'Feedback', items:[
+      { t:'ui.alert', n:3, p:'severity, title, message, dismissible',
+        m:{ rw:'Mística Feedback/Alert', rm:'Alert/View adapter', fw:'Alert adapter', fm:'Alert adapter',
+            wa:'Envia mensagem textual com indicador semântico de severidade; não reproduz a apresentação visual do alerta' } },
+      { t:'ui.progress', n:3, p:'value, label, showValue',
+        m:{ rw:'Mística Progress bar', rm:'Progress adapter', fw:'LinearProgressIndicator', fm:'LinearProgressIndicator',
+            wa:'Envia mensagem textual com rótulo e percentual; não representa barra gráfica' } },
+      { t:'ui.loading', n:3, p:'label, sizeToken, overlay',
+        m:{ rw:'Mística Spinner', rm:'Activity indicator adapter', fw:'CircularProgressIndicator', fm:'CircularProgressIndicator',
+            wa:'Envia mensagem textual de espera; não representa animação ou overlay' } }
+    ]}
+  ];
+
+  /* -------------------- chips de canal --------------------- */
+  function chips(host, onPick, initialKey){
+    TARGETS.forEach(function(t){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.innerHTML = '<i></i>' + t.label;
+      b.setAttribute('aria-pressed', String(t.k === initialKey));
+      b.addEventListener('click', function(){
+        Array.prototype.forEach.call(host.querySelectorAll('button'), function(x){ x.setAttribute('aria-pressed','false'); });
+        b.setAttribute('aria-pressed','true');
+        onPick(t);
+      });
+      host.appendChild(b);
+    });
+  }
+
+  /* --------- capa: o que cada público leva daqui --------- */
+  var PERSPECTIVES = [
+    { label:'Arquitetura',
+      copy:'O contrato é do Elastic Journey e não depende de framework. Cada canal tem adapter próprio, com compatibilidade e versão mínima registradas no Component Registry.' },
+    { label:'Design system',
+      copy:'Cor, tipografia, espaço, forma e elevação entram por token semântico. Cada adapter resolve o token na implementação vigente do Mística no seu canal.' },
+    { label:'Gestão',
+      copy:'A tela é composta, validada e aprovada uma vez. O snapshot publicado vale para os cinco canais e fica imutável para auditoria.' }
+  ];
+  var perspHost = document.getElementById('persp');
+  var perspCopy = document.getElementById('persp-copy');
+  PERSPECTIVES.forEach(function(p, i){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = p.label;
+    b.setAttribute('aria-pressed', String(i === 0));
+    b.addEventListener('click', function(){
+      Array.prototype.forEach.call(perspHost.querySelectorAll('button'), function(x){ x.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+      perspCopy.textContent = p.copy;
+    });
+    perspHost.appendChild(b);
+  });
+  perspCopy.textContent = PERSPECTIVES[0].copy;
+
+  /* ------------------ matriz do de/para -------------------- */
+  var matrix = document.getElementById('matrix');
+  var mcol = document.getElementById('mcol');
+  function renderMatrix(t){
+    mcol.textContent = t.id;
+    var html = '';
+    CAT.forEach(function(group){
+      html += '<tr class="head"><td colspan="2">' + group.g + '</td></tr>';
+      group.items.forEach(function(c){
+        html += '<tr class="row"><td class="t">' + c.t + '<span class="lvl">N' + c.n + '</span></td>' +
+                '<td class="m">' + c.m[t.k] + '<span class="props">' + c.p + '</span></td></tr>';
+      });
+    });
+    matrix.innerHTML = html;
+  }
+  chips(document.getElementById('targets2'), renderMatrix, 'rw');
+  renderMatrix(TARGETS[0]);
+
+  /* ------- slide 4: markdown embutido -> documento --------- */
+  function esc(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function inline(s){
+    return esc(s)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/&lt;br&gt;/g, '<br>');
+  }
+  function cells(line){
+    return line.replace(/^\|/,'').replace(/\|$/,'').split('|').map(function(c){ return c.trim(); });
+  }
+  function renderMd(src){
+    var lines = src.replace(/\r/g,'').split('\n'), out = [], secs = [], i = 0, n = 0;
+    var BLOCK = /^(```|\||#{1,6}\s|\s*[-*]\s|\s*\d+\.\s)/;
+    while (i < lines.length){
+      var l = lines[i];
+      if (/^```/.test(l)){
+        var buf = [];
+        i++;
+        while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
+        i++;
+        out.push('<pre>' + esc(buf.join('\n')) + '</pre>');
+      } else if (/^\s*$/.test(l)){
+        i++;
+      } else if (/^#{1,6}\s/.test(l)){
+        var m = l.match(/^(#{1,6})\s+(.*)$/), lv = m[1].length, id = '';
+        if (lv === 2){ id = 'sec-' + (++n); secs.push({ id:id, t:m[2] }); }
+        out.push('<h' + lv + (id ? ' id="' + id + '"' : '') + '>' + inline(m[2]) + '</h' + lv + '>');
+        i++;
+      } else if (/^\|/.test(l)){
+        var rows = [];
+        while (i < lines.length && /^\|/.test(lines[i])) rows.push(lines[i++]);
+        var t = '<div class="tw"><table><thead><tr>';
+        cells(rows[0]).forEach(function(c){ t += '<th>' + inline(c) + '</th>'; });
+        t += '</tr></thead><tbody>';
+        rows.slice(2).forEach(function(r){
+          t += '<tr>';
+          cells(r).forEach(function(c){ t += '<td>' + inline(c) + '</td>'; });
+          t += '</tr>';
+        });
+        out.push(t + '</tbody></table></div>');
+      } else if (/^\s*([-*]|\d+\.)\s/.test(l)){
+        var tag = /^\s*\d+\.\s/.test(l) ? 'ol' : 'ul', items = [];
+        while (i < lines.length && /^\s*([-*]|\d+\.)\s/.test(lines[i])){
+          items.push('<li>' + inline(lines[i++].replace(/^\s*([-*]|\d+\.)\s+/, '')) + '</li>');
+        }
+        out.push('<' + tag + '>' + items.join('') + '</' + tag + '>');
+      } else {
+        var par = [];
+        while (i < lines.length && !/^\s*$/.test(lines[i]) && !BLOCK.test(lines[i])) par.push(lines[i++]);
+        out.push('<p>' + inline(par.join(' ')) + '</p>');
+      }
+    }
+    return { html: out.join(''), secs: secs };
+  }
+
+  var mdsrc = document.getElementById('mdsrc');
+  if (mdsrc){
+    var raw = mdsrc.textContent;
+    var res = renderMd(raw);
+    var docEl = document.getElementById('doc');
+    var pane = document.getElementById('docpane');
+    var toc = document.getElementById('toc');
+    docEl.innerHTML = res.html;
+
+    res.secs.forEach(function(s){
+      var a = document.createElement('a');
+      a.href = '#' + s.id;
+      a.textContent = s.t;
+      a.addEventListener('click', function(e){
+        e.preventDefault();
+        var el = document.getElementById(s.id);
+        if (el) pane.scrollTo({ top: Math.max(0, el.offsetTop - 12), behavior: 'smooth' });
+      });
+      toc.appendChild(a);
+    });
+
+    var links = toc.querySelectorAll('a');
+    if (links[0]) links[0].classList.add('on');
+    pane.addEventListener('scroll', function(){
+      var y = pane.scrollTop + 28, k = 0;
+      res.secs.forEach(function(s, j){
+        var el = document.getElementById(s.id);
+        if (el && el.offsetTop <= y) k = j;
+      });
+      Array.prototype.forEach.call(links, function(a, j){ a.classList.toggle('on', j === k); });
+    });
+
+    /* self-check do renderizador: o que o texto declara tem de bater com o que foi montado */
+    var want = {
+      'seções': (raw.match(/^## /gm) || []).length,
+      'subseções': (raw.match(/^### /gm) || []).length,
+      'tabelas': (raw.match(/^\|[ \-:|]+\|$/gm) || []).length,
+      'blocos de código': (raw.match(/^```/gm) || []).length / 2
+    };
+    var got = {
+      'seções': docEl.querySelectorAll('h2').length,
+      'subseções': docEl.querySelectorAll('h3').length,
+      'tabelas': docEl.querySelectorAll('table').length,
+      'blocos de código': docEl.querySelectorAll('pre').length
+    };
+    Object.keys(want).forEach(function(k){
+      if (want[k] !== got[k]) console.error('[catálogo SDUI] ' + k + ': o texto tem ' + want[k] + ', foram montadas ' + got[k]);
+    });
+  }
+
+  /* ------------------------ tema --------------------------- */
+  var themeBox = document.getElementById('theme');
+  function paintTheme(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    Array.prototype.forEach.call(themeBox.querySelectorAll('button'), function(b){
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-choice') === cur));
+    });
+  }
+  themeBox.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-theme-choice]');
+    if (!b) return;
+    var next = b.getAttribute('data-theme-choice');
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('sdui-tema', next); } catch (err) {}
+    paintTheme();
+  });
+  paintTheme();
+
+  /* ---------------------- navegação ------------------------ */
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dots = document.getElementById('dots');
+  var counter = document.getElementById('counter');
+  var bar = document.getElementById('bar');
+  var title = document.getElementById('slidetitle');
+  var prev = document.getElementById('prev');
+  var next = document.getElementById('next');
+  var cur = 0;
+
+  slides.forEach(function(s, i){
+    var d = document.createElement('button');
+    d.type = 'button';
+    d.setAttribute('role','tab');
+    d.innerHTML = '<span class="sn">' + pad(i + 1) + '</span>' + s.getAttribute('data-title');
+    d.setAttribute('aria-label', 'Slide ' + (i + 1) + ': ' + s.getAttribute('data-title'));
+    d.addEventListener('click', function(){ go(i); });
+    dots.appendChild(d);
+  });
+
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+
+  function go(i){
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function(s, j){ s.classList.toggle('is-on', j === cur); });
+    Array.prototype.forEach.call(dots.querySelectorAll('button'), function(d, j){ d.setAttribute('aria-current', String(j === cur)); });
+    counter.textContent = pad(cur + 1) + ' / ' + pad(slides.length);
+    document.body.setAttribute('data-cover', cur === 0 ? '1' : '0');
+    bar.style.transform = 'scaleX(' + ((cur + 1) / slides.length) + ')';
+    title.textContent = slides[cur].getAttribute('data-title');
+    prev.disabled = cur === 0;
+    next.disabled = cur === slides.length - 1;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  prev.addEventListener('click', function(){ go(cur - 1); });
+  next.addEventListener('click', function(){ go(cur + 1); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') go(cur + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(cur - 1);
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+  });
+
+  go(0);
+})();
+</script>
+</body>
+</html>

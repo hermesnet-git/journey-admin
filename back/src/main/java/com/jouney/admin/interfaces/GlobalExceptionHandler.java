@@ -38,6 +38,7 @@ import com.jouney.admin.infrastructure.connector.SsrfBlockedException;
 import com.jouney.admin.infrastructure.dashboard.RuntimeMonitoringException;
 import com.jouney.admin.application.publication.RuntimeUnpublishBlockedException;
 import com.jouney.admin.application.publication.SduiPublicationUnavailableException;
+import com.jouney.admin.infrastructure.figma.FigmaReadException;
 import com.jouney.admin.infrastructure.publication.EspecRegistrySduiException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationRejectedException;
@@ -171,6 +172,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleAiGeneration(AiGenerationException ex, HttpServletRequest request) {
         log.error("AI flow generation call failed", ex);
         return build(HttpStatus.BAD_GATEWAY, "AI_GENERATION_UNAVAILABLE", ex.getMessage(), request, null);
+    }
+
+    // 422, e não 502 como as outras dependências externas: o que falha aqui é quase sempre um dado
+    // que a própria pessoa corrige na hora (token sem a permissão certa, arquivo a que a conta dela
+    // não tem acesso). A partir de 500 o front abre a tela cheia de erro da aplicação, que é o
+    // oposto do que se quer — a mensagem já vem escrita para ela e cabe ao lado do campo.
+    @ExceptionHandler(FigmaReadException.class)
+    public ResponseEntity<ApiError> handleFigmaRead(FigmaReadException ex, HttpServletRequest request) {
+        log.warn("Figma file read failed: {}", ex.getMessage());
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, "FIGMA_READ_FAILED", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(FlowValidationException.class)

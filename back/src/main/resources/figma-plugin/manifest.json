@@ -1,0 +1,13 @@
+{
+  "name": "Exportar para o Elastic Journey",
+  "id": "elastic-journey-export",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "reasoning": "O plugin apenas lê o desenho aberto e gera um arquivo local. Não envia nada para lugar nenhum."
+  }
+}

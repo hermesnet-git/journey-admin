@@ -654,7 +654,36 @@ function dimensionsOf(n: WFNode) {
 // from the wf-designer reference project — dagre does real crossing minimization and holds up
 // better on larger, denser flows) — devolve só as posições calculadas, sem já aplicar nos nós, pra
 // dar pra reaproveitar tanto no layout do canvas inteiro quanto no de um subconjunto selecionado.
+// Nó sem nenhuma ligação não tem lugar numa sequência — o dagre o trata como um fluxo à parte e
+// reserva faixa para ele no meio dos outros, afastando etapas que se seguem. Eles saem do cálculo e
+// vão para uma coluna própria embaixo, onde ficam visíveis para serem ligados ou apagados sem
+// atrapalhar a leitura do que já está ligado.
+const LOOSE_NODE_GAP_Y = 110;
+const LOOSE_NODE_MARGIN_Y = 140;
+
 function dagreLayout(nodes: WFNode[], edges: WFEdge[]): Map<string, { x: number; y: number }> {
+  const connected = new Set<string>();
+  edges.forEach((e) => {
+    connected.add(e.source);
+    connected.add(e.target);
+  });
+  const loose = nodes.filter((n) => !connected.has(n.id));
+  if (loose.length > 0 && loose.length < nodes.length) {
+    const positions = layoutConnected(nodes.filter((n) => connected.has(n.id)), edges);
+    const ys = [...positions.values()].map((p) => p.y);
+    const xs = [...positions.values()].map((p) => p.x);
+    let y = (ys.length ? Math.max(...ys) : 0) + LOOSE_NODE_MARGIN_Y;
+    const x = xs.length ? Math.min(...xs) : 0;
+    loose.forEach((n) => {
+      positions.set(n.id, { x, y });
+      y += LOOSE_NODE_GAP_Y;
+    });
+    return positions;
+  }
+  return layoutConnected(nodes, edges);
+}
+
+function layoutConnected(nodes: WFNode[], edges: WFEdge[]): Map<string, { x: number; y: number }> {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: 'LR', nodesep: NODE_SEP, ranksep: RANK_SEP, marginx: 80, marginy: 80 });
@@ -756,7 +785,30 @@ function subtreeVerticalBounds(rootId: string, positions: Map<string, { x: numbe
 // Gateway aninhado acaba precisando de bem mais altura do que um nó sozinho, e reservar só
 // `dim.height/2 + GATEWAY_BRANCH_GAP` pra ele deixava os dois ramos próximos demais — o ramo aninhado
 // (já aberto em dois) caía por cima do OUTRO ramo do Gateway externo.
+// O ajuste abaixo mede cada ramo pela extensão vertical de tudo que vem depois dele, o que só faz
+// sentido enquanto os ramos seguem caminhos próprios. Quando eles voltam a se encontrar adiante —
+// comum num fluxo com várias Decisões encadeadas — essa extensão passa a ser a do fluxo quase
+// inteiro, e cada Decisão afasta seus ramos por ela, uma sobre a outra, esticando o canvas até
+// ninguém conseguir ler a sequência. Em vez de limitar o afastamento no chute, o ajuste é feito
+// numa cópia e só vale se não tiver esticado o resultado: o dagre sozinho já entrega um layout
+// navegável, e um refinamento que piora não deve ser aplicado.
+const GATEWAY_SPACING_MAX_GROWTH = 1.6;
+
+function verticalSpanOf(positions: Map<string, { x: number; y: number }>): number {
+  const ys = [...positions.values()].map((p) => p.y);
+  return ys.length === 0 ? 0 : Math.max(...ys) - Math.min(...ys);
+}
+
 function applyGatewayBranchSpacing(positions: Map<string, { x: number; y: number }>, nodes: WFNode[], edges: WFEdge[]): void {
+  const before = verticalSpanOf(positions);
+  const candidate = new Map(positions);
+  spaceGatewayBranches(candidate, nodes, edges);
+  const after = verticalSpanOf(candidate);
+  if (before > 0 && after > before * GATEWAY_SPACING_MAX_GROWTH) return;
+  candidate.forEach((pos, id) => positions.set(id, pos));
+}
+
+function spaceGatewayBranches(positions: Map<string, { x: number; y: number }>, nodes: WFNode[], edges: WFEdge[]): void {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const gateways = nodes.filter((n) => n.type === 'gateway' && positions.has(n.id));
   const order = [...gateways].sort((a, b) => countReachable(a.id, edges) - countReachable(b.id, edges));

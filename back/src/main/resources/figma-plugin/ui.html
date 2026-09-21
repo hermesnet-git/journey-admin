@@ -1,0 +1,99 @@
+<!-- Janela do plugin. Todo o trabalho acontece em code.js; aqui só se escolhe exportar e o
+     arquivo é gravado na máquina — o sandbox do plugin não tem como gravar arquivo sozinho. -->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    padding: 16px;
+    font: 12px/1.45 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #1e1e1e;
+    background: #fff;
+  }
+  h1 { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+  p { margin: 0; color: #6b6b6b; }
+  .scope {
+    margin: 12px 0;
+    padding: 10px 12px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background: #fafafa;
+  }
+  .scope strong { display: block; font-size: 12.5px; color: #1e1e1e; word-break: break-word; }
+  .scope span { color: #8c8c8c; font-size: 11.5px; }
+  button {
+    width: 100%;
+    padding: 9px;
+    border: 0;
+    border-radius: 6px;
+    background: #0d99ff;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { background: #d9d9d9; color: #8c8c8c; cursor: not-allowed; }
+  .hint { margin-top: 10px; font-size: 11px; color: #8c8c8c; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #f5f5f5; background: #2c2c2c; }
+    h1 { color: #f5f5f5; }
+    .scope { border-color: #444; background: #383838; }
+    .scope strong { color: #f5f5f5; }
+  }
+</style>
+
+<h1>Exportar para o Elastic Journey</h1>
+<p>Gera um arquivo com as telas, as decisões e os caminhos entre elas.</p>
+
+<div class="scope">
+  <strong id="scope">Lendo...</strong>
+  <span id="count"></span>
+</div>
+
+<button id="export" disabled>Exportar arquivo</button>
+<div class="hint">
+  Selecione no canvas o agrupamento que vira a jornada. Sem seleção, a página inteira é exportada.
+</div>
+
+<script>
+  const scopeEl = document.getElementById('scope');
+  const countEl = document.getElementById('count');
+  const button = document.getElementById('export');
+
+  button.onclick = () => {
+    button.disabled = true;
+    button.textContent = 'Gerando...';
+    parent.postMessage({ pluginMessage: { type: 'export' } }, '*');
+  };
+
+  onmessage = (event) => {
+    const message = event.data.pluginMessage;
+    if (!message) return;
+
+    if (message.type === 'ready') {
+      scopeEl.textContent = message.empty ? 'Nada para exportar' : message.scope;
+      countEl.textContent = message.empty ? 'Esta página está vazia.' : message.nodes.toLocaleString('pt-BR') + ' elementos';
+      button.disabled = message.empty;
+      button.textContent = 'Exportar arquivo';
+    }
+
+    if (message.type === 'file') {
+      // O arquivo é montado aqui e entregue ao navegador: é o único ponto do plugin com acesso a
+      // DOM, e portanto o único que consegue disparar um download.
+      const blob = new Blob([message.content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = message.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      button.textContent = 'Exportado';
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = 'Exportar arquivo';
+      }, 1500);
+    }
+  };
+</script>

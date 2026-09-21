@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, FilePlus2, GitBranch, Sparkles } from 'lucide-react';
+import { Check, FilePlus2, Frame, GitBranch, Sparkles } from 'lucide-react';
 import { Modal } from '../products/Modal';
 import { Field, TextInput, TextArea, SelectInput, PrimaryButton, SecondaryButton, ErrorBanner } from '../products/ui';
 import { ChannelTypeChecklist } from '../products/ChannelTypeChecklist';
@@ -9,13 +9,15 @@ import { generateFlow, updateFlow } from '../api/flows';
 import { layoutFlowNodes } from '../flow-designer/model';
 import { ApiClientError } from '../api/client';
 import { useAppTheme } from '../shell/theme';
+import { FigmaImportTab, type FigmaImportSelection } from './FigmaImportTab';
+import { buildFigmaFlow } from '../api/figma';
 
 interface NewJourneyModalProps {
   onClose: () => void;
   onCreated: (journey: Journey) => void;
 }
 
-type StartMode = 'blank' | 'template' | 'ai';
+type StartMode = 'blank' | 'template' | 'ai' | 'figma';
 
 interface AiLogEntry {
   text: string;
@@ -30,6 +32,7 @@ const TABS: { mode: StartMode; label: string }[] = [
   { mode: 'blank', label: 'Dados da jornada' },
   { mode: 'template', label: 'Template' },
   { mode: 'ai', label: 'IA' },
+  { mode: 'figma', label: 'Figma' },
 ];
 
 const AI_PROMPT_EXAMPLES: { label: string; prompt: string }[] = [
@@ -95,6 +98,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLog, setAiLog] = useState<AiLogEntry[]>([]);
+  const [figmaSelection, setFigmaSelection] = useState<FigmaImportSelection | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Se a geração falhar depois que a jornada em branco já foi criada, reaproveita a mesma jornada
@@ -129,6 +133,35 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
     setSaving(true);
     setError(null);
     try {
+      if (mode === 'figma' && figmaSelection) {
+        const built = await buildFigmaFlow({
+          nodeIds: figmaSelection.scopes.map((scope) => scope.nodeId),
+          // Com um trecho só, o nome dele já diz do que a jornada trata; com vários, o nome que o
+          // usuário deu à jornada é mais fiel do que emendar os nomes dos trechos.
+          name: figmaSelection.scopes.length === 1 ? figmaSelection.scopes[0].name : name,
+          mergeRepeated: figmaSelection.mergeRepeated,
+          includeScreens: figmaSelection.includeScreens,
+          file: figmaSelection.file,
+          fileKey: figmaSelection.fileKey,
+          token: figmaSelection.token,
+        });
+        // Mesmo caminho da geração por IA: a jornada nasce vazia e o fluxo montado entra como uma
+        // edição salva por cima, que o usuário revisa no editor.
+        const journey =
+          createdJourneyRef.current ?? (await createJourney({ productId, channelTypes, name, description }));
+        createdJourneyRef.current = journey;
+        await updateFlow(journey.journeyId, {
+          name: built.name,
+          // Organiza igual à geração por IA. As posições que vêm do desenho são fiéis a ele, mas
+          // numa escala que o editor não comporta: um desenho se espalha por dezenas de milhares
+          // de pixels, e trazer isso vira um canvas vazio e grande demais para navegar.
+          nodes: layoutFlowNodes(built.nodes, built.connections),
+          connections: built.connections,
+          annotations: [],
+        });
+        onCreated(journey);
+        return;
+      }
       if (mode === 'ai') {
         const journey =
           createdJourneyRef.current ??
@@ -174,21 +207,23 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
   const canSubmit =
     mode === 'template'
       ? baseFieldsValid && !!templateId
-      : mode === 'ai'
-        ? baseFieldsValid && !!aiPrompt.trim()
-        : baseFieldsValid;
+      : mode === 'figma'
+        ? baseFieldsValid && !!figmaSelection
+        : mode === 'ai'
+          ? baseFieldsValid && !!aiPrompt.trim()
+          : baseFieldsValid;
 
   return (
     <Modal
       title="Nova jornada"
-      subtitle="Defina os dados da jornada e escolha como começar: em branco, a partir de um exemplo ou com uma geração por IA."
-      width={mode === 'ai' ? 640 : 460}
+      subtitle="Defina os dados da jornada e escolha como começar: em branco, a partir de um exemplo, com uma geração por IA ou a partir de um arquivo de design."
+      width={mode === 'ai' || mode === 'figma' ? 640 : 460}
       onClose={onClose}
       footer={
         <>
           <SecondaryButton onClick={onClose}>Cancelar</SecondaryButton>
           <PrimaryButton onClick={submit} loading={saving} disabled={!canSubmit}>
-            {mode === 'ai' ? 'Gerar e criar jornada' : 'Criar jornada'}
+            {mode === 'ai' ? 'Gerar e criar jornada' : mode === 'figma' ? 'Importar e criar jornada' : 'Criar jornada'}
           </PrimaryButton>
         </>
       }
@@ -201,7 +236,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
         }}
         className="flex flex-col gap-4 flex-1 min-h-0"
       >
-        <div className={`flex flex-col${mode === 'ai' ? ' flex-1 min-h-0' : ''}`}>
+        <div className={`flex flex-col${mode === 'ai' || mode === 'figma' ? ' flex-1 min-h-0' : ''}`}>
           <div className="flex gap-1 border-b" style={{ borderColor: c.border }}>
             {TABS.map((tab) => {
               const active = mode === tab.mode;
@@ -226,6 +261,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
                   {tab.mode === 'blank' && <FilePlus2 size={14} />}
                   {tab.mode === 'template' && <GitBranch size={14} />}
                   {tab.mode === 'ai' && <Sparkles size={14} />}
+                  {tab.mode === 'figma' && <Frame size={14} />}
                   {tab.label}
                 </button>
               );
@@ -314,6 +350,12 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
               )}
             </div>
           )}
+
+          {/* Fica montado mesmo fora da aba ativa: o que já foi lido do arquivo sobrevive a uma ida
+              e volta em "Dados da jornada", sem obrigar a ler tudo de novo. */}
+          <div hidden={mode !== 'figma'} className="flex-1 min-h-0 flex flex-col">
+            <FigmaImportTab disabled={saving} channelOptions={channelTypes} onChange={setFigmaSelection} />
+          </div>
 
           {mode === 'ai' && (
             <div className="mt-3 flex-1 min-h-0 flex flex-col gap-2">

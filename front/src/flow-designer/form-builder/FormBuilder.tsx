@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
-import { AlertTriangle, FileInput, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
+import { AlertTriangle, FileInput, Frame, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
 import { useFlowTheme } from '../theme';
 import type { VariableOrigin } from '../model';
 import { listAuthoringComponentDefinitions, listComponentDefinitions, type ComponentDefinition, type PropDescriptor } from '../../api/componentDefinitions';
@@ -15,6 +15,7 @@ import { tokensForGroup } from '../../sdui/designTokens';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
 import { propertyPresentation, type PropertyPresentation } from './propertyPresentation';
 import { ConfirmDialog } from '../../products/ConfirmDialog';
+import { FigmaScreenImportModal } from './FigmaScreenImportModal';
 
 function registryKey(type: string, version: string): string {
   return `${type}@${version}`;
@@ -46,6 +47,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
   const [issuesOpen, setIssuesOpen] = useState(false);
   const [inspectorFocusRequest, setInspectorFocusRequest] = useState<InspectorFocusRequest | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
+  const [figmaImportOpen, setFigmaImportOpen] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   useEffect(() => {
@@ -79,6 +81,15 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
     if (!screenDefinition) return;
     onPushHistory();
     onChange(createNode(screenDefinition));
+  }
+
+  /** A tela que volta do Figma já é um ui.screen pronto (mesma forma que createNode produziria) —
+   * substitui a raiz inteira, igual a "Criar tela". A confirmação de substituir algo que já existe
+   * acontece dentro do próprio modal, antes de chegar aqui. */
+  function handleImportFigmaScreen(screen: SduiNode) {
+    onPushHistory();
+    onChange(screen);
+    setSelectedId(screen.id);
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -294,14 +305,27 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
         <div className="text-[12.5px]" style={{ color: c.textSecondary }}>
           Esta Tarefa de Usuário ainda não tem tela desenhada.
         </div>
-        <button
-          onClick={handleCreateScreen}
-          disabled={!screenDefinition}
-          className="px-4 py-[8px] rounded-md border-0 cursor-pointer text-[12.5px] font-medium"
-          style={{ background: c.accent, color: '#fff', opacity: screenDefinition ? 1 : 0.5 }}
-        >
-          Criar tela
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCreateScreen}
+            disabled={!screenDefinition}
+            className="px-4 py-[8px] rounded-md border-0 cursor-pointer text-[12.5px] font-medium"
+            style={{ background: c.accent, color: '#fff', opacity: screenDefinition ? 1 : 0.5 }}
+          >
+            Criar tela
+          </button>
+          <button
+            onClick={() => setFigmaImportOpen(true)}
+            disabled={!screenDefinition}
+            className="px-4 py-[8px] rounded-md cursor-pointer text-[12.5px] font-medium flex items-center gap-1.5"
+            style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textPrimary, opacity: screenDefinition ? 1 : 0.5 }}
+          >
+            <Frame size={13} /> Importar do Figma
+          </button>
+        </div>
+        {figmaImportOpen && (
+          <FigmaScreenImportModal onClose={() => setFigmaImportOpen(false)} onImport={handleImportFigmaScreen} hasExistingContent={false} />
+        )}
       </div>
     );
   }
@@ -331,6 +355,12 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
                 {authoringIssues.length} {authoringIssues.length === 1 ? 'pendência' : 'pendências'}
               </button>
             )}
+            <ToolButton
+              title="Importar tela do Figma (substitui a tela atual)"
+              active={figmaImportOpen}
+              onClick={() => setFigmaImportOpen(true)}
+              icon={Frame}
+            />
             <ToolButton
               title={paletteOpen ? 'Recolher componentes' : 'Mostrar componentes'}
               active={paletteOpen}
@@ -399,6 +429,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
             </div>
             <button type="button" onClick={() => applyStarterTemplate('information')} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}><Info size={13} /> Informativa</button>
             <button type="button" onClick={() => applyStarterTemplate('basicForm')} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}><FileInput size={13} /> Coleta básica</button>
+            <button type="button" onClick={() => setFigmaImportOpen(true)} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}><Frame size={13} /> Importar do Figma</button>
           </div>
         )}
         <div className="flex-1 flex min-h-0">
@@ -451,6 +482,13 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
           confirmLabel="Remover grupo"
           onConfirm={() => performRemove(pendingRemovalId)}
           onCancel={() => setPendingRemovalId(null)}
+        />
+      )}
+      {figmaImportOpen && (
+        <FigmaScreenImportModal
+          onClose={() => setFigmaImportOpen(false)}
+          onImport={handleImportFigmaScreen}
+          hasExistingContent={(root.children?.length ?? 0) > 0}
         />
       )}
     </DndContext>

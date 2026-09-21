@@ -126,6 +126,27 @@ export function apiDelete<T>(path: string): Promise<T> {
   return request<T>(path, { method: 'DELETE' });
 }
 
+/** Baixa um arquivo montado pelo servidor. Um link direto não serviria: a rota exige o mesmo
+ * cabeçalho de autenticação das outras chamadas, que só um fetch consegue enviar. */
+export async function apiDownload(path: string, fileName: string): Promise<void> {
+  const token = getStoredToken();
+  const response = await fetch(`${BASE_URL}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    if (response.status === 401) onUnauthorized?.();
+    throw new ApiClientError(response.status, 'Não foi possível baixar o arquivo.');
+  }
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 // POST que consome uma resposta text/event-stream (SSE) linha a linha, chamando onEvent pra cada
 // bloco "event: X\ndata: Y" recebido — usado pelo "Gerar com IA" do flow-designer, que pode levar
 // várias tentativas e quer mostrar o progresso ao vivo em vez de só esperar o resultado final.

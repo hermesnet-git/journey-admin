@@ -1,23 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAppTheme } from '../shell/theme';
 
-// Backdrop click-to-close, robust against a drag that starts inside the panel and releases
-// outside it — dragging the resize handle to enlarge the panel (or just selecting text) ends the
-// mouseup over the backdrop, which a plain onClick={onClose} normalizes to a backdrop click and
-// closes the modal mid-resize. Recording where the mousedown happened (before any drag) tells the
-// two apart. Same fix already applied to flow-designer's own Modal (PropertyGrid.tsx).
-function useBackdropClose(onClose: () => void) {
-  const [mouseDownOnBackdrop, setMouseDownOnBackdrop] = useState(false);
-  return {
-    onMouseDown: (e: React.MouseEvent) => setMouseDownOnBackdrop(e.target === e.currentTarget),
-    onClick: () => {
-      if (mouseDownOnBackdrop) onClose();
-      setMouseDownOnBackdrop(false);
-    },
-  };
-}
+// Clicar fora não fecha: todo modal daqui guarda algo em preenchimento, e um clique de raspão
+// jogava fora o que já tinha sido digitado. Fechar é sempre um ato deliberado — Cancelar, o X ou
+// a tecla Esc.
 
 interface ModalProps {
   title: string;
@@ -35,7 +23,6 @@ interface ModalProps {
 
 export function Modal({ title, subtitle, icon, onClose, children, footer, width = 460 }: ModalProps) {
   const { colors: c } = useAppTheme();
-  const backdrop = useBackdropClose(onClose);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -48,10 +35,8 @@ export function Modal({ title, subtitle, icon, onClose, children, footer, width 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[2px] p-4 animate-[modal-backdrop-in_180ms_ease-out]"
-      {...backdrop}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         // resize (largura+altura) + overflow-hidden: o usuário pode puxar o canto pra abrir mais
         // espaço quando o conteúdo (ex.: lista de violações) for grande — min/max dão o piso/teto
         // pra não encolher a ponto de cortar o cabeçalho nem crescer além da tela. Largura inicial

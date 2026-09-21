@@ -145,16 +145,15 @@ export function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean
 }
 
 // Generic centered dialog, shared by every "..." row editor and the connector test panel.
+// Clicar fora não fecha (mesma regra do Modal compartilhado do admin): o que está sendo editado
+// aqui se perderia num clique de raspão. Fechar é sempre deliberado.
 export function Modal({ title, onClose, width = 420, children }: { title: string; onClose: () => void; width?: number; children: React.ReactNode }) {
   const { c } = useFlowTheme();
-  const backdrop = useBackdropClose(onClose);
   return (
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-      {...backdrop}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{ width, maxHeight: '80vh', overflowY: 'auto', background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 18 }}
       >
         <div style={{ fontSize: 15, fontWeight: 700, color: c.textPrimary, marginBottom: 12 }}>{title}</div>

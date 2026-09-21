@@ -1,0 +1,44 @@
+Exportar para o Elastic Journey — plugin do Figma
+=================================================
+
+Para que serve
+--------------
+Gera, a partir do desenho aberto no Figma, um arquivo com as telas, as decisões e os
+caminhos entre elas. Esse arquivo é enviado no Elastic Journey, em Nova jornada, e vira
+o fluxo da jornada já montado.
+
+O plugin não acessa a internet. Ele lê o desenho que está na sua frente e grava um
+arquivo na sua máquina — nada é enviado para lugar nenhum.
+
+
+Instalação (uma vez por computador)
+-----------------------------------
+É preciso o aplicativo do Figma para computador. Pelo navegador não é possível instalar.
+
+1. Descompacte esta pasta em algum lugar onde ela possa ficar. Se apagar a pasta, o
+   plugin para de funcionar.
+2. Abra o aplicativo do Figma.
+3. No menu, vá em Plugins > Development > Import plugin from manifest...
+   (em português: Plugins > Desenvolvimento > Importar plugin do manifesto...)
+4. Escolha o arquivo manifest.json que está dentro desta pasta.
+
+Pronto. O plugin passa a aparecer em Plugins > Development, em qualquer arquivo.
+
+
+Como usar
+---------
+1. Abra o arquivo de design no Figma.
+2. Selecione no canvas o agrupamento que deve virar a jornada.
+   Sem nada selecionado, a página inteira é exportada.
+3. Menu Plugins > Development > Exportar para o Elastic Journey.
+4. Confira o que está descrito na janela e clique em "Exportar arquivo".
+5. No Elastic Journey: Nova jornada > aba Figma > Enviar arquivo.
+
+
+Se o plugin não aparecer no menu
+--------------------------------
+O Figma só permite plugins em arquivos que você pode editar. Em um arquivo aberto por
+link de visualização, o menu de plugins fica indisponível — não é falha da instalação.
+
+Nesse caso, faça uma cópia do arquivo para a sua conta (menu Arquivo > Duplicar para os
+rascunhos) e rode o plugin na cópia, ou peça a exportação a quem tem acesso de edição.

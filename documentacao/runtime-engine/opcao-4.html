@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Por que ela parou · o motor por dentro</title>
+<link rel="stylesheet" href="estilo.css" />
+<script>
+(function(){var t=null;try{t=localStorage.getItem('motor-tema')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}
+if(['light','dark','graphite'].indexOf(t)<0)t='light';document.documentElement.setAttribute('data-theme',t)})();
+</script>
+</head>
+<body data-op="4">
+<div class="deck">
+  <header data-masthead></header>
+  <main>
+    <span class="eyebrow">Opção 4 · Por que ela parou</span>
+    <h1>Cinco execuções paradas, <em>cinco motivos</em></h1>
+    <p class="lead">
+      Uma execução parada continua guardada por inteiro, com tudo o que já andou. O que muda de um caso para o outro
+      é quem tem a chave para destravar. Experimente os cinco cartões.
+    </p>
+
+    <div class="proto" id="p">
+      <div class="narr"><span class="pill">Experimente</span><p data-narr>Cada cartão está parado por um motivo diferente. Destrave um por um e veja o que o motor precisa receber.</p></div>
+      <div class="espera" data-cards></div>
+      <div class="ctrl">
+        <button data-reset>Prender todas de novo</button>
+        <span class="spacer"></span>
+        <span class="count" data-count></span>
+      </div>
+    </div>
+  </main>
+  <nav data-nav></nav>
+</div>
+
+<script src="motor.js"></script>
+<script>
+(function(){
+  var r=$('#p'),estado={};
+  var C=[
+    {k:'pessoa',g:'usuario',t:'Esperando uma pessoa',real:'user task',
+     por:'A execução <em>#4821</em> parou no cadastro. Ela só sai daqui quando alguém responder a tarefa.',
+     botao:'responder a tarefa',
+     livre:'Respondida. O que foi preenchido virou memória e a execução seguiu para a próxima parada.'},
+    {k:'servico',g:'servico',t:'Esperando um serviço',real:'service task',
+     por:'A execução <em>#4822</em> publicou trabalho no assunto <em>consulta-cpf</em> e aguarda quem atende vir pegar.',
+     botao:'entregar o resultado',
+     livre:'Resultado recebido e guardado na execução, que voltou a andar.'},
+    {k:'tempo',g:'timer',t:'Esperando o prazo',real:'timer',
+     por:'A execução <em>#4823</em> tem um prazo de dois dias pela frente. Quem solta é o relógio do motor.',
+     botao:'adiantar o relógio em 24h',
+     livre:'O prazo venceu e o motor acordou a execução sozinho, sem ninguém pedir.'},
+    {k:'aviso',g:'mensagem',t:'Esperando um aviso',real:'message',
+     por:'A execução <em>#4824</em> espera um aviso chamado <em>pagamento-confirmado</em>. O nome precisa bater.',
+     botao:'mandar o aviso',
+     livre:'O nome bateu com o que ela esperava e a execução foi liberada.',
+     campo:'pagamento-recebido',esperado:'pagamento-confirmado'},
+    {k:'erro',g:'erro',t:'Travada por falha',real:'incident',
+     por:'A execução <em>#4825</em> tentou três vezes e o serviço não respondeu. Ela ficou parada no mesmo ponto.',
+     botao:'resolver e retomar',
+     livre:'Retomou exatamente de onde parou, sem repetir nada do que já tinha passado.'}
+  ];
+  function pinta(){
+    $('[data-cards]',r).innerHTML=C.map(function(c,k){
+      var e=estado[c.k]||{},livre=e.livre,extra='';
+      if(c.k==='tempo'&&!livre) extra='<div class="relogio">'+(e.n===undefined?48:e.n)+'h</div>';
+      if(c.k==='aviso'&&!livre) extra='<input data-inp="'+k+'" aria-label="nome do aviso" value="'+esc(e.v!==undefined?e.v:c.campo)+'" />';
+      if(c.k==='erro'&&!livre) extra='<span class="chip err">3 de 3 tentativas usadas</span>';
+      return '<div class="card-e'+(livre?' livre':'')+'">'+
+        '<div class="cab">'+gl(livre?'inicio':c.g)+'<b>'+(livre?'Liberada':c.t)+'</b></div>'+
+        '<div class="por">'+(livre?c.livre:c.por)+'</div>'+
+        (e.aviso?'<span class="chip err">'+esc(e.aviso)+'</span>':'')+
+        '<div class="rodape">'+extra+
+          (livre?'<span class="chip ok">seguiu em frente</span>':'<button data-b="'+k+'">'+c.botao+'</button>')+
+          '<span class="nome-real">'+c.real+'</span>'+
+        '</div></div>';
+    }).join('');
+    $$('[data-b]',r).forEach(function(b){
+      b.onclick=function(){
+        var c=C[+b.dataset.b],e=estado[c.k]||(estado[c.k]={});
+        if(c.k==='aviso'){
+          var v=$('[data-inp="'+b.dataset.b+'"]',r).value.trim();
+          e.v=v;
+          if(v!==c.esperado){e.aviso='chegou "'+v+'", a execução continua parada';pinta();return}
+          e.aviso=null;
+        }
+        if(c.k==='tempo'){
+          e.n=(e.n===undefined?48:e.n)-24;
+          if(e.n>0){pinta();return}
+        }
+        e.livre=true;pinta();
+      };
+    });
+    var n=C.filter(function(c){return (estado[c.k]||{}).livre}).length;
+    $('[data-count]',r).textContent=n+' de '+C.length+' liberadas';
+  }
+  $('[data-reset]',r).onclick=function(){estado={};pinta()};
+  pinta();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>O motor por dentro · 5 opções</title>
+<link rel="stylesheet" href="estilo.css" />
+<style>
+  .lista{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;margin-top:8px}
+  .cartao{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--border);
+    border-radius:18px;padding:20px 22px 22px;box-shadow:var(--shadow);transition:transform .18s ease,border-color .18s ease}
+  .cartao:hover{transform:translateY(-3px);border-color:var(--brand-400)}
+  .cartao .num{width:34px;height:34px;border-radius:11px;background:var(--brand);color:var(--on-brand);
+    display:grid;place-items:center;font-weight:700;font-size:13.5px;margin-bottom:13px}
+  .cartao h2{margin:0 0 7px;font-size:21px;letter-spacing:-.015em;color:var(--text-high)}
+  .cartao p{margin:0 0 13px;font-size:13.5px;line-height:1.55;color:var(--text-2)}
+  .cartao .cobre{display:flex;gap:6px;flex-wrap:wrap}
+  .cartao .cobre i{font-style:normal;font-size:10.5px;font-weight:700;color:var(--brand-700);
+    background:var(--brand-050);border:1px solid var(--brand-100);border-radius:999px;padding:3px 9px}
+  .cartao .abrir{display:block;margin-top:15px;font-size:10.5px;font-weight:800;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--brand-700)}
+</style>
+<script>
+(function(){var t=null;try{t=localStorage.getItem('motor-tema')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}
+if(['light','dark','graphite'].indexOf(t)<0)t='light';document.documentElement.setAttribute('data-theme',t)})();
+</script>
+</head>
+<body data-op="0">
+<div class="deck">
+  <header data-masthead></header>
+  <main>
+    <span class="eyebrow">Escolha o formato</span>
+    <h1>O que acontece <em>dentro do motor</em></h1>
+    <p class="lead">
+      Um desenho de processo, muitas execuções ao mesmo tempo, cada uma parada por um motivo diferente. As cinco
+      opções cobrem o mesmo repertório: como uma execução nasce, por que ela para, quem a destrava, como o motor
+      escolhe caminho, e o que ele faz quando um serviço não responde. Cada peça aparece com a palavra do dia a dia
+      e, ao lado, o nome que o time vai ouvir nas ferramentas.
+    </p>
+
+    <div class="lista">
+      <a class="cartao" href="opcao-1.html">
+        <div class="num">1</div>
+        <h2>Sala de controle</h2>
+        <p>O mesmo desenho com quatro execuções correndo ao mesmo tempo. Toque o relógio e veja cada uma andar no seu ritmo, parar por motivos diferentes e voltar.</p>
+        <div class="cobre"><i>processo e execução</i><i>tarefa de usuário</i><i>tarefa de serviço</i><i>desvio</i><i>temporizador</i><i>nova tentativa</i></div>
+        <span class="abrir">Abrir a opção 1</span>
+      </a>
+      <a class="cartao" href="opcao-2.html">
+        <div class="num">2</div>
+        <h2>Bancada de peças</h2>
+        <p>Cada peça do motor isolada, com uma demonstração curta que roda ao clicar. Serve de consulta depois, quando alguém perguntar sobre uma peça específica.</p>
+        <div class="cobre"><i>início</i><i>tarefa de usuário</i><i>tarefa de serviço</i><i>desvio</i><i>paralelo</i><i>temporizador</i><i>mensagem</i><i>erro</i></div>
+        <span class="abrir">Abrir a opção 2</span>
+      </a>
+      <a class="cartao" href="opcao-3.html">
+        <div class="num">3</div>
+        <h2>Uma execução que encontra tudo</h2>
+        <p>Um processo montado de propósito para passar por cada tipo de peça, percorrido passo a passo, com a memória da execução crescendo ao lado.</p>
+        <div class="cobre"><i>história linear</i><i>memória da execução</i><i>todas as peças em sequência</i></div>
+        <span class="abrir">Abrir a opção 3</span>
+      </a>
+      <a class="cartao" href="opcao-4.html">
+        <div class="num">4</div>
+        <h2>Por que ela parou</h2>
+        <p>Cinco execuções paradas por motivos diferentes e, em cada cartão, o gesto que destrava. O aviso só libera quando o nome bate com o esperado.</p>
+        <div class="cobre"><i>espera por pessoa</i><i>espera por serviço</i><i>temporizador</i><i>mensagem com nome</i><i>execução travada</i></div>
+        <span class="abrir">Abrir a opção 4</span>
+      </a>
+      <a class="cartao" href="opcao-5.html">
+        <div class="num">5</div>
+        <h2>A fila de trabalho do motor</h2>
+        <p>O trabalho separado por assunto, com dois executores que você liga e desliga. A fila do executor desligado cresce na sua frente.</p>
+        <div class="cobre"><i>tarefa de serviço</i><i>assunto da fila</i><i>quem executa</i><i>nova tentativa</i><i>execução travada</i></div>
+        <span class="abrir">Abrir a opção 5</span>
+      </a>
+    </div>
+  </main>
+</div>
+<script src="motor.js"></script>
+</body>
+</html>

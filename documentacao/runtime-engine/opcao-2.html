@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bancada de peças · o motor por dentro</title>
+<link rel="stylesheet" href="estilo.css" />
+<script>
+(function(){var t=null;try{t=localStorage.getItem('motor-tema')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}
+if(['light','dark','graphite'].indexOf(t)<0)t='light';document.documentElement.setAttribute('data-theme',t)})();
+</script>
+</head>
+<body data-op="2">
+<div class="deck">
+  <header data-masthead></header>
+  <main>
+    <span class="eyebrow">Opção 2 · Bancada de peças</span>
+    <h1>As peças que o motor <em>conhece</em></h1>
+    <p class="lead">
+      Cada peça tem um comportamento fixo, sempre o mesmo. Escolha uma para ver o que acontece quando a execução
+      chega nela e o que precisa acontecer para ela seguir em frente.
+    </p>
+
+    <div class="proto" id="p">
+      <div class="pecas" data-pecas></div>
+      <div class="stage" style="grid-template-columns:1.15fr 1fr">
+        <div class="demo" data-demo></div>
+        <div class="peca-txt" data-txt></div>
+      </div>
+      <p class="hint">A demonstração roda sozinha ao escolher a peça. Quando ela depende de algo vindo de fora, o botão aparece do lado direito.</p>
+    </div>
+  </main>
+  <nav data-nav></nav>
+</div>
+
+<script src="motor.js"></script>
+<script>
+(function(){
+  var r=$('#p'),atual=0,tid=[];
+  var P=[
+    {g:'inicio',nome:'Início',real:'start event',
+     txt:'Toda execução nasce de um gatilho: alguém pediu, chegou um aviso de outro sistema, ou deu a hora marcada. O motor cria a execução e já anota onde ela está.',
+     espera:'nascendo',solta:'auto',atraso:900,rotulo:'execução criada'},
+    {g:'usuario',nome:'Tarefa de usuário',real:'user task',
+     txt:'O motor para aqui e não segue por conta própria. A parada fica guardada até uma pessoa responder. Mil execuções podem ficar paradas assim ao mesmo tempo sem pesar nada.',
+     espera:'esperando a pessoa',solta:'botao',botao:'a pessoa respondeu'},
+    {g:'servico',nome:'Tarefa de serviço',real:'service task',
+     txt:'O motor precisa que alguém faça um trabalho, então publica esse trabalho num assunto e aguarda a resposta. Ele encomenda o serviço, quem executa é outro programa.',
+     espera:'trabalho publicado',solta:'auto',atraso:1600,rotulo:'alguém pegou e devolveu pronto'},
+    {g:'desvio',nome:'Desvio',real:'gateway exclusivo',
+     txt:'O motor lê uma informação guardada na própria execução e escolhe um caminho só. A escolha sai do que ele já tem em mãos, sem perguntar para ninguém.',
+     espera:'comparando a informação',solta:'escolha',saida:'dupla'},
+    {g:'paralelo',nome:'Caminhos ao mesmo tempo',real:'gateway paralelo',
+     txt:'Aqui a execução se divide e segue por mais de um caminho junto. No encontro do outro lado, o motor só continua quando todos os caminhos chegarem.',
+     espera:'dividindo',solta:'auto',atraso:1000,saida:'ambas',rotulo:'os dois caminhos seguem juntos'},
+    {g:'timer',nome:'Temporizador',real:'timer',
+     txt:'A execução fica presa até o prazo vencer, seja um tempo de espera ou uma data marcada. Quem solta é o próprio relógio do motor, sem ninguém mexer.',
+     espera:'contando',solta:'contagem'},
+    {g:'mensagem',nome:'Espera por aviso',real:'message',
+     txt:'A execução fica parada esperando um aviso vindo de fora, e esse aviso tem nome. Se o nome não bater com o que ela espera, ela continua parada.',
+     espera:'esperando pagamento-confirmado',solta:'mensagem',esperado:'pagamento-confirmado'},
+    {g:'erro',nome:'Falha e nova tentativa',real:'incident',
+     txt:'Quando o trabalho falha, o motor tenta de novo sozinho, um número combinado de vezes. Esgotadas as tentativas, ele trava a execução naquele ponto e chama gente. Nada do que já passou se perde.',
+     espera:'tentando de novo',solta:'retentativa'}
+  ];
+  function limpa(){tid.forEach(clearTimeout);tid=[]}
+  function T(f,ms){tid.push(setTimeout(f,ms))}
+  function demoHTML(p){
+    var dupla=p.saida==='dupla',ambas=p.saida==='ambas';
+    return '<div class="rail'+(dupla||ambas?' up':'')+'"></div>'+((dupla||ambas)?'<div class="rail dn"></div>':'')+
+      '<div class="slot" style="left:10%"><div class="box">'+gl('inicio')+'<b>antes</b></div></div>'+
+      '<div class="slot peca" style="left:50%"><div class="box">'+gl(p.g)+'<b>'+p.nome+'</b></div></div>'+
+      (dupla||ambas
+        ? '<div class="slot up" style="left:90%"><div class="box">'+gl(ambas?'servico':'fim')+'<b>'+(ambas?'caminho A':'caminho sim')+'</b></div></div>'+
+          '<div class="slot dn" style="left:90%"><div class="box">'+gl(ambas?'usuario':'fim')+'<b>'+(ambas?'caminho B':'caminho não')+'</b></div></div>'
+        : '<div class="slot" style="left:90%"><div class="box">'+gl('fim')+'<b>depois</b></div></div>')+
+      '<div class="mk" data-mk></div>'+(ambas?'<div class="mk" data-mk2 style="opacity:0"></div>':'')+
+      '<div class="selo" data-selo hidden></div>';
+  }
+  function selo(txt,erro){
+    var s=$('[data-selo]',r);
+    if(!txt){s.hidden=true;return}
+    s.hidden=false;s.textContent=txt;
+    s.style.color=erro?'var(--error-ink)':'var(--brand-700)';
+    s.style.borderColor=erro?'var(--error-border)':'var(--brand-100)';
+    s.style.background=erro?'var(--error-low)':'var(--surface)';
+  }
+  function roda(){
+    limpa();
+    var p=P[atual],d=$('[data-demo]',r);
+    d.innerHTML=demoHTML(p);
+    var mk=$('[data-mk]',d),mk2=$('[data-mk2]',d);
+    var solto=false;
+    T(function(){mk.style.left='50%'},260);
+    T(function(){
+      mk.classList.add('parado');
+      selo(p.espera);
+      if(p.solta==='auto'){
+        T(function(){
+          selo(p.rotulo||'liberou');
+          mk.classList.remove('parado');
+          if(p.saida==='ambas'){
+            mk.style.top='30%';mk.style.left='90%';
+            if(mk2){mk2.style.opacity='1';mk2.style.left='50%';T(function(){mk2.style.top='70%';mk2.style.left='90%'},90)}
+          } else mk.style.left='90%';
+        },p.atraso||1200);
+      }
+      if(p.solta==='contagem'){
+        var n=3;selo('faltam '+n+' dias');
+        var passo=function(){
+          n--;
+          if(n>0){selo('falta'+(n===1?' ':'m ')+n+(n===1?' dia':' dias'));T(passo,1000)}
+          else{selo('o prazo venceu');mk.classList.remove('parado');mk.style.left='90%'}
+        };
+        T(passo,1000);
+      }
+      if(p.solta==='retentativa'){
+        var k=1;mk.classList.add('erro');
+        var tenta=function(){
+          if(k<3){selo('tentativa '+k+' de 3 falhou',true);k++;T(tenta,1200)}
+          else selo('travada, esperando alguém resolver',true);
+        };
+        T(tenta,1000);
+      }
+    },1150);
+
+    var acao='';
+    if(p.solta==='botao') acao='<button data-a>'+p.botao+'</button>';
+    if(p.solta==='escolha') acao='<button data-a data-v="sim">a informação diz sim</button><button class="sec" data-a data-v="nao">a informação diz não</button>';
+    if(p.solta==='mensagem') acao='<input data-msg value="pagamento-recebido" aria-label="nome do aviso" /><button data-a>mandar o aviso</button>';
+    if(p.solta==='retentativa') acao='<button data-a>resolver e retomar</button>';
+    $('[data-txt]',r).innerHTML='<h3>'+p.nome+'</h3><p>'+p.txt+'</p>'+
+      '<p class="nome-real" style="margin-bottom:12px">nas ferramentas aparece como: '+p.real+'</p>'+
+      (acao?'<div class="acao">'+acao+'</div>':'')+
+      (p.solta==='mensagem'?'<p class="hint">Mande primeiro com o nome errado e veja o que acontece.</p>':'');
+
+    $$('[data-a]',r).forEach(function(b){
+      b.onclick=function(){
+        if(solto&&p.solta!=='mensagem') return;
+        if(p.solta==='mensagem'){
+          var v=$('[data-msg]',r).value.trim();
+          if(v!==p.esperado){selo('chegou "'+v+'", não é o nome que ela espera',true);return}
+          selo('o aviso bateu com o nome esperado');
+        } else if(p.solta==='escolha'){
+          selo(this.dataset.v==='sim'?'seguiu pelo caminho sim':'seguiu pelo caminho não');
+          mk.style.top=this.dataset.v==='sim'?'30%':'70%';
+        } else if(p.solta==='retentativa'){
+          selo('alguém resolveu, ela retoma do mesmo ponto');
+          mk.classList.remove('erro');
+        } else selo('a resposta chegou');
+        solto=true;limpa();
+        mk.classList.remove('parado');
+        T(function(){mk.style.left='90%'},260);
+      };
+    });
+  }
+  $('[data-pecas]',r).innerHTML=P.map(function(p,i){
+    return '<button type="button" data-k="'+i+'" aria-pressed="'+(i===0)+'">'+gl(p.g)+p.nome+'</button>';
+  }).join('');
+  $$('[data-pecas] button',r).forEach(function(b){
+    b.onclick=function(){
+      atual=+b.dataset.k;
+      $$('[data-pecas] button',r).forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});
+      roda();
+    };
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft') return;
+    atual=(atual+(e.key==='ArrowRight'?1:P.length-1))%P.length;
+    $$('[data-pecas] button',r).forEach(function(x,i){x.setAttribute('aria-pressed',String(i===atual))});
+    roda();
+  });
+  roda();
+})();
+</script>
+</body>
+</html>

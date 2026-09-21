@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Uma execução que encontra tudo · o motor por dentro</title>
+<link rel="stylesheet" href="estilo.css" />
+<script>
+(function(){var t=null;try{t=localStorage.getItem('motor-tema')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}
+if(['light','dark','graphite'].indexOf(t)<0)t='light';document.documentElement.setAttribute('data-theme',t)})();
+</script>
+</head>
+<body data-op="3">
+<div class="deck">
+  <header data-masthead></header>
+  <main>
+    <span class="eyebrow">Opção 3 · Uma execução que encontra tudo</span>
+    <h1>A vida inteira de <em>uma execução</em></h1>
+    <p class="lead">
+      Um processo montado de propósito para esbarrar em cada tipo de peça, percorrido passo a passo.
+      A memória da execução cresce à direita conforme ela avança.
+    </p>
+
+    <div class="proto" id="p">
+      <div class="narr"><span class="pill">Passo <b data-n>1</b></span><p data-narr></p></div>
+      <div class="stage" style="grid-template-columns:1.45fr .9fr">
+        <div class="pane">
+          <h4>Por onde ela já passou</h4>
+          <div class="trilho" data-trilho style="flex-direction:column"></div>
+        </div>
+        <div>
+          <div class="pane" style="margin-bottom:15px">
+            <h4>O que o motor faz aqui</h4>
+            <p style="margin:0;font-size:14px;line-height:1.55;color:var(--text-2)" data-det></p>
+            <div style="margin-top:11px" data-selo></div>
+          </div>
+          <div class="pane">
+            <h4>Memória da execução</h4>
+            <div data-mem style="display:flex;flex-direction:column;gap:7px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ctrl">
+        <button data-prev>Voltar</button>
+        <button class="primary" data-next>Avançar</button>
+        <button data-reset>Recomeçar</button>
+        <span class="spacer"></span>
+        <span class="count" data-count></span>
+      </div>
+    </div>
+  </main>
+  <nav data-nav></nav>
+</div>
+
+<script src="motor.js"></script>
+<script>
+(function(){
+  var r=$('#p'),i=0;
+  var PASSOS=[
+    {b:'Início',tp:'start event',g:'inicio',
+     n:'Um pedido chega e o motor cria a execução. Ela ganha um número próprio e carrega a própria memória.',
+     d:'O desenho já existia antes. O que nasce agora é uma execução dele, separada de todas as outras.',mem:1},
+    {b:'Cadastro',tp:'user task',g:'usuario',
+     n:'A execução para na primeira tarefa de usuário e fica guardada até alguém responder.',
+     d:'O motor não fica ocupado enquanto espera. Ele grava a posição e sai de cena.',mem:1},
+    {b:'Cadastro respondido',tp:'user task',g:'usuario',
+     n:'A resposta chega. Cada campo respondido vira informação guardada na execução.',
+     d:'A partir daqui, qualquer parada seguinte pode consultar esses valores.',mem:3},
+    {b:'Consulta na base',tp:'service task · assunto consulta-cpf',g:'servico',
+     n:'O motor publica o trabalho num assunto e espera quem atende aquele assunto vir pegar.',
+     d:'Quem executa é outro programa, que assina esse assunto. O motor encomenda e aguarda a devolutiva.',mem:4},
+    {b:'Análise',tp:'gateway exclusivo',g:'desvio',
+     n:'O desvio compara a informação guardada com a regra do caminho e escolhe um só.',
+     d:'Nada aqui é sorteado. O caminho sai do que já está na memória da execução.',mem:5},
+    {b:'Aprovação e aviso',tp:'gateway paralelo',g:'paralelo',
+     n:'A execução se divide: um caminho pede aprovação de uma pessoa, o outro dispara o aviso ao cliente.',
+     d:'Os dois correm juntos. No encontro do outro lado, o motor espera os dois chegarem para seguir.',mem:5},
+    {b:'Espera pelo aviso',tp:'message',g:'mensagem',
+     n:'Um dos caminhos fica parado esperando um aviso de fora, que precisa chegar com o nome combinado.',
+     d:'Aviso com nome diferente não solta a execução. É por isso que esse nome costuma ser acertado antes.',mem:5},
+    {b:'Prazo de 2 dias',tp:'timer',g:'timer',
+     n:'O outro caminho tem prazo. Se ninguém responder até lá, o motor segue por uma saída alternativa.',
+     d:'O relógio é do motor. Ele acorda a execução na hora marcada mesmo sem ninguém mexer.',mem:5},
+    {b:'Envio do contrato',tp:'service task · assunto envio-contrato',g:'servico',
+     n:'O serviço falha e o motor tenta de novo sozinho. Esgotadas as tentativas, ele trava a execução ali.',
+     d:'Travada continua inteira. Ela guarda tudo o que já andou e retoma do mesmo ponto depois.',mem:6},
+    {b:'Fim',tp:'end event',g:'fim',
+     n:'Alguém resolve a causa, a execução retoma, chega ao fim e o motor encerra.',
+     d:'A memória inteira fica registrada, com o horário de cada parada.',mem:7}
+  ];
+  var MEM=[['Execução','#4821'],['Começou','hoje, 09:12'],['Nome','Ana Ribeiro'],['Renda','R$ 4.200'],
+           ['Situação na base','regular'],['Caminho','aprovado'],['Tentativas','3 de 3'],['Encerrada','hoje, 11:48']];
+  function pinta(){
+    var p=PASSOS[i];
+    $('[data-narr]',r).textContent=p.n;
+    $('[data-n]',r).textContent=i+1;
+    $('[data-count]',r).textContent=(i+1)+' de '+PASSOS.length;
+    $('[data-det]',r).textContent=p.d;
+    $('[data-selo]',r).innerHTML='<span class="chip">'+gl(p.g)+p.tp+'</span>';
+    $('[data-trilho]',r).innerHTML=PASSOS.map(function(x,k){
+      var cls=k<i?'done':(k===i?'on':'');
+      return '<div class="no '+cls+'" style="display:flex;align-items:center;gap:11px;flex-direction:row">'+
+        '<div class="top" style="margin:0">'+gl(x.g)+'</div>'+
+        '<div><b>'+x.b+'</b><span class="tp">'+x.tp+'</span></div></div>';
+    }).join('');
+    $('[data-mem]',r).innerHTML=MEM.slice(0,p.mem).map(function(m){
+      return '<div class="chip" style="justify-content:space-between;width:100%"><span>'+m[0]+
+        '</span><b style="font-family:var(--mono)">'+m[1]+'</b></div>';
+    }).join('');
+    $('[data-prev]',r).disabled=i===0;
+    $('[data-next]',r).disabled=i===PASSOS.length-1;
+  }
+  $('[data-next]',r).onclick=function(){if(i<PASSOS.length-1){i++;pinta()}};
+  $('[data-prev]',r).onclick=function(){if(i>0){i--;pinta()}};
+  $('[data-reset]',r).onclick=function(){i=0;pinta()};
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'&&i<PASSOS.length-1){i++;pinta()}
+    if(e.key==='ArrowLeft'&&i>0){i--;pinta()}
+  });
+  pinta();
+})();
+</script>
+</body>
+</html>

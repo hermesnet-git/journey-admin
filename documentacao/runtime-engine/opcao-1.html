@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sala de controle · o motor por dentro</title>
+<link rel="stylesheet" href="estilo.css" />
+<script>
+(function(){var t=null;try{t=localStorage.getItem('motor-tema')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}
+if(['light','dark','graphite'].indexOf(t)<0)t='light';document.documentElement.setAttribute('data-theme',t)})();
+</script>
+</head>
+<body data-op="1">
+<div class="deck">
+  <header data-masthead></header>
+  <main>
+    <span class="eyebrow">Opção 1 · Sala de controle</span>
+    <h1>Um desenho, <em>muitas execuções</em></h1>
+    <p class="lead">
+      O processo é desenhado uma vez só. Cada pessoa que entra na jornada vira uma execução separada, com a própria
+      posição e a própria memória. Toque o relógio e acompanhe quatro delas andando em ritmos diferentes.
+    </p>
+
+    <div class="proto" id="p">
+      <div class="narr"><span class="pill">Relógio <b data-n>0</b></span><p data-narr></p></div>
+      <div class="stage" style="grid-template-columns:1fr">
+        <div class="pane">
+          <h4>O desenho do processo · vale para todas as execuções</h4>
+          <div class="trilho" data-trilho></div>
+        </div>
+        <div class="pane">
+          <h4>As execuções em andamento</h4>
+          <table class="ex">
+            <thead><tr><th style="width:110px">Execução</th><th style="width:30%">Onde está</th><th>Situação</th></tr></thead>
+            <tbody data-tb></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ctrl">
+        <button class="primary" data-play>Tocar</button>
+        <button data-next>Avançar</button>
+        <button data-reset>Recomeçar</button>
+        <span class="spacer"></span>
+        <span class="count" data-count></span>
+      </div>
+    </div>
+  </main>
+  <nav data-nav></nav>
+</div>
+
+<script src="motor.js"></script>
+<script>
+(function(){
+  var r=$('#p'),t=0,timer=null;
+  var NOS=[
+    {b:'Início',tp:'alguém pede ou chega um aviso',g:'inicio'},
+    {b:'Cadastro',tp:'tarefa de usuário',g:'usuario'},
+    {b:'Consulta na base',tp:'tarefa de serviço',g:'servico'},
+    {b:'Análise',tp:'desvio',g:'desvio'},
+    {b:'Espera de 2 dias',tp:'temporizador',g:'timer'},
+    {b:'Envio do contrato',tp:'tarefa de serviço',g:'servico'},
+    {b:'Fim',tp:'encerra a execução',g:'fim'}
+  ];
+  var EX=[
+    {id:'#4821',s:[[0,'andando','acabou de nascer'],[1,'pessoa','o cliente ainda não respondeu'],[1,'pessoa','o cliente ainda não respondeu'],[1,'pessoa','o cliente ainda não respondeu'],[2,'fila','trabalho publicado no assunto consulta-cpf'],[2,'rodando','alguém pegou e está executando'],[3,'andando','a informação guardada mandou pelo caminho aprovado'],[4,'tempo','faltam 2 dias'],[5,'fila','no assunto envio-contrato'],[6,'fim','terminou']]},
+    {id:'#4822',s:[[1,'pessoa','esperando'],[2,'fila',''],[2,'rodando',''],[3,'andando','caminho recusado'],[6,'fim','terminou'],[6,'fim','terminou'],[6,'fim','terminou'],[6,'fim','terminou'],[6,'fim','terminou'],[6,'fim','terminou']]},
+    {id:'#4823',s:[[2,'rodando',''],[3,'andando',''],[4,'tempo','faltam 2 dias'],[4,'tempo','faltam 2 dias'],[4,'tempo','falta 1 dia'],[5,'fila',''],[5,'erro','o serviço não respondeu · tentativa 1'],[5,'erro','tentativa 2'],[5,'incidente','tentativas esgotadas'],[5,'incidente','continua parada, sem perder nada']]},
+    {id:'#4824',s:[[-1,'none',''],[-1,'none',''],[-1,'none',''],[0,'andando','nasceu de um aviso recebido'],[1,'pessoa','esperando'],[1,'pessoa','esperando'],[2,'fila',''],[2,'rodando',''],[3,'andando',''],[4,'tempo','faltam 2 dias']]}
+  ];
+  var NARR=[
+    'Quatro execuções do mesmo desenho, cada uma num ponto diferente. O desenho é um só.',
+    'Uma para no cadastro e espera uma pessoa responder. O motor não fica ocupado com ela.',
+    'Outra publicou o trabalho e aguarda quem atende aquele assunto vir pegar.',
+    'Uma execução nova nasce enquanto as outras seguem. Nenhuma atrapalha a outra.',
+    'O desvio olha a informação guardada na própria execução e escolhe o caminho.',
+    'O temporizador segura a execução até o prazo vencer, sem consumir nada nesse meio tempo.',
+    'Um serviço não respondeu. O motor marca a falha e agenda uma nova tentativa sozinho.',
+    'Segunda tentativa. O motor guarda quantas ainda restam antes de desistir.',
+    'Tentativas esgotadas. A execução fica travada no ponto e aparece para alguém resolver.',
+    'Duas terminaram, uma espera prazo, uma está travada. É esse o dia a dia do motor.'
+  ];
+  function pinta(){
+    var atuais=EX.map(function(e){return e.s[t]});
+    $('[data-narr]',r).textContent=NARR[t];
+    $('[data-n]',r).textContent=t;
+    $('[data-count]',r).textContent='momento '+(t+1)+' de 10';
+    $('[data-trilho]',r).innerHTML=NOS.map(function(n,i){
+      var q=atuais.filter(function(a){return a[0]===i}).length;
+      return '<div class="no'+(q?' on':'')+'"><div class="top">'+gl(n.g)+'</div><b>'+n.b+'</b>'+
+        '<span class="tp">'+n.tp+'</span>'+(q?'<span class="qtd">'+q+'</span>':'')+'</div>';
+    }).join('');
+    $('[data-tb]',r).innerHTML=EX.map(function(e,k){
+      var a=atuais[k],s=SIT[a[1]];
+      var onde=a[0]<0?'<span style="color:var(--text-3)">ainda não começou</span>':NOS[a[0]].b;
+      return '<tr class="'+(a[1]==='none'?'mute':'')+'"><td class="id">'+e.id+'</td><td>'+onde+'</td>'+
+        '<td><span class="chip '+s.c+'">'+s.t+'</span>'+(a[2]?'<span class="nota">'+a[2]+'</span>':'')+'</td></tr>';
+    }).join('');
+  }
+  function play(on){
+    var b=$('[data-play]',r);
+    if(on){timer=setInterval(function(){
+      if(t>=9){play(false);return}
+      t++;pinta();
+    },2100);b.textContent='Pausar'}
+    else{clearInterval(timer);timer=null;b.textContent='Tocar'}
+  }
+  $('[data-play]',r).onclick=function(){play(!timer)};
+  $('[data-next]',r).onclick=function(){if(timer)play(false);t=(t+1)%10;pinta()};
+  $('[data-reset]',r).onclick=function(){if(timer)play(false);t=0;pinta()};
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'){if(timer)play(false);t=(t+1)%10;pinta()}
+    if(e.key==='ArrowLeft'){if(timer)play(false);t=(t+9)%10;pinta()}
+  });
+  pinta();
+})();
+</script>
+</body>
+</html>

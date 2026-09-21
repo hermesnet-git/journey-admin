@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A fila de trabalho · o motor por dentro</title>
+<link rel="stylesheet" href="estilo.css" />
+<script>
+(function(){var t=null;try{t=localStorage.getItem('motor-tema')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}
+if(['light','dark','graphite'].indexOf(t)<0)t='light';document.documentElement.setAttribute('data-theme',t)})();
+</script>
+</head>
+<body data-op="5">
+<div class="deck">
+  <header data-masthead></header>
+  <main>
+    <span class="eyebrow">Opção 5 · A fila de trabalho</span>
+    <h1>Quem faz o <em>trabalho pesado</em></h1>
+    <p class="lead">
+      O motor separa o trabalho por assunto e espera. Quem executa assina o assunto que sabe atender, pega,
+      faz e devolve. Desligue um dos executores e veja a fila dele crescer na sua frente.
+    </p>
+
+    <div class="proto" id="p">
+      <div class="narr"><span class="pill">Relógio <b data-n>0</b></span><p data-narr>O motor vai publicando trabalho conforme as execuções chegam nas tarefas de serviço.</p></div>
+      <div class="topo">
+        <div class="motorbox">
+          <h4>O motor</h4>
+          <div class="linha">execuções andando <span data-and>0</span></div>
+          <div class="linha">trabalho publicado <span data-pub>0</span></div>
+          <div class="linha">concluído <span data-fim>0</span></div>
+          <div class="linha">travadas <span data-trav>0</span></div>
+          <div class="inc" data-inc hidden></div>
+        </div>
+        <div data-filas></div>
+        <div data-workers></div>
+      </div>
+      <div class="ctrl">
+        <button class="primary" data-play>Pausar</button>
+        <button data-reset>Recomeçar</button>
+        <span class="spacer"></span>
+        <span class="count">o trabalho fica guardado até alguém pegar</span>
+      </div>
+    </div>
+  </main>
+  <nav data-nav></nav>
+</div>
+
+<script src="motor.js"></script>
+<script>
+(function(){
+  var r=$('#p'),t=0,timer=null,seq=0;
+  var TOP=[{k:'consulta-cpf',n:'Consulta na base'},{k:'envio-contrato',n:'Envio do contrato'}];
+  var filas={'consulta-cpf':[],'envio-contrato':[]};
+  var W=[{k:'consulta-cpf',n:'Quem consulta a base',on:true,job:null,c:0},
+         {k:'envio-contrato',n:'Quem envia contrato',on:true,job:null,c:0}];
+  var feitos=0,travadas=0,publicados=0,andando=0,inc=null;
+
+  function tick(){
+    t++;
+    if(t%2===1){
+      seq++;
+      filas[TOP[seq%2].k].push({id:seq,r:0});
+      publicados++;andando++;
+    }
+    W.forEach(function(w){
+      if(!w.on){w.job=null;return}
+      if(w.job){
+        var j=w.job;w.job=null;
+        if(j.id%4===3&&j.r<2){ j.r++;filas[w.k].push(j) }
+        else if(j.id%4===3){ travadas++;andando--;
+          inc='O trabalho '+j.id+' do assunto '+w.k+' falhou três vezes. A execução ficou travada nesse ponto, com tudo o que já andou guardado.' }
+        else { feitos++;andando--;w.c++ }
+        return;
+      }
+      if(filas[w.k].length) w.job=filas[w.k].shift();
+    });
+    pinta();
+  }
+  function pinta(){
+    $('[data-n]',r).textContent=t;
+    $('[data-and]',r).textContent=Math.max(andando,0);
+    $('[data-pub]',r).textContent=publicados;
+    $('[data-fim]',r).textContent=feitos;
+    $('[data-trav]',r).textContent=travadas;
+    var box=$('[data-inc]',r);
+    box.hidden=!inc; if(inc) box.textContent=inc;
+    $('[data-filas]',r).innerHTML=TOP.map(function(tp){
+      var f=filas[tp.k];
+      return '<div class="fila"><div class="cab">'+gl('topico')+'<b>'+tp.n+'</b>'+
+        '<span class="nome-real">'+tp.k+'</span></div><div class="jobs">'+
+        (f.length?f.map(function(j){
+          return '<span class="job'+(j.r?' r'+j.r:'')+'">'+j.id+(j.r?' · '+j.r+'ª':'')+'</span>';
+        }).join(''):'<span class="vazia">ninguém esperando</span>')+'</div></div>';
+    }).join('')+'<p class="hint">Cada assunto tem a própria fila. O motor publica e sai, sem saber quem vai atender.</p>';
+    $('[data-workers]',r).innerHTML=W.map(function(w,k){
+      return '<div class="worker '+(w.on?'on':'off')+'"><div class="cab">'+gl('servico')+'<b>'+w.n+'</b>'+
+        '<button class="sw" data-w="'+k+'">'+(w.on?'LIGADO':'DESLIGADO')+'</button></div>'+
+        '<div class="fazendo">'+(w.on?(w.job?'pegou o trabalho <b>'+w.job.id+'</b>':'esperando aparecer trabalho'):'desligado, a fila dele vai crescer')+'</div>'+
+        '<div class="fazendo" style="color:var(--text-3)">entregues: '+w.c+'</div></div>';
+    }).join('')+'<p class="hint">Quem executa não é o motor. São programas separados, que podem cair e voltar sem derrubar nada.</p>';
+    $$('[data-w]',r).forEach(function(b){
+      b.onclick=function(){W[+b.dataset.w].on=!W[+b.dataset.w].on;pinta()};
+    });
+  }
+  function play(on){
+    var b=$('[data-play]',r);
+    if(on){timer=setInterval(tick,1500);b.textContent='Pausar'}
+    else{clearInterval(timer);timer=null;b.textContent='Tocar'}
+  }
+  $('[data-play]',r).onclick=function(){play(!timer)};
+  $('[data-reset]',r).onclick=function(){
+    t=0;seq=0;feitos=0;travadas=0;publicados=0;andando=0;inc=null;
+    filas={'consulta-cpf':[],'envio-contrato':[]};
+    W.forEach(function(w){w.job=null;w.c=0;w.on=true});
+    pinta();
+  };
+  pinta();
+  play(true);
+})();
+</script>
+</body>
+</html>

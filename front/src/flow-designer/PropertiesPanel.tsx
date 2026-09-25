@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, X, Play, Loader2, Braces, Copy, Check } from 'lucide-react';
+import { Plus, X, Play, Loader2, Braces, Copy, Check, Maximize2 } from 'lucide-react';
 import { IconButton, skinVars, type IconProps } from '@telefonica/mistica';
-import { useFlowTheme, type FlowColors } from './theme';
+import { useFlowTheme, toJsonViewerColors, type FlowColors } from './theme';
+import { JsonModal } from '../shared/JsonModal';
 import {
   NODE_META,
   CONNECTOR_TYPES_BY_NODE,
@@ -991,6 +992,15 @@ function StartVariablesEditor({
 export function ResponsePreview({ response }: { response: ConnectorTestResponse | null | undefined }) {
   const { c } = useFlowTheme();
   const [copied, setCopied] = useState(false);
+  const [expandOpen, setExpandOpen] = useState(false);
+  let parsedBody: unknown = null;
+  if (response) {
+    try {
+      parsedBody = JSON.parse(response.body);
+    } catch {
+      parsedBody = response.body;
+    }
+  }
 
   async function copyJson() {
     if (!response) return;
@@ -1009,27 +1019,50 @@ export function ResponsePreview({ response }: { response: ConnectorTestResponse 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <div style={{ ...labelStyle(c), marginBottom: 0 }}>Origem (resposta da API)</div>
         {response && (
-          <button
-            type="button"
-            onClick={copyJson}
-            title="Copiar JSON"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              border: `1px solid ${c.border}`,
-              borderRadius: 6,
-              background: c.cardBg,
-              color: copied ? c.accent : c.textSecondary,
-              padding: '3px 8px',
-              fontSize: 11.5,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            {copied ? <Check size={12} /> : <Copy size={12} />}
-            {copied ? 'Copiado!' : 'Copiar'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              type="button"
+              onClick={() => setExpandOpen(true)}
+              title="Ampliar e pesquisar"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                border: `1px solid ${c.border}`,
+                borderRadius: 6,
+                background: c.cardBg,
+                color: c.textSecondary,
+                padding: '3px 8px',
+                fontSize: 11.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <Maximize2 size={12} />
+              Ampliar
+            </button>
+            <button
+              type="button"
+              onClick={copyJson}
+              title="Copiar JSON"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                border: `1px solid ${c.border}`,
+                borderRadius: 6,
+                background: c.cardBg,
+                color: copied ? c.accent : c.textSecondary,
+                padding: '3px 8px',
+                fontSize: 11.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? 'Copiado!' : 'Copiar'}
+            </button>
+          </div>
         )}
       </div>
       {response ? (
@@ -1054,6 +1087,9 @@ export function ResponsePreview({ response }: { response: ConnectorTestResponse 
         <div style={{ fontSize: 12, color: c.textSecondary }}>
           Execute "Testar API" para ver aqui a resposta de referência e localizar os caminhos JSONPath.
         </div>
+      )}
+      {response && expandOpen && (
+        <JsonModal title="Origem (resposta da API)" data={parsedBody} colors={toJsonViewerColors(c)} onClose={() => setExpandOpen(false)} />
       )}
     </div>
   );

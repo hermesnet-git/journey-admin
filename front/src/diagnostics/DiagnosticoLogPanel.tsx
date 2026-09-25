@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronRight, ChevronUp, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, ChevronUp, Maximize2, Search, X } from 'lucide-react';
 import { prettifyJson } from '../execution/InspectorPanel';
 import { CopyTextButton } from './CopyTextButton';
 import { skinVars } from '@telefonica/mistica';
+import { highlightText } from '../shared/textHighlight';
+import { skinVarsJsonColors } from '../shared/JsonTreeViewer';
+import { JsonModal } from '../shared/JsonModal';
 
 export interface LogEntry {
   id: string;
@@ -18,34 +21,9 @@ export interface LogEntry {
 
 const MATCH_BG = 'rgba(250, 204, 21, 0.14)';
 const ACTIVE_MATCH_BG = 'rgba(249, 115, 22, 0.16)';
-const MATCH_MARK_BG = 'rgba(250, 204, 21, 0.55)';
-const ACTIVE_MATCH_MARK_BG = 'rgba(249, 115, 22, 0.6)';
 
 function logRowId(id: string) {
   return `diag-log-row-${id}`;
-}
-
-function highlightText(text: string, query: string, strong: boolean): ReactNode {
-  const q = query.trim();
-  if (!q) return text;
-  const lower = text.toLowerCase();
-  const lowerQ = q.toLowerCase();
-  const parts: ReactNode[] = [];
-  let i = 0;
-  let idx = lower.indexOf(lowerQ);
-  if (idx === -1) return text;
-  while (idx !== -1) {
-    if (idx > i) parts.push(text.slice(i, idx));
-    parts.push(
-      <mark key={idx} style={{ background: strong ? ACTIVE_MATCH_MARK_BG : MATCH_MARK_BG, color: 'inherit', borderRadius: 2, padding: '0 1px' }}>
-        {text.slice(idx, idx + q.length)}
-      </mark>,
-    );
-    i = idx + q.length;
-    idx = lower.indexOf(lowerQ, i);
-  }
-  if (i < text.length) parts.push(text.slice(i));
-  return parts;
 }
 
 export function DiagnosticoLogPanel({ log, endRef }: { log: LogEntry[]; endRef: React.RefObject<HTMLDivElement | null> }) {
@@ -218,6 +196,7 @@ function DiagnosticoLogRow({
 }) {
   const hasData = !!entry.data && Object.keys(entry.data).length > 0;
   const prettyData = useMemo(() => (entry.data ? (prettifyJson(entry.data) as Record<string, unknown>) : undefined), [entry.data]);
+  const [expandOpen, setExpandOpen] = useState(false);
 
   return (
     <div id={logRowId(entry.id)} className="rounded-md px-1 -mx-1 py-[2px]" style={{ background: isActiveMatch ? ACTIVE_MATCH_BG : isMatch ? MATCH_BG : 'transparent' }}>
@@ -234,10 +213,27 @@ function DiagnosticoLogRow({
           <pre className="rounded-md px-2 py-1 pr-14 text-[11px] overflow-auto" style={{ background: skinVars.colors.backgroundAlternative, color: skinVars.colors.textSecondary, fontFamily: 'monospace', maxHeight: 220 }}>
             {JSON.stringify(prettyData, null, 2)}
           </pre>
-          <div className="absolute top-1 right-1">
+          <div className="absolute top-1 right-1 flex items-center">
+            <button
+              type="button"
+              onClick={() => setExpandOpen(true)}
+              title="Ampliar e pesquisar"
+              className="inline-flex items-center cursor-pointer border-0 bg-transparent p-0"
+              style={{ color: skinVars.colors.textSecondary }}
+            >
+              <Maximize2 size={11} />
+            </button>
             <CopyTextButton text={JSON.stringify(prettyData, null, 2)} />
           </div>
         </div>
+      )}
+      {expandOpen && prettyData && (
+        <JsonModal
+          title={`${entry.time} — ${entry.message}`}
+          data={prettyData}
+          colors={skinVarsJsonColors}
+          onClose={() => setExpandOpen(false)}
+        />
       )}
     </div>
   );

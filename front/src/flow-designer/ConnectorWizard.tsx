@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Play, Loader2, X } from 'lucide-react';
-import { useFlowTheme, type FlowColors } from './theme';
+import { Play, Loader2, Maximize2, X } from 'lucide-react';
+import { useFlowTheme, toJsonViewerColors, type FlowColors } from './theme';
+import { JsonModal } from '../shared/JsonModal';
 import { ConfirmDialog } from '../products/ConfirmDialog';
 import { useBackdropClose } from './PropertyGrid';
 import {
@@ -99,28 +100,52 @@ function buildEnvelopePreview(payload: Record<string, unknown>, messageName: str
 // mensagem final fica, lado a lado com o que ele está configurando — em vez de só confiar que o
 // editor de campos representa fielmente o que vai ser enviado/esperado.
 function PayloadPreview({ title, note, envelope, c }: { title: string; note?: string; envelope: unknown; c: FlowColors }) {
+  const [expandOpen, setExpandOpen] = useState(false);
   return (
     <div style={{ marginTop: 16 }}>
       <div style={labelStyle(c)}>{title}</div>
       {note && <div style={{ fontSize: 11.5, color: c.textSecondary, marginBottom: 8 }}>{note}</div>}
-      <pre
-        style={{
-          fontSize: 11.5,
-          fontFamily: 'monospace',
-          background: c.canvasBg,
-          border: `1px solid ${c.border}`,
-          borderRadius: 8,
-          padding: 10,
-          margin: 0,
-          maxHeight: 220,
-          overflow: 'auto',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          color: c.textPrimary,
-        }}
-      >
-        {JSON.stringify(envelope, null, 2)}
-      </pre>
+      <div style={{ position: 'relative' }}>
+        <pre
+          style={{
+            fontSize: 11.5,
+            fontFamily: 'monospace',
+            background: c.canvasBg,
+            border: `1px solid ${c.border}`,
+            borderRadius: 8,
+            padding: 10,
+            paddingRight: 34,
+            margin: 0,
+            maxHeight: 220,
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            color: c.textPrimary,
+          }}
+        >
+          {JSON.stringify(envelope, null, 2)}
+        </pre>
+        <button
+          type="button"
+          onClick={() => setExpandOpen(true)}
+          title="Ampliar e pesquisar"
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 6,
+            display: 'flex',
+            border: `1px solid ${c.border}`,
+            borderRadius: 6,
+            background: c.cardBg,
+            color: c.textSecondary,
+            padding: 4,
+            cursor: 'pointer',
+          }}
+        >
+          <Maximize2 size={12} />
+        </button>
+      </div>
+      {expandOpen && <JsonModal title={title} data={envelope} colors={toJsonViewerColors(c)} onClose={() => setExpandOpen(false)} />}
     </div>
   );
 }

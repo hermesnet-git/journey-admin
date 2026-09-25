@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronDown, ChevronRight, ChevronUp, Copy, GitBranch, Pencil, Plug, Route, Search, Sliders, ScrollText, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, ChevronDown, ChevronRight, ChevronUp, Copy, GitBranch, Maximize2, Pencil, Plug, Route, Search, Sliders, ScrollText, X } from 'lucide-react';
 import { Stack, Text, TextFieldBase, skinVars } from '@telefonica/mistica';
 import {
   isInternalVariableName,
@@ -11,6 +11,9 @@ import {
   type VariableEntry,
 } from './api';
 import { FlowDiagramViewer } from './FlowDiagramViewer';
+import { highlightText } from '../shared/textHighlight';
+import { skinVarsJsonColors } from '../shared/JsonTreeViewer';
+import { JsonModal } from '../shared/JsonModal';
 
 export interface LogEntry {
   id: string;
@@ -831,34 +834,6 @@ function logRowId(id: string) {
 
 const MATCH_BG = 'rgba(250, 204, 21, 0.14)';
 const ACTIVE_MATCH_BG = 'rgba(249, 115, 22, 0.16)';
-const MATCH_MARK_BG = 'rgba(250, 204, 21, 0.55)';
-const ACTIVE_MATCH_MARK_BG = 'rgba(249, 115, 22, 0.6)';
-
-function highlightText(text: string, query: string, strong: boolean): ReactNode {
-  const q = query.trim();
-  if (!q) return text;
-  const lower = text.toLowerCase();
-  const lowerQ = q.toLowerCase();
-  const parts: ReactNode[] = [];
-  let i = 0;
-  let idx = lower.indexOf(lowerQ);
-  if (idx === -1) return text;
-  while (idx !== -1) {
-    if (idx > i) parts.push(text.slice(i, idx));
-    parts.push(
-      <mark
-        key={idx}
-        style={{ background: strong ? ACTIVE_MATCH_MARK_BG : MATCH_MARK_BG, color: 'inherit', borderRadius: 2, padding: '0 1px' }}
-      >
-        {text.slice(idx, idx + q.length)}
-      </mark>,
-    );
-    i = idx + q.length;
-    idx = lower.indexOf(lowerQ, i);
-  }
-  if (i < text.length) parts.push(text.slice(i));
-  return parts;
-}
 
 export function LogPanel({ log, endRef }: { log: LogEntry[]; endRef: React.RefObject<HTMLDivElement | null> }) {
   const [query, setQuery] = useState('');
@@ -1087,6 +1062,7 @@ function LogRow({
 }) {
   const hasData = !!entry.data && Object.keys(entry.data).length > 0;
   const prettyData = useMemo(() => (entry.data ? (prettifyJson(entry.data) as Record<string, unknown>) : undefined), [entry.data]);
+  const [expandOpen, setExpandOpen] = useState(false);
 
   return (
     <div
@@ -1109,7 +1085,7 @@ function LogRow({
       {hasData && expanded && (
         <div className="relative mt-1 ml-4">
           <pre
-            className="rounded-md px-2 py-1 pr-14 text-[11px] overflow-auto"
+            className="rounded-md px-2 py-1 pr-28 text-[11px] overflow-auto"
             style={{
               background: skinVars.colors.backgroundAlternative,
               color: skinVars.colors.textSecondary,
@@ -1119,10 +1095,28 @@ function LogRow({
           >
             {JSON.stringify(prettyData, null, 2)}
           </pre>
-          <div className="absolute top-1 right-1">
+          <div className="absolute top-1 right-1 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setExpandOpen(true)}
+              title="Ampliar e pesquisar"
+              className="flex items-center gap-1 cursor-pointer rounded px-1.5 py-0.5 border-0"
+              style={{ background: skinVars.colors.backgroundContainer, color: skinVars.colors.textSecondary, fontSize: 10.5 }}
+            >
+              <Maximize2 size={11} />
+              Ampliar
+            </button>
             <CopyJsonButton data={prettyData!} />
           </div>
         </div>
+      )}
+      {expandOpen && (
+        <JsonModal
+          title={`${entry.time} — ${entry.message}`}
+          data={prettyData!}
+          colors={skinVarsJsonColors}
+          onClose={() => setExpandOpen(false)}
+        />
       )}
     </div>
   );

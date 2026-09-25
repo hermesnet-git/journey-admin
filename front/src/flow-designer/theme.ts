@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { JsonViewerColors } from '../shared/JsonTreeViewer';
 
 export interface FlowColors {
   headerBg: string;
@@ -86,4 +87,21 @@ export const FlowThemeContext = createContext<FlowTheme>({ dark: false, c: LIGHT
 
 export function useFlowTheme() {
   return useContext(FlowThemeContext);
+}
+
+// FlowColors → paleta genérica do JsonTreeViewer (shared/), mesma árvore+busca usada no Log de
+// execução/diagnóstico e no snapshot de publicação/versão de jornada. Sem token de "warning" aqui
+// (FlowColors não tem um) — número/booleano cai no texto normal, sem cor própria.
+export function toJsonViewerColors(c: FlowColors): JsonViewerColors {
+  return {
+    surface: c.cardBg,
+    background: c.canvasBg,
+    backgroundAlt: c.canvasBg,
+    border: c.border,
+    textPrimary: c.textPrimary,
+    textSecondary: c.textSecondary,
+    keyColor: c.accent,
+    stringColor: c.success,
+    numberColor: c.textPrimary,
+  };
 }

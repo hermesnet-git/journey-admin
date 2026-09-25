@@ -1,68 +1,23 @@
 import { useEffect, useState } from 'react';
-import { X, Copy, Check, ChevronRight, ChevronDown } from 'lucide-react';
+import { X, Copy, Check } from 'lucide-react';
 import { useAppTheme, type AppColors } from '../shell/theme';
 import { getJourneyPublication } from '../api/journeys';
+import { JsonTreeViewer, type JsonViewerColors } from '../shared/JsonTreeViewer';
 
-/** Antes disto, o modal só jogava `JSON.stringify(data, null, 2)` num `<pre>` plano — pra um snapshot
- * de tela real (árvore SDUI aninhada, várias dezenas de linhas) isso vira um bloco de texto ilegível.
- * Árvore recolhível + destaque de token, sem trazer uma lib nova pra isso. */
-function JsonNode({ value, name, depth, c }: { value: unknown; name?: string; depth: number; c: AppColors }) {
-  const [open, setOpen] = useState(true);
-  const KeyLabel = name !== undefined ? (
-    <span style={{ color: c.accent }}>"{name}"</span>
-  ) : null;
-
-  if (value === null || value === undefined) {
-    return <Line indent={depth} keyLabel={KeyLabel}><span style={{ color: c.textMuted, fontStyle: 'italic' }}>null</span></Line>;
-  }
-  if (typeof value === 'string') {
-    return <Line indent={depth} keyLabel={KeyLabel}><span style={{ color: c.success }}>"{value}"</span></Line>;
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return <Line indent={depth} keyLabel={KeyLabel}><span style={{ color: c.warning }}>{String(value)}</span></Line>;
-  }
-  const isArray = Array.isArray(value);
-  const entries = isArray ? value.map((v, i) => [i, v] as const) : Object.entries(value as Record<string, unknown>);
-  const [openBrace, closeBrace] = isArray ? ['[', ']'] : ['{', '}'];
-  if (entries.length === 0) {
-    return <Line indent={depth} keyLabel={KeyLabel}><span style={{ color: c.textMuted }}>{openBrace}{closeBrace}</span></Line>;
-  }
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-start gap-1 w-full text-left border-0 bg-transparent cursor-pointer p-0"
-        style={{ paddingLeft: depth * 14, fontFamily: 'inherit' }}
-      >
-        {open ? <ChevronDown size={11} style={{ marginTop: 3, color: c.textMuted }} /> : <ChevronRight size={11} style={{ marginTop: 3, color: c.textMuted }} />}
-        <span>
-          {KeyLabel}{KeyLabel && ': '}
-          <span style={{ color: c.textMuted }}>
-            {openBrace}{!open && ` ${entries.length} ${isArray ? 'itens' : 'chaves'} `}{!open && closeBrace}
-          </span>
-        </span>
-      </button>
-      {open && (
-        <>
-          {entries.map(([k, v]) => (
-            <JsonNode key={k} name={isArray ? undefined : String(k)} value={v} depth={depth + 1} c={c} />
-          ))}
-          <div style={{ paddingLeft: depth * 14 + 14, color: c.textMuted }}>{closeBrace}</div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function Line({ indent, keyLabel, children }: { indent: number; keyLabel: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div style={{ paddingLeft: indent * 14 + 14 }}>
-      {keyLabel}
-      {keyLabel && ': '}
-      {children}
-    </div>
-  );
+// Mesma árvore recolhível + busca usada no Log de execução (shared/JsonTreeViewer) — usado tanto pro
+// snapshot de publicação da jornada quanto pro snapshot de uma versão (mesmo modal, ver JourneysPage).
+function jsonViewerColors(c: AppColors): JsonViewerColors {
+  return {
+    surface: c.surface,
+    background: c.bg,
+    backgroundAlt: c.bg,
+    border: c.border,
+    textPrimary: c.textPrimary,
+    textSecondary: c.textMuted,
+    keyColor: c.accent,
+    stringColor: c.success,
+    numberColor: c.warning,
+  };
 }
 
 interface PublicationSnapshotModalProps {
@@ -134,7 +89,7 @@ export function PublicationSnapshotModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[820px] rounded-2xl flex flex-col max-h-[85vh] box-border"
+        className="w-full max-w-[820px] rounded-2xl flex flex-col h-[min(640px,85vh)] box-border"
         style={{ background: c.surface, border: `1px solid ${c.border}`, boxShadow: `0 20px 50px -12px ${c.shadow}` }}
       >
         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b" style={{ borderColor: c.border }}>
@@ -157,7 +112,7 @@ export function PublicationSnapshotModal({
           </button>
         </div>
 
-        <div className="px-6 py-5 overflow-auto">
+        <div className="px-6 py-5 flex-1 min-h-0 flex flex-col">
           {error && (
             <p className="text-[13px]" style={{ color: c.danger }}>
               {error}
@@ -168,14 +123,7 @@ export function PublicationSnapshotModal({
               Carregando...
             </p>
           )}
-          {json !== null && parsed !== null && (
-            <div
-              className="text-[12px] leading-[1.6] rounded-lg p-4 overflow-x-auto"
-              style={{ background: c.bg, color: c.textPrimary, border: `1px solid ${c.border}`, fontFamily: 'monospace' }}
-            >
-              <JsonNode value={parsed} depth={0} c={c} />
-            </div>
-          )}
+          {json !== null && parsed !== null && <JsonTreeViewer data={parsed} colors={jsonViewerColors(c)} />}
         </div>
 
         <div

@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react';
+import { Maximize2 } from 'lucide-react';
 import { skinVars } from '@telefonica/mistica';
 import type { NodeLayoutProps } from './nodeLayoutTypes';
 import { CopyTextButton } from './CopyTextButton';
 import { prettifyJson } from '../execution/InspectorPanel';
 import type { BackendConnectorType, ConnectorConfigInfo } from '../execution/api';
+import { skinVarsJsonColors } from '../shared/JsonTreeViewer';
+import { JsonModal } from '../shared/JsonModal';
 
 // Painel único do Diagnóstico: denso, monospace, seções colapsáveis (linguagem de DevTools do
 // navegador) — acompanha o tema claro/escuro do resto do app via skinVars, não fixo.
@@ -32,12 +35,18 @@ const NAME_COL_MAX = 320;
  * valor, mesmo sem redimensionar) e uma faixa fina arrastável na borda pra alargar a coluna quando
  * o nome (agora com prefixo form_/data_, mais comprido que antes) não couber. `width` é compartilhado
  * entre as duas seções pra ficarem alinhadas. */
-function KeyValueRow({ name, value, width, onResizeStart }: {
+function KeyValueRow({ name, value, rawValue, width, onResizeStart }: {
   name: string;
   value: React.ReactNode;
+  // Valor já "prettificado" (prettifyJson), antes de virar string — só pra decidir se dá pra abrir
+  // em árvore+busca (objeto/array) e alimentar o modal; `value` continua sendo o texto exibido inline.
+  rawValue?: unknown;
   width: number;
   onResizeStart: (e: React.PointerEvent) => void;
 }) {
+  const [expandOpen, setExpandOpen] = useState(false);
+  const isExpandable = rawValue !== null && typeof rawValue === 'object';
+
   return (
     <div style={{ display: 'flex', gap: 10, padding: '5px 0', borderTop: `1px solid ${skinVars.colors.border}`, position: 'relative' }}>
       <span title={name} style={{ color: skinVars.colors.textSecondary, flexShrink: 0, width, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -51,6 +60,20 @@ function KeyValueRow({ name, value, width, onResizeStart }: {
       <span style={{ color: skinVars.colors.textPrimary, wordBreak: 'break-all', whiteSpace: 'pre-wrap', minWidth: 0, flex: 1 }}>
         {value}
       </span>
+      {isExpandable && (
+        <button
+          type="button"
+          onClick={() => setExpandOpen(true)}
+          title="Ampliar e pesquisar"
+          className="shrink-0 inline-flex items-center cursor-pointer border-0 bg-transparent p-0"
+          style={{ color: skinVars.colors.textSecondary, marginTop: 2 }}
+        >
+          <Maximize2 size={12} />
+        </button>
+      )}
+      {isExpandable && expandOpen && (
+        <JsonModal title={name} data={rawValue} colors={skinVarsJsonColors} onClose={() => setExpandOpen(false)} />
+      )}
     </div>
   );
 }
@@ -248,7 +271,7 @@ export function NodeDetailInspector({
           </summary>
           <div style={{ padding: '0 18px 14px 18px', fontFamily: MONO, fontSize: 12 }}>
             {Object.entries(detail.input).map(([key, value]) => (
-              <KeyValueRow key={key} name={key} value={formatValue(value)} width={nameColWidth} onResizeStart={onResizeStart} />
+              <KeyValueRow key={key} name={key} value={formatValue(value)} rawValue={prettifyJson(value)} width={nameColWidth} onResizeStart={onResizeStart} />
             ))}
           </div>
         </details>
@@ -263,7 +286,7 @@ export function NodeDetailInspector({
           <div style={{ padding: '0 18px 14px 18px', fontFamily: MONO, fontSize: 12 }}>
             {detail.output ? (
               Object.entries(detail.output).map(([key, value]) => (
-                <KeyValueRow key={key} name={key} value={formatValue(value)} width={nameColWidth} onResizeStart={onResizeStart} />
+                <KeyValueRow key={key} name={key} value={formatValue(value)} rawValue={prettifyJson(value)} width={nameColWidth} onResizeStart={onResizeStart} />
               ))
             ) : (
               <span style={{ color: skinVars.colors.textSecondary, fontStyle: 'italic' }}>Sem resposta{incident ? ' — a chamada não completou' : ''}.</span>

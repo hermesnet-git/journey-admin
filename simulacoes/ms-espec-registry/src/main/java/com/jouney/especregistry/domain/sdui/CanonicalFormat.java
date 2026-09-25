@@ -5,9 +5,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Operações estruturais sobre o formato Hiccup publicado, sem interpretar layout. */
 public final class CanonicalFormat {
+
+    // Mesmo padrão de TemplateResolver.PLACEHOLDER (hífen incluído — id de componente costuma ser
+    // Node_<uuid>, e UUID sempre tem hífen), replicado (não importado) de propósito: esta classe só
+    // faz inspeção estrutural do envelope, nunca resolve valor — importar TemplateResolver criaria
+    // uma dependência na direção errada.
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z_][\\w.-]*)\\s*\\}\\}");
 
     private CanonicalFormat() {
     }
@@ -80,7 +88,29 @@ public final class CanonicalFormat {
         collectPath(attributes.path("$bindings"), names);
         collectPath(attributes.path("$visibility"), names);
         collectPath(attributes.path("$active"), names);
+        // Placeholder textual (seção 8.2): {{form.nome}} dentro de um atributo de conteúdo (text,
+        // label, title, message...) referencia variável do processo igual a um binding, mas nunca
+        // passa por $bindings — sem isto, a variável nunca entrava no contexto que
+        // ResolveScreenForNode.runtimeContext monta, e o placeholder sempre virava string vazia em
+        // runtime (BindingResolver.resolve não encontrava a variável, nunca a mensagem ficava
+        // literalmente "{{...}}" — o pior tipo de falha, silenciosa).
+        attributes.properties().forEach(entry -> {
+            if (!entry.getKey().startsWith("$") && entry.getValue().isTextual()) {
+                collectPlaceholders(entry.getValue().asText(), names);
+            }
+        });
         if (tuple.size() == 3) for (JsonNode child : tuple.get(2)) collectReferences(child, names);
+    }
+
+    private static void collectPlaceholders(String text, Set<String> names) {
+        Matcher matcher = PLACEHOLDER.matcher(text);
+        while (matcher.find()) {
+            String path = matcher.group(1);
+            int dot = path.indexOf('.');
+            if (dot > 0 && (path.startsWith("form.") || path.startsWith("data."))) {
+                names.add(path.substring(0, dot) + "_" + path.substring(dot + 1));
+            }
+        }
     }
 
     // Guarda o nome JÁ com o prefixo de namespace (form_x/data_x) — é assim que a variável existe de

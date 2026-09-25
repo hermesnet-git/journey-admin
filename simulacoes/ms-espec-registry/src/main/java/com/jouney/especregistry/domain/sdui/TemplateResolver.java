@@ -27,10 +27,12 @@ import tools.jackson.databind.node.ObjectNode;
  * certo, editável). */
 public final class TemplateResolver {
 
-    // Token sempre com namespace (form.nome, data.pedido, session.channel...) — {{\w.]*}} aceita
-    // ponto no meio pra isso; sem namespace o token não resolve nada (BindingResolver.resolve exige
-    // pelo menos um ponto).
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z_][\\w.]*)\\s*\\}\\}");
+    // Token sempre com namespace (form.nome, data.pedido, session.channel...) — [\w.-]* aceita ponto
+    // (separador de namespace) e hífen (o id do componente costuma ser Node_<uuid>, e UUID sempre
+    // tem hífen; BindingResolver.resolve nunca restringiu isso — só a interpolação textual estava
+    // atrás). Sem namespace o token não resolve nada (BindingResolver.resolve exige pelo menos um
+    // ponto).
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z_][\\w.-]*)\\s*\\}\\}");
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private TemplateResolver() {

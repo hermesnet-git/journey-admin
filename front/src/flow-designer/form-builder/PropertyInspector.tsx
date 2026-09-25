@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, CircleHelp, Plus, SlidersHorizontal, X } from 'lucide-react';
 import { useFlowTheme } from '../theme';
 import { ToggleSwitch, gridInputStyle } from '../PropertyGrid';
-import type { VariableOrigin } from '../model';
+import { VariablePickerButton, insertTokenAtCursor } from '../PropertiesPanel';
+import { sduiVariablePath, type VariableOrigin } from '../model';
 import type { ComponentDefinition, PropDescriptor } from '../../api/componentDefinitions';
 import { tokenOptionsForGroup, tokensForGroup } from '../../sdui/designTokens';
 import { iconFor, labelFor } from '../../sdui/componentMeta';
@@ -110,8 +111,15 @@ function ValidationListEditor({ value, onChange }: { value: ValidationRule[]; on
   );
 }
 
-function PropField({ prop, presentation, value, onChange }: { prop: PropDescriptor; presentation: PropertyPresentation; value: unknown; onChange: (value: unknown) => void }) {
+/** Propriedades de texto que aceitam variável no meio do conteúdo — as cinco que a seção 7.2 do
+ * catálogo homologa ("aceitam texto literal ou placeholder seguro"). "Variante", "alinhamento" e
+ * afins ficam de fora: carregam intenção visual, onde um {{...}} não significaria nada. */
+const PROPS_QUE_ACEITAM_VARIAVEL = new Set(['label', 'placeholder', 'title', 'message', 'text']);
+
+function PropField({ prop, presentation, value, variables, onChange }: { prop: PropDescriptor; presentation: PropertyPresentation; value: unknown; variables: VariableOrigin[]; onChange: (value: unknown) => void }) {
   const { c } = useFlowTheme();
+  const textRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   switch (prop.kind) {
     case 'BOOLEAN':
       return <ToggleSwitch checked={value === true} onChange={onChange} />;
@@ -158,11 +166,30 @@ function PropField({ prop, presentation, value, onChange }: { prop: PropDescript
     case 'VALIDATION_LIST':
       return <ValidationListEditor value={Array.isArray(value) ? (value as ValidationRule[]) : []} onChange={onChange} />;
     case 'TEXT':
-    default:
+    default: {
+      const text = typeof value === 'string' ? value : '';
+      const picker = PROPS_QUE_ACEITAM_VARIAVEL.has(prop.name) ? (
+        <VariablePickerButton
+          variables={variables}
+          tokenFor={(v) => sduiVariablePath(v.kind, v.name)}
+          onInsert={(token) => insertTokenAtCursor(presentation.multiline ? textareaRef.current : textRef.current, text, token, onChange)}
+        />
+      ) : null;
       if (presentation.multiline) {
-        return <textarea style={{ ...gridInputStyle(c), height: 68, resize: 'vertical', padding: '7px 8px' }} value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} />;
+        return (
+          <span className="flex gap-1 items-start" style={{ width: '100%' }}>
+            <textarea ref={textareaRef} style={{ ...gridInputStyle(c), flex: 1, height: 68, resize: 'vertical', padding: '7px 8px' }} value={text} onChange={(e) => onChange(e.target.value)} />
+            {picker}
+          </span>
+        );
       }
-      return <input style={gridInputStyle(c)} value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} />;
+      return (
+        <span className="flex gap-1 items-center" style={{ width: '100%' }}>
+          <input ref={textRef} style={{ ...gridInputStyle(c), flex: 1 }} value={text} onChange={(e) => onChange(e.target.value)} />
+          {picker}
+        </span>
+      );
+    }
   }
 }
 
@@ -385,7 +412,7 @@ export function PropertyInspector({
                           {presentation.help && <span title={presentation.help} className="inline-flex"><CircleHelp size={11} /></span>}
                         </span>
                         <span className="min-w-0">
-                          <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
+                          <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} variables={variables} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
                           {error && <span className="block mt-1" style={{ color: c.danger, fontSize: 10 }}>{error}</span>}
                         </span>
                       </label>
@@ -415,7 +442,7 @@ export function PropertyInspector({
                                   {presentation.help && <span title={presentation.help} className="inline-flex"><CircleHelp size={11} /></span>}
                                 </span>
                                 <span className="min-w-0">
-                                  <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
+                                  <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} variables={variables} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
                                   {error && <span className="block mt-1" style={{ color: c.danger, fontSize: 10 }}>{error}</span>}
                                 </span>
                               </label>

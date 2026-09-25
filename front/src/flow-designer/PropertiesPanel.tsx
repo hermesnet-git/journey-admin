@@ -117,7 +117,18 @@ function computeRightAnchoredRect(trigger: HTMLElement): { right: number; width:
 // Virou portal pro document.body pelo mesmo motivo do dropdown de SearchSelect.tsx: o container
 // rolável do PropertiesDock recorta qualquer coisa que não caiba no painel de ~300px de largura —
 // exatamente o que uma lista de variáveis, um item por nó ancestral, pode ultrapassar.
-export function VariablePickerButton({ variables, onInsert }: { variables: VariableOrigin[]; onInsert: (token: string) => void }) {
+export function VariablePickerButton({
+  variables,
+  onInsert,
+  tokenFor = (v) => engineVariableToken(v.kind, v.name),
+}: {
+  variables: VariableOrigin[];
+  onInsert: (token: string) => void;
+  /** Como a variável é escrita no campo. O padrão é o nome dela no motor (form_nome), porque a
+   * maioria dos campos com este botão vira expressão do motor; dentro de uma tela desenhada o
+   * chamador passa o caminho com ponto (form.nome), que é o que o renderizador entende. */
+  tokenFor?: (variable: VariableOrigin) => string;
+}) {
   const { c } = useFlowTheme();
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState<{ right: number; width: number; maxHeight: number; top?: number; bottom?: number } | null>(null);
@@ -202,19 +213,19 @@ export function VariablePickerButton({ variables, onInsert }: { variables: Varia
               <div key={label} style={{ marginBottom: 6 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: c.textSecondary, padding: '2px 6px' }}>{label}</div>
                 {vars.map((v) => {
-                  const token = engineVariableToken(v.kind, v.name);
+                  const token = tokenFor(v);
+                  // Mostra o nome que o autor reconhece quando ele existe; o que é escrito no campo
+                  // continua sendo o token, exibido na dica.
+                  const exibicao = v.label ?? token;
                   return (
                     <button
                       key={token}
                       type="button"
                       onClick={() => {
-                        // Insere o nome real da variável no motor (form_nome/data_pedido), não o
-                        // caminho lógico — este campo vira expressão JUEL (URL/header/body de conector),
-                        // sem noção de namespace com ponto (ver engineVariableToken).
                         onInsert(`{{${token}}}`);
                         setOpen(false);
                       }}
-                      title={v.name !== token ? `Campo "${v.name}"` : undefined}
+                      title={exibicao !== token ? `{{${token}}}` : v.name !== token ? `Campo "${v.name}"` : undefined}
                       style={{
                         display: 'block',
                         width: '100%',
@@ -224,14 +235,14 @@ export function VariablePickerButton({ variables, onInsert }: { variables: Varia
                         background: 'transparent',
                         color: c.textPrimary,
                         fontSize: 12.5,
-                        fontFamily: 'monospace',
+                        fontFamily: exibicao === token ? 'monospace' : undefined,
                         cursor: 'pointer',
                         borderRadius: 4,
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = c.canvasBg)}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
-                      {token}
+                      {exibicao}
                     </button>
                   );
                 })}

@@ -5,7 +5,7 @@ import { useFlowTheme } from '../theme';
 import type { VariableOrigin } from '../model';
 import { listAuthoringComponentDefinitions, listComponentDefinitions, type ComponentDefinition, type PropDescriptor } from '../../api/componentDefinitions';
 import type { ChannelType } from '../../api/products';
-import { createNode, findNode, findParent, insertNode, insertNodeNear, removeNode, collectIds, moveNode, moveNodeNear, moveWithinSiblings, renameNode, updateProps, updateBindings, updateEvents, updateVisibility, updateActive, type SduiNode } from '../../sdui/model';
+import { createNode, findNode, findParent, insertNode, insertNodeNear, removeNode, collectIds, collectScreenFormFields, moveNode, moveNodeNear, moveWithinSiblings, renameNode, updateProps, updateBindings, updateEvents, updateVisibility, updateActive, type SduiNode } from '../../sdui/model';
 import { ComponentPalette, type PaletteDragData } from './ComponentPalette';
 import { FormCanvas, type CanvasDragData, type CanvasDropData } from './FormCanvas';
 import { LayerPanel } from './LayerPanel';
@@ -70,6 +70,24 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
     registryDefinitions.forEach((d) => map.set(registryKey(d.type, d.version), d));
     return map;
   }, [registryDefinitions]);
+
+  // `variables` traz só o que etapas anteriores da jornada produziram — um campo desta mesma tela
+  // não está lá, e é justamente o que o autor mais quer referenciar ("mostrar o nome que o cliente
+  // acabou de digitar ali em cima"). Os campos da tela entram na frente, em grupo próprio.
+  const variablesWithScreenFields = useMemo<VariableOrigin[]>(() => {
+    const screenFields = root ? collectScreenFormFields(root) : [];
+    return [
+      ...screenFields.map((field) => ({
+        name: field.name,
+        type: 'string' as const,
+        sourceNodeId: '',
+        sourceLabel: 'Campos desta tela',
+        kind: 'form' as const,
+        label: field.label,
+      })),
+      ...variables,
+    ];
+  }, [root, variables]);
 
   useEffect(() => {
     setSelectedId(root?.id ?? null);
@@ -448,7 +466,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
             root={root}
             node={selectedNode}
             definition={selectedDefinition}
-            variables={variables}
+            variables={variablesWithScreenFields}
             channelTypes={channelTypes}
             designChannel={designChannel}
             reservedNodeIds={reservedNodeIds}

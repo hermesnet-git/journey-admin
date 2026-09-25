@@ -63,6 +63,16 @@ export function engineVariableToken(kind: VariableKind | undefined, name: string
   return name;
 }
 
+// Caminho da mesma variável dentro de uma tela desenhada — lá o namespace é separado por ponto
+// (form.nome, data.pedido) e o canal da execução vem do contexto de sessão. É a forma que vale
+// dentro de {{...}} num texto da tela; engineVariableToken continua valendo fora dela, onde tudo
+// vira expressão do motor.
+export function sduiVariablePath(kind: VariableKind | undefined, name: string): string {
+  if (kind === 'form') return `form.${name}`;
+  if (kind === 'channel') return `session.${name}`;
+  return `data.${name}`;
+}
+
 // REQ-03.12.001: {name, type} declared on the START node — the variables the caller (canal
 // digital/BFF) must supply when starting an instance. No jsonPath: the value arrives direct, it
 // isn't extracted from a response.
@@ -79,6 +89,10 @@ export interface VariableOrigin {
   sourceNodeId: string;
   sourceLabel: string;
   kind: VariableKind;
+  /** Nome que o autor reconhece ("Nome do Cliente"), quando ele existe e é diferente do nome
+   * técnico — caso dos campos de uma tela desenhada, cujo nome técnico costuma ser o id do
+   * componente. Sem ele, a lista de variáveis mostra o nome técnico, como sempre mostrou. */
+  label?: string;
 }
 
 export interface WFNodeData extends Record<string, unknown> {

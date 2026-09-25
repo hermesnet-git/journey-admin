@@ -255,3 +255,28 @@ export function collectFormVariableNames(root: SduiNode): string[] {
   });
   return names;
 }
+
+export interface ScreenFormField {
+  /** Nome da variável — o que vai depois de "form." no caminho. */
+  name: string;
+  /** Como o campo se apresenta na tela ("Nome do Cliente"), para a lista de variáveis não exibir
+   * um id técnico. Cai no próprio nome quando o campo ainda não tem rótulo. */
+  label: string;
+}
+
+/** Campos que ESTA tela coleta, na ordem em que aparecem. Diferente de `availableVariableOriginsAt`
+ * (flow-designer/model.ts), que enxerga só o que etapas anteriores da jornada produziram: um campo
+ * da tela em edição ainda não é variável do fluxo, mas já pode ser referenciado por outro
+ * componente da mesma tela. */
+export function collectScreenFormFields(root: SduiNode): ScreenFormField[] {
+  const fields: ScreenFormField[] = [];
+  walk(root, (node) => {
+    const path = node.bindings?.value?.path;
+    if (!path?.startsWith('form.')) return;
+    const name = path.slice('form.'.length);
+    if (!name || fields.some((field) => field.name === name)) return;
+    const label = typeof node.props.label === 'string' ? node.props.label.trim() : '';
+    fields.push({ name, label: label || name });
+  });
+  return fields;
+}

@@ -70,7 +70,21 @@ public class BpmnTransformer {
     // {{name}} (Admin Portal's variable reference syntax, REQ-03.09.012/REQ-03.11.003) becomes
     // ${name} (Camunda's own JUEL variable syntax) — the process variables set by an earlier
     // connector's output parameters, or a gateway condition, read directly off process scope.
-    private static final Pattern ADMIN_VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
+    // Hífen incluído: nome de outputMapping pode vir de um campo REST kebab-case (ex.: user-id).
+    // Isso por si só NÃO bastaria — ver juelVariableRef logo abaixo, hífen é o sinal de subtração
+    // em JUEL, então o nome capturado nunca pode virar identificador solto dentro de ${...}.
+    private static final Pattern ADMIN_VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}");
+
+    // ${name} só é seguro em JUEL quando `name` é um identificador puro (letras/dígitos/underscore).
+    // Um nome com hífen ("user-id") viraria a EXPRESSÃO "user - id" (subtração de duas variáveis
+    // inexistentes), avaliada sem erro nenhum — o pior tipo de falha, silenciosa e sintaticamente
+    // válida. execution.getVariable('name') é a forma que o próprio Camunda documenta pra ler uma
+    // variável de processo por nome arbitrário dentro de uma expressão — funciona igual a ${name}
+    // pra um nome comum, e também pra qualquer nome com caractere especial. Usado sempre, pros dois
+    // casos, em vez de só quando o nome "parece perigoso" — um caminho só, mais simples de manter.
+    private static String juelVariableRef(String name) {
+        return "execution.getVariable('" + name + "')";
+    }
 
 
     public record Result(String processId, byte[] bpmnXml) {
@@ -325,7 +339,7 @@ public class BpmnTransformer {
         Matcher matcher = ADMIN_VARIABLE_TOKEN.matcher(text);
         StringBuilder result = new StringBuilder();
         while (matcher.find()) {
-            matcher.appendReplacement(result, Matcher.quoteReplacement("${" + matcher.group(1) + "}"));
+            matcher.appendReplacement(result, Matcher.quoteReplacement("${" + juelVariableRef(matcher.group(1)) + "}"));
         }
         matcher.appendTail(result);
         return result.toString();
@@ -339,7 +353,7 @@ public class BpmnTransformer {
         Matcher matcher = ADMIN_VARIABLE_TOKEN.matcher(condition);
         StringBuilder result = new StringBuilder();
         while (matcher.find()) {
-            matcher.appendReplacement(result, Matcher.quoteReplacement(matcher.group(1)));
+            matcher.appendReplacement(result, Matcher.quoteReplacement(juelVariableRef(matcher.group(1))));
         }
         matcher.appendTail(result);
         return "${" + result + "}";

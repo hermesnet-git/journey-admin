@@ -11,7 +11,11 @@ import java.util.regex.Pattern;
  * entre módulos Maven (mesma situação já documentada nos outros dois). */
 public final class VariableTemplate {
 
-    private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
+    // Hífen incluído (A-Za-z0-9_- em vez de A-Za-z0-9_): nome de outputMapping é derivado do campo
+    // de uma resposta REST real (flattenJsonToOutputMappingRules, front), que pode vir em
+    // kebab-case (ex.: user-id) — sem isso o token nunca casava e ficava {{user-id}} literal na
+    // URL/header/payload, mesmo com a variável existindo de verdade.
+    private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}");
 
     private VariableTemplate() {
     }

@@ -44,7 +44,11 @@ public final class FlowValidator {
     // REQ-03.12.001: same type vocabulary as an outputMapping rule's "type".
     private static final Set<String> VALID_VARIABLE_TYPES = Set.of("string", "number", "boolean", "date", "datetime");
     // REQ-03.09.012: {{name}} references in connectorConfig fields (url, headers, body/payload).
-    private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
+    // Hífen incluído — nome de outputMapping vem de um campo de resposta REST real, que pode ser
+    // kebab-case (ex.: user-id); mesmo padrão de VariableTemplate.java, que resolve isso em
+    // runtime — sem os dois casarem, um nome assim nunca era detectado aqui (nem violação, nem
+    // reconhecido) e nunca resolvia lá.
+    private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}");
 
     // Seção 8 do catálogo SDUI: os 5 namespaces de binding permitidos.
     private static final Set<String> VALID_BINDING_NAMESPACES =

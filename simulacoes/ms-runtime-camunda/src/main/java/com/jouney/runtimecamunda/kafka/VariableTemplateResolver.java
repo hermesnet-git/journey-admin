@@ -17,7 +17,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class VariableTemplateResolver {
 
-    private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
+    // Hífen incluído — mesmo ajuste dos outros dois portes deste algoritmo (admin/back
+    // VariableTemplate.java/ConnectorTestAdapter.java): outputMapping pode vir de um campo REST
+    // kebab-case (ex.: user-id).
+    private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}");
 
     public String resolve(String template, Map<String, String> vars) {
         if (template == null) {

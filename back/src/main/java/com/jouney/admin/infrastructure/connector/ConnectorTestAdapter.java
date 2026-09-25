@@ -37,7 +37,9 @@ public class ConnectorTestAdapter implements ConnectorTestPort {
 
     private static final int TIMEOUT_MS = 5_000;
     private static final int MAX_BODY_BYTES = 1_000_000;
-    private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}");
+    // Hífen incluído — mesmo ajuste de VariableTemplate.java/FlowValidator.java (domínio):
+    // outputMapping pode vir de um campo REST kebab-case (ex.: user-id).
+    private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}");
 
     private final RestClient restClient;
     private final boolean blockPrivateNetworks;

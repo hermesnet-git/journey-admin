@@ -9,17 +9,24 @@ import { collectFormVariableNames, type SduiBinding, type SduiNode } from '../..
 // catálogo (seção 8: session.locale). Ampliar aqui quando existir um catálogo real de sessão.
 const KNOWN_SESSION_PATHS = ['channel', 'locale'];
 
-/** Caminhos conhecidos pra sugerir/restringir um namespace — combina variáveis já disponíveis no
- * fluxo (saída de passos anteriores) com nomes de campo já usados na PRÓPRIA tela em edição (que
- * `variables` não cobre: um campo da mesma tela ainda não é uma "variável do fluxo" até a tela ser
- * salva). `data`/`session` têm fonte própria; `route`/`computed` não têm catálogo neste admin. */
+/** Caminhos conhecidos pra sugerir/restringir um namespace. Cada variável pertence a um namespace
+ * só — resposta de campo de tela é `form`, dado carregado por integração ou informado ao iniciar a
+ * jornada é `data`, canal da execução é `session` — por isso filtra por `VariableOrigin.kind` antes
+ * de sugerir: oferecer a mesma lista nos três namespaces (como já foi feito aqui) produz um caminho
+ * que nunca resolve nada em execução (ex.: `data.nomeCliente`, quando `nomeCliente` só existe como
+ * `form.nomeCliente`). `root`/`collectFormVariableNames` é uma segunda fonte pra `form`, redundante
+ * com o que `variables` já devia trazer (ver `FormBuilder.variablesWithScreenFields`) — mantida por
+ * segurança, caso algum chamador ainda passe uma lista sem os campos da própria tela.
+ * `route`/`computed` não têm catálogo neste admin. */
 function knownPathsFor(namespace: BindingNamespace, variables: VariableOrigin[], root: SduiNode | null): string[] {
   if (namespace === 'form') {
     const formNames = root ? collectFormVariableNames(root) : [];
-    return Array.from(new Set([...variables.map((v) => v.name), ...formNames]));
+    return Array.from(new Set([...variables.filter((v) => v.kind === 'form').map((v) => v.name), ...formNames]));
   }
-  if (namespace === 'data') return variables.map((v) => v.name);
-  if (namespace === 'session') return KNOWN_SESSION_PATHS;
+  if (namespace === 'data') return variables.filter((v) => v.kind === 'data').map((v) => v.name);
+  if (namespace === 'session') {
+    return Array.from(new Set([...variables.filter((v) => v.kind === 'channel').map((v) => v.name), ...KNOWN_SESSION_PATHS]));
+  }
   return [];
 }
 

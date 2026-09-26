@@ -788,9 +788,9 @@ export const EPICS: Epic[] = [
           d('REQ-04.10.003', 'Um componente sem vínculo configurado não deve gerar variável de processo nem ser considerado no envio do formulário.'),
           {
             code: 'REQ-04.10.004',
-            description: 'Ao configurar um vínculo de leitura-e-escrita no namespace de variável do fluxo, o sistema deve sugerir os nomes de variável já conhecidos até aquele ponto do fluxo.',
+            description: 'Ao configurar vínculo no namespace de variável do fluxo, o sistema deve sugerir nomes já conhecidos — incluindo os campos que a própria tela em edição já coleta, não só o que etapas anteriores do fluxo produzem.',
             status: 'done',
-            notes: 'Sugestão disponível para os namespaces de variável do fluxo e de dado somente leitura — os demais namespaces não têm fonte de sugestão neste editor.',
+            notes: 'Ampliado em 2026-09-24/25 (antes só sugeria variável de etapa anterior do fluxo) — a sugestão ainda mistura variável de fluxo e de dado somente leitura na mesma lista, sem filtrar por origem.',
           },
           d('REQ-04.10.005', 'O nome técnico de um campo que coleta valor passa a ser o nome usado no vínculo de leitura-e-escrita do namespace de variável do fluxo; sua unicidade deve continuar sendo verificada na jornada inteira.'),
         ],
@@ -837,7 +837,12 @@ export const EPICS: Epic[] = [
           d('REQ-04.13.006', 'O sistema não deve permitir publicar uma jornada com um evento associado a uma ação fora do conjunto fechado.'),
           d('REQ-04.13.007', 'Ao rejeitar a publicação, o sistema deve informar todas as violações encontradas, não só a primeira.'),
           d('REQ-04.13.008', 'O sistema não deve permitir publicar uma jornada em que, para algum dos tipos de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo.'),
-          d('REQ-04.13.009', 'O sistema não deve permitir publicar uma jornada em que o valor de uma propriedade, em alguma tela, viole o schema declarado pelo componente no catálogo (tipo de valor, faixa numérica ou enumeração).'),
+          {
+            code: 'REQ-04.13.009',
+            description: 'O sistema não deve permitir publicar uma jornada em que o valor de uma propriedade, em alguma tela, viole o schema declarado pelo componente no catálogo (tipo de valor, faixa numérica ou enumeração) — uma propriedade obrigatória e vinculável é satisfeita por um valor literal ou por um vínculo válido, nunca exigindo os dois.',
+            status: 'done',
+            notes: 'Ampliado em 2026-09-25/26 — antes exigia valor literal mesmo com vínculo configurado.',
+          },
         ],
       },
       {
@@ -1978,6 +1983,12 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-09-26 00:23 (não commitado)',
+    source: 'progresso',
+    summary:
+      'FT-04 (US-04.10/04.12/04.13): 2 REQs ampliados, 2 bugs de runtime corrigidos, evidência de US-04.10 a US-04.13 ressincronizada. Nada de código nesta entrada (já commitado em sessões de 24-25/09) — só a documentação, que nunca tinha sido atualizada, revelando que toda a evidência de US-04.10 a US-04.13 ainda citava classes removidas na reformulação do catálogo v1 (05/09): sdui/BindingsEditor.tsx/VisibilityEditor.tsx/EventsEditor.tsx/SduiForm.fields, hoje flow-designer/form-builder/BindingEditor.tsx/ConditionEditor.tsx/ActionEditor.tsx/CanonicalFormat.fields. REQ-04.10.004 ampliado: a lista de variáveis sugerida em Binding/Visibilidade/Estado passou a incluir os campos que a própria tela em edição já coleta (sdui/collectScreenFormFields, rótulo visível em vez do id técnico), não só o que etapas anteriores do fluxo produzem — as três seções recebem a mesma prop variables, então o ganho vale pras três de uma vez, sem precisar de mudança em cada uma. REQ-04.13.009 ampliado: uma propriedade obrigatória e vinculável (text de ui.text, title/message de ui.alert, source/alt de ui.image, value de ui.progress) passa a ser satisfeita por um valor literal OU por um vínculo válido, nunca pelos dois — antes FlowValidator e o painel de pendências do Form Builder pediam o literal mesmo com o vínculo configurado; o literal continua aceito como fallback de execução (TemplateResolver, ms-espec-registry, resolve o literal primeiro e só sobrescreve se o vínculo resolver algo). Dois bugs de runtime corrigidos no ms-espec-registry, achados testando de ponta a ponta uma tela que só lê o que outra coletou: CanonicalFormat.referencedProcessVariables só detectava referência dentro de $bindings/$visibility/$active, nunca dentro de um placeholder solto em atributo de texto — a variável nunca era buscada e o placeholder resolvia pra string vazia, em silêncio; e o padrão que reconhece {{...}} excluía hífen, então um id no padrão Node_<uuid> (import do Figma sempre, ou qualquer id renomeado à mão) nunca casava — ficava {{...}} literal na tela. Mesmo ajuste de hífen replicado nos outros 4 lugares do monorepo que resolvem {{nome}} sem namespace (VariableTemplate/ConnectorTestAdapter no admin/back, worker Kafka do ms-runtime-camunda, condição de Decisão do ms-transform-publication) — este último não podia levar o mesmo alargamento de regex por virar expressão JUEL (hífen é subtração ali); usa execution.getVariable(\'nome\') em vez de ${nome} bruto, uniformemente, não só quando o nome "parece perigoso". Nenhum REQ novo, nenhuma mudança de contagem: total geral seguem 506 REQs, 456 concluídos.',
+  },
+  {
     date: '2026-09-12 17:59 (não commitado)',
     source: 'progresso',
     summary:
@@ -2365,6 +2376,164 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-09-25 23:03',
+    source: 'git',
+    summary: 'Vínculo de dados satisfaz propriedade obrigatória (ui.text/image/alert/progress).',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-25 01:25',
+    source: 'git',
+    summary: 'Aceita hífen em {{nome}} de conector, teste ad-hoc, worker Kafka e condição de Decisão.',
+    epics: ['FT-03'],
+  },
+  {
+    date: '2026-09-25 01:25',
+    source: 'git',
+    summary: 'Corrige placeholder sem binding e id com hífen na tela publicada (ms-espec-registry).',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-25 01:24',
+    source: 'git',
+    summary: 'Campos da tela em edição entram na lista de variáveis do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-24 22:41',
+    source: 'git',
+    summary: 'Adiciona modal de JSON com busca ao Log de execução e outras telas.',
+    epics: ['FT-05', 'FT-15'],
+  },
+  {
+    date: '2026-09-21 00:24',
+    source: 'git',
+    summary: 'Apresentação do motor de estado (engine) pra codex.',
+  },
+  {
+    date: '2026-09-21 00:20',
+    source: 'git',
+    summary: 'Cinco opções de slide interativo para onboarding do motor de estado.',
+  },
+  {
+    date: '2026-09-20 23:52',
+    source: 'git',
+    summary: 'Reorganiza documentação em documentacao/plataforma.',
+  },
+  {
+    date: '2026-09-20 23:34',
+    source: 'git',
+    summary: 'Importação de jornada e de tela a partir do Figma.',
+  },
+  {
+    date: '2026-09-20 03:47',
+    source: 'git',
+    summary: 'Ajustes na capa da apresentação do catálogo SDUI.',
+  },
+  {
+    date: '2026-09-20 02:48',
+    source: 'git',
+    summary: 'Ajustes na capa da apresentação do catálogo SDUI.',
+  },
+  {
+    date: '2026-09-20 02:35',
+    source: 'git',
+    summary: 'Ajustes na capa da apresentação do catálogo SDUI.',
+  },
+  {
+    date: '2026-09-20 01:59',
+    source: 'git',
+    summary: 'Apresentação do catálogo SDUI.',
+  },
+  {
+    date: '2026-09-17 02:34',
+    source: 'git',
+    summary: 'Refinamento do deck de apresentação.',
+  },
+  {
+    date: '2026-09-16 00:06',
+    source: 'git',
+    summary: 'Apresentação e documentação.',
+  },
+  {
+    date: '2026-09-13 23:53',
+    source: 'git',
+    summary: 'Documentação.',
+  },
+  {
+    date: '2026-09-13 23:13',
+    source: 'git',
+    summary: 'Atualiza massa de fábrica com produto Laboratório e jornada Vivo Fibra + Total.',
+  },
+  {
+    date: '2026-09-13 23:13',
+    source: 'git',
+    summary: 'Lista os novos endpoints mock no front-mock-integracoes.',
+  },
+  {
+    date: '2026-09-13 23:13',
+    source: 'git',
+    summary: 'Adiciona endpoints mock de crédito e pedidos ao ms-mock-api-rest.',
+  },
+  {
+    date: '2026-09-13 23:13',
+    source: 'git',
+    summary: 'Alinha assistente de conector e motor ao namespace form_/data_ das variáveis.',
+    epics: ['FT-03'],
+  },
+  {
+    date: '2026-09-13 23:13',
+    source: 'git',
+    summary: 'Corrige espaçamento do Organizar quando há Gateways encadeados no Flow Designer.',
+    epics: ['FT-03'],
+  },
+  {
+    date: '2026-09-13 23:13',
+    source: 'git',
+    summary: 'Adiciona Gateway/SERVICE_TASK/RECEIVE_TASK e componentes SDUI restantes à skill de jornada.',
+  },
+  {
+    date: '2026-09-13 06:09',
+    source: 'git',
+    summary: 'Desliga autofill do browser no campo Nome do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-13 06:09',
+    source: 'git',
+    summary: 'Execução ao vivo ganha entrada/saída de nós e sobrevive ao fim da jornada.',
+    epics: ['FT-05'],
+  },
+  {
+    date: '2026-09-13 06:08',
+    source: 'git',
+    summary: 'Snapshot da versão publicada passa a guardar o envelope SDUI real.',
+    epics: ['FT-06'],
+  },
+  {
+    date: '2026-09-13 06:08',
+    source: 'git',
+    summary: 'Leva o namespace form/data pro motor: variáveis de engine deixam de colidir.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-13 02:23',
+    source: 'git',
+    summary: 'Melhora experiência do editor de binding e ajusta canvas/nomenclatura do Form Builder.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-12 22:00',
+    source: 'git',
+    summary: 'Diretório de skills.',
+  },
+  {
+    date: '2026-09-12 21:47',
+    source: 'git',
+    summary: 'Adiciona retomada de execução em andamento e corrige regressão da migração de ontem.',
+    epics: ['FT-05'],
+  },
   {
     date: '2026-09-12 04:06',
     source: 'git',

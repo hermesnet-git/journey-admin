@@ -590,6 +590,9 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.10.002 - O vínculo deve poder ser configurado como leitura-e-escrita ou somente leitura.
 #### REQ-04.10.003 - Um componente sem vínculo configurado não deve gerar variável de processo nem ser considerado no envio do formulário.
 #### REQ-04.10.004 - Ao configurar um vínculo de leitura-e-escrita no namespace de variável do fluxo, o sistema deve sugerir os nomes de variável já conhecidos até aquele ponto do fluxo.
+
+> **Nota de revisão (2026-09-26):** a sugestão passou a incluir também os campos que a própria tela em edição já coleta, exibidos pelo rótulo visível ("Nome do Cliente"), não pelo identificador técnico — um campo da mesma tela ainda não é uma variável do fluxo no sentido estrito (não veio de "um ponto anterior"), mas é a referência mais comum na prática ("mostrar o que o cliente acabou de preencher ali em cima") e ficava de fora antes desta revisão.
+
 #### REQ-04.10.005 - O nome técnico de um campo que coleta valor passa a ser o nome usado no vínculo de leitura-e-escrita do namespace de variável do fluxo; sua unicidade deve continuar sendo verificada na jornada inteira, não só na tela do nó, contra variável de saída de integração e de entrada — mas não contra outro campo de tela, que pode reaproveitar o mesmo nome numa etapa diferente (REQ-03.09.011).
 
 ---
@@ -620,6 +623,8 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.13.007 - Ao rejeitar a publicação, o sistema deve informar todas as violações encontradas, não só a primeira.
 #### REQ-04.13.008 - O sistema não deve permitir publicar uma jornada em que, para algum dos tipos de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo — considerando as regras de visibilidade condicionadas a `session.channel` (REQ-04.12.004).
 #### REQ-04.13.009 - O sistema não deve permitir publicar uma jornada em que o valor de uma propriedade, em alguma tela, viole o schema declarado pelo componente no catálogo (tipo de valor, faixa numérica ou enumeração — REQ-04.07.006).
+
+> **Nota de revisão (2026-09-26):** uma propriedade obrigatória que também aceita `$bindings` (US-04.10) é considerada preenchida por um valor literal OU por um vínculo válido — nunca os dois em falta ao mesmo tempo, mas também nunca os dois exigidos juntos. Faltando os dois, o sistema deve informar as duas formas de resolver, não só cobrar o valor literal.
 
 ---
 

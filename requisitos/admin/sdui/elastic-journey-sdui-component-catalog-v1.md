@@ -148,7 +148,7 @@ Regras obrigatórias:
 - `$bindings`, `$events`, `$visibility` e `$active` ficam no segundo item quando autorizados pelo contrato do componente;
 - `children` nunca é um atributo; filhos existem exclusivamente na terceira posição;
 - um campo reservado `$...` desconhecido é erro fatal;
-- tipo não registrado, versão principal incompatível ou propriedade obrigatória ausente impedem a publicação;
+- tipo não registrado, versão principal incompatível ou propriedade obrigatória ausente (sem literal e sem vínculo válido — seção 7.2) impedem a publicação;
 - propriedade comum desconhecida é rejeitada na publicação. Em runtime, somente uma propriedade opcional, aditiva e explicitamente declarada como segura pelo schema pode ser ignorada, sempre com diagnóstico `warning`.
 
 ## 7. Catálogo de componentes v1
@@ -256,6 +256,7 @@ Todos os componentes de entrada aceitam `$bindings.value` em modo `twoWay`, `$vi
 ### 7.2 Convenções de propriedades
 
 - `label`, `placeholder`, `title`, `message` e `text` aceitam texto literal ou placeholder seguro.
+- Uma propriedade obrigatória que também aceita `$bindings` (`ui.text.text`, `ui.image.source`/`alt`, `ui.alert.title`/`message`, `ui.progress.value`) é satisfeita por um valor literal **ou** por um vínculo válido — nunca as duas fontes em falta ao mesmo tempo, e nunca as duas exigidas juntas. O valor literal permanece útil mesmo com vínculo configurado: funciona como conteúdo de referência em tempo de autoria e como fallback em runtime, exibido somente se o vínculo não resolver nenhum valor (ver seção 8.4).
 - `variant` representa intenção visual corporativa, nunca uma classe CSS ou nome interno do framework.
 - `options` utiliza uma lista de objetos `{ "value": string, "label": string, "disabled"?: boolean }`.
 - Datas são transportadas em ISO 8601; a apresentação localizada é responsabilidade do adapter de cada alvo.
@@ -399,6 +400,7 @@ Um componente pode usar placeholder em uma propriedade textual e binding em uma 
 - converter para texto somente o valor interpolado por placeholder;
 - validar caminhos e namespaces contra um data contract conhecido;
 - distinguir binding ausente de valor `null` e definir fallback quando necessário;
+- considerar uma propriedade obrigatória satisfeita por um valor literal ou por um vínculo válido — nunca exigir os dois juntos, nem aceitar a ausência dos dois;
 - definir comportamento previsível para placeholder cujo caminho não exista;
 - escapar conteúdo textual interpolado por padrão;
 - não registrar em telemetria valores pessoais obtidos por binding ou placeholder;
@@ -914,7 +916,7 @@ Códigos estáveis do v1:
 - `SDUI_FALLBACK_APPLIED`;
 - `SDUI_COMPONENT_OMITTED`.
 
-Componente desconhecido, versão principal incompatível, propriedade obrigatória ausente e atributo reservado desconhecido são sempre erros. O renderer não pode inventar conteúdo, ação, token ou comportamento para contornar incompatibilidade.
+Componente desconhecido, versão principal incompatível, propriedade obrigatória ausente (sem valor literal e sem vínculo válido — ver seção 7.2) e atributo reservado desconhecido são sempre erros. O renderer não pode inventar conteúdo, ação, token ou comportamento para contornar incompatibilidade.
 
 ## 16. Critérios de aceite do v1
 

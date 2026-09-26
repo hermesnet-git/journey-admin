@@ -777,6 +777,7 @@ export const EPICS: Epic[] = [
           d('REQ-04.09.009', 'No modo de construção da tela, os componentes não devem aceitar digitação de valores reais — não é o formulário sendo preenchido, é uma prancheta de montagem.'),
           d('REQ-04.09.010', 'O sistema deve oferecer um modo de pré-visualização que renderiza a árvore como seria apresentada ao usuário final, alternável a qualquer momento com o modo de construção.'),
           d('REQ-04.09.011', 'O sistema deve sinalizar pendências de preenchimento da tela — propriedade obrigatória vazia, valor incompatível com o schema, componente de entrada sem vínculo de dados, botão ou link sem ação associada, ou componente incompatível com o canal selecionado — classificadas por severidade, permitindo ao usuário navegar de uma pendência até o campo correspondente.'),
+          d('REQ-04.09.012', 'No modo de construção da tela, uma propriedade que tenha um vínculo de dados configurado deve ser exibida no canvas pelo próprio vínculo — o nome da variável de processo que será lida em execução — no lugar do valor literal ou do texto de exemplo do componente.'),
         ],
       },
       {
@@ -790,7 +791,7 @@ export const EPICS: Epic[] = [
             code: 'REQ-04.10.004',
             description: 'Ao configurar vínculo no namespace de variável do fluxo, o sistema deve sugerir nomes já conhecidos — incluindo os campos que a própria tela em edição já coleta, não só o que etapas anteriores do fluxo produzem.',
             status: 'done',
-            notes: 'Ampliado em 2026-09-24/25 (antes só sugeria variável de etapa anterior do fluxo) — a sugestão ainda mistura variável de fluxo e de dado somente leitura na mesma lista, sem filtrar por origem.',
+            notes: 'Ampliado em 2026-09-24/25 (antes só sugeria variável de etapa anterior do fluxo) — as sugestões agora filtram por origem: form só campo de tela, data só saída de integração e variável de entrada, session só o canal.',
           },
           d('REQ-04.10.005', 'O nome técnico de um campo que coleta valor passa a ser o nome usado no vínculo de leitura-e-escrita do namespace de variável do fluxo; sua unicidade deve continuar sendo verificada na jornada inteira.'),
         ],
@@ -843,6 +844,7 @@ export const EPICS: Epic[] = [
             status: 'done',
             notes: 'Ampliado em 2026-09-25/26 — antes exigia valor literal mesmo com vínculo configurado.',
           },
+          d('REQ-04.13.010', 'O sistema não deve permitir publicar uma jornada em que uma tela referencie uma variável de dados da jornada (namespaces form ou data) que não exista naquele ponto do fluxo — seja por vínculo de leitura, por placeholder em qualquer propriedade de texto, por condição de visibilidade ou por condição de estado ativo.'),
         ],
       },
       {
@@ -1983,6 +1985,12 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-09-26 01:53 (não commitado)',
+    source: 'progresso',
+    summary:
+      'FT-04: 2 REQs novos (REQ-04.09.012 e REQ-04.13.010), REQ-04.10.004 atualizado. REQ-04.09.012 (US-04.09, Editor): o canvas do Form Builder passa a mostrar, no lugar do valor literal ou do texto de exemplo, o vínculo configurado — binding: form_nome em itálico, com o nome da variável real no motor (form.nome vira form_nome, mesma junção namespace + "_" + resto de BindingResolver) — em ui.text, ui.image, ui.alert e ui.progress; o literal segue como valor de reserva de execução, mas exibi-lo sozinho escondia do autor que o valor real vem de outra origem. Tentativas descartadas no caminho: um selo {} no canto do componente (o usuário queria o conteúdo, não um selo à parte) e a origem da variável (← Cadastro de Cliente) ao lado do nome, que não ficou bom. REQ-04.13.010 (US-04.13, Validação estrutural): a publicação (e POST /validate) rejeita uma tela que referencie uma variável form/data inexistente naquele ponto do fluxo, seja por vínculo de leitura, placeholder em qualquer propriedade textual, visibilidade ou estado ativo — antes só mensagem de tarefa, conector e Decisão eram conferidos, e uma tela apontando pra qualquer coisa publicava e saía vazia pro cliente. Conta como existente o que passos anteriores produzem, as variáveis de entrada e os campos da própria tela em qualquer ordem; a conferência é pelo nome com prefixo (form_x/data_x), então data.nome para um campo que só existe como form.nome passa a ser recusado. REQ-04.10.004: as sugestões de caminho passaram a filtrar por origem (form só campo de tela, data só saída de integração e variável de entrada, session só o canal) em vez de oferecer a mesma lista nos três — o texto anterior do REQ registrava isso como pendente. Sem teste automatizado: FlowValidatorTest, CreateJourneyTest e JourneyTemplateTest foram removidos a pedido do usuário (o primeiro estava defasado desde 08/09, fixtures em versão 1.0 e sem campos reservados) e testes seguem adiados (FT-11). Ficou anotado, sem correção: a evidência de US-04.09 ainda cita cinco arquivos que não existem mais (sdui/SduiComponentPalette.tsx, SduiScreenEditor.tsx, SduiPropertiesPanel.tsx, SduiTreeCanvas.tsx, SduiLayersPanel.tsx) — mesma defasagem corrigida em US-04.10 a 04.13. Total FT-04: 68 → 70 REQs; total geral: 506 → 508 REQs, 456 → 458 concluídos (90%).',
+  },
+  {
     date: '2026-09-26 00:23 (não commitado)',
     source: 'progresso',
     summary:
@@ -2376,6 +2384,36 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-09-26 01:43',
+    source: 'git',
+    summary: 'Remove FlowValidatorTest defasado.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-26 01:42',
+    source: 'git',
+    summary: 'Publicação barra referência a variável inexistente dentro de uma tela.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-26 01:21',
+    source: 'git',
+    summary: 'Canvas do Form Builder mostra o vínculo no lugar do texto/fallback.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-26 01:21',
+    source: 'git',
+    summary: 'Filtra sugestão de caminho por origem real da variável (form/data/session).',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-26 00:27',
+    source: 'git',
+    summary: 'Documenta vínculo-satisfaz-obrigatório e ressincroniza FT-04/página Sobre.',
+    epics: ['FT-04'],
+  },
   {
     date: '2026-09-25 23:03',
     source: 'git',

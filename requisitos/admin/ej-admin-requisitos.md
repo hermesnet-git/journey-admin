@@ -582,6 +582,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.09.009 - No modo de construção da tela, os componentes não devem aceitar digitação de valores reais — não é o formulário sendo preenchido, é uma prancheta de montagem.
 #### REQ-04.09.010 - O sistema deve oferecer um modo de pré-visualização que renderiza a árvore como seria apresentada ao usuário final, alternável a qualquer momento com o modo de construção.
 #### REQ-04.09.011 - O sistema deve sinalizar pendências de preenchimento da tela — propriedade obrigatória vazia, valor de propriedade incompatível com o schema do catálogo, componente de entrada sem vínculo de dados, botão ou link sem ação associada, ou componente incompatível com o canal selecionado — classificadas por severidade, permitindo ao usuário navegar de uma pendência até o campo correspondente no painel de propriedades.
+#### REQ-04.09.012 - No modo de construção da tela, uma propriedade que tenha um vínculo de dados configurado (US-04.10) deve ser exibida no canvas pelo próprio vínculo — o nome da variável de processo que será lida em execução — no lugar do valor literal ou do texto de exemplo do componente. O valor literal continua existindo como valor de reserva de execução (catálogo, seção 8.4), mas exibi-lo sozinho esconderia do autor que o valor real vem de outra origem.
 
 ---
 
@@ -591,7 +592,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.10.003 - Um componente sem vínculo configurado não deve gerar variável de processo nem ser considerado no envio do formulário.
 #### REQ-04.10.004 - Ao configurar um vínculo de leitura-e-escrita no namespace de variável do fluxo, o sistema deve sugerir os nomes de variável já conhecidos até aquele ponto do fluxo.
 
-> **Nota de revisão (2026-09-26):** a sugestão passou a incluir também os campos que a própria tela em edição já coleta, exibidos pelo rótulo visível ("Nome do Cliente"), não pelo identificador técnico — um campo da mesma tela ainda não é uma variável do fluxo no sentido estrito (não veio de "um ponto anterior"), mas é a referência mais comum na prática ("mostrar o que o cliente acabou de preencher ali em cima") e ficava de fora antes desta revisão.
+> **Nota de revisão (2026-09-26):** a sugestão passou a incluir também os campos que a própria tela em edição já coleta, exibidos pelo rótulo visível ("Nome do Cliente"), não pelo identificador técnico — um campo da mesma tela ainda não é uma variável do fluxo no sentido estrito (não veio de "um ponto anterior"), mas é a referência mais comum na prática ("mostrar o que o cliente acabou de preencher ali em cima") e ficava de fora antes desta revisão. As sugestões de cada namespace oferecem apenas as variáveis que pertencem a ele — `form` só os campos de tela, `data` só saídas de integração e variáveis de entrada, `session` só o canal — em vez da mesma lista nos três, que levava a um caminho que nunca resolve em execução.
 
 #### REQ-04.10.005 - O nome técnico de um campo que coleta valor passa a ser o nome usado no vínculo de leitura-e-escrita do namespace de variável do fluxo; sua unicidade deve continuar sendo verificada na jornada inteira, não só na tela do nó, contra variável de saída de integração e de entrada — mas não contra outro campo de tela, que pode reaproveitar o mesmo nome numa etapa diferente (REQ-03.09.011).
 
@@ -625,6 +626,8 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.13.009 - O sistema não deve permitir publicar uma jornada em que o valor de uma propriedade, em alguma tela, viole o schema declarado pelo componente no catálogo (tipo de valor, faixa numérica ou enumeração — REQ-04.07.006).
 
 > **Nota de revisão (2026-09-26):** uma propriedade obrigatória que também aceita `$bindings` (US-04.10) é considerada preenchida por um valor literal OU por um vínculo válido — nunca os dois em falta ao mesmo tempo, mas também nunca os dois exigidos juntos. Faltando os dois, o sistema deve informar as duas formas de resolver, não só cobrar o valor literal.
+
+#### REQ-04.13.010 - O sistema não deve permitir publicar uma jornada em que uma tela referencie uma variável de dados da jornada (namespaces `form` ou `data`) que não exista naquele ponto do fluxo — seja por vínculo de leitura, por placeholder em qualquer propriedade de texto, por condição de visibilidade ou por condição de estado ativo. Contam como existentes o que passos anteriores do fluxo produzem, as variáveis de entrada do início da jornada e os campos que a própria tela coleta, em qualquer ordem. A violação deve indicar o componente, a variável e as variáveis disponíveis naquele ponto. Não são conferidos o vínculo de leitura-e-escrita (ele cria a variável) nem os namespaces sem catálogo de caminhos (`session`, `route`, `computed`).
 
 ---
 

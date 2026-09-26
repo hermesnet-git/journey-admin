@@ -566,7 +566,14 @@ public final class FlowValidator {
             props.keySet().stream().filter(name -> !allowedProps.contains(name)).forEach(name ->
                     violations.add(new FlowViolation(ownerNode.getId(), "O atributo '" + name + "' não pertence ao componente '"
                             + sduiNode.id() + "'")));
-            definition.getPropsSchema().stream().filter(p -> p.required() && !props.containsKey(p.name())).forEach(p ->
+            // Vinculada a um dado da jornada, a propriedade é preenchida em tempo de execução —
+            // cobrar também um valor literal aqui pediria a mesma coisa duas vezes (mesmo raciocínio
+            // do painel de pendências do Form Builder, front). O literal continua aceito como
+            // fallback (ver TemplateResolver, ms-espec-registry), só deixa de ser obrigatório.
+            Map<String, SduiBinding> bindings = sduiNode.bindings() != null ? sduiNode.bindings() : Map.of();
+            definition.getPropsSchema().stream()
+                    .filter(p -> p.required() && !props.containsKey(p.name()) && !bindings.containsKey(p.name()))
+                    .forEach(p ->
                     violations.add(new FlowViolation(ownerNode.getId(), "O atributo obrigatório '" + p.name()
                             + "' não foi informado no componente '" + sduiNode.id() + "'")));
             validateCanonicalPropertyValues(ownerNode, sduiNode, props, violations);

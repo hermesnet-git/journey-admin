@@ -404,11 +404,13 @@ export function PropertyInspector({
                   )}
                   {primaryPropertyItems.map(({ prop, presentation }) => {
                     const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
-                    const error = propertyError(prop, node.props[prop.name]);
+                    const hasBinding = !!node.bindings?.[prop.name]?.path;
+                    const bindable = bindingsConfig.names.includes(prop.name);
+                    const error = propertyError(prop, node.props[prop.name], hasBinding, bindable);
                     return (
                       <label key={prop.name} data-property-field={prop.name} title={prop.name} className={fullWidth ? 'block' : 'grid items-center gap-2'} style={fullWidth ? undefined : { gridTemplateColumns: '112px minmax(0, 1fr)' }}>
                         <span className={`flex items-center gap-1 text-[11px] font-medium ${fullWidth ? 'mb-1' : ''}`} style={{ color: c.textSecondary }}>
-                          <span>{presentation.label}{prop.required && <span style={{ color: c.danger }}> *</span>}</span>
+                          <span>{presentation.label}{prop.required && !hasBinding && <span style={{ color: c.danger }}> *</span>}</span>
                           {presentation.help && <span title={presentation.help} className="inline-flex"><CircleHelp size={11} /></span>}
                         </span>
                         <span className="min-w-0">
@@ -434,11 +436,13 @@ export function PropertyInspector({
                         <div className="px-2 pb-2 flex flex-col gap-2">
                           {advancedPropertyItems.map(({ prop, presentation }) => {
                             const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
-                            const error = propertyError(prop, node.props[prop.name]);
+                            const hasBinding = !!node.bindings?.[prop.name]?.path;
+                            const bindable = bindingsConfig.names.includes(prop.name);
+                            const error = propertyError(prop, node.props[prop.name], hasBinding, bindable);
                             return (
                               <label key={prop.name} data-property-field={prop.name} title={prop.name} className={fullWidth ? 'block' : 'grid items-center gap-2'} style={fullWidth ? undefined : { gridTemplateColumns: '104px minmax(0, 1fr)' }}>
                                 <span className={`flex items-center gap-1 text-[11px] font-medium ${fullWidth ? 'mb-1' : ''}`} style={{ color: c.textSecondary }}>
-                                  <span>{presentation.label}{prop.required && <span style={{ color: c.danger }}> *</span>}</span>
+                                  <span>{presentation.label}{prop.required && !hasBinding && <span style={{ color: c.danger }}> *</span>}</span>
                                   {presentation.help && <span title={presentation.help} className="inline-flex"><CircleHelp size={11} /></span>}
                                 </span>
                                 <span className="min-w-0">
@@ -548,8 +552,14 @@ function validateComponentName(value: string, reservedNodeIds: Set<string>): str
 
 /** Antecipa no painel os erros determinísticos declarados no catálogo. A validação definitiva
  * continua no backend, mas o autor recebe o problema junto ao campo que precisa corrigir. */
-function propertyError(prop: PropDescriptor, value: unknown): string | null {
-  if (prop.required && isMissing(value)) return 'Preenchimento obrigatório.';
+function propertyError(prop: PropDescriptor, value: unknown, hasBinding: boolean, bindable: boolean): string | null {
+  // Vinculada, a propriedade é preenchida em tempo de execução — o vínculo já satisfaz a
+  // obrigatoriedade, sem exigir também um valor digitado (ver FormBuilder.collectAuthoringIssues,
+  // mesma regra). Quando falta os dois, a mensagem explica as duas formas de resolver — não só
+  // "preencha", porque vincular também é uma resposta válida aqui.
+  if (prop.required && !hasBinding && isMissing(value)) {
+    return bindable ? 'Preenchimento obrigatório: digite um valor ou vincule a um dado da jornada.' : 'Preenchimento obrigatório.';
+  }
   if (isMissing(value)) return null;
   if (prop.kind === 'NUMBER' && (typeof value !== 'number' || !Number.isFinite(value))) return 'Informe um número válido.';
   if (prop.kind === 'ENUM' && !(prop.enumValues ?? []).includes(String(value))) return 'Escolha uma opção disponível.';
@@ -562,7 +572,7 @@ function propertyError(prop: PropDescriptor, value: unknown): string | null {
   return null;
 }
 
-function bindingConfiguration(definition: ComponentDefinition): {
+export function bindingConfiguration(definition: ComponentDefinition): {
   names: string[];
   required: string[];
   mode: 'oneWay' | 'twoWay' | null;

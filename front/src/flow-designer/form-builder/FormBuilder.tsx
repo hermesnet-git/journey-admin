@@ -9,7 +9,7 @@ import { createNode, findNode, findParent, insertNode, insertNodeNear, removeNod
 import { ComponentPalette, type PaletteDragData } from './ComponentPalette';
 import { FormCanvas, type CanvasDragData, type CanvasDropData } from './FormCanvas';
 import { LayerPanel } from './LayerPanel';
-import { PropertyInspector, type InspectorFocusRequest, type InspectorSection } from './PropertyInspector';
+import { PropertyInspector, bindingConfiguration, type InspectorFocusRequest, type InspectorSection } from './PropertyInspector';
 import { iconFor, labelFor } from '../../sdui/componentMeta';
 import { tokensForGroup } from '../../sdui/designTokens';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
@@ -584,14 +584,18 @@ function collectAuthoringIssues(root: SduiNode, registry: Map<string, ComponentD
       addIssue('compatibility', compatibilityMessage(compatibility, channel) ?? 'incompatível com o canal selecionado');
     }
     definition.propsSchema.forEach((prop) => {
-      if (prop.required && (
-        node.props[prop.name] === undefined || node.props[prop.name] === null || String(node.props[prop.name]).trim() === ''
-      )) {
+      // Vinculada a um dado da jornada, a propriedade é preenchida em tempo de execução — cobrar
+      // também um valor digitado aqui pediria a mesma coisa duas vezes. O texto literal continua
+      // aceito: vira o valor de fallback se o caminho vinculado não resolver nada (TemplateResolver,
+      // ms-espec-registry — resolve o literal primeiro, o binding só sobrescreve se resolver), só
+      // deixa de ser obrigatório.
+      const hasBinding = !!node.bindings?.[prop.name]?.path;
+      if (prop.required && !hasBinding && isMissingValue(node.props[prop.name])) {
         addIssue(`prop:${prop.name}`, `preencha ${prop.name}`);
       }
       const presentation = propertyPresentation(node.type, prop);
       const message = propertyIssueMessage(prop, node.props[prop.name], presentation);
-      if (message && !(prop.required && isMissingValue(node.props[prop.name]))) {
+      if (message && !hasBinding && !(prop.required && isMissingValue(node.props[prop.name]))) {
         addIssue(`prop:${prop.name}:value`, {
           severity: 'error',
           section: presentation.advanced ? 'advancedProperties' : 'configuration',
@@ -634,12 +638,18 @@ function normalizeAuthoringIssue(
     const propName = suffix.split(':')[1];
     const prop = definition.propsSchema.find((item) => item.name === propName);
     const presentation = prop ? propertyPresentation(node.type, prop) : null;
+    // Propriedade que também aceita binding (mesma lista da seção Binding do inspector): faltando
+    // os dois, a mensagem explica as duas formas de resolver — vincular é uma resposta tão válida
+    // quanto digitar.
+    const bindable = presentation && bindingConfiguration(definition).names.includes(propName);
     return {
       severity: 'error',
       section: presentation?.advanced ? 'advancedProperties' : 'configuration',
       field: propName,
       fieldLabel: presentation?.label ?? propName,
-      message: presentation ? `Informe ${lowerFirst(presentation.label)}.` : message,
+      message: presentation
+        ? `Informe ${lowerFirst(presentation.label)}${bindable ? ' ou configure um vínculo de dados' : ''}.`
+        : message,
     };
   }
   if (suffix.startsWith('binding:')) {

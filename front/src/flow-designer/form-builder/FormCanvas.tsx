@@ -99,6 +99,28 @@ function StaticField({ node, multiline = false }: { node: SduiNode; multiline?: 
   );
 }
 
+// form.nome/data.pedido (caminho de design, o que o editor de Binding mostra) viram form_nome/
+// data_pedido no motor (BindingResolver.resolve, ms-espec-registry: processVariables.get(namespace
+// + "_" + resto) — mesma convenção de engineVariableToken em flow-designer/model.ts). session/route/
+// computed não passam por essa junção (resolvidos por chave direta no contexto, não por variável de
+// processo), então mostram o caminho como está.
+function engineBindingName(path: string): string {
+  const dot = path.indexOf('.');
+  if (dot < 0) return path;
+  const namespace = path.slice(0, dot);
+  const rest = path.slice(dot + 1);
+  return namespace === 'form' || namespace === 'data' ? `${namespace}_${rest}` : path;
+}
+
+/** Substitui o literal/fallback de uma propriedade vinculada — o literal vira só o valor de reserva
+ * de execução quando há vínculo (TemplateResolver, ms-espec-registry, só o usa se o vínculo não
+ * resolver nada), então mostrá-lo no canvas de autoria, sem indicar a origem real do dado, seria
+ * enganoso. Mostra sempre o nome da variável no motor, mesmo com literal preenchido. */
+function BindingHint({ path }: { path: string }) {
+  const { c } = useFlowTheme();
+  return <span style={{ fontStyle: 'italic', color: c.accent }}>binding: {engineBindingName(path)}</span>;
+}
+
 function EmptyDropHint({ active }: { active: boolean }) {
   const { c } = useFlowTheme();
   return (
@@ -181,11 +203,14 @@ function VisualContent({
         </div>
       );
     case 'ui.text':
-      return <Text size={suffix(node.props.variant) === 'caption' ? 12 : suffix(node.props.variant).includes('heading') ? 18 : 15} color={color(node.props.colorToken)} textAlign={node.props.align as 'left' | 'center' | 'right' | undefined}>{text(node, 'text', 'Texto')}</Text>;
-    case 'ui.image':
+      return <Text size={suffix(node.props.variant) === 'caption' ? 12 : suffix(node.props.variant).includes('heading') ? 18 : 15} color={color(node.props.colorToken)} textAlign={node.props.align as 'left' | 'center' | 'right' | undefined}>{node.bindings?.text?.path ? <BindingHint path={node.bindings.text.path} /> : text(node, 'text', 'Texto')}</Text>;
+    case 'ui.image': {
+      const boundPath = node.bindings?.source?.path ?? node.bindings?.alt?.path;
+      if (boundPath) return <div style={{ ...staticFieldStyle, textAlign: 'center' }}><BindingHint path={boundPath} /></div>;
       return text(node, 'source')
         ? <div style={{ maxHeight: mobile ? 220 : 360, overflow: 'hidden' }}><Image src={text(node, 'source')} alt={text(node, 'alt')} width="100%" /></div>
         : <div style={{ ...staticFieldStyle, textAlign: 'center' }}>{text(node, 'alt', 'Prévia da imagem')}</div>;
+    }
     case 'ui.icon': {
       const name = text(node, 'name', 'Circle').replace(/(^|-|_)(\w)/g, (_, __, letter: string) => letter.toUpperCase());
       const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ size?: number; color?: string }>>)[name] ?? LucideIcons.Circle;
@@ -216,10 +241,28 @@ function VisualContent({
     }
     case 'ui.link':
       return <TextLink disabled onPress={() => {}} underline="always">{text(node, 'label', 'Link')}</TextLink>;
-    case 'ui.alert':
-      return <Callout variant={node.props.severity === 'positive' || node.props.severity === 'informative' ? 'brand' : 'default'} title={text(node, 'title') || undefined} description={text(node, 'message', 'Mensagem de alerta')} />;
-    case 'ui.progress':
-      return <Stack space={4}>{text(node, 'label') && <Text size={13}>{text(node, 'label')}</Text>}<Meter type="linear" values={[typeof node.props.value === 'number' ? node.props.value : 0]} /></Stack>;
+    case 'ui.alert': {
+      // Callout (Mística) exige string pura em title/description — sem o itálico de BindingHint
+      // aqui, só neste caso.
+      const boundTitle = node.bindings?.title?.path;
+      const boundMessage = node.bindings?.message?.path;
+      return (
+        <Callout
+          variant={node.props.severity === 'positive' || node.props.severity === 'informative' ? 'brand' : 'default'}
+          title={boundTitle ? `binding: ${engineBindingName(boundTitle)}` : text(node, 'title') || undefined}
+          description={boundMessage ? `binding: ${engineBindingName(boundMessage)}` : text(node, 'message', 'Mensagem de alerta')}
+        />
+      );
+    }
+    case 'ui.progress': {
+      const boundValue = node.bindings?.value?.path;
+      return (
+        <Stack space={4}>
+          {text(node, 'label') && <Text size={13}>{text(node, 'label')}</Text>}
+          {boundValue ? <Text size={13}><BindingHint path={boundValue} /></Text> : <Meter type="linear" values={[typeof node.props.value === 'number' ? node.props.value : 0]} />}
+        </Stack>
+      );
+    }
     case 'ui.loading':
       return <Stack space={4}><Loader2 size={20} /><Text size={13}>{text(node, 'label', 'Carregando...')}</Text></Stack>;
     default:

@@ -61,6 +61,11 @@ public final class FlowValidator {
     // composta — continua uma única regra, só que contra um conjunto de valores em vez de um só.
     private static final Set<String> VALID_VISIBILITY_RULES = Set.of("equals", "notEquals", "in", "notIn");
     private static final Pattern SEMVER = Pattern.compile("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$");
+    // Placeholder dentro de uma tela desenhada sempre carrega o namespace ({{form.nome}},
+    // {{data.pedido}}) — padrão próprio, com ponto e hífen, idêntico a TemplateResolver.PLACEHOLDER
+    // (ms-espec-registry, quem de fato resolve em runtime). VARIABLE_TOKEN acima vale pro {{nome}}
+    // sem namespace de conector/Gateway/mensagem, onde não existe ponto.
+    private static final Pattern SCREEN_PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z_][\\w.-]*)\\s*\\}\\}");
     private static final Set<String> INPUT_COMPONENTS = Set.of("ui.textInput", "ui.textArea", "ui.select",
             "ui.checkbox", "ui.datePicker");
     private static final Set<String> VALID_DATE_PICKER_MODES = Set.of("date", "time", "dateTime");
@@ -282,7 +287,8 @@ public final class FlowValidator {
             }
 
             if (node.getType() == FlowNodeType.USER_TASK) {
-                validateEmbeddedScreen(node, componentRegistry, channelTypes, violations);
+                validateEmbeddedScreen(node, componentRegistry, channelTypes,
+                        availableVarsFor(node, nodes, backward, startVariableNames), violations);
             }
 
             // Mirrors REQ-03.09.014 for the display-only message of a formless USER_TASK: any
@@ -471,7 +477,8 @@ public final class FlowValidator {
     // namespace de binding válido, ação de evento é uma das 6 do Action Registry. Raiz precisa ser
     // ui.screen (seção 14.1: "root deve conter exatamente um ui.screen").
     private static void validateEmbeddedScreen(FlowNode node, Map<String, ComponentDefinition> componentRegistry,
-                                                 List<ChannelType> channelTypes, List<FlowViolation> violations) {
+                                                 List<ChannelType> channelTypes, Set<String> availableVars,
+                                                 List<FlowViolation> violations) {
         SduiNode root = node.getEmbeddedScreenRoot();
         if (root == null) {
             violations.add(new FlowViolation(node.getId(), "A Tarefa de Usuário '" + node.getName()
@@ -482,7 +489,10 @@ public final class FlowValidator {
             violations.add(new FlowViolation(node.getId(), "A tela do nó '" + node.getName() + "' deve ter raiz do tipo ui.screen (encontrado '"
                     + root.type() + "')"));
         }
-        validateSduiNode(node, root, componentRegistry, new HashSet<>(), violations);
+        // Um campo desta mesma tela também é uma referência válida, em qualquer ordem: quem preenche
+        // `form.x` é o componente de entrada da própria tela, não um passo anterior do fluxo.
+        DataScope scope = new DataScope(availableVars, formVariableNames(root));
+        validateSduiNode(node, root, componentRegistry, new HashSet<>(), scope, violations);
         if (!channelTypes.isEmpty()) {
             validateChannelVisibilityCoverage(node, root, componentRegistry, channelTypes, violations);
         }
@@ -540,7 +550,7 @@ public final class FlowValidator {
 
     private static void validateSduiNode(FlowNode ownerNode, SduiNode sduiNode,
                                           Map<String, ComponentDefinition> componentRegistry, Set<String> seenIds,
-                                          List<FlowViolation> violations) {
+                                          DataScope scope, List<FlowViolation> violations) {
         if (sduiNode.id() == null || sduiNode.id().isBlank()) {
             violations.add(new FlowViolation(ownerNode.getId(), "A tela do nó '" + ownerNode.getName() + "' tem um componente sem id"));
         } else if (!seenIds.add(sduiNode.id())) {
@@ -580,6 +590,22 @@ public final class FlowValidator {
             validateReservedFields(ownerNode, sduiNode, definition, violations);
         }
 
+        // Placeholder {{form.x}}/{{data.x}} em qualquer propriedade textual — o mesmo conjunto que
+        // o runtime interpola (TemplateResolver resolve todo atributo textual que não começa com
+        // "$"), não só as cinco que a seção 7.2 do catálogo homologa. Fora do bloco acima porque a
+        // interpolação não depende de o componente existir no catálogo.
+        if (sduiNode.props() != null) {
+            sduiNode.props().forEach((propName, value) -> {
+                if (value instanceof String text) {
+                    Matcher matcher = SCREEN_PLACEHOLDER.matcher(text);
+                    while (matcher.find()) {
+                        validateDataReference(ownerNode, sduiNode.id(), "o atributo '" + propName + "'",
+                                matcher.group(1), scope, violations);
+                    }
+                }
+            });
+        }
+
         List<SduiNode> children = sduiNode.children();
         if (children != null && !children.isEmpty() && definition != null && !definition.isAllowsChildren()) {
             violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' (" + sduiNode.type() + ") não aceita filhos, na tela do nó '"
@@ -587,10 +613,16 @@ public final class FlowValidator {
         }
 
         if (sduiNode.bindings() != null) {
-            for (SduiBinding binding : sduiNode.bindings().values()) {
+            for (Map.Entry<String, SduiBinding> entry : sduiNode.bindings().entrySet()) {
+                SduiBinding binding = entry.getValue();
                 if (binding.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(binding.path()::startsWith)) {
                     violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' tem um binding com path inválido: '"
                             + binding.path() + "', na tela do nó '" + ownerNode.getName() + "'"));
+                } else if ("oneWay".equals(binding.mode())) {
+                    // Só a leitura confere existência: twoWay é quem CRIA a variável (form.x é o
+                    // próprio campo), então exigir que ela já exista acusaria todo campo novo.
+                    validateDataReference(ownerNode, sduiNode.id(), "o atributo '" + entry.getKey() + "'",
+                            binding.path(), scope, violations);
                 }
             }
         }
@@ -646,13 +678,73 @@ public final class FlowValidator {
                 violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' tem uma visibilidade com regra inválida: '"
                         + visibility.rule() + "', na tela do nó '" + ownerNode.getName() + "'"));
             }
+            validateDataReference(ownerNode, sduiNode.id(), "a visibilidade", visibility.path(), scope, violations);
         }
         validateCondition(ownerNode, sduiNode.id(), "estado ativo", sduiNode.active(), violations);
+        if (sduiNode.active() != null) {
+            validateDataReference(ownerNode, sduiNode.id(), "o estado ativo", sduiNode.active().path(), scope, violations);
+        }
 
         if (children != null) {
             for (SduiNode child : children) {
-                validateSduiNode(ownerNode, child, componentRegistry, seenIds, violations);
+                validateSduiNode(ownerNode, child, componentRegistry, seenIds, scope, violations);
             }
+        }
+    }
+
+    /** O que uma tela pode referenciar como {@code form.x}/{@code data.x}: o que passos anteriores
+     * do fluxo já produziram ({@code flowVariables}, o mesmo conjunto que mensagem, conector e
+     * Decisão já conferem) mais os campos que a própria tela coleta ({@code screenFields}). */
+    private record DataScope(Set<String> flowVariables, Set<String> screenFields) {
+
+        // Confere pelo nome COM prefixo (form_x/data_x), nunca pelo nome cru: é o prefixo que
+        // distingue os dois namespaces no motor, então é ele que denuncia um data.nome apontando pra
+        // um campo de tela que só existe como form.nome — que resolveria vazio em execução.
+        boolean knows(String namespace, String name) {
+            return flowVariables.contains(namespace + "_" + name)
+                    || ("form".equals(namespace) && screenFields.contains(name));
+        }
+
+        // Lista no formato que o autor digita (form.x/data.x), não no do motor (form_x/data_x), e
+        // sem os nomes crus legados que availableVarsFor também guarda — ruído numa mensagem sobre tela.
+        String describe() {
+            Set<String> paths = new TreeSet<>();
+            flowVariables.forEach(v -> {
+                if (v.startsWith("form_")) paths.add("form." + v.substring("form_".length()));
+                else if (v.startsWith("data_")) paths.add("data." + v.substring("data_".length()));
+            });
+            screenFields.forEach(f -> paths.add("form." + f));
+            return paths.isEmpty()
+                    ? " (nenhuma variável disponível ainda neste ponto do fluxo)"
+                    : " — variáveis disponíveis aqui: " + String.join(", ", paths);
+        }
+    }
+
+    /** Referência de tela a um dado da jornada (seção 8 do catálogo): só {@code form} e {@code data}
+     * são conferíveis contra o que o fluxo produz — {@code session}/{@code route}/{@code computed}
+     * não têm catálogo de caminhos neste portal e passam sem checagem. */
+    private static void validateDataReference(FlowNode ownerNode, String componentId, String what, String path,
+                                               DataScope scope, List<FlowViolation> violations) {
+        if (path == null) {
+            return;
+        }
+        int dot = path.indexOf('.');
+        if (dot < 0) {
+            return;
+        }
+        String namespace = path.substring(0, dot);
+        String name = path.substring(dot + 1);
+        if (!"form".equals(namespace) && !"data".equals(namespace)) {
+            return;
+        }
+        if (name.isBlank()) {
+            violations.add(new FlowViolation(ownerNode.getId(), "No componente '" + componentId + "', " + what
+                    + " ficou com o caminho incompleto (só o namespace '" + namespace + "')"));
+            return;
+        }
+        if (!scope.knows(namespace, name)) {
+            violations.add(new FlowViolation(ownerNode.getId(), "No componente '" + componentId + "', " + what
+                    + " usa a variável '" + path + "', que ainda não existe nesse ponto da jornada" + scope.describe()));
         }
     }
 

@@ -855,18 +855,8 @@ export const EPICS: Epic[] = [
           d('REQ-04.14.001', 'Ao publicar uma jornada, o sistema deve gerar, para cada tela desenhada, um pacote de publicação identificando a jornada, a tela e o número de revisão.'),
           d('REQ-04.14.002', 'O pacote deve indicar os alvos de renderização compatíveis com a tela, calculados pela interseção dos alvos suportados por todos os componentes usados na árvore.'),
           d('REQ-04.14.003', 'O pacote deve indicar, para cada alvo compatível, a versão mínima de renderizador exigida, calculada como a maior entre as exigidas pelos componentes usados.'),
-          {
-            code: 'REQ-04.14.004',
-            description: 'O sistema deve enviar o pacote de publicação a um serviço de repositório de especificação corporativo, responsável por armazenar e distribuir versões publicadas.',
-            status: 'done',
-            notes: 'Fluxo completo implementado (admin → repositório de especificação → Strapi), mas ainda não testado fim a fim contra uma instância real do Strapi.',
-          },
-          {
-            code: 'REQ-04.14.005',
-            description: 'Uma nova publicação da mesma tela nunca deve sobrescrever uma revisão já publicada — deve gerar uma revisão nova, marcando a anterior como substituída.',
-            status: 'done',
-            notes: 'Não testado contra uma instância real do Strapi.',
-          },
+          d('REQ-04.14.004', 'O sistema deve enviar o pacote de publicação a um serviço de repositório de especificação corporativo, responsável por armazenar e distribuir versões publicadas.'),
+          d('REQ-04.14.005', 'Uma nova publicação da mesma tela nunca deve sobrescrever uma revisão já publicada — deve gerar uma revisão nova, marcando a anterior como substituída.'),
           d('REQ-04.14.006', 'Em execução, a tela apresentada ao usuário final deve ser sempre lida da última revisão publicada no repositório de especificação corporativo, nunca do estado em edição no Form Builder.'),
           d('REQ-04.14.007', 'O restante da resolução de uma jornada em execução não depende do repositório de especificação corporativo e deve continuar funcionando independentemente dele.'),
         ],
@@ -1996,6 +1986,12 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-09-27 02:20 (commitado: 89ba457, b0dc450, 817237a)',
+    source: 'progresso',
+    summary:
+      'Strapi removido da plataforma (US-04.14) — ms-espec-registry passa a ser o próprio dono do armazenamento das telas publicadas. Novo schema espec_registry no Postgres do admin (journey_admin), tabela published_screen (envelope jsonb, status published/deprecated, índice único parcial garantindo uma só revisão published por tela), migrado por um Flyway próprio do serviço (config/FlywayMigrationInitializer, mesmo padrão do admin/back desde que o Spring Boot 4.1 parou de trazer a autoconfiguração do Flyway) — histórico isolado do Flyway do admin/back, que continua no schema public. PostgresSnapshotRepository substitui StrapiSnapshotRepository: marca a revisão anterior como deprecated e insere a nova, em vez de só um POST sem histórico. Renomeado, só nesta ponta de armazenamento (o modelo do catálogo — SduiNode/SduiEnvelopeBuilder/SduiScreenEnvelope/FlowNode.sdui — continua com esse nome): pacotes domain/sdui→domain/screen e interfaces/sdui→interfaces/screen no ms-espec-registry; SduiScreenPublicationPort→ScreenPublicationPort e EspecRegistrySduiAdapter→EspecRegistryScreenAdapter no admin/back; URL de /api/v1/sdui-snapshots para /api/v1/published-screens. Nenhum REQ novo — só a evidência de REQ-04.14.004/005/006 corrigida pra citar as classes atuais. Testado fim a fim: reset de fábrica republicando as 8 versões/21 telas seguido de um teste real do usuário na tela Execuções, e uma republicação subsequente já demonstrando o deprecated funcionando (8 telas). De quebra, corrigidos 3 bugs pré-existentes na massa de fábrica que só apareceram ao republicar do zero (nenhum deles ligado ao Strapi): SemVer incompleto ("1.0" em vez de "1.0.0") em componentes das telas de Web/Mobile/WhatsApp v1; a mesma prop gapToken desatualizada (hoje spacingToken) nos ui.stack dessas telas; e os dois Receive Tasks Kafka da jornada Vivo Fibra + Total sem outputMapping, então as telas seguintes referenciavam data.statusAtivacao/data.resultadoRevisao, que nunca existiam — corrigido com payloadMode: CUSTOM e outputMapping declarado nos dois. Nenhuma mudança de contagem: total geral segue 509 REQs, 459 concluídos.',
+  },
+  {
     date: '2026-09-27 01:19 (não commitado)',
     source: 'progresso',
     summary:
@@ -2413,6 +2409,35 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-09-27 02:34',
+    source: 'git',
+    summary: 'Remove o projeto strapi-sdui-registry da plataforma e atualiza start-all/popular_massa_dados.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-27 02:34',
+    source: 'git',
+    summary:
+      'Remove a dependência do Strapi do ms-espec-registry: telas publicadas passam a viver no Postgres (schema espec_registry, tabela published_screen); renomeia a integração de publicação no admin/back.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-27 02:32',
+    source: 'git',
+    summary:
+      'Corrige dados pré-existentes da massa de fábrica: SemVer incompleto e prop gapToken em Web/Mobile/WhatsApp v1, outputMapping Kafka ausente na jornada Vivo Fibra + Total.',
+  },
+  {
+    date: '2026-09-27 01:29',
+    source: 'git',
+    summary: 'Implementa a redução dos namespaces a form e data e o formato do token por lugar.',
+  },
+  {
+    date: '2026-09-27 01:23',
+    source: 'git',
+    summary: 'Reduz os namespaces de dado a form e data e define o formato do token por lugar.',
+  },
   {
     date: '2026-09-26 23:57',
     source: 'git',

@@ -320,7 +320,8 @@ nó (mesmo princípio de congelamento do versionamento de jornada) — sem etapa
 projeção intermediária: a árvore publicada é a mesma árvore editada. O pacote de publicação
 (§12 e FT-04 US-04.14) também calcula, a partir dos componentes usados na árvore, os alvos de
 renderização compatíveis e a versão mínima de renderizador exigida por alvo, e é enviado a um
-repositório de especificação corporativo (Strapi via `ms-espec-registry`) — nunca ao runtime de
+repositório de especificação corporativo, mantido pelo próprio `ms-espec-registry` (schema
+`espec_registry` no Postgres) — nunca ao runtime de
 fluxo diretamente. Editar um componente do Registry depois de uma tela publicada não afeta telas já
 publicadas — elas referenciam `type`+`version`, e uma nova versão do componente não altera o que já
 foi congelado.

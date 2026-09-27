@@ -1,4 +1,4 @@
-package com.jouney.especregistry.domain.sdui;
+package com.jouney.especregistry.domain.screen;
 
 import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;

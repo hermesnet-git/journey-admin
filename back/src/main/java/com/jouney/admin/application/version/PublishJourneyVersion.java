@@ -2,8 +2,8 @@ package com.jouney.admin.application.version;
 
 import com.jouney.admin.application.audit.RecordAuditEvent;
 import com.jouney.admin.application.publication.RuntimePublicationPort;
-import com.jouney.admin.application.publication.SduiPublicationUnavailableException;
-import com.jouney.admin.application.publication.SduiScreenPublicationPort;
+import com.jouney.admin.application.publication.ScreenPublicationUnavailableException;
+import com.jouney.admin.application.publication.ScreenPublicationPort;
 import com.jouney.admin.domain.audit.AuditResult;
 import com.jouney.admin.domain.channel.ProductInactiveException;
 import com.jouney.admin.domain.componentregistry.ComponentDefinition;
@@ -53,14 +53,14 @@ public class PublishJourneyVersion {
     private final RuntimePublicationPort runtimePublicationPort;
     private final RecordAuditEvent recordAuditEvent;
     private final ComponentDefinitionRepository componentDefinitionRepository;
-    private final SduiScreenPublicationPort sduiScreenPublicationPort;
+    private final ScreenPublicationPort screenPublicationPort;
 
     public PublishJourneyVersion(JourneyRepository journeyRepository, ProductRepository productRepository,
                                   JourneyVersionRepository journeyVersionRepository,
                                   PublicationRepository publicationRepository,
                                   RuntimePublicationPort runtimePublicationPort, RecordAuditEvent recordAuditEvent,
                                   ComponentDefinitionRepository componentDefinitionRepository,
-                                  SduiScreenPublicationPort sduiScreenPublicationPort) {
+                                  ScreenPublicationPort screenPublicationPort) {
         this.journeyRepository = journeyRepository;
         this.productRepository = productRepository;
         this.journeyVersionRepository = journeyVersionRepository;
@@ -68,7 +68,7 @@ public class PublishJourneyVersion {
         this.runtimePublicationPort = runtimePublicationPort;
         this.recordAuditEvent = recordAuditEvent;
         this.componentDefinitionRepository = componentDefinitionRepository;
-        this.sduiScreenPublicationPort = sduiScreenPublicationPort;
+        this.screenPublicationPort = screenPublicationPort;
     }
 
     public JourneyVersion execute(UUID journeyId, UUID versionId) {
@@ -110,7 +110,7 @@ public class PublishJourneyVersion {
                 version.getChannelTypes(), version.getFlowNodes(), componentRegistry);
         // Anexa a foto de cada tela publicada de volta no próprio FlowNode (FlowNode.sdui) antes de
         // montar a Publication — assim journey_publication.snapshot e journey_version.version_snapshot
-        // já saem com o envelope exato que vai pro Strapi logo abaixo, não só a árvore de autoria.
+        // já saem com o envelope exato que vai pro registro de telas logo abaixo, não só a árvore de autoria.
         version.attachPublishedScreens(sduiEnvelopes);
 
         UUID existingPublicationId = publicationRepository.findByJourneyId(journeyId)
@@ -122,16 +122,16 @@ public class PublishJourneyVersion {
         String deploymentId;
         try {
             // Checa disponibilidade antes de qualquer efeito colateral (deploy no runtime incluso)
-            // — só quando a versão tem tela pra publicar de verdade, pra não checar o Strapi à toa
+            // — só quando a versão tem tela pra publicar de verdade, pra não checar o registro de telas à toa
             // numa jornada sem User Task com tela nenhuma. Falha rápido (timeout curto do próprio
             // isAvailable()) em vez de deployar no runtime e só descobrir depois, no publish do
-            // SDUI, que o Strapi está fora do ar.
-            if (!sduiEnvelopes.isEmpty() && !sduiScreenPublicationPort.isAvailable()) {
-                throw new SduiPublicationUnavailableException(
-                        "Não foi possível publicar: o serviço de telas SDUI (ms-espec-registry/Strapi) está indisponível no momento.");
+            // SDUI, que o registro de telas está fora do ar.
+            if (!sduiEnvelopes.isEmpty() && !screenPublicationPort.isAvailable()) {
+                throw new ScreenPublicationUnavailableException(
+                        "Não foi possível publicar: o serviço de telas SDUI (ms-espec-registry) está indisponível no momento.");
             }
             deploymentId = runtimePublicationPort.publish(publication);
-            sduiScreenPublicationPort.publish(sduiEnvelopes);
+            screenPublicationPort.publish(sduiEnvelopes);
         } catch (RuntimeException e) {
             recordAuditEvent.record(auditAction, "JOURNEY_VERSION", version.getId(), AuditResult.FAILURE,
                     Map.of("status", previousStatus), Map.of("error", errorMessage(e)));

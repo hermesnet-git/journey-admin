@@ -97,7 +97,7 @@ public class JourneyVersion {
     // Chamado por PublishJourneyVersion.goLive logo depois de montar os envelopes SDUI (publish e
     // republish passam pelo mesmo goLive), antes de montar a Publication e salvar — assim
     // journey_publication.snapshot e journey_version.version_snapshot já saem com a foto do que foi
-    // enviado ao Strapi nesta (re)publicação. Nó sem tela ou fora da lista de envelopes (sem
+    // enviado ao ms-espec-registry nesta (re)publicação. Nó sem tela ou fora da lista de envelopes (sem
     // embeddedScreenRoot) fica como estava, sdui continua null.
     public void attachPublishedScreens(List<SduiScreenEnvelope> envelopes) {
         Map<String, SduiScreenEnvelope> byNodeId = envelopes.stream()

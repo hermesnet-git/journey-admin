@@ -19,7 +19,7 @@ public class FlowNode {
     // pro editor ao vivo e pra snapshot publicada (sem compilação/projeção separada como antes:
     // FormSduiSerializer sumiu — o que é editado já é o nó publicável).
     private final SduiNode embeddedScreenRoot;
-    // Foto do envelope canônico (tupla Hiccup, seção 14.1) exatamente como foi enviado ao Strapi na
+    // Foto do envelope canônico (tupla Hiccup, seção 14.1) exatamente como foi enviado ao ms-espec-registry na
     // última (re)publicação desta versão — null em qualquer nó do fluxo ao vivo (nunca publicado) ou
     // sem tela. embeddedScreenRoot continua a fonte de verdade pra editar/republicar (ver
     // JourneyVersion.attachPublishedScreens); este campo é só pra "o que está aqui bate com o que

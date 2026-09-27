@@ -1,4 +1,4 @@
-package com.jouney.especregistry.domain.sdui;
+package com.jouney.especregistry.domain.screen;
 
 import com.jouney.especregistry.domain.engine.EngineVariable;
 import java.util.Map;

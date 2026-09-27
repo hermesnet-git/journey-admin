@@ -5,8 +5,8 @@ import com.jouney.especregistry.domain.journey.FlowNode;
 import com.jouney.especregistry.domain.journey.JourneyRepository;
 import com.jouney.especregistry.domain.journey.PublicationSnapshot;
 import com.jouney.especregistry.domain.journey.VariableConversion;
-import com.jouney.especregistry.domain.sdui.ScreenEnvelope;
-import com.jouney.especregistry.domain.sdui.SnapshotRepository;
+import com.jouney.especregistry.domain.screen.ScreenEnvelope;
+import com.jouney.especregistry.domain.screen.SnapshotRepository;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -40,6 +40,6 @@ public class ConvertFormAnswers {
     private ScreenEnvelope requireScreen(UUID journeyId, int journeyVersion, FlowNode node) {
         return snapshotRepository.findPublished(journeyId, journeyVersion, node.id())
                 .orElseThrow(() -> new IllegalStateException("Nó " + node.id()
-                        + " tem tela desenhada mas nenhum snapshot publicado foi encontrado no Strapi"));
+                        + " tem tela desenhada mas nenhuma tela publicada foi encontrada"));
     }
 }

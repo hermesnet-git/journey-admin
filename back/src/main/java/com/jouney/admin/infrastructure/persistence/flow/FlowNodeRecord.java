@@ -13,7 +13,7 @@ import java.util.Map;
 // (FormSduiSerializer removido), as duas formas colapsaram numa só (antes: FlowNodeRecord com
 // embeddedScreen cru vs. SnapshotFlowNodeRecord com embeddedScreenSdui compilado). `sdui` é null
 // pra qualquer nó vindo do fluxo ao vivo (nunca publicado) — só uma versão publicada carrega a foto
-// do que foi enviado ao Strapi (ver FlowNode.sdui/JourneyVersion.attachPublishedScreens).
+// do que foi enviado ao ms-espec-registry (ver FlowNode.sdui/JourneyVersion.attachPublishedScreens).
 public record FlowNodeRecord(String id, FlowNodeType type, String name, String description, int positionX,
                               int positionY, ConnectorConfigRecord connectorConfig,
                               List<Map<String, Object>> startVariables,

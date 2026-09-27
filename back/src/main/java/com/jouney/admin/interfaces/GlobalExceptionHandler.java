@@ -37,9 +37,9 @@ import com.jouney.admin.infrastructure.connector.ConnectorTestException;
 import com.jouney.admin.infrastructure.connector.SsrfBlockedException;
 import com.jouney.admin.infrastructure.dashboard.RuntimeMonitoringException;
 import com.jouney.admin.application.publication.RuntimeUnpublishBlockedException;
-import com.jouney.admin.application.publication.SduiPublicationUnavailableException;
+import com.jouney.admin.application.publication.ScreenPublicationUnavailableException;
 import com.jouney.admin.infrastructure.figma.FigmaReadException;
-import com.jouney.admin.infrastructure.publication.EspecRegistrySduiException;
+import com.jouney.admin.infrastructure.publication.EspecRegistryScreenException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationException;
 import com.jouney.admin.infrastructure.publication.RuntimePublicationRejectedException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -141,20 +141,20 @@ public class GlobalExceptionHandler {
 
     // Healthcheck (isAvailable()) reprovou antes de tentar publicar de verdade — 503, não 502,
     // porque não houve nenhuma tentativa de chamada real que tenha falhado, só a checagem prévia.
-    @ExceptionHandler(SduiPublicationUnavailableException.class)
-    public ResponseEntity<ApiError> handleSduiPublicationUnavailable(SduiPublicationUnavailableException ex,
+    @ExceptionHandler(ScreenPublicationUnavailableException.class)
+    public ResponseEntity<ApiError> handleScreenPublicationUnavailable(ScreenPublicationUnavailableException ex,
                                                                        HttpServletRequest request) {
         log.warn("SDUI publication health check failed before publish attempt: {}", ex.getMessage());
-        return build(HttpStatus.SERVICE_UNAVAILABLE, "SDUI_PUBLICATION_UNAVAILABLE", ex.getMessage(), request, null);
+        return build(HttpStatus.SERVICE_UNAVAILABLE, "SCREEN_PUBLICATION_UNAVAILABLE", ex.getMessage(), request, null);
     }
 
-    // Sem isso, EspecRegistrySduiException caía no handleUnexpected genérico abaixo, que desce até
+    // Sem isso, EspecRegistryScreenException caía no handleUnexpected genérico abaixo, que desce até
     // a causa raiz da cadeia de exceções (rootCause) — descartando a mensagem amigável que essa
     // classe monta (qual serviço, qual base-url, timeout ou erro de fato) e mostrando só o texto cru
     // do JDK (ex.: "HttpTimeoutException: Request cancelled"), sem nenhuma pista do que realmente
     // falhou.
-    @ExceptionHandler(EspecRegistrySduiException.class)
-    public ResponseEntity<ApiError> handleEspecRegistrySdui(EspecRegistrySduiException ex, HttpServletRequest request) {
+    @ExceptionHandler(EspecRegistryScreenException.class)
+    public ResponseEntity<ApiError> handleEspecRegistryScreen(EspecRegistryScreenException ex, HttpServletRequest request) {
         log.error("ms-espec-registry SDUI publication call failed", ex);
         return build(HttpStatus.BAD_GATEWAY, "RUNTIME_UNAVAILABLE", ex.getMessage(), request, null);
     }

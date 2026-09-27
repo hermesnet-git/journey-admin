@@ -1,7 +1,7 @@
 package com.jouney.especregistry.domain.journey;
 
 import com.jouney.especregistry.domain.engine.EngineVariable;
-import com.jouney.especregistry.domain.sdui.CanonicalFormat;
+import com.jouney.especregistry.domain.screen.CanonicalFormat;
 import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.HashMap;

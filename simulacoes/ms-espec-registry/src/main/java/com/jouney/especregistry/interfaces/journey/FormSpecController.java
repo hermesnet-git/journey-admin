@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * engine diretamente e só recorre a este serviço pra saber o formulário/variáveis de um nó, e o
  * diagrama em si — {@link #flow}) — nenhum destes endpoints conhece processInstanceId nem toca o
  * Camunda: só cruza o snapshot da jornada (lido direto do Postgres do admin/back, sem HTTP) e o
- * Strapi (árvore da tela, quando existe) com o que o chamador já sabe (variáveis correntes, ou
+ * repositório de telas publicadas (árvore da tela, quando existe) com o que o chamador já sabe (variáveis correntes, ou
  * respostas do formulário). Fino de propósito — cada operação é um caso de uso em application/journey.
  */
 @RestController

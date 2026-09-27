@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /** Mapeia só os campos usados do snapshot de jornada persistido pelo admin/back (tabelas
  * journey_publication/journey_version, lido direto via {@link JourneyRepository}, sem HTTP). Uma
- * User Task nunca referencia um Form por id — a tela dela é lida do Strapi (snapshot publicado) via
+ * User Task nunca referencia um Form por id — a tela dela é lida da tela publicada (espec_registry) via
  * SnapshotRepository, não daqui — então não há "forms" pra resolver neste record. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record PublicationSnapshot(UUID journeyId, String journeyName, List<String> channelTypes,

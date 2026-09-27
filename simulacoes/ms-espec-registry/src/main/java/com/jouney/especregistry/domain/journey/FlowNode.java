@@ -7,8 +7,8 @@ import java.util.Map;
 
 /** {@code embeddedScreenRoot} chega aqui só como sinalizador de "esta User Task tem tela desenhada"
  * (JsonNode genérico, nunca desserializado pra SduiNode tipado) — a árvore de tela EM SI não vem
- * mais do admin/back pra este serviço: depois de publicada, ela é lida do Strapi via
- * SnapshotRepository (journeyId+screenId=node.id()), a fonte de verdade dos snapshots publicados
+ * mais do admin/back pra este serviço: depois de publicada, ela é lida da tabela de telas publicadas via
+ * SnapshotRepository (journeyId+screenId=node.id()), a fonte de verdade das telas publicadas
  * (seção 4/15 do catálogo). O admin/back continua sendo a fonte pro resto do fluxo (conectores,
  * gateways) — fora do escopo do catálogo SDUI. */
 @JsonIgnoreProperties(ignoreUnknown = true)

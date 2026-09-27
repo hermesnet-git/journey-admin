@@ -1,6 +1,6 @@
 package com.jouney.admin.infrastructure.publication;
 
-import com.jouney.admin.application.publication.SduiScreenPublicationPort;
+import com.jouney.admin.application.publication.ScreenPublicationPort;
 import com.jouney.admin.domain.flow.SduiScreenEnvelope;
 import java.time.Duration;
 import java.util.List;
@@ -13,13 +13,13 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 /** POST dos envelopes de tela (uma User Task com embeddedScreenRoot = um envelope) pro
- * ms-espec-registry, que grava no Strapi — mesmo padrão de {@link PublicationAdapter}
+ * ms-espec-registry, que grava as telas publicadas — mesmo padrão de {@link PublicationAdapter}
  * (RestClient, base-url via @Value). Reaproveita a mesma property {@code app.espec-registry.base-
  * url} já usada pelo teste de conexão do catálogo de mensageria (FT-14). */
 @Component
-public class EspecRegistrySduiAdapter implements SduiScreenPublicationPort {
+public class EspecRegistryScreenAdapter implements ScreenPublicationPort {
 
-    private static final Logger log = LoggerFactory.getLogger(EspecRegistrySduiAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(EspecRegistryScreenAdapter.class);
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
     // Bem mais curto que o READ_TIMEOUT do publish de verdade — isAvailable() só serve pra falhar
     // rápido antes de tentar publicar, não faz sentido esperar 10s só pra saber se dá pra tentar.
@@ -29,7 +29,7 @@ public class EspecRegistrySduiAdapter implements SduiScreenPublicationPort {
     private final RestClient healthCheckClient;
     private final String baseUrl;
 
-    public EspecRegistrySduiAdapter(@Value("${app.espec-registry.base-url}") String baseUrl) {
+    public EspecRegistryScreenAdapter(@Value("${app.espec-registry.base-url}") String baseUrl) {
         this.baseUrl = baseUrl;
         this.restClient = TimeoutAwareRestClient.create(Duration.ofSeconds(5), READ_TIMEOUT);
         this.healthCheckClient = TimeoutAwareRestClient.create(Duration.ofSeconds(2), HEALTH_CHECK_TIMEOUT);
@@ -38,7 +38,7 @@ public class EspecRegistrySduiAdapter implements SduiScreenPublicationPort {
     @Override
     public boolean isAvailable() {
         try {
-            healthCheckClient.get().uri(baseUrl + "/api/v1/sdui-snapshots/health").retrieve().toBodilessEntity();
+            healthCheckClient.get().uri(baseUrl + "/api/v1/published-screens/health").retrieve().toBodilessEntity();
             return true;
         } catch (RestClientException e) {
             log.warn("ms-espec-registry SDUI health check failed at {}: {}", baseUrl, e.getMessage());
@@ -53,7 +53,7 @@ public class EspecRegistrySduiAdapter implements SduiScreenPublicationPort {
         }
         try {
             restClient.post()
-                    .uri(baseUrl + "/api/v1/sdui-snapshots")
+                    .uri(baseUrl + "/api/v1/published-screens")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(envelopes)
                     .retrieve()
@@ -63,7 +63,7 @@ public class EspecRegistrySduiAdapter implements SduiScreenPublicationPort {
             String detail = TimeoutAwareRestClient.isTimeout(e)
                     ? "não respondeu em até " + READ_TIMEOUT.toSeconds() + "s"
                     : e.getMessage();
-            throw new EspecRegistrySduiException(
+            throw new EspecRegistryScreenException(
                     "Falha ao publicar snapshot(s) SDUI no ms-espec-registry em " + baseUrl + ": " + detail, e);
         }
     }

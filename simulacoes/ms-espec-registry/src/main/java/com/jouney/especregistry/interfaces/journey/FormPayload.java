@@ -1,6 +1,6 @@
 package com.jouney.especregistry.interfaces.journey;
 
-import com.jouney.especregistry.domain.sdui.ScreenEnvelope;
+import com.jouney.especregistry.domain.screen.ScreenEnvelope;
 import java.util.Map;
 import java.util.UUID;
 

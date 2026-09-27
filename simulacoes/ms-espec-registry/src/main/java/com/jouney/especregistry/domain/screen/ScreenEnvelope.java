@@ -1,4 +1,4 @@
-package com.jouney.especregistry.domain.sdui;
+package com.jouney.especregistry.domain.screen;
 
 import tools.jackson.databind.JsonNode;
 import java.time.OffsetDateTime;
@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /** Espelha domain/flow/SduiScreenEnvelope + SduiSnapshotFactory do admin/back — o envelope
- * canônico do catálogo (seção 14.1), recebido via POST /api/v1/sdui-snapshots na hora do publish
- * de uma jornada e persistido no Strapi (content-type {@code sdui-snapshot}). */
+ * canônico do catálogo (seção 14.1), recebido via POST /api/v1/published-screens na hora do publish
+ * de uma jornada e persistido em {@code espec_registry.published_screen}. */
 public record ScreenEnvelope(String schemaVersion, String catalogVersion, UUID journeyId,
                               int journeyVersion, String uiStepId, String status,
                               OffsetDateTime publishedAt, List<String> supportedTargets,

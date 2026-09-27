@@ -6,8 +6,8 @@ spring:
     name: ms-espec-registry
   datasource:
     # Mesmo Postgres do admin/back (journey_admin) — leitura direta de journey_publication/
-    # journey_version, sem HTTP: o espec-registry não é dono desse schema, por isso não roda
-    # migração nenhuma aqui (ddl-auto: none, sem Flyway).
+    # journey_version (schema public, do admin: sem escrita nem migração aqui). O schema
+    # espec_registry, das telas publicadas, é deste serviço e migrado pelo FlywayMigrationInitializer.
     url: jdbc:postgresql://localhost:5432/journey_admin
     username: postgres
     password: postgres
@@ -17,11 +17,6 @@ spring:
     open-in-view: false
 
 app:
-  strapi:
-    base-url: http://localhost:1337
-    # Sem default de propósito — gerar manualmente no admin do Strapi (Settings > API Tokens,
-    # leitura+escrita em sdui-snapshot) e setar via env var antes de publicar/ler snapshots.
-    api-token: ${STRAPI_API_TOKEN:}
   cors:
     # Chamado agora pela aba "Simulações" do admin/front, não mais pelo simulador-front standalone.
     allowed-origins: http://localhost:5173

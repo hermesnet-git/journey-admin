@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.jouney.especregistry.domain.journey.SynchronousChainUnsupportedException;
-import com.jouney.especregistry.infrastructure.sdui.StrapiSnapshotException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.RestClientException;
@@ -29,12 +28,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SynchronousChainUnsupportedException.class)
     public ResponseEntity<Map<String, Object>> handleSynchronousChainUnsupported(SynchronousChainUnsupportedException ex) {
         return build(HttpStatus.BAD_GATEWAY, "SYNCHRONOUS_CHAIN_UNSUPPORTED", ex.getMessage());
-    }
-
-    @ExceptionHandler(StrapiSnapshotException.class)
-    public ResponseEntity<Map<String, Object>> handleStrapiSnapshot(StrapiSnapshotException ex) {
-        log.error("Chamada ao Strapi (snapshots SDUI) falhou", ex);
-        return build(HttpStatus.BAD_GATEWAY, "STRAPI_UNAVAILABLE", ex.getMessage());
     }
 
     @ExceptionHandler(RestClientException.class)

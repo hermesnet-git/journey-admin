@@ -4,10 +4,10 @@ import com.jouney.especregistry.domain.engine.EngineVariable;
 import com.jouney.especregistry.domain.journey.FlowNode;
 import com.jouney.especregistry.domain.journey.JourneyRepository;
 import com.jouney.especregistry.domain.journey.PublicationSnapshot;
-import com.jouney.especregistry.domain.sdui.CanonicalFormat;
-import com.jouney.especregistry.domain.sdui.ScreenEnvelope;
-import com.jouney.especregistry.domain.sdui.SnapshotRepository;
-import com.jouney.especregistry.domain.sdui.TemplateResolver;
+import com.jouney.especregistry.domain.screen.CanonicalFormat;
+import com.jouney.especregistry.domain.screen.ScreenEnvelope;
+import com.jouney.especregistry.domain.screen.SnapshotRepository;
+import com.jouney.especregistry.domain.screen.TemplateResolver;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -50,7 +50,7 @@ public class ResolveScreenForNode {
     private ScreenEnvelope requireScreen(UUID journeyId, int journeyVersion, FlowNode node) {
         return snapshotRepository.findPublished(journeyId, journeyVersion, node.id())
                 .orElseThrow(() -> new IllegalStateException("Nó " + node.id()
-                        + " tem tela desenhada mas nenhum snapshot publicado foi encontrado no Strapi"));
+                        + " tem tela desenhada mas nenhuma tela publicada foi encontrada"));
     }
 
     private Map<String, Object> runtimeContext(ScreenEnvelope envelope, Map<String, Object> rawVariables) {

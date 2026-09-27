@@ -247,7 +247,7 @@ Connector configuration is declarative and stored with the flow snapshot. Creden
 
 O atributo `embeddedScreenRoot`, que a API expõe sob o nome `User Task Configuration` — não é uma entidade com identidade própria: pertence ao próprio `Flow Node`, dentro do mesmo documento `jsonb` do `Flow` (ver §8), e não existe fora dele (não tem id, não é criada/consultada/removida separadamente). Só é relevante para um `Flow Node` do tipo `USER_TASK`.
 
-Na versão 1.0.0, a tela é opcional: cada `USER_TASK` pode ter uma tela desenhada diretamente no nó (`embeddedScreenRoot`, raiz de uma árvore de `Sdui Node`, §11) ou não ter nenhuma. Diferente do modelo anterior, não existe mais uma árvore "compilada" separada para publicação: a mesma árvore de `embeddedScreenRoot` é copiada tal como está para o snapshot de publicação/versão (§12, Imutabilidade).
+Na versão 1.0.0, toda `USER_TASK` deve possuir uma tela desenhada diretamente no nó (`embeddedScreenRoot`, raiz de uma árvore de `Sdui Node`, §11), inclusive quando sua finalidade for apenas informativa (REQ-04.01.005). Diferente do modelo anterior, não existe mais uma árvore "compilada" separada para publicação: a mesma árvore de `embeddedScreenRoot` é copiada tal como está para o snapshot de publicação/versão (§12, Imutabilidade).
 
 ```mermaid
 flowchart LR

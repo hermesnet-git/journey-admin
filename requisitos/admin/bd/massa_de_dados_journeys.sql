@@ -3,6 +3,40 @@
 -- produto Laboratorio e a jornada "Vivo Fibra + Total — Contratação".
 -- Não contém auditoria, publicação derivada, deployment de runtime nem segredo real.
 -- As jornadas e versões são semeadas como UNPUBLISHED e republicadas pelas APIs oficiais.
+--
+-- CONTEÚDO DESTA MASSA
+--
+-- O TRUNCATE abaixo limpa 12 tabelas, inclusive component_definition (o catálogo de componentes SDUI).
+-- Por isso a massa também recria o catálogo: sem os 19 INSERTs de component_definition, o catálogo
+-- ficaria vazio depois de cada carga. audit_event e journey_publication são limpas e ficam vazias.
+--
+-- 1) Catálogo de componentes SDUI (component_definition): 19 componentes (REQ-04.07.012)
+--    Todos na versão 1.0.0, status STABLE e origem SYSTEM (componentes de fábrica).
+--    ( * = aceita filhos )
+--      LAYOUT   (4): ui.screen*, ui.stack*, ui.container*, ui.card*
+--      CONTENT  (5): ui.text, ui.image, ui.icon, ui.divider, ui.spacer
+--      INPUT    (5): ui.textInput, ui.textArea, ui.select, ui.checkbox, ui.datePicker
+--      ACTION   (2): ui.button, ui.link
+--      FEEDBACK (3): ui.alert, ui.progress, ui.loading
+--
+-- 2) Produtos (3): Vivo+ (4 jornadas), Laboratorio (1 jornada) e VE (sem jornadas).
+--
+-- 3) Jornadas (5), com um fluxo cada, e versões (8, nenhuma com status PUBLISHED):
+--      Jornada                                Produto      Status da jornada  Versões
+--      Cadastro Vivo+ (Mobile)                Vivo+        UNPUBLISHED        v1 e v2, ambas UNPUBLISHED
+--      Cadastro Vivo+ (Web)                   Vivo+        UNPUBLISHED        v1 e v2, ambas UNPUBLISHED
+--      Cadastro Vivo+ (WhatsApp)              Vivo+        UNPUBLISHED        v1 e v2, ambas UNPUBLISHED
+--      Laboratório Multicanal de Componentes  Vivo+        UNPUBLISHED        v1 UNPUBLISHED
+--      Vivo Fibra + Total — Contratação       Laboratorio  PUBLISHED          v1 UNPUBLISHED
+--
+-- 4) Tipos de canal (WEB, MOBILE, WHATSAPP): 9 vínculos de produto (product_channel_type) e
+--    9 vínculos de jornada (journey_channel_type).
+--
+-- 5) Mensageria: 1 cluster "Kafka Local" (KAFKA, 192.168.15.4:9092) e 1 credencial de referência
+--    "teste" (URI do Key Vault e nome do secret fictícios).
+--
+-- 6) Credencial de IA: 1 (provedor GEMINI) com a chave-modelo REPLACE_WITH_REAL_API_KEY. Troque pela
+--    chave real (Integrações > Credencial de IA) para a geração de fluxo por IA funcionar.
 
 BEGIN;
 

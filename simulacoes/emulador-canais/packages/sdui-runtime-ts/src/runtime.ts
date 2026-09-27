@@ -82,9 +82,7 @@ export class SduiRuntime {
       ...emptyRuntimeContext(),
       form: cloneRecord(options.context?.form),
       data: cloneRecord(options.context?.data),
-      session: cloneRecord(options.context?.session),
-      route: cloneRecord(options.context?.route),
-      computed: cloneRecord(options.context?.computed),
+      channel: options.context?.channel,
     };
     this.handlers = options.handlers ?? {};
     walkSdui(this.root, (node, parent) => this.parents.set(node.id, parent));

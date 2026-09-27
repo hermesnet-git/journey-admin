@@ -31,7 +31,7 @@ export const COMPONENT_CATALOG_V1: Readonly<Record<SduiComponentType, ComponentC
   'ui.progress': c('ui.progress', 'FEEDBACK', false, ['value'], ['label', 'showValue'], ['$bindings', '$visibility']),
   'ui.loading': c('ui.loading', 'FEEDBACK', false, [], ['label', 'sizeToken', 'overlay'], ['$visibility']),
 };
-export const VALID_BINDING_NAMESPACES = ['form', 'data', 'session', 'route', 'computed'] as const;
+export const VALID_BINDING_NAMESPACES = ['form', 'data'] as const;
 export const VALID_CONDITION_RULES = ['equals', 'notEquals', 'in', 'notIn'] as const;
 export const VALID_ACTIONS: readonly SduiActionType[] = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss'];
 export const INPUT_COMPONENTS: ReadonlySet<SduiComponentType> = new Set(['ui.textInput', 'ui.textArea', 'ui.select', 'ui.checkbox', 'ui.datePicker']);

@@ -510,12 +510,14 @@ public class BpmnTransformer {
                 // perdendo a coerção number/boolean/date que VariableConversion.resolveOutputMapping
                 // faz hoje a partir do type declarado no admin/back.
                 addInputParameter(modelInstance, element, "outputMapping." + name + ".type", type);
-                // "${" + name + "}" lê a variável LOCAL que o worker (ms-runtime-camunda) gravou —
+                // ${execution.getVariable(name)} lê a variável LOCAL que o worker (ms-runtime-camunda) gravou —
+                // por getVariable, e não por um identificador solto: um nome com hífen (user-id) viraria
+                // a subtração user - id em JUEL —
                 // KafkaConnectorWorker.putWithNamespaceFallback grava tanto o nome cru quanto
                 // data_<nome> quando `name` ainda não vem com namespace, e só data_<nome> quando já
                 // vem (novo padrão sugerido pelo assistente de configuração) — namespacedDataVariable
                 // evita prefixar de novo um nome que o autor já declarou como "data_<algo>".
-                addOutputParameter(modelInstance, element, namespacedDataVariable(name), "${" + name + "}");
+                addOutputParameter(modelInstance, element, namespacedDataVariable(name), "${" + juelVariableRef(name) + "}");
             }
         }
     }

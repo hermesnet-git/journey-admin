@@ -10,7 +10,7 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /** Resolve o formato Hiccup canônico da tela (seção 6 do catálogo) contra as variáveis de
- * processo: interpolação `{{namespace.path}}` em qualquer atributo textual (seção 8.2) e binding
+ * processo: interpolação `{{namespace.path}}` (ou `{{namespace_nome}}`, o nome da variável no motor) em qualquer atributo textual (seção 8.2) e binding
  * `oneWay`/`twoWay` em qualquer atributo homologado (seção 8.1) — sempre no ms-espec-registry,
  * guardião do contrato SDUI, antes de a árvore sair pra qualquer consumidor (ms-journey, admin).
  * `oneWay` e `twoWay` resolvem o valor atual da variável do mesmo jeito aqui — a diferença entre os
@@ -27,11 +27,11 @@ import tools.jackson.databind.node.ObjectNode;
  * certo, editável). */
 public final class TemplateResolver {
 
-    // Token sempre com namespace (form.nome, data.pedido, session.channel...) — [\w.-]* aceita ponto
-    // (separador de namespace) e hífen (o id do componente costuma ser Node_<uuid>, e UUID sempre
-    // tem hífen; BindingResolver.resolve nunca restringiu isso — só a interpolação textual estava
-    // atrás). Sem namespace o token não resolve nada (BindingResolver.resolve exige pelo menos um
-    // ponto).
+    // Token com namespace: form.nome ou data.pedido (contrato), ou form_nome / data_pedido (o nome real
+    // da variável no motor) — [\w.-]* aceita ponto (separador de namespace), sublinhado e hífen (o id
+    // do componente costuma ser Node_<uuid>, e UUID sempre tem hífen). Qualquer outro token (sem
+    // prefixo, ou de outro namespace) não resolve nada e vira vazio; o FlowValidator (admin/back) o
+    // recusa na validação/publicação.
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z_][\\w.-]*)\\s*\\}\\}");
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -42,29 +42,29 @@ public final class TemplateResolver {
      * `$bindings`, `$events`, `$visibility` e `$active` são preservados no resultado — o cliente
      * ainda precisa deles pra binding `twoWay`, despacho de ação e reavaliação de visibilidade
      * sobre o que o usuário preenche antes de submeter. */
-    public static JsonNode resolveTuple(JsonNode tuple, Map<String, EngineVariable> variables, ResolutionContext ctx) {
+    public static JsonNode resolveTuple(JsonNode tuple, Map<String, EngineVariable> variables) {
         if (tuple == null || !tuple.isArray() || tuple.size() < 2) {
             return tuple;
         }
         ArrayNode resolved = MAPPER.createArrayNode();
         resolved.add(tuple.get(0));
-        resolved.add(resolveAttributes(tuple.get(1), variables, ctx));
+        resolved.add(resolveAttributes(tuple.get(1), variables));
         if (tuple.size() == 3) {
             ArrayNode children = MAPPER.createArrayNode();
             for (JsonNode child : tuple.get(2)) {
-                children.add(resolveTuple(child, variables, ctx));
+                children.add(resolveTuple(child, variables));
             }
             resolved.add(children);
         }
         return resolved;
     }
 
-    private static ObjectNode resolveAttributes(JsonNode attributes, Map<String, EngineVariable> variables, ResolutionContext ctx) {
+    private static ObjectNode resolveAttributes(JsonNode attributes, Map<String, EngineVariable> variables) {
         ObjectNode resolved = MAPPER.createObjectNode();
         attributes.properties().forEach(entry -> {
             JsonNode value = entry.getValue();
             if (value.isTextual() && !entry.getKey().startsWith("$")) {
-                resolved.put(entry.getKey(), resolveTemplate(value.asText(), variables, ctx));
+                resolved.put(entry.getKey(), resolveTemplate(value.asText(), variables));
             } else {
                 resolved.set(entry.getKey(), value);
             }
@@ -81,7 +81,7 @@ public final class TemplateResolver {
                 if (path == null) {
                     return;
                 }
-                Object resolvedValue = BindingResolver.resolve(path, variables, ctx);
+                Object resolvedValue = BindingResolver.resolve(path, variables);
                 if (resolvedValue != null) {
                     resolved.set(entry.getKey(), MAPPER.valueToTree(resolvedValue));
                 }
@@ -90,11 +90,12 @@ public final class TemplateResolver {
         return resolved;
     }
 
-    // Todo token passa por BindingResolver, sempre com namespace explícito ({{form.nome}},
-    // {{data.pedido}}) — não existe mais um caminho "sem namespace" batendo direto na variável crua
-    // do motor (era o antigo {{nome}}, removido: jornadas publicadas antes dessa mudança serão
-    // revisadas/republicadas, não precisa de compatibilidade aqui).
-    public static String resolveTemplate(String text, Map<String, EngineVariable> variables, ResolutionContext ctx) {
+    // Todo token passa por BindingResolver, com namespace explícito: {{form.nome}} / {{data.pedido}}
+    // ou o nome da variável no motor, {{form_nome}} / {{data_pedido}} — não existe mais um caminho
+    // "sem namespace" batendo direto na variável crua do motor (era o antigo {{nome}}, removido:
+    // jornadas publicadas antes dessa mudança serão revisadas/republicadas, não precisa de
+    // compatibilidade aqui).
+    public static String resolveTemplate(String text, Map<String, EngineVariable> variables) {
         Matcher matcher = PLACEHOLDER.matcher(text);
         if (!matcher.find()) {
             return text;
@@ -102,8 +103,9 @@ public final class TemplateResolver {
         StringBuilder result = new StringBuilder();
         do {
             String token = matcher.group(1);
-            Object resolved = BindingResolver.resolve(token, variables, ctx);
-            String replacement = resolved != null ? String.valueOf(resolved) : "";
+            String name = BindingResolver.engineVariableNameOfPlaceholder(token);
+            EngineVariable variable = name != null ? variables.get(name) : null;
+            String replacement = variable != null && variable.value() != null ? String.valueOf(variable.value()) : "";
             matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
         } while (matcher.find());
         matcher.appendTail(result);

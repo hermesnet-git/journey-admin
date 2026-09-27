@@ -51,7 +51,7 @@ public class JourneyController {
         Map<String, CamundaVariable> startVariables = new LinkedHashMap<>(
                 espec.convertStartVariables(journeyId, variables));
         // Vira variável de processo real, igual ao simulador interno do admin (SimulationController)
-        // — {{channel}} funciona em condição de Gateway e session.channel resolve na tela sem
+        // — {{channel}} funciona em condição de Gateway e na tela (visibilidade por canal) sem
         // nenhuma mudança na engine, o canal real só precisa declarar de onde está chamando.
         startVariables.put("channel", new CamundaVariable(channelType, "String"));
         String businessKey = UUID.randomUUID().toString();

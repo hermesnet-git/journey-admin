@@ -213,7 +213,7 @@ export class WhatsAppSessionManager {
       const conversation = new WhatsAppSduiConversation({
         document: step.form.sdui,
         recipient: session.from,
-        context: { session: { channel: 'WHATSAPP', locale: 'pt-BR' } },
+        context: { channel: 'WHATSAPP' },
         handlers: {
           submit: async (answers) => {
             const taskId = session.instance.step.taskId;

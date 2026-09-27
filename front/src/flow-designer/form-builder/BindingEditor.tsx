@@ -4,42 +4,31 @@ import { gridInputStyle } from '../PropertyGrid';
 import type { VariableOrigin } from '../model';
 import { collectFormVariableNames, type SduiBinding, type SduiNode } from '../../sdui/model';
 
-// Sem um "data contract" formal de sessão neste admin ainda — só o que já é usado de verdade
-// (session.channel em FormBuilder.collectAuthoringIssues/isVisibleInChannel) e o exemplo do próprio
-// catálogo (seção 8: session.locale). Ampliar aqui quando existir um catálogo real de sessão.
-const KNOWN_SESSION_PATHS = ['channel', 'locale'];
 
 /** Caminhos conhecidos pra sugerir/restringir um namespace. Cada variável pertence a um namespace
- * só — resposta de campo de tela é `form`, dado carregado por integração ou informado ao iniciar a
- * jornada é `data`, canal da execução é `session` — por isso filtra por `VariableOrigin.kind` antes
- * de sugerir: oferecer a mesma lista nos três namespaces (como já foi feito aqui) produz um caminho
+ * só — resposta de campo de tela é `form`; dado carregado por integração ou informado ao iniciar a
+ * jornada é `data` (o canal da execução é só `channel`, fora dos namespaces) — por isso filtra por
+ * `VariableOrigin.kind` antes de sugerir: oferecer a mesma lista nos dois namespaces (como já foi feito aqui) produz um caminho
  * que nunca resolve nada em execução (ex.: `data.nomeCliente`, quando `nomeCliente` só existe como
  * `form.nomeCliente`). `root`/`collectFormVariableNames` é uma segunda fonte pra `form`, redundante
  * com o que `variables` já devia trazer (ver `FormBuilder.variablesWithScreenFields`) — mantida por
- * segurança, caso algum chamador ainda passe uma lista sem os campos da própria tela.
- * `route`/`computed` não têm catálogo neste admin. */
+ * segurança, caso algum chamador ainda passe uma lista sem os campos da própria tela. */
 function knownPathsFor(namespace: BindingNamespace, variables: VariableOrigin[], root: SduiNode | null): string[] {
   if (namespace === 'form') {
     const formNames = root ? collectFormVariableNames(root) : [];
     return Array.from(new Set([...variables.filter((v) => v.kind === 'form').map((v) => v.name), ...formNames]));
   }
   if (namespace === 'data') return variables.filter((v) => v.kind === 'data').map((v) => v.name);
-  if (namespace === 'session') {
-    return Array.from(new Set([...variables.filter((v) => v.kind === 'channel').map((v) => v.name), ...KNOWN_SESSION_PATHS]));
-  }
   return [];
 }
 
-// Seção 8 do catálogo: 5 namespaces permitidos pra um path de binding.
-export const BINDING_NAMESPACES = ['form', 'data', 'session', 'route', 'computed'] as const;
+// Seção 8 do catálogo: 2 namespaces permitidos pra um path de binding.
+export const BINDING_NAMESPACES = ['form', 'data'] as const;
 export type BindingNamespace = (typeof BINDING_NAMESPACES)[number];
 
 const NAMESPACE_HELP: Record<BindingNamespace, string> = {
   form: 'Dado editável da jornada — o que o usuário está preenchendo.',
   data: 'Dado carregado e somente leitura, vindo de uma integração anterior.',
-  session: 'Contexto autorizado da sessão do usuário (ex.: idioma).',
-  route: 'Parâmetro recebido na navegação até esta etapa.',
-  computed: 'Valor derivado por uma regra registrada, não editado diretamente.',
 };
 
 const MODE_LABEL: Record<SduiBinding['mode'], string> = {
@@ -68,7 +57,7 @@ export function splitPath(path: string | undefined): { namespace: BindingNamespa
  * leitura (`oneWay`), o autor está necessariamente REFERENCIANDO um valor que já existe em algum
  * lugar — nesse caso o sufixo vira um `<select>` fechado com os caminhos conhecidos daquele
  * namespace, sem digitação livre (não tem como "ler" um caminho inventado). Quando não há nenhum
- * caminho conhecido pra sugerir (`route`/`computed`, sem catálogo neste admin, ou lista vazia),
+ * caminho conhecido pra sugerir (lista vazia),
  * cai pro texto livre — um combo fechado sem opção nenhuma seria um beco sem saída pior que o texto
  * livre. Fora do modo estrito (bindings editáveis, que costumam estar DEFININDO um nome novo de
  * variável), continua texto livre com sugestão (`<datalist>`), igual sempre foi. */
@@ -178,11 +167,8 @@ export function BindingEditor({
     <div className="p-2 flex flex-col gap-[6px]">
       <div className="text-[11.5px]" style={{ color: c.textSecondary }}>
         Um binding conecta esta propriedade a um caminho do contexto de dados da jornada:{' '}
-        <strong style={{ color: c.textPrimary }}>form</strong>,{' '}
-        <strong style={{ color: c.textPrimary }}>data</strong>,{' '}
-        <strong style={{ color: c.textPrimary }}>session</strong>,{' '}
-        <strong style={{ color: c.textPrimary }}>route</strong> ou{' '}
-        <strong style={{ color: c.textPrimary }}>computed</strong> (passe o mouse sobre o namespace
+        <strong style={{ color: c.textPrimary }}>form</strong> ou{' '}
+        <strong style={{ color: c.textPrimary }}>data</strong> (passe o mouse sobre o namespace
         escolhido pra ver o que cada um significa).
       </div>
       {bindingNames.map((name) => {

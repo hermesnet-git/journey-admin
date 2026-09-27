@@ -16,7 +16,7 @@ const RESERVED = new Set(['$bindings', '$events', '$visibility', '$active']);
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const nonBlank = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
 const knownType = (value: string): value is SduiComponentType => Object.hasOwn(COMPONENT_CATALOG_V1, value);
-const knownPath = (path: string): boolean => VALID_BINDING_NAMESPACES.some((namespace) => path.startsWith(`${namespace}.`));
+const knownPath = (path: string): boolean => path === 'channel' || VALID_BINDING_NAMESPACES.some((namespace) => path.startsWith(`${namespace}.`));
 const INPUT_TYPES = new Set<SduiComponentType>(['ui.textInput', 'ui.textArea', 'ui.select', 'ui.checkbox', 'ui.datePicker']);
 const bindingNames: Partial<Record<SduiComponentType, readonly string[]>> = {
   'ui.text': ['text'], 'ui.image': ['source', 'alt'],

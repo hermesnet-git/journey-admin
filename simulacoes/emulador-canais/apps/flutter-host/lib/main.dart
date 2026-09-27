@@ -356,13 +356,7 @@ class _ChannelHostPageState extends State<ChannelHostPage> {
       root: parsed.root!,
       context: {
         ...form.context,
-        'session': {
-          ...(form.context['session'] is Map
-              ? Map<String, dynamic>.from(form.context['session'] as Map)
-              : <String, dynamic>{}),
-          'channel': kIsWeb ? 'WEB' : 'MOBILE',
-          'locale': 'pt-BR',
-        },
+        'channel': kIsWeb ? 'WEB' : 'MOBILE',
       },
       handlers: RuntimeHandlers(
         submit: _submitAnswers,

@@ -64,12 +64,12 @@ export function engineVariableToken(kind: VariableKind | undefined, name: string
 }
 
 // Caminho da mesma variável dentro de uma tela desenhada — lá o namespace é separado por ponto
-// (form.nome, data.pedido) e o canal da execução vem do contexto de sessão. É a forma que vale
+// (form.nome, data.pedido) e o canal da execução é só `channel`, sem namespace. É a forma que vale
 // dentro de {{...}} num texto da tela; engineVariableToken continua valendo fora dela, onde tudo
 // vira expressão do motor.
 export function sduiVariablePath(kind: VariableKind | undefined, name: string): string {
   if (kind === 'form') return `form.${name}`;
-  if (kind === 'channel') return `session.${name}`;
+  if (kind === 'channel') return name;
   return `data.${name}`;
 }
 

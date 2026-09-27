@@ -1,6 +1,6 @@
 import { readPath, type RuntimeContext } from './path.js';
 
-const PLACEHOLDER = /\{\{\s*((?:form|data|session|route|computed)\.[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*)\s*\}\}/g;
+const PLACEHOLDER = /\{\{\s*((?:form|data)\.[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*|channel)\s*\}\}/g;
 
 export function interpolateText(text: string, context: RuntimeContext, missingValue = ''): string {
   return text.replace(PLACEHOLDER, (_placeholder, path: string) => {

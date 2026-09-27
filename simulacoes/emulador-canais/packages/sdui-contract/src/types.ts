@@ -11,13 +11,13 @@ export type RenderTarget = (typeof RENDER_TARGETS)[number];
 export const SDUI_ACTION_TYPES = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss'] as const;
 export type SduiActionType = (typeof SDUI_ACTION_TYPES)[number];
 export type BindingMode = 'oneWay' | 'twoWay';
-export type BindingNamespace = 'form' | 'data' | 'session' | 'route' | 'computed';
+export type BindingNamespace = 'form' | 'data';
 export type ConditionRule = 'equals' | 'notEquals' | 'in' | 'notIn';
 export type ComponentVersion = `${number}.${number}.${number}`;
 
 export interface SduiBinding { path: `${BindingNamespace}.${string}`; mode: BindingMode }
 export interface SduiEvent { action: SduiActionType; params?: Record<string, unknown> | null }
-export interface SduiCondition { rule: ConditionRule; path: `${BindingNamespace}.${string}`; value: unknown }
+export interface SduiCondition { rule: ConditionRule; path: `${BindingNamespace}.${string}` | 'channel'; value: unknown }
 export interface ValidationRule { rule: string; value?: unknown; message: string }
 export interface SelectOption { value: string; label: string; disabled?: boolean }
 

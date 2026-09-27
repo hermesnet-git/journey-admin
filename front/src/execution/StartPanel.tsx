@@ -46,7 +46,7 @@ export function StartPanel({ journey, onStarted }: Props) {
   const [suggestedCorrelationId] = useState(() => crypto.randomUUID());
   const [manualKafkaControl, setManualKafkaControl] = useState(false);
   // Jornada pode atender vários canais agora — o simulador precisa saber qual pra injetar
-  // session.channel/{{channel}} do jeito certo (Gateway e visibilidade condicional variam por
+  // o canal ({{channel}}) do jeito certo (Gateway e visibilidade condicional variam por
   // canal); só mostra o seletor quando há mais de um, senão usa o único direto.
   const [channelType, setChannelType] = useState(() => journey.channelTypes[0] ?? '');
   // REQ-05.07.007: uma jornada pode ter mais de uma versão publicada simultaneamente (versões mais

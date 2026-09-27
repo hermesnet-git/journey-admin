@@ -101,9 +101,8 @@ function StaticField({ node, multiline = false }: { node: SduiNode; multiline?: 
 
 // form.nome/data.pedido (caminho de design, o que o editor de Binding mostra) viram form_nome/
 // data_pedido no motor (BindingResolver.resolve, ms-espec-registry: processVariables.get(namespace
-// + "_" + resto) — mesma convenção de engineVariableToken em flow-designer/model.ts). session/route/
-// computed não passam por essa junção (resolvidos por chave direta no contexto, não por variável de
-// processo), então mostram o caminho como está.
+// + "_" + resto) — mesma convenção de engineVariableToken em flow-designer/model.ts). O canal é a
+// exceção: é sempre `channel`, sem namespace nem prefixo.
 function engineBindingName(path: string): string {
   const dot = path.indexOf('.');
   if (dot < 0) return path;

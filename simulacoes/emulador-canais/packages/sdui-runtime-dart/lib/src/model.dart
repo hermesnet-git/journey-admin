@@ -42,7 +42,7 @@ const sduiActionTypes = <String>{
   'action.track',
   'action.dismiss',
 };
-const _namespaces = <String>{'form', 'data', 'session', 'route', 'computed'};
+const _namespaces = <String>{'form', 'data'};
 const _conditions = <String>{'equals', 'notEquals', 'in', 'notIn'};
 const _targets = <String>{
   'react.web',
@@ -452,7 +452,8 @@ SduiParseResult parseSduiDocument(dynamic input) {
 }
 
 bool _validPath(String path) =>
-    path.contains('.') && _namespaces.contains(path.split('.').first);
+    path == 'channel' ||
+    (path.contains('.') && _namespaces.contains(path.split('.').first));
 JsonMap _map(dynamic value) => value is Map
     ? value.map((key, child) => MapEntry(key.toString(), child))
     : <String, dynamic>{};

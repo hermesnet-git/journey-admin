@@ -121,7 +121,7 @@ function StepView({ instance, onStep, onError }: { instance: JourneyInstance; on
       document: parsed.document,
       context: {
         ...(instance.step.form?.context ?? {}),
-        session: { ...((instance.step.form?.context?.session as Record<string, unknown>) ?? {}), channel: 'WEB', locale: 'pt-BR' },
+        channel: 'WEB',
       },
       handlers: {
         submit: async (answers) => {

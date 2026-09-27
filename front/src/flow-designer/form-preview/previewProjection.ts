@@ -5,17 +5,11 @@ import { compatibilityForDesignChannel, type DesignChannel } from '../form-build
 export interface PreviewContext {
   form: Record<string, unknown>;
   data: Record<string, unknown>;
-  session: Record<string, unknown>;
-  route: Record<string, unknown>;
-  computed: Record<string, unknown>;
 }
 
 export const EMPTY_PREVIEW_CONTEXT: PreviewContext = {
   form: {},
   data: {},
-  session: {},
-  route: {},
-  computed: {},
 };
 
 export interface PreviewProjectionResult {
@@ -42,10 +36,8 @@ export function projectPreviewTree(
     unresolvedVisibility: [],
     inactive: [],
   };
-  const context: PreviewContext = {
-    ...inputContext,
-    session: { ...inputContext.session, channel },
-  };
+  // O canal (`channel`, sem namespace) é lido direto do contexto pelo caminho `channel`.
+  const context = { ...inputContext, channel } as PreviewContext;
 
   function visit(node: SduiNode): SduiNode | null {
     const definition = registry.get(`${node.type}@${node.version}`);

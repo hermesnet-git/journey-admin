@@ -61,9 +61,6 @@ class SduiRuntime {
   }) : context = {
          'form': <String, dynamic>{},
          'data': <String, dynamic>{},
-         'session': <String, dynamic>{},
-         'route': <String, dynamic>{},
-         'computed': <String, dynamic>{},
          ...?context,
        } {
     _walkWithParent(root, null, (node, parent) => _parents[node.id] = parent);
@@ -263,6 +260,7 @@ class SduiRuntime {
   }
 
   (bool, dynamic) _read(String path) {
+    if (path == 'channel') return (context.containsKey('channel'), context['channel']);
     final parts = path.split('.');
     if (parts.length < 2 || !_namespaces.contains(parts.first))
       return (false, null);
@@ -308,7 +306,7 @@ class SduiRuntime {
   }
 }
 
-const _namespaces = {'form', 'data', 'session', 'route', 'computed'};
+const _namespaces = {'form', 'data'};
 const _inputTypes = {
   'ui.textInput',
   'ui.textArea',

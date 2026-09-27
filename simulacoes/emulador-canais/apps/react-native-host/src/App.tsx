@@ -277,8 +277,7 @@ function StepView({ journeyId, instance, onStep, onError, onNotice }: StepViewPr
       document: parsed.document,
       context: {
         ...(instance.step.form?.context ?? {}),
-        session: { channel: 'MOBILE', locale: 'pt-BR' },
-        route: { ...((instance.step.form?.context?.route as Record<string, unknown>) ?? {}), journeyId },
+        channel: 'MOBILE',
       },
       handlers: {
         submit: async (answers) => {

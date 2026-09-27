@@ -6,9 +6,6 @@ import type { PreviewContext } from './previewProjection';
 const AREAS: { key: keyof PreviewContext; label: string; help: string }[] = [
   { key: 'form', label: 'Respostas do formulário', help: 'Valores editáveis coletados na jornada.' },
   { key: 'data', label: 'Dados da jornada', help: 'Informações somente para leitura.' },
-  { key: 'session', label: 'Sessão', help: 'Contexto da sessão. O canal é preenchido automaticamente.' },
-  { key: 'route', label: 'Navegação', help: 'Parâmetros de entrada da navegação.' },
-  { key: 'computed', label: 'Valores calculados', help: 'Valores derivados para apoiar a apresentação.' },
 ];
 
 export function PreviewContextEditor({ value, onChange }: { value: PreviewContext; onChange: (value: PreviewContext) => void }) {

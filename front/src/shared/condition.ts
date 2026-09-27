@@ -23,8 +23,8 @@ export const OPERATORS_BY_TYPE: Record<VariableType, { value: string; label: str
 };
 export const QUOTED_TYPES = new Set<VariableType>(['string', 'date', 'datetime']);
 export const VALUE_INPUT_TYPE: Partial<Record<VariableType, string>> = { number: 'number', date: 'date', datetime: 'datetime-local' };
-export const CONDITION_PATTERN = /^\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}\s*(==|!=|>|<)\s*(.*)$/;
-const VALUE_VARIABLE_PATTERN = /^\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}$/;
+export const CONDITION_PATTERN = /^\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}\s*(==|!=|>|<)\s*(.*)$/;
+const VALUE_VARIABLE_PATTERN = /^\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}$/;
 
 export function parseCondition(condition: string | undefined): { variable: string; operator: string; value: string; valueIsVariable: boolean } {
   const match = condition?.match(CONDITION_PATTERN);

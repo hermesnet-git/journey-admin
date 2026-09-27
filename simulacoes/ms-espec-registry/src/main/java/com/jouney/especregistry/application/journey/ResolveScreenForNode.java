@@ -5,7 +5,6 @@ import com.jouney.especregistry.domain.journey.FlowNode;
 import com.jouney.especregistry.domain.journey.JourneyRepository;
 import com.jouney.especregistry.domain.journey.PublicationSnapshot;
 import com.jouney.especregistry.domain.sdui.CanonicalFormat;
-import com.jouney.especregistry.domain.sdui.ResolutionContext;
 import com.jouney.especregistry.domain.sdui.ScreenEnvelope;
 import com.jouney.especregistry.domain.sdui.SnapshotRepository;
 import com.jouney.especregistry.domain.sdui.TemplateResolver;
@@ -60,8 +59,7 @@ public class ResolveScreenForNode {
         CanonicalFormat.referencedProcessVariables(envelope.data()).forEach(name -> {
             if (source.containsKey(name)) values.put(name, source.get(name));
         });
-        return Map.of("form", values, "data", values, "session", Map.of(), "route", Map.of(),
-                "computed", Map.of());
+        return Map.of("form", values, "data", values);
     }
 
     @SuppressWarnings("unchecked")
@@ -69,8 +67,7 @@ public class ResolveScreenForNode {
         Map<String, Object> formValues = (Map<String, Object>) context.get("form");
         Map<String, EngineVariable> variables = new LinkedHashMap<>();
         formValues.forEach((name, value) -> variables.put(name, new EngineVariable(value, "Object")));
-        ResolutionContext ctx = ResolutionContext.fromProcessVariables(variables);
-        JsonNode resolvedData = TemplateResolver.resolveTuple(envelope.data(), variables, ctx);
+        JsonNode resolvedData = TemplateResolver.resolveTuple(envelope.data(), variables);
         return new ScreenEnvelope(envelope.schemaVersion(), envelope.catalogVersion(), envelope.journeyId(),
                 envelope.journeyVersion(), envelope.uiStepId(), envelope.status(), envelope.publishedAt(),
                 envelope.supportedTargets(), envelope.minRendererVersion(), envelope.dataSources(), resolvedData);

@@ -101,7 +101,7 @@ async function main() {
       divider('div_bv_topo'),
       alert('alert_bv_whatsapp', 'informative', 'Prefere continuar por aqui mesmo? A gente segue com você sem precisar trocar de canal.', {
         title: 'Atendimento também pelo WhatsApp',
-        visibility: { path: 'session.channel', rule: 'equals', value: 'WHATSAPP' },
+        visibility: { path: 'channel', rule: 'equals', value: 'WHATSAPP' },
       }),
       card('card_bv_dados', [
         stack('stack_bv_dados', [
@@ -144,7 +144,7 @@ async function main() {
       progress('progress_ep', 0.3, { label: 'Etapa 2 de 5 — Escolha do plano', showValue: true }),
       alert('alert_ep_app', 'informative', 'Compare a velocidade ideal pro seu Wi-Fi visualmente no app Vivo.', {
         title: 'Dica',
-        visibility: { path: 'session.channel', rule: 'notIn', value: ['WHATSAPP'] },
+        visibility: { path: 'channel', rule: 'notIn', value: ['WHATSAPP'] },
       }),
       select('select_ep_plano', 'Plano', 'planoEscolhido', PLANO_OPTIONS),
       select('select_ep_velocidade', 'Velocidade da internet', 'velocidadeInternet', VELOCIDADE_OPTIONS),

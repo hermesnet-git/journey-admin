@@ -1484,7 +1484,7 @@ export function PayloadFieldsEditor({ fields, onChange }: { fields: PayloadField
 
 // REQ-03.10.005: {{name}} references in the current config get an input for a sample value here,
 // so the call can be resolved and tested without a real journey execution.
-const VARIABLE_TOKEN = /\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g;
+const VARIABLE_TOKEN = /\{\{\s*([A-Za-z_][A-Za-z0-9_-]*)\s*\}\}/g;
 
 export function tokensIn(config: Record<string, unknown> | null | undefined): string[] {
   const found = new Set<string>();

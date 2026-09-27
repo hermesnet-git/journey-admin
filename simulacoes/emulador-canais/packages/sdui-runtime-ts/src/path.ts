@@ -3,17 +3,16 @@ import type { BindingNamespace } from '@elastic-journey/sdui-contract';
 export interface RuntimeContext {
   form: Record<string, unknown>;
   data: Record<string, unknown>;
-  session: Record<string, unknown>;
-  route: Record<string, unknown>;
-  computed: Record<string, unknown>;
+  // Canal da execução: caminho `channel`, sem namespace.
+  channel?: string;
 }
 
-const NAMESPACES: ReadonlySet<string> = new Set(['form', 'data', 'session', 'route', 'computed']);
+const NAMESPACES: ReadonlySet<string> = new Set(['form', 'data']);
 const SAFE_SEGMENT = /^[A-Za-z_][A-Za-z0-9_-]*$/;
 const FORBIDDEN_SEGMENTS: ReadonlySet<string> = new Set(['__proto__', 'prototype', 'constructor']);
 
 export function emptyRuntimeContext(): RuntimeContext {
-  return { form: {}, data: {}, session: {}, route: {}, computed: {} };
+  return { form: {}, data: {} };
 }
 
 export function parseBindingPath(path: string): [BindingNamespace, ...string[]] | null {
@@ -25,6 +24,7 @@ export function parseBindingPath(path: string): [BindingNamespace, ...string[]] 
 }
 
 export function readPath(context: RuntimeContext, path: string): { found: boolean; value: unknown } {
+  if (path === 'channel') return { found: context.channel !== undefined, value: context.channel };
   const parts = parseBindingPath(path);
   if (!parts) return { found: false, value: undefined };
   const [namespace, ...segments] = parts;

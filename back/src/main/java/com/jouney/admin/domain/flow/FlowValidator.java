@@ -49,10 +49,16 @@ public final class FlowValidator {
     // runtime — sem os dois casarem, um nome assim nunca era detectado aqui (nem violação, nem
     // reconhecido) e nunca resolvia lá.
     private static final Pattern VARIABLE_TOKEN = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_-]*)\\s*\\}\\}");
+    // {{form.cpf}}/{{data.pedido}} é a grafia do contrato de TELA. Em conector, mensageria e Decisão o
+    // token é o nome da variável no motor ({{form_cpf}}, {{data_pedido}}; o canal é {{channel}}).
+    // VARIABLE_TOKEN não casa token com ponto — sem este padrão ele passaria em silêncio e iria
+    // literal pro destino (URL, payload, condição).
+    private static final Pattern DOTTED_TOKEN = Pattern.compile("\\{\\{\\s*((?:form|data)\\.[A-Za-z0-9_.-]+)\\s*\\}\\}");
 
-    // Seção 8 do catálogo SDUI: os 5 namespaces de binding permitidos.
+    // Seção 8 do catálogo SDUI: os 2 namespaces de binding permitidos — form (valores editáveis da
+    // jornada) e data (dados somente leitura).
     private static final Set<String> VALID_BINDING_NAMESPACES =
-            Set.of("form.", "data.", "session.", "route.", "computed.");
+            Set.of("form.", "data.");
     // Seção 9 do catálogo SDUI: as 6 ações do Action Registry.
     private static final Set<String> VALID_SDUI_ACTIONS = Set.of("action.submit", "action.navigate",
             "action.openUrl", "action.setValue", "action.track", "action.dismiss");
@@ -61,10 +67,11 @@ public final class FlowValidator {
     // composta — continua uma única regra, só que contra um conjunto de valores em vez de um só.
     private static final Set<String> VALID_VISIBILITY_RULES = Set.of("equals", "notEquals", "in", "notIn");
     private static final Pattern SEMVER = Pattern.compile("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$");
-    // Placeholder dentro de uma tela desenhada sempre carrega o namespace ({{form.nome}},
-    // {{data.pedido}}) — padrão próprio, com ponto e hífen, idêntico a TemplateResolver.PLACEHOLDER
-    // (ms-espec-registry, quem de fato resolve em runtime). VARIABLE_TOKEN acima vale pro {{nome}}
-    // sem namespace de conector/Gateway/mensagem, onde não existe ponto.
+    // Placeholder dentro de uma tela desenhada carrega o namespace: {{form.nome}} / {{data.pedido}}
+    // (contrato) ou {{form_nome}} / {{data_pedido}} (o nome da variável no motor) — padrão próprio,
+    // com ponto, sublinhado e hífen, idêntico a TemplateResolver.PLACEHOLDER (ms-espec-registry, quem
+    // de fato resolve em runtime). VARIABLE_TOKEN acima vale pro token de conector/Gateway, onde não
+    // existe ponto.
     private static final Pattern SCREEN_PLACEHOLDER = Pattern.compile("\\{\\{\\s*([A-Za-z_][\\w.-]*)\\s*\\}\\}");
     private static final Set<String> INPUT_COMPONENTS = Set.of("ui.textInput", "ui.textArea", "ui.select",
             "ui.checkbox", "ui.datePicker");
@@ -275,10 +282,13 @@ public final class FlowValidator {
                 // declared by some ancestor's output mapping (REQ-03.09.010) reachable backwards from it.
                 Set<String> usedTokens = new HashSet<>();
                 collectVariableTokens(connectorConfig.getConfig(), usedTokens);
+                reportDottedTokens(node, "'" + node.getName() + "' usa", connectorConfig.getConfig(), violations);
                 if (!usedTokens.isEmpty()) {
                     Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                     for (String token : usedTokens) {
-                        if (!availableVars.contains(token)) {
+                        if (!isEngineToken(token)) {
+                            violations.add(rawTokenViolation(node, "'" + node.getName() + "' usa", token));
+                        } else if (!availableVars.contains(token)) {
                             violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' referencia a variável '{{" + token
                                     + "}}', que ainda não existe nesse ponto da jornada" + describeAvailableVars(availableVars)));
                         }
@@ -315,12 +325,15 @@ public final class FlowValidator {
                 }
                 Set<String> usedTokens = new HashSet<>();
                 collectVariableTokens(connection.getCondition(), usedTokens);
+                reportDottedTokens(node, "A condição da Decisão '" + node.getName() + "' usa", connection.getCondition(), violations);
                 if (usedTokens.isEmpty()) {
                     continue;
                 }
                 Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
                 for (String token : usedTokens) {
-                    if (!availableVars.contains(token)) {
+                    if (!isEngineToken(token)) {
+                        violations.add(rawTokenViolation(node, "A condição da Decisão '" + node.getName() + "' usa", token));
+                    } else if (!availableVars.contains(token)) {
                         violations.add(new FlowViolation(node.getId(), "A condição da Decisão '" + node.getName() + "' referencia a variável '{{"
                                 + token + "}}', que ainda não existe nesse ponto da jornada" + describeAvailableVars(availableVars)));
                     }
@@ -436,22 +449,59 @@ public final class FlowValidator {
     // ficam sem saber se o problema é um nome digitado errado (quase sempre) ou um outputMapping
     // que realmente falta declarar.
     private static String describeAvailableVars(Set<String> availableVars) {
-        if (availableVars.isEmpty()) {
+        Set<String> engineVars = new TreeSet<>();
+        availableVars.stream().filter(FlowValidator::isEngineToken).forEach(engineVars::add);
+        if (engineVars.isEmpty()) {
             return " (nenhuma variável disponível ainda neste ponto do fluxo)";
         }
-        return " — variáveis disponíveis aqui: " + String.join(", ", new TreeSet<>(availableVars));
+        return " — variáveis disponíveis aqui: " + String.join(", ", engineVars);
     }
 
     private static void collectVariableTokens(Object value, Set<String> tokens) {
+        collectTokens(value, VARIABLE_TOKEN, tokens);
+    }
+
+    private static void collectTokens(Object value, Pattern pattern, Set<String> tokens) {
         if (value instanceof String s) {
-            Matcher matcher = VARIABLE_TOKEN.matcher(s);
+            Matcher matcher = pattern.matcher(s);
             while (matcher.find()) {
                 tokens.add(matcher.group(1));
             }
         } else if (value instanceof Map<?, ?> map) {
-            map.values().forEach(v -> collectVariableTokens(v, tokens));
+            map.values().forEach(v -> collectTokens(v, pattern, tokens));
         } else if (value instanceof List<?> list) {
-            list.forEach(v -> collectVariableTokens(v, tokens));
+            list.forEach(v -> collectTokens(v, pattern, tokens));
+        }
+    }
+
+    // Em conector, mensageria e Decisão o token é o nome da variável no motor: form_x, data_x ou o
+    // canal (`channel`). Qualquer outra forma (token cru, como {{pedidoId}}) não existe no motor.
+    private static boolean isEngineToken(String token) {
+        return CHANNEL_VARIABLE.equals(token)
+                || ((token.startsWith("form_") || token.startsWith("data_")) && token.length() > "form_".length());
+    }
+
+    private static FlowViolation rawTokenViolation(FlowNode node, String subject, String token) {
+        return new FlowViolation(node.getId(), subject + " {{" + token + "}}, que não é o nome de uma variável no motor — use {{form_" + token
+                + "}} (campo de tela) ou {{data_" + token + "}} (dado de uma integração ou de entrada da jornada)");
+    }
+
+    // Caminho de tela válido: form.x ou data.x; o canal é a única exceção, sem namespace (`channel`).
+    private static boolean isKnownDataPath(String path) {
+        return path != null
+                && (CHANNEL_VARIABLE.equals(path) || VALID_BINDING_NAMESPACES.stream().anyMatch(path::startsWith));
+    }
+
+    // Recusa {{form.x}}/{{data.x}} onde o token deve ser o nome da variável no motor (conector,
+    // mensageria, Decisão) e indica a forma certa. Nada é especial aqui: {{data.channel}} é só a variável
+    // `channel` do namespace data (no motor, data_channel), distinta do canal reservado `channel`.
+    private static void reportDottedTokens(FlowNode node, String subject, Object value, List<FlowViolation> violations) {
+        Set<String> dotted = new java.util.LinkedHashSet<>();
+        collectTokens(value, DOTTED_TOKEN, dotted);
+        for (String token : dotted) {
+            String engineName = token.substring(0, token.indexOf('.')) + "_" + token.substring(token.indexOf('.') + 1);
+            violations.add(new FlowViolation(node.getId(), subject + " {{" + token + "}}, que não vale aqui — use o nome da variável no motor, {{"
+                    + engineName + "}}"));
         }
     }
 
@@ -514,11 +564,11 @@ public final class FlowValidator {
         return node.children().stream().anyMatch(child -> hasVisibleLeafContent(child, componentRegistry, channelType));
     }
 
-    // Só avalia uma regra que referencie session.channel — qualquer outro path (form/data/etc.)
+    // Só avalia uma regra que referencie o canal (channel) — qualquer outro path (form/data/etc.)
     // depende de dado de execução que não existe em tempo de design, então é tratado como sempre
     // visível aqui (permissivo, erra pro lado de não bloquear publicação por falso positivo).
     private static boolean isVisibleForChannel(SduiVisibility visibility, String channelType) {
-        if (visibility == null || !"session.channel".equals(visibility.path())) {
+        if (visibility == null || !CHANNEL_VARIABLE.equals(visibility.path())) {
             return true;
         }
         Object value = visibility.value();
@@ -582,8 +632,7 @@ public final class FlowValidator {
                 if (value instanceof String text) {
                     Matcher matcher = SCREEN_PLACEHOLDER.matcher(text);
                     while (matcher.find()) {
-                        validateDataReference(ownerNode, sduiNode.id(), "o atributo '" + propName + "'",
-                                matcher.group(1), scope, violations);
+                        validatePlaceholder(ownerNode, sduiNode.id(), propName, matcher.group(1), scope, violations);
                     }
                 }
             });
@@ -598,7 +647,7 @@ public final class FlowValidator {
         if (sduiNode.bindings() != null) {
             for (Map.Entry<String, SduiBinding> entry : sduiNode.bindings().entrySet()) {
                 SduiBinding binding = entry.getValue();
-                if (binding.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(binding.path()::startsWith)) {
+                if (!isKnownDataPath(binding.path())) {
                     violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' tem um binding com path inválido: '"
                             + binding.path() + "', na tela do nó '" + ownerNode.getName() + "'"));
                 } else if ("oneWay".equals(binding.mode())) {
@@ -653,7 +702,7 @@ public final class FlowValidator {
         }
         SduiVisibility visibility = sduiNode.visibility();
         if (visibility != null) {
-            if (visibility.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(visibility.path()::startsWith)) {
+            if (!isKnownDataPath(visibility.path())) {
                 violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' tem uma visibilidade com path inválido: '"
                         + visibility.path() + "', na tela do nó '" + ownerNode.getName() + "'"));
             }
@@ -688,6 +737,13 @@ public final class FlowValidator {
                     || ("form".equals(namespace) && screenFields.contains(name));
         }
 
+        // Variável referenciada direto pelo nome do motor ({{form_x}} / {{data_x}}) — mesma conferência,
+        // sem passar pelo caminho com ponto.
+        boolean knowsEngineName(String engineName) {
+            return flowVariables.contains(engineName)
+                    || (engineName.startsWith("form_") && screenFields.contains(engineName.substring("form_".length())));
+        }
+
         // Lista no formato que o autor digita (form.x/data.x), não no do motor (form_x/data_x), e
         // sem os nomes crus legados que availableVarsFor também guarda — ruído numa mensagem sobre tela.
         String describe() {
@@ -703,9 +759,41 @@ public final class FlowValidator {
         }
     }
 
-    /** Referência de tela a um dado da jornada (seção 8 do catálogo): só {@code form} e {@code data}
-     * são conferíveis contra o que o fluxo produz — {@code session}/{@code route}/{@code computed}
-     * não têm catálogo de caminhos neste portal e passam sem checagem. */
+    /** Placeholder de texto de tela: {{form.x}}/{{data.x}} (contrato) ou {{form_x}}/{{data_x}} (nome da
+     * variável no motor). Qualquer outra forma — sem prefixo ou de outro namespace — resolveria vazio em
+     * execução, então é recusada aqui, dizendo a forma certa. */
+    private static void validatePlaceholder(FlowNode ownerNode, String componentId, String propName, String token,
+                                             DataScope scope, List<FlowViolation> violations) {
+        if (CHANNEL_VARIABLE.equals(token)) {
+            return; // o canal está sempre disponível, sem namespace
+        }
+        String where = "No componente '" + componentId + "', o atributo '" + propName + "'";
+        int dot = token.indexOf('.');
+        if (dot >= 0) {
+            String namespace = token.substring(0, dot);
+            if (!"form".equals(namespace) && !"data".equals(namespace)) {
+                violations.add(new FlowViolation(ownerNode.getId(), where + " usa {{" + token + "}}, cujo namespace '"
+                        + namespace + "' não existe — só form e data são reconhecidos"));
+                return;
+            }
+            validateDataReference(ownerNode, componentId, "o atributo '" + propName + "'", token, scope, violations);
+            return;
+        }
+        boolean engineForm = (token.startsWith("form_") || token.startsWith("data_")) && token.length() > "form_".length();
+        if (!engineForm) {
+            violations.add(new FlowViolation(ownerNode.getId(), where + " usa {{" + token + "}} sem indicar a origem da variável — use {{form."
+                    + token + "}} ou {{form_" + token + "}} (campo de uma tela), ou {{data." + token + "}} ou {{data_" + token
+                    + "}} (dado de uma integração)"));
+            return;
+        }
+        if (!scope.knowsEngineName(token)) {
+            violations.add(new FlowViolation(ownerNode.getId(), where + " usa a variável '" + token
+                    + "', que ainda não existe nesse ponto da jornada" + scope.describe()));
+        }
+    }
+
+    /** Referência de tela a um dado da jornada (seção 8 do catálogo): só existem os namespaces
+     * {@code form} e {@code data}, ambos conferíveis contra o que o fluxo produz. */
     private static void validateDataReference(FlowNode ownerNode, String componentId, String what, String path,
                                                DataScope scope, List<FlowViolation> violations) {
         if (path == null) {
@@ -757,7 +845,7 @@ public final class FlowValidator {
     private static void validateCondition(FlowNode ownerNode, String componentId, String label,
                                            SduiVisibility condition, List<FlowViolation> violations) {
         if (condition == null) return;
-        if (condition.path() == null || VALID_BINDING_NAMESPACES.stream().noneMatch(condition.path()::startsWith)) {
+        if (!isKnownDataPath(condition.path())) {
             violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + componentId + "' tem "
                     + label + " com path inválido: '" + condition.path() + "'"));
         }

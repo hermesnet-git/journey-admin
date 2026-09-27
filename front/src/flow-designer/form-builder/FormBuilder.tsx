@@ -711,7 +711,7 @@ function issueTone(severity: AuthoringIssueSeverity, c: ReturnType<typeof useFlo
 
 function isVisibleInChannel(node: SduiNode, channel: DesignChannel): boolean {
   const condition = node.visibility;
-  if (!condition || condition.path !== 'session.channel') return true;
+  if (!condition || condition.path !== 'channel') return true;
   if (condition.rule === 'equals') return condition.value === channel;
   if (condition.rule === 'notEquals') return condition.value !== channel;
   if (condition.rule === 'in') return Array.isArray(condition.value) && condition.value.includes(channel);

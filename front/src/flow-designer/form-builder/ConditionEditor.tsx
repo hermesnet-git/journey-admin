@@ -15,7 +15,7 @@ const RULES = [
   { value: 'notIn', label: 'Não está entre' },
 ];
 
-const CHANNEL_VISIBILITY_PATH = 'session.channel';
+const CHANNEL_VISIBILITY_PATH = 'channel';
 
 const CONDITION_COPY = {
   visibility: {
@@ -95,12 +95,18 @@ export function ConditionEditor({
       </label>
       {visibility && (
         <>
-          <NamespacePathInput
-            namespace={namespace}
-            suffix={suffix}
-            variables={variables}
-            onChange={(ns, s) => onChange({ ...visibility, path: `${ns}.${s}` })}
-          />
+          {visibility.path === CHANNEL_VISIBILITY_PATH ? (
+            <div className="text-[11.5px]" style={{ color: c.textSecondary }}>
+              Canal da execução
+            </div>
+          ) : (
+            <NamespacePathInput
+              namespace={namespace}
+              suffix={suffix}
+              variables={variables}
+              onChange={(ns, s) => onChange({ ...visibility, path: `${ns}.${s}` })}
+            />
+          )}
           <div className="flex gap-1">
             <select
               style={{ ...gridInputStyle(c), cursor: 'pointer', flex: 1 }}

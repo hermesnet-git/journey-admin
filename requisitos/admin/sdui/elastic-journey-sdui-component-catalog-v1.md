@@ -298,9 +298,6 @@ O contrato separa os seguintes namespaces:
 |---|---|---|
 | `form` | Valores editáveis da jornada | `form.customer.name` |
 | `data` | Dados carregados e somente leitura | `data.customer.document` |
-| `session` | Contexto autorizado da sessão | `session.locale` |
-| `route` | Parâmetros de navegação permitidos | `route.orderId` |
-| `computed` | Valores derivados por regras registradas | `computed.isAdult` |
 
 ### 8.1 Bindings tipados
 
@@ -433,7 +430,7 @@ Regras gerais de segurança:
 ```json
 {
   "rule": "equals",
-  "path": "computed.customerCanContinue",
+  "path": "data.customerCanContinue",
   "value": true
 }
 ```
@@ -775,7 +772,7 @@ O envelope não possui `metadata` livre nem uma versão independente da UI Spec.
               "message": "Existem campos obrigatórios não preenchidos.",
               "$visibility": {
                 "rule": "equals",
-                "path": "computed.showValidationSummary",
+                "path": "data.showValidationSummary",
                 "value": true
               }
             }

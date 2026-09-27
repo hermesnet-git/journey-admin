@@ -357,9 +357,9 @@ Permitir a construção visual do fluxo específico de cada jornada.
 > **Nota de revisão (2026-08-24):** requisito reescrito para deixar explícito que campos de tela embutida entram no mesmo espaço de nomes — mesma mudança que substituiu a associação por `formId` pelo desenho direto da tela no nó, motivada pela limitação da Runtime Engine a poucos tipos de campo nativos.
 
 > **Nota de revisão (2026-09-12):** requisito ajustado para permitir que um campo de tela reapareça em mais de uma etapa da jornada usando o mesmo nome técnico — releitura e edição de um valor já coletado, prevista desde sempre no vínculo de leitura-e-escrita do catálogo SDUI v1 (seção 8.1: o valor atual do caminho é lido antes de aceitar a alteração), mas até então bloqueada por uma checagem de unicidade mais rígida do que o necessário. A colisão continua proibida contra variável de saída de integração ou de entrada da jornada, onde reaproveitar o nome à revelia seria quase sempre um erro de digitação, nunca uma reedição intencional — e não há ambiguidade em tempo de execução ao permitir a repetição entre campos de tela, já que o gateway desta versão é sempre exclusivo (REQ-03.11.001): nunca há dois caminhos da jornada rodando ao mesmo tempo para colidir de verdade.
-#### REQ-03.09.012 - O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis produzidas por passos anteriores do fluxo (respostas de formulário e saídas de integrações), usando a sintaxe `{{nomeDaVariavel}}`.
+#### REQ-03.09.012 - O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis produzidas por passos anteriores do fluxo (respostas de formulário e saídas de integrações), usando o nome da variável no motor entre chaves duplas: `{{form_nome}}` (campo de tela), `{{data_nome}}` (saída de integração ou variável de entrada do início) ou `{{channel}}` (o canal).
 #### REQ-03.09.013 - O editor deve exibir, para cada `SERVICE_TASK`/`RECEIVE_TASK`, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado.
-#### REQ-03.09.014 - O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie `{{variavel}}` inexistente no contexto do nó (nome não declarado por nenhum passo anterior alcançável).
+#### REQ-03.09.014 - O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie `{{variavel}}` inexistente no contexto do nó (nome não declarado por nenhum passo anterior alcançável) ou que use uma forma diferente do nome da variável no motor (`{{nome}}` sem prefixo, ou com ponto, como `{{form.nome}}`).
 #### REQ-03.09.015 - O campo de tópico de um conector Kafka deve oferecer, como sugestão, a lista de tópicos existentes no cluster selecionado (US-14.01), consultada em tempo real a partir do catálogo de integrações; a digitação livre deve continuar disponível quando a listagem não estiver disponível.
 ---
 
@@ -377,7 +377,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.11.001 - O sistema deve suportar um nó de gateway de decisão (exclusivo) no fluxo, com exatamente duas saídas na versão 1.0.0: caminho A e caminho B.
 #### REQ-03.11.002 - Uma das duas saídas do gateway deve ser marcada como saída padrão (sem condição própria), usada quando a condição da outra saída não for satisfeita — garantindo que o fluxo sempre tenha um caminho definido em tempo de execução.
 #### REQ-03.11.003 - A saída não padrão do gateway deve possuir uma condição composta por variável, operador de comparação (igual, diferente, maior que, menor que) e um valor de referência informado pelo usuário, editados como combos/campo tipado (não texto livre).
-#### REQ-03.11.004 - A condição deve poder referenciar tanto uma variável de saída de um Service Task/Receive Task (mapeamento de saída, REQ-03.09.010) quanto um campo de resposta de um User Task (nome técnico do campo, REQ-04.01.007), desde que alcançável a partir do gateway.
+#### REQ-03.11.004 - A condição deve poder referenciar tanto uma variável de saída de um Service Task/Receive Task (mapeamento de saída, REQ-03.09.010) quanto um campo de resposta de um User Task (nome técnico do campo, REQ-04.01.007), desde que alcançável a partir do gateway. A variável é referenciada pelo nome que ela tem no motor (`form_nome`, `data_nome` ou `channel`); a forma com ponto ou sem prefixo é recusada.
 #### REQ-03.11.005 - O editor deve exibir, ao configurar a condição da saída do gateway, a lista de variáveis disponíveis naquele ponto do fluxo — mesmo mecanismo do painel de variáveis do conector (REQ-03.09.013), estendido para incluir campos de formulário de User Tasks alcançáveis.
 #### REQ-03.11.006 - O gateway deve possuir ao menos uma entrada e exatamente duas saídas na versão 1.0.0; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição.
 #### REQ-03.11.007 - Na publicação, o gateway deve ser traduzido para um `exclusiveGateway` BPMN nativo, com cada `sequenceFlow` de saída carregando a expressão de condição correspondente (ou marcado como fluxo padrão), avaliado pelo próprio motor do runtime — sem necessidade de implementação especializada (worker), no mesmo princípio do conector REST nativo (US-03.09).
@@ -390,14 +390,14 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.12.002 - O nome de cada variável de entrada deve ser único no escopo da jornada, compartilhando o mesmo espaço de nomes das variáveis de saída (REQ-03.09.011) — uma variável de entrada não pode colidir com o nome de saída de integração de nenhum nó do fluxo, com outra variável de entrada, nem com o nome técnico de um campo de tela de User Task; um campo de tela, por sua vez, pode repetir seu próprio nome entre etapas diferentes (REQ-03.09.011), mas nunca reaproveitar o nome de uma variável de entrada.
 
 > **Nota de revisão (2026-09-12):** ajustado em conjunto com REQ-03.09.011 — a exceção de reaproveitamento de nome vale só entre campos de tela; variável de entrada continua com nome exclusivo na jornada, inclusive contra campo de tela.
-#### REQ-03.12.003 - As variáveis de entrada declaradas no nó START tornam-se disponíveis para referência `{{nome}}` em qualquer conector ou condição de gateway do fluxo, do mesmo jeito que uma variável de saída de integração já é (REQ-03.09.012/013) — o nó START é sempre alcançável a partir de qualquer outro nó do fluxo.
+#### REQ-03.12.003 - As variáveis de entrada declaradas no nó START tornam-se disponíveis para referência `{{data_nome}}` em qualquer conector ou condição de gateway do fluxo, do mesmo jeito que uma variável de saída de integração já é (REQ-03.09.012/013) — o nó START é sempre alcançável a partir de qualquer outro nó do fluxo.
 #### REQ-03.12.004 - O endpoint de início de instância deve aceitar um mapa de valores no corpo da requisição e recusar a chamada, com mensagem indicando os nomes faltantes, se alguma variável declarada no nó START não vier preenchida.
 #### REQ-03.12.005 - Valores extras informados pelo chamador que não correspondam a nenhuma variável declarada são aceitos e repassados como variável de processo sem erro.
 ---
 
 ### US-03.13 Assistência de variáveis na configuração de conector
 #### REQ-03.13.001 - O painel de propriedades de um `SERVICE_TASK`/`RECEIVE_TASK`/`MESSAGE_START_EVENT` deve exibir uma seção "Variáveis" com as variáveis disponíveis naquele ponto do fluxo (entrada da jornada, REQ-03.12.001, e saída de integrações anteriores alcançáveis, REQ-03.09.010), agrupadas por origem — rótulo derivado do nome/tipo do nó e do tipo de conector, calculado de forma genérica para que um tipo de nó/conector novo no futuro já ganhe um rótulo razoável sem exigir código específico.
-#### REQ-03.13.002 - Os campos de URL, cada valor de header, e cada campo de valor de Body/Params devem oferecer um seletor que insere a referência `{{nome}}` na posição do cursor do campo, dispensando o usuário de digitar a sintaxe manualmente.
+#### REQ-03.13.002 - Os campos de URL, cada valor de header, e cada campo de valor de Body/Params devem oferecer um seletor que insere a referência à variável, no formato do motor (`{{form_nome}}`, `{{data_nome}}`), na posição do cursor do campo, dispensando o usuário de digitar a sintaxe manualmente.
 #### REQ-03.13.003 - Body e Params (REST) devem ser editados, por padrão, como uma lista de campos nome→valor (mesmo padrão de Headers, REQ-03.09.009), com um "modo avançado" de JSON livre disponível para corpos que não sejam um objeto plano — uma configuração aninhada já existente nunca deve ser achatada automaticamente.
 ---
 
@@ -587,7 +587,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 ---
 
 ### US-04.10 Vínculo de dados
-#### REQ-04.10.001 - O usuário deve poder associar o valor de um componente a um caminho identificado por um namespace (variável do fluxo preenchível, dado somente-leitura, contexto de sessão, parâmetro de navegação ou valor derivado) e um nome dentro desse namespace.
+#### REQ-04.10.001 - O usuário deve poder associar o valor de um componente a um caminho identificado por um namespace (variável do fluxo preenchível ou dado somente-leitura) e um nome dentro desse namespace.
 #### REQ-04.10.002 - O vínculo deve poder ser configurado como leitura-e-escrita ou somente leitura.
 #### REQ-04.10.003 - Um componente sem vínculo configurado não deve gerar variável de processo nem ser considerado no envio do formulário.
 #### REQ-04.10.004 - Ao configurar um vínculo de leitura-e-escrita no namespace de variável do fluxo, o sistema deve sugerir os nomes de variável já conhecidos até aquele ponto do fluxo.
@@ -610,7 +610,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.12.001 - O usuário deve poder condicionar a exibição de um componente a uma comparação entre um valor do contexto de dados (mesmos namespaces de US-04.10) e um valor informado.
 #### REQ-04.12.002 - As comparações suportadas devem incluir, no mínimo, igualdade e diferença.
 #### REQ-04.12.003 - Um componente sem condição de visibilidade configurada deve ser sempre exibido.
-#### REQ-04.12.004 - As comparações também devem suportar "está em"/"não está em" uma lista de valores — usado para condicionar um componente a um subconjunto dos tipos de canal da jornada (`session.channel`), sem exigir uma regra por tipo de canal.
+#### REQ-04.12.004 - As comparações também devem suportar "está em"/"não está em" uma lista de valores — usado para condicionar um componente a um subconjunto dos tipos de canal da jornada (o canal, `channel`), sem exigir uma regra por tipo de canal.
 
 ---
 
@@ -622,12 +622,14 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.13.005 - O sistema não deve permitir publicar uma jornada com um vínculo de dados cujo namespace não seja um dos namespaces reconhecidos (US-04.10).
 #### REQ-04.13.006 - O sistema não deve permitir publicar uma jornada com um evento associado a uma ação fora do conjunto fechado (US-04.11).
 #### REQ-04.13.007 - Ao rejeitar a publicação, o sistema deve informar todas as violações encontradas, não só a primeira.
-#### REQ-04.13.008 - O sistema não deve permitir publicar uma jornada em que, para algum dos tipos de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo — considerando as regras de visibilidade condicionadas a `session.channel` (REQ-04.12.004).
+#### REQ-04.13.008 - O sistema não deve permitir publicar uma jornada em que, para algum dos tipos de canal da jornada, a árvore de alguma tela fique sem nenhum componente visível para aquele tipo — considerando as regras de visibilidade condicionadas ao canal, `channel` (REQ-04.12.004).
 #### REQ-04.13.009 - O sistema não deve permitir publicar uma jornada em que o valor de uma propriedade, em alguma tela, viole o schema declarado pelo componente no catálogo (tipo de valor, faixa numérica ou enumeração — REQ-04.07.006).
 
 > **Nota de revisão (2026-09-26):** uma propriedade obrigatória que também aceita `$bindings` (US-04.10) é considerada preenchida por um valor literal OU por um vínculo válido — nunca os dois em falta ao mesmo tempo, mas também nunca os dois exigidos juntos. Faltando os dois, o sistema deve informar as duas formas de resolver, não só cobrar o valor literal.
 
-#### REQ-04.13.010 - O sistema não deve permitir publicar uma jornada em que uma tela referencie uma variável de dados da jornada (namespaces `form` ou `data`) que não exista naquele ponto do fluxo — seja por vínculo de leitura, por placeholder em qualquer propriedade de texto, por condição de visibilidade ou por condição de estado ativo. Contam como existentes o que passos anteriores do fluxo produzem, as variáveis de entrada do início da jornada e os campos que a própria tela coleta, em qualquer ordem. A violação deve indicar o componente, a variável e as variáveis disponíveis naquele ponto. Não são conferidos o vínculo de leitura-e-escrita (ele cria a variável) nem os namespaces sem catálogo de caminhos (`session`, `route`, `computed`).
+#### REQ-04.13.010 - O sistema não deve permitir publicar uma jornada em que uma tela referencie uma variável de dados da jornada (namespaces `form` ou `data`) que não exista naquele ponto do fluxo — seja por vínculo de leitura, por placeholder em qualquer propriedade de texto, por condição de visibilidade ou por condição de estado ativo. Contam como existentes o que passos anteriores do fluxo produzem, as variáveis de entrada do início da jornada e os campos que a própria tela coleta, em qualquer ordem. A violação deve indicar o componente, a variável e as variáveis disponíveis naquele ponto. Não é conferido o vínculo de leitura-e-escrita (ele cria a variável).
+
+#### REQ-04.13.011 - O sistema não deve permitir publicar uma jornada em que um placeholder de texto de tela use um formato fora do previsto. São válidos `{{form.nome}}` e `{{data.nome}}` (caminho do contrato), `{{form_nome}}` e `{{data_nome}}` (nome da variável no motor) e `{{channel}}` (o canal). Um placeholder sem prefixo (`{{nome}}`) ou de outro namespace resolveria vazio em execução e deve ser recusado, com a indicação das formas válidas.
 
 ---
 

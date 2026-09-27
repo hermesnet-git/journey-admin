@@ -432,7 +432,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.09.012',
-            'O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis de passos anteriores usando a sintaxe {{nomeDaVariavel}}.',
+            'O sistema deve permitir referenciar, nos campos de entrada de URL, headers e body/payload de uma integração, variáveis de passos anteriores usando o nome da variável no motor: {{form_nome}}, {{data_nome}} ou {{channel}}.',
           ),
           {
             code: 'REQ-03.09.013',
@@ -443,7 +443,7 @@ export const EPICS: Epic[] = [
           },
           d(
             'REQ-03.09.014',
-            'O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie {{variavel}} inexistente no contexto do nó.',
+            'O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie {{variavel}} inexistente no contexto do nó ou que use uma forma diferente do nome da variável no motor ({{nome}} sem prefixo, ou com ponto, como {{form.nome}}).',
           ),
           {
             code: 'REQ-03.09.015',
@@ -512,7 +512,7 @@ export const EPICS: Epic[] = [
           },
           d(
             'REQ-03.11.004',
-            'A condição deve poder referenciar tanto uma variável de saída de um Service Task/Receive Task quanto um campo de resposta de um User Task, desde que alcançável a partir do gateway.',
+            'A condição deve poder referenciar tanto uma variável de saída de um Service Task/Receive Task quanto um campo de resposta de um User Task, desde que alcançável a partir do gateway; a variável é referenciada pelo nome que tem no motor (form_nome, data_nome ou channel), e a forma com ponto ou sem prefixo é recusada.',
           ),
           d(
             'REQ-03.11.005',
@@ -550,7 +550,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.12.003',
-            'As variáveis de entrada declaradas no nó START tornam-se disponíveis para referência {{nome}} em qualquer conector ou condição de gateway do fluxo.',
+            'As variáveis de entrada declaradas no nó START tornam-se disponíveis para referência {{data_nome}} em qualquer conector ou condição de gateway do fluxo.',
           ),
           d(
             'REQ-03.12.004',
@@ -569,7 +569,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.13.002',
-            'Os campos de URL, cada valor de header, e cada campo de valor de Body/Params devem oferecer um seletor que insere a referência {{nome}} na posição do cursor do campo.',
+            'Os campos de URL, cada valor de header, e cada campo de valor de Body/Params devem oferecer um seletor que insere a referência à variável, no formato do motor ({{form_nome}}, {{data_nome}}), na posição do cursor do campo.',
           ),
           d(
             'REQ-03.13.003',
@@ -791,7 +791,7 @@ export const EPICS: Epic[] = [
             code: 'REQ-04.10.004',
             description: 'Ao configurar vínculo no namespace de variável do fluxo, o sistema deve sugerir nomes já conhecidos — incluindo os campos que a própria tela em edição já coleta, não só o que etapas anteriores do fluxo produzem.',
             status: 'done',
-            notes: 'Ampliado em 2026-09-24/25 (antes só sugeria variável de etapa anterior do fluxo) — as sugestões agora filtram por origem: form só campo de tela, data só saída de integração e variável de entrada, session só o canal.',
+            notes: 'Ampliado em 2026-09-24/25 (antes só sugeria variável de etapa anterior do fluxo) — as sugestões agora filtram por origem: form só campo de tela, data só saída de integração e variável de entrada, o canal, channel, não é oferecido como vínculo — só aparece na visibilidade por canal.',
           },
           d('REQ-04.10.005', 'O nome técnico de um campo que coleta valor passa a ser o nome usado no vínculo de leitura-e-escrita do namespace de variável do fluxo; sua unicidade deve continuar sendo verificada na jornada inteira.'),
         ],
@@ -823,7 +823,7 @@ export const EPICS: Epic[] = [
             status: 'done',
             notes: 'A avaliação ao vivo no simulador de execução ainda só cobre valores do próprio formulário controlados localmente — gap conhecido, registrado no código.',
           },
-          d('REQ-04.12.004', 'As comparações também devem suportar "está em"/"não está em" uma lista de valores, usado para condicionar um componente a um subconjunto dos tipos de canal da jornada (session.channel).'),
+          d('REQ-04.12.004', 'As comparações também devem suportar "está em"/"não está em" uma lista de valores, usado para condicionar um componente a um subconjunto dos tipos de canal da jornada (o canal, channel).'),
         ],
       },
       {
@@ -845,6 +845,7 @@ export const EPICS: Epic[] = [
             notes: 'Ampliado em 2026-09-25/26 — antes exigia valor literal mesmo com vínculo configurado.',
           },
           d('REQ-04.13.010', 'O sistema não deve permitir publicar uma jornada em que uma tela referencie uma variável de dados da jornada (namespaces form ou data) que não exista naquele ponto do fluxo — seja por vínculo de leitura, por placeholder em qualquer propriedade de texto, por condição de visibilidade ou por condição de estado ativo.'),
+          d('REQ-04.13.011', 'Rejeitar publicação quando um placeholder de texto de tela usar um formato fora do previsto: {{form.nome}}/{{data.nome}}, {{form_nome}}/{{data_nome}} ou {{channel}}; sem prefixo ({{nome}}) ou de outro namespace é recusado, com a indicação das formas válidas.'),
         ],
       },
       {
@@ -1995,6 +1996,12 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-09-27 01:19 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Namespaces de dado reduzidos a form e data; formato do token por lugar; canal sem namespace. Catálogo SDUI: session, route e computed removidos (única alteração — nada foi acrescentado ao catálogo; os dois exemplos que usavam computed passaram a data). REQ-04.10.001, REQ-04.12.004, REQ-04.13.008 e REQ-04.13.010, mais a evidência de REQ-04.09.012 e REQ-04.10.004, deixam de citá-los; o canal passa a ser o caminho channel, sem namespace. REQ-04.13.011 (novo, FT-04): placeholder de texto de tela só vale como {{form.x}}/{{data.x}}, {{form_x}}/{{data_x}} ou {{channel}} — sem prefixo ou de outro namespace é recusado. Conector, mensageria e Decisão (REQ-03.09.012, REQ-03.09.014, REQ-03.11.004) usam só o nome da variável no motor ({{form_x}}, {{data_x}}, {{channel}}) — {{form.x}} e o token cru são recusados; REQ-03.12.003 e REQ-03.13.002 ajustados à nova forma. Hífen aceito no editor de condição da Decisão e no painel de teste da integração; a saída de conector Kafka deixa de tratar o hífen como subtração. Implementado e compilado (back, ms-espec-registry, ms-transform-publication, front e emulador-canais); ainda não testado em execução. Total de FT-04: 70 → 71 REQs; total geral: 508 → 509 REQs, 458 → 459 concluídos.',
+  },
+  {
     date: '2026-09-26 21:50 (não commitado)',
     source: 'progresso',
     summary:
@@ -2406,6 +2413,38 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-09-26 23:57',
+    source: 'git',
+    summary: 'Corrige na massa de dados o status da jornada Vivo Fibra + Total para UNPUBLISHED.',
+  },
+  {
+    date: '2026-09-26 23:55',
+    source: 'git',
+    summary: 'Remove da massa de dados a chave messageText dos nós.',
+  },
+  {
+    date: '2026-09-26 23:54',
+    source: 'git',
+    summary: 'Documenta no cabeçalho da massa de dados o que ela contém, incluindo os 19 componentes SDUI.',
+  },
+  {
+    date: '2026-09-26 23:26',
+    source: 'git',
+    summary: 'Alinha os modelos conceitual e físico ao REQ-04.01.005: tela obrigatória na User Task.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-26 23:09',
+    source: 'git',
+    summary: 'Remove o campo messageText da User Task.',
+  },
+  {
+    date: '2026-09-26 22:51',
+    source: 'git',
+    summary: 'Revisa FT-14 nos requisitos e ressincroniza evidências, comentários e textos desatualizados.',
+    epics: ['FT-14'],
+  },
   {
     date: '2026-09-26 02:01',
     source: 'git',

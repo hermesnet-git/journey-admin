@@ -294,7 +294,7 @@ function CatalogPageContent() {
             <div className="text-[12px]" style={{ color: c.textSecondary }}>
               {aiCredential?.configured
                 ? `Configurada${aiCredential.updatedAt ? ` · atualizada ${formatAiCredentialDate(aiCredential.updatedAt)}` : ''}`
-                : 'Não configurada — a geração de fluxo por prompt (“Gerar com IA”) não funciona até configurar'}
+                : 'Não configurada — a geração de fluxo por IA em “Nova jornada” não funciona até configurar'}
             </div>
           </div>
         </div>

@@ -171,7 +171,7 @@ export function makeAnnotation(x: number, y: number): WFAnnotation {
 }
 
 // Node types that may have at most one outgoing connection (REQ-03.02.004/03.02.007). GATEWAY has
-// its own rule (exactly two outputs, REQ-03.11.001) enforced separately in validation.ts.
+// its own rule (exactly two outputs, REQ-03.11.001) enforced separately by the back-end FlowValidator (run on demand via validateFlow).
 export const SINGLE_OUTPUT_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask'];
 
 // Max outgoing connections allowed for a node type, used to disable the connect handle/quick-add
@@ -415,7 +415,7 @@ export function nodePayloadPreview(nodeType: NodeType, data: WFNodeData): Payloa
 }
 
 // REQ-03.09.013: variables available at a given node — the outputMapping names declared by every
-// ancestor reachable backwards from it (same BFS shape as validation.ts's reachableFrom), plus
+// ancestor reachable backwards from it (same backward BFS the back-end FlowValidator runs), plus
 // START's declared startVariables (REQ-03.12.001, always available — START is trivially an
 // ancestor of every node) — keeping each rule's declared type (REQ-03.11.003) instead of just the
 // name, used by the gateway condition picker to offer the right operators and value input per

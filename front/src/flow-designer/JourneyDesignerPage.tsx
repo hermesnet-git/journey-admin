@@ -316,7 +316,7 @@ function DesignerInner({
   // mesmo que ultrapasse a área visível — o usuário navega/dá pan pro resto) com o início do fluxo
   // ancorado perto da borda esquerda do canvas, não centralizado — mesma direção do auto-layout LR e
   // de onde novos nós nascem via onQuickAdd abaixo, então o espaço à direita já nasce livre pra
-  // crescer. Usado ao carregar uma jornada (nova ou existente) e depois do "Gerar com IA".
+  // crescer. Usado ao carregar uma jornada (nova, existente ou recém-gerada por IA).
   const fitViewLeftAligned = useCallback(() => {
     const paneEl = wrapperRef.current;
     if (!paneEl || nodesRef.current.length === 0) return;

@@ -577,7 +577,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.09.004 - O usuário deve poder mover um componente já inserido para dentro de outro contêiner compatível, preservando seus filhos.
 #### REQ-04.09.005 - O sistema não deve permitir mover um componente para dentro de si mesmo ou de um de seus próprios descendentes.
 #### REQ-04.09.006 - O usuário deve poder remover um componente da árvore; remover um contêiner deve remover também seus filhos.
-#### REQ-04.09.007 - O sistema deve exibir um painel de camadas com a estrutura hierárquica da árvore, permitindo selecionar, reordenar entre irmãos e remover a partir dele.
+#### REQ-04.09.007 - O sistema deve exibir um painel de camadas com a estrutura hierárquica da árvore, permitindo selecionar e reordenar entre irmãos; a remoção de um componente é feita no canvas.
 #### REQ-04.09.008 - O usuário deve poder editar as propriedades do componente selecionado num painel dedicado, com o campo de entrada apropriado ao tipo de cada propriedade declarada pelo catálogo.
 #### REQ-04.09.009 - No modo de construção da tela, os componentes não devem aceitar digitação de valores reais — não é o formulário sendo preenchido, é uma prancheta de montagem.
 #### REQ-04.09.010 - O sistema deve oferecer um modo de pré-visualização que renderiza a árvore como seria apresentada ao usuário final, alternável a qualquer momento com o modo de construção.
@@ -777,7 +777,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-06.02.001 - Ao criar uma jornada, o sistema deve criar sua primeira versão em `DRAFT`.
 #### REQ-06.02.002 - O sistema deve permitir criar uma nova versão a partir da versão atual.
 #### REQ-06.02.003 - O sistema deve criar a nova versão a partir da versão atualmente selecionada para edição.
-#### REQ-06.02.004 - A nova versão deve possuir cópia independente do fluxo, conexões e das telas embutidas (`embeddedScreen`/`embeddedScreenSdui`) de cada User Task.
+#### REQ-06.02.004 - A nova versão deve possuir cópia independente do fluxo, conexões e das telas embutidas (`embeddedScreen`) de cada User Task.
 
 > **Nota de revisão (2026-08-24):** requisito reescrito — a Runtime Engine só suporta um conjunto básico de tipos de campo nativos (~5-6), inviabilizando manter a User Task associada a um formulário do catálogo por `formId`; a tela passou a ser desenhada diretamente no nó (`embeddedScreen`), com o formulário do catálogo servindo apenas como modelo de cópia opcional.
 #### REQ-06.02.005 - Alterações em uma versão `DRAFT` não devem modificar outras versões.
@@ -1085,26 +1085,26 @@ empresa.
 
 ### US-14.01 Catálogo de clusters e brokers corporativos
 #### REQ-14.01.001 - O sistema deve permitir cadastrar um cluster/broker de mensageria corporativo, com nome amigável, tipo (`KAFKA`, `EVENT_HUBS` ou `SERVICE_BUS`) e endereço de conexão (bootstrap servers para Kafka; namespace para Event Hubs/Service Bus).
-#### REQ-14.01.002 - Cada cluster deve possuir identificador único (`clusterId`), nome único na plataforma e status (ativo/inativo).
-#### REQ-14.01.003 - O sistema deve permitir editar, consultar e desativar um cluster cadastrado.
-#### REQ-14.01.004 - O sistema deve impedir a desativação de um cluster referenciado por alguma credencial ativa (US-14.02) ou por algum conector de jornada publicada.
-#### REQ-14.01.005 - O sistema deve permitir pesquisar e filtrar clusters por tipo e por status.
+#### REQ-14.01.002 - Cada cluster deve possuir identificador único (`clusterId`) e nome único na plataforma.
+#### REQ-14.01.003 - O sistema deve permitir editar, consultar e excluir um cluster cadastrado.
+#### REQ-14.01.004 - O sistema deve impedir a exclusão de um cluster referenciado por algum conector de jornada publicada, diretamente ou por meio de uma credencial dele (US-14.02). Sem essa referência, excluir o cluster remove também as credenciais associadas a ele.
+#### REQ-14.01.005 - O sistema deve permitir pesquisar e filtrar clusters por tipo.
 #### REQ-14.01.006 - A empresa opera múltiplos clusters corporativos por tipo (ex.: mais de um cluster Kafka); o catálogo não deve assumir um único cluster fixo por tipo de conector.
 ---
 
 ### US-14.02 Catálogo de credenciais
 #### REQ-14.02.001 - O sistema deve permitir cadastrar uma credencial associada a um cluster do catálogo (US-14.01), composta por nome de referência (o valor usado como `credentialRef` na configuração do conector), URI do Azure Key Vault e nome do secret dentro dele.
-#### REQ-14.02.002 - Cada credencial deve possuir identificador único (`credentialId`), nome de referência único na plataforma, cluster associado e status (ativa/inativa).
+#### REQ-14.02.002 - Cada credencial deve possuir identificador único (`credentialId`), nome de referência único na plataforma e cluster associado.
 #### REQ-14.02.003 - O sistema não deve, em nenhuma tela, campo, log ou registro de auditoria, armazenar ou exibir o valor do secret — apenas a referência (URI do Key Vault + nome do secret). O admin-back pode ler o valor real do segredo em memória, no momento de uma conexão de teste ou de integração real, para autenticar contra o broker/API — nunca para persisti-lo, logá-lo ou expô-lo de volta ao usuário.
-#### REQ-14.02.004 - O sistema deve permitir editar, consultar e desativar uma credencial cadastrada.
-#### REQ-14.02.005 - O sistema deve impedir a desativação de uma credencial referenciada por algum conector de jornada publicada.
-#### REQ-14.02.006 - O sistema deve permitir pesquisar e filtrar credenciais por cluster associado e por status.
+#### REQ-14.02.004 - O sistema deve permitir editar, consultar e excluir uma credencial cadastrada.
+#### REQ-14.02.005 - O sistema deve impedir a exclusão de uma credencial referenciada por algum conector de jornada publicada.
+#### REQ-14.02.006 - O sistema deve permitir pesquisar e filtrar credenciais por cluster associado.
 ---
 
 ### US-14.03 Acesso restrito à administração dos catálogos
-#### REQ-14.03.001 - A criação, edição e desativação de clusters (US-14.01) e credenciais (US-14.02) deve ser restrita ao papel `ADMIN` (FT-07); os papéis `EDITOR` e `VIEWER` não devem ter acesso a essas ações.
-#### REQ-14.03.002 - O papel `EDITOR`, ao configurar um conector de mensageria numa jornada (FT-03), deve poder selecionar um cluster e uma credencial já cadastrados no catálogo, sem poder criar, editar ou desativar entradas do catálogo.
-#### REQ-14.03.003 - Toda criação, edição e desativação de cluster ou credencial deve ser registrada na auditoria do portal (FT-08), incluindo o usuário responsável.
+#### REQ-14.03.001 - A criação, edição e exclusão de clusters (US-14.01) e credenciais (US-14.02) deve ser restrita ao papel `ADMIN` (FT-07); os papéis `EDITOR` e `VIEWER` não devem ter acesso a essas ações.
+#### REQ-14.03.002 - O papel `EDITOR`, ao configurar um conector de mensageria numa jornada (FT-03), deve poder selecionar um cluster e uma credencial já cadastrados no catálogo, sem poder criar, editar ou excluir entradas do catálogo.
+#### REQ-14.03.003 - Toda criação, edição e exclusão de cluster ou credencial deve ser registrada na auditoria do portal (FT-08), incluindo o usuário responsável.
 ---
 
 ### US-14.04 Teste de conexão

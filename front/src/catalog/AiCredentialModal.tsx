@@ -32,7 +32,7 @@ export function AiCredentialModal({ onClose, onSubmit }: Props) {
   return (
     <Modal
       title="Credencial de IA — Gemini"
-      subtitle="Usada pela geração de fluxo por prompt (“Gerar com IA” no editor de jornada)"
+      subtitle="Usada para gerar o fluxo de uma jornada por prompt (opção “IA” em “Nova jornada”)"
       onClose={onClose}
       footer={
         <>

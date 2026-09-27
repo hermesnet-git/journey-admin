@@ -156,13 +156,13 @@ export const EPICS: Epic[] = [
             code: 'REQ-02.04.004',
             description: 'Cada uso de um modelo deve gerar novos identificadores de fluxo, nós e conexões, sem compartilhar identidade ou estado mutável entre jornadas.',
             status: 'done',
-            notes: 'Coberto por JourneyTemplateTest.',
+            notes: 'Sem teste automatizado — o JourneyTemplateTest foi removido em 2026-09-26.',
           },
           {
             code: 'REQ-02.04.005',
             description: 'A criação da jornada, do fluxo escolhido e da versão inicial DRAFT deve ocorrer numa única transação; o snapshot da versão 1 deve conter exatamente os mesmos nós e conexões do fluxo criado.',
             status: 'done',
-            notes: 'Coberto por CreateJourneyTest.',
+            notes: 'Sem teste automatizado — o CreateJourneyTest foi removido em 2026-09-26.',
           },
           {
             code: 'REQ-02.04.006',
@@ -768,11 +768,11 @@ export const EPICS: Epic[] = [
             code: 'REQ-04.09.004',
             description: 'O usuário deve poder mover um componente já inserido para dentro de outro contêiner compatível, preservando seus filhos.',
             status: 'done',
-            notes: 'Soltar sempre insere no fim dos filhos do alvo — reordenar por posição fina dentro do mesmo nível é feito pelo painel de camadas (ver requisito abaixo).',
+            notes: 'Soltar dentro de um contêiner insere no fim dos filhos; soltar antes/depois de um irmão posiciona no ponto exato; subir/descer entre irmãos também é possível pelo painel de camadas (ver requisito abaixo).',
           },
           d('REQ-04.09.005', 'O sistema não deve permitir mover um componente para dentro de si mesmo ou de um de seus próprios descendentes.'),
           d('REQ-04.09.006', 'O usuário deve poder remover um componente da árvore; remover um contêiner deve remover também seus filhos.'),
-          d('REQ-04.09.007', 'O sistema deve exibir um painel de camadas com a estrutura hierárquica da árvore, permitindo selecionar, reordenar entre irmãos e remover a partir dele.'),
+          d('REQ-04.09.007', 'O sistema deve exibir um painel de camadas com a estrutura hierárquica da árvore, permitindo selecionar e reordenar entre irmãos; a remoção é feita no canvas.'),
           d('REQ-04.09.008', 'O usuário deve poder editar as propriedades do componente selecionado num painel dedicado, com o campo de entrada apropriado ao tipo de cada propriedade declarada pelo catálogo.'),
           d('REQ-04.09.009', 'No modo de construção da tela, os componentes não devem aceitar digitação de valores reais — não é o formulário sendo preenchido, é uma prancheta de montagem.'),
           d('REQ-04.09.010', 'O sistema deve oferecer um modo de pré-visualização que renderiza a árvore como seria apresentada ao usuário final, alternável a qualquer momento com o modo de construção.'),
@@ -1769,10 +1769,15 @@ export const EPICS: Epic[] = [
         name: 'Catálogo de clusters e brokers corporativos',
         requirements: [
           d('REQ-14.01.001', 'O sistema deve permitir cadastrar um cluster/broker de mensageria corporativo, com nome amigável, tipo e endereço de conexão.'),
-          d('REQ-14.01.002', 'Cada cluster deve possuir identificador único (clusterId), nome único na plataforma e status.'),
-          d('REQ-14.01.003', 'O sistema deve permitir editar, consultar e desativar um cluster cadastrado.'),
-          d('REQ-14.01.004', 'O sistema deve impedir a desativação de um cluster referenciado por credencial ativa ou conector de jornada publicada.'),
-          d('REQ-14.01.005', 'O sistema deve permitir pesquisar e filtrar clusters por tipo e por status.'),
+          d('REQ-14.01.002', 'Cada cluster deve possuir identificador único (clusterId) e nome único na plataforma.'),
+          d('REQ-14.01.003', 'O sistema deve permitir editar, consultar e excluir um cluster cadastrado.'),
+          {
+            code: 'REQ-14.01.004',
+            description: 'O sistema deve impedir a exclusão de um cluster referenciado por conector de jornada publicada, diretamente ou por meio de uma credencial dele; sem essa referência, a exclusão remove também as credenciais do cluster.',
+            status: 'done',
+            notes: 'Revisado em 2026-09-26 — antes falava em desativação e tratava credencial ativa como bloqueio; o status ativo/inativo foi removido.',
+          },
+          d('REQ-14.01.005', 'O sistema deve permitir pesquisar e filtrar clusters por tipo.'),
           d('REQ-14.01.006', 'O catálogo não deve assumir um único cluster fixo por tipo de conector.'),
         ],
       },
@@ -1781,20 +1786,25 @@ export const EPICS: Epic[] = [
         name: 'Catálogo de credenciais',
         requirements: [
           d('REQ-14.02.001', 'O sistema deve permitir cadastrar uma credencial associada a um cluster, com nome de referência, URI do Key Vault e nome do secret.'),
-          d('REQ-14.02.002', 'Cada credencial deve possuir identificador único (credentialId), nome de referência único na plataforma, cluster associado e status.'),
+          d('REQ-14.02.002', 'Cada credencial deve possuir identificador único (credentialId), nome de referência único na plataforma e cluster associado.'),
           d('REQ-14.02.003', 'O sistema não deve, em nenhuma tela, campo, log ou auditoria, armazenar ou exibir o valor do secret.'),
-          d('REQ-14.02.004', 'O sistema deve permitir editar, consultar e desativar uma credencial cadastrada.'),
-          d('REQ-14.02.005', 'O sistema deve impedir a desativação de uma credencial referenciada por conector de jornada publicada.'),
-          d('REQ-14.02.006', 'O sistema deve permitir pesquisar e filtrar credenciais por cluster associado e por status.'),
+          d('REQ-14.02.004', 'O sistema deve permitir editar, consultar e excluir uma credencial cadastrada.'),
+          {
+            code: 'REQ-14.02.005',
+            description: 'O sistema deve impedir a exclusão de uma credencial referenciada por conector de jornada publicada.',
+            status: 'done',
+            notes: 'Revisado em 2026-09-26 — antes falava em desativação; o status ativo/inativo foi removido.',
+          },
+          d('REQ-14.02.006', 'O sistema deve permitir pesquisar e filtrar credenciais por cluster associado.'),
         ],
       },
       {
         code: 'US-14.03',
         name: 'Acesso restrito à administração dos catálogos',
         requirements: [
-          d('REQ-14.03.001', 'A criação, edição e desativação de clusters e credenciais deve ser restrita ao papel ADMIN.'),
+          d('REQ-14.03.001', 'A criação, edição e exclusão de clusters e credenciais deve ser restrita ao papel ADMIN.'),
           d('REQ-14.03.002', 'EDITOR, ao configurar um conector de mensageria, deve poder selecionar cluster/credencial já cadastrados, sem poder administrar o catálogo.'),
-          d('REQ-14.03.003', 'Toda criação, edição e desativação de cluster ou credencial deve ser registrada na auditoria do portal.'),
+          d('REQ-14.03.003', 'Toda criação, edição e exclusão de cluster ou credencial deve ser registrada na auditoria do portal.'),
         ],
       },
       {
@@ -1984,6 +1994,18 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-09-26 21:50 (não commitado)',
+    source: 'progresso',
+    summary:
+      'FT-14 e dois REQs de FT-04/FT-06 com o texto revisado para o que o código faz (nenhum REQ novo ou removido). FT-14 (US-14.01 a US-14.03, 11 REQs: 14.01.002 a 14.01.005, 14.02.002, 14.02.004 a 14.02.006, 14.03.001 a 14.03.003): cluster e credencial deixam de ter status ativo/inativo (coluna removida em V5__drop_messaging_status.sql) e "desativar" vira "excluir"; o filtro por status sai de REQ-14.01.005 e REQ-14.02.006; REQ-14.01.004 passa a barrar a exclusão só quando o cluster, ou uma credencial dele, é usado por jornada publicada — sem isso, excluir o cluster remove também as credenciais dele; a auditoria (REQ-14.03.003) registra CLUSTER_DELETE/CREDENTIAL_DELETE. REQ-04.09.007: o painel de camadas seleciona e reordena; a remoção é feita no canvas. REQ-06.02.004: deixa de citar embeddedScreenSdui, que não existe mais. REQ-14.01.005 segue "done", mas a tela só busca cluster por nome — o filtro por tipo existe só na API.',
+  },
+  {
+    date: '2026-09-26 21:15 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Evidência de FT-02 a FT-15 ressincronizada com o código atual (sem mudança de comportamento, nenhum REQ novo). Nomes que não existem mais foram trocados pelos atuais: editor de tela (SduiScreenEditor/SduiTreeCanvas/SduiLayersPanel/SduiPropertiesPanel/SduiComponentPalette/FormPreviewDock → FormBuilder/FormCanvas/LayerPanel/PropertyInspector/ComponentPalette/FormDesignerDock), validation.ts do front (removido em 2026-08-30; hoje validateFlow sob demanda), migrations V1/V3/V7/V8/V9 (consolidadas em V1__baseline.sql), StepResolver → ExecutionStepResolver, JourneySearch → ExecutionToolbar/StartPanel, EspecRegistryTopicListingAdapter → KafkaTopicListingAdapter, evaluateVisibility → evaluateCondition, validateSduiTree → validateEmbeddedScreen. Quatro descrições passaram a refletir o comportamento real, não só o nome: a geração por IA acontece no modal Nova jornada e salva o rascunho (REQ-03.17.001/004/005); o painel de camadas seleciona e reordena, a remoção é feita no canvas (REQ-04.09.007); o canvas mostra uma aproximação estática dos campos (REQ-04.09.009); o front não valida mais a unicidade de nome localmente (REQ-03.09.011).',
+  },
   {
     date: '2026-09-26 01:53 (não commitado)',
     source: 'progresso',
@@ -2384,6 +2406,18 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  {
+    date: '2026-09-26 02:01',
+    source: 'git',
+    summary: 'Documenta canvas com vínculo, validação de referência em tela e filtro de sugestão.',
+    epics: ['FT-04'],
+  },
+  {
+    date: '2026-09-26 02:01',
+    source: 'git',
+    summary: 'Remove CreateJourneyTest e JourneyTemplateTest.',
+    epics: ['FT-02'],
+  },
   {
     date: '2026-09-26 01:43',
     source: 'git',

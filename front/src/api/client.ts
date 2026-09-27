@@ -148,7 +148,7 @@ export async function apiDownload(path: string, fileName: string): Promise<void>
 }
 
 // POST que consome uma resposta text/event-stream (SSE) linha a linha, chamando onEvent pra cada
-// bloco "event: X\ndata: Y" recebido — usado pelo "Gerar com IA" do flow-designer, que pode levar
+// bloco "event: X\ndata: Y" recebido — usado pela geração de fluxo por IA (NewJourneyModal), que pode levar
 // várias tentativas e quer mostrar o progresso ao vivo em vez de só esperar o resultado final.
 export async function apiPostSse(
   path: string,

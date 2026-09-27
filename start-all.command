@@ -5,10 +5,10 @@
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-titles=(front back ms-runtime-camunda front-mock-integracoes ms-espec-registry ms-mock-api-rest ms-transform-publication ms-journey strapi-sdui-registry emulador-canais)
-paths=(front back simulacoes/ms-runtime-camunda simulacoes/front-mock-integracoes simulacoes/ms-espec-registry simulacoes/ms-mock-api-rest simulacoes/ms-transform-publication simulacoes/ms-journey simulacoes/strapi-sdui-registry simulacoes/emulador-canais)
-types=(react spring spring react spring spring spring spring react react)
-scripts=(dev dev dev dev dev dev dev dev dev dev:all)
+titles=(front back ms-runtime-camunda front-mock-integracoes ms-espec-registry ms-mock-api-rest ms-transform-publication ms-journey emulador-canais)
+paths=(front back simulacoes/ms-runtime-camunda simulacoes/front-mock-integracoes simulacoes/ms-espec-registry simulacoes/ms-mock-api-rest simulacoes/ms-transform-publication simulacoes/ms-journey simulacoes/emulador-canais)
+types=(react spring spring react spring spring spring spring react)
+scripts=(dev dev dev dev dev dev dev dev dev:all)
 
 build_command() {
   local path="$1" type="$2" script="$3"

@@ -5,7 +5,6 @@ pg_host_factory=localhost
 pg_port_factory=5432
 pg_user_factory=postgres
 admin_database=journey_admin
-strapi_database=strapi_sdui_registry
 export PGPASSWORD=postgres
 export PGCLIENTENCODING=UTF8
 admin_api=http://localhost:8081/api/v1
@@ -28,7 +27,7 @@ done
 [ -f "$factory_sql" ] || { echo "ERRO: massa não encontrada: $factory_sql" >&2; exit 1; }
 
 echo 'MARCO ZERO — instalação de fábrica do Elastic Journey'
-echo 'O processo substituirá os dados atuais do Admin, Strapi e runtime-engine.'
+echo 'O processo substituirá os dados atuais do Admin, das telas publicadas e do runtime-engine.'
 printf 'Confirma? [s/N] '
 read -r confirmation
 case "$confirmation" in [sS]) ;; *) echo 'Operação cancelada.'; exit 0 ;; esac
@@ -59,14 +58,11 @@ while ! port_is_up 8080; do
   sleep 2; elapsed=$((elapsed + 2))
 done
 
-echo '3/5 Verificando snapshots do Strapi...'
-if port_is_up 1337; then
-  psql -h "$pg_host_factory" -p "$pg_port_factory" -U "$pg_user_factory" -d "$strapi_database" \
-    -v ON_ERROR_STOP=1 -c 'TRUNCATE TABLE sdui_snapshots RESTART IDENTITY CASCADE;'
-  echo 'Snapshots do Strapi removidos.'
-else
-  echo 'Strapi não configurado ou indisponível; limpeza ignorada.'
-fi
+echo '3/5 Limpando as telas publicadas...'
+# A tabela é criada pelo Flyway do ms-spec-registry no boot — o passo 1 já garantiu que ele está no ar.
+psql -h "$pg_host_factory" -p "$pg_port_factory" -U "$pg_user_factory" -d "$admin_database" \
+  -v ON_ERROR_STOP=1 -c 'TRUNCATE TABLE espec_registry.published_screen RESTART IDENTITY;'
+echo 'Telas publicadas removidas.'
 
 echo '4/5 Restaurando a massa funcional do Admin...'
 psql -h "$pg_host_factory" -p "$pg_port_factory" -U "$pg_user_factory" -d "$admin_database" \

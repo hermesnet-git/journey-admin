@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
 $OutputEncoding = [Text.UTF8Encoding]::new()
 
@@ -6,7 +6,6 @@ $pgHostFactory = 'localhost'
 $pgPortFactory = '5432'
 $pgUserFactory = 'postgres'
 $adminDatabase = 'journey_admin'
-$strapiDatabase = 'strapi_sdui_registry'
 $env:PGPASSWORD = 'postgres'
 $env:PGCLIENTENCODING = 'UTF8'
 $adminApi = 'http://localhost:8081/api/v1'
@@ -37,7 +36,7 @@ if (-not (Test-Path $factorySql)) { throw "Massa não encontrada: $factorySql" }
 $psql = Find-Psql
 
 Write-Host 'MARCO ZERO — instalação de fábrica do Elastic Journey'
-Write-Host 'O processo substituirá os dados atuais do Admin, Strapi e runtime-engine.'
+Write-Host 'O processo substituirá os dados atuais do Admin, das telas publicadas e do runtime-engine.'
 $confirmation = Read-Host 'Confirma? [s/N]'
 if ($confirmation -notmatch '^[sS]') { Write-Host 'Operação cancelada.'; exit 0 }
 
@@ -68,13 +67,10 @@ while (-not (Test-ServicePort 8080)) {
   $elapsed += 2
 }
 
-Write-Host '3/5 Verificando snapshots do Strapi...'
-if (Test-ServicePort 1337) {
-  Invoke-FactoryPsql $strapiDatabase @('-v','ON_ERROR_STOP=1','-c','TRUNCATE TABLE sdui_snapshots RESTART IDENTITY CASCADE;')
-  Write-Host 'Snapshots do Strapi removidos.'
-} else {
-  Write-Host 'Strapi não configurado ou indisponível; limpeza ignorada.'
-}
+Write-Host '3/5 Limpando as telas publicadas...'
+# A tabela é criada pelo Flyway do ms-spec-registry no boot — o passo 1 já garantiu que ele está no ar.
+Invoke-FactoryPsql $adminDatabase @('-v','ON_ERROR_STOP=1','-c','TRUNCATE TABLE espec_registry.published_screen RESTART IDENTITY;')
+Write-Host 'Telas publicadas removidas.'
 
 Write-Host '4/5 Restaurando a massa funcional do Admin...'
 Invoke-FactoryPsql $adminDatabase @('-v','ON_ERROR_STOP=1','-f',$factorySql)

@@ -20,8 +20,6 @@ wt.exe -w last new-tab --suppressApplicationTitle --title "ms-transform-publicat
 ping -n 2 127.0.0.1 >nul
 wt.exe -w last new-tab --suppressApplicationTitle --title "ms-journey"               cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-journey" spring
 ping -n 2 127.0.0.1 >nul
-wt.exe -w last new-tab --suppressApplicationTitle --title "strapi-sdui-registry"     cmd /k call "%~f0" --run-app "%ROOT%simulacoes\strapi-sdui-registry" react
-ping -n 2 127.0.0.1 >nul
 wt.exe -w last new-tab --suppressApplicationTitle --title "emulador-canais"          cmd /k call "%~f0" --run-app "%ROOT%simulacoes\emulador-canais" react dev:all
 goto :eof
 

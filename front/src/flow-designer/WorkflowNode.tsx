@@ -247,6 +247,5 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
   prev.data.outgoingLimitReached === next.data.outgoingLimitReached &&
   prev.data.quickAddAvoid === next.data.quickAddAvoid &&
   prev.data.connectorConfig === next.data.connectorConfig &&
-  prev.data.messageText === next.data.messageText &&
   prev.data.embeddedScreenRoot === next.data.embeddedScreenRoot,
 );

@@ -54,15 +54,15 @@ final class FlowGenerationPrompt {
             nunca conecte a mesma USER_TASK/SERVICE_TASK/RECEIVE_TASK a mais de um nó seguinte.
             - GATEWAY tem ao menos uma entrada e exatamente duas saídas: uma marcada isDefault=true e \
             sem condição, a outra com uma condição não vazia.
-            - Toda referência {{variavel}} (em connectorConfig.config, messageText ou condição de \
+            - Toda referência {{variavel}} (em connectorConfig.config ou condição de \
             GATEWAY) só pode citar uma variável já declarada antes dela no fluxo: as startVariables do \
             START, ou o outputMapping de um conector ancestral — generate_flow não cria nem edita a tela \
             de uma User Task, então não há variável vinda de formulário nesta geração.
             - Todo nó precisa estar em um caminho contínuo entre o início e algum END.
             - Antes de um END alcançado só por SERVICE_TASK REST em sequência (sem nenhuma User Task, \
-            Receive Task ou tarefa Kafka no caminho), inclua uma USER_TASK de checkpoint com messageText \
+            Receive Task ou tarefa Kafka no caminho), inclua uma USER_TASK de checkpoint \
             — sem isso o motor de execução trava.
-            - USER_TASK só tem messageText (mensagem exibida ao usuário) — generate_flow nunca cria ou \
+            - generate_flow nunca cria ou \
             edita a tela embutida (embeddedScreen) de uma User Task, só o editor manual faz isso.
             - connectorType só pode ser um dos conectores habilitados informados no catálogo.
             - Use ids locais simples e únicos por nó (ex.: "start", "n1", "end") pra um nó genuinamente \
@@ -73,7 +73,7 @@ final class FlowGenerationPrompt {
             zero): trate-o como o ponto de partida, não como referência a ignorar. Um pedido aditivo ou \
             pontual (ex.: "adicione uma tarefa para X", "mude a mensagem da tarefa Y") NUNCA remove ou \
             recria o que já existe e não tem relação com o pedido — reproduza cada nó/conexão não afetado \
-            exatamente como está (mesmo id, nome, descrição, messageText, connectorConfig, startVariables) \
+            exatamente como está (mesmo id, nome, descrição, connectorConfig, startVariables) \
             e só adicione/altere o que o pedido pede especificamente: reusar o id de um nó que já tem uma \
             tela desenhada preserva essa tela automaticamente. Só redesenhe tudo do zero quando o pedido \
             pedir isso de forma explícita (ex.: "refaça esse fluxo", "comece de novo", "descarte o que existe").
@@ -147,9 +147,6 @@ final class FlowGenerationPrompt {
             if (node.getDescription() != null && !node.getDescription().isBlank()) {
                 sb.append(" | descrição=\"").append(node.getDescription()).append('"');
             }
-            if (node.getMessageText() != null && !node.getMessageText().isBlank()) {
-                sb.append(" | messageText=\"").append(node.getMessageText()).append('"');
-            }
             if (node.getConnectorConfig() != null) {
                 sb.append(" | connectorConfig={type=").append(node.getConnectorConfig().getConnectorType())
                         .append(", config=").append(node.getConnectorConfig().getConfig()).append('}');
@@ -187,7 +184,6 @@ final class FlowGenerationPrompt {
                 List.of("START", "USER_TASK", "END", "SERVICE_TASK", "RECEIVE_TASK", "MESSAGE_START_EVENT", "GATEWAY")));
         nodeProps.put("name", Map.of("type", "string"));
         nodeProps.put("description", Map.of("type", "string"));
-        nodeProps.put("messageText", Map.of("type", "string", "description", "Mensagem exibida quando USER_TASK não tem tela desenhada"));
         nodeProps.put("connectorConfig", Map.of("type", "object", "properties", connectorConfigProps()));
         nodeProps.put("startVariables", Map.of("type", "array", "description", "Só no nó START", "items", Map.of(
                 "type", "object", "properties", Map.of(
@@ -261,7 +257,7 @@ final class FlowGenerationPrompt {
             int positionY = existing != null ? existing.getPositionY() : (i / 6) * 40;
             nodes.add(new FlowNode(idsByLocalId.get(node.id()), parseEnumOrThrow(FlowNodeType.class, node.type()),
                     node.name(), node.description(), positionX, positionY,
-                    connectorConfig, node.startVariables(), node.messageText(), embeddedScreenRoot));
+                    connectorConfig, node.startVariables(), embeddedScreenRoot));
             i++;
         }
 
@@ -287,7 +283,7 @@ final class FlowGenerationPrompt {
 
     // generate_flow nunca cria/edita a tela embutida de uma User Task — reusando o id de um nó
     // existente, a tela que ele já tinha desenhada à mão é preservada; um nó genuinamente novo nasce
-    // sem tela (só messageText).
+    // sem tela.
     private static SduiNode resolveEmbeddedScreen(LlmNode node, Map<String, FlowNode> existingNodesById) {
         FlowNode existingNode = existingNodesById.get(node.id());
         return existingNode != null ? existingNode.getEmbeddedScreenRoot() : null;
@@ -318,7 +314,7 @@ final class FlowGenerationPrompt {
     record LlmFlowOutput(String name, List<LlmNode> nodes, List<LlmConnection> connections) {
     }
 
-    record LlmNode(String id, String type, String name, String description, String messageText,
+    record LlmNode(String id, String type, String name, String description,
                     LlmConnectorConfig connectorConfig, List<Map<String, Object>> startVariables) {
     }
 

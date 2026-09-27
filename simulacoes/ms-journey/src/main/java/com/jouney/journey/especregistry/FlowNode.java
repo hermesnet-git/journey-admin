@@ -6,7 +6,7 @@ import java.util.Map;
 
 /** Recorte do FlowNode do ms-espec-registry — só id/type/name (usados por JourneyStepResolver pra
  * descrever um passo WAITING) e startVariables (usado pra montar a tela de variáveis de início no
- * canal). Sem connectorConfig/position/messageText/embeddedScreenSdui — o canal não desenha
+ * canal). Sem connectorConfig/position/embeddedScreenSdui — o canal não desenha
  * diagrama nem mostra detalhe de conector, e a resolução do formulário em si é sempre feita pelo
  * ms-espec-registry (FormSpecController), nunca localmente aqui. */
 @JsonIgnoreProperties(ignoreUnknown = true)

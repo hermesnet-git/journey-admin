@@ -124,7 +124,6 @@ Cada jornada possui no máximo um fluxo.
 | PositionX | INTEGER | Não | Coordenada horizontal no canvas |
 | PositionY | INTEGER | Não | Coordenada vertical no canvas |
 | StartVariables | JSONB | Não | Lista `{ name, type }` — só em nós `START`; variáveis que o canal digital/BFF deve fornecer ao iniciar uma instância (REQ-03.12.001) |
-| MessageText | TEXT | Não | Só em `USER_TASK` sem tela desenhada (`EmbeddedScreenRoot` ausente, via `UserTaskConfig`) — mensagem exibida ao usuário nessa etapa, podendo referenciar `{{nome}}`, resolvida em tempo de execução (REQ-04.01.005) |
 | EmbeddedScreenRoot | JSONB | Não | Só em `USER_TASK` — raiz de uma árvore de `SduiNode` (§11) desenhada diretamente no nó, editável no editor de fluxo (via `UserTaskConfig`); a mesma árvore editada é a publicada, sem etapa de compilação |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
@@ -238,11 +237,10 @@ Estrutura recursiva sem tabela própria: é o shape de cada nó dentro da árvor
 |-------|------|-------------|-----------|
 | NodeId | UUID | Sim | Nó `USER_TASK` configurado |
 | EmbeddedScreenRoot | JSONB | Não | Tela desenhada diretamente no nó — raiz de uma árvore de `SduiNode` (§11), editável no editor de fluxo; a mesma árvore editada é a publicada, sem etapa de compilação |
-| MessageText | TEXT | Não | Mensagem exibida ao usuário quando `EmbeddedScreenRoot` está ausente (REQ-04.01.005) |
 
-Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, a configuração desenha uma tela diretamente no nó (`EmbeddedScreenRoot`) **ou** declara uma mensagem de etapa sem tela — os dois nunca coexistem com sentido (se `EmbeddedScreenRoot` estiver presente, `MessageText` é ignorado). Não existe mais formulário do catálogo como modelo de partida — cada `SduiNode` da árvore referencia um componente do `ComponentDefinition` (§10) por `Type`+`Version`.
+Cada nó `USER_TASK` pode possuir zero ou uma configuração. Quando existente, a configuração desenha uma tela diretamente no nó (`EmbeddedScreenRoot`). Não existe mais formulário do catálogo como modelo de partida — cada `SduiNode` da árvore referencia um componente do `ComponentDefinition` (§10) por `Type`+`Version`.
 
-`UserTaskConfig` não é uma tabela própria nem um sub-documento separado: `EmbeddedScreenRoot`/`MessageText` são atributos do próprio item de `Flow.Nodes` (JSONB, §6-7) — presentes mesmo em nós que não são `USER_TASK`, mas só têm sentido nesse tipo.
+`UserTaskConfig` não é uma tabela própria nem um sub-documento separado: `EmbeddedScreenRoot` é atributo do próprio item de `Flow.Nodes` (JSONB, §6-7) — presente mesmo em nós que não são `USER_TASK`, mas só tem sentido nesse tipo.
 
 > **Nota de revisão (2026-09-05):** `EmbeddedScreen`/`EmbeddedScreenSdui` substituídos por um único `EmbeddedScreenRoot` (`SduiNode`, catálogo SDUI corporativo v1) — ver `ej-admin-requisitos.md` FT-04. Nota de 2026-08-24 mantida abaixo por histórico.
 

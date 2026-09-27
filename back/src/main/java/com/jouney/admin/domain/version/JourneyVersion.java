@@ -105,7 +105,7 @@ public class JourneyVersion {
         this.flowNodes = flowNodes.stream()
                 .map(n -> byNodeId.containsKey(n.getId())
                         ? new FlowNode(n.getId(), n.getType(), n.getName(), n.getDescription(), n.getPositionX(),
-                                n.getPositionY(), n.getConnectorConfig(), n.getStartVariables(), n.getMessageText(),
+                                n.getPositionY(), n.getConnectorConfig(), n.getStartVariables(),
                                 n.getEmbeddedScreenRoot(), byNodeId.get(n.getId()))
                         : n)
                 .toList();

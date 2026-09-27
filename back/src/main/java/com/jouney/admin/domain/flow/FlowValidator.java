@@ -136,7 +136,7 @@ public final class FlowValidator {
         // "channel" sempre disponível, mesmo sem nenhum startVariables declarado — o
         // ms-espec-registry injeta o canal que iniciou a instância como variável de processo real
         // (ver REQ da jornada multicanal), então {{channel}} pode ser referenciado em condição de
-        // Gateway/connectorConfig/messageText do mesmo jeito que qualquer outra variável.
+        // Gateway/connectorConfig do mesmo jeito que qualquer outra variável.
         Set<String> startVariableNames = new HashSet<>(Set.of(CHANNEL_VARIABLE));
         for (FlowNode node : nodes) {
             List<Map<String, Object>> declared = node.getStartVariables();
@@ -289,23 +289,6 @@ public final class FlowValidator {
             if (node.getType() == FlowNodeType.USER_TASK) {
                 validateEmbeddedScreen(node, componentRegistry, channelTypes,
                         availableVarsFor(node, nodes, backward, startVariableNames), violations);
-            }
-
-            // Mirrors REQ-03.09.014 for the display-only message of a formless USER_TASK: any
-            // {{name}} it references must also be declared by some reachable ancestor, same rule as
-            // a connector field — otherwise the channel would show a literal "{{...}}" at runtime.
-            if (node.getType() == FlowNodeType.USER_TASK && node.getMessageText() != null) {
-                Set<String> usedTokens = new HashSet<>();
-                collectVariableTokens(node.getMessageText(), usedTokens);
-                if (!usedTokens.isEmpty()) {
-                    Set<String> availableVars = availableVarsFor(node, nodes, backward, startVariableNames);
-                    for (String token : usedTokens) {
-                        if (!availableVars.contains(token)) {
-                            violations.add(new FlowViolation(node.getId(), "A mensagem exibida por '" + node.getName() + "' referencia a variável '{{"
-                                    + token + "}}', que ainda não existe nesse ponto da jornada" + describeAvailableVars(availableVars)));
-                        }
-                    }
-                }
             }
         }
 

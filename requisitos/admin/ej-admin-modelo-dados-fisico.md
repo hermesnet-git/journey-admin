@@ -211,7 +211,7 @@ As configurações de integração dos nós `SERVICE_TASK`, `RECEIVE_TASK` e `ME
 }
 ```
 
-Outros atributos do documento `flow_node`, fora do bloco de conector acima: `startVariables` (REQ-03.12.001) — lista `{ name, type }`, só preenchida no nó `START`, declarando as variáveis que o canal digital/BFF deve fornecer ao iniciar uma instância; `messageText` (REQ-04.01.005) — texto livre, só relevante numa `USER_TASK` sem tela desenhada (`embeddedScreenRoot` ausente), podendo referenciar `{{nome}}` do mesmo jeito que `connectorConfig`; e `embeddedScreenRoot` — raiz da árvore SDUI (`SduiNode`, §12), só relevante numa `USER_TASK`. Diferente do modelo anterior, não existe mais um campo separado "compilado" para publicação: a mesma árvore de `embeddedScreenRoot` é copiada tal como está para o snapshot de publicação/versão (REQ-04.08.007) — sem etapa de compilação/projeção. Toda referência `{{nome}}` em `messageText`, e todo binding `value.path`/interpolação `{{namespace.path}}` dentro de `embeddedScreenRoot`, é resolvida pelo `ms-espec-registry` em tempo de execução (não na publicação).
+Outros atributos do documento `flow_node`, fora do bloco de conector acima: `startVariables` (REQ-03.12.001) — lista `{ name, type }`, só preenchida no nó `START`, declarando as variáveis que o canal digital/BFF deve fornecer ao iniciar uma instância; e `embeddedScreenRoot` — raiz da árvore SDUI (`SduiNode`, §12), só relevante numa `USER_TASK`. Diferente do modelo anterior, não existe mais um campo separado "compilado" para publicação: a mesma árvore de `embeddedScreenRoot` é copiada tal como está para o snapshot de publicação/versão (REQ-04.08.007) — sem etapa de compilação/projeção. Todo binding `value.path`/interpolação `{{namespace.path}}` dentro de `embeddedScreenRoot` é resolvido pelo `ms-espec-registry` em tempo de execução (não na publicação).
 
 > **Nota de revisão (2026-09-05):** `embeddedScreen` (array de `FormField`) e `embeddedScreenSdui` (tupla compilada) substituídos por um único `embeddedScreenRoot` (`SduiNode`, catálogo SDUI corporativo v1) — ver `ej-admin-requisitos.md` FT-04. Nota de 2026-08-24 mantida abaixo por histórico.
 
@@ -349,12 +349,11 @@ resolução do binding em runtime, ver `ej-admin-requisitos.md` US-04.10).
 CREATE TABLE user_task_config (
     node_id UUID PRIMARY KEY,
     embedded_screen_root JSONB,
-    message_text TEXT,
     FOREIGN KEY (node_id) REFERENCES flow_node(node_id)
 );
 ```
 
-`user_task_config` só pode referenciar nós cujo `node_type` seja `USER_TASK`. Essa restrição deve ser garantida por regra de domínio ou trigger. `embedded_screen_root` é opcional (REQ-04.01.005: uma User Task pode não ter tela desenhada); quando ausente, `message_text` guarda a mensagem exibida ao usuário nessa etapa em vez de uma tela — os dois nunca coexistem com sentido (se `embedded_screen_root` estiver presente, `message_text` é ignorado). Não existe mais tabela `form` nem referência a um formulário de catálogo como modelo de partida — `embedded_screen_root` é editado diretamente como árvore de `SduiNode` (§12), e cada nó da árvore só pode referenciar um `type`+`version` existente no Component Registry (§11). Na persistência real, `embedded_screen_root`/`message_text` são atributos do próprio item de `flow.nodes` (JSONB, ver §8-9) — não existe `user_task_config` como tabela própria, nem como sub-documento separado dentro do nó.
+`user_task_config` só pode referenciar nós cujo `node_type` seja `USER_TASK`. Essa restrição deve ser garantida por regra de domínio ou trigger. `embedded_screen_root` é opcional (REQ-04.01.005: uma User Task pode não ter tela desenhada). Não existe mais tabela `form` nem referência a um formulário de catálogo como modelo de partida — `embedded_screen_root` é editado diretamente como árvore de `SduiNode` (§12), e cada nó da árvore só pode referenciar um `type`+`version` existente no Component Registry (§11). Na persistência real, `embedded_screen_root` é atributo do próprio item de `flow.nodes` (JSONB, ver §8-9) — não existe `user_task_config` como tabela própria, nem como sub-documento separado dentro do nó.
 
 > **Nota de revisão (2026-09-05):** `embedded_screen`/`embedded_screen_sdui` substituídos por `embedded_screen_root` (árvore de `SduiNode`, sem etapa de compilação); referência ao `form` do catálogo removida — ver `ej-admin-requisitos.md` FT-04. Nota de 2026-08-24 mantida abaixo por histórico.
 

@@ -98,10 +98,6 @@ export interface VariableOrigin {
 export interface WFNodeData extends Record<string, unknown> {
   name: string;
   description: string;
-  // Only meaningful on a userTask with no tela desenhada (REQ-04.01.005): a display-only step
-  // shows this message instead of a form — may reference {{name}} tokens (REQ-03.09.012 syntax),
-  // resolved by the simulator at execution time.
-  messageText?: string | null;
   // Raiz da árvore SDUI (catálogo corporativo v1) desenhada no editor embutido do dock
   // (FormDesignerDock/FormBuilder) — sempre um único ui.screen, null quando não há tela.
   embeddedScreenRoot?: SduiNode | null;

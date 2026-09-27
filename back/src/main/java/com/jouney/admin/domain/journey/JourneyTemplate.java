@@ -25,7 +25,7 @@ public record JourneyTemplate(String id, String name, String description, List<N
             String nodeId = FlowIds.newNodeId();
             nodeIds.put(spec.key(), nodeId);
             return new FlowNode(nodeId, spec.type(), spec.name(), spec.description(), spec.positionX(),
-                    spec.positionY(), null, null, null, null);
+                    spec.positionY(), null, null, null);
         }).toList();
         List<FlowConnection> instantiatedConnections = connections.stream()
                 .map(spec -> new FlowConnection(FlowIds.newConnectionId(), requiredNodeId(nodeIds, spec.from()),

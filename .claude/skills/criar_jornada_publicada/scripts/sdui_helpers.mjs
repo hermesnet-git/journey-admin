@@ -289,7 +289,7 @@ export function userTaskNode(id, name, description, positionX, positionY, screen
   return {
     nodeId: id, nodeType: 'USER_TASK', name, description, positionX, positionY,
     connectorConfig: null, startVariables: null,
-    userTaskConfig: { messageText: null, embeddedScreenRoot: screen(screenId, screenTitle, children) },
+    userTaskConfig: { embeddedScreenRoot: screen(screenId, screenTitle, children) },
   };
 }
 

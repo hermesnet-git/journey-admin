@@ -1292,12 +1292,9 @@ components:
         embeddedScreenRoot:
           description: >
             Raiz da árvore de tela (SduiNode) desenhada diretamente no nó — ausente quando a
-            User Task não tem tela (nesse caso, messageText é usado). Nunca coexiste com
-            sentido junto de messageText. Sempre um único nó do tipo ui.screen.
+            User Task não tem tela. Sempre um único nó do tipo ui.screen.
           $ref: '#/components/schemas/SduiNode'
           nullable: true
-        messageText:
-          type: string
 
     IntegrationTaskConfig:
       type: object
@@ -1736,8 +1733,6 @@ components:
           type: array
           items:
             type: object
-        messageText:
-          type: string
         embeddedScreenRoot:
           $ref: '#/components/schemas/SduiNode'
           nullable: true

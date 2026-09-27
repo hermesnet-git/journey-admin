@@ -199,7 +199,7 @@ Estrutura principal da jornada; define a sequência das telas e etapas.
 START, END, USER_TASK, SERVICE_TASK, RECEIVE_TASK, MESSAGE_START_EVENT, GATEWAY
 ```
 
-Uma `USER_TASK` sem tela desenhada (`embeddedScreenRoot` ausente, REQ-04.01.005) pode declarar uma mensagem de texto exibida ao usuário nessa etapa (`messageText`). Toda referência `{{nome}}`/`{{namespace.path}}` (REQ-03.09.012, seção 8 do contrato SDUI) — na mensagem ou em qualquer prop de texto de um nó da tela desenhada — é resolvida contra as variáveis reais da instância no momento da execução, não na publicação.
+Toda referência `{{nome}}`/`{{namespace.path}}` (REQ-03.09.012, seção 8 do contrato SDUI) — em qualquer prop de texto de um nó da tela desenhada — é resolvida contra as variáveis reais da instância no momento da execução, não na publicação.
 
 Um `GATEWAY` pode referenciar a variável reservada `channel` em sua condição — injetada automaticamente pelo tipo de canal informado ao iniciar a instância (Seção 7), nunca declarável pelo usuário — permitindo caminhos diferentes por tipo de canal sem nenhum mecanismo novo no motor de runtime.
 
@@ -245,9 +245,9 @@ Connector configuration is declarative and stored with the flow snapshot. Creden
 
 # 10. User Task Configuration
 
-Par de atributos (`embeddedScreenRoot`, `messageText`) que a API expõe agrupado sob o nome `User Task Configuration` — não é uma entidade com identidade própria: pertence ao próprio `Flow Node`, dentro do mesmo documento `jsonb` do `Flow` (ver §8), e não existe fora dele (não tem id, não é criada/consultada/removida separadamente). Só é relevante para um `Flow Node` do tipo `USER_TASK`.
+O atributo `embeddedScreenRoot`, que a API expõe sob o nome `User Task Configuration` — não é uma entidade com identidade própria: pertence ao próprio `Flow Node`, dentro do mesmo documento `jsonb` do `Flow` (ver §8), e não existe fora dele (não tem id, não é criada/consultada/removida separadamente). Só é relevante para um `Flow Node` do tipo `USER_TASK`.
 
-Na versão 1.0.0, a tela é opcional: cada `USER_TASK` pode ter uma tela desenhada diretamente no nó (`embeddedScreenRoot`, raiz de uma árvore de `Sdui Node`, §11) ou não ter nenhuma. Quando `embeddedScreenRoot` está ausente, `messageText` guarda a mensagem de texto exibida ao usuário nessa etapa (REQ-04.01.005) — os dois nunca coexistem com sentido. Diferente do modelo anterior, não existe mais uma árvore "compilada" separada para publicação: a mesma árvore de `embeddedScreenRoot` é copiada tal como está para o snapshot de publicação/versão (§12, Imutabilidade).
+Na versão 1.0.0, a tela é opcional: cada `USER_TASK` pode ter uma tela desenhada diretamente no nó (`embeddedScreenRoot`, raiz de uma árvore de `Sdui Node`, §11) ou não ter nenhuma. Diferente do modelo anterior, não existe mais uma árvore "compilada" separada para publicação: a mesma árvore de `embeddedScreenRoot` é copiada tal como está para o snapshot de publicação/versão (§12, Imutabilidade).
 
 ```mermaid
 flowchart LR
@@ -470,7 +470,7 @@ erDiagram
 | Journey | Workflow associado a um produto e a um subconjunto dos tipos de canal desse produto |
 | Flow / Flow Node / Flow Connection | Estrutura visual da jornada e seus elementos |
 | Flow Annotation | Nota livre no canvas, sem efeito no fluxo executável |
-| User Task Configuration | Trio `embeddedScreenRoot`/`messageText` embutido num Flow Node `USER_TASK` — não é uma entidade própria |
+| User Task Configuration | Atributo `embeddedScreenRoot` embutido num Flow Node `USER_TASK` — não é uma entidade própria |
 | Component Registry / Sdui Node | Catálogo de componentes SDUI disponíveis (tabela própria) e os nós da árvore de tela que instanciam esses componentes |
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |

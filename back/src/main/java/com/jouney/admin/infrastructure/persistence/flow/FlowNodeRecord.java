@@ -16,7 +16,7 @@ import java.util.Map;
 // do que foi enviado ao Strapi (ver FlowNode.sdui/JourneyVersion.attachPublishedScreens).
 public record FlowNodeRecord(String id, FlowNodeType type, String name, String description, int positionX,
                               int positionY, ConnectorConfigRecord connectorConfig,
-                              List<Map<String, Object>> startVariables, String messageText,
+                              List<Map<String, Object>> startVariables,
                               SduiNode embeddedScreenRoot, SduiScreenEnvelope sdui) {
 
     public record ConnectorConfigRecord(ConnectorType connectorType, Map<String, Object> config,

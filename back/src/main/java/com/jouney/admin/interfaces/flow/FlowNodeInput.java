@@ -23,10 +23,9 @@ public record FlowNodeInput(
         List<Map<String, Object>> startVariables) {
 
     public FlowNode toDomain() {
-        String messageText = userTaskConfig != null ? userTaskConfig.messageText() : null;
         var embeddedScreenRoot = userTaskConfig != null ? userTaskConfig.embeddedScreenRoot() : null;
         return new FlowNode(nodeId, nodeType, name, description, positionX, positionY,
-                connectorConfig != null ? connectorConfig.toDomain() : null, startVariables, messageText,
+                connectorConfig != null ? connectorConfig.toDomain() : null, startVariables,
                 embeddedScreenRoot);
     }
 }

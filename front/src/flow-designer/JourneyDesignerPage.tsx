@@ -96,7 +96,7 @@ function buildFlowSnapshot(
       positionX: Math.round(n.position.x),
       positionY: Math.round(n.position.y),
       userTaskConfig: n.type === 'userTask'
-        ? { messageText: null, embeddedScreenRoot: n.data.embeddedScreenRoot ?? null }
+        ? { embeddedScreenRoot: n.data.embeddedScreenRoot ?? null }
         : null,
       connectorConfig: n.data.connectorConfig,
       startVariables: n.data.startVariables ?? null,
@@ -131,7 +131,7 @@ function buildFlowInput(nodes: WFNode[], edges: WFEdge[], annotations: WFAnnotat
       positionX: Math.round(n.position.x),
       positionY: Math.round(n.position.y),
       userTaskConfig: n.type === 'userTask'
-        ? { messageText: null, embeddedScreenRoot: n.data.embeddedScreenRoot ?? null }
+        ? { embeddedScreenRoot: n.data.embeddedScreenRoot ?? null }
         : null,
       connectorConfig: n.data.connectorConfig,
       startVariables: n.data.startVariables ?? null,
@@ -384,7 +384,6 @@ function DesignerInner({
         data: {
           name: n.name,
           description: n.description ?? '',
-          messageText: n.userTaskConfig?.messageText ?? null,
           embeddedScreenRoot: n.userTaskConfig?.embeddedScreenRoot ?? null,
           connectorConfig: n.connectorConfig,
           startVariables: n.startVariables ?? undefined,
@@ -567,7 +566,6 @@ function DesignerInner({
       const node = { ...makeNode(type, spot.x, spot.y, nodesRef.current), selected: true };
       if (type === 'userTask' && screenDefinition) {
         node.data.embeddedScreenRoot = createSduiNode(screenDefinition);
-        node.data.messageText = null;
       }
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
       setFreshNodeId(node.id);
@@ -702,7 +700,6 @@ function DesignerInner({
       // nasce com a raiz da tela e fica imediatamente disponível para autoria no Form Builder.
       if (type === 'userTask' && screenDefinition) {
         node.data.embeddedScreenRoot = createSduiNode(screenDefinition);
-        node.data.messageText = null;
       }
       setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), node]);
       setFreshNodeId(node.id);

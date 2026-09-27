@@ -17,11 +17,9 @@ export interface FlowNode {
   description: string | null;
   positionX: number;
   positionY: number;
-  // REQ-04.01.005: embeddedScreenRoot may be absent (a display-only step) — messageText then holds
-  // what to show instead, resolved by the simulator at execution time (may reference {{name}}
-  // tokens). embeddedScreenRoot é a raiz da árvore SDUI (catálogo corporativo v1) desenhada no
-  // editor embutido do dock — sempre um único ui.screen.
-  userTaskConfig: { messageText: string | null; embeddedScreenRoot: SduiNode | null } | null;
+  // embeddedScreenRoot é a raiz da árvore SDUI (catálogo corporativo v1) desenhada no editor
+  // embutido do dock — sempre um único ui.screen, null quando não há tela.
+  userTaskConfig: { embeddedScreenRoot: SduiNode | null } | null;
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: {name, type} declarations, meaningful only on the START node.
   startVariables: { name: string; type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' }[] | null;

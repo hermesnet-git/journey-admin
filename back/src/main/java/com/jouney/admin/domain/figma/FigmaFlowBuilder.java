@@ -196,7 +196,7 @@ public final class FigmaFlowBuilder {
 
         String startId = FlowIds.newNodeId();
         nodes.add(0, new FlowNode(startId, FlowNodeType.START, "Início", null,
-                -STEP_FALLBACK_SPACING, 0, null, List.of(), null, null));
+                -STEP_FALLBACK_SPACING, 0, null, List.of(), null));
 
         // O desenho não diz por onde a jornada começa, então o começo é deduzido: entre os passos
         // que ninguém alcança, o que leva a mais lugares. Pegar simplesmente o primeiro sem entrada
@@ -240,7 +240,7 @@ public final class FigmaFlowBuilder {
             String label = nameByFlowNode.getOrDefault(entry.getKey(), "Decisão");
             nodes.add(new FlowNode(gatewayId, FlowNodeType.GATEWAY, label, null,
                     origin == null ? 0 : origin.getPositionX() + STEP_FALLBACK_SPACING,
-                    origin == null ? 0 : origin.getPositionY(), null, List.of(), null, null));
+                    origin == null ? 0 : origin.getPositionY(), null, List.of(), null));
             gatewayIds.add(gatewayId);
             rewritten.add(new Edge(entry.getKey(), gatewayId, ""));
             for (Edge edge : outgoing) {
@@ -325,7 +325,7 @@ public final class FigmaFlowBuilder {
                 nodes.add(new FlowNode(endId, FlowNodeType.END, "Fim", null,
                         origin == null ? 0 : origin.getPositionX() + STEP_FALLBACK_SPACING,
                         origin == null ? 0 : origin.getPositionY() + i * GATEWAY_BRANCH_OFFSET,
-                        null, List.of(), null, null));
+                        null, List.of(), null));
                 // Numa Decisão, o caminho que falta é o padrão quando o outro já tem condição.
                 boolean isDefault = isGateway && taken + i == 1;
                 connections.add(new FlowConnection(FlowIds.newConnectionId(), id, endId,
@@ -385,7 +385,7 @@ public final class FigmaFlowBuilder {
         SduiNode screen = includeScreens ? screenOf(step) : null;
         return new FlowNode(step.flowNodeId(), FlowNodeType.USER_TASK, step.title(), null,
                 scaleX(box.path("x").asDouble(0), bounds), scaleY(box.path("y").asDouble(0), bounds),
-                null, List.of(), null, screen);
+                null, List.of(), screen);
     }
 
     private static FlowNode gateway(String nodeId, JsonNode diamond, Bounds bounds) {
@@ -393,7 +393,7 @@ public final class FigmaFlowBuilder {
         JsonNode box = diamond.path("absoluteBoundingBox");
         return new FlowNode(nodeId, FlowNodeType.GATEWAY, question.isBlank() ? "Decisão" : question, null,
                 scaleX(box.path("x").asDouble(0), bounds), scaleY(box.path("y").asDouble(0), bounds),
-                null, List.of(), null, null);
+                null, List.of(), null);
     }
 
     /**

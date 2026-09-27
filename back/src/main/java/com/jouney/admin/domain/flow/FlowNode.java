@@ -14,10 +14,6 @@ public class FlowNode {
     private final int positionY;
     private final ConnectorConfig connectorConfig;
     private final List<Map<String, Object>> startVariables;
-    // Only meaningful on a USER_TASK with no tela desenhada: a display-only step shows this message
-    // instead of a form (may reference {{name}} tokens, same syntax as connector fields/gateway
-    // conditions — resolved against the running instance's variables at execution time, not here).
-    private final String messageText;
     // Raiz da árvore SDUI (catálogo corporativo v1, seção 6) desenhada no editor embutido do nó —
     // null quando a User Task não tem tela desenhada. Sempre um único ui.screen. A mesma árvore vale
     // pro editor ao vivo e pra snapshot publicada (sem compilação/projeção separada como antes:
@@ -34,14 +30,14 @@ public class FlowNode {
      * (template, geração por IA) usa este construtor. */
     public FlowNode(String id, FlowNodeType type, String name, String description, int positionX, int positionY,
                      ConnectorConfig connectorConfig, List<Map<String, Object>> startVariables,
-                     String messageText, SduiNode embeddedScreenRoot) {
-        this(id, type, name, description, positionX, positionY, connectorConfig, startVariables, messageText,
+                     SduiNode embeddedScreenRoot) {
+        this(id, type, name, description, positionX, positionY, connectorConfig, startVariables,
                 embeddedScreenRoot, null);
     }
 
     public FlowNode(String id, FlowNodeType type, String name, String description, int positionX, int positionY,
                      ConnectorConfig connectorConfig, List<Map<String, Object>> startVariables,
-                     String messageText, SduiNode embeddedScreenRoot, SduiScreenEnvelope sdui) {
+                     SduiNode embeddedScreenRoot, SduiScreenEnvelope sdui) {
         this.id = id;
         this.type = type;
         this.name = name;
@@ -50,7 +46,6 @@ public class FlowNode {
         this.positionY = positionY;
         this.connectorConfig = connectorConfig;
         this.startVariables = startVariables;
-        this.messageText = messageText;
         this.embeddedScreenRoot = embeddedScreenRoot;
         this.sdui = sdui;
     }
@@ -85,10 +80,6 @@ public class FlowNode {
 
     public List<Map<String, Object>> getStartVariables() {
         return startVariables;
-    }
-
-    public String getMessageText() {
-        return messageText;
     }
 
     public SduiNode getEmbeddedScreenRoot() {

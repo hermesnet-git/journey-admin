@@ -10,6 +10,8 @@ interface Props {
   // endTime do nó selecionado no Fluxo da Jornada — entradas até este instante ficam em destaque
   // (já tinham acontecido), as posteriores ficam esmaecidas. Sem nó selecionado, nada é destacado.
   highlightUpToTime?: string | null;
+  // Clicar no nome do nó de uma entrada seleciona esse nó no canvas — sem isso, o nome é só texto.
+  onNodeSelect?: (nodeId: string) => void;
 }
 
 const COL_LABELS = ['Nome', 'Valor', 'Tipo', 'Histórico'];
@@ -20,7 +22,7 @@ const EXPAND_COL_WIDTH = 20;
 // Aba Histórico de Variáveis do Diagnóstico: cada variável revela TODOS os valores que já teve,
 // em ordem — não só o valor atual (isso resolve o pedido de "mapear os valores até o final da
 // jornada"), com destaque de cor cruzado com o nó selecionado no Fluxo. Nascem colapsadas.
-export function VariableTimeline({ variables, timeline, highlightUpToTime }: Props) {
+export function VariableTimeline({ variables, timeline, highlightUpToTime, onNodeSelect }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [colWidths, setColWidths] = useState<number[]>(DEFAULT_COL_WIDTHS);
 
@@ -120,9 +122,21 @@ export function VariableTimeline({ variables, timeline, highlightUpToTime }: Pro
                               <span className="text-[11.5px] flex-1 min-w-0 truncate" style={{ color: happened ? skinVars.colors.success : skinVars.colors.textSecondary }} title={String(entry.value)}>
                                 {String(entry.value)}
                               </span>
-                              <span className="text-[10.5px] shrink-0 truncate max-w-[140px]" style={{ color: skinVars.colors.textSecondary }}>
-                                {entry.nodeName ?? entry.nodeId ?? '—'}
-                              </span>
+                              {entry.nodeId && onNodeSelect ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onNodeSelect(entry.nodeId!)}
+                                  title="Selecionar esta tarefa no fluxo"
+                                  className="text-[10.5px] shrink-0 truncate max-w-[140px] border-0 bg-transparent p-0 cursor-pointer text-left hover:underline"
+                                  style={{ color: skinVars.colors.brand }}
+                                >
+                                  {entry.nodeName ?? entry.nodeId}
+                                </button>
+                              ) : (
+                                <span className="text-[10.5px] shrink-0 truncate max-w-[140px]" style={{ color: skinVars.colors.textSecondary }}>
+                                  {entry.nodeName ?? entry.nodeId ?? '—'}
+                                </span>
+                              )}
                             </div>
                           );
                         })}

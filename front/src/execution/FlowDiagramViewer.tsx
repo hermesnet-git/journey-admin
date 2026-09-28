@@ -298,6 +298,17 @@ function FlowDiagramInner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentNodeId, staticView, erroredNodeId, flowNodes]);
 
+  // Seleção vinda de fora do canvas (link no Log/Histórico de Variáveis) pode mirar num nó que não
+  // está na área visível — sem centralizar, o destaque muda mas o usuário não vê nada acontecer.
+  useEffect(() => {
+    if (!selectedNodeId) return;
+    const target = flowNodes.find((n) => n.id === selectedNodeId);
+    if (!target) return;
+    const dim = NODE_DIMENSIONS[BACKEND_TO_FRONT_TYPE[target.type]];
+    setCenter(target.positionX + dim.width / 2, target.positionY + dim.height / 2, { zoom: 1, duration: 300 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNodeId]);
+
   const iconBtn =
     'w-[28px] h-[28px] rounded-md border-0 bg-transparent flex items-center justify-center cursor-pointer';
 

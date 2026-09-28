@@ -13,6 +13,8 @@ export interface LogEntry {
   message: string;
   data?: Record<string, unknown>;
   isError?: boolean;
+  // Nó do fluxo a que esta linha se refere — presente pra clicar e selecionar no canvas.
+  nodeId?: string;
 }
 
 // Versão própria (mesmo padrão visual do editor de jornadas) do LogPanel compartilhado com a
@@ -26,7 +28,15 @@ function logRowId(id: string) {
   return `diag-log-row-${id}`;
 }
 
-export function DiagnosticoLogPanel({ log, endRef }: { log: LogEntry[]; endRef: React.RefObject<HTMLDivElement | null> }) {
+export function DiagnosticoLogPanel({
+  log,
+  endRef,
+  onNodeSelect,
+}: {
+  log: LogEntry[];
+  endRef: React.RefObject<HTMLDivElement | null>;
+  onNodeSelect?: (nodeId: string) => void;
+}) {
   const [query, setQuery] = useState('');
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -169,6 +179,7 @@ export function DiagnosticoLogPanel({ log, endRef }: { log: LogEntry[]; endRef: 
                 isMatch={matchingIds.includes(entry.id)}
                 expanded={expandedIds.has(entry.id)}
                 onToggle={() => toggleExpanded(entry.id)}
+                onNodeSelect={onNodeSelect}
               />
             ))}
             <div ref={endRef} />
@@ -186,6 +197,7 @@ function DiagnosticoLogRow({
   isMatch,
   expanded,
   onToggle,
+  onNodeSelect,
 }: {
   entry: LogEntry;
   query: string;
@@ -193,14 +205,26 @@ function DiagnosticoLogRow({
   isMatch: boolean;
   expanded: boolean;
   onToggle: () => void;
+  onNodeSelect?: (nodeId: string) => void;
 }) {
   const hasData = !!entry.data && Object.keys(entry.data).length > 0;
+  const canSelectNode = !!entry.nodeId && !!onNodeSelect;
   const prettyData = useMemo(() => (entry.data ? (prettifyJson(entry.data) as Record<string, unknown>) : undefined), [entry.data]);
   const [expandOpen, setExpandOpen] = useState(false);
 
+  function handleClick() {
+    if (canSelectNode) onNodeSelect!(entry.nodeId!);
+    if (hasData) onToggle();
+  }
+
   return (
     <div id={logRowId(entry.id)} className="rounded-md px-1 -mx-1 py-[2px]" style={{ background: isActiveMatch ? ACTIVE_MATCH_BG : isMatch ? MATCH_BG : 'transparent' }}>
-      <div className="flex items-start gap-1" style={hasData ? { cursor: 'pointer' } : undefined} onClick={hasData ? onToggle : undefined}>
+      <div
+        className="flex items-start gap-1"
+        style={hasData || canSelectNode ? { cursor: 'pointer' } : undefined}
+        onClick={hasData || canSelectNode ? handleClick : undefined}
+        title={canSelectNode ? 'Selecionar esta tarefa no fluxo' : undefined}
+      >
         <span className="shrink-0 mt-[3px] w-[12px] flex items-center justify-center" style={{ color: skinVars.colors.textSecondary }}>
           {hasData && (expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />)}
         </span>

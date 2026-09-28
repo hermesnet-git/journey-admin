@@ -3,7 +3,7 @@ import { AlertTriangle, RefreshCw, ScrollText, Sliders } from 'lucide-react';
 import { skinVars, Text } from '@telefonica/mistica';
 import type { ComponentType } from 'react';
 import { FlowDiagramViewer } from '../execution/FlowDiagramViewer';
-import type { NodeIODetail } from '../execution/api';
+import type { FlowConnectionInfo, FlowNodeInfo, NodeIODetail } from '../execution/api';
 import { SummaryField } from '../execution/SummaryField';
 import { getInstanceHistory, type IncidentEntry, type InstanceHistoryResponse } from './api';
 import { DiagnosticoNodeDrawer } from './DiagnosticoNodeDrawer';
@@ -19,9 +19,28 @@ interface Props {
 const STEP_TYPE_LABEL: Record<string, (name: string) => string> = {
   START: (name) => `Jornada iniciada em "${name}".`,
   USER_TASK: (name) => `Tarefa de usuário "${name}" concluída.`,
-  GATEWAY: (name) => `Decisão "${name}" avaliada.`,
   END: (name) => `Etapa final "${name}" alcançada.`,
 };
+
+// Pra cada GATEWAY de fato atravessado, qual saída foi tomada — a história não guarda isso direto
+// (HistoryStep de um GATEWAY nunca tem input/output), então o único jeito confiável é olhar o
+// próximo passo na ordem real da execução (não só "os dois nós estão visitados": as duas saídas de
+// uma Decisão podem levar a nós que também acabam visitados por outro caminho) e achar a conexão
+// entre os dois. Indexado pela posição em `steps`, não pelo nodeId, pra suportar a mesma Decisão
+// sendo avaliada mais de uma vez (loop).
+function gatewayOutcomes(steps: NodeIODetail[], flowNodes: FlowNodeInfo[], flowConnections: FlowConnectionInfo[]): (string | null)[] {
+  const nodeById = new Map(flowNodes.map((n) => [n.id, n]));
+  return steps.map((step, i) => {
+    if (nodeById.get(step.nodeId)?.type !== 'GATEWAY') return null;
+    const next = steps[i + 1];
+    if (!next) return null;
+    const edge = flowConnections.find((c) => c.sourceNodeId === step.nodeId && c.targetNodeId === next.nodeId);
+    if (!edge) return null;
+    const nextName = nodeById.get(next.nodeId)?.name ?? next.nodeId;
+    const conditionLabel = edge.isDefault ? 'caminho padrão' : (edge.condition ?? 'sem condição');
+    return `seguiu para "${nextName}" (${conditionLabel})`;
+  });
+}
 
 const CONNECTOR_TYPE_LABEL: Record<string, string> = {
   REST: 'API REST',
@@ -33,7 +52,10 @@ const CONNECTOR_TYPE_LABEL: Record<string, string> = {
 // Duas Tarefas de Serviço/Recebimento com o mesmo nome genérico são indistinguíveis no log sem
 // isso — o tipo de conector entre parênteses deixa claro qual é uma chamada REST e qual é uma
 // publicação/consumo de mensageria, sem precisar abrir o Fluxo da Jornada pra descobrir.
-function describeHistoryStep(step: NodeIODetail, connectorTypeByNodeId: Record<string, string>): string {
+function describeHistoryStep(step: NodeIODetail, connectorTypeByNodeId: Record<string, string>, gatewayOutcome: string | null): string {
+  if (step.nodeType === 'GATEWAY') {
+    return gatewayOutcome ? `Decisão "${step.nodeName}" avaliada: ${gatewayOutcome}.` : `Decisão "${step.nodeName}" avaliada.`;
+  }
   if (step.nodeType === 'SERVICE_TASK' || step.nodeType === 'RECEIVE_TASK') {
     const label = step.nodeType === 'SERVICE_TASK' ? 'Tarefa de serviço' : 'Tarefa de recebimento';
     const verb = step.nodeType === 'SERVICE_TASK' ? 'executada' : 'concluída';
@@ -162,13 +184,15 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
   }
 
   const openIncident = history.incidents.find((i) => i.open) ?? null;
+  const outcomeByStepIndex = gatewayOutcomes(normalizedSteps, history.flow.flowNodes, history.flow.flowConnections);
 
   const log: LogEntry[] = [
     ...normalizedSteps.map((step, i) => ({
       id: `history-${i}`,
       time: (step.endTime ?? step.startTime).slice(11, 23),
-      message: describeHistoryStep(step, connectorTypeByNodeId),
+      message: describeHistoryStep(step, connectorTypeByNodeId, outcomeByStepIndex[i]),
       data: stepLogData(step),
+      nodeId: step.nodeId,
     })),
     ...history.incidents.map((incident, i) => ({
       id: `incident-${i}`,
@@ -176,6 +200,7 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
       message: incidentLogMessage(incident),
       data: incident.message ? { mensagem: incident.message } : undefined,
       isError: true,
+      nodeId: incident.nodeId,
     })),
   ].sort((a, b) => a.time.localeCompare(b.time));
 
@@ -321,10 +346,11 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
                   variables={history.variables}
                   timeline={history.variableTimeline}
                   highlightUpToTime={highlightUpToTime}
+                  onNodeSelect={setSelectedNodeId}
                 />
               </div>
             ) : (
-              <DiagnosticoLogPanel log={log} endRef={logEndRef} />
+              <DiagnosticoLogPanel log={log} endRef={logEndRef} onNodeSelect={setSelectedNodeId} />
             )}
           </div>
         </div>

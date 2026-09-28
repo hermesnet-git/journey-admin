@@ -18,9 +18,18 @@ interface Props {
 // não é incremental, o histórico inteiro já chega pronto de uma vez, então vira o log inteiro direto.
 const STEP_TYPE_LABEL: Record<string, (name: string) => string> = {
   START: (name) => `Jornada iniciada em "${name}".`,
-  USER_TASK: (name) => `Tarefa de usuário "${name}" concluída.`,
   END: (name) => `Etapa final "${name}" alcançada.`,
 };
+
+// START/END são instantâneos (não existe "em andamento"); User Task, Service Task e Receive Task
+// podem estar esperando (endTime ainda null) ou ter sido descartados sem terminar (canceled, ex.:
+// instância encerrada à força enquanto esperava) — sem checar os dois, o log dizia "concluída" pra
+// uma tarefa que na verdade ainda está parada esperando o usuário/uma mensagem.
+function taskState(step: NodeIODetail, doneWord: string, pendingWord: string): string {
+  if (step.canceled) return 'cancelada';
+  if (step.endTime == null) return pendingWord;
+  return doneWord;
+}
 
 // Pra cada GATEWAY de fato atravessado, qual saída foi tomada — a história não guarda isso direto
 // (HistoryStep de um GATEWAY nunca tem input/output), então o único jeito confiável é olhar o
@@ -58,9 +67,12 @@ function describeHistoryStep(step: NodeIODetail, connectorTypeByNodeId: Record<s
   }
   if (step.nodeType === 'SERVICE_TASK' || step.nodeType === 'RECEIVE_TASK') {
     const label = step.nodeType === 'SERVICE_TASK' ? 'Tarefa de serviço' : 'Tarefa de recebimento';
-    const verb = step.nodeType === 'SERVICE_TASK' ? 'executada' : 'concluída';
+    const verb = step.nodeType === 'SERVICE_TASK' ? taskState(step, 'executada', 'em execução') : taskState(step, 'concluída', 'aguardando mensagem');
     const connectorLabel = CONNECTOR_TYPE_LABEL[connectorTypeByNodeId[step.nodeId]];
     return connectorLabel ? `${label} (${connectorLabel}) "${step.nodeName}" ${verb}.` : `${label} "${step.nodeName}" ${verb}.`;
+  }
+  if (step.nodeType === 'USER_TASK') {
+    return `Tarefa de usuário "${step.nodeName}" ${taskState(step, 'concluída', 'aguardando resposta')}.`;
   }
   const describe = STEP_TYPE_LABEL[step.nodeType];
   return describe ? describe(step.nodeName) : `Etapa "${step.nodeName}" concluída.`;

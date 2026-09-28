@@ -73,18 +73,14 @@ export interface InstanceHistorySearchFilters {
   journeyId?: string;
   businessKey?: string;
   finished?: boolean;
-  // Datas soltas ("AAAA-MM-DD", direto de um <input type="date">) — o backend espera um
-  // java.time.Instant completo, então viram início/fim do dia (hora local) antes de ir pra query.
+  // "AAAA-MM-DDTHH:mm", direto de um <input type="datetime-local"> (hora local, sem timezone) — o
+  // backend espera um java.time.Instant completo, então vira UTC antes de ir pra query.
   startedFrom?: string;
   startedTo?: string;
 }
 
-function startOfDayInstant(date: string): string {
-  return new Date(`${date}T00:00:00`).toISOString();
-}
-
-function endOfDayInstant(date: string): string {
-  return new Date(`${date}T23:59:59.999`).toISOString();
+function localDateTimeToInstant(value: string): string {
+  return new Date(value).toISOString();
 }
 
 export function searchInstanceHistory(filters: InstanceHistorySearchFilters): Promise<HistoricInstanceSummary[]> {
@@ -92,8 +88,8 @@ export function searchInstanceHistory(filters: InstanceHistorySearchFilters): Pr
   if (filters.journeyId) params.set('journeyId', filters.journeyId);
   if (filters.businessKey) params.set('businessKey', filters.businessKey);
   if (filters.finished !== undefined) params.set('finished', String(filters.finished));
-  if (filters.startedFrom) params.set('startedFrom', startOfDayInstant(filters.startedFrom));
-  if (filters.startedTo) params.set('startedTo', endOfDayInstant(filters.startedTo));
+  if (filters.startedFrom) params.set('startedFrom', localDateTimeToInstant(filters.startedFrom));
+  if (filters.startedTo) params.set('startedTo', localDateTimeToInstant(filters.startedTo));
   const qs = params.toString();
   return apiGet(`/instances/search${qs ? `?${qs}` : ''}`);
 }

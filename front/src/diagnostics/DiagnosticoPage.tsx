@@ -152,13 +152,12 @@ export function DiagnosticoPage({ initialInstanceId }: Props) {
 
   function handleSearchClick() {
     if (searchType === 'journey') {
-      if (selectedJourney) runSearch({ journeyId: selectedJourney.journeyId, startedFrom: from || undefined, startedTo: to || undefined });
+      runSearch({ journeyId: selectedJourney?.journeyId, startedFrom: from || undefined, startedTo: to || undefined });
       return;
     }
     if (searchType === 'businessKey') {
       const value = businessKeyInput.trim();
-      if (!value) return;
-      runSearch({ businessKey: value, startedFrom: from || undefined, startedTo: to || undefined });
+      runSearch({ businessKey: value || undefined, startedFrom: from || undefined, startedTo: to || undefined });
       return;
     }
     const id = instanceIdInput.trim();
@@ -185,10 +184,9 @@ export function DiagnosticoPage({ initialInstanceId }: Props) {
       });
   }
 
-  const searchDisabled =
-    (searchType === 'journey' && !selectedJourney) ||
-    (searchType === 'businessKey' && !businessKeyInput.trim()) ||
-    (searchType === 'instanceId' && !instanceIdInput.trim());
+  // Jornada e business key são filtros opcionais — em branco, a busca lista tudo no período.
+  // Instance ID é busca direta a uma instância, sem período: exige o valor.
+  const searchDisabled = searchType === 'instanceId' && !instanceIdInput.trim();
 
   function openDetail(id: string) {
     setSelectedId(id);
@@ -351,7 +349,7 @@ export function DiagnosticoPage({ initialInstanceId }: Props) {
           {searchType !== 'instanceId' && (
             <>
               <input
-                type="date"
+                type="datetime-local"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
                 aria-label="Início do período"
@@ -362,7 +360,7 @@ export function DiagnosticoPage({ initialInstanceId }: Props) {
                 até
               </span>
               <input
-                type="date"
+                type="datetime-local"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
                 aria-label="Fim do período"
@@ -491,10 +489,11 @@ function BlankState({ c }: { c: AppColors }) {
     >
       <Search size={20} style={{ color: c.textMuted }} />
       <span className="text-[13.5px] font-medium" style={{ color: c.textSecondary }}>
-        Busque por jornada, business key ou instance ID para começar
+        Escolha um período, ou busque por jornada, business key ou instance ID
       </span>
       <span className="text-[12px] max-w-[420px]" style={{ color: c.textMuted }}>
-        Escolha o tipo de busca acima — buscar por instance ID vai direto ao detalhe da execução.
+        Jornada e business key em branco listam todas as execuções do período — buscar por instance
+        ID vai direto ao detalhe da execução.
       </span>
     </div>
   );

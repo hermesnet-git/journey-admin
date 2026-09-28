@@ -9,13 +9,35 @@
 
 const FORMAT = 'elastic-journey/figma-export@1';
 
-/** Campos que o Elastic Journey lê. Qualquer outro é peso morto no arquivo. */
-function slim(node) {
+/**
+ * Campos que o Elastic Journey lê. Qualquer outro é peso morto no arquivo.
+ *
+ * Um nó invisível não entra: um componente de design system carrega variante e texto de exemplo
+ * escondidos por trás do que está de fato desenhado, e levar isso junto faria o conteúdo real da
+ * tela chegar misturado com andaime interno do componente.
+ */
+async function slim(node) {
+  if (node.visible === false) {
+    return null;
+  }
+
   const out = { id: node.id, type: node.type, name: node.name };
 
   const box = node.absoluteBoundingBox;
   if (box) {
     out.absoluteBoundingBox = { x: box.x, y: box.y, width: box.width, height: box.height };
+  }
+
+  // Duas instâncias do mesmo componente lado a lado são as opções de uma escolha — um chip
+  // desenhado uma vez e copiado para cada resposta possível. A chave vem do conjunto de variantes,
+  // e não da variante: o chip marcado e os desmarcados são variantes diferentes do mesmo chip, e
+  // pela chave da variante o marcado ficaria fora do grupo.
+  if (node.type === 'INSTANCE') {
+    const main = await node.getMainComponentAsync();
+    if (main) {
+      const set = main.parent && main.parent.type === 'COMPONENT_SET' ? main.parent : null;
+      out.componentId = set ? set.key : main.key;
+    }
   }
 
   // O título da tela sai do maior texto dentro dela, então o tamanho da fonte tem de vir junto.
@@ -50,7 +72,7 @@ function slim(node) {
   }
 
   if ('children' in node && node.children.length > 0) {
-    out.children = node.children.map(slim);
+    out.children = (await Promise.all(node.children.map(slim))).filter(Boolean);
   }
   return out;
 }
@@ -81,8 +103,9 @@ function describe() {
   return { scope: picked.scope, nodes: total, empty: picked.nodes.length === 0 };
 }
 
-function build() {
+async function build() {
   const picked = pick();
+  const children = (await Promise.all(picked.nodes.map(slim))).filter(Boolean);
   // Mantém a mesma forma que o Elastic Journey já lê, com a seleção ocupando o lugar de uma página:
   // assim a leitura do arquivo enviado e a leitura direta do Figma seguem o mesmo caminho lá.
   return {
@@ -98,7 +121,7 @@ function build() {
           id: figma.currentPage.id,
           type: 'CANVAS',
           name: figma.currentPage.name,
-          children: picked.nodes.map(slim),
+          children,
         },
       ],
     },
@@ -112,9 +135,9 @@ figma.on('selectionchange', () => {
   figma.ui.postMessage({ type: 'ready', ...describe() });
 });
 
-figma.ui.onmessage = (message) => {
+figma.ui.onmessage = async (message) => {
   if (message.type === 'export') {
-    const payload = build();
+    const payload = await build();
     figma.ui.postMessage({
       type: 'file',
       fileName: sanitize(figma.root.name) + '.journey.json',

@@ -3,6 +3,7 @@ package com.jouney.admin.domain.figma;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -298,6 +299,9 @@ public final class FigmaFlowExtractor {
     }
 
     private static void walkText(JsonNode node, double screenTop, String[] found, double[] bestSize) {
+        if (!isVisible(node)) {
+            return;
+        }
         if (TYPE_TEXT.equals(node.path("type").asText())) {
             String characters = node.path("characters").asText();
             if (characters != null && !characters.isBlank() && isTitleCandidate(node, screenTop, characters)) {
@@ -313,8 +317,9 @@ public final class FigmaFlowExtractor {
         }
     }
 
-    /** Um texto da tela, com o que basta para saber o papel dele: tamanho, altura e largura. */
-    public record ScreenText(String text, double fontSize, double y, double width) {
+    /** Um texto da tela, com o que basta para saber o papel dele: tamanho, altura e a largura de
+     * quem o envolve — não a do texto em si, que quase nunca ocupa a etiqueta ou o botão inteiro. */
+    public record ScreenText(String text, double fontSize, double y, double containerWidth) {
     }
 
     /**
@@ -324,44 +329,148 @@ public final class FigmaFlowExtractor {
      * topo (relógio, sinal, bateria) e a barra de navegação no rodapé, que se repete igual em todas
      * as telas e não diz nada sobre o passo.
      */
-    public static List<ScreenText> textsOf(JsonNode screen) {
+    public static List<ScreenText> textsOf(JsonNode screen, Set<String> excludedComponentIds) {
         JsonNode box = screen.path("absoluteBoundingBox");
         double top = box.path("y").asDouble(0);
         double bottom = top + box.path("height").asDouble(0);
         List<ScreenText> found = new ArrayList<>();
-        collectTexts(screen, top, bottom, found);
+        collectTexts(screen, box.path("width").asDouble(0), top, bottom, excludedComponentIds, found);
         found.sort(java.util.Comparator.comparingDouble(ScreenText::y));
         return found;
     }
 
     /**
      * Componente do design system que ficou sem preencher, ou peça interna dele. O que está escrito
-     * aí é instrução para quem desenha ("REPLACE ME!", "This is a Slot zone"), não conteúdo da
-     * etapa, e copiar isso para a tela do canal seria copiar o andaime junto com a obra.
+     * aí é instrução para quem desenha ("REPLACE ME!"), não conteúdo da etapa, e copiar isso para a
+     * tela do canal seria copiar o andaime junto com a obra.
+     *
+     * <p>Um nó chamado "Slot" não entra nessa lista: é o nome que o próprio Figma dá ao espaço de um
+     * componente, vazio ou não, e descartar pelo nome apagaria também o caso comum — um Slot
+     * preenchido de propósito, como o grupo de opções de uma pergunta. O slot vazio já é pego pela
+     * instância "REPLACE ME!" que ele carrega dentro.
      */
     private static boolean isDesignSystemScaffolding(JsonNode node) {
         String name = node.path("name").asText("");
-        return name.startsWith("REPLACE ME") || name.startsWith(".") || name.contains("Slot")
+        return name.startsWith("REPLACE ME") || name.startsWith(".")
                 || name.startsWith("_") || name.startsWith("resources/") || name.startsWith("Zone ");
     }
 
-    private static void collectTexts(JsonNode node, double top, double bottom, List<ScreenText> out) {
-        if (isDesignSystemScaffolding(node)) {
+    /** Um nó escondido no desenho (variante alternativa, texto de exemplo do componente) não é
+     * conteúdo visível da etapa, mesmo aparecendo na árvore. */
+    private static boolean isVisible(JsonNode node) {
+        return node.path("visible").asBoolean(true);
+    }
+
+    private static boolean inBody(double y, double top, double bottom) {
+        return y != Double.MAX_VALUE && y - top >= STATUS_BAR_HEIGHT && y <= bottom - BOTTOM_BAR_HEIGHT;
+    }
+
+    private static void collectTexts(JsonNode node, double parentWidth, double top, double bottom,
+                                      Set<String> excludedComponentIds, List<ScreenText> out) {
+        if (isDesignSystemScaffolding(node) || !isVisible(node)) {
             return;
         }
+        // Já virou uma opção de um grupo de seleção (ver optionGroupsOf); varrer de novo por dentro
+        // duplicaria a mesma resposta como texto solto e como opção.
+        if (TYPE_INSTANCE.equals(node.path("type").asText())
+                && excludedComponentIds.contains(node.path("componentId").asText(""))) {
+            return;
+        }
+        double width = node.path("absoluteBoundingBox").path("width").asDouble(parentWidth);
         if (TYPE_TEXT.equals(node.path("type").asText())) {
             String characters = node.path("characters").asText();
             JsonNode box = node.path("absoluteBoundingBox");
             double y = box.path("y").asDouble(Double.MAX_VALUE);
-            boolean inBody = y != Double.MAX_VALUE && y - top >= STATUS_BAR_HEIGHT && y <= bottom - BOTTOM_BAR_HEIGHT;
-            if (characters != null && !characters.isBlank() && inBody
+            if (characters != null && !characters.isBlank() && inBody(y, top, bottom)
                     && characters.codePoints().anyMatch(Character::isLetter)) {
                 out.add(new ScreenText(characters.replaceAll("\\s+", " ").trim(),
-                        node.path("style").path("fontSize").asDouble(0), y, box.path("width").asDouble(0)));
+                        node.path("style").path("fontSize").asDouble(0), y, parentWidth));
             }
         }
         for (JsonNode child : node.path("children")) {
-            collectTexts(child, top, bottom, out);
+            collectTexts(child, width, top, bottom, excludedComponentIds, out);
+        }
+    }
+
+    /** Um grupo de opções: instâncias do mesmo componente, repetidas na tela — um chip desenhado
+     * uma vez e copiado para cada resposta possível. {@code y} é a posição da primeira instância,
+     * para intercalar o grupo entre os demais textos na ordem em que o desenho os mostra. */
+    public record OptionGroup(String componentId, double y, List<String> labels) {
+    }
+
+    /**
+     * Uma instância sozinha é só um componente comum da tela (um selo, uma etiqueta); a repetição é
+     * o que a torna uma pergunta de múltipla escolha. Por isso só vira grupo a partir de duas
+     * instâncias do mesmo componente de origem — uma só não basta para presumir uma lista de opções.
+     */
+    public static List<OptionGroup> optionGroupsOf(JsonNode screen) {
+        JsonNode box = screen.path("absoluteBoundingBox");
+        double top = box.path("y").asDouble(0);
+        double bottom = top + box.path("height").asDouble(0);
+        Map<String, List<JsonNode>> byComponent = new LinkedHashMap<>();
+        collectOptionInstances(screen, top, bottom, byComponent);
+
+        List<OptionGroup> groups = new ArrayList<>();
+        for (Map.Entry<String, List<JsonNode>> entry : byComponent.entrySet()) {
+            List<JsonNode> instances = entry.getValue();
+            if (instances.size() < 2) {
+                continue;
+            }
+            double groupY = instances.stream().mapToDouble(FigmaFlowExtractor::yOf).min().orElse(0);
+            List<String> labels = instances.stream().map(FigmaFlowExtractor::labelOf)
+                    .filter(label -> !label.isBlank()).toList();
+            if (!labels.isEmpty()) {
+                groups.add(new OptionGroup(entry.getKey(), groupY, labels));
+            }
+        }
+        return groups;
+    }
+
+    private static void collectOptionInstances(JsonNode node, double top, double bottom,
+                                                Map<String, List<JsonNode>> out) {
+        if (isDesignSystemScaffolding(node) || !isVisible(node)) {
+            return;
+        }
+        String componentId = node.path("componentId").asText("");
+        if (TYPE_INSTANCE.equals(node.path("type").asText()) && !componentId.isBlank()
+                && inBody(yOf(node), top, bottom)) {
+            out.computeIfAbsent(componentId, key -> new ArrayList<>()).add(node);
+            return;
+        }
+        for (JsonNode child : node.path("children")) {
+            collectOptionInstances(child, top, bottom, out);
+        }
+    }
+
+    private static double yOf(JsonNode node) {
+        return node.path("absoluteBoundingBox").path("y").asDouble(0);
+    }
+    /** O rótulo de uma instância é o maior texto visível dentro dela — o mesmo critério que já
+     * escolhe o título da tela, aplicado ao componente em vez da tela inteira. */
+    private static String labelOf(JsonNode instance) {
+        String[] found = {""};
+        double[] bestSize = {-1};
+        walkOptionLabel(instance, found, bestSize);
+        return found[0];
+    }
+
+    private static void walkOptionLabel(JsonNode node, String[] found, double[] bestSize) {
+        if (isDesignSystemScaffolding(node) || !isVisible(node)) {
+            return;
+        }
+        if (TYPE_TEXT.equals(node.path("type").asText())) {
+            String characters = node.path("characters").asText();
+            if (characters != null && !characters.isBlank()
+                    && characters.codePoints().anyMatch(Character::isLetter)) {
+                double size = node.path("style").path("fontSize").asDouble(0);
+                if (size > bestSize[0]) {
+                    bestSize[0] = size;
+                    found[0] = characters.replaceAll("\\s+", " ").trim();
+                }
+            }
+        }
+        for (JsonNode child : node.path("children")) {
+            walkOptionLabel(child, found, bestSize);
         }
     }
 

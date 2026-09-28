@@ -4,6 +4,7 @@ import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowIds;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
+import com.jouney.admin.domain.sdui.SduiBinding;
 import com.jouney.admin.domain.sdui.SduiEvent;
 import com.jouney.admin.domain.sdui.SduiNode;
 import java.util.ArrayList;
@@ -49,6 +50,10 @@ public final class FigmaFlowBuilder {
 
     /** Um passo do fluxo: a tela que o representa e todas as telas que foram reunidas nele. */
     private record Step(String flowNodeId, String title, JsonNode screen, Set<String> figmaIds) {
+    }
+
+    /** Um item do corpo da tela já pronto, com a posição que decide sua ordem entre os demais. */
+    private record BodyItem(double y, SduiNode node) {
     }
 
     /**
@@ -402,8 +407,9 @@ public final class FigmaFlowBuilder {
      *
      * <p>O título não se repete no corpo: ele já nomeia a tela, e vê-lo duas vezes seguidas é ruído.
      */
-    // ponytail: todo texto do corpo vira ui.text. Campos, listas e seleções continuam como texto até
-    // existir o de/para entre os componentes do design system e o catálogo.
+    // ponytail: texto do corpo que não repete um componente vira ui.text solto. Só a repetição de um
+    // mesmo componente (ver optionGroupsOf) ganha tratamento próprio, como grupo de seleção; campos
+    // de outros tipos continuam como texto até existir o de/para entre o design system e o catálogo.
     private static SduiNode screenOf(Step step) {
         return buildScreenNode(step.flowNodeId(), step.title(), step.screen());
     }
@@ -413,31 +419,54 @@ public final class FigmaFlowBuilder {
      * ao importar uma tela avulsa dentro do editor (uma tela por vez, escolhida pelo usuário).
      */
     public static SduiNode buildScreenNode(String idPrefix, String title, JsonNode screen) {
-        List<FigmaFlowExtractor.ScreenText> texts = FigmaFlowExtractor.textsOf(screen);
+        List<FigmaFlowExtractor.OptionGroup> optionGroups = FigmaFlowExtractor.optionGroupsOf(screen);
+        Set<String> groupedComponentIds = optionGroups.stream()
+                .map(FigmaFlowExtractor.OptionGroup::componentId)
+                .collect(java.util.stream.Collectors.toSet());
+        List<FigmaFlowExtractor.ScreenText> texts = FigmaFlowExtractor.textsOf(screen, groupedComponentIds);
         double titleSize = texts.stream().mapToDouble(FigmaFlowExtractor.ScreenText::fontSize).max().orElse(0);
 
         // A ação principal é a mais larga do rodapé da tela — é assim que ela é desenhada, ocupando
-        // a linha inteira embaixo. Buscar simplesmente "a última larga" pega qualquer opção da
-        // lista que por acaso estivesse mais abaixo.
+        // a linha inteira embaixo. A largura que conta é a de quem envolve o texto (o botão), não a
+        // do texto em si: um rótulo curto como "Continuar" nunca chega perto da tela inteira sozinho.
         JsonNode box = screen.path("absoluteBoundingBox");
         double screenWidth = box.path("width").asDouble(0);
         double lowerThird = box.path("y").asDouble(0) + box.path("height").asDouble(0) * 0.6;
         String buttonLabel = texts.stream()
-                .filter(text -> text.y() >= lowerThird && text.width() >= screenWidth * 0.5)
-                .max(Comparator.comparingDouble(FigmaFlowExtractor.ScreenText::width))
+                .filter(text -> text.y() >= lowerThird && text.containerWidth() >= screenWidth * 0.5)
+                .max(Comparator.comparingDouble(FigmaFlowExtractor.ScreenText::containerWidth))
                 .map(FigmaFlowExtractor.ScreenText::text)
                 .orElse("Continuar");
 
-        List<SduiNode> children = new ArrayList<>();
-        int index = 0;
+        // Textos soltos e grupos de opções entram juntos, ordenados pela posição no desenho — assim
+        // um grupo de chips aparece exatamente onde ficava entre os demais textos, não só no fim.
+        List<BodyItem> items = new ArrayList<>();
+        int textIndex = 0;
         for (FigmaFlowExtractor.ScreenText text : texts) {
             boolean isTitle = text.fontSize() == titleSize && text.text().equals(title);
             if (isTitle || text.text().equals(buttonLabel)) {
                 continue;
             }
-            children.add(new SduiNode(idPrefix + "-text-" + index++, "ui.text", "1.0.0",
-                    Map.of("text", text.text()), null, null, null, null, null));
+            items.add(new BodyItem(text.y(), new SduiNode(idPrefix + "-text-" + textIndex++, "ui.text", "1.0.0",
+                    Map.of("text", text.text()), null, null, null, null, null)));
         }
+        for (FigmaFlowExtractor.OptionGroup group : optionGroups) {
+            List<Map<String, Object>> options = new ArrayList<>();
+            for (int i = 0; i < group.labels().size(); i++) {
+                options.add(Map.of("value", "opcao_" + (i + 1), "label", group.labels().get(i)));
+            }
+            // Mesmo formato de id que o editor dá a um campo novo (tipo_sufixo, sem hífen): o id vira
+            // o nome da variável que guarda a resposta, e hífen num nome de variável quebra a
+            // expressão que a lê depois numa Decisão.
+            String selectId = "select_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+            items.add(new BodyItem(group.y(), new SduiNode(selectId, "ui.select", "1.0.0",
+                    Map.of("label", "Selecione uma opção", "options", options),
+                    Map.of("value", new SduiBinding("form." + selectId, "twoWay")), null, null, null, null)));
+        }
+        items.sort(Comparator.comparingDouble(BodyItem::y));
+
+        List<SduiNode> children = new ArrayList<>();
+        items.forEach(item -> children.add(item.node()));
         children.add(new SduiNode(idPrefix + "-submit", "ui.button", "1.0.0",
                 Map.of("label", buttonLabel, "variant", "primary", "fullWidth", true), null,
                 Map.of("onPress", new SduiEvent("action.submit", null)), null, null, null));

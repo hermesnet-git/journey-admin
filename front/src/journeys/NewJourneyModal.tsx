@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, FilePlus2, Frame, GitBranch, Sparkles } from 'lucide-react';
+import { Check, FilePlus2, GitBranch, Sparkles } from 'lucide-react';
+import { FigmaIcon } from '../shared/FigmaIcon';
 import { Modal } from '../products/Modal';
 import { Field, TextInput, TextArea, SelectInput, PrimaryButton, SecondaryButton, ErrorBanner } from '../products/ui';
 import { ChannelTypeChecklist } from '../products/ChannelTypeChecklist';
@@ -261,7 +262,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
                   {tab.mode === 'blank' && <FilePlus2 size={14} />}
                   {tab.mode === 'template' && <GitBranch size={14} />}
                   {tab.mode === 'ai' && <Sparkles size={14} />}
-                  {tab.mode === 'figma' && <Frame size={14} />}
+                  {tab.mode === 'figma' && <FigmaIcon size={14} />}
                   {tab.label}
                 </button>
               );

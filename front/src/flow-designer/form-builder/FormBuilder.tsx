@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
-import { AlertTriangle, FileInput, Frame, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
+import { AlertTriangle, FileInput, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
+import { FigmaIcon } from '../../shared/FigmaIcon';
 import { useFlowTheme } from '../theme';
 import type { VariableOrigin } from '../model';
 import { listAuthoringComponentDefinitions, listComponentDefinitions, type ComponentDefinition, type PropDescriptor } from '../../api/componentDefinitions';
@@ -329,6 +330,12 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
             disabled={!screenDefinition}
             className="px-4 py-[8px] rounded-md border-0 cursor-pointer text-[12.5px] font-medium"
             style={{ background: c.accent, color: '#fff', opacity: screenDefinition ? 1 : 0.5 }}
+            onMouseEnter={(e) => {
+              if (screenDefinition) e.currentTarget.style.filter = 'brightness(0.92)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.filter = 'none';
+            }}
           >
             Criar tela
           </button>
@@ -337,8 +344,14 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
             disabled={!screenDefinition}
             className="px-4 py-[8px] rounded-md cursor-pointer text-[12.5px] font-medium flex items-center gap-1.5"
             style={{ border: `1px solid ${c.border}`, background: 'transparent', color: c.textPrimary, opacity: screenDefinition ? 1 : 0.5 }}
+            onMouseEnter={(e) => {
+              if (screenDefinition) e.currentTarget.style.background = c.hoverBg;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
           >
-            <Frame size={13} /> Importar do Figma
+            <FigmaIcon size={13} /> Importar do Figma
           </button>
         </div>
         {figmaImportOpen && (
@@ -377,7 +390,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
               title="Importar tela do Figma (substitui a tela atual)"
               active={figmaImportOpen}
               onClick={() => setFigmaImportOpen(true)}
-              icon={Frame}
+              icon={FigmaIcon}
             />
             <ToolButton
               title={paletteOpen ? 'Recolher componentes' : 'Mostrar componentes'}
@@ -445,9 +458,9 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
               <div className="text-[11.5px] font-semibold" style={{ color: c.textPrimary }}>Comece a desenhar esta tela</div>
               <div className="text-[10.5px]" style={{ color: c.textSecondary }}>Escolha um modelo inicial ou adicione componentes pela paleta.</div>
             </div>
-            <button type="button" onClick={() => applyStarterTemplate('information')} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}><Info size={13} /> Informativa</button>
-            <button type="button" onClick={() => applyStarterTemplate('basicForm')} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}><FileInput size={13} /> Coleta básica</button>
-            <button type="button" onClick={() => setFigmaImportOpen(true)} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }}><Frame size={13} /> Importar do Figma</button>
+            <button type="button" onClick={() => applyStarterTemplate('information')} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = c.accent; e.currentTarget.style.background = c.hoverBg; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.background = c.cardBg; }}><Info size={13} /> Informativa</button>
+            <button type="button" onClick={() => applyStarterTemplate('basicForm')} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = c.accent; e.currentTarget.style.background = c.hoverBg; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.background = c.cardBg; }}><FileInput size={13} /> Coleta básica</button>
+            <button type="button" onClick={() => setFigmaImportOpen(true)} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer" style={{ border: `1px solid ${c.border}`, background: c.cardBg, color: c.textPrimary }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = c.accent; e.currentTarget.style.background = c.hoverBg; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.background = c.cardBg; }}><FigmaIcon size={13} /> Importar do Figma</button>
           </div>
         )}
         <div className="flex-1 flex min-h-0">
@@ -517,7 +530,7 @@ function ToolButton({ title, active, onClick, icon: Icon }: {
   title: string;
   active: boolean;
   onClick: () => void;
-  icon: typeof ListTree;
+  icon: ComponentType<{ size?: number }>;
 }) {
   const { c } = useFlowTheme();
   return (
@@ -528,6 +541,12 @@ function ToolButton({ title, active, onClick, icon: Icon }: {
       onClick={onClick}
       className="w-8 h-8 rounded-md border-0 flex items-center justify-center cursor-pointer"
       style={{ background: active ? c.accentSoft : 'transparent', color: active ? c.accent : c.textSecondary }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.background = c.hoverBg;
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.background = 'transparent';
+      }}
     >
       <Icon size={16} />
     </button>

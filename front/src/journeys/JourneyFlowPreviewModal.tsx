@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useAppTheme, type AppColors } from '../shell/theme';
-import { getFlow, type Flow } from '../api/flows';
+import type { JourneyVersion } from '../api/versions';
 import { NODE_META, TYPE_COLOR, type NodeType } from '../flow-designer/model';
 import { FlowDiagramViewer } from '../execution/FlowDiagramViewer';
 import type { FlowConnectionInfo, FlowNodeInfo } from '../execution/api';
@@ -11,8 +11,7 @@ import type { FlowConnectionInfo, FlowNodeInfo } from '../execution/api';
 const LEGEND_TYPES: NodeType[] = ['start', 'userTask', 'serviceTask', 'receiveTask', 'gateway', 'end'];
 
 interface Props {
-  journeyId: string;
-  journeyName: string;
+  version: JourneyVersion;
   onClose: () => void;
 }
 
@@ -23,10 +22,8 @@ const MIN_WIDTH = 480;
 const MIN_HEIGHT = 320;
 const DEFAULT_WIDTH = 960;
 
-export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Props) {
+export function JourneyFlowPreviewModal({ version, onClose }: Props) {
   const { colors: c } = useAppTheme();
-  const [flow, setFlow] = useState<Flow | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
   // Tamanho inicial aplicado direto no DOM (não via state/style do React) — resize:both é nativo do
@@ -42,20 +39,6 @@ export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Pro
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    getFlow(journeyId)
-      .then((f) => {
-        if (!cancelled) setFlow(f);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erro ao carregar o fluxo.');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [journeyId]);
-
-  useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
     }
@@ -63,27 +46,16 @@ export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Pro
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
-  const nodes: FlowNodeInfo[] =
-    flow?.nodes.map((n) => ({
-      id: n.nodeId,
-      type: n.nodeType,
-      name: n.name,
-      positionX: n.positionX,
-      positionY: n.positionY,
-      connectorConfig: n.connectorConfig
-        ? { connectorType: n.connectorConfig.connectorType, config: n.connectorConfig.config }
-        : null,
-      startVariables: n.startVariables,
-    })) ?? [];
-
-  const connections: FlowConnectionInfo[] =
-    flow?.connections.map((conn) => ({
-      id: conn.connectionId,
-      sourceNodeId: conn.sourceNodeId,
-      targetNodeId: conn.targetNodeId,
-      condition: conn.condition,
-      isDefault: conn.isDefault,
-    })) ?? [];
+  // O snapshot da versão já vem no mesmo formato que o visualizador das Execuções consome — só o
+  // flag de conexão padrão chega serializado como `default` (getter isDefault() no back).
+  const nodes = version.snapshot.flowNodes as unknown as FlowNodeInfo[];
+  const connections: FlowConnectionInfo[] = version.snapshot.flowConnections.map((conn) => ({
+    id: conn.id,
+    sourceNodeId: conn.sourceNodeId,
+    targetNodeId: conn.targetNodeId,
+    condition: conn.condition,
+    isDefault: conn.default,
+  }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={onClose}>
@@ -106,10 +78,10 @@ export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Pro
         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b shrink-0" style={{ borderColor: c.border }}>
           <div className="min-w-0">
             <h2 className="m-0 text-[16px] font-semibold tracking-[-0.01em]" style={{ color: c.textPrimary }}>
-              Fluxo: {journeyName}
+              Fluxo: v{version.versionNumber}
             </h2>
             <p className="m-0 mt-[3px] text-[12.5px]" style={{ color: c.textSecondary }}>
-              Visualização somente leitura do fluxo atual da jornada.
+              Visualização somente leitura do fluxo gravado nesta versão.
             </p>
           </div>
           <button
@@ -124,17 +96,9 @@ export function JourneyFlowPreviewModal({ journeyId, journeyName, onClose }: Pro
         </div>
 
         <div className="relative flex-1 min-h-0">
-          {error ? (
-            <p className="p-6 text-[13px]" style={{ color: c.danger }}>
-              {error}
-            </p>
-          ) : !flow ? (
+          {nodes.length === 0 ? (
             <p className="p-6 text-[13px]" style={{ color: c.textSecondary }}>
-              Carregando...
-            </p>
-          ) : nodes.length === 0 ? (
-            <p className="p-6 text-[13px]" style={{ color: c.textSecondary }}>
-              Esta jornada ainda não tem um fluxo definido.
+              Esta versão ainda não tem um fluxo definido.
             </p>
           ) : (
             <>

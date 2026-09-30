@@ -147,7 +147,6 @@ function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
   const [deletingJourney, setDeletingJourney] = useState<Journey | null>(null);
   const [unpublishingJourney, setUnpublishingJourney] = useState<Journey | null>(null);
   const [viewingPublicationJourney, setViewingPublicationJourney] = useState<Journey | null>(null);
-  const [viewingFlowJourney, setViewingFlowJourney] = useState<Journey | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -357,7 +356,6 @@ function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
                   onDelete={() => setDeletingJourney(j)}
                   onUnpublish={() => setUnpublishingJourney(j)}
                   onViewPublication={() => setViewingPublicationJourney(j)}
-                  onViewFlow={() => setViewingFlowJourney(j)}
                   onExecute={() => onExecuteJourney(j)}
                   onVersionsChanged={reload}
                 />
@@ -410,13 +408,6 @@ function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
         />
       )}
 
-      {viewingFlowJourney && (
-        <JourneyFlowPreviewModal
-          journeyId={viewingFlowJourney.journeyId}
-          journeyName={viewingFlowJourney.name}
-          onClose={() => setViewingFlowJourney(null)}
-        />
-      )}
     </div>
   );
 }
@@ -498,7 +489,6 @@ function JourneyActions({
   onDelete,
   onUnpublish,
   onViewPublication,
-  onViewFlow,
   onExecute,
 }: {
   journey: Journey;
@@ -506,14 +496,12 @@ function JourneyActions({
   onDelete: () => void;
   onUnpublish: () => void;
   onViewPublication: () => void;
-  onViewFlow: () => void;
   onExecute: () => void;
 }) {
   const actions: MenuAction[] = [
     ...(journey.status === 'PUBLISHED'
       ? [{ icon: PlayCircle, label: 'Executar jornada', onClick: onExecute, variant: 'success' as const }]
       : []),
-    { icon: Waypoints, label: 'Ver fluxo da jornada', onClick: onViewFlow },
     {
       icon: Pencil,
       label: journey.status === 'INACTIVE' ? 'Jornada inativa não pode ser editada' : 'Editar jornada',
@@ -547,7 +535,6 @@ function JourneyDetailRow({
   onDelete,
   onUnpublish,
   onViewPublication,
-  onViewFlow,
   onExecute,
   onVersionsChanged,
 }: {
@@ -556,7 +543,6 @@ function JourneyDetailRow({
   onDelete: () => void;
   onUnpublish: () => void;
   onViewPublication: () => void;
-  onViewFlow: () => void;
   onExecute: () => void;
   onVersionsChanged: () => void;
 }) {
@@ -603,7 +589,6 @@ function JourneyDetailRow({
           onDelete={onDelete}
           onUnpublish={onUnpublish}
           onViewPublication={onViewPublication}
-          onViewFlow={onViewFlow}
           onExecute={onExecute}
         />
       </div>
@@ -641,6 +626,7 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
   const [deletingVersion, setDeletingVersion] = useState<JourneyVersion | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<JourneyVersion | null>(null);
   const [jsonVersion, setJsonVersion] = useState<JourneyVersion | null>(null);
+  const [flowVersion, setFlowVersion] = useState<JourneyVersion | null>(null);
 
   const reload = useCallback(() => {
     listJourneyVersions(journeyId)
@@ -834,7 +820,8 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
                 <ActionsMenu
                   label="Ações da versão"
                   actions={[
-                    { icon: FileJson, label: 'Ver JSON do snapshot', onClick: () => setJsonVersion(v) },
+                    { icon: Waypoints, label: 'Visualizar fluxo desta versão', onClick: () => setFlowVersion(v) },
+                    { icon: FileJson, label: 'Visualizar dados da versão (JSON)', onClick: () => setJsonVersion(v) },
                     ...(v.status === 'DRAFT'
                       ? [
                           {
@@ -931,6 +918,8 @@ function JourneyVersionsRows({ journeyId, onJourneyChanged }: { journeyId: strin
           onCancel={() => setDeletingVersion(null)}
         />
       )}
+
+      {flowVersion && <JourneyFlowPreviewModal version={flowVersion} onClose={() => setFlowVersion(null)} />}
 
       {jsonVersion && (
         <PublicationSnapshotModal

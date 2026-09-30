@@ -360,6 +360,9 @@ class _ChannelHostPageState extends State<ChannelHostPage> {
       },
       handlers: RuntimeHandlers(
         submit: _submitAnswers,
+        // "Tentar novamente" (fonte de dados obrigatória que falhou): pede a
+        // etapa de novo, o que refaz a montagem da tela no servidor.
+        retry: (_, _) => _refreshStep(),
         openUrl: _openUrl,
         navigate: (params, _) async => _notify(
           'Navegação solicitada: ${params['route'] ?? params['destination'] ?? 'destino não informado'}',

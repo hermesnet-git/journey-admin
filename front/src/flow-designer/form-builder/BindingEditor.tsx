@@ -143,6 +143,7 @@ export function BindingEditor({
   bindingNames,
   requiredBindingNames,
   fixedMode,
+  modeByName,
   variables,
   onChange,
 }: {
@@ -151,6 +152,8 @@ export function BindingEditor({
   bindingNames: string[];
   requiredBindingNames: string[];
   fixedMode: SduiBinding['mode'] | null;
+  /** Modo fixo por vínculo quando o componente mistura leitura e gravação (lista de seleção). */
+  modeByName?: Record<string, SduiBinding['mode']>;
   variables: VariableOrigin[];
   onChange: (bindings: Record<string, SduiBinding> | null) => void;
 }) {
@@ -174,7 +177,10 @@ export function BindingEditor({
       {bindingNames.map((name) => {
         const binding = bindings?.[name] ?? null;
         const { namespace, suffix } = splitPath(binding?.path);
-        const mode = fixedMode ?? binding?.mode ?? 'oneWay';
+        const mode = modeByName?.[name] ?? fixedMode ?? binding?.mode ?? 'oneWay';
+        // Itens/opções só podem vir de uma lista (saída de integração do tipo lista ou fonte de dados da tela).
+        const listOnly = name === 'items' || name === 'options';
+        const pathVariables = listOnly ? variables.filter((v) => v.type === 'list') : variables;
         const required = requiredBindingNames.includes(name);
         return (
           <div key={name} className="flex flex-col gap-[4px]">
@@ -191,7 +197,7 @@ export function BindingEditor({
                 <input
                   type="checkbox"
                   checked={!!binding}
-                  onChange={(e) => setBinding(name, e.target.checked ? { path: 'form.', mode } : null)}
+                  onChange={(e) => setBinding(name, e.target.checked ? { path: listOnly ? 'data.' : 'form.', mode } : null)}
                 />
               )}
               {name}{required ? ' *' : ''}
@@ -200,12 +206,12 @@ export function BindingEditor({
           <NamespacePathInput
             namespace={namespace}
             suffix={suffix}
-            variables={variables}
+            variables={pathVariables}
             root={root}
             strict={mode === 'oneWay'}
             onChange={(ns, s) => setBinding(name, { path: `${ns}.${s}`, mode })}
           />
-          {fixedMode ? (
+          {fixedMode || modeByName?.[name] ? (
             <div className="flex items-center gap-1 text-[10.5px]" style={{ color: c.textSecondary }} title={MODE_HELP[mode]}>
               {MODE_LABEL[mode]} <span style={{ opacity: 0.7 }}>(fixo para este componente)</span>
             </div>

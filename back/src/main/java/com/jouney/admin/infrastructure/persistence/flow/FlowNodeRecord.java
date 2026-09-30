@@ -17,7 +17,8 @@ import java.util.Map;
 public record FlowNodeRecord(String id, FlowNodeType type, String name, String description, int positionX,
                               int positionY, ConnectorConfigRecord connectorConfig,
                               List<Map<String, Object>> startVariables,
-                              SduiNode embeddedScreenRoot, SduiScreenEnvelope sdui) {
+                              SduiNode embeddedScreenRoot, SduiScreenEnvelope sdui,
+                              List<Map<String, Object>> screenDataSources) {
 
     public record ConnectorConfigRecord(ConnectorType connectorType, Map<String, Object> config,
                                          String credentialRef) {

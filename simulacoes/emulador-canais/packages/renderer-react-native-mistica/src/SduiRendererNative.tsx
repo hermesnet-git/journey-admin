@@ -344,6 +344,34 @@ export function SduiRendererNative({
     }
   };
 
+  const listAction = async (node: SduiNode, actionId: string): Promise<void> => {
+    const result = await runtime.selectListAction(node, actionId);
+    setErrors(result.errors);
+  };
+
+  // "Tentar novamente" de uma fonte de dados obrigatória que falhou (action.retry).
+  const retry = (node: SduiNode): void => {
+    void runtime.dispatch({ ...node, events: { retry: { action: 'action.retry' } } }, 'retry');
+  };
+
+  const loadErrorBox = (node: SduiNode, title: string): ReactNode => {
+    const loadError = node.attributes.loadError as { message?: string; required?: boolean } | undefined;
+    if (!loadError) return null;
+    return (
+      <View style={[styles.alert, { borderColor: tokens.colors.negative }]}>
+        <View style={{ flex: 1, gap: 6 }}>
+          <Text style={{ color: tokens.colors.textPrimary, fontWeight: '700' }}>{title}</Text>
+          <Text style={{ color: tokens.colors.textSecondary }}>{loadError.message ?? ''}</Text>
+          {loadError.required ? (
+            <Pressable accessibilityRole="button" onPress={() => retry(node)}>
+              <Text style={{ color: tokens.colors.brand, fontWeight: '700' }}>Tentar novamente</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+    );
+  };
+
   const change = async (node: SduiNode, value: unknown): Promise<void> => {
     if (!runtime.setNodeValue(node, value)) {
       onDiagnostics?.({ code: 'BINDING_NOT_WRITABLE', nodeId: node.id, message: 'O campo não possui binding form.* twoWay gravável.' });
@@ -479,7 +507,57 @@ export function SduiRendererNative({
       }
 
       case 'ui.select': {
-        return <NativeSelectField node={node} runtime={runtime} error={fieldError(node)} tokens={tokens} onChange={change} active={active} />;
+        return (
+          <View style={styles.field}>
+            {loadErrorBox(node, 'Não foi possível carregar as opções')}
+            <NativeSelectField node={node} runtime={runtime} error={fieldError(node)} tokens={tokens} onChange={change} active={active} />
+          </View>
+        );
+      }
+
+      case 'ui.selectList': {
+        const error = fieldError(node);
+        const items = (Array.isArray(props.items) ? props.items : []) as Array<{ value: string; title: string; description?: string; hint?: string; enabledActions: string[] }>;
+        const actions = (Array.isArray(props.actions) ? props.actions : []) as Array<{ id: string; label: string; variant?: string }>;
+        const selected = stringValue(runtime.getNodeValue(node));
+        const selectedItem = items.find((item) => item.value === selected);
+        const loadError = props.loadError as { required?: boolean } | undefined;
+        const total = typeof props.totalItems === 'number' ? props.totalItems : items.length;
+        return (
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: tokens.colors.textPrimary }]}>{resolved(props.label)}{props.required === true ? ' *' : ''}</Text>
+            {loadErrorBox(node, 'Não foi possível carregar a lista')}
+            {!loadError?.required && items.length === 0 ? <Text style={{ color: tokens.colors.textSecondary }}>{resolved(props.emptyMessage) || 'Nenhum item para mostrar.'}</Text> : null}
+            {items.map((item) => {
+              const checked = item.value === selected;
+              return (
+                <Pressable key={item.value} disabled={!active} accessibilityRole="radio" accessibilityState={{ checked, disabled: !active }} onPress={() => void change(node, item.value)}
+                  style={{ borderWidth: 1, borderRadius: 10, padding: 12, gap: 2, borderColor: checked ? tokens.colors.brand : tokens.colors.border, backgroundColor: tokens.colors.surface }}>
+                  <Text style={{ color: tokens.colors.textPrimary, fontWeight: '600' }}>{item.title}</Text>
+                  {item.description ? <Text style={{ color: tokens.colors.textSecondary }}>{item.description}</Text> : null}
+                  {checked && item.hint ? <Text style={{ color: tokens.colors.textSecondary }}>{item.hint}</Text> : null}
+                </Pressable>
+              );
+            })}
+            {total > items.length ? <Text style={{ color: tokens.colors.textSecondary, fontSize: 12 }}>Mostrando {items.length} de {total}.</Text> : null}
+            {error ? <Text style={[styles.helper, { color: tokens.colors.negative }]}>{error}</Text> : null}
+            {actions.length > 0 && !loadError?.required ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {actions.map((action) => {
+                  const enabled = active && !submitting && !!selectedItem && selectedItem.enabledActions.includes(action.id);
+                  const background = action.variant === 'danger' ? tokens.colors.negative : action.variant === 'secondary' ? 'transparent' : tokens.colors.brand;
+                  const foreground = action.variant === 'secondary' ? tokens.colors.brand : tokens.colors.onBrand;
+                  return (
+                    <Pressable key={action.id} accessibilityRole="button" accessibilityState={{ disabled: !enabled }} disabled={!enabled} onPress={() => void listAction(node, action.id)}
+                      style={[styles.button, { backgroundColor: background, borderColor: action.variant === 'secondary' ? tokens.colors.brand : background, opacity: enabled ? 1 : 0.45, alignSelf: 'flex-start' }]}>
+                      <Text style={{ color: foreground, fontWeight: '700' }}>{action.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
+          </View>
+        );
       }
 
       case 'ui.checkbox': {

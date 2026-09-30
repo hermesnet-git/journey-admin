@@ -24,8 +24,9 @@ public record FlowNodeInput(
 
     public FlowNode toDomain() {
         var embeddedScreenRoot = userTaskConfig != null ? userTaskConfig.embeddedScreenRoot() : null;
+        var dataSources = userTaskConfig != null ? userTaskConfig.dataSources() : null;
         return new FlowNode(nodeId, nodeType, name, description, positionX, positionY,
                 connectorConfig != null ? connectorConfig.toDomain() : null, startVariables,
-                embeddedScreenRoot);
+                embeddedScreenRoot, null, dataSources == null || dataSources.isEmpty() ? null : dataSources);
     }
 }

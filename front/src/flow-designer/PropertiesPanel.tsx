@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, X, Play, Loader2, Braces, Copy, Check, Maximize2 } from 'lucide-react';
 import { IconButton, skinVars, type IconProps } from '@telefonica/mistica';
@@ -948,7 +948,7 @@ function StartVariablesEditor({
             style={{ ...inputStyle(c), cursor: 'pointer', flex: '0 0 110px' }}
             title="Tipo da variável"
             value={v.type}
-            onChange={(e) => commit(variables.map((r, ri) => (ri === i ? { ...r, type: e.target.value as VariableType } : r)))}
+            onChange={(e) => commit(variables.map((r, ri) => (ri === i ? { ...r, type: e.target.value as StartVariable['type'] } : r)))}
           >
             <option value="string">Texto</option>
             <option value="number">Número</option>
@@ -1251,8 +1251,8 @@ export function OutputMappingEditor({
           </div>
 
           {rules.map((rule, i) => (
+            <Fragment key={i}>
             <div
-              key={i}
               style={{ display: 'grid', gridTemplateColumns, borderTop: i === 0 ? 'none' : cellBorder }}
             >
               <div style={{ borderRight: cellBorder, display: 'flex', alignItems: 'center' }}>
@@ -1294,6 +1294,7 @@ export function OutputMappingEditor({
                   <option value="boolean">Booleano</option>
                   <option value="date">Data</option>
                   <option value="datetime">Data e hora</option>
+                  <option value="list">Lista</option>
                 </select>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1306,6 +1307,21 @@ export function OutputMappingEditor({
                 />
               </div>
             </div>
+            {rule.type === 'list' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderTop: cellBorder, background: c.canvasBg }}>
+                <span style={{ fontSize: 11.5, color: c.textSecondary, whiteSpace: 'nowrap' }}>Campos a manter</span>
+                <input
+                  style={{ ...cellInputStyle(c), fontFamily: 'monospace', border: cellBorder, borderRadius: 4 }}
+                  placeholder="numeroBilhete, tipoDefeito, status (vazio mantém o item inteiro)"
+                  value={(rule.keepFields ?? []).join(', ')}
+                  onChange={(e) => commit(rules.map((r, ri) => (ri === i
+                    ? { ...r, keepFields: e.target.value.split(',').map((f) => f.trim()).filter((f, fi, all) => f !== '' || fi === all.length - 1) }
+                    : r)))}
+                  title="Só estes campos de cada item ficam gravados na jornada — o resto da resposta não é guardado"
+                />
+              </div>
+            )}
+            </Fragment>
           ))}
         </div>
       )}

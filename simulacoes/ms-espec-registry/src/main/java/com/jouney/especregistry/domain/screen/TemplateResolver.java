@@ -43,16 +43,33 @@ public final class TemplateResolver {
      * ainda precisa deles pra binding `twoWay`, despacho de ação e reavaliação de visibilidade
      * sobre o que o usuário preenche antes de submeter. */
     public static JsonNode resolveTuple(JsonNode tuple, Map<String, EngineVariable> variables) {
+        return resolveTuple(tuple, variables, Map.of());
+    }
+
+    /** {@code sourceErrors}: fontes de dados da tela que falharam, pelo nome da variável (data_&lt;apelido&gt;)
+     * — a lista de seleção e o select que as usam recebem {@code loadError} (ADR-002). */
+    public static JsonNode resolveTuple(JsonNode tuple, Map<String, EngineVariable> variables,
+                                        Map<String, SourceError> sourceErrors) {
         if (tuple == null || !tuple.isArray() || tuple.size() < 2) {
             return tuple;
         }
+        String type = tuple.get(0).asText();
         ArrayNode resolved = MAPPER.createArrayNode();
         resolved.add(tuple.get(0));
-        resolved.add(resolveAttributes(tuple.get(1), variables));
+        if ("ui.selectList".equals(type)) {
+            // Os itens são montados aqui, no servidor: {{item.x}} e as regras das ações nunca saem.
+            resolved.add(ListMaterializer.selectList(tuple.get(1), variables, sourceErrors));
+        } else {
+            ObjectNode attributes = resolveAttributes(tuple.get(1), variables);
+            if ("ui.select".equals(type) && tuple.get(1).path("$bindings").has("options")) {
+                ListMaterializer.selectOptions(tuple.get(1), variables, sourceErrors, attributes);
+            }
+            resolved.add(attributes);
+        }
         if (tuple.size() == 3) {
             ArrayNode children = MAPPER.createArrayNode();
             for (JsonNode child : tuple.get(2)) {
-                children.add(resolveTuple(child, variables));
+                children.add(resolveTuple(child, variables, sourceErrors));
             }
             resolved.add(children);
         }

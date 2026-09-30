@@ -19,10 +19,21 @@ export interface FlowNode {
   positionY: number;
   // embeddedScreenRoot é a raiz da árvore SDUI (catálogo corporativo v1) desenhada no editor
   // embutido do dock — sempre um único ui.screen, null quando não há tela.
-  userTaskConfig: { embeddedScreenRoot: SduiNode | null } | null;
+  // dataSources: fontes de dados de referência que a tela usa (ADR-002).
+  userTaskConfig: { embeddedScreenRoot: SduiNode | null; dataSources?: ScreenDataSource[] | null } | null;
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: {name, type} declarations, meaningful only on the START node.
   startVariables: { name: string; type: 'string' | 'number' | 'boolean' | 'date' | 'datetime' }[] | null;
+}
+
+// Fonte de dados declarada por uma tela: o resultado vira data.<alias> (lista) só dentro dela.
+// params: valor de cada marcador {nome} da URL da fonte, com variáveis do motor ({{form_x}}/{{data_x}}).
+export interface ScreenDataSource {
+  alias: string;
+  source: string;
+  params: Record<string, string>;
+  required: boolean;
+  errorMessage: string;
 }
 
 export interface FlowConnection {

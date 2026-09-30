@@ -219,11 +219,16 @@ export function createNode(definition: ComponentDefinition): SduiNode {
   // sincronia sempre que o autor renomear "Nome" (Identificação), então não precisa de um segundo
   // passo manual pra apontar o binding pro nome certo. Só fica desalinhado se o autor customizar o
   // caminho do binding na mão (a mesma checagem de handleRenameNode para de seguir nesse caso).
-  const inputBinding = definition.category === 'INPUT' && definition.allowedReservedFields.includes('$bindings')
+  const inputBinding: Record<string, SduiBinding> | null = definition.type === 'ui.selectList'
+    // Lista de seleção nasce lendo de data. (a escolher), gravando o item e a ação escolhidos.
+    ? { items: { path: 'data.', mode: 'oneWay' as const }, value: { path: `form.${id}`, mode: 'twoWay' as const }, action: { path: `form.${id}Acao`, mode: 'twoWay' as const } }
+    : definition.category === 'INPUT' && definition.allowedReservedFields.includes('$bindings')
     ? { value: { path: `form.${id}`, mode: 'twoWay' as const } }
     : null;
-  const requiredAction = definition.allowedReservedFields.includes('$events') && definition.events.includes('onPress')
+  const requiredAction: Record<string, SduiEvent> | null = definition.allowedReservedFields.includes('$events') && definition.events.includes('onPress')
     ? { onPress: { action: definition.type === 'ui.link' ? 'action.openUrl' : 'action.submit', params: {} } }
+    : definition.events.includes('onAction')
+    ? { onAction: { action: 'action.submit', params: {} } }
     : null;
   return {
     id,
@@ -250,8 +255,11 @@ export function collectIds(root: SduiNode): Set<string> {
 export function collectFormVariableNames(root: SduiNode): string[] {
   const names: string[] = [];
   walk(root, (node) => {
-    const path = node.bindings?.value?.path;
-    if (path?.startsWith('form.')) names.push(path.slice('form.'.length));
+    // "action" é o segundo campo gravado pela lista de seleção (a ação escolhida).
+    for (const key of ['value', 'action']) {
+      const path = node.bindings?.[key]?.path;
+      if (path?.startsWith('form.') && path.length > 'form.'.length) names.push(path.slice('form.'.length));
+    }
   });
   return names;
 }

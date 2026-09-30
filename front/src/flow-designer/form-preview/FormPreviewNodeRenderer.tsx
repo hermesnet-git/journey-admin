@@ -4,6 +4,8 @@ import { Loader2 } from 'lucide-react';
 import { ButtonDanger, ButtonPrimary, ButtonSecondary, Callout, Divider, Image, Meter, Stack, Text, TextLink, Title2, skinVars } from '@telefonica/mistica';
 import type { SduiNode } from '../../sdui/model';
 import type { DesignChannel } from '../form-builder/designChannel';
+import { SelectListView } from '../../sdui/SelectListView';
+import type { SelectListAction, SelectListItem } from '../../sdui/selectList';
 
 const SPACING: Record<string, number> = { none: 0, xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 
@@ -165,6 +167,23 @@ function PreviewNode({
       return <Stack space={4}>{text(node, 'label') && <Text size={13}>{text(node, 'label')}</Text>}<Meter type="linear" values={[typeof node.props.value === 'number' ? node.props.value : 0]} /></Stack>;
     case 'ui.loading':
       return <Stack space={4}><Loader2 size={20} /><Text size={13}>{text(node, 'label', 'Carregando…')}</Text></Stack>;
+    case 'ui.selectList': {
+      const key = valueKey(node);
+      const items = (node.props.items as SelectListItem[] | undefined) ?? [];
+      return (
+        <SelectListView
+          label={text(node, 'label', 'Lista de seleção')}
+          required={node.props.required === true}
+          items={items}
+          totalItems={typeof node.props.totalItems === 'number' ? node.props.totalItems : items.length}
+          actions={(node.props.actions as SelectListAction[] | undefined) ?? []}
+          emptyMessage={text(node, 'emptyMessage')}
+          selected={typeof values[key] === 'string' ? values[key] as string : null}
+          onSelect={(value) => onValueChange(key, value)}
+          onAction={() => {}}
+        />
+      );
+    }
     default:
       return null;
   }

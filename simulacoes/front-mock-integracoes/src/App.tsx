@@ -185,6 +185,39 @@ const ENDPOINTS: Endpoint[] = [
     nota: 'CNPJ (só dígitos) faz parte da URL. Só "45537128000127" tem manutenção em andamento (dados fabricados a cada chamada); troque o CNPJ no path pra testar outro cliente — qualquer outro devolve 404.',
   },
   {
+    metodo: 'GET',
+    path: '/v1/clientes/45537128000127/bilhetes',
+    descricao: 'Listar bilhetes de defeito do cliente',
+    nota:
+      'Lista os bilhetes de defeito em aberto do CNPJ, usada pela lista de seleção da jornada "Gestão de BDs" ' +
+      '(produto VE). Cada bilhete traz "podeReagendar" e "podeCancelar" — a regra de negócio vem daqui, e a ' +
+      'tela só libera a ação quando o bilhete permite — e "motivoBloqueio" quando alguma ação está bloqueada. ' +
+      'Só "45537128000127" tem bilhetes (4, sempre os mesmos); qualquer outro CNPJ recebe a lista vazia.',
+  },
+  {
+    metodo: 'GET',
+    path: '/v1/bilhetes/BD-2026-480000/horarios-disponiveis',
+    descricao: 'Horários disponíveis para reagendar',
+    nota:
+      'Horários livres da agenda técnica para reagendar a visita de um bilhete. É dado de referência: a tela ' +
+      'de reagendamento busca esta lista ao abrir, pela fonte de dados "Agenda técnica", sem passar pelo ' +
+      'fluxo. Cada item já vem no formato {label, value}. O número do bilhete no path é livre.',
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/bilhetes/BD-2026-480000/reagendamento',
+    descricao: 'Reagendar visita do bilhete',
+    nota: 'Confirma o reagendamento da visita técnica do bilhete para o horário escolhido. Devolve 200 com "protocolo" e "status" REAGENDADO.',
+    bodyExemplo: { horario: '2026-10-01-MANHA' },
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/bilhetes/BD-2026-480000/cancelamento',
+    descricao: 'Cancelar bilhete',
+    nota: 'Cancela o bilhete de defeito. Devolve 200 com "protocolo" e "status" CANCELADO.',
+    bodyExemplo: { motivo: 'Problema resolvido' },
+  },
+  {
     metodo: 'POST',
     path: '/v1/diagnosticos/solicitacoes',
     descricao: 'Solicitar avaliação de diagnóstico',

@@ -15,14 +15,14 @@
 | Métrica | Valor |
 |---|---|
 | Total de Features (FT) | 15 |
-| Total de User Stories (US) | 103 |
-| Total de Requisitos (REQ) | 509 |
-| Concluídos (`done`) | 459 |
+| Total de User Stories (US) | 106 |
+| Total de Requisitos (REQ) | 541 |
+| Concluídos (`done`) | 491 |
 | Em andamento (`in_progress`) | 3 |
 | Não iniciados (`todo`) | 45 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
-| % Concluído | 90% |
+| % Concluído | 91% |
 
 > **FT-05 Execução ganhou US-05.11 Retomada de instância em andamento (4 REQs, 2026-09-12).** A
 > tela de Execução só sabia iniciar instância nova; agora também permite buscar (por ID de instância
@@ -153,8 +153,8 @@
 |---|---|---:|---:|---:|
 | FT-01 | Gestão de Produtos e Canais | 12 | 12 | 100% |
 | FT-02 | Gestão de Jornadas | 50 | 50 | 100% |
-| FT-03 | Modelagem Visual de Workflows | 97 | 97 | 100% |
-| FT-04 | Catálogo Server Driven UI (SDUI) | 71 | 71 | 100% |
+| FT-03 | Modelagem Visual de Workflows | 101 | 101 | 100% |
+| FT-04 | Catálogo Server Driven UI (SDUI) | 93 | 93 | 100% |
 | FT-05 | Execução | 62 | 62 | 100% |
 | FT-06 | Versionamento de jornadas | 43 | 43 | 100% |
 | FT-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
@@ -164,8 +164,8 @@
 | FT-11 | Testes | 12 | 0 | 0% |
 | FT-12 | Infraestrutura | 16 | 0 | 0% (1 in_progress) |
 | FT-13 | Dashboard | 24 | 24 | 100% |
-| FT-14 | Catálogo de Integrações | 28 | 27 | 96% (1 in_progress) |
-| FT-15 | Diagnóstico | 15 | 15 | 100% |
+| FT-14 | Catálogo de Integrações | 33 | 32 | 97% (1 in_progress) |
+| FT-15 | Diagnóstico | 16 | 16 | 100% |
 
 ---
 
@@ -364,6 +364,10 @@
 | [x] | REQ-03.09.013 | O editor deve exibir, para cada `SERVICE_TASK`/`RECEIVE_TASK`, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado. | done | front: `availableVariableOriginsAt` (`model.ts`, BFS backward) alimenta o painel "Variáveis" (`VariableOriginsPanel`, `PropertiesPanel.tsx`) | mecanismo estendido por US-03.13: agora agrupado por origem, chips substituídos por painel dedicado |
 | [x] | REQ-03.09.014 | O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie `{{variavel}}` inexistente no contexto do nó ou que use uma forma diferente do nome da variável no motor (`{{nome}}` sem prefixo, ou com ponto, como `{{form.nome}}`). | done | back: `FlowValidator.collectVariableTokens` + BFS backward por nó, comparado contra `outputMapping` de ancestrais alcançáveis; `isEngineToken`/`rawTokenViolation` recusam o token cru e `reportDottedTokens` recusa o token com ponto; violações lançam `FlowValidationException` (422) | testado via `mvnw test` (suíte existente segue verde; sem teste dedicado novo — ver nota FT-11); a recusa do token cru e do token com ponto é de 2026-09-27, compilada e ainda não testada em execução |
 | [x] | REQ-03.09.015 | O campo de tópico de um conector Kafka deve oferecer, como sugestão, a lista de tópicos existentes no cluster selecionado, consultada em tempo real; a digitação livre deve continuar disponível quando a listagem não estiver disponível. | done | back: `GET /messaging-clusters/{clusterId}/topics` (`MessagingClusterController`) → `ListClusterTopics` → `MessagingTopicListingPort` → `KafkaTopicListingAdapter`; front: `PropertiesPanel.tsx` — `topicsByCluster`, campo de tópico vira combo editável quando a listagem é bem-sucedida | válido de verdade só para `KAFKA` hoje, mesma limitação de ambiente do teste de conexão (REQ-14.04.001) |
+| [x] | REQ-03.09.016 | Regra de mapeamento de saída do tipo lista: o array vira uma variável JSON do Runtime Engine (sem limite de texto, legível no Diagnóstico); REST sem sucesso grava lista vazia. | done | front: `OutputMappingEditor` (tipo "Lista"); ms-transform-publication: `BpmnTransformer` gera `${listOutput.extract(...)}`; ms-runtime-camunda: `ListOutput` (Spin JSON), `KafkaConnectorWorker` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-03.09.017 | A regra do tipo lista declara os campos a manter de cada item; sem campos, grava o item inteiro. | done | front: "Campos a manter" no `OutputMappingEditor` (`keepFields`); `ListOutput.toSpin`; Kafka: `outputMapping.<nome>.keepFields` lido por `BpmnConnectorElements` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-03.09.018 | Lista ou objeto recebido numa mensagem Kafka vira variável JSON do Runtime Engine, nunca objeto binário. | done | ms-runtime-camunda: `KafkaConnectorWorker.asEngineValue` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-03.09.019 | Variável do tipo lista não é oferecida em condição de Decisão. | done | front: `OPERATORS_BY_TYPE.list = []` (`shared/condition.ts`) | implementado e compilado em 2026-09-30; aguardando teste do usuário |
 
 ### US-03.10 Teste de conectores
 
@@ -622,6 +626,7 @@
 | [x] | REQ-04.11.002 | Os eventos oferecidos devem se limitar aos que o componente realmente dispara. | done | front: `ActionEditor` recebe `availableEvents` de `ComponentDefinition.events` | |
 | [x] | REQ-04.11.003 | Cada ação deve permitir configurar parâmetros próprios. | done | front: `ActionEditor.tsx` (parâmetros por ação, `ActionParameter[]`) | |
 | [x] | REQ-04.11.004 | Um componente não deve disparar ação fora do conjunto fechado. | done | back: `FlowValidator.validateSduiNode` (`VALID_SDUI_ACTIONS`); `ms-espec-registry`: `TemplateResolver`/resolução do envelope não altera `$events`, o cliente que despacha valida contra o mesmo conjunto | validado na publicação (admin/back); em runtime a checagem é do lado que despacha a ação, não do espec-registry |
+| [x] | REQ-04.11.005 | Ação "tentar novamente": pede de novo a etapa e refaz a montagem da tela (fonte de dados obrigatória que falhou). | done | back: `VALID_SDUI_ACTIONS` com `action.retry`; front Execução: `SduiNodeRenderer`/`handleRetryStep`; emulador: `RuntimeHandlers.retry` (TS e Dart), hosts web/nativo/Flutter e BFF do WhatsApp | implementado e compilado em 2026-09-30; aguardando teste do usuário |
 
 ### US-04.12 Visibilidade condicional
 
@@ -647,6 +652,37 @@
 | [x] | REQ-04.13.009 | Rejeitar publicação quando o valor de uma propriedade viole o schema declarado pelo componente (tipo, faixa numérica ou enumeração) — uma propriedade obrigatória e vinculável (`$bindings`) é satisfeita por um valor literal OU por um vínculo válido, nunca exigindo os dois. | done | back: `FlowValidator.validateSduiNode` (`validateCanonicalPropertyValues`, ex.: `ui.datePicker.mode`, `ui.progress.value` em `[0,1]`; checagem de obrigatório passa a considerar `sduiNode.bindings().containsKey(nome)` além de `props.containsKey(nome)`); front, mesma regra no painel de pendências (`FormBuilder.collectAuthoringIssues`) e no campo em si (`PropertyInspector.propertyError`, `*`/mensagem somem com vínculo presente) | ampliado em 2026-09-25/26 — antes pedia valor literal mesmo com vínculo configurado, mensagem de erro não mencionava a alternativa |
 | [x] | REQ-04.13.010 | Rejeitar publicação quando uma tela referenciar uma variável `form`/`data` que não exista naquele ponto do fluxo, por vínculo de leitura, placeholder de texto, visibilidade ou estado ativo. | done | back: `FlowValidator.validateEmbeddedScreen` recebe `availableVarsFor(...)` (mesmo conjunto que mensagem, conector e Decisão já conferiam) e monta um `DataScope` — variáveis de passos anteriores + campos da própria tela, em qualquer ordem; `validateSduiNode` confere vínculo `oneWay`, placeholder em qualquer propriedade textual (`SCREEN_PLACEHOLDER`, mesmo padrão de `TemplateResolver`) e os caminhos de `$visibility`/`$active` via `validateDataReference` | novo em 2026-09-26 — conferência pelo nome com prefixo (`form_x`/`data_x`), então `data.nome` para um campo que só existe como `form.nome` é recusado; `twoWay` (cria a variável) não é conferido; caminho incompleto (só `form.`) também é violação; a geração de fluxo por IA passa por esta mesma validação nas propostas dela — sem teste automatizado (adiado, FT-11) |
 | [x] | REQ-04.13.011 | Rejeitar publicação quando um placeholder de texto de tela usar um formato fora do previsto: `{{form.nome}}`/`{{data.nome}}`, `{{form_nome}}`/`{{data_nome}}` ou `{{channel}}`; sem prefixo (`{{nome}}`) ou de outro namespace é recusado, com a indicação das formas válidas. | done | back: `FlowValidator.validatePlaceholder` (chamado por `validateSduiNode` para cada placeholder de propriedade textual); as formas com sublinhado são conferidas contra o mesmo `DataScope` (`knowsEngineName`); `ms-espec-registry`: `TemplateResolver` e `BindingResolver.engineVariableNameOfPlaceholder` resolvem as duas formas | novo em 2026-09-27 — implementado e compilado; ainda não testado em execução |
+
+### US-04.15 Lista de seleção
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.15.001 | Componente lista de seleção: escolher um item de uma lista vinda da jornada e, opcionalmente, uma ação sobre ele. | done | back: `V24__select_list_and_data_source.sql` (`ui.selectList` 1.0.0, `PropKind` `ITEM_TEMPLATE`/`ACTION_LIST`); front: paleta, `FormCanvas`, preview e Execução (`SelectListView`) | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.002 | Itens vêm, por vínculo somente leitura, de uma variável do tipo lista (saída de integração ou fonte de dados da tela); outro tipo é recusado na publicação. | done | back: `FlowValidator.validateSelectList` (`DataScope.isList`, `listVariablesFor`) | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.003 | Campo gravado e textos do item (título, descrição, aviso) com `{{item.campo}}`; prefixo `item` só nesses textos. | done | back: `FlowValidator` (props `ITEM_TEMPLATE` aceitam `item.`); front: `ItemTemplateEditor` com os campos do item; ms-espec-registry: `ListMaterializer.itemText` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.004 | A escolha grava o campo configurado do item numa variável do formulário (leitura-e-escrita). | done | vínculo `value` (`form.*`); `CanonicalFormat.fields`/`collectFormVariableNames` incluem o vínculo `action` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.005 | Ações com id, rótulo, estilo e regra "liberada quando" contra um campo do item. | done | front: `ActionListEditor`; back: `ENABLED_WHEN` em `FlowValidator`; ms-espec-registry: `ListMaterializer.isEnabled` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.006 | A ação escolhida é gravada numa segunda variável do formulário e conclui a etapa. | done | vínculo `action` + evento `onAction` (`action.submit`); Execução: `submitWith`; emulador: `SduiRuntime.selectListAction` (TS e Dart) | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.007 | Itens chegam ao canal já montados pelo serviço de telas; o canal não vê o array, os `{{item.x}}` nem as regras. | done | ms-espec-registry: `ListMaterializer.selectList` chamado por `TemplateResolver.resolveTuple` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.008 | Web/mobile: ações desabilitadas até escolher e habilitadas por item, sem ida ao servidor; WhatsApp: mensagem de lista e depois botões só das ações liberadas. | done | front `SelectListView`; emulador: renderizadores React web, React Native e Flutter; `WhatsAppSduiConversation.promptSelectList`/`promptListActions` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.009 | Máximo de itens configurável (padrão 50) com aviso; no WhatsApp, "Ver mais" acima de 10 itens e corte com reticências em 24/72 caracteres. | done | ms-espec-registry: `maxItems`/`totalItems`; WhatsApp: `listPages`, `truncate` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.010 | Com WhatsApp na jornada, recusa mais de 3 ações ou rótulo de ação acima de 20 caracteres. | done | back: `FlowValidator.validateSelectList` (`WHATSAPP_MAX_ACTIONS`/`WHATSAPP_MAX_ACTION_LABEL`) | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.011 | Mensagem configurável para lista vazia. | done | prop `emptyMessage`; `SelectListView` e renderizadores do emulador | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.15.012 | O fluxo seguinte confirma no sistema de origem, pelo identificador do item, se a ação é permitida. | done | regra de modelagem da jornada; exemplo: jornada "Gestão de BDs" chama o sistema de origem pelo número do bilhete | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+
+### US-04.16 Fontes de dados da tela
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-04.16.001 | A tela declara fontes de dados de referência (apelido, fonte, parâmetros, obrigatória, mensagem de erro). | done | front: `DataSourcesPanel` (editor de telas); back: `FlowNode.screenDataSources`, `UserTaskConfigInput.dataSources` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.16.002 | Dado que decide caminho ou precisa de histórico vem de integração no fluxo, não de fonte da tela. | done | ADR-002 (`docs/adr/002-dados-em-telas-sdui-lista-de-selecao.md`) | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.16.003 | Resultado fica na tela como `data.<apelido>` (lista), nunca vira variável da instância; apelido não pode repetir variável da jornada. | done | back: `FlowValidator.validateScreenDataSources`; ms-espec-registry: `ResolveScreenForNode` (resultado só no contexto da tela) | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.16.004 | Parâmetros só com variáveis do motor já disponíveis ou texto fixo; falta de parâmetro recusada. | done | back: `validateScreenDataSources` (tokens) e `SduiEnvelopeBuilder.freezeDataSources` (parâmetros da fonte) | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.16.005 | Busca pelo serviço de telas a cada montagem, antes de entregar ao canal; sem cache. | done | ms-espec-registry: `ScreenDataSourceFetcher.fetchAll` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.16.006 | Configuração da fonte copiada na publicação; nunca enviada ao canal. | done | back: `SduiEnvelopeBuilder.freezeDataSources`; ms-espec-registry: envelope resolvido sai com `dataSources` vazio | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.16.007 | Fonte opcional que falha abre vazia com a mensagem; obrigatória mostra "tentar novamente" e bloqueia a etapa. | done | ms-espec-registry: `SourceError` → `loadError`; front/emulador: validação e botão "Tentar novamente" | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.16.008 | Resultado alimenta a lista de seleção e as opções de um select (itens com `label`/`value`). | done | ms-espec-registry: `ListMaterializer.selectOptions`; back: vínculo `options` validado como lista | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-04.16.009 | Testar a fonte com valores de exemplo no editor de telas; os itens alimentam o preview. | done | front: `DataSourcesPanel.runTest` → `FormDesignPreview sampleItems` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
 
 ### US-04.14 Publicação e repositório de especificação corporativo
 
@@ -1342,6 +1378,16 @@ appender.
 | [x] | REQ-14.05.004 | O campo de credencial de um conector Kafka/Event Hubs/Service Bus deve ser selecionado a partir do catálogo, substituindo o texto livre. | done | front: `SearchSelect` de credencial (filtrado pelo cluster selecionado) substitui o `<input>` de texto livre, inclusive para `KAFKA` | |
 | [x] | REQ-14.05.005 | O assistente de configuração de conector deve ganhar as mesmas 3 etapas do Kafka para Event Hubs e Service Bus. | done | front: `STEPS_BY_TYPE`/`renderBrokerStep` (`ConnectorWizard.tsx`) — mesmas 3 etapas (Conexão/Payload/Mapear saída) para os 3 tipos de broker | |
 
+### US-14.07 Catálogo de fontes de dados
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-14.07.001 | Cadastrar, editar e excluir fontes de dados (ADMIN); listagem para qualquer papel autenticado. | done | back: `DataSourceController` (`/api/v1/data-sources`), `ManageDataSources`; front: `DataSourcesSection` no Catálogo de Integrações | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-14.07.002 | Nome único, descrição, URL GET com parâmetros entre chaves, tempo limite, caminho da lista, campos expostos e credencial opcional. | done | back: tabela `data_source` (`V24`), `DataSource.paramsOf`, `DataSourceItems.isValidPath` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-14.07.003 | Campos expostos obrigatórios; só eles saem do servidor; só a URL cadastrada é chamada. | done | back: `ManageDataSources.validate`; ms-espec-registry: `ScreenDataSourceFetcher.extract` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-14.07.004 | Testar a fonte com valores de exemplo, pelo backend, com a proteção do teste de conector. | done | back: `TestDataSource` via `ConnectorTestPort`; front: `DataSourceTestModal` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-14.07.005 | Credencial resolvida no servidor, nunca enviada ao canal. | done | ms-espec-registry: `credentialRef` fica no envelope publicado e fora do envelope entregue | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+
 ### US-14.06 Credencial de IA
 
 | # | REQ | Descrição | Status | Evidência | Notas |
@@ -1383,6 +1429,7 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 |---|---|---|---|---|---|
 | [x] | REQ-15.03.001 | Ao selecionar uma execução, o sistema deve apresentar o fluxo percorrido, as variáveis do processo e o log cronológico, reaproveitando o mesmo painel de observabilidade da Execução. | done | `DiagnosticoPage.tsx` renderiza `HistoryWorkspace` (`execution/HistoryWorkspace.tsx`), o mesmo componente já usado pela Execução — nenhuma duplicação | |
 | [x] | REQ-15.03.002 | O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior. | done | `DiagnosticoPage.tsx` — `closeDetail` só limpa `selectedId`/`detail`; `raw` (resultado da busca) é estado separado, nunca limpo ao abrir/fechar um detalhe | |
+| [x] | REQ-15.03.003 | O log do detalhe inclui cada consulta a fonte de dados feita ao montar uma tela da instância. | done | ms-espec-registry: `espec_registry.data_source_call` (`V2`), `DataSourceCallController`; back: `GET /instances/{id}/data-source-calls`; front: `HistoryWorkspace` ("Consulta da tela") | implementado e compilado em 2026-09-30; aguardando teste do usuário |
 
 ### US-15.04 Independência da tela de Execução
 
@@ -1397,6 +1444,7 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 
 | Data/Hora | Alteração |
 |---|---|
+| 2026-09-30 00:59 (não commitado) | **Lista de seleção e fontes de dados da tela (ADR-002).** Novos: US-04.15 Lista de seleção (REQ-04.15.001 a 012), US-04.16 Fontes de dados da tela (REQ-04.16.001 a 009), US-14.07 Catálogo de fontes de dados (REQ-14.07.001 a 005), REQ-03.09.016 a 019 (saída de integração do tipo lista, campos a manter, lista/objeto do Kafka em JSON, lista fora das condições de Decisão), REQ-04.11.005 (ação "tentar novamente") e REQ-15.03.003 (consultas da tela no log do Diagnóstico). Implementado em admin/back (`V24`), ms-espec-registry (`V2`, montagem dos itens e busca das fontes), ms-transform-publication, ms-runtime-camunda, ms-journey, front e emulador de canais; APIs novas no ms-mock (bilhetes, horários, reagendamento, cancelamento); jornada de exemplo "Gestão de BDs" (VE). Catálogo SDUI: `ui.selectList` 1.0.0; nenhuma versão alterada. Compilado em todos os módulos; aguardando teste do usuário. Total geral: 509 → 541 REQs, 459 → 491 concluídos; US: 103 → 106. |
 | 2026-09-27 02:20 (commitado: `89ba457`, `b0dc450`, `817237a`) | **Strapi removido da plataforma (US-04.14) — `ms-espec-registry` passa a ser o próprio dono do armazenamento das telas publicadas.** Novo schema `espec_registry` no Postgres do admin (`journey_admin`), tabela `published_screen` (`envelope jsonb`, `status` published/deprecated, índice único parcial garantindo uma só revisão `published` por tela), migrado por um Flyway próprio do serviço (`config/FlywayMigrationInitializer`, mesmo padrão do admin/back desde que o Spring Boot 4.1 parou de trazer a autoconfiguração do Flyway) — histórico isolado do Flyway do admin/back, que continua no schema `public`. `PostgresSnapshotRepository` substitui `StrapiSnapshotRepository`: marca a revisão anterior como `deprecated` e insere a nova, em vez de só um `POST` sem histórico. Renomeado, só nesta ponta de armazenamento (o modelo do catálogo — `SduiNode`/`SduiEnvelopeBuilder`/`SduiScreenEnvelope`/`FlowNode.sdui` — continua com esse nome): pacotes `domain/sdui`→`domain/screen` e `interfaces/sdui`→`interfaces/screen` no `ms-espec-registry`; `SduiScreenPublicationPort`→`ScreenPublicationPort` e `EspecRegistrySduiAdapter`→`EspecRegistryScreenAdapter` no admin/back; URL de `/api/v1/sdui-snapshots` para `/api/v1/published-screens`. Nenhum REQ novo — só a evidência de REQ-04.14.004/005/006 corrigida pra citar as classes atuais. Testado fim a fim: reset de fábrica republicando as 8 versões/21 telas seguido de um teste real do usuário na tela Execuções, e uma republicação subsequente já demonstrando o `deprecated` funcionando (8 telas). De quebra, corrigidos 3 bugs pré-existentes na massa de fábrica que só apareceram ao republicar do zero (nenhum deles ligado ao Strapi): SemVer incompleto (`"1.0"` em vez de `"1.0.0"`) em componentes das telas de Web/Mobile/WhatsApp v1; a mesma prop `gapToken` desatualizada (hoje `spacingToken`) nos `ui.stack` dessas telas; e os dois Receive Tasks Kafka da jornada Vivo Fibra + Total sem `outputMapping`, então as telas seguintes referenciavam `data.statusAtivacao`/`data.resultadoRevisao`, que nunca existiam — corrigido com `payloadMode: CUSTOM` e `outputMapping` declarado nos dois. Nenhuma mudança de contagem: total geral segue 509 REQs, 459 concluídos. |
 | 2026-09-27 01:19 (não commitado) | **Namespaces de dado reduzidos a `form` e `data`; formato do token por lugar; canal sem namespace.** Catálogo SDUI: `session`, `route` e `computed` removidos (única alteração — nada foi acrescentado ao catálogo; os dois exemplos que usavam `computed` passaram a `data`). REQ-04.10.001, REQ-04.12.004, REQ-04.13.008 e REQ-04.13.010, mais a evidência de REQ-04.09.012 e REQ-04.10.004, deixam de citá-los; o canal passa a ser o caminho `channel`, sem namespace. REQ-04.13.011 (novo, FT-04): placeholder de texto de tela só vale como `{{form.x}}`/`{{data.x}}`, `{{form_x}}`/`{{data_x}}` ou `{{channel}}` — sem prefixo ou de outro namespace é recusado. Conector, mensageria e Decisão (REQ-03.09.012, REQ-03.09.014, REQ-03.11.004) usam só o nome da variável no motor (`{{form_x}}`, `{{data_x}}`, `{{channel}}`) — `{{form.x}}` e o token cru são recusados; REQ-03.12.003 e REQ-03.13.002 ajustados à nova forma. Hífen aceito no editor de condição da Decisão e no painel de teste da integração; a saída de conector Kafka deixa de tratar o hífen como subtração. Implementado e compilado (back, ms-espec-registry, ms-transform-publication, front e emulador-canais); ainda não testado em execução. Total de FT-04: 70 → 71 REQs; total geral: 508 → 509 REQs, 458 → 459 concluídos. |
 | 2026-09-26 21:50 (não commitado) | **FT-14 e dois REQs de FT-04/FT-06 com o texto revisado para o que o código faz (nenhum REQ novo ou removido).** FT-14 (US-14.01 a US-14.03, 11 REQs: 14.01.002 a 14.01.005, 14.02.002, 14.02.004 a 14.02.006, 14.03.001 a 14.03.003): cluster e credencial deixam de ter status ativo/inativo (coluna removida em `V5__drop_messaging_status.sql`) e "desativar" vira "excluir"; o filtro por status sai de REQ-14.01.005 e REQ-14.02.006; REQ-14.01.004 passa a barrar a exclusão só quando o cluster, ou uma credencial dele, é usado por jornada publicada — sem isso, excluir o cluster remove também as credenciais dele; a auditoria (REQ-14.03.003) registra `CLUSTER_DELETE`/`CREDENTIAL_DELETE`. REQ-04.09.007: o painel de camadas seleciona e reordena; a remoção é feita no canvas. REQ-06.02.004: deixa de citar `embeddedScreenSdui`, que não existe mais. REQ-14.01.005 segue "done", mas a tela só busca cluster por nome — o filtro por tipo existe só na API. |

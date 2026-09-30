@@ -94,6 +94,19 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
     setErrors(result.errors);
   };
 
+  const listAction = async (node: SduiNode, actionId: string): Promise<void> => {
+    const result = await runtime.selectListAction(node, actionId);
+    setErrors(result.errors);
+  };
+
+  // "Tentar novamente" de uma fonte de dados obrigatória que falhou (action.retry).
+  const retry = (node: SduiNode): void => {
+    void runtime.dispatch({ ...node, events: { retry: { action: 'action.retry' } } }, 'retry');
+  };
+
+  const loadErrorOf = (node: SduiNode): { message?: string; required?: boolean } | undefined =>
+    node.attributes.loadError as { message?: string; required?: boolean } | undefined;
+
   const renderNode = (node: SduiNode, ancestorsActive = true): ReactNode => {
     if (!runtime.isVisible(node)) return null;
     const active = ancestorsActive && runtime.isActive(node);
@@ -264,7 +277,11 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
       case 'ui.select': {
         const fieldError = errorFor(node);
         const options = Array.isArray(props.options) ? props.options : [];
+        const loadError = loadErrorOf(node);
         return (
+          <Stack space={8}>
+          {loadError ? <Callout title="Não foi possível carregar as opções" description={loadError.message ?? ''} /> : null}
+          {loadError?.required ? <div><ButtonSecondary small onPress={() => retry(node)}>Tentar novamente</ButtonSecondary></div> : null}
           <Select
             id={node.id}
             name={node.id}
@@ -279,6 +296,53 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
             helperText={fieldError ?? text(props.placeholder)}
             onChangeValue={(value) => void change(node, value)}
           />
+          </Stack>
+        );
+      }
+
+      case 'ui.selectList': {
+        const fieldError = errorFor(node);
+        const items = (Array.isArray(props.items) ? props.items : []) as Array<{ value: string; title: string; description?: string; hint?: string; enabledActions: string[] }>;
+        const actions = (Array.isArray(props.actions) ? props.actions : []) as Array<{ id: string; label: string; variant?: string }>;
+        const selected = stringValue(runtime.getNodeValue(node));
+        const selectedItem = items.find((item) => item.value === selected);
+        const loadError = loadErrorOf(node);
+        const total = typeof props.totalItems === 'number' ? props.totalItems : items.length;
+        return (
+          <Stack space={12}>
+            <Text size={16} weight="medium">{text(props.label)}{props.required === true ? ' *' : ''}</Text>
+            {loadError ? <Callout title="Não foi possível carregar a lista" description={loadError.message ?? ''} /> : null}
+            {loadError?.required ? <div><ButtonSecondary small onPress={() => retry(node)}>Tentar novamente</ButtonSecondary></div> : null}
+            {!loadError?.required && items.length === 0 ? <Text size={14} color={skinVars.colors.textSecondary}>{text(props.emptyMessage) || 'Nenhum item para mostrar.'}</Text> : null}
+            <div role="radiogroup" aria-label={text(props.label)} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {items.map((item) => {
+                const checked = item.value === selected;
+                return (
+                  <label key={item.value} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 8, cursor: active ? 'pointer' : 'default', border: `1px solid ${checked ? skinVars.colors.controlActivated : skinVars.colors.border}`, background: checked ? skinVars.colors.backgroundContainer : skinVars.colors.background }}>
+                    <input type="radio" name={node.id} checked={checked} disabled={!active} onChange={() => void change(node, item.value)} style={{ marginTop: 3 }} />
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Text size={15} weight="medium">{item.title}</Text>
+                      {item.description ? <Text size={13} color={skinVars.colors.textSecondary}>{item.description}</Text> : null}
+                      {checked && item.hint ? <Text size={13} color={skinVars.colors.textSecondary}>{item.hint}</Text> : null}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {total > items.length ? <Text size={12} color={skinVars.colors.textSecondary}>Mostrando {items.length} de {total}.</Text> : null}
+            {fieldError ? <Text size={13} color={skinVars.colors.error}>{fieldError}</Text> : null}
+            {actions.length > 0 && !loadError?.required ? (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {actions.map((action) => {
+                  const enabled = active && !submitting && !!selectedItem && selectedItem.enabledActions.includes(action.id);
+                  const buttonProps = { onPress: () => void listAction(node, action.id), disabled: !enabled, showSpinner: submitting };
+                  if (action.variant === 'danger') return <ButtonDanger key={action.id} {...buttonProps}>{action.label}</ButtonDanger>;
+                  if (action.variant === 'secondary') return <ButtonSecondary key={action.id} {...buttonProps}>{action.label}</ButtonSecondary>;
+                  return <ButtonPrimary key={action.id} {...buttonProps}>{action.label}</ButtonPrimary>;
+                })}
+              </div>
+            ) : null}
+          </Stack>
         );
       }
 

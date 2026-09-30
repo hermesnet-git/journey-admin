@@ -1,5 +1,6 @@
 package com.jouney.admin.domain.flow;
 
+import com.jouney.admin.domain.datasource.DataSource;
 import com.jouney.admin.domain.componentregistry.ComponentDefinition;
 import com.jouney.admin.domain.componentregistry.RenderTarget;
 import com.jouney.admin.domain.componentregistry.TargetStatus;
@@ -20,6 +21,7 @@ import java.util.UUID;
  * {@code minRendererVersion} são CALCULADOS (interseção dos alvos SUPPORTED entre todos os
  * componentes usados na árvore, e o máximo de versão mínima exigida entre eles), não fixos, pra
  * continuarem corretos conforme o Component Registry ganhar mais alvos/versões. */
+@SuppressWarnings("unchecked")
 public final class SduiEnvelopeBuilder {
 
     private static final String SCHEMA_VERSION = "1.0.0";
@@ -30,21 +32,71 @@ public final class SduiEnvelopeBuilder {
 
     public static List<SduiScreenEnvelope> buildAll(UUID journeyId, int journeyVersion,
                                                       List<ChannelType> channelTypes, List<FlowNode> flowNodes,
-                                                      Map<String, ComponentDefinition> componentRegistry) {
+                                                      Map<String, ComponentDefinition> componentRegistry,
+                                                      Map<String, DataSource> dataSourcesByName) {
         List<SduiScreenEnvelope> envelopes = new ArrayList<>();
+        List<FlowViolation> violations = new ArrayList<>();
         for (FlowNode node : flowNodes) {
             if (node.getEmbeddedScreenRoot() == null) {
                 continue;
             }
+            Map<String, Object> dataSources = freezeDataSources(node, dataSourcesByName, violations);
             envelopes.add(build(journeyId, journeyVersion, node.getId(), channelTypes,
-                    node.getEmbeddedScreenRoot(), componentRegistry));
+                    node.getEmbeddedScreenRoot(), componentRegistry, dataSources));
+        }
+        if (!violations.isEmpty()) {
+            throw new FlowValidationException(violations);
         }
         return envelopes;
     }
 
+    // dataSources do envelope (ADR-002, catálogo seção 14.4): por apelido, o que a tela declarou
+    // (fonte, parâmetros, obrigatória, mensagem de erro) mais uma cópia da configuração da fonte no
+    // catálogo — congelada aqui, então alterar a fonte depois só afeta as próximas publicações, e o
+    // ms-espec-registry executa sem consultar o admin em tempo de execução.
+    private static Map<String, Object> freezeDataSources(FlowNode node, Map<String, DataSource> dataSourcesByName,
+                                                         List<FlowViolation> violations) {
+        Map<String, Object> frozen = new LinkedHashMap<>();
+        if (node.getScreenDataSources() == null) {
+            return frozen;
+        }
+        for (Map<String, Object> declaration : node.getScreenDataSources()) {
+            String alias = String.valueOf(declaration.get("alias"));
+            String sourceName = String.valueOf(declaration.get("source"));
+            DataSource source = dataSourcesByName.get(sourceName);
+            if (source == null) {
+                violations.add(new FlowViolation(node.getId(), "A fonte de dados '" + sourceName + "' usada na tela de '"
+                        + node.getName() + "' não existe no catálogo de fontes de dados"));
+                continue;
+            }
+            Map<String, Object> params = declaration.get("params") instanceof Map<?, ?> m
+                    ? new LinkedHashMap<>((Map<String, Object>) m) : new LinkedHashMap<>();
+            for (String param : source.getParams()) {
+                if (!(params.get(param) instanceof String value) || value.isBlank()) {
+                    violations.add(new FlowViolation(node.getId(), "A fonte de dados '" + alias + "' da tela de '"
+                            + node.getName() + "' não informa o valor do parâmetro '" + param + "'"));
+                }
+            }
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("source", source.getName());
+            entry.put("params", params);
+            entry.put("required", Boolean.TRUE.equals(declaration.get("required")));
+            entry.put("errorMessage", declaration.get("errorMessage") instanceof String msg && !msg.isBlank()
+                    ? msg : "Não foi possível carregar as informações agora.");
+            entry.put("url", source.getUrl());
+            entry.put("timeoutMs", source.getTimeoutMs());
+            entry.put("itemsPath", source.getItemsPath());
+            entry.put("exposedFields", source.getExposedFields());
+            entry.put("credentialRef", source.getCredentialRef());
+            frozen.put(alias, entry);
+        }
+        return frozen;
+    }
+
     private static SduiScreenEnvelope build(UUID journeyId, int journeyVersion, String uiStepId,
                                              List<ChannelType> channelTypes, SduiNode root,
-                                             Map<String, ComponentDefinition> componentRegistry) {
+                                             Map<String, ComponentDefinition> componentRegistry,
+                                             Map<String, Object> dataSources) {
         Set<String> usedKeys = new LinkedHashSet<>();
         collectKeys(root, usedKeys);
         List<ComponentDefinition> used = usedKeys.stream().map(componentRegistry::get).filter(Objects::nonNull).toList();
@@ -71,7 +123,7 @@ public final class SduiEnvelopeBuilder {
         }
 
         return new SduiScreenEnvelope(SCHEMA_VERSION, CATALOG_VERSION, journeyId, journeyVersion, uiStepId,
-                "published", OffsetDateTime.now(ZoneOffset.UTC), supportedTargets, minRendererVersion, Map.of(), toTuple(root));
+                "published", OffsetDateTime.now(ZoneOffset.UTC), supportedTargets, minRendererVersion, dataSources, toTuple(root));
     }
 
     private static boolean targetBelongsToJourney(String target, List<ChannelType> channelTypes) {

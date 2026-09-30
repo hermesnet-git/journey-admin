@@ -96,7 +96,7 @@ function buildFlowSnapshot(
       positionX: Math.round(n.position.x),
       positionY: Math.round(n.position.y),
       userTaskConfig: n.type === 'userTask'
-        ? { embeddedScreenRoot: n.data.embeddedScreenRoot ?? null }
+        ? { embeddedScreenRoot: n.data.embeddedScreenRoot ?? null, dataSources: n.data.screenDataSources?.length ? n.data.screenDataSources : null }
         : null,
       connectorConfig: n.data.connectorConfig,
       startVariables: n.data.startVariables ?? null,
@@ -131,7 +131,7 @@ function buildFlowInput(nodes: WFNode[], edges: WFEdge[], annotations: WFAnnotat
       positionX: Math.round(n.position.x),
       positionY: Math.round(n.position.y),
       userTaskConfig: n.type === 'userTask'
-        ? { embeddedScreenRoot: n.data.embeddedScreenRoot ?? null }
+        ? { embeddedScreenRoot: n.data.embeddedScreenRoot ?? null, dataSources: n.data.screenDataSources?.length ? n.data.screenDataSources : null }
         : null,
       connectorConfig: n.data.connectorConfig,
       startVariables: n.data.startVariables ?? null,
@@ -385,6 +385,7 @@ function DesignerInner({
           name: n.name,
           description: n.description ?? '',
           embeddedScreenRoot: n.userTaskConfig?.embeddedScreenRoot ?? null,
+          screenDataSources: n.userTaskConfig?.dataSources ?? undefined,
           connectorConfig: n.connectorConfig,
           startVariables: n.startVariables ?? undefined,
         },
@@ -1236,6 +1237,8 @@ function DesignerInner({
                   nodeId={previewNode.id}
                   embeddedScreenRoot={previewNode.data.embeddedScreenRoot ?? null}
                   onEmbeddedScreenRootChange={(root) => updateNodeData(previewNode.id, { embeddedScreenRoot: root })}
+                  screenDataSources={previewNode.data.screenDataSources ?? []}
+                  onScreenDataSourcesChange={(dataSources) => updateNodeData(previewNode.id, { screenDataSources: dataSources })}
                   onPushHistory={pushHistory}
                   variables={previewVariables}
                   userTasks={userTasks}

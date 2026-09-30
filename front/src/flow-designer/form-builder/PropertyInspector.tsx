@@ -3,11 +3,12 @@ import { AlertTriangle, ChevronDown, ChevronRight, CircleHelp, Plus, SlidersHori
 import { useFlowTheme } from '../theme';
 import { ToggleSwitch, gridInputStyle } from '../PropertyGrid';
 import { VariablePickerButton, insertTokenAtCursor } from '../PropertiesPanel';
-import { sduiVariablePath, type VariableOrigin } from '../model';
+import { bareDataName, sduiVariablePath, type VariableOrigin } from '../model';
 import type { ComponentDefinition, PropDescriptor } from '../../api/componentDefinitions';
 import { tokenOptionsForGroup, tokensForGroup } from '../../sdui/designTokens';
 import { iconFor, labelFor } from '../../sdui/componentMeta';
 import type { SduiNode } from '../../sdui/model';
+import { ENABLED_WHEN, type SelectListActionConfig } from '../../sdui/selectList';
 import type { ChannelType } from '../../api/products';
 import { BindingEditor } from './BindingEditor';
 import { ActionEditor } from './ActionEditor';
@@ -56,6 +57,100 @@ function OptionsListEditor({ value, onChange }: { value: { label: string; value:
         style={{ color: c.accent, fontSize: 11.5, padding: '2px 0' }}
       >
         <Plus size={12} /> Opção
+      </button>
+    </div>
+  );
+}
+
+/** Texto de item da lista de seleção: combina texto com campos do item ({{item.campo}}) e, se
+ * precisar, variáveis da jornada. Os campos do item vêm da lista vinculada em "itens". */
+function ItemTemplateEditor({ value, itemFields, variables, onChange }: { value: string; itemFields: string[]; variables: VariableOrigin[]; onChange: (value: unknown) => void }) {
+  const { c } = useFlowTheme();
+  const ref = useRef<HTMLInputElement | null>(null);
+  return (
+    <div className="flex flex-col gap-1" style={{ width: '100%' }}>
+      <span className="flex gap-1 items-center">
+        <input ref={ref} style={{ ...gridInputStyle(c), flex: 1 }} value={value} placeholder="{{item.campo}}" onChange={(e) => onChange(e.target.value)} />
+        <VariablePickerButton variables={variables.filter((v) => v.type !== 'list')} tokenFor={(v) => sduiVariablePath(v.kind, v.kind === 'data' ? bareDataName(v.name) : v.name)}
+          onInsert={(token) => insertTokenAtCursor(ref.current, value, token, onChange)} />
+      </span>
+      {itemFields.length > 0 ? (
+        <span className="flex flex-wrap gap-1">
+          {itemFields.map((field) => (
+            <button key={field} type="button" onClick={() => insertTokenAtCursor(ref.current, value, `{{item.${field}}}`, onChange)}
+              className="rounded px-1.5 py-0.5 border-0 cursor-pointer text-[10px] font-mono" style={{ background: c.chipBg, color: c.textPrimary }}
+              title="Inserir este campo do item">
+              {field}
+            </button>
+          ))}
+        </span>
+      ) : (
+        <span className="text-[10px]" style={{ color: c.textSecondary }}>Vincule os itens a uma lista para ver os campos do item.</span>
+      )}
+    </div>
+  );
+}
+
+const ACTION_VARIANT_LABEL: Record<string, string> = { primary: 'Principal', secondary: 'Secundário', danger: 'Destrutivo' };
+
+/** Ações sobre o item escolhido: rótulo, estilo e a regra "liberada quando", que compara um campo do
+ * item vindo da integração (a regra de negócio é do sistema de origem, não da tela). */
+function ActionListEditor({ value, itemFields, onChange }: { value: SelectListActionConfig[]; itemFields: string[]; onChange: (value: unknown) => void }) {
+  const { c } = useFlowTheme();
+  function update(index: number, patch: Partial<SelectListActionConfig>) {
+    onChange(value.map((a, i) => (i === index ? { ...a, ...patch } : a)));
+  }
+  return (
+    <div className="flex flex-col gap-1.5" style={{ width: '100%' }}>
+      {value.map((action, index) => {
+        const rule = action.enabledWhen?.match(ENABLED_WHEN);
+        const ruleField = rule?.[1] ?? '';
+        const ruleOperator = rule?.[2] ?? '==';
+        const ruleValue = rule?.[3] ?? 'true';
+        const composeRule = (field: string, operator: string, literal: string) =>
+          field ? `{{item.${field}}} ${operator} ${/^(true|false|-?\d+(\.\d+)?|".*")$/.test(literal) ? literal : `"${literal}"`}` : '';
+        return (
+          <div key={index} className="rounded-md p-1.5 flex flex-col gap-1" style={{ border: `1px solid ${c.border}` }}>
+            <div className="flex gap-1">
+              <input style={{ ...gridInputStyle(c), flex: '0 0 30%', fontFamily: 'monospace' }} placeholder="id" value={action.id}
+                onChange={(e) => update(index, { id: e.target.value })} title="Valor gravado quando o usuário escolhe esta ação" />
+              <input style={{ ...gridInputStyle(c), flex: 1 }} placeholder="Rótulo do botão" value={action.label}
+                onChange={(e) => update(index, { label: e.target.value })} />
+              <button onClick={() => onChange(value.filter((_, i) => i !== index))}
+                className="w-[22px] h-[22px] rounded flex items-center justify-center border-0 cursor-pointer shrink-0" style={{ background: 'transparent', color: c.textSecondary }}>
+                <X size={12} />
+              </button>
+            </div>
+            <div className="flex gap-1 items-center">
+              <select style={{ ...gridInputStyle(c), flex: '0 0 30%', cursor: 'pointer' }} value={action.variant ?? 'primary'}
+                onChange={(e) => update(index, { variant: e.target.value as SelectListActionConfig['variant'] })}>
+                {Object.entries(ACTION_VARIANT_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+              <span className="text-[10px] shrink-0" style={{ color: c.textSecondary }}>liberada quando</span>
+              <select style={{ ...gridInputStyle(c), flex: 1, cursor: 'pointer' }} value={ruleField}
+                onChange={(e) => update(index, { enabledWhen: composeRule(e.target.value, ruleOperator, ruleValue) })}>
+                <option value="">sempre</option>
+                {[...new Set([...itemFields, ...(ruleField ? [ruleField] : [])])].map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+            {ruleField && (
+              <div className="flex gap-1 items-center">
+                <select style={{ ...gridInputStyle(c), flex: '0 0 30%', cursor: 'pointer' }} value={ruleOperator}
+                  onChange={(e) => update(index, { enabledWhen: composeRule(ruleField, e.target.value, ruleValue) })}>
+                  <option value="==">for igual a</option>
+                  <option value="!=">for diferente de</option>
+                </select>
+                <input style={{ ...gridInputStyle(c), flex: 1, fontFamily: 'monospace' }} value={ruleValue.startsWith('"') ? ruleValue.slice(1, -1) : ruleValue}
+                  onChange={(e) => update(index, { enabledWhen: composeRule(ruleField, ruleOperator, e.target.value) })}
+                  title="true, false, um número ou um texto" />
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <button onClick={() => onChange([...value, { id: '', label: '', variant: 'primary', enabledWhen: '' }])}
+        className="flex items-center gap-1 border-0 bg-transparent cursor-pointer self-start" style={{ color: c.accent, fontSize: 11.5, padding: '2px 0' }}>
+        <Plus size={12} /> Ação
       </button>
     </div>
   );
@@ -116,11 +211,24 @@ function ValidationListEditor({ value, onChange }: { value: ValidationRule[]; on
  * afins ficam de fora: carregam intenção visual, onde um {{...}} não significaria nada. */
 const PROPS_QUE_ACEITAM_VARIAVEL = new Set(['label', 'placeholder', 'title', 'message', 'text']);
 
-function PropField({ prop, presentation, value, variables, onChange }: { prop: PropDescriptor; presentation: PropertyPresentation; value: unknown; variables: VariableOrigin[]; onChange: (value: unknown) => void }) {
+function PropField({ prop, presentation, value, variables, itemFields, onChange }: { prop: PropDescriptor; presentation: PropertyPresentation; value: unknown; variables: VariableOrigin[]; itemFields: string[]; onChange: (value: unknown) => void }) {
   const { c } = useFlowTheme();
   const textRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // Campo do item gravado na seleção: escolhe entre os campos conhecidos da lista, quando há.
+  if (prop.name === 'itemValue' && itemFields.length > 0) {
+    return (
+      <select style={{ ...gridInputStyle(c), cursor: 'pointer' }} value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)}>
+        <option value="">Selecione o campo…</option>
+        {itemFields.map((f) => <option key={f} value={f}>{f}</option>)}
+      </select>
+    );
+  }
   switch (prop.kind) {
+    case 'ITEM_TEMPLATE':
+      return <ItemTemplateEditor value={typeof value === 'string' ? value : ''} itemFields={itemFields} variables={variables} onChange={onChange} />;
+    case 'ACTION_LIST':
+      return <ActionListEditor value={Array.isArray(value) ? (value as SelectListActionConfig[]) : []} itemFields={itemFields} onChange={onChange} />;
     case 'BOOLEAN':
       return <ToggleSwitch checked={value === true} onChange={onChange} />;
     case 'NUMBER':
@@ -321,6 +429,10 @@ export function PropertyInspector({
   }
 
   const nodeIdError = validateComponentName(draftNodeId.trim(), reservedNodeIds);
+  const itemsPath = node.bindings?.items?.path ?? '';
+  const itemFields = itemsPath.startsWith('data.')
+    ? variables.find((v) => v.type === 'list' && v.kind === 'data' && v.name === itemsPath.slice('data.'.length))?.fields ?? []
+    : [];
   const bindingsConfig = bindingConfiguration(definition);
   const canConfigureBindings = definition.allowedReservedFields.includes('$bindings');
   const canConfigureEvents = definition.allowedReservedFields.includes('$events');
@@ -403,7 +515,7 @@ export function PropertyInspector({
                     </div>
                   )}
                   {primaryPropertyItems.map(({ prop, presentation }) => {
-                    const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
+                    const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST' || prop.kind === 'ACTION_LIST' || prop.kind === 'ITEM_TEMPLATE';
                     const hasBinding = !!node.bindings?.[prop.name]?.path;
                     const bindable = bindingsConfig.names.includes(prop.name);
                     const error = propertyError(prop, node.props[prop.name], hasBinding, bindable);
@@ -414,7 +526,7 @@ export function PropertyInspector({
                           {presentation.help && <span title={presentation.help} className="inline-flex"><CircleHelp size={11} /></span>}
                         </span>
                         <span className="min-w-0">
-                          <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} variables={variables} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
+                          <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} variables={variables} itemFields={itemFields} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
                           {error && <span className="block mt-1" style={{ color: c.danger, fontSize: 10 }}>{error}</span>}
                         </span>
                       </label>
@@ -435,7 +547,7 @@ export function PropertyInspector({
                       {!collapsedSections.has('advancedProperties') && (
                         <div className="px-2 pb-2 flex flex-col gap-2">
                           {advancedPropertyItems.map(({ prop, presentation }) => {
-                            const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST';
+                            const fullWidth = presentation.multiline || prop.kind === 'OPTIONS_LIST' || prop.kind === 'VALIDATION_LIST' || prop.kind === 'ACTION_LIST' || prop.kind === 'ITEM_TEMPLATE';
                             const hasBinding = !!node.bindings?.[prop.name]?.path;
                             const bindable = bindingsConfig.names.includes(prop.name);
                             const error = propertyError(prop, node.props[prop.name], hasBinding, bindable);
@@ -446,7 +558,7 @@ export function PropertyInspector({
                                   {presentation.help && <span title={presentation.help} className="inline-flex"><CircleHelp size={11} /></span>}
                                 </span>
                                 <span className="min-w-0">
-                                  <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} variables={variables} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
+                                  <PropField prop={prop} presentation={presentation} value={node.props[prop.name]} variables={variables} itemFields={itemFields} onChange={(value) => onUpdateProps({ [prop.name]: value })} />
                                   {error && <span className="block mt-1" style={{ color: c.danger, fontSize: 10 }}>{error}</span>}
                                 </span>
                               </label>
@@ -473,6 +585,7 @@ export function PropertyInspector({
                   bindingNames={bindingsConfig.names}
                   requiredBindingNames={bindingsConfig.required}
                   fixedMode={bindingsConfig.mode}
+                  modeByName={bindingsConfig.modeByName}
                   variables={variables}
                   onChange={onUpdateBindings}
                 />
@@ -576,7 +689,16 @@ export function bindingConfiguration(definition: ComponentDefinition): {
   names: string[];
   required: string[];
   mode: 'oneWay' | 'twoWay' | null;
+  modeByName?: Record<string, 'oneWay' | 'twoWay'>;
 } {
+  // Lista de seleção (ADR-002): lê os itens de uma lista e grava o item e a ação escolhidos.
+  if (definition.type === 'ui.selectList') {
+    return { names: ['items', 'value', 'action'], required: ['items', 'value'], mode: null, modeByName: { items: 'oneWay', value: 'twoWay', action: 'twoWay' } };
+  }
+  // Select: as opções podem vir de uma lista (fonte de dados da tela ou saída do tipo lista).
+  if (definition.type === 'ui.select') {
+    return { names: ['value', 'options'], required: ['value'], mode: null, modeByName: { value: 'twoWay', options: 'oneWay' } };
+  }
   if (definition.category === 'INPUT') return { names: ['value'], required: ['value'], mode: 'twoWay' };
   if (definition.type === 'ui.text') return { names: ['text'], required: [], mode: 'oneWay' };
   if (definition.type === 'ui.image') return { names: ['source', 'alt'], required: [], mode: 'oneWay' };

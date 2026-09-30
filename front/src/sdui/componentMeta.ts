@@ -22,6 +22,7 @@ import {
   Gauge,
   Loader2,
   Shapes,
+  ListChecks,
   type LucideIcon,
 } from 'lucide-react';
 import type { ComponentCategory } from '../api/componentDefinitions';
@@ -46,6 +47,7 @@ export const COMPONENT_ICON: Record<string, LucideIcon> = {
   'ui.alert': Info,
   'ui.progress': Gauge,
   'ui.loading': Loader2,
+  'ui.selectList': ListChecks,
 };
 
 export function iconFor(type: string): LucideIcon {
@@ -72,6 +74,7 @@ export const COMPONENT_LABEL: Record<string, string> = {
   'ui.alert': 'Alerta',
   'ui.progress': 'Progresso',
   'ui.loading': 'Carregando',
+  'ui.selectList': 'Lista de seleção',
 };
 
 export function labelFor(type: string): string {
@@ -101,6 +104,7 @@ export const COMPONENT_DESCRIPTION: Record<string, string> = {
   'ui.alert': 'Comunica uma informação importante.',
   'ui.progress': 'Indica o avanço de uma operação.',
   'ui.loading': 'Informa que uma operação está em andamento.',
+  'ui.selectList': 'Lista vinda de uma integração: o usuário escolhe um item e uma ação sobre ele.',
 };
 
 export function descriptionFor(type: string): string {

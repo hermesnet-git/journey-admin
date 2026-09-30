@@ -30,13 +30,14 @@ public class EspecRegistryFormClient implements FormResolutionPort {
     }
 
     @Override
-    public ResolvedForm resolveForm(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> variables) {
+    public ResolvedForm resolveForm(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> variables,
+                                    String processInstanceId) {
         try {
             return restClient.post()
                     .uri(baseUrl + "/api/v1/journeys/{jid}/versions/{version}/nodes/{nid}/form/resolve",
                             journeyId, journeyVersion, nodeId)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("variables", variables))
+                    .body(Map.of("variables", variables, "processInstanceId", processInstanceId))
                     .retrieve()
                     .body(ResolvedForm.class);
         } catch (RestClientException e) {

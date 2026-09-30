@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import {
@@ -27,11 +27,15 @@ import {
 } from '@telefonica/mistica';
 import type { FormValues } from '@telefonica/mistica';
 import type { SduiNode, SduiEvent } from '../sdui/model';
+import { SelectListView } from '../sdui/SelectListView';
+import type { SelectListAction, SelectListItem, SelectListLoadError } from '../sdui/selectList';
 
 interface Props {
   sdui: SduiNode;
   onSubmit: (answers: Record<string, unknown>) => void;
   submitting: boolean;
+  /** action.retry — refaz a montagem da tela (fonte de dados obrigatória que falhou). */
+  onRetry?: () => void;
 }
 
 // --- Resolução aproximada de tokens (seção 10 do catálogo) — cada alvo de renderização real
@@ -123,8 +127,12 @@ function evaluateCondition(condition: SduiNode['visibility'], extraValues: Recor
   return equal;
 }
 
-export function SduiNodeRenderer({ sdui, onSubmit, submitting }: Props) {
+export function SduiNodeRenderer({ sdui, onSubmit, submitting, onRetry }: Props) {
   const [extraValues, setExtraValues] = useState<Record<string, unknown>>({});
+  // Ação da lista de seleção: grava item + ação e dispara o submit nativo do <Form> (mesma validação
+  // e coleta dos demais campos) por um botão submit oculto.
+  const pendingRef = useRef<Record<string, unknown>>({});
+  const hiddenSubmitRef = useRef<HTMLButtonElement | null>(null);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const initialValues: Record<string, string> = {};
   collectInitialValues(sdui, initialValues);
@@ -134,7 +142,13 @@ export function SduiNodeRenderer({ sdui, onSubmit, submitting }: Props) {
   }
 
   function handleFormSubmit(formValues: FormValues) {
-    onSubmit({ ...formValues, ...extraValues });
+    onSubmit({ ...formValues, ...extraValues, ...pendingRef.current });
+    pendingRef.current = {};
+  }
+
+  function submitWith(values: Record<string, unknown>) {
+    pendingRef.current = values;
+    hiddenSubmitRef.current?.click();
   }
 
   // action.submit é tratado nativamente pelo <ButtonPrimary submit> (ver FieldRenderer/ui.button) —
@@ -162,6 +176,9 @@ export function SduiNodeRenderer({ sdui, onSubmit, submitting }: Props) {
         return; // fora do escopo deste simulador — sem navegação SPA interna nem telemetria aqui
       case 'action.dismiss':
         return; // tratado no próprio FieldRenderer (fecha localmente via dismissed)
+      case 'action.retry':
+        onRetry?.();
+        return;
     }
   }
 
@@ -175,7 +192,10 @@ export function SduiNodeRenderer({ sdui, onSubmit, submitting }: Props) {
         setDismissed={setDismissed}
         dispatch={dispatch}
         submitting={submitting}
+        submitWith={submitWith}
+        onRetry={onRetry}
       />
+      <button ref={hiddenSubmitRef} type="submit" hidden aria-hidden tabIndex={-1} />
     </Form>
   );
 }
@@ -188,6 +208,8 @@ function FieldRenderer({
   setDismissed,
   dispatch,
   submitting,
+  submitWith,
+  onRetry,
 }: {
   node: SduiNode;
   extraValues: Record<string, unknown>;
@@ -196,6 +218,8 @@ function FieldRenderer({
   setDismissed: (next: Set<string>) => void;
   dispatch: (event: SduiEvent | undefined) => void;
   submitting: boolean;
+  submitWith: (values: Record<string, unknown>) => void;
+  onRetry?: () => void;
 }) {
   if (dismissed.has(node.id) || !evaluateCondition(node.visibility, extraValues)) return null;
   const active = evaluateCondition(node.active, extraValues);
@@ -216,6 +240,8 @@ function FieldRenderer({
       setDismissed={setDismissed}
       dispatch={dispatch}
       submitting={submitting}
+      submitWith={submitWith}
+      onRetry={onRetry}
     />
   );
 
@@ -363,14 +389,43 @@ function FieldRenderer({
     case 'ui.select': {
       if (!name) return null;
       const options = (props.options as { value: string; label: string }[] | undefined) ?? [];
+      const loadError = props.loadError as SelectListLoadError | undefined;
       return (
         <Stack space={8}>
           <Text size={13.5} weight="medium" color={skinVars.colors.textPrimary}>
             {label}
             {required ? ' *' : ''}
           </Text>
+          {loadError && <Callout title="Não foi possível carregar as opções" description={loadError.message} />}
+          {loadError?.required && onRetry && <div><ButtonSecondary small onPress={onRetry}>Tentar novamente</ButtonSecondary></div>}
           <Select name={name} label="Selecione" optional={!required} fullWidth options={options.map((o) => ({ value: o.value, text: o.label }))} />
         </Stack>
+      );
+    }
+
+    case 'ui.selectList': {
+      if (!name) return null;
+      const actionPath = node.bindings?.action?.path;
+      const actionName = actionPath?.startsWith('form.') ? actionPath.slice('form.'.length) : null;
+      const items = (props.items as SelectListItem[] | undefined) ?? [];
+      const actions = (props.actions as SelectListAction[] | undefined) ?? [];
+      const selected = (extraValues[name] as string | undefined) ?? (typeof props.value === 'string' ? props.value : null);
+      return (
+        <SelectListView
+          label={label}
+          required={required}
+          items={items}
+          totalItems={typeof props.totalItems === 'number' ? props.totalItems : items.length}
+          actions={actions}
+          emptyMessage={props.emptyMessage as string | undefined}
+          loadError={(props.loadError as SelectListLoadError | undefined) ?? null}
+          selected={selected}
+          onSelect={(value) => setExtraValue(name, value)}
+          onAction={(actionId) => submitWith({ [name]: selected, ...(actionName ? { [actionName]: actionId } : {}) })}
+          onRetry={onRetry}
+          busy={submitting}
+          disabled={!active}
+        />
       );
     }
 

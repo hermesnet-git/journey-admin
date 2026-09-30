@@ -333,6 +333,20 @@ export function ExecutionWorkspace({
     refreshVariables();
   }
 
+  // "Tentar novamente" de uma fonte de dados obrigatória: pede a mesma etapa de novo, o que refaz a
+  // montagem da tela (e a busca da fonte) no serviço de telas.
+  async function handleRetryStep() {
+    setBusy(true);
+    try {
+      setStep(await getCurrentStep(processInstanceId));
+      appendLog('Tela recarregada para tentar de novo a consulta da fonte de dados.');
+    } catch {
+      appendLog('Não foi possível recarregar a tela.', undefined, true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleCompleteTask(answers: Record<string, unknown>) {
     if (!step.taskId) return;
     setBusy(true);
@@ -475,6 +489,7 @@ export function ExecutionWorkspace({
             businessKey={businessKey}
             manualKafkaControl={manualKafkaControl}
             onCompleteTask={handleCompleteTask}
+            onRetryStep={handleRetryStep}
             onSkipStep={handleSkipStep}
             onSendTestMessage={handleSendTestMessage}
             onSendKafkaMessage={handleSendKafkaMessage}

@@ -59,9 +59,20 @@ public final class FlowValidator {
     // jornada) e data (dados somente leitura).
     private static final Set<String> VALID_BINDING_NAMESPACES =
             Set.of("form.", "data.");
-    // Seção 9 do catálogo SDUI: as 6 ações do Action Registry.
+    // Seção 9 do catálogo SDUI: as ações do Action Registry. action.retry ("Tentar novamente") refaz a
+    // montagem da tela — usado quando uma fonte de dados obrigatória falha (ADR-002).
     private static final Set<String> VALID_SDUI_ACTIONS = Set.of("action.submit", "action.navigate",
-            "action.openUrl", "action.setValue", "action.track", "action.dismiss");
+            "action.openUrl", "action.setValue", "action.track", "action.dismiss", "action.retry");
+    // Lista de seleção (ADR-002): nome de apelido de fonte de dados e id de ação; a regra "liberada
+    // quando" de uma ação é uma comparação simples contra um campo do item.
+    private static final Pattern ALIAS = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
+    private static final Pattern ACTION_ID = Pattern.compile("^[A-Za-z0-9_-]+$");
+    private static final Pattern ENABLED_WHEN = Pattern.compile(
+            "^\\s*\\{\\{\\s*item\\.([A-Za-z_][\\w-]*)\\s*\\}\\}\\s*(==|!=)\\s*(true|false|-?\\d+(?:\\.\\d+)?|\"[^\"]*\")\\s*$");
+    private static final Set<String> VALID_ACTION_VARIANTS = Set.of("primary", "secondary", "danger");
+    // Limites do WhatsApp (botões de resposta) — só valem quando a jornada tem esse canal.
+    private static final int WHATSAPP_MAX_ACTIONS = 3;
+    private static final int WHATSAPP_MAX_ACTION_LABEL = 20;
     // equals/notEquals: seção 14.2 do catálogo (único shape exemplificado). in/notIn: extensão
     // pontual pra suportar "visível nestes canais" (lista de valores) sem virar lógica booleana
     // composta — continua uma única regra, só que contra um conjunto de valores em vez de um só.
@@ -298,7 +309,11 @@ public final class FlowValidator {
 
             if (node.getType() == FlowNodeType.USER_TASK) {
                 validateEmbeddedScreen(node, componentRegistry, channelTypes,
-                        availableVarsFor(node, nodes, backward, startVariableNames), violations);
+                        availableVarsFor(node, nodes, backward, startVariableNames),
+                        listVariablesFor(node, nodes, backward), violations);
+            } else if (node.getScreenDataSources() != null && !node.getScreenDataSources().isEmpty()) {
+                violations.add(new FlowViolation(node.getId(), "'" + node.getName()
+                        + "' declara fontes de dados, mas só a tela de uma Tarefa de Usuário usa fonte de dados"));
             }
         }
 
@@ -444,6 +459,72 @@ public final class FlowValidator {
         return availableVars;
     }
 
+    // Variáveis do tipo lista (outputMapping com type "list") de ancestrais — as únicas que uma lista
+    // de seleção ou as opções de um select podem usar. Guarda o nome do motor (data_<nome>).
+    private static Set<String> listVariablesFor(FlowNode node, List<FlowNode> nodes, Map<String, List<String>> backward) {
+        Set<String> ancestorIds = bfs(node.getId(), backward);
+        Set<String> lists = new HashSet<>();
+        for (FlowNode other : nodes) {
+            if (other.getId().equals(node.getId()) || !ancestorIds.contains(other.getId()) || other.getConnectorConfig() == null) {
+                continue;
+            }
+            for (Map<String, Object> rule : outputMappingOf(other.getConnectorConfig())) {
+                if (rule.get("name") instanceof String s && !s.isBlank() && "list".equals(rule.get("type"))) {
+                    lists.add(s.startsWith("data_") ? s : "data_" + s);
+                }
+            }
+        }
+        return lists;
+    }
+
+    // Fontes de dados de referência da tela (ADR-002): apelido válido e único, fonte informada,
+    // parâmetros só com variáveis do motor já disponíveis aqui, e o apelido não pode repetir o nome
+    // de uma variável da instância (data.<apelido> ficaria ambíguo). Devolve os apelidos válidos —
+    // cada um vira data.<apelido>, do tipo lista, dentro desta tela. A existência da fonte no catálogo
+    // é conferida na publicação, quando a configuração dela é congelada no envelope.
+    private static List<String> validateScreenDataSources(FlowNode node, Set<String> availableVars,
+                                                          List<FlowViolation> violations) {
+        List<String> aliases = new ArrayList<>();
+        if (node.getScreenDataSources() == null) {
+            return aliases;
+        }
+        for (Map<String, Object> declaration : node.getScreenDataSources()) {
+            Object alias = declaration.get("alias");
+            String subject = "A fonte de dados '" + alias + "' da tela de '" + node.getName() + "'";
+            if (!(alias instanceof String a) || !ALIAS.matcher(a).matches()) {
+                violations.add(new FlowViolation(node.getId(), "A tela de '" + node.getName()
+                        + "' tem uma fonte de dados sem um apelido válido (letras, números e _, começando por letra)"));
+                continue;
+            }
+            if (aliases.contains(a)) {
+                violations.add(new FlowViolation(node.getId(), subject + " foi declarada mais de uma vez"));
+                continue;
+            }
+            if (availableVars.contains("data_" + a)) {
+                violations.add(new FlowViolation(node.getId(), subject + " usa o mesmo nome da variável 'data." + a
+                        + "' da jornada — escolha outro apelido"));
+                continue;
+            }
+            if (!(declaration.get("source") instanceof String source) || source.isBlank()) {
+                violations.add(new FlowViolation(node.getId(), subject + " não indica qual fonte do catálogo usar"));
+                continue;
+            }
+            Set<String> tokens = new HashSet<>();
+            collectVariableTokens(declaration.get("params"), tokens);
+            reportDottedTokens(node, subject + " usa", declaration.get("params"), violations);
+            for (String token : tokens) {
+                if (!isEngineToken(token)) {
+                    violations.add(rawTokenViolation(node, subject + " usa", token));
+                } else if (!availableVars.contains(token)) {
+                    violations.add(new FlowViolation(node.getId(), subject + " referencia a variável '{{" + token
+                            + "}}', que ainda não existe nesse ponto da jornada" + describeAvailableVars(availableVars)));
+                }
+            }
+            aliases.add(a);
+        }
+        return aliases;
+    }
+
     // Lista as opções reais em vez de só apontar o erro — sem isso, tanto a IA (que só vê a
     // violação de volta no próximo prompt, sem visão do fluxo inteiro) quanto quem desenha na mão
     // ficam sem saber se o problema é um nome digitado errado (quase sempre) ou um outputMapping
@@ -511,7 +592,7 @@ public final class FlowValidator {
     // ui.screen (seção 14.1: "root deve conter exatamente um ui.screen").
     private static void validateEmbeddedScreen(FlowNode node, Map<String, ComponentDefinition> componentRegistry,
                                                  List<ChannelType> channelTypes, Set<String> availableVars,
-                                                 List<FlowViolation> violations) {
+                                                 Set<String> listVariables, List<FlowViolation> violations) {
         SduiNode root = node.getEmbeddedScreenRoot();
         if (root == null) {
             violations.add(new FlowViolation(node.getId(), "A Tarefa de Usuário '" + node.getName()
@@ -524,7 +605,14 @@ public final class FlowValidator {
         }
         // Um campo desta mesma tela também é uma referência válida, em qualquer ordem: quem preenche
         // `form.x` é o componente de entrada da própria tela, não um passo anterior do fluxo.
-        DataScope scope = new DataScope(availableVars, formVariableNames(root));
+        Set<String> flowVariables = new HashSet<>(availableVars);
+        Set<String> screenLists = new HashSet<>(listVariables);
+        for (String alias : validateScreenDataSources(node, availableVars, violations)) {
+            flowVariables.add("data_" + alias);
+            screenLists.add("data_" + alias);
+        }
+        DataScope scope = new DataScope(flowVariables, formVariableNames(root), screenLists,
+                channelTypes.contains(ChannelType.WHATSAPP));
         validateSduiNode(node, root, componentRegistry, new HashSet<>(), scope, violations);
         if (!channelTypes.isEmpty()) {
             validateChannelVisibilityCoverage(node, root, componentRegistry, channelTypes, violations);
@@ -627,15 +715,37 @@ public final class FlowValidator {
         // o runtime interpola (TemplateResolver resolve todo atributo textual que não começa com
         // "$"), não só as cinco que a seção 7.2 do catálogo homologa. Fora do bloco acima porque a
         // interpolação não depende de o componente existir no catálogo.
+        // Propriedade ITEM_TEMPLATE (texto de item da lista de seleção) também aceita {{item.campo}}.
+        Set<String> itemTemplateProps = definition == null ? Set.of() : definition.getPropsSchema().stream()
+                .filter(p -> p.kind() == com.jouney.admin.domain.componentregistry.PropKind.ITEM_TEMPLATE)
+                .map(p -> p.name()).collect(java.util.stream.Collectors.toSet());
         if (sduiNode.props() != null) {
             sduiNode.props().forEach((propName, value) -> {
                 if (value instanceof String text) {
                     Matcher matcher = SCREEN_PLACEHOLDER.matcher(text);
                     while (matcher.find()) {
-                        validatePlaceholder(ownerNode, sduiNode.id(), propName, matcher.group(1), scope, violations);
+                        String token = matcher.group(1);
+                        if (itemTemplateProps.contains(propName) && token.startsWith("item.")) {
+                            if (token.length() == "item.".length()) {
+                                violations.add(new FlowViolation(ownerNode.getId(), "No componente '" + sduiNode.id()
+                                        + "', o atributo '" + propName + "' usa {{item.}} sem o nome do campo"));
+                            }
+                            continue;
+                        }
+                        validatePlaceholder(ownerNode, sduiNode.id(), propName, token, scope, violations);
                     }
                 }
             });
+        }
+        if ("ui.selectList".equals(sduiNode.type())) {
+            validateSelectList(ownerNode, sduiNode, scope, violations);
+        }
+        if ("ui.select".equals(sduiNode.type()) && sduiNode.bindings() != null && sduiNode.bindings().containsKey("options")) {
+            SduiBinding options = sduiNode.bindings().get("options");
+            if (!"oneWay".equals(options.mode()) || !scope.isList(options.path())) {
+                violations.add(new FlowViolation(ownerNode.getId(), "No componente '" + sduiNode.id()
+                        + "', as opções vinculadas precisam apontar, em modo leitura, para uma lista (data.*) — saída de integração do tipo lista ou fonte de dados da tela"));
+            }
         }
 
         List<SduiNode> children = sduiNode.children();
@@ -727,7 +837,12 @@ public final class FlowValidator {
     /** O que uma tela pode referenciar como {@code form.x}/{@code data.x}: o que passos anteriores
      * do fluxo já produziram ({@code flowVariables}, o mesmo conjunto que mensagem, conector e
      * Decisão já conferem) mais os campos que a própria tela coleta ({@code screenFields}). */
-    private record DataScope(Set<String> flowVariables, Set<String> screenFields) {
+    private record DataScope(Set<String> flowVariables, Set<String> screenFields, Set<String> listVariables,
+                             boolean whatsapp) {
+
+        boolean isList(String path) {
+            return path != null && path.startsWith("data.") && listVariables.contains("data_" + path.substring("data.".length()));
+        }
 
         // Confere pelo nome COM prefixo (form_x/data_x), nunca pelo nome cru: é o prefixo que
         // distingue os dois namespaces no motor, então é ele que denuncia um data.nome apontando pra
@@ -842,6 +957,77 @@ public final class FlowValidator {
         }
     }
 
+    // Lista de seleção (ADR-002): lê uma lista (items oneWay → data.* do tipo lista), grava o item
+    // escolhido (value twoWay → form.*) e, havendo ações, a ação escolhida (action twoWay → form.*),
+    // concluindo a etapa pelo evento onAction com action.submit. Limites do WhatsApp nas ações.
+    @SuppressWarnings("unchecked")
+    private static void validateSelectList(FlowNode ownerNode, SduiNode node, DataScope scope,
+                                           List<FlowViolation> violations) {
+        String where = "Na lista de seleção '" + node.id() + "'";
+        Map<String, SduiBinding> bindings = node.bindings() != null ? node.bindings() : Map.of();
+        SduiBinding items = bindings.get("items");
+        if (items == null || !"oneWay".equals(items.mode()) || !scope.isList(items.path())) {
+            violations.add(new FlowViolation(ownerNode.getId(), where + ", os itens precisam vir, em modo leitura, de uma lista (data.*)"
+                    + " — a saída de uma integração do tipo lista ou uma fonte de dados da tela"));
+        }
+        SduiBinding value = bindings.get("value");
+        if (value == null || value.path() == null || !value.path().startsWith("form.") || !"twoWay".equals(value.mode())) {
+            violations.add(new FlowViolation(ownerNode.getId(), where + ", o item escolhido precisa ser gravado num campo do formulário (form.*)"));
+        }
+        Object maxItems = node.props() != null ? node.props().get("maxItems") : null;
+        if (maxItems != null && (!(maxItems instanceof Number n) || n.intValue() < 1)) {
+            violations.add(new FlowViolation(ownerNode.getId(), where + ", o máximo de itens precisa ser um número a partir de 1"));
+        }
+        Object rawActions = node.props() != null ? node.props().get("actions") : null;
+        List<Object> actions = rawActions instanceof List<?> list ? (List<Object>) list : List.of();
+        if (rawActions != null && !(rawActions instanceof List<?>)) {
+            violations.add(new FlowViolation(ownerNode.getId(), where + ", as ações precisam ser uma lista"));
+        }
+        Set<String> ids = new HashSet<>();
+        for (Object raw : actions) {
+            if (!(raw instanceof Map<?, ?> action)) {
+                violations.add(new FlowViolation(ownerNode.getId(), where + ", há uma ação em formato inválido"));
+                continue;
+            }
+            Object id = action.get("id");
+            Object label = action.get("label");
+            if (!(id instanceof String s) || !ACTION_ID.matcher(s).matches() || !ids.add(s)) {
+                violations.add(new FlowViolation(ownerNode.getId(), where + ", a ação '" + id
+                        + "' precisa de um identificador único (letras, números, _ ou -)"));
+            }
+            if (!(label instanceof String l) || l.isBlank()) {
+                violations.add(new FlowViolation(ownerNode.getId(), where + ", a ação '" + id + "' está sem rótulo"));
+            } else if (scope.whatsapp() && l.length() > WHATSAPP_MAX_ACTION_LABEL) {
+                violations.add(new FlowViolation(ownerNode.getId(), where + ", o rótulo da ação '" + l + "' tem mais de "
+                        + WHATSAPP_MAX_ACTION_LABEL + " caracteres, o limite de um botão no WhatsApp"));
+            }
+            Object variant = action.get("variant");
+            if (variant != null && !VALID_ACTION_VARIANTS.contains(variant)) {
+                violations.add(new FlowViolation(ownerNode.getId(), where + ", a ação '" + id
+                        + "' usa um estilo inválido — use primary, secondary ou danger"));
+            }
+            Object enabledWhen = action.get("enabledWhen");
+            if (enabledWhen != null && !(enabledWhen instanceof String e && (e.isBlank() || ENABLED_WHEN.matcher(e).matches()))) {
+                violations.add(new FlowViolation(ownerNode.getId(), where + ", a regra \"liberada quando\" da ação '" + id
+                        + "' precisa comparar um campo do item, por exemplo {{item.podeCancelar}} == true"));
+            }
+        }
+        if (scope.whatsapp() && actions.size() > WHATSAPP_MAX_ACTIONS) {
+            violations.add(new FlowViolation(ownerNode.getId(), where + ", há " + actions.size() + " ações — o WhatsApp mostra no máximo "
+                    + WHATSAPP_MAX_ACTIONS + " botões"));
+        }
+        if (!actions.isEmpty()) {
+            SduiBinding action = bindings.get("action");
+            if (action == null || action.path() == null || !action.path().startsWith("form.") || !"twoWay".equals(action.mode())) {
+                violations.add(new FlowViolation(ownerNode.getId(), where + ", a ação escolhida precisa ser gravada num campo do formulário (form.*)"));
+            }
+        }
+        SduiEvent onAction = node.events() != null ? node.events().get("onAction") : null;
+        if (onAction == null || !"action.submit".equals(onAction.action())) {
+            violations.add(new FlowViolation(ownerNode.getId(), where + ", o evento onAction precisa concluir a etapa (action.submit)"));
+        }
+    }
+
     private static void validateCondition(FlowNode ownerNode, String componentId, String label,
                                            SduiVisibility condition, List<FlowViolation> violations) {
         if (condition == null) return;
@@ -894,9 +1080,12 @@ public final class FlowValidator {
             return;
         }
         if (node.bindings() != null) {
-            SduiBinding valueBinding = node.bindings().get("value");
-            if (valueBinding != null && valueBinding.path() != null && valueBinding.path().startsWith("form.")) {
-                names.add(valueBinding.path().substring("form.".length()));
+            // "action" é o segundo campo que a lista de seleção grava (a ação escolhida).
+            for (String key : List.of("value", "action")) {
+                SduiBinding binding = node.bindings().get(key);
+                if (binding != null && binding.path() != null && binding.path().startsWith("form.")) {
+                    names.add(binding.path().substring("form.".length()));
+                }
             }
         }
         if (node.children() != null) {

@@ -10,5 +10,10 @@ public enum PropKind {
     ENUM,
     TOKEN,
     OPTIONS_LIST,
-    VALIDATION_LIST
+    VALIDATION_LIST,
+    // Texto de item de lista (ui.selectList): aceita {{item.campo}} além de form/data — o prefixo
+    // item só vale em propriedade deste tipo.
+    ITEM_TEMPLATE,
+    // Ações sobre o item selecionado (ui.selectList): [{id, label, variant, enabledWhen}].
+    ACTION_LIST
 }

@@ -56,6 +56,18 @@ export function projectToWhatsApp(root: SduiNode): WhatsAppPreviewItem[] {
         items.push({ id: node.id, kind: 'choices', text: textProp(node, 'label', 'Selecione uma opção'), choices, presentation: choices.length <= 3 ? 'buttons' : 'list' });
         return;
       }
+      case 'ui.selectList': {
+        // Mesma projeção do adaptador do WhatsApp: mensagem de lista (9 linhas + "Ver mais" quando
+        // passa de 10) e, depois da escolha, botões só com as ações liberadas daquele item.
+        const listItems = (node.props.items as { title: string }[] | undefined) ?? [];
+        const rows = listItems.length > 10 ? [...listItems.slice(0, 9).map((i) => i.title), 'Ver mais'] : listItems.map((i) => i.title);
+        items.push({ id: node.id, kind: 'choices', text: textProp(node, 'label', 'Escolha um item'), choices: rows, presentation: 'list' });
+        const actions = (node.props.actions as { label: string }[] | undefined) ?? [];
+        if (actions.length > 0) {
+          items.push({ id: `${node.id}-actions`, kind: 'choices', text: 'Depois de escolher: o que deseja fazer?', choices: actions.map((a) => a.label), presentation: 'buttons' });
+        }
+        return;
+      }
       case 'ui.button':
         items.push({ id: node.id, kind: 'action', text: textProp(node, 'label', 'Continuar'), actionKind: 'reply' });
         return;

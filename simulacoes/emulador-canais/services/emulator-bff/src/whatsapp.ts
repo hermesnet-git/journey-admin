@@ -227,6 +227,10 @@ export class WhatsAppSessionManager {
             if (/^https?:\/\//.test(url)) await this.bridge.send(text(session.from, url));
           },
           track: async () => undefined,
+          // "Tentar novamente": pede a etapa de novo e reenvia a conversa com a tela remontada.
+          retry: async () => {
+            await this.activateStep(session, await this.journey.getCurrentStep(session.instance.processInstanceId));
+          },
         },
       });
       session.conversation = conversation;

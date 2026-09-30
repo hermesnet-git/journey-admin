@@ -83,6 +83,44 @@ class _SduiRendererFlutterState extends State<SduiRendererFlutter> {
     setState(() => _errors.remove(node.id));
   }
 
+  Future<void> _listAction(SduiNode node, String actionId) async {
+    final result = await widget.runtime.selectListAction(node, actionId);
+    if (!mounted) return;
+    setState(() {
+      _errors
+        ..clear()
+        ..addEntries(
+          result.errors.map((error) => MapEntry(error.nodeId, error.message)),
+        );
+    });
+  }
+
+  /// Aviso de fonte de dados que falhou, com "Tentar novamente" quando ela é
+  /// obrigatória (action.retry — o host pede a etapa de novo).
+  Widget _loadError(SduiNode node, String title) {
+    final loadError = node.attributes['loadError'];
+    if (loadError is! Map) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: widget.tokens.negative),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(loadError['message']?.toString() ?? ''),
+          if (loadError['required'] == true)
+            TextButton(
+              onPressed: () => widget.runtime.retry(node),
+              child: const Text('Tentar novamente'),
+            ),
+        ],
+      ),
+    );
+  }
+
   void _diagnostic(SduiNode node, String code, String message) {
     final key = '$code:${node.id}';
     if (!_reported.add(key)) return;
@@ -330,6 +368,102 @@ class _SduiRendererFlutterState extends State<SduiRendererFlutter> {
               _change(node, _coerceInput(props['inputMode'], value)),
         );
 
+      case 'ui.selectList':
+        final items = (props['items'] as List? ?? const [])
+            .whereType<Map>()
+            .toList(growable: false);
+        final actions = (props['actions'] as List? ?? const [])
+            .whereType<Map>()
+            .toList(growable: false);
+        final selected = widget.runtime.getNodeValue(node)?.toString();
+        final selectedItem = items
+            .where((item) => item['value']?.toString() == selected)
+            .firstOrNull;
+        final loadError = props['loadError'];
+        final blocked = loadError is Map && loadError['required'] == true;
+        final total = props['totalItems'] is num
+            ? (props['totalItems'] as num).toInt()
+            : items.length;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '${text(props['label'])}${props['required'] == true ? ' *' : ''}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            _loadError(node, 'Não foi possível carregar a lista'),
+            if (!blocked && items.isEmpty)
+              Text(
+                text(props['emptyMessage']).isEmpty
+                    ? 'Nenhum item para mostrar.'
+                    : text(props['emptyMessage']),
+              ),
+            RadioGroup<String>(
+              groupValue: selected,
+              onChanged: (value) {
+                if (active) _change(node, value);
+              },
+              child: Column(
+                children: [
+                  for (final item in items)
+                    RadioListTile<String>(
+                      value: item['value']?.toString() ?? '',
+                      enabled: active,
+                      title: Text(item['title']?.toString() ?? ''),
+                      subtitle: item['description'] == null &&
+                              !(item['value']?.toString() == selected &&
+                                  item['hint'] != null)
+                          ? null
+                          : Text(
+                              [
+                                if (item['description'] != null)
+                                  item['description'].toString(),
+                                if (item['value']?.toString() == selected &&
+                                    item['hint'] != null)
+                                  item['hint'].toString(),
+                              ].join('\n'),
+                            ),
+                    ),
+                ],
+              ),
+            ),
+            if (total > items.length)
+              Text('Mostrando ${items.length} de $total.'),
+            if (error != null)
+              Text(error, style: TextStyle(color: widget.tokens.negative)),
+            if (actions.isNotEmpty && !blocked)
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final action in actions)
+                    () {
+                      final id = action['id']?.toString() ?? '';
+                      final enabledActions =
+                          selectedItem?['enabledActions'] as List? ?? const [];
+                      final enabled = active &&
+                          !widget.submitting &&
+                          selectedItem != null &&
+                          enabledActions.contains(id);
+                      final label = Text(action['label']?.toString() ?? '');
+                      final onPressed =
+                          enabled ? () => _listAction(node, id) : null;
+                      return action['variant'] == 'secondary'
+                          ? OutlinedButton(onPressed: onPressed, child: label)
+                          : FilledButton(
+                              style: action['variant'] == 'danger'
+                                  ? FilledButton.styleFrom(
+                                      backgroundColor: widget.tokens.negative,
+                                    )
+                                  : null,
+                              onPressed: onPressed,
+                              child: label,
+                            );
+                    }(),
+                ],
+              ),
+          ],
+        );
       case 'ui.select':
         final options = (props['options'] as List? ?? const [])
             .whereType<Map>()

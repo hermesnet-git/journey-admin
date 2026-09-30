@@ -29,7 +29,7 @@ public record FlowResponse(String flowId, UUID journeyId, String name, List<Node
         public static NodeResponse from(FlowNode node) {
             boolean hasEmbeddedScreen = node.getEmbeddedScreenRoot() != null;
             UserTaskConfigResponse userTaskConfig = hasEmbeddedScreen
-                    ? new UserTaskConfigResponse(node.getEmbeddedScreenRoot())
+                    ? new UserTaskConfigResponse(node.getEmbeddedScreenRoot(), node.getScreenDataSources())
                     : null;
             ConnectorConfigResponse connectorConfig = node.getConnectorConfig() != null
                     ? ConnectorConfigResponse.from(node.getConnectorConfig())
@@ -40,7 +40,7 @@ public record FlowResponse(String flowId, UUID journeyId, String name, List<Node
         }
     }
 
-    public record UserTaskConfigResponse(SduiNode embeddedScreenRoot) {
+    public record UserTaskConfigResponse(SduiNode embeddedScreenRoot, List<Map<String, Object>> dataSources) {
     }
 
     public record ConnectorConfigResponse(ConnectorType connectorType, Map<String, Object> config,

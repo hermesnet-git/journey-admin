@@ -64,6 +64,8 @@ const PROP_KIND_LABEL: Record<PropKind, string> = {
   TOKEN: 'Token visual',
   OPTIONS_LIST: 'Lista de opções',
   VALIDATION_LIST: 'Regras de validação',
+  ITEM_TEMPLATE: 'Texto de item da lista',
+  ACTION_LIST: 'Ações sobre o item',
 };
 
 function FormSection({ icon: Icon, title, description, children }: { icon: typeof Box; title: string; description: string; children: ReactNode }) {

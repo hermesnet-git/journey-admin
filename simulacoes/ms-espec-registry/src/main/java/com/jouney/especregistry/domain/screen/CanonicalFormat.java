@@ -3,6 +3,7 @@ package com.jouney.especregistry.domain.screen;
 import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -30,9 +31,15 @@ public final class CanonicalFormat {
         if (envelope.journeyVersion() < 1 || envelope.uiStepId() == null || envelope.uiStepId().isBlank()) {
             throw new IllegalArgumentException("journeyVersion e uiStepId são obrigatórios");
         }
-        if (envelope.dataSources() == null || !envelope.dataSources().isEmpty()) {
-            throw new IllegalArgumentException("dataSources deve ser um objeto vazio no SDUI v1");
+        // dataSources (ADR-002, §14.4): por apelido, a configuração congelada da fonte na publicação.
+        if (envelope.dataSources() == null) {
+            throw new IllegalArgumentException("dataSources é obrigatório (objeto vazio quando a tela não usa fonte)");
         }
+        envelope.dataSources().forEach((alias, config) -> {
+            if (!(config instanceof Map<?, ?> map) || !(map.get("url") instanceof String url) || url.isBlank()) {
+                throw new IllegalArgumentException("A fonte de dados '" + alias + "' não tem URL");
+            }
+        });
         validateTuple(envelope.data(), true);
     }
 
@@ -40,6 +47,20 @@ public final class CanonicalFormat {
         List<FieldSpec> fields = new ArrayList<>();
         collectFields(root, fields);
         return fields;
+    }
+
+    /** Variáveis do motor usadas nos parâmetros das fontes de dados da tela ({{form_x}}/{{data_x}}). */
+    public static Set<String> dataSourceParamVariables(Map<String, Object> dataSources) {
+        Set<String> names = new LinkedHashSet<>();
+        if (dataSources == null) return names;
+        dataSources.values().forEach(config -> {
+            if (config instanceof Map<?, ?> map && map.get("params") instanceof Map<?, ?> params) {
+                params.values().forEach(v -> {
+                    if (v instanceof String text) collectPlaceholders(text, names);
+                });
+            }
+        });
+        return names;
     }
 
     /** Retorna somente variáveis explicitamente referenciadas pela tela publicada. */
@@ -73,11 +94,13 @@ public final class CanonicalFormat {
         if (tuple == null || !tuple.isArray() || tuple.size() < 2) return;
         String type = tuple.get(0).asText();
         JsonNode attributes = tuple.get(1);
-        JsonNode binding = attributes.path("$bindings").path("value");
-        String path = binding.path("path").asText("");
-        if (path.startsWith("form.")) {
-            fields.add(new FieldSpec(path.substring("form.".length()), type,
-                    attributes.path("inputMode").asText(null)));
+        // "action" é o segundo campo gravado pela lista de seleção (a ação escolhida).
+        for (String key : List.of("value", "action")) {
+            String path = attributes.path("$bindings").path(key).path("path").asText("");
+            if (path.startsWith("form.")) {
+                fields.add(new FieldSpec(path.substring("form.".length()), type,
+                        attributes.path("inputMode").asText(null)));
+            }
         }
         if (tuple.size() == 3) for (JsonNode child : tuple.get(2)) collectFields(child, fields);
     }

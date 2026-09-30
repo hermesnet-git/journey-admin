@@ -81,6 +81,14 @@ const SPECIFIC: Record<string, Partial<PropertyPresentation>> = {
   'ui.datePicker.mode': { help: 'Escolha se o campo receberá data, hora ou ambas.' },
   'ui.button.variant': { enumLabels: { primary: 'Principal', secondary: 'Secundário', danger: 'Destrutivo' } },
   'ui.text.variant': { enumLabels: { title: 'Título', subtitle: 'Subtítulo', body: 'Corpo', caption: 'Legenda' } },
+  'ui.selectList.itemValue': { label: 'Valor gravado', help: 'Campo do item gravado na variável do formulário quando o usuário escolhe o item — por exemplo, o número do bilhete.', group: 'CONTENT' },
+  'ui.selectList.itemTitle': { label: 'Título do item', help: 'Linha principal de cada item. Combine texto com campos do item, por exemplo {{item.tipoDefeito}}.', group: 'CONTENT' },
+  'ui.selectList.itemDescription': { label: 'Descrição do item', help: 'Linha secundária de cada item.', group: 'CONTENT' },
+  'ui.selectList.itemHint': { label: 'Aviso do item', help: 'Texto mostrado junto do item, por exemplo o motivo de uma ação estar bloqueada.', group: 'CONTENT' },
+  'ui.selectList.emptyMessage': { label: 'Mensagem de lista vazia', group: 'CONTENT' },
+  'ui.selectList.maxItems': { label: 'Máximo de itens', help: 'Itens além deste número não são mostrados; a tela avisa quantos ficaram de fora.', group: 'BEHAVIOR' },
+  'ui.selectList.actions': { label: 'Ações sobre o item escolhido', help: 'Cada ação conclui a etapa e grava a ação escolhida. "Liberada quando" usa um campo do item vindo da integração.', group: 'BEHAVIOR' },
+  'ui.selectList.required': { label: 'Escolha obrigatória', group: 'VALIDATION' },
 };
 
 function humanize(name: string): string {

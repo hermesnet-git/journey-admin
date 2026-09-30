@@ -425,8 +425,14 @@ public class BpmnTransformer {
         // continuaria causando. Em erro, o campo simplesmente resolve pra null em vez de estourar.
         for (Map<String, Object> rule : outputMappingOf(config)) {
             if (rule.get("name") instanceof String name && !name.isBlank() && rule.get("jsonPath") instanceof String jsonPath) {
+                // Tipo "list": o array vira variável JSON do motor (ListOutput, ms-runtime-camunda), só
+                // com os "campos a manter"; em erro HTTP vira lista vazia, não null — a tela mostra a
+                // mensagem de lista vazia em vez de quebrar.
                 String expression = "$httpStatus".equals(jsonPath)
                         ? "${statusCode}"
+                        : "list".equals(rule.get("type"))
+                        ? "${listOutput.extract(statusCode, response, \"" + jsonPath + "\", \""
+                                + keepFieldsCsv(rule) + "\")}"
                         : "${statusCode >= 200 && statusCode < 300 ? S(response).jsonPath(\"" + jsonPath + "\").element().value() : null}";
                 // Saída de conector é sempre namespace "data" (ver BindingResolver/VariableConversion,
                 // ms-espec-registry) — a variável de PROCESSO fica com o prefixo; a expressão acima só
@@ -434,6 +440,13 @@ public class BpmnTransformer {
                 addOutputParameter(modelInstance, element, namespacedDataVariable(name), expression);
             }
         }
+    }
+
+    // "Campos a manter" de uma regra do tipo lista (lista de nomes), em CSV — vazio mantém tudo.
+    private String keepFieldsCsv(Map<String, Object> rule) {
+        return rule.get("keepFields") instanceof List<?> fields
+                ? fields.stream().map(String::valueOf).collect(Collectors.joining(","))
+                : "";
     }
 
     private CamundaInputParameter newInputParameter(BpmnModelInstance modelInstance, String name, String value) {
@@ -510,6 +523,9 @@ public class BpmnTransformer {
                 // perdendo a coerção number/boolean/date que VariableConversion.resolveOutputMapping
                 // faz hoje a partir do type declarado no admin/back.
                 addInputParameter(modelInstance, element, "outputMapping." + name + ".type", type);
+                if ("list".equals(type)) {
+                    addInputParameter(modelInstance, element, "outputMapping." + name + ".keepFields", keepFieldsCsv(rule));
+                }
                 // ${execution.getVariable(name)} lê a variável LOCAL que o worker (ms-runtime-camunda) gravou —
                 // por getVariable, e não por um identificador solto: um nome com hífen (user-id) viraria
                 // a subtração user - id em JUEL —

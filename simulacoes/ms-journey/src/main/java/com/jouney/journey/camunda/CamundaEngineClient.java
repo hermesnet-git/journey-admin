@@ -99,9 +99,23 @@ public class CamundaEngineClient {
                 .retrieve()
                 .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
                 });
+        // Variável Json (lista gravada pela saída de integração do tipo lista, ADR-002): no modo padrão
+        // o motor devolve o objeto técnico do Spin, não o JSON — só pra essas, lê de novo o texto
+        // (deserializeValues=false). As de outros tipos continuam como sempre foram lidas.
+        Map<String, Map<String, Object>> jsonText = raw != null && raw.values().stream().anyMatch(v -> "Json".equals(v.get("type")))
+                ? restClient.get()
+                        .uri(properties.baseUrl() + "/process-instance/{id}/variables?deserializeValues=false", processInstanceId)
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
+                        })
+                : Map.of();
         Map<String, CamundaVariable> result = new LinkedHashMap<>();
         if (raw != null) {
-            raw.forEach((name, v) -> result.put(name, new CamundaVariable(v.get("value"), String.valueOf(v.get("type")))));
+            raw.forEach((name, v) -> {
+                Object value = "Json".equals(v.get("type")) && jsonText != null && jsonText.containsKey(name)
+                        ? jsonText.get(name).get("value") : v.get("value");
+                result.put(name, new CamundaVariable(value, String.valueOf(v.get("type"))));
+            });
         }
         return result;
     }

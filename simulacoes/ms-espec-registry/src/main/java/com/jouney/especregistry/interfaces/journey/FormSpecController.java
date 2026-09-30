@@ -55,7 +55,7 @@ public class FormSpecController {
                                     @PathVariable String nodeId,
                                     @RequestBody(required = false) ResolveFormRequest request) {
         ResolvedScreen resolved = resolveScreenForNode.execute(journeyId, journeyVersion, nodeId,
-                request != null ? request.variables() : null);
+                request != null ? request.variables() : null, request != null ? request.processInstanceId() : null);
         return new FormPayload(null, resolved.nodeName(), null, resolved.envelope(), resolved.context());
     }
 

@@ -1,5 +1,8 @@
 package com.jouney.especregistry.application.journey;
 
+import com.jouney.especregistry.domain.screen.SourceError;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import com.jouney.especregistry.domain.engine.EngineVariable;
 import com.jouney.especregistry.domain.journey.FlowNode;
 import com.jouney.especregistry.domain.journey.JourneyRepository;
@@ -21,13 +24,23 @@ public class ResolveScreenForNode {
 
     private final JourneyRepository journeyRepository;
     private final SnapshotRepository snapshotRepository;
+    private final ScreenDataSourceFetcher dataSourceFetcher;
 
-    public ResolveScreenForNode(JourneyRepository journeyRepository, SnapshotRepository snapshotRepository) {
+    public ResolveScreenForNode(JourneyRepository journeyRepository, SnapshotRepository snapshotRepository,
+                                ScreenDataSourceFetcher dataSourceFetcher) {
         this.journeyRepository = journeyRepository;
         this.snapshotRepository = snapshotRepository;
+        this.dataSourceFetcher = dataSourceFetcher;
     }
 
     public ResolvedScreen execute(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> rawVariables) {
+        return execute(journeyId, journeyVersion, nodeId, rawVariables, null);
+    }
+
+    /** {@code processInstanceId} (opcional) só serve pra registrar as consultas às fontes de dados da
+     * tela pro Diagnóstico da instância. */
+    public ResolvedScreen execute(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> rawVariables,
+                                  String processInstanceId) {
         FlowNode node = findNode(journeyId, journeyVersion, nodeId);
         if (!node.hasEmbeddedScreen()) {
             throw new IllegalStateException("A Tarefa de Usuário " + node.id() + " não possui tela publicada");
@@ -35,7 +48,16 @@ public class ResolveScreenForNode {
         ScreenEnvelope envelope = requireScreen(journeyId, journeyVersion, node);
         CanonicalFormat.validateEnvelope(envelope);
         Map<String, Object> context = runtimeContext(envelope, rawVariables);
-        ScreenEnvelope resolved = resolveEnvelope(envelope, context);
+        // Fontes de dados de referência (ADR-002): buscadas agora, a cada montagem da tela; o
+        // resultado entra só no contexto desta tela como data.<apelido>, nunca vira variável da instância.
+        @SuppressWarnings("unchecked")
+        Map<String, Object> values = (Map<String, Object>) context.get("form");
+        Map<String, EngineVariable> engineVariables = new LinkedHashMap<>();
+        values.forEach((name, value) -> engineVariables.put(name, new EngineVariable(value, "Object")));
+        ScreenDataSourceFetcher.Fetched fetched = dataSourceFetcher.fetchAll(envelope.dataSources(), engineVariables,
+                new ScreenDataSourceFetcher.CallContext(processInstanceId, journeyId, journeyVersion, nodeId));
+        fetched.lists().forEach((name, variable) -> values.put(name, variable.value()));
+        ScreenEnvelope resolved = resolveEnvelope(envelope, context, fetched.errors());
         return new ResolvedScreen(node.name(), resolved, context);
     }
 
@@ -56,20 +78,26 @@ public class ResolveScreenForNode {
     private Map<String, Object> runtimeContext(ScreenEnvelope envelope, Map<String, Object> rawVariables) {
         Map<String, Object> source = rawVariables != null ? rawVariables : Map.of();
         Map<String, Object> values = new LinkedHashMap<>();
-        CanonicalFormat.referencedProcessVariables(envelope.data()).forEach(name -> {
+        Set<String> referenced = new LinkedHashSet<>(CanonicalFormat.referencedProcessVariables(envelope.data()));
+        referenced.addAll(CanonicalFormat.dataSourceParamVariables(envelope.dataSources()));
+        referenced.forEach(name -> {
             if (source.containsKey(name)) values.put(name, source.get(name));
         });
         return Map.of("form", values, "data", values);
     }
 
     @SuppressWarnings("unchecked")
-    private ScreenEnvelope resolveEnvelope(ScreenEnvelope envelope, Map<String, Object> context) {
+    private ScreenEnvelope resolveEnvelope(ScreenEnvelope envelope, Map<String, Object> context,
+                                           Map<String, SourceError> sourceErrors) {
         Map<String, Object> formValues = (Map<String, Object>) context.get("form");
         Map<String, EngineVariable> variables = new LinkedHashMap<>();
         formValues.forEach((name, value) -> variables.put(name, new EngineVariable(value, "Object")));
-        JsonNode resolvedData = TemplateResolver.resolveTuple(envelope.data(), variables);
+        JsonNode resolvedData = TemplateResolver.resolveTuple(envelope.data(), variables, sourceErrors);
         return new ScreenEnvelope(envelope.schemaVersion(), envelope.catalogVersion(), envelope.journeyId(),
                 envelope.journeyVersion(), envelope.uiStepId(), envelope.status(), envelope.publishedAt(),
-                envelope.supportedTargets(), envelope.minRendererVersion(), envelope.dataSources(), resolvedData);
+                envelope.supportedTargets(), envelope.minRendererVersion(),
+                // A configuração das fontes (URL, credencial) nunca sai do servidor: o canal recebe
+                // só o resultado, já dentro dos componentes.
+                Map.of(), resolvedData);
     }
 }

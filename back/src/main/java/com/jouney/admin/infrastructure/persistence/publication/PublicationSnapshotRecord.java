@@ -33,7 +33,7 @@ public record PublicationSnapshotRecord(UUID journeyId, String journeyName, Stri
                         .map(n -> new FlowNodeRecord(n.getId(), n.getType(), n.getName(), n.getDescription(),
                                 n.getPositionX(), n.getPositionY(),
                                 FlowNodeRecord.ConnectorConfigRecord.from(n.getConnectorConfig()),
-                                n.getStartVariables(), n.getEmbeddedScreenRoot(), n.getSdui()))
+                                n.getStartVariables(), n.getEmbeddedScreenRoot(), n.getSdui(), n.getScreenDataSources()))
                         .toList(),
                 publication.getFlowConnections().stream()
                         .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),

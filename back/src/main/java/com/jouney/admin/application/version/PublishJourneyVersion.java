@@ -8,6 +8,8 @@ import com.jouney.admin.domain.audit.AuditResult;
 import com.jouney.admin.domain.channel.ProductInactiveException;
 import com.jouney.admin.domain.componentregistry.ComponentDefinition;
 import com.jouney.admin.domain.componentregistry.ComponentDefinitionRepository;
+import com.jouney.admin.domain.datasource.DataSource;
+import com.jouney.admin.domain.datasource.DataSourceRepository;
 import com.jouney.admin.domain.flow.FlowValidator;
 import com.jouney.admin.domain.flow.SduiEnvelopeBuilder;
 import com.jouney.admin.domain.flow.SduiScreenEnvelope;
@@ -54,13 +56,16 @@ public class PublishJourneyVersion {
     private final RecordAuditEvent recordAuditEvent;
     private final ComponentDefinitionRepository componentDefinitionRepository;
     private final ScreenPublicationPort screenPublicationPort;
+    private final DataSourceRepository dataSourceRepository;
 
     public PublishJourneyVersion(JourneyRepository journeyRepository, ProductRepository productRepository,
                                   JourneyVersionRepository journeyVersionRepository,
                                   PublicationRepository publicationRepository,
                                   RuntimePublicationPort runtimePublicationPort, RecordAuditEvent recordAuditEvent,
                                   ComponentDefinitionRepository componentDefinitionRepository,
-                                  ScreenPublicationPort screenPublicationPort) {
+                                  ScreenPublicationPort screenPublicationPort,
+                                  DataSourceRepository dataSourceRepository) {
+        this.dataSourceRepository = dataSourceRepository;
         this.journeyRepository = journeyRepository;
         this.productRepository = productRepository;
         this.journeyVersionRepository = journeyVersionRepository;
@@ -107,7 +112,8 @@ public class PublishJourneyVersion {
                 version.getChannelTypes());
 
         List<SduiScreenEnvelope> sduiEnvelopes = SduiEnvelopeBuilder.buildAll(journeyId, version.getVersionNumber(),
-                version.getChannelTypes(), version.getFlowNodes(), componentRegistry);
+                version.getChannelTypes(), version.getFlowNodes(), componentRegistry,
+                dataSourceRepository.findAll().stream().collect(Collectors.toMap(DataSource::getName, d -> d)));
         // Anexa a foto de cada tela publicada de volta no próprio FlowNode (FlowNode.sdui) antes de
         // montar a Publication — assim journey_publication.snapshot e journey_version.version_snapshot
         // já saem com o envelope exato que vai pro registro de telas logo abaixo, não só a árvore de autoria.

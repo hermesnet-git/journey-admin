@@ -2,7 +2,9 @@ import { apiGet, apiPost, apiPut, apiDelete } from './client';
 
 export type ComponentStatus = 'EXPERIMENTAL' | 'STABLE' | 'DEPRECATED' | 'REMOVED';
 export type ComponentCategory = 'CONTENT' | 'LAYOUT' | 'INPUT' | 'ACTION' | 'FEEDBACK';
-export type PropKind = 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'ENUM' | 'TOKEN' | 'OPTIONS_LIST' | 'VALIDATION_LIST';
+// ITEM_TEMPLATE: texto de item da lista de seleção (aceita {{item.campo}}); ACTION_LIST: ações sobre o
+// item selecionado — os dois só existem no ui.selectList (ADR-002).
+export type PropKind = 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'ENUM' | 'TOKEN' | 'OPTIONS_LIST' | 'VALIDATION_LIST' | 'ITEM_TEMPLATE' | 'ACTION_LIST';
 export type TargetStatus = 'SUPPORTED' | 'PLANNED' | 'UNSUPPORTED';
 export type ReservedField = '$bindings' | '$events' | '$visibility' | '$active';
 export type ComponentOrigin = 'SYSTEM' | 'CUSTOM';

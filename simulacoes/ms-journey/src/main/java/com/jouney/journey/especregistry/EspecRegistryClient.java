@@ -31,12 +31,13 @@ public class EspecRegistryClient {
                 .body(FlowBundle.class);
     }
 
-    public FormPayload resolveForm(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> variables) {
+    public FormPayload resolveForm(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> variables,
+                                   String processInstanceId) {
         return restClient.post()
                 .uri(properties.baseUrl() + "/api/v1/journeys/{jid}/versions/{version}/nodes/{nid}/form/resolve",
                         journeyId, journeyVersion, nodeId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("variables", variables))
+                .body(Map.of("variables", variables, "processInstanceId", processInstanceId))
                 .retrieve()
                 .body(FormPayload.class);
     }

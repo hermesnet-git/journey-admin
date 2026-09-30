@@ -25,6 +25,10 @@ public class FlowNode {
     // JourneyVersion.attachPublishedScreens); este campo é só pra "o que está aqui bate com o que
     // saiu", sem precisar recalcular via SduiEnvelopeBuilder pra conferir.
     private final SduiScreenEnvelope sdui;
+    // Fontes de dados de referência declaradas pela tela (ADR-002): [{alias, source, params, required,
+    // errorMessage}] — viram o dataSources do envelope na publicação, com a configuração da fonte
+    // congelada. null/vazio quando a tela não usa fonte.
+    private final List<Map<String, Object>> screenDataSources;
 
     /** Nasce sem sdui — todo nó do fluxo ao vivo (nunca publicado) e qualquer entrada externa
      * (template, geração por IA) usa este construtor. */
@@ -38,6 +42,14 @@ public class FlowNode {
     public FlowNode(String id, FlowNodeType type, String name, String description, int positionX, int positionY,
                      ConnectorConfig connectorConfig, List<Map<String, Object>> startVariables,
                      SduiNode embeddedScreenRoot, SduiScreenEnvelope sdui) {
+        this(id, type, name, description, positionX, positionY, connectorConfig, startVariables, embeddedScreenRoot,
+                sdui, null);
+    }
+
+    public FlowNode(String id, FlowNodeType type, String name, String description, int positionX, int positionY,
+                     ConnectorConfig connectorConfig, List<Map<String, Object>> startVariables,
+                     SduiNode embeddedScreenRoot, SduiScreenEnvelope sdui,
+                     List<Map<String, Object>> screenDataSources) {
         this.id = id;
         this.type = type;
         this.name = name;
@@ -48,6 +60,7 @@ public class FlowNode {
         this.startVariables = startVariables;
         this.embeddedScreenRoot = embeddedScreenRoot;
         this.sdui = sdui;
+        this.screenDataSources = screenDataSources;
     }
 
     public String getId() {
@@ -84,6 +97,16 @@ public class FlowNode {
 
     public SduiNode getEmbeddedScreenRoot() {
         return embeddedScreenRoot;
+    }
+
+    public List<Map<String, Object>> getScreenDataSources() {
+        return screenDataSources;
+    }
+
+    /** Mesmo nó com outra foto de envelope publicado — preserva todo o resto. */
+    public FlowNode withSdui(SduiScreenEnvelope newSdui) {
+        return new FlowNode(id, type, name, description, positionX, positionY, connectorConfig, startVariables,
+                embeddedScreenRoot, newSdui, screenDataSources);
     }
 
     public SduiScreenEnvelope getSdui() {

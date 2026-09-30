@@ -207,6 +207,47 @@ export function link(id, label, opts = {}) {
   };
 }
 
+// Lista de seleção (ADR-002): itens vêm de uma lista (data.x — saída de integração do tipo "list" ou
+// fonte de dados da tela); cada item mostra itemTitle/itemDescription/itemHint com {{item.campo}}; a
+// escolha grava o item (value → form.<varName>) e a ação (action → form.<actionVar>). actions:
+// [{ id, label, variant: 'primary'|'secondary'|'danger', enabledWhen: '{{item.campo}} == true' }].
+export function selectList(id, label, itemsPath, varName, opts = {}) {
+  return {
+    id, type: 'ui.selectList', version: '1.0.0',
+    props: {
+      label, itemValue: opts.itemValue, itemTitle: opts.itemTitle,
+      ...(opts.itemDescription ? { itemDescription: opts.itemDescription } : {}),
+      ...(opts.itemHint ? { itemHint: opts.itemHint } : {}),
+      ...(opts.emptyMessage ? { emptyMessage: opts.emptyMessage } : {}),
+      maxItems: opts.maxItems ?? 50, actions: opts.actions ?? [], required: opts.required ?? true,
+    },
+    bindings: {
+      items: { path: itemsPath, mode: 'oneWay' },
+      value: { path: `form.${varName}`, mode: 'twoWay' },
+      ...(opts.actionVar ? { action: { path: `form.${opts.actionVar}`, mode: 'twoWay' } } : {}),
+    },
+    events: { onAction: { action: 'action.submit', params: {} } }, visibility: null, active: null, children: null,
+  };
+}
+
+// Select com as opções vindas de uma lista (cada item com label/value) — tipicamente uma fonte de
+// dados da tela (data.<apelido>).
+export function selectFromList(id, label, varName, optionsPath, opts = {}) {
+  return {
+    id, type: 'ui.select', version: '1.0.0',
+    props: { label, placeholder: opts.placeholder ?? 'Selecione', required: opts.required ?? true, searchable: false },
+    bindings: { value: { path: `form.${varName}`, mode: 'twoWay' }, options: { path: optionsPath, mode: 'oneWay' } },
+    events: null, visibility: null, active: null, children: null,
+  };
+}
+
+// Cadastra (ou reaproveita, pelo nome) uma fonte de dados de referência no catálogo (FT-14).
+export async function ensureDataSource(token, input) {
+  const existing = (await api('GET', '/data-sources', token)).find((d) => d.name === input.name);
+  if (existing) return api('PUT', `/data-sources/${existing.dataSourceId}`, token, input);
+  return api('POST', '/data-sources', token, input);
+}
+
 // --- Nós de fluxo adicionais: Decisão (GATEWAY) e integrações (SERVICE_TASK/RECEIVE_TASK) -------
 
 export function gatewayNode(id, name, positionX, positionY, description = 'Decisão') {
@@ -285,11 +326,13 @@ export function endNode(id, name, positionX, positionY, description = 'Fim da jo
 
 // screenId: usado só nos ids internos dos componentes (screen_<screenId>/stack_<screenId>) — pode
 // ser igual ao nodeId em minúsculas, não precisa seguir o padrão Node_.
-export function userTaskNode(id, name, description, positionX, positionY, screenId, screenTitle, children) {
+// dataSources (opcional): fontes de dados de referência da tela — [{ alias, source, params, required,
+// errorMessage }]; o resultado de cada uma vira data.<alias>, só nesta tela.
+export function userTaskNode(id, name, description, positionX, positionY, screenId, screenTitle, children, dataSources = null) {
   return {
     nodeId: id, nodeType: 'USER_TASK', name, description, positionX, positionY,
     connectorConfig: null, startVariables: null,
-    userTaskConfig: { embeddedScreenRoot: screen(screenId, screenTitle, children) },
+    userTaskConfig: { embeddedScreenRoot: screen(screenId, screenTitle, children), dataSources },
   };
 }
 

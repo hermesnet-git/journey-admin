@@ -62,7 +62,7 @@ public class GlobalExceptionHandler {
             JourneyNotFoundException.class, JourneyVersionNotFoundException.class,
             MessagingClusterNotFoundException.class, CredentialReferenceNotFoundException.class,
             FlowNodeNotFoundException.class, ComponentDefinitionNotFoundException.class,
-            InstanceNotFoundException.class})
+            InstanceNotFoundException.class, com.jouney.admin.domain.datasource.DataSourceNotFoundException.class})
     public ResponseEntity<ApiError> handleNotFound(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
     }
@@ -71,7 +71,8 @@ public class GlobalExceptionHandler {
             JourneyInactiveException.class, VersionNotDraftException.class, VersionNotPublishedException.class,
             VersionNotUnpublishedException.class, ClusterInUseException.class, CredentialInUseException.class,
             ClusterNameAlreadyExistsException.class, CredentialReferenceNameAlreadyExistsException.class,
-            ComponentTypeVersionAlreadyExistsException.class, InstanceNotResumableException.class})
+            ComponentTypeVersionAlreadyExistsException.class, InstanceNotResumableException.class,
+            com.jouney.admin.domain.datasource.DataSourceNameAlreadyExistsException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, null);
     }
@@ -82,7 +83,8 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "SYSTEM_COMPONENT_PROTECTED", ex.getMessage(), request, null);
     }
 
-    @ExceptionHandler({UnknownRenderTargetException.class, JourneyTemplateNotFoundException.class})
+    @ExceptionHandler({UnknownRenderTargetException.class, JourneyTemplateNotFoundException.class,
+            com.jouney.admin.domain.datasource.InvalidDataSourceException.class})
     public ResponseEntity<ApiError> handleBadRequest(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), request, null);
     }

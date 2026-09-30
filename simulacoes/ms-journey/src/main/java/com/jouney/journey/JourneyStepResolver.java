@@ -48,7 +48,8 @@ public class JourneyStepResolver {
         if (!tasks.isEmpty()) {
             TaskInfo task = tasks.get(0);
             Map<String, Object> variables = rawValues(engineClient.getProcessVariables(processInstanceId));
-            FormPayload form = espec.resolveForm(journeyId, journeyVersion, task.taskDefinitionKey(), variables);
+            FormPayload form = espec.resolveForm(journeyId, journeyVersion, task.taskDefinitionKey(), variables,
+                    processInstanceId);
             return StepResponse.userTask(task.id(), task.taskDefinitionKey(), task.name(), form);
         }
 

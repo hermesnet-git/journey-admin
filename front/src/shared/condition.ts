@@ -20,6 +20,8 @@ export const OPERATORS_BY_TYPE: Record<VariableType, { value: string; label: str
   number: ORDERED_OPERATORS,
   date: ORDERED_OPERATORS,
   datetime: ORDERED_OPERATORS,
+  // Lista não entra em condição de Decisão — só alimenta lista de seleção/opções.
+  list: [],
 };
 export const QUOTED_TYPES = new Set<VariableType>(['string', 'date', 'datetime']);
 export const VALUE_INPUT_TYPE: Partial<Record<VariableType, string>> = { number: 'number', date: 'date', datetime: 'datetime-local' };

@@ -18,7 +18,27 @@ import type {
   WceReply,
 } from './types.js';
 
-const INPUT_TYPES = new Set(['ui.textInput', 'ui.textArea', 'ui.select', 'ui.checkbox', 'ui.datePicker']);
+const INPUT_TYPES = new Set(['ui.textInput', 'ui.textArea', 'ui.select', 'ui.checkbox', 'ui.datePicker', 'ui.selectList']);
+// Limites do WhatsApp usados pela lista de seleção (ADR-002).
+const LIST_MAX_ROWS = 10;
+const LIST_TITLE_MAX = 24;
+const LIST_DESCRIPTION_MAX = 72;
+const BUTTON_TITLE_MAX = 20;
+
+interface ListItem { value: string; title: string; description?: string; hint?: string; enabledActions: string[] }
+interface ListAction { id: string; label: string }
+
+function truncate(text: string, max: number): string {
+  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+}
+
+function listItems(node: SduiNode): ListItem[] {
+  return Array.isArray(node.attributes.items) ? node.attributes.items as ListItem[] : [];
+}
+
+function listActions(node: SduiNode): ListAction[] {
+  return Array.isArray(node.attributes.actions) ? node.attributes.actions as ListAction[] : [];
+}
 const WHATSAPP_RENDERER_VERSION = '1.0.0';
 
 function versionAtLeast(current: string, minimum: string): boolean {
@@ -108,6 +128,8 @@ export class WhatsAppSduiConversation {
   private readonly parents = new Map<string, SduiNode | null>();
   private readonly emittedContent = new Set<string>();
   private cursor = 0;
+  // Página atual de cada lista de seleção ("Ver mais": o adaptador pagina sozinho, os itens já vieram todos).
+  private readonly listPages = new Map<string, number>();
 
   constructor(options: WhatsAppConversationOptions) {
     const parsed = parseSduiDocument(options.document);
@@ -250,6 +272,30 @@ export class WhatsAppSduiConversation {
   }
 
   async receive(reply: WceReply): Promise<WhatsAppOutboundMessage[]> {
+    const replyId = typeof reply.payload.id === 'string' ? reply.payload.id : '';
+    if (replyId.startsWith('more:')) {
+      const node = this.currentInput();
+      if (!node || node.type !== 'ui.selectList') return [textMessage(this.recipient, 'Essa lista não está mais disponível.')];
+      this.listPages.set(node.id, (this.listPages.get(node.id) ?? 0) + 1);
+      return this.prompt(node);
+    }
+    if (replyId.startsWith('retry:')) {
+      const node = this.currentInput();
+      if (node) await this.runtime.dispatch({ ...node, events: { retry: { action: 'action.retry' } } }, 'retry');
+      return [];
+    }
+    if (replyId.startsWith('listaction:')) {
+      const [, nodeId, actionKey] = replyId.split(':');
+      const node = this.inputs.find((candidate) => candidate.id === nodeId);
+      if (!node || !this.isAvailable(node)) return [textMessage(this.recipient, 'Essa ação não está mais disponível.')];
+      const result = await this.runtime.selectListAction(node, decodeURIComponent(actionKey ?? ''));
+      if (!result.handled) return [textMessage(this.recipient, 'Essa ação não está liberada para o item escolhido.'), ...this.prompt(node)];
+      if (result.errors.length > 0) {
+        this.cursor = 0;
+        return [textMessage(this.recipient, result.errors[0]?.message ?? 'Revise os dados informados.'), ...this.nextPrompt()];
+      }
+      return [];
+    }
     const actionId = typeof reply.payload.id === 'string' && reply.payload.id.startsWith('action:')
       ? reply.payload.id.slice('action:'.length)
       : null;
@@ -282,6 +328,9 @@ export class WhatsAppSduiConversation {
     const errors = validateNodeValue(node, path, value);
     if (errors.length > 0) {
       return [textMessage(this.recipient, errors[0]?.message ?? 'Resposta inválida.'), ...this.prompt(node)];
+    }
+    if (node.type === 'ui.selectList' && listActions(node).length > 0) {
+      return this.promptListActions(node, String(value));
     }
     this.cursor += 1;
     return [...this.visibleContentMessages(), ...this.nextPrompt()];
@@ -318,11 +367,69 @@ export class WhatsAppSduiConversation {
     return [interactiveMessage(this.recipient, 'Como deseja continuar?', { buttons })];
   }
 
+  private promptListActions(node: SduiNode, value: string): WhatsAppOutboundMessage[] {
+    const item = listItems(node).find((candidate) => candidate.value === value);
+    const allowed = listActions(node).filter((action) => item?.enabledActions.includes(action.id));
+    const hint = item?.hint ? `${item.hint}\n` : '';
+    if (allowed.length === 0) {
+      // Nenhuma ação liberada pra este item: explica e oferece a lista de novo.
+      return [textMessage(this.recipient, `${hint}Este item não permite nenhuma ação agora. Escolha outro.`), ...this.prompt(node)];
+    }
+    return [interactiveMessage(this.recipient, `${hint}${item?.title ?? 'Item escolhido'} — o que deseja fazer?`, {
+      buttons: allowed.slice(0, 3).map((action) => ({
+        type: 'reply',
+        reply: { id: `listaction:${node.id}:${encodeURIComponent(action.id)}`, title: truncate(action.label, BUTTON_TITLE_MAX) },
+      })),
+    })];
+  }
+
+  private promptSelectList(node: SduiNode, label: string, required: string): WhatsAppOutboundMessage[] {
+    const loadError = node.attributes.loadError as { message?: string; required?: boolean } | undefined;
+    if (loadError?.required) {
+      return [interactiveMessage(this.recipient, `❌ ${loadError.message ?? 'Não foi possível carregar a lista.'}`, {
+        buttons: [{ type: 'reply', reply: { id: `retry:${node.id}`, title: 'Tentar novamente' } }],
+      })];
+    }
+    const items = listItems(node);
+    if (items.length === 0) {
+      // Lista vazia: informa e segue pra próxima etapa da conversa.
+      this.cursor += 1;
+      const empty = this.runtime.resolveText(node.attributes.emptyMessage) || 'Nenhum item para mostrar.';
+      return [textMessage(this.recipient, loadError ? `${loadError.message}\n${empty}` : empty), ...this.nextPrompt()];
+    }
+    const pageSize = items.length > LIST_MAX_ROWS ? LIST_MAX_ROWS - 1 : LIST_MAX_ROWS;
+    const page = this.listPages.get(node.id) ?? 0;
+    const start = page * pageSize >= items.length ? 0 : page * pageSize;
+    if (start === 0) this.listPages.set(node.id, 0);
+    const pageItems = items.slice(start, start + pageSize);
+    const rows: Array<Record<string, string>> = pageItems.map((item) => ({
+      id: `field:${node.id}:${encodeURIComponent(item.value)}`,
+      title: truncate(item.title, LIST_TITLE_MAX),
+      ...(item.description ? { description: truncate(item.description, LIST_DESCRIPTION_MAX) } : {}),
+    }));
+    if (items.length > LIST_MAX_ROWS) {
+      rows.push({ id: `more:${node.id}`, title: 'Ver mais', description: `Itens ${start + 1}–${start + pageItems.length} de ${items.length}` });
+    }
+    const total = typeof node.attributes.totalItems === 'number' && node.attributes.totalItems > items.length
+      ? `\n_Mostrando ${items.length} de ${node.attributes.totalItems}._` : '';
+    return [interactiveMessage(this.recipient, `${label}${required}${total}`, {
+      button: 'Ver itens',
+      sections: [{ title: truncate(label, LIST_TITLE_MAX), rows }],
+    }, 'list')];
+  }
+
   private prompt(node: SduiNode): WhatsAppOutboundMessage[] {
     const label = this.runtime.resolveText(node.attributes.label) || 'Informe o valor';
     const required = node.attributes.required === true ? ' (obrigatório)' : '';
+    if (node.type === 'ui.selectList') return this.promptSelectList(node, label, required);
     if (node.type === 'ui.select') {
       const options = optionRecords(node);
+      const loadError = node.attributes.loadError as { message?: string; required?: boolean } | undefined;
+      if (loadError?.required) {
+        return [interactiveMessage(this.recipient, `❌ ${loadError.message ?? 'Não foi possível carregar as opções.'}`, {
+          buttons: [{ type: 'reply', reply: { id: `retry:${node.id}`, title: 'Tentar novamente' } }],
+        })];
+      }
       if (options.length <= 3) {
         return [interactiveMessage(this.recipient, `${label}${required}`, {
           buttons: options.map((option) => ({

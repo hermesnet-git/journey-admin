@@ -2,6 +2,7 @@ package com.jouney.runtimecamunda.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
+import com.jouney.runtimecamunda.delegate.ListOutput;
 import com.jayway.jsonpath.PathNotFoundException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -275,7 +276,9 @@ public class KafkaConnectorWorker {
                 putWithNamespaceFallback(variables, "code", payload.code());
             }
             if (payload.data() != null) {
-                payload.data().forEach((name, value) -> putWithNamespaceFallback(variables, name, value));
+                // Lista/objeto vira variável JSON do motor (não objeto Java cru, binário e ilegível no
+                // Diagnóstico) — sem filtro de campos: quem precisa filtrar declara uma regra "list".
+                payload.data().forEach((name, value) -> putWithNamespaceFallback(variables, name, asEngineValue(value)));
             }
         }
         return variables;
@@ -320,12 +323,28 @@ public class KafkaConnectorWorker {
         for (OutputMappingRule rule : rules) {
             try {
                 Object raw = JsonPath.read(jsonBody, rule.jsonPath());
-                putWithNamespaceFallback(variables, rule.name(), coerce(raw, rule.type()));
+                putWithNamespaceFallback(variables, rule.name(), "list".equals(rule.type())
+                        ? ListOutput.toSpin(raw, rule.keepFields())
+                        : coerce(raw, rule.type()));
             } catch (PathNotFoundException e) {
                 log.warn("Payload Kafka não tem o campo '{}' (regra de mapeamento '{}') — ignorando", rule.jsonPath(), rule.name());
             }
         }
         return variables;
+    }
+
+    private Object asEngineValue(Object value) {
+        if (value instanceof List<?>) {
+            return ListOutput.toSpin(value, List.of());
+        }
+        if (value instanceof Map<?, ?>) {
+            try {
+                return org.camunda.spin.Spin.JSON(objectMapper.writeValueAsString(value));
+            } catch (Exception e) {
+                throw new IllegalStateException("Não foi possível converter o objeto em JSON", e);
+            }
+        }
+        return value;
     }
 
     private Object coerce(Object raw, String type) {

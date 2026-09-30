@@ -19,12 +19,22 @@ class RuntimeActionContext {
 }
 
 class RuntimeHandlers {
-  const RuntimeHandlers({this.submit, this.navigate, this.openUrl, this.track});
+  const RuntimeHandlers({
+    this.submit,
+    this.navigate,
+    this.openUrl,
+    this.track,
+    this.retry,
+  });
 
   final RuntimeSubmitHandler? submit;
   final RuntimeActionHandler? navigate;
   final RuntimeActionHandler? openUrl;
   final RuntimeActionHandler? track;
+
+  /// action.retry: o host pede a mesma etapa de novo, o que refaz a montagem
+  /// da tela (fonte de dados obrigatória que falhou — ADR-002).
+  final RuntimeActionHandler? retry;
 }
 
 class FieldError {
@@ -138,8 +148,12 @@ class SduiRuntime {
     return resolved.$1 ? resolved.$2 : node.attributes[name];
   }
 
-  bool setNodeValue(SduiNode node, dynamic value) {
-    final binding = node.bindings['value'];
+  bool setNodeValue(SduiNode node, dynamic value) =>
+      setBindingValue(node, 'value', value);
+
+  /// Grava um vínculo de escrita (value ou, na lista de seleção, action).
+  bool setBindingValue(SduiNode node, String name, dynamic value) {
+    final binding = node.bindings[name];
     if (binding == null ||
         binding.mode != 'twoWay' ||
         !binding.path.startsWith('form.')) {
@@ -164,6 +178,20 @@ class SduiRuntime {
         return;
       final binding = node.bindings['value'];
       if (binding == null || !binding.path.startsWith('form.')) return;
+      // Fonte de dados obrigatória que falhou: a etapa não avança.
+      final loadError = node.attributes['loadError'];
+      if (loadError is Map && loadError['required'] == true) {
+        errors.add(
+          FieldError(
+            nodeId: node.id,
+            path: binding.path,
+            rule: 'source',
+            message: loadError['message']?.toString() ??
+                'Não foi possível carregar as informações.',
+          ),
+        );
+        return;
+      }
       final value = getNodeValue(node);
       final rules = <JsonMap>[
         ...?node.attributes['validation'] is List
@@ -212,8 +240,41 @@ class SduiRuntime {
       if (binding == null || !binding.path.startsWith('form.')) return;
       final value = getNodeValue(node);
       if (value != null) result[binding.path.substring('form.'.length)] = value;
+      final actionBinding = node.bindings['action'];
+      if (actionBinding != null && actionBinding.path.startsWith('form.')) {
+        final action = _read(actionBinding.path);
+        if (action.$1 && action.$2 != null) {
+          result[actionBinding.path.substring('form.'.length)] = action.$2;
+        }
+      }
     });
     return result;
+  }
+
+  /// Ação escolhida na lista de seleção: grava a ação (vínculo action) e
+  /// conclui a etapa (onAction), se a ação estiver liberada pro item.
+  Future<ActionResult> selectListAction(SduiNode node, String actionId) async {
+    final selected = getNodeValue(node);
+    final items = node.attributes['items'];
+    final item = items is List
+        ? items.whereType<Map>().where((i) => i['value'] == selected).firstOrNull
+        : null;
+    final enabled = item?['enabledActions'];
+    if (enabled is! List || !enabled.contains(actionId)) {
+      return const ActionResult(handled: false);
+    }
+    setBindingValue(node, 'action', actionId);
+    return dispatch(node, 'onAction');
+  }
+
+  /// "Tentar novamente": chama o handler retry do host.
+  Future<ActionResult> retry(SduiNode node) async {
+    final event = SduiEvent(action: 'action.retry', params: const {});
+    await handlers.retry?.call(
+      const {},
+      RuntimeActionContext(node: node, eventName: 'retry', event: event),
+    );
+    return ActionResult(handled: handlers.retry != null);
   }
 
   Future<ActionResult> dispatch(SduiNode node, String eventName) async {
@@ -254,6 +315,9 @@ class SduiRuntime {
       case 'action.dismiss':
         dismiss(node.id);
         return const ActionResult(handled: true);
+      case 'action.retry':
+        await handlers.retry?.call(event.params, actionContext);
+        return ActionResult(handled: handlers.retry != null);
       default:
         return const ActionResult(handled: false);
     }
@@ -313,6 +377,7 @@ const _inputTypes = {
   'ui.select',
   'ui.checkbox',
   'ui.datePicker',
+  'ui.selectList',
 };
 
 void _walk(SduiNode node, void Function(SduiNode) visit) {

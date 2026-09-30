@@ -452,6 +452,10 @@ export const EPICS: Epic[] = [
             status: 'done',
             notes: 'Válido de verdade só para KAFKA hoje, mesma limitação de ambiente do teste de conexão (REQ-14.04.001).',
           },
+          d('REQ-03.09.016', 'Regra de mapeamento de saída do tipo lista: o array vira uma variável JSON do Runtime Engine (sem limite de texto, legível no Diagnóstico); REST sem sucesso grava lista vazia.'),
+          d('REQ-03.09.017', 'A regra do tipo lista declara os campos a manter de cada item; sem campos, grava o item inteiro.'),
+          d('REQ-03.09.018', 'Lista ou objeto recebido numa mensagem Kafka vira variável JSON do Runtime Engine, nunca objeto binário.'),
+          d('REQ-03.09.019', 'Variável do tipo lista não é oferecida em condição de Decisão.'),
         ],
       },
       {
@@ -809,6 +813,7 @@ export const EPICS: Epic[] = [
             status: 'done',
             notes: 'Validado tanto na publicação quanto na resolução da tela em tempo de execução.',
           },
+          d('REQ-04.11.005', 'Ação "tentar novamente": pede de novo a etapa e refaz a montagem da tela (fonte de dados obrigatória que falhou).'),
         ],
       },
       {
@@ -846,6 +851,39 @@ export const EPICS: Epic[] = [
           },
           d('REQ-04.13.010', 'O sistema não deve permitir publicar uma jornada em que uma tela referencie uma variável de dados da jornada (namespaces form ou data) que não exista naquele ponto do fluxo — seja por vínculo de leitura, por placeholder em qualquer propriedade de texto, por condição de visibilidade ou por condição de estado ativo.'),
           d('REQ-04.13.011', 'Rejeitar publicação quando um placeholder de texto de tela usar um formato fora do previsto: {{form.nome}}/{{data.nome}}, {{form_nome}}/{{data_nome}} ou {{channel}}; sem prefixo ({{nome}}) ou de outro namespace é recusado, com a indicação das formas válidas.'),
+        ],
+      },
+      {
+        code: 'US-04.15',
+        name: 'Lista de seleção',
+        requirements: [
+          d('REQ-04.15.001', 'Componente lista de seleção: escolher um item de uma lista vinda da jornada e, opcionalmente, uma ação sobre ele.'),
+          d('REQ-04.15.002', 'Itens vêm, por vínculo somente leitura, de uma variável do tipo lista (saída de integração ou fonte de dados da tela); outro tipo é recusado na publicação.'),
+          d('REQ-04.15.003', 'Campo gravado e textos do item (título, descrição, aviso) com {{item.campo}}; prefixo item só nesses textos.'),
+          d('REQ-04.15.004', 'A escolha grava o campo configurado do item numa variável do formulário (leitura-e-escrita).'),
+          d('REQ-04.15.005', 'Ações com id, rótulo, estilo e regra "liberada quando" contra um campo do item.'),
+          d('REQ-04.15.006', 'A ação escolhida é gravada numa segunda variável do formulário e conclui a etapa.'),
+          d('REQ-04.15.007', 'Itens chegam ao canal já montados pelo serviço de telas; o canal não vê o array, os {{item.x}} nem as regras.'),
+          d('REQ-04.15.008', 'Web/mobile: ações desabilitadas até escolher e habilitadas por item, sem ida ao servidor; WhatsApp: mensagem de lista e depois botões só das ações liberadas.'),
+          d('REQ-04.15.009', 'Máximo de itens configurável (padrão 50) com aviso; no WhatsApp, "Ver mais" acima de 10 itens e corte com reticências em 24/72 caracteres.'),
+          d('REQ-04.15.010', 'Com WhatsApp na jornada, recusa mais de 3 ações ou rótulo de ação acima de 20 caracteres.'),
+          d('REQ-04.15.011', 'Mensagem configurável para lista vazia.'),
+          d('REQ-04.15.012', 'O fluxo seguinte confirma no sistema de origem, pelo identificador do item, se a ação é permitida.'),
+        ],
+      },
+      {
+        code: 'US-04.16',
+        name: 'Fontes de dados da tela',
+        requirements: [
+          d('REQ-04.16.001', 'A tela declara fontes de dados de referência (apelido, fonte, parâmetros, obrigatória, mensagem de erro).'),
+          d('REQ-04.16.002', 'Dado que decide caminho ou precisa de histórico vem de integração no fluxo, não de fonte da tela.'),
+          d('REQ-04.16.003', 'Resultado fica na tela como data.<apelido> (lista), nunca vira variável da instância; apelido não pode repetir variável da jornada.'),
+          d('REQ-04.16.004', 'Parâmetros só com variáveis do motor já disponíveis ou texto fixo; falta de parâmetro recusada.'),
+          d('REQ-04.16.005', 'Busca pelo serviço de telas a cada montagem, antes de entregar ao canal; sem cache.'),
+          d('REQ-04.16.006', 'Configuração da fonte copiada na publicação; nunca enviada ao canal.'),
+          d('REQ-04.16.007', 'Fonte opcional que falha abre vazia com a mensagem; obrigatória mostra "tentar novamente" e bloqueia a etapa.'),
+          d('REQ-04.16.008', 'Resultado alimenta a lista de seleção e as opções de um select (itens com label/value).'),
+          d('REQ-04.16.009', 'Testar a fonte com valores de exemplo no editor de telas; os itens alimentam o preview.'),
         ],
       },
       {
@@ -1837,6 +1875,17 @@ export const EPICS: Epic[] = [
         ],
       },
       {
+        code: 'US-14.07',
+        name: 'Catálogo de fontes de dados',
+        requirements: [
+          d('REQ-14.07.001', 'Cadastrar, editar e excluir fontes de dados (ADMIN); listagem para qualquer papel autenticado.'),
+          d('REQ-14.07.002', 'Nome único, descrição, URL GET com parâmetros entre chaves, tempo limite, caminho da lista, campos expostos e credencial opcional.'),
+          d('REQ-14.07.003', 'Campos expostos obrigatórios; só eles saem do servidor; só a URL cadastrada é chamada.'),
+          d('REQ-14.07.004', 'Testar a fonte com valores de exemplo, pelo backend, com a proteção do teste de conector.'),
+          d('REQ-14.07.005', 'Credencial resolvida no servidor, nunca enviada ao canal.'),
+        ],
+      },
+      {
         code: 'US-14.06',
         name: 'Credencial de IA',
         requirements: [
@@ -1907,6 +1956,7 @@ export const EPICS: Epic[] = [
         requirements: [
           d('REQ-15.03.001', 'Ao selecionar uma execução, o sistema deve apresentar o fluxo percorrido, as variáveis do processo e o log cronológico, reaproveitando o mesmo painel de observabilidade da Execução.'),
           d('REQ-15.03.002', 'O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.'),
+          d('REQ-15.03.003', 'O log do detalhe inclui cada consulta a fonte de dados feita ao montar uma tela da instância.'),
         ],
       },
       {
@@ -1985,6 +2035,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-09-30 00:59 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Lista de seleção e fontes de dados da tela (ADR-002). Novos: US-04.15 Lista de seleção (REQ-04.15.001 a 012), US-04.16 Fontes de dados da tela (REQ-04.16.001 a 009), US-14.07 Catálogo de fontes de dados (REQ-14.07.001 a 005), REQ-03.09.016 a 019 (saída de integração do tipo lista, campos a manter, lista/objeto do Kafka em JSON, lista fora das condições de Decisão), REQ-04.11.005 (ação "tentar novamente") e REQ-15.03.003 (consultas da tela no log do Diagnóstico). Implementado em admin/back (V24), ms-espec-registry (V2, montagem dos itens e busca das fontes), ms-transform-publication, ms-runtime-camunda, ms-journey, front e emulador de canais; APIs novas no ms-mock (bilhetes, horários, reagendamento, cancelamento); jornada de exemplo "Gestão de BDs" (VE). Catálogo SDUI: ui.selectList 1.0.0; nenhuma versão alterada. Compilado em todos os módulos; aguardando teste do usuário. Total geral: 509 → 541 REQs, 459 → 491 concluídos; US: 103 → 106.',
+  },
   {
     date: '2026-09-27 02:20 (commitado: 89ba457, b0dc450, 817237a)',
     source: 'progresso',
@@ -2409,6 +2465,13 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-09-29 21:52', source: 'git', summary: 'Jornada Consulta BD (VE): API de diagnóstico no mock e entrada na massa de fábrica.' },
+  { date: '2026-09-29 21:38', source: 'git', summary: 'Jornadas: visualizar o fluxo passa a ser por versão, a partir do snapshot.' },
+  { date: '2026-09-28 01:53', source: 'git', summary: 'Import do Figma: opções viram seleção e elementos ocultos ficam de fora; preview com skin própria.' },
+  { date: '2026-09-27 22:36', source: 'git', summary: 'Diagnóstico: o log não diz mais "concluída" para tarefa ainda aguardando ou cancelada.' },
+  { date: '2026-09-27 21:17', source: 'git', summary: 'Diagnóstico: clicar numa tarefa no Log/Histórico de Variáveis seleciona no canvas; Decisão mostra o caminho tomado.' },
+  { date: '2026-09-27 21:07', source: 'git', summary: 'Diagnóstico: período com data e hora; jornada e business key viram filtros opcionais.' },
+  { date: '2026-09-27 03:02', source: 'git', summary: 'Documenta a remoção do Strapi (US-04.14): progresso.md, modelo conceitual e página Sobre.' },
   {
     date: '2026-09-27 02:34',
     source: 'git',

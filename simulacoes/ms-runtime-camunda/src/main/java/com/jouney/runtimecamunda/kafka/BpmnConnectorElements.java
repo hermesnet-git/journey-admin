@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.jouney.runtimecamunda.delegate.ListOutput;
 import java.util.Optional;
 import org.camunda.bpm.model.bpmn.instance.BaseElement;
 import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
@@ -18,6 +19,7 @@ final class BpmnConnectorElements {
 
     private static final String OUTPUT_MAPPING_PREFIX = "outputMapping.";
     private static final String TYPE_SUFFIX = ".type";
+    private static final String KEEP_FIELDS_SUFFIX = ".keepFields";
 
     private BpmnConnectorElements() {
     }
@@ -32,13 +34,16 @@ final class BpmnConnectorElements {
     static List<OutputMappingRule> outputMapping(BaseElement element) {
         Map<String, String> jsonPaths = new LinkedHashMap<>();
         Map<String, String> types = new LinkedHashMap<>();
+        Map<String, String> keepFields = new LinkedHashMap<>();
         for (CamundaInputParameter param : inputParameters(element)) {
             String name = param.getCamundaName();
             if (name == null || !name.startsWith(OUTPUT_MAPPING_PREFIX)) {
                 continue;
             }
             String rest = name.substring(OUTPUT_MAPPING_PREFIX.length());
-            if (rest.endsWith(TYPE_SUFFIX)) {
+            if (rest.endsWith(KEEP_FIELDS_SUFFIX)) {
+                keepFields.put(rest.substring(0, rest.length() - KEEP_FIELDS_SUFFIX.length()), param.getTextContent());
+            } else if (rest.endsWith(TYPE_SUFFIX)) {
                 types.put(rest.substring(0, rest.length() - TYPE_SUFFIX.length()), param.getTextContent());
             } else {
                 jsonPaths.put(rest, param.getTextContent());
@@ -46,7 +51,8 @@ final class BpmnConnectorElements {
         }
         List<OutputMappingRule> rules = new ArrayList<>();
         jsonPaths.forEach((ruleName, jsonPath) ->
-                rules.add(new OutputMappingRule(ruleName, jsonPath, types.getOrDefault(ruleName, "string"))));
+                rules.add(new OutputMappingRule(ruleName, jsonPath, types.getOrDefault(ruleName, "string"),
+                        ListOutput.parseKeepFields(keepFields.get(ruleName)))));
         return rules;
     }
 

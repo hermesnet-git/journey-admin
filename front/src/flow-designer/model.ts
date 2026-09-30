@@ -36,10 +36,16 @@ export interface ConnectorConfig {
 // REQ-03.11.003: the type a variable's value takes, used to offer the right comparison operators
 // and value input in a gateway condition (e.g. no "maior que" for a string). Defaults to 'string'
 // when absent (rules saved before this field existed, or added manually without picking one).
-export type VariableType = 'string' | 'number' | 'boolean' | 'date' | 'datetime';
+// 'list' só existe em saída de integração (ADR-002): o array vira variável JSON do motor e alimenta a
+// lista de seleção ou as opções de um select — nunca em variável de entrada da jornada.
+import type { ScreenDataSource } from '../api/flows';
+
+export type VariableType = 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'list';
 
 // REQ-03.09.010: mapping rule extracting a variable from the integration response/payload.
 export interface OutputMappingRule {
+  // Só pro tipo 'list': campos de cada item gravados na variável (vazio grava o item inteiro).
+  keepFields?: string[];
   name: string;
   jsonPath: string;
   type?: VariableType;
@@ -57,6 +63,13 @@ export type VariableKind = 'form' | 'data' | 'channel';
 // Nome real da variável no motor — o que precisa ir dentro de {{...}} em condição de Gateway ou
 // campo de conector (URL/headers/body), já que os dois viram expressão JUEL literal (BpmnTransformer)
 // e o motor nunca viu o namespace com ponto, só esse prefixo com underscore.
+// Uma saída de integração criada pelo editor é gravada já com o prefixo "data_" no nome
+// (OutputMappingEditor). Os recursos da lista de seleção e das fontes de dados da tela usam o nome
+// sem esse prefixo, para o caminho sair data.x / {{data_x}} — nunca data.data_x / {{data_data_x}}.
+export function bareDataName(name: string): string {
+  return name.startsWith('data_') ? name.slice('data_'.length) : name;
+}
+
 export function engineVariableToken(kind: VariableKind | undefined, name: string): string {
   if (kind === 'form') return `form_${name}`;
   if (kind === 'data') return `data_${name}`;
@@ -78,7 +91,7 @@ export function sduiVariablePath(kind: VariableKind | undefined, name: string): 
 // isn't extracted from a response.
 export interface StartVariable {
   name: string;
-  type: VariableType;
+  type: Exclude<VariableType, 'list'>;
 }
 
 // Same variable as OutputMappingRule/StartVariable, but carrying where it comes from — used by the
@@ -93,6 +106,9 @@ export interface VariableOrigin {
    * técnico — caso dos campos de uma tela desenhada, cujo nome técnico costuma ser o id do
    * componente. Sem ele, a lista de variáveis mostra o nome técnico, como sempre mostrou. */
   label?: string;
+  /** Só pra variável do tipo lista: campos de cada item (campos a manter da saída, ou campos
+   * expostos da fonte de dados) — o editor da lista de seleção oferece esses campos. */
+  fields?: string[];
 }
 
 export interface WFNodeData extends Record<string, unknown> {
@@ -101,6 +117,8 @@ export interface WFNodeData extends Record<string, unknown> {
   // Raiz da árvore SDUI (catálogo corporativo v1) desenhada no editor embutido do dock
   // (FormDesignerDock/FormBuilder) — sempre um único ui.screen, null quando não há tela.
   embeddedScreenRoot?: SduiNode | null;
+  // Fontes de dados de referência declaradas pela tela (ADR-002).
+  screenDataSources?: ScreenDataSource[];
   connectorConfig: ConnectorConfig | null;
   // REQ-03.12.001: only meaningful on the START node.
   startVariables?: StartVariable[];
@@ -527,7 +545,10 @@ export function availableVariableOriginsAt(nodeId: string, nodes: WFNode[], edge
       rules.forEach((r) => {
         if (r && typeof r === 'object' && typeof (r as { name?: unknown }).name === 'string' && (r as { name: string }).name) {
           const rule = r as OutputMappingRule;
-          origins.push({ name: rule.name, type: rule.type ?? 'string', sourceNodeId: n.id, sourceLabel: originLabelFor(n), kind: 'data' });
+          origins.push(rule.type === 'list'
+            // Tipo lista (novo): nome sem o prefixo "data_", para o vínculo sair data.<nome>.
+            ? { name: bareDataName(rule.name), type: 'list', sourceNodeId: n.id, sourceLabel: originLabelFor(n), kind: 'data', fields: (rule.keepFields ?? []).filter((f) => f.trim() !== '') }
+            : { name: rule.name, type: rule.type ?? 'string', sourceNodeId: n.id, sourceLabel: originLabelFor(n), kind: 'data' });
         }
       });
     }

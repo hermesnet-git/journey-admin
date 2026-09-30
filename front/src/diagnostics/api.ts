@@ -97,3 +97,22 @@ export function searchInstanceHistory(filters: InstanceHistorySearchFilters): Pr
 export function getInstanceHistory(processInstanceId: string): Promise<InstanceHistoryResponse> {
   return apiGet(`/instances/${processInstanceId}/history`);
 }
+
+// Consulta a uma fonte de dados feita ao montar uma tela da instância — fora do motor, então não
+// vem no histórico; o registro é do serviço que monta as telas. time no mesmo formato das etapas.
+export interface DataSourceCall {
+  nodeId: string;
+  alias: string;
+  sourceName: string;
+  url: string;
+  status: 'SUCCESS' | 'ERROR' | 'TIMEOUT';
+  httpStatus: number | null;
+  durationMs: number;
+  itemCount: number | null;
+  errorMessage: string | null;
+  time: string;
+}
+
+export function getDataSourceCalls(processInstanceId: string): Promise<DataSourceCall[]> {
+  return apiGet(`/instances/${processInstanceId}/data-source-calls`);
+}

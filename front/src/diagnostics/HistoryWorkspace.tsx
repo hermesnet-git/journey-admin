@@ -5,7 +5,7 @@ import type { ComponentType } from 'react';
 import { FlowDiagramViewer } from '../execution/FlowDiagramViewer';
 import type { FlowConnectionInfo, FlowNodeInfo, NodeIODetail } from '../execution/api';
 import { SummaryField } from '../execution/SummaryField';
-import { getInstanceHistory, type IncidentEntry, type InstanceHistoryResponse } from './api';
+import { getDataSourceCalls, getInstanceHistory, type DataSourceCall, type IncidentEntry, type InstanceHistoryResponse } from './api';
 import { DiagnosticoNodeDrawer } from './DiagnosticoNodeDrawer';
 import { VariableTimeline } from './VariableTimeline';
 import { DiagnosticoLogPanel, type LogEntry } from './DiagnosticoLogPanel';
@@ -129,6 +129,17 @@ const BOTTOM_TABS: { key: BottomTabKey; label: string; icon: ComponentType<{ siz
 const DEFAULT_PANEL_HEIGHT = 300;
 const MIN_PANEL_HEIGHT = 140;
 
+function dataSourceCallMessage(call: DataSourceCall, nodeName: string | undefined): string {
+  const where = nodeName ? ` para a tela "${nodeName}"` : '';
+  if (call.status === 'SUCCESS') {
+    return `Consulta da tela: fonte "${call.sourceName}"${where} — ${call.itemCount ?? 0} item(ns) em ${call.durationMs} ms`;
+  }
+  if (call.status === 'TIMEOUT') {
+    return `Consulta da tela: fonte "${call.sourceName}"${where} não respondeu a tempo (${call.durationMs} ms)`;
+  }
+  return `Consulta da tela: fonte "${call.sourceName}"${where} falhou${call.httpStatus ? ` (status ${call.httpStatus})` : ''}`;
+}
+
 export function HistoryWorkspace({ history: initialHistory }: Props) {
   const [history, setHistory] = useState(initialHistory);
   const [refreshing, setRefreshing] = useState(false);
@@ -137,6 +148,15 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
   const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
   const draggingRef = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const [dataSourceCalls, setDataSourceCalls] = useState<DataSourceCall[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getDataSourceCalls(history.processInstanceId)
+      .then((calls) => { if (!cancelled) setDataSourceCalls(calls); })
+      .catch(() => { if (!cancelled) setDataSourceCalls([]); });
+    return () => { cancelled = true; };
+  }, [history]);
 
   useEffect(() => {
     function onMove(e: MouseEvent) {
@@ -205,6 +225,21 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
       message: describeHistoryStep(step, connectorTypeByNodeId, outcomeByStepIndex[i]),
       data: stepLogData(step),
       nodeId: step.nodeId,
+    })),
+    ...dataSourceCalls.map((call, i) => ({
+      id: `source-${i}`,
+      time: call.time.slice(11, 23),
+      message: dataSourceCallMessage(call, history.flow.flowNodes.find((n) => n.id === call.nodeId)?.name),
+      data: {
+        fonte: call.sourceName,
+        url: call.url,
+        ...(call.httpStatus != null ? { status: call.httpStatus } : {}),
+        duracaoMs: call.durationMs,
+        ...(call.itemCount != null ? { itens: call.itemCount } : {}),
+        ...(call.errorMessage ? { erro: call.errorMessage } : {}),
+      },
+      isError: call.status !== 'SUCCESS',
+      nodeId: call.nodeId,
     })),
     ...history.incidents.map((incident, i) => ({
       id: `incident-${i}`,

@@ -91,7 +91,8 @@ public class ExecutionStepResolver {
         if (!tasks.isEmpty()) {
             ActiveTask task = tasks.get(0);
             Map<String, Object> variables = runtimeExecutionPort.getProcessVariables(processInstanceId);
-            ResolvedForm form = formResolutionPort.resolveForm(journeyId, versionNumber, task.taskDefinitionKey(), variables);
+            ResolvedForm form = formResolutionPort.resolveForm(journeyId, versionNumber, task.taskDefinitionKey(), variables,
+                    processInstanceId);
             return ExecutionStep.userTask(task.id(), task.taskDefinitionKey(), task.name(), form);
         }
 

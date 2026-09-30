@@ -26,6 +26,8 @@ O catálogo v1 estabelece:
 
 Ficam fora do v1: componentes exclusivos de um canal, navegação complexa, tabelas avançadas, editores rich text, upload múltiplo, assinatura, biometria e componentes de domínio. Esses itens devem entrar apenas após comprovação de uso e análise de compatibilidade.
 
+A lista de seleção (`ui.selectList`) entrou no v1 depois dessa comprovação — escolher um item de uma lista vinda da jornada e uma ação sobre ele (ADR-002). Ela não abre "tabelas avançadas" em geral: é uma lista de seleção única, com os itens montados no servidor.
+
 ## 3. Princípios arquiteturais
 
 1. **Contrato independente de tecnologia.** A árvore utiliza nomes semânticos, como `ui.textInput`, e nunca nomes como `MisticaTextField`, `ReactNode` ou `FlutterWidget`.
@@ -153,7 +155,7 @@ Regras obrigatórias:
 
 ## 7. Catálogo de componentes v1
 
-O v1 contém 19 componentes, distribuídos entre conteúdo, layout, entrada, ação e feedback. O de/para abaixo é conceitual: o nome exato da classe ou widget pode variar conforme a versão das bibliotecas e a implementação corporativa do adapter.
+O v1 contém 20 componentes, distribuídos entre conteúdo, layout, entrada, ação e feedback. O de/para abaixo é conceitual: o nome exato da classe ou widget pode variar conforme a versão das bibliotecas e a implementação corporativa do adapter.
 
 | Tipo SDUI corporativo | Nível | React Web / Mística | React Mobile / Mística Adapter | Flutter Web / Mística Adapter | Flutter Mobile / Mística Adapter | WhatsApp / Conversacional<br>Adapter |
 |---|---:|---|---|---|---|---|
@@ -169,6 +171,7 @@ O v1 contém 19 componentes, distribuídos entre conteúdo, layout, entrada, aç
 | `ui.textInput` | 2 | Mística TextField | TextInput adapter | TextFormField adapter | TextFormField adapter | Envia solicitação textual, aguarda a próxima mensagem do usuário, valida e grava a resposta no binding de valor |
 | `ui.textArea` | 2 | Mística TextArea/TextField multiline | TextInput multiline adapter | TextFormField multiline | TextFormField multiline | Envia solicitação textual longa, aguarda a próxima mensagem do usuário, valida e grava a resposta no binding de valor |
 | `ui.select` | 2 | Mística Select/Dropdown | Picker/Bottom-sheet adapter | Dropdown adapter | Dropdown/Bottom-sheet adapter | Projeta até três opções como botões de resposta rápida; acima disso, utiliza lista interativa, respeitando os limites do canal |
+| `ui.selectList` | 2 | Lista de cards com seleção + botões Mística | Lista com seleção + Pressable adapter | RadioListTile + botões | RadioListTile + botões | Mensagem de lista (até 10 linhas; acima disso 9 + "Ver mais", paginada pelo adapter); depois da escolha, botões de resposta só com as ações liberadas para o item |
 | `ui.checkbox` | 2 | Mística Checkbox | Checkbox/Pressable adapter | Checkbox adapter | Checkbox adapter | Projeta confirmação por opções de resposta `Sim` e `Não` e grava o valor booleano no binding |
 | `ui.datePicker` | 2 | Mística DateField/DatePicker | Date picker adapter | Date picker adapter | Date picker nativo adapter | Solicita data/hora por texto, informa o formato aceito, valida e normaliza o valor antes de gravá-lo no binding |
 | `ui.button` | 3 | Mística Button | Button/Pressable adapter | Button adapter | Button adapter | Projeta `onPress` como botão de resposta rápida quando a ação for compatível; respeita o limite de três botões por mensagem |
@@ -235,6 +238,7 @@ Todos os componentes de entrada aceitam `$bindings.value` em modo `twoWay`, `$vi
 | `ui.textInput` | Obrigatório: `label`. Opcionais: `placeholder`, `inputMode`, `required`, `readOnly`, `maxLength`, `validation` | `$bindings.value` obrigatório, modo `twoWay` | `inputMode` é intenção semântica homologada, não nome de teclado de plataforma | Envia rótulo e instrução, aguarda resposta textual, valida e grava o valor |
 | `ui.textArea` | Obrigatório: `label`. Opcionais: `placeholder`, `required`, `readOnly`, `minLines`, `maxLines`, `maxLength`, `validation` | `$bindings.value` obrigatório, modo `twoWay` | `minLines` e `maxLines` são exclusivamente visuais | Captura resposta textual; `minLines` e `maxLines` são descartados com diagnóstico `info` |
 | `ui.select` | Obrigatórios: `label`, `options`. Opcionais: `placeholder`, `required`, `searchable` | `$bindings.value` obrigatório, modo `twoWay` | Cada opção exige `value` e `label` e pode declarar `disabled` | Até três opções habilitadas podem ser respostas rápidas; acima disso, usa lista homologada; limite excedido sem fallback torna a UI Spec incompatível |
+| `ui.selectList` | Ver 7.1.6 | Ver 7.1.6 | Ver 7.1.6 | Ver 7.1.6 |
 | `ui.checkbox` | Obrigatório: `label`. Opcionais: `required`, `indeterminate` | `$bindings.value` obrigatório, modo `twoWay`, valor booleano | `indeterminate` é estado inicial e não cria terceiro valor de resposta | Solicita confirmação por `Sim` e `Não` e grava `true` ou `false` |
 | `ui.datePicker` | Obrigatórios: `label`, `mode`. Opcionais: `minDate`, `maxDate`, `format`, `required`, `validation` | `$bindings.value` obrigatório, modo `twoWay` | Valor canônico em ISO 8601; `format` controla somente apresentação e instrução | Solicita valor em formato explícito, valida, normaliza e grava o valor canônico; não simula seletor visual |
 
@@ -252,6 +256,69 @@ Todos os componentes de entrada aceitam `$bindings.value` em modo `twoWay`, `$vi
 | `ui.alert` | Obrigatórios: `severity`, `message`. Opcionais: `title`, `dismissible` | Aceita `$visibility`, `$active`, `$bindings` `oneWay` para `title` e `message`; aceita `$events.onDismiss` somente quando `dismissible: true` | O descarte depende de ação homologada | Gera mensagem textual com indicação semântica de severidade; descarte somente é interativo quando homologado |
 | `ui.progress` | Obrigatório: `value`. Opcionais: `label`, `showValue` | Aceita `$bindings.value` `oneWay` e `$visibility`; não aceita `$active` ou `$events` | `value` é numérico no intervalo de `0` a `1` | Gera texto com rótulo e percentual; não simula barra gráfica |
 | `ui.loading` | Opcionais: `label`, `sizeToken`, `overlay` | Aceita `$visibility`; não aceita `$bindings`, `$events` ou `$active` | Feedback transitório; não pode bloquear indefinidamente a jornada | Gera mensagem textual de espera apenas quando necessário; animação, tamanho e overlay são descartados com diagnóstico `info` |
+
+#### 7.1.6 Lista de seleção (`ui.selectList`)
+
+O usuário escolhe um item de uma lista vinda da jornada e, opcionalmente, uma ação sobre o item escolhido. É o único componente com duas formas no contrato: a **forma publicada** (autoria, guardada no snapshot) e a **forma entregue ao canal**, montada pelo serviço de telas a cada montagem da tela. O renderer só conhece a forma entregue.
+
+**Forma publicada**
+
+| Atributo | Tipo | Regra |
+|---|---|---|
+| `label` | texto | Obrigatório |
+| `itemValue` | texto | Obrigatório; campo do item gravado na escolha |
+| `itemTitle` | texto de item | Obrigatório; aceita `{{item.campo}}` além de `form`/`data` |
+| `itemDescription`, `itemHint` | texto de item | Opcionais; mesmas regras de `itemTitle` |
+| `emptyMessage` | texto | Opcional; mostrado quando não há itens |
+| `maxItems` | número | Opcional, padrão 50; o excesso não é mostrado |
+| `actions` | lista de ações | Opcional; cada ação `{id, label, variant, enabledWhen}`; `variant` ∈ `primary`, `secondary`, `danger`; `enabledWhen` compara um campo do item: `{{item.campo}} == valor` ou `!=` (valor `true`, `false`, número ou texto entre aspas); vazio = sempre liberada |
+| `required` | booleano | Opcional, padrão `true` |
+
+Campos reservados: `$bindings.items` (obrigatório, `oneWay`, caminho `data.*` de uma variável do tipo lista), `$bindings.value` (obrigatório, `twoWay`, `form.*`), `$bindings.action` (`twoWay`, `form.*`, obrigatório quando há ações), `$events.onAction` (obrigatório, `action.submit`), `$visibility` e `$active`.
+
+O prefixo `item` só é válido nos atributos de texto de item deste componente; em qualquer outro lugar da tela continua recusado.
+
+**Forma entregue ao canal**
+
+```json
+[
+  "ui.selectList",
+  {
+    "id": "lista-bilhetes",
+    "version": "1.0.0",
+    "label": "Bilhetes em aberto",
+    "emptyMessage": "Você não tem bilhetes em aberto.",
+    "totalItems": 4,
+    "actions": [
+      { "id": "reagendar", "label": "Reagendar visita", "variant": "primary" },
+      { "id": "cancelar", "label": "Cancelar bilhete", "variant": "danger" }
+    ],
+    "items": [
+      {
+        "value": "BD-2026-502871",
+        "title": "Lentidão na conexão — Média",
+        "description": "BD-2026-502871 · Técnico a caminho",
+        "hint": "O técnico já está a caminho, não é possível reagendar.",
+        "enabledActions": ["cancelar"]
+      }
+    ],
+    "$bindings": {
+      "value": { "path": "form.bilheteSelecionado", "mode": "twoWay" },
+      "action": { "path": "form.acaoBilhete", "mode": "twoWay" }
+    },
+    "$events": { "onAction": { "action": "action.submit" } }
+  }
+]
+```
+
+Os atributos de autoria (`itemValue`, `itemTitle`, `itemDescription`, `itemHint`, `maxItems`, as regras `enabledWhen`) e o vínculo `items` nunca chegam ao canal. Se a fonte da lista falhou, chega também `loadError: {message, required}`.
+
+**Comportamento**
+
+- Web e mobile: itens com seleção única; as ações ficam desabilitadas até a escolha e habilitam conforme `enabledActions` do item, sem ida ao servidor. Tocar numa ação grava o item e a ação nos vínculos e dispara `onAction`.
+- WhatsApp: mensagem de lista (título até 24 caracteres, descrição até 72, cortados com reticências; até 10 linhas, acima disso 9 por vez + "Ver mais"). Depois da escolha, botões de resposta só com as ações liberadas (até 3, rótulo até 20 caracteres); sem nenhuma, mostra o `hint` e reoferece a lista.
+- Com o canal WhatsApp na jornada, a publicação recusa mais de 3 ações ou rótulo de ação acima de 20 caracteres.
+- Habilitar uma ação no canal não substitui a verificação no servidor: o fluxo seguinte confirma no sistema de origem, pelo identificador do item.
 
 ### 7.2 Convenções de propriedades
 
@@ -457,6 +524,7 @@ Eventos v1 recomendados:
 |---|---|---|
 | `onPress` | `ui.button`, `ui.link` | Acionar navegação, conclusão da etapa ou ação registrada |
 | `onDismiss` | `ui.alert` | Fechar feedback dispensável |
+| `onAction` | `ui.selectList` | Concluir a etapa com o item e a ação escolhidos (sempre `action.submit`) |
 
 Ações mínimas:
 
@@ -468,6 +536,7 @@ Ações mínimas:
 | `action.setValue` | Atualizar um caminho autorizado do estado |
 | `action.track` | Emitir evento de telemetria sem dados sensíveis |
 | `action.dismiss` | Alterar estado visual descartável |
+| `action.retry` | Pedir de novo a etapa atual, refazendo a montagem da tela — usado quando uma fonte de dados obrigatória falhou (§14.4) |
 
 Exemplo:
 
@@ -626,7 +695,7 @@ O snapshot publicado deve transportar metadados suficientes para validação, ca
 }
 ```
 
-`data` contém exatamente uma tupla raiz `ui.screen`. A terceira posição das tuplas contêineres define a ordem visual, de leitura, de foco padrão, de projeção conversacional e de serialização determinística. `dataSources` permanece como objeto vazio no v1 e será refinado posteriormente; renderers não executam URLs nem APIs declaradas na UI Spec.
+`data` contém exatamente uma tupla raiz `ui.screen`. A terceira posição das tuplas contêineres define a ordem visual, de leitura, de foco padrão, de projeção conversacional e de serialização determinística. `dataSources` guarda, por apelido, as fontes de dados de referência da tela, com a configuração copiada na publicação (§14.4); no documento entregue ao canal ele é sempre `{}`. Renderers não executam URLs nem APIs declaradas na UI Spec.
 
 | Campo | Tipo | Regra |
 |---|---|---|
@@ -639,7 +708,7 @@ O snapshot publicado deve transportar metadados suficientes para validação, ca
 | `publishedAt` | data/hora | Instante da publicação em ISO 8601 UTC |
 | `supportedTargets` | lista | Alvos homologados para o snapshot |
 | `minRendererVersion` | objeto | Versão mínima do renderer ou adapter por alvo |
-| `dataSources` | objeto | Reservado para refinamento posterior; no v1 deve ser `{}` |
+| `dataSources` | objeto | Fontes de dados de referência da tela (§14.4); `{}` quando não há fonte e sempre `{}` no documento entregue ao canal |
 | `data` | tupla | Raiz única e obrigatória `ui.screen` |
 
 O envelope não possui `metadata` livre nem uma versão independente da UI Spec. O título visual pertence a `ui.screen`; informações administrativas permanecem sob responsabilidade do Elastic Journey. Referências de design pertencem ao processo de autoria e ao Component Registry, não ao contrato de runtime.
@@ -857,7 +926,37 @@ No WhatsApp, a pilha é linearizada conforme a ordem declarada e as propriedades
 
 ### 14.4 `dataSources`
 
-`dataSources` é registrado no envelope para evolução compatível, mas permanece `{}` no v1. O refinamento posterior deve definir, antes de qualquer uso: tipos de fonte; fontes registradas ou estáticas; propriedade e execução; prefetch; cache; timeout; fallback; autenticação; tratamento de dados sensíveis; allowlist; namespace `data`; compatibilidade por alvo; e observabilidade.
+`dataSources` declara as fontes de dados de referência da tela — listas que só apoiam a tela, como horários disponíveis ou motivos (ADR-002). Dado que decide caminho ou precisa constar do histórico da instância não vem daqui: vem de integração no fluxo, gravado como variável do tipo lista.
+
+```json
+"dataSources": {
+  "horarios": {
+    "source": "Agenda técnica",
+    "params": { "bilhete": "{{form_bilheteSelecionado}}" },
+    "required": true,
+    "errorMessage": "Não foi possível carregar os horários disponíveis agora.",
+    "url": "http://localhost:8084/v1/bilhetes/{bilhete}/horarios-disponiveis",
+    "timeoutMs": 5000,
+    "itemsPath": "$.horarios",
+    "exposedFields": ["value", "label"],
+    "credentialRef": null
+  }
+}
+```
+
+| Tópico | Decisão |
+|---|---|
+| Fontes | Registradas no catálogo de fontes de dados (Catálogo de Integrações); a tela referencia pelo nome, nunca por URL livre |
+| Tipos | Somente REST GET |
+| Parâmetros | Marcadores `{nome}` da URL; valores só com variáveis do motor (`{{form_x}}`, `{{data_x}}`) já disponíveis ou texto fixo |
+| Congelamento | A configuração da fonte é copiada na publicação; alterar a fonte no catálogo só afeta as próximas publicações |
+| Execução | Pelo serviço de telas, a cada montagem da tela, antes de entregá-la ao canal; sem cache |
+| Namespace | O resultado aparece como `data.<apelido>` (lista) só nesta tela; nunca vira variável da instância; o apelido não pode repetir variável da jornada |
+| Falha | Fonte opcional: a tela abre com a lista vazia e `loadError`. Fonte obrigatória: `loadError` com `required: true`, "Tentar novamente" (`action.retry`) e a etapa não conclui |
+| Dados sensíveis | Só os campos expostos da fonte saem do servidor |
+| Autenticação | Credencial do catálogo, resolvida no servidor |
+| Consumidores | `ui.selectList` (`$bindings.items`) e `ui.select` (`$bindings.options`, cada item com `label` e `value`) |
+| Observabilidade | Cada consulta é registrada (fonte, instância, tela, duração, status, itens) e aparece no Diagnóstico da instância |
 
 Nenhum renderer ou adapter pode interpretar `dataSources` como autorização para chamar URLs, executar consultas ou transportar credenciais. Os dados são entregues pelo serviço responsável pela jornada e pelo BFF do canal e consumidos pelos componentes por meio de `$bindings` e placeholders.
 

@@ -8,6 +8,7 @@ import { WebFormPreview } from './WebFormPreview';
 import { MobileFormPreview } from './MobileFormPreview';
 import { WhatsAppFormPreview } from './WhatsAppFormPreview';
 import { FormPreviewDiagnostics } from './FormPreviewDiagnostics';
+import { materializeSelectListsForPreview } from '../../sdui/selectList';
 import { collectPreviewDiagnostics } from './previewDiagnostics';
 import { EMPTY_PREVIEW_CONTEXT, projectPreviewTree } from './previewProjection';
 import { useAppTheme } from '../../shell/theme';
@@ -23,7 +24,12 @@ const SKIN_OPTIONS: { value: KnownSkinName; label: string }[] = [
 const DESIGN_SYSTEM_OPTIONS = [{ value: 'mistica', label: 'Mística (@telefonica/mistica)' }];
 
 /** Entrada única do preview estático pertencente ao Flow Designer. */
-export function FormDesignPreview({ root, channel }: { root: SduiNode; channel: DesignChannel }) {
+export function FormDesignPreview({ root, channel, sampleItems = {} }: {
+  root: SduiNode;
+  channel: DesignChannel;
+  /** Itens de exemplo por apelido de fonte de dados (resultado do "Testar"). */
+  sampleItems?: Record<string, Record<string, unknown>[]>;
+}) {
   const { dark, skinName: appSkinName } = useAppTheme();
   // A skin aqui é independente da skin global do app (topo da tela): serve para conferir a tela
   // contra uma marca sem trocar o app inteiro de skin.
@@ -47,7 +53,9 @@ export function FormDesignPreview({ root, channel }: { root: SduiNode; channel: 
     () => new Map((definitions ?? []).map((definition) => [`${definition.type}@${definition.version}`, definition])),
     [definitions],
   );
-  const projection = definitions ? projectPreviewTree(root, channel, registry, EMPTY_PREVIEW_CONTEXT) : null;
+  const projection = definitions
+    ? projectPreviewTree(materializeSelectListsForPreview(root, sampleItems), channel, registry, EMPTY_PREVIEW_CONTEXT)
+    : null;
   const diagnostics = projection ? collectPreviewDiagnostics(root, channel, projection) : [];
 
   if (!definitions) {

@@ -17,12 +17,13 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const nonBlank = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
 const knownType = (value: string): value is SduiComponentType => Object.hasOwn(COMPONENT_CATALOG_V1, value);
 const knownPath = (path: string): boolean => path === 'channel' || VALID_BINDING_NAMESPACES.some((namespace) => path.startsWith(`${namespace}.`));
-const INPUT_TYPES = new Set<SduiComponentType>(['ui.textInput', 'ui.textArea', 'ui.select', 'ui.checkbox', 'ui.datePicker']);
+const INPUT_TYPES = new Set<SduiComponentType>(['ui.textInput', 'ui.textArea', 'ui.select', 'ui.checkbox', 'ui.datePicker', 'ui.selectList']);
 const bindingNames: Partial<Record<SduiComponentType, readonly string[]>> = {
   'ui.text': ['text'], 'ui.image': ['source', 'alt'],
   'ui.textInput': ['value'], 'ui.textArea': ['value'], 'ui.select': ['value'],
   'ui.checkbox': ['value'], 'ui.datePicker': ['value'],
   'ui.alert': ['title', 'message'], 'ui.progress': ['value'],
+  'ui.selectList': ['value', 'action'],
 };
 const add = (list: ContractDiagnostic[], code: string, message: string, path: string, context: Partial<ContractDiagnostic> = {}): void => { list.push({ severity: 'error', code, message, path, ...context }); };
 
@@ -96,6 +97,9 @@ function node(raw: unknown, path: string, diagnostics: ContractDiagnostic[], ids
   if (typeValue === 'ui.datePicker' && !['date', 'time', 'dateTime'].includes(String(attributesRaw.mode))) add(diagnostics, 'SDUI_PROP_INVALID', 'mode deve ser date, time ou dateTime.', `${path}[1].mode`, fullContext);
   if (typeValue === 'ui.progress' && (typeof attributesRaw.value !== 'number' || attributesRaw.value < 0 || attributesRaw.value > 1)) add(diagnostics, 'SDUI_PROP_INVALID', 'value deve ser numérico entre 0 e 1.', `${path}[1].value`, fullContext);
   if (typeValue === 'ui.select' && (!Array.isArray(attributesRaw.options) || attributesRaw.options.some((option) => !isRecord(option) || !nonBlank(option.value) || !nonBlank(option.label)))) add(diagnostics, 'SDUI_PROP_INVALID', 'Cada opção deve possuir value e label não vazios.', `${path}[1].options`, fullContext);
+  if (typeValue === 'ui.selectList' && (!Array.isArray(attributesRaw.items) || attributesRaw.items.some((item) => !isRecord(item) || typeof item.value !== 'string' || typeof item.title !== 'string' || !Array.isArray(item.enabledActions)))) add(diagnostics, 'SDUI_PROP_INVALID', 'Cada item deve possuir value, title e enabledActions.', `${path}[1].items`, fullContext);
+  if (typeValue === 'ui.selectList' && attributesRaw.actions !== undefined && (!Array.isArray(attributesRaw.actions) || attributesRaw.actions.some((action) => !isRecord(action) || !nonBlank(action.id) || !nonBlank(action.label)))) add(diagnostics, 'SDUI_PROP_INVALID', 'Cada ação deve possuir id e label.', `${path}[1].actions`, fullContext);
+  if (typeValue === 'ui.selectList' && !events.onAction) add(diagnostics, 'SDUI_EVENT_INVALID', '$events.onAction é obrigatório.', `${path}[1].$events.onAction`, fullContext);
 
   const visibility = attributesRaw.$visibility === undefined ? null : condition(attributesRaw.$visibility, `${path}[1].$visibility`, diagnostics, fullContext);
   const active = attributesRaw.$active === undefined ? null : condition(attributesRaw.$active, `${path}[1].$active`, diagnostics, fullContext);

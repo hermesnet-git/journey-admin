@@ -9,5 +9,6 @@ import java.util.UUID;
  * SDUI em si, só repassa o que recebe ao front, no mesmo espírito do {@code ms-journey}. */
 public interface FormResolutionPort {
 
-    ResolvedForm resolveForm(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> variables);
+    ResolvedForm resolveForm(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> variables,
+                             String processInstanceId);
 }

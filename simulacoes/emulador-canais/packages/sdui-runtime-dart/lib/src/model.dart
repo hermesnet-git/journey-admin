@@ -20,6 +20,7 @@ const sduiComponentTypes = <String>{
   'ui.alert',
   'ui.progress',
   'ui.loading',
+  'ui.selectList',
 };
 const sduiContainerTypes = <String>{
   'ui.screen',
@@ -33,6 +34,7 @@ const sduiInputTypes = <String>{
   'ui.select',
   'ui.checkbox',
   'ui.datePicker',
+  'ui.selectList',
 };
 const sduiActionTypes = <String>{
   'action.submit',
@@ -41,6 +43,8 @@ const sduiActionTypes = <String>{
   'action.setValue',
   'action.track',
   'action.dismiss',
+  // Refaz a montagem da tela (fonte de dados obrigatória que falhou — ADR-002).
+  'action.retry',
 };
 const _namespaces = <String>{'form', 'data'};
 const _conditions = <String>{'equals', 'notEquals', 'in', 'notIn'};
@@ -68,11 +72,13 @@ const _bindingNames = <String, List<String>>{
   'ui.datePicker': ['value'],
   'ui.alert': ['title', 'message'],
   'ui.progress': ['value'],
+  'ui.selectList': ['value', 'action'],
 };
 const _eventNames = <String, List<String>>{
   'ui.button': ['onPress'],
   'ui.link': ['onPress'],
   'ui.alert': ['onDismiss'],
+  'ui.selectList': ['onAction'],
 };
 const _required = <String, List<String>>{
   'ui.text': ['text'],
@@ -88,6 +94,8 @@ const _required = <String, List<String>>{
   'ui.link': ['label'],
   'ui.alert': ['severity', 'message'],
   'ui.progress': ['value'],
+  // Forma entregue ao canal: itens já montados pelo servidor (ADR-002).
+  'ui.selectList': ['label', 'items'],
 };
 const _optional = <String, List<String>>{
   'ui.screen': ['title', 'backgroundToken', 'scrollable', 'paddingToken'],
@@ -116,7 +124,7 @@ const _optional = <String, List<String>>{
     'maxLength',
     'validation',
   ],
-  'ui.select': ['placeholder', 'required', 'searchable'],
+  'ui.select': ['placeholder', 'required', 'searchable', 'loadError'],
   'ui.checkbox': ['required', 'indeterminate'],
   'ui.datePicker': ['minDate', 'maxDate', 'format', 'required', 'validation'],
   'ui.button': ['variant', 'size', 'fullWidth', 'loading', 'disabled'],
@@ -124,6 +132,7 @@ const _optional = <String, List<String>>{
   'ui.alert': ['title', 'dismissible'],
   'ui.progress': ['label', 'showValue'],
   'ui.loading': ['label', 'sizeToken', 'overlay'],
+  'ui.selectList': ['totalItems', 'actions', 'emptyMessage', 'loadError', 'required', 'value', 'action'],
 };
 const _allowedReserved = <String, List<String>>{
   'ui.screen': [],
@@ -145,6 +154,7 @@ const _allowedReserved = <String, List<String>>{
   'ui.alert': [r'$bindings', r'$events', r'$visibility', r'$active'],
   'ui.progress': [r'$bindings', r'$visibility'],
   'ui.loading': [r'$visibility'],
+  'ui.selectList': [r'$bindings', r'$events', r'$visibility', r'$active'],
 };
 
 class SduiBinding {
@@ -370,6 +380,17 @@ SduiParseResult parseSduiDocument(dynamic input) {
     if ((type == 'ui.button' || type == 'ui.link') &&
         !events.containsKey('onPress'))
       diagnostics.add('SDUI_EVENT_INVALID ($path[1].\$events.onPress)');
+    if (type == 'ui.selectList' && !events.containsKey('onAction'))
+      diagnostics.add('SDUI_EVENT_INVALID ($path[1].\$events.onAction)');
+    if (type == 'ui.selectList' &&
+        (attrs['items'] is! List ||
+            (attrs['items'] as List).any((raw) {
+              final item = _map(raw);
+              return item['value'] is! String ||
+                  item['title'] is! String ||
+                  item['enabledActions'] is! List;
+            })))
+      diagnostics.add('SDUI_PROP_INVALID ($path[1].items)');
     if (type == 'ui.alert' &&
         events.containsKey('onDismiss') &&
         attrs['dismissible'] != true)

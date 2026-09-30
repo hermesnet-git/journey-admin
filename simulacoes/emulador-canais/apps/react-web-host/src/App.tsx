@@ -124,6 +124,15 @@ function StepView({ instance, onStep, onError }: { instance: JourneyInstance; on
         channel: 'WEB',
       },
       handlers: {
+        // "Tentar novamente" (fonte de dados obrigatória que falhou): pede a etapa de novo,
+        // o que refaz a montagem da tela no servidor.
+        retry: async () => {
+          try {
+            onStep(await client.getCurrentStep(instance.processInstanceId));
+          } catch (error) {
+            onError(messageOf(error));
+          }
+        },
         submit: async (answers) => {
           if (!instance.step.taskId) return;
           setSubmitting(true);

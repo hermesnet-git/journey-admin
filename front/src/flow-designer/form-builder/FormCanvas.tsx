@@ -139,6 +139,9 @@ function EmptyDropHint({ active }: { active: boolean }) {
   );
 }
 
+import { SelectListView } from '../../sdui/SelectListView';
+import { materializeSelectListsForPreview, type SelectListAction, type SelectListItem } from '../../sdui/selectList';
+
 function VisualContent({
   node,
   children,
@@ -264,6 +267,25 @@ function VisualContent({
     }
     case 'ui.loading':
       return <Stack space={4}><Loader2 size={20} /><Text size={13}>{text(node, 'label', 'Carregando...')}</Text></Stack>;
+    case 'ui.selectList': {
+      // Itens fictícios montados dos textos configurados — os reais só existem em execução.
+      const delivered = materializeSelectListsForPreview(node, {});
+      const props = delivered.props as { items: SelectListItem[]; totalItems: number; actions: SelectListAction[] };
+      return (
+        <SelectListView
+          label={text(node, 'label', 'Lista de seleção')}
+          required={node.props.required === true}
+          items={props.items.slice(0, 2)}
+          totalItems={props.items.slice(0, 2).length}
+          actions={props.actions}
+          emptyMessage={text(node, 'emptyMessage')}
+          selected={props.items[0]?.value ?? null}
+          onSelect={() => {}}
+          onAction={() => {}}
+          disabled
+        />
+      );
+    }
     default:
       return null;
   }

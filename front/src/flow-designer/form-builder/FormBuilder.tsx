@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
-import { AlertTriangle, FileInput, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
+import { AlertTriangle, Database, FileInput, Info, ListTree, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
 import { FigmaIcon } from '../../shared/FigmaIcon';
 import { useFlowTheme } from '../theme';
 import type { VariableOrigin } from '../model';
@@ -17,6 +17,9 @@ import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel
 import { propertyPresentation, type PropertyPresentation } from './propertyPresentation';
 import { ConfirmDialog } from '../../products/ConfirmDialog';
 import { FigmaScreenImportModal } from './FigmaScreenImportModal';
+import { DataSourcesPanel } from './DataSourcesPanel';
+import { listDataSources, type DataSource } from '../../api/dataSources';
+import type { ScreenDataSource } from '../../api/flows';
 
 function registryKey(type: string, version: string): string {
   return `${type}@${version}`;
@@ -29,12 +32,16 @@ interface Props {
   variables: VariableOrigin[];
   channelTypes: ChannelType[];
   designChannel: DesignChannel;
+  /** Fontes de dados de referência da tela (ADR-002). */
+  dataSources: ScreenDataSource[];
+  onDataSourcesChange: (next: ScreenDataSource[]) => void;
+  onSampleItems: (alias: string, items: Record<string, unknown>[]) => void;
 }
 
 /** Compõe paleta + canvas recursivo + camadas + propriedades num único DndContext — o provider fica
  * aqui (não dentro do canvas) porque paleta e canvas são irmãos: draggable/droppable só se enxergam
  * dentro do MESMO DndContext. */
-export function FormBuilder({ root, onChange, onPushHistory, variables, channelTypes, designChannel }: Props) {
+export function FormBuilder({ root, onChange, onPushHistory, variables, channelTypes, designChannel, dataSources, onDataSourcesChange, onSampleItems }: Props) {
   const { c } = useFlowTheme();
   const [authoringDefinitions, setAuthoringDefinitions] = useState<ComponentDefinition[]>([]);
   const [registryDefinitions, setRegistryDefinitions] = useState<ComponentDefinition[]>([]);
@@ -49,6 +56,13 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
   const [inspectorFocusRequest, setInspectorFocusRequest] = useState<InspectorFocusRequest | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [figmaImportOpen, setFigmaImportOpen] = useState(false);
+  const [dataSourcesOpen, setDataSourcesOpen] = useState(false);
+  const [sourceCatalog, setSourceCatalog] = useState<DataSource[]>([]);
+  const [sourceCatalogError, setSourceCatalogError] = useState(false);
+
+  useEffect(() => {
+    listDataSources().then(setSourceCatalog).catch(() => setSourceCatalogError(true));
+  }, []);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   useEffect(() => {
@@ -77,6 +91,17 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
   // acabou de digitar ali em cima"). Os campos da tela entram na frente, em grupo próprio.
   const variablesWithScreenFields = useMemo<VariableOrigin[]>(() => {
     const screenFields = root ? collectScreenFormFields(root) : [];
+    // Cada fonte de dados da tela vira data.<apelido>, uma lista com os campos expostos da fonte.
+    const sourceLists: VariableOrigin[] = dataSources
+      .filter((d) => d.alias)
+      .map((d) => ({
+        name: d.alias,
+        type: 'list' as const,
+        sourceNodeId: '',
+        sourceLabel: 'Fontes de dados desta tela',
+        kind: 'data' as const,
+        fields: sourceCatalog.find((s) => s.name === d.source)?.exposedFields ?? [],
+      }));
     return [
       ...screenFields.map((field) => ({
         name: field.name,
@@ -86,9 +111,10 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
         kind: 'form' as const,
         label: field.label,
       })),
+      ...sourceLists,
       ...variables,
     ];
-  }, [root, variables]);
+  }, [root, variables, dataSources, sourceCatalog]);
 
   useEffect(() => {
     setSelectedId(root?.id ?? null);
@@ -398,6 +424,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
               onClick={() => setPaletteOpen((value) => !value)}
               icon={paletteOpen ? PanelLeftClose : PanelLeftOpen}
             />
+            <ToolButton title="Fontes de dados da tela" active={dataSourcesOpen || dataSources.length > 0} onClick={() => setDataSourcesOpen((value) => !value)} icon={Database} />
             <ToolButton title="Mostrar ou ocultar estrutura da tela" active={layersOpen} onClick={() => setLayersOpen((value) => !value)} icon={ListTree} />
             <ToolButton
               title={inspectorOpen ? 'Recolher configurações' : 'Mostrar configurações'}
@@ -416,6 +443,16 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
           <div className="shrink-0 px-3 py-2 text-[11.5px]" style={{ color: c.danger, background: c.dangerSoft }}>
             {compositionError}
           </div>
+        )}
+        {dataSourcesOpen && (
+          <DataSourcesPanel
+            dataSources={dataSources}
+            onChange={onDataSourcesChange}
+            variables={variables}
+            onSampleItems={onSampleItems}
+            catalog={sourceCatalog}
+            catalogError={sourceCatalogError}
+          />
         )}
         {issuesOpen && authoringIssues.length > 0 && (
           <div className="shrink-0 px-3 py-2" style={{ borderBottom: `1px solid ${c.border}`, background: c.canvasBg }}>

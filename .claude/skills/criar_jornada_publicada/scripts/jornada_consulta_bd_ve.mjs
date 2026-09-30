@@ -153,7 +153,7 @@ const aguardaDiagnostico = (P) => receiveTaskNode('Node_AguardaDiagnostico', 'Ag
 const telaCnpj = (P) => userTaskNode('Node_InformaCnpj', 'Informe o CNPJ', 'Coleta o CNPJ da empresa.', ...P.Node_InformaCnpj, 'informa-cnpj', 'Suporte Vivo Empresas', [
   text('text_cnpj_titulo', 'Vamos verificar a situação da sua empresa', 'title'),
   text('text_cnpj_corpo', 'Informe o CNPJ para consultarmos chamados técnicos, pendências financeiras e manutenções na sua região.', 'body'),
-  textInput('input_cnpj', 'CNPJ (somente números)', 'cnpj', { placeholder: '00000000000000', inputMode: 'number', maxLength: 14 }),
+  textInput('input_cnpj', 'CNPJ (somente números)', 'cnpj', { placeholder: '00000000000000', inputMode: 'text', maxLength: 14 }),
   submitButton('button_cnpj_consultar', 'Consultar'),
 ]);
 

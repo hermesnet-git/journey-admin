@@ -22,7 +22,8 @@ export const COMPONENT_CATALOG_V1: Readonly<Record<SduiComponentType, ComponentC
   'ui.spacer': c('ui.spacer', 'CONTENT', false, ['sizeToken'], ['axis'], ['$visibility']),
   'ui.textInput': c('ui.textInput', 'INPUT', false, ['label'], ['placeholder', 'inputMode', 'required', 'readOnly', 'maxLength', 'validation'], ['$bindings', '$visibility', '$active'], [], 'value'),
   'ui.textArea': c('ui.textArea', 'INPUT', false, ['label'], ['placeholder', 'required', 'readOnly', 'minLines', 'maxLines', 'maxLength', 'validation'], ['$bindings', '$visibility', '$active'], [], 'value'),
-  'ui.select': c('ui.select', 'INPUT', false, ['label', 'options'], ['placeholder', 'required', 'searchable'], ['$bindings', '$visibility', '$active'], [], 'value'),
+  // loadError: fonte de dados das opções falhou (ADR-002).
+  'ui.select': c('ui.select', 'INPUT', false, ['label', 'options'], ['placeholder', 'required', 'searchable', 'loadError'], ['$bindings', '$visibility', '$active'], [], 'value'),
   'ui.checkbox': c('ui.checkbox', 'INPUT', false, ['label'], ['required', 'indeterminate'], ['$bindings', '$visibility', '$active'], [], 'value'),
   'ui.datePicker': c('ui.datePicker', 'INPUT', false, ['label', 'mode'], ['minDate', 'maxDate', 'format', 'required', 'validation'], ['$bindings', '$visibility', '$active'], [], 'value'),
   'ui.button': c('ui.button', 'ACTION', false, ['label'], ['variant', 'size', 'fullWidth', 'loading', 'disabled'], ['$events', '$visibility', '$active'], ['onPress']),
@@ -30,8 +31,11 @@ export const COMPONENT_CATALOG_V1: Readonly<Record<SduiComponentType, ComponentC
   'ui.alert': c('ui.alert', 'FEEDBACK', false, ['severity', 'message'], ['title', 'dismissible'], ['$bindings', '$events', '$visibility', '$active'], ['onDismiss']),
   'ui.progress': c('ui.progress', 'FEEDBACK', false, ['value'], ['label', 'showValue'], ['$bindings', '$visibility']),
   'ui.loading': c('ui.loading', 'FEEDBACK', false, [], ['label', 'sizeToken', 'overlay'], ['$visibility']),
+  // Forma ENTREGUE ao canal (ADR-002): o servidor já montou items/actions — itemTitle, {{item.x}} e as
+  // regras "liberada quando" nunca chegam aqui. value/action: valor atual dos vínculos, se houver.
+  'ui.selectList': c('ui.selectList', 'INPUT', false, ['label', 'items'], ['totalItems', 'actions', 'emptyMessage', 'loadError', 'required', 'value', 'action'], ['$bindings', '$events', '$visibility', '$active'], ['onAction'], 'value'),
 };
 export const VALID_BINDING_NAMESPACES = ['form', 'data'] as const;
 export const VALID_CONDITION_RULES = ['equals', 'notEquals', 'in', 'notIn'] as const;
-export const VALID_ACTIONS: readonly SduiActionType[] = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss'];
-export const INPUT_COMPONENTS: ReadonlySet<SduiComponentType> = new Set(['ui.textInput', 'ui.textArea', 'ui.select', 'ui.checkbox', 'ui.datePicker']);
+export const VALID_ACTIONS: readonly SduiActionType[] = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss', 'action.retry'];
+export const INPUT_COMPONENTS: ReadonlySet<SduiComponentType> = new Set(['ui.textInput', 'ui.textArea', 'ui.select', 'ui.checkbox', 'ui.datePicker', 'ui.selectList']);

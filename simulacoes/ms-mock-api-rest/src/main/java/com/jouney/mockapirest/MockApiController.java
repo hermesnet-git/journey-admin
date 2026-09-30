@@ -245,6 +245,83 @@ public class MockApiController {
     }
 
     /**
+     * Lista os bilhetes de defeito em aberto do CNPJ, cada um dizendo se pode ser reagendado ou
+     * cancelado (a regra de negócio é deste sistema, não da tela). Só "45537128000127" tem bilhetes;
+     * qualquer outro CNPJ recebe a lista vazia. Seed fixa por CNPJ: a lista é a mesma a cada chamada.
+     */
+    @GetMapping("/v1/clientes/{cnpj}/bilhetes")
+    public Map<String, Object> listarBilhetes(@PathVariable String cnpj) {
+        List<Map<String, Object>> bilhetes = new ArrayList<>();
+        if (CNPJ_COM_BILHETE_DEFEITO.equals(cnpj)) {
+            Random random = new Random(cnpj.hashCode());
+            String[] status = {"Em atendimento", "Técnico a caminho", "Aguardando peça", "Agendado"};
+            for (int i = 0; i < 4; i++) {
+                OffsetDateTime abertura = OffsetDateTime.now().minusDays(1 + i).withNano(0);
+                boolean tecnicoACaminho = "Técnico a caminho".equals(status[i]);
+                boolean aguardandoPeca = "Aguardando peça".equals(status[i]);
+                Map<String, Object> bilhete = new LinkedHashMap<>();
+                bilhete.put("numeroBilhete", "BD-" + abertura.getYear() + "-" + (480000 + i * 7311 + random.nextInt(900)));
+                bilhete.put("tipoDefeito", TIPOS_DEFEITO[i % TIPOS_DEFEITO.length]);
+                bilhete.put("status", status[i]);
+                bilhete.put("prioridade", PRIORIDADES[(i + 2) % PRIORIDADES.length]);
+                bilhete.put("dataAbertura", abertura.toLocalDate().toString());
+                bilhete.put("previsaoConclusao", abertura.plusDays(3).toLocalDate().toString());
+                bilhete.put("podeReagendar", !tecnicoACaminho);
+                bilhete.put("podeCancelar", !aguardandoPeca);
+                bilhete.put("motivoBloqueio", tecnicoACaminho
+                        ? "O técnico já está a caminho, não é possível reagendar."
+                        : aguardandoPeca ? "A peça já foi solicitada, não é possível cancelar." : null);
+                bilhetes.add(bilhete);
+            }
+        }
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("cnpjCliente", cnpj);
+        resposta.put("quantidade", bilhetes.size());
+        resposta.put("bilhetes", bilhetes);
+        return resposta;
+    }
+
+    /** Horários livres da agenda técnica para reagendar a visita de um bilhete (dado de referência). */
+    @GetMapping("/v1/bilhetes/{numeroBilhete}/horarios-disponiveis")
+    public Map<String, Object> horariosDisponiveis(@PathVariable String numeroBilhete) {
+        String[] periodos = {"Manhã (8h às 12h)", "Tarde (13h às 18h)"};
+        List<Map<String, Object>> horarios = new ArrayList<>();
+        java.time.LocalDate dia = java.time.LocalDate.now().plusDays(1);
+        for (int i = 0; i < 6; i++) {
+            java.time.LocalDate data = dia.plusDays(i / 2);
+            Map<String, Object> horario = new LinkedHashMap<>();
+            horario.put("value", data + (i % 2 == 0 ? "-MANHA" : "-TARDE"));
+            horario.put("label", data.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")) + " — " + periodos[i % 2]);
+            horarios.add(horario);
+        }
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("numeroBilhete", numeroBilhete);
+        resposta.put("horarios", horarios);
+        return resposta;
+    }
+
+    @PostMapping("/v1/bilhetes/{numeroBilhete}/reagendamento")
+    public Map<String, Object> reagendarBilhete(@PathVariable String numeroBilhete,
+                                                 @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("numeroBilhete", numeroBilhete);
+        resposta.put("protocolo", "RG-" + (100000 + new Random().nextInt(900000)));
+        resposta.put("status", "REAGENDADO");
+        resposta.put("novoHorario", body != null ? body.get("horario") : null);
+        return resposta;
+    }
+
+    @PostMapping("/v1/bilhetes/{numeroBilhete}/cancelamento")
+    public Map<String, Object> cancelarBilhete(@PathVariable String numeroBilhete,
+                                                @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("numeroBilhete", numeroBilhete);
+        resposta.put("protocolo", "CN-" + (100000 + new Random().nextInt(900000)));
+        resposta.put("status", "CANCELADO");
+        return resposta;
+    }
+
+    /**
      * Recebe a solicitação de avaliação de diagnóstico de conectividade. Só confirma o recebimento —
      * o resultado do diagnóstico chega depois, de forma assíncrona, pelo Kafka.
      */

@@ -361,6 +361,10 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.09.013 - O editor deve exibir, para cada `SERVICE_TASK`/`RECEIVE_TASK`, a lista de variáveis disponíveis naquele ponto do fluxo, calculada a partir dos nós alcançáveis entre o elemento inicial e o nó selecionado.
 #### REQ-03.09.014 - O backend deve rejeitar (422), ao salvar o fluxo, a configuração de conector que referencie `{{variavel}}` inexistente no contexto do nó (nome não declarado por nenhum passo anterior alcançável) ou que use uma forma diferente do nome da variável no motor (`{{nome}}` sem prefixo, ou com ponto, como `{{form.nome}}`).
 #### REQ-03.09.015 - O campo de tópico de um conector Kafka deve oferecer, como sugestão, a lista de tópicos existentes no cluster selecionado (US-14.01), consultada em tempo real a partir do catálogo de integrações; a digitação livre deve continuar disponível quando a listagem não estiver disponível.
+#### REQ-03.09.016 - Uma regra de mapeamento de saída (REST ou Kafka) deve poder ser do tipo lista: o valor apontado pela expressão JSONPath é um array, gravado como uma única variável da jornada em formato JSON do Runtime Engine — sem o limite de tamanho de uma variável de texto e legível no Diagnóstico. Quando a chamada REST não é bem-sucedida, a variável do tipo lista recebe uma lista vazia.
+#### REQ-03.09.017 - A regra do tipo lista deve permitir declarar os campos a manter de cada item; só esses campos são gravados na variável, para não guardar no histórico da instância dados que a tela e as regras não usam. Sem campos declarados, o item é gravado inteiro.
+#### REQ-03.09.018 - Um campo de lista ou de objeto recebido numa mensagem Kafka também deve ser gravado como variável em formato JSON do Runtime Engine, nunca como objeto binário.
+#### REQ-03.09.019 - Uma variável do tipo lista não deve ser oferecida em condição de Decisão — ela só alimenta a lista de seleção (US-04.15) e as opções de um select (US-04.16).
 ---
 
 ### US-03.10 Teste de conectores
@@ -603,6 +607,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.11.002 - Os eventos oferecidos para configuração num componente devem se limitar aos eventos que aquele componente, conforme declarado no catálogo (REQ-04.07.007), realmente dispara.
 #### REQ-04.11.003 - Cada ação deve permitir configurar parâmetros próprios (ex.: rota de destino, URL, caminho e valor a definir, nome do evento de telemetria).
 #### REQ-04.11.004 - Um componente não deve poder disparar uma ação fora do conjunto fechado do sistema — isso deve ser impedido na validação estrutural (US-04.13).
+#### REQ-04.11.005 - O conjunto fechado de ações deve incluir "tentar novamente", que pede de novo a etapa atual e refaz a montagem da tela — usada quando uma fonte de dados obrigatória da tela falha (US-04.16).
 
 ---
 
@@ -630,6 +635,35 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.13.010 - O sistema não deve permitir publicar uma jornada em que uma tela referencie uma variável de dados da jornada (namespaces `form` ou `data`) que não exista naquele ponto do fluxo — seja por vínculo de leitura, por placeholder em qualquer propriedade de texto, por condição de visibilidade ou por condição de estado ativo. Contam como existentes o que passos anteriores do fluxo produzem, as variáveis de entrada do início da jornada e os campos que a própria tela coleta, em qualquer ordem. A violação deve indicar o componente, a variável e as variáveis disponíveis naquele ponto. Não é conferido o vínculo de leitura-e-escrita (ele cria a variável).
 
 #### REQ-04.13.011 - O sistema não deve permitir publicar uma jornada em que um placeholder de texto de tela use um formato fora do previsto. São válidos `{{form.nome}}` e `{{data.nome}}` (caminho do contrato), `{{form_nome}}` e `{{data_nome}}` (nome da variável no motor) e `{{channel}}` (o canal). Um placeholder sem prefixo (`{{nome}}`) ou de outro namespace resolveria vazio em execução e deve ser recusado, com a indicação das formas válidas.
+
+---
+
+### US-04.15 Lista de seleção
+#### REQ-04.15.001 - O catálogo deve oferecer o componente lista de seleção, em que o usuário escolhe um item de uma lista vinda da jornada e, opcionalmente, uma ação sobre o item escolhido.
+#### REQ-04.15.002 - Os itens da lista devem vir, por vínculo somente leitura, de uma variável do tipo lista: a saída de uma integração do tipo lista (REQ-03.09.016) ou uma fonte de dados da própria tela (US-04.16). A publicação deve ser recusada quando o vínculo aponta para uma variável que não é do tipo lista.
+#### REQ-04.15.003 - O autor deve configurar o campo do item gravado na escolha e os textos de cada item — título, descrição e aviso — combinando texto fixo com campos do item no formato `{{item.campo}}`. O prefixo `item` só é aceito nesses textos do componente de lista.
+#### REQ-04.15.004 - A escolha do usuário deve gravar o valor do campo configurado do item numa variável do formulário, por vínculo de leitura-e-escrita.
+#### REQ-04.15.005 - O autor deve poder declarar ações sobre o item escolhido, cada uma com identificador, rótulo, estilo (principal, secundário ou destrutivo) e uma regra "liberada quando" que compara um campo do item com um valor (`{{item.campo}} == valor` ou `!=`). A regra de negócio vem do sistema de origem, pelo campo do item, e não é reescrita na tela.
+#### REQ-04.15.006 - A ação escolhida deve ser gravada numa segunda variável do formulário, por vínculo de leitura-e-escrita, e concluir a etapa — o que permite a uma Decisão seguinte seguir o caminho da ação.
+#### REQ-04.15.007 - Os itens devem chegar ao canal já montados pelo serviço de telas (valor, título, descrição, aviso e ações liberadas de cada item): o canal nunca recebe o array original, os textos com `{{item.campo}}` nem as regras das ações.
+#### REQ-04.15.008 - Na web e no mobile, as ações devem ficar desabilitadas até o usuário escolher um item e habilitar conforme as ações liberadas para ele, sem nova chamada ao servidor. No WhatsApp, a lista deve ser apresentada como mensagem de lista e, após a escolha, com botões só das ações liberadas para o item — ou, sem nenhuma liberada, com o aviso do item e a lista de novo.
+#### REQ-04.15.009 - A lista deve ter um máximo de itens configurável (padrão 50); o excesso não é mostrado e a tela informa quantos itens existem. No WhatsApp, acima de 10 itens a lista mostra 9 por vez e uma linha "Ver mais", paginada pelo próprio canal; título e descrição longos são cortados com reticências nos limites do WhatsApp (24 e 72 caracteres).
+#### REQ-04.15.010 - Em jornada com o canal WhatsApp, a publicação deve ser recusada quando a lista tiver mais de 3 ações ou rótulo de ação com mais de 20 caracteres — os limites de botões de resposta do WhatsApp.
+#### REQ-04.15.011 - A lista deve mostrar uma mensagem configurável quando não houver itens.
+#### REQ-04.15.012 - Habilitar uma ação no canal não substitui a verificação no servidor: o fluxo seguinte deve confirmar no sistema de origem, pelo identificador do item, se a ação é permitida.
+
+---
+
+### US-04.16 Fontes de dados da tela
+#### REQ-04.16.001 - A tela de uma Tarefa de Usuário deve poder declarar fontes de dados de referência — listas de apoio que só servem à tela, como horários disponíveis ou motivos —, cada uma com um apelido, a fonte do catálogo (US-14.07), o valor de cada parâmetro da fonte, se ela é obrigatória e a mensagem mostrada se falhar.
+#### REQ-04.16.002 - Dado que decide caminho ou precisa constar do histórico da instância deve vir de integração no fluxo (REQ-03.09.016), não de fonte de dados da tela.
+#### REQ-04.16.003 - O resultado de cada fonte deve ficar disponível na própria tela como `data.<apelido>`, uma lista, e nunca ser gravado como variável da instância; só a escolha do usuário é gravada. A publicação deve ser recusada se o apelido repetir o nome de uma variável da jornada disponível naquele ponto.
+#### REQ-04.16.004 - Os parâmetros da fonte só devem aceitar variáveis da jornada no formato do motor (`{{form_x}}`, `{{data_x}}`) já disponíveis naquele ponto do fluxo, ou texto fixo; a publicação deve ser recusada se faltar o valor de um parâmetro da fonte.
+#### REQ-04.16.005 - A busca deve ser feita pelo serviço de telas a cada vez que a tela é montada, antes de entregá-la ao canal; o canal e o BFF nunca chamam a fonte. Não há cache.
+#### REQ-04.16.006 - A configuração da fonte usada (URL, parâmetros, tempo limite, caminho da lista, campos expostos e referência de credencial) deve ser copiada na publicação da tela; alterar ou excluir a fonte no catálogo só vale para as próximas publicações. Essa configuração nunca deve ser enviada ao canal.
+#### REQ-04.16.007 - Se uma fonte opcional falhar ou exceder o tempo limite, a tela deve abrir com a lista vazia e a mensagem configurada. Se uma fonte obrigatória falhar, a tela deve mostrar a mensagem com a ação "tentar novamente" (REQ-04.11.005) e não permitir concluir a etapa.
+#### REQ-04.16.008 - O resultado de uma fonte deve poder alimentar a lista de seleção (US-04.15) e as opções de um select, por vínculo somente leitura; no select, cada item precisa ter `label` e `value`.
+#### REQ-04.16.009 - O editor de telas deve permitir testar cada fonte com valores de exemplo para os parâmetros; os itens retornados passam a ser usados no preview da tela.
 
 ---
 
@@ -1125,6 +1159,15 @@ empresa.
 #### REQ-14.05.005 - O assistente de configuração de conector (US-03.14) deve ganhar as mesmas 3 etapas hoje aplicadas ao Kafka (Conexão, Payload, Mapear saída) para `EVENT_HUBS` e `SERVICE_BUS`, com a etapa "Conexão" oferecendo os seletores de cluster e credencial em vez de campos de texto.
 ---
 
+### US-14.07 Catálogo de fontes de dados
+#### REQ-14.07.001 - O sistema deve permitir cadastrar, editar e excluir fontes de dados de referência, restrito ao papel `ADMIN` (REQ-14.03.001); qualquer papel autenticado pode listá-las, para escolher uma fonte no editor de telas.
+#### REQ-14.07.002 - Cada fonte deve ter nome único, descrição opcional, URL de uma consulta GET com os parâmetros marcados entre chaves (`{bilhete}`), tempo limite (100 ms a 30 s), caminho da lista na resposta (`$` ou `$.campo`), campos expostos e, opcionalmente, a referência de uma credencial.
+#### REQ-14.07.003 - Os campos expostos são obrigatórios: só esses campos de cada item saem do servidor. A URL cadastrada é a única que a fonte pode chamar.
+#### REQ-14.07.004 - O sistema deve permitir testar uma fonte informando valores de exemplo para os parâmetros; a chamada é feita pelo backend, com a mesma proteção do teste de conector (US-03.10), e mostra status, duração e os itens já com só os campos expostos.
+#### REQ-14.07.005 - A credencial referenciada deve ser resolvida no servidor; ela nunca é enviada ao canal.
+
+---
+
 ### US-14.06 Credencial de IA
 #### REQ-14.06.001 - O sistema deve permitir cadastrar, atualizar e remover uma credencial de API de um provedor de IA (Gemini), restrito ao papel `ADMIN`.
 #### REQ-14.06.002 - A API não deve, em nenhuma resposta, retornar o valor da chave salva — apenas seu status (configurada/não configurada) e a data da última atualização.
@@ -1159,6 +1202,7 @@ Permitir investigar o comportamento de qualquer execução de jornada no motor d
 ### US-15.03 Detalhe de uma execução
 #### REQ-15.03.001 - Ao selecionar uma execução, o sistema deve apresentar o fluxo percorrido, as variáveis do processo e o log cronológico, reaproveitando o mesmo painel de observabilidade da Execução (FT-05 US-05.06/US-05.10).
 #### REQ-15.03.002 - O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.
+#### REQ-15.03.003 - O log do detalhe deve incluir cada consulta a uma fonte de dados feita ao montar uma tela da instância (US-04.16) — fonte, tela, URL, status, duração e quantidade de itens —, já que essa busca acontece fora do Runtime Engine e não aparece no histórico da instância.
 ---
 
 ### US-15.04 Independência da tela de Execução

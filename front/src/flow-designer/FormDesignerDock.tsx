@@ -7,6 +7,7 @@ import { DESIGN_CHANNEL_LABEL, type DesignChannel } from './form-builder/designC
 import { UserTaskNavigator } from './UserTaskNavigator';
 import type { WFNode, VariableOrigin } from './model';
 import type { SduiNode } from '../sdui/model';
+import type { ScreenDataSource } from '../api/flows';
 import type { ChannelType } from '../api/products';
 
 interface Props {
@@ -14,6 +15,9 @@ interface Props {
   nodeId: string;
   embeddedScreenRoot: SduiNode | null;
   onEmbeddedScreenRootChange: (root: SduiNode) => void;
+  /** Fontes de dados de referência que a tela usa (ADR-002). */
+  screenDataSources: ScreenDataSource[];
+  onScreenDataSourcesChange: (dataSources: ScreenDataSource[]) => void;
   /** Mesmo histórico de undo/redo do fluxo (Ctrl+Z/Ctrl+Y) — chamado antes de qualquer ação
    * estrutural (adicionar/mover/remover), não em edição de propriedade dentro de um render. */
   onPushHistory: () => void;
@@ -55,6 +59,8 @@ export function FormDesignerDock({
   nodeId,
   embeddedScreenRoot,
   onEmbeddedScreenRootChange,
+  screenDataSources,
+  onScreenDataSourcesChange,
   onPushHistory,
   variables,
   userTasks,
@@ -70,6 +76,9 @@ export function FormDesignerDock({
   const [collapsed, setCollapsed] = useState(false);
   const [mode, setMode] = useState<ScreenMode>('edit');
   const [designChannel, setDesignChannel] = useState<DesignChannel>(channelTypes[0] ?? 'WEB');
+  // Itens de exemplo por apelido de fonte, vindos do "Testar" no painel de fontes — o preview usa
+  // estes itens em vez de itens fictícios. Só em memória, não vai pro fluxo.
+  const [sampleItems, setSampleItems] = useState<Record<string, Record<string, unknown>[]>>({});
   const currentTask = userTasks.find((task) => task.id === nodeId);
 
   useEffect(() => {
@@ -213,6 +222,9 @@ export function FormDesignerDock({
         variables={variables}
         channelTypes={channelTypes}
         designChannel={designChannel}
+        dataSources={screenDataSources}
+        onDataSourcesChange={onScreenDataSourcesChange}
+        onSampleItems={(alias, items) => setSampleItems((current) => ({ ...current, [alias]: items }))}
       />
     </div>
   );
@@ -224,7 +236,7 @@ export function FormDesignerDock({
           Nenhuma tela desenhada ainda.
         </div>
       ) : (
-        <FormDesignPreview root={embeddedScreenRoot} channel={designChannel} />
+        <FormDesignPreview root={embeddedScreenRoot} channel={designChannel} sampleItems={sampleItems} />
       )}
     </div>
   );

@@ -364,11 +364,11 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
         // histórico. Sem isso, ExecutionStepResolver.buildTrail perde o tópico/payload Kafka de um
         // Service Task que terminou de rodar bem na hora em que o processo já tinha concluído.
         try {
-            Map<String, Map<String, Object>> raw = restClient.get()
+            Map<String, Map<String, Object>> raw = withJsonAsText(restClient.get()
                     .uri(baseUrl + "/process-instance/{id}/variables", processInstanceId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
-                    });
+                    }), processInstanceId);
             Map<String, Object> result = new LinkedHashMap<>();
             if (raw != null) {
                 raw.forEach((name, v) -> result.put(name, v.get("value")));
@@ -443,11 +443,11 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
         // estado (mesmo dado que o Diagnóstico já usa via getHistoricProcessVariables). Se o motor
         // estiver mesmo fora do ar, o fallback também passa pelo call() abaixo e gera o mesmo erro.
         try {
-            Map<String, Map<String, Object>> raw = restClient.get()
+            Map<String, Map<String, Object>> raw = withJsonAsText(restClient.get()
                     .uri(baseUrl + "/process-instance/{id}/variables", processInstanceId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
-                    });
+                    }), processInstanceId);
             Map<String, TypedVariable> result = new LinkedHashMap<>();
             if (raw != null) {
                 raw.forEach((name, v) -> result.put(name, new TypedVariable(v.get("value"), String.valueOf(v.get("type")))));
@@ -629,11 +629,15 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<HistoricVariableInstanceRaw>>() {
                 }));
+        Map<String, Object> jsonText = raw != null && raw.stream().anyMatch(v -> "Json".equals(v.type()))
+                ? jsonTextById(baseUrl + "/history/variable-instance?processInstanceId={id}&deserializeValues=false", processInstanceId)
+                : Map.of();
         Map<String, TypedVariable> result = new LinkedHashMap<>();
         if (raw != null) {
             for (HistoricVariableInstanceRaw v : raw) {
                 if (processInstanceId.equals(v.activityInstanceId())) {
-                    result.put(v.name(), new TypedVariable(v.value(), v.type()));
+                    Object value = "Json".equals(v.type()) && jsonText.containsKey(v.id()) ? jsonText.get(v.id()) : v.value();
+                    result.put(v.name(), new TypedVariable(value, v.type()));
                 }
             }
         }
@@ -649,8 +653,13 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                 .body(new ParameterizedTypeReference<List<HistoricVariableUpdateRaw>>() {
                 }));
         if (raw == null) return List.of();
+        Map<String, Object> jsonText = raw.stream().anyMatch(v -> "Json".equals(v.variableType()))
+                ? jsonTextById(baseUrl + "/history/detail?processInstanceId={id}&type=variableUpdate&deserializeValues=false", processInstanceId)
+                : Map.of();
         return raw.stream()
-                .map(v -> new VariableUpdate(v.variableName(), v.value(), v.variableType(), v.activityInstanceId(), v.time()))
+                .map(v -> new VariableUpdate(v.variableName(),
+                        "Json".equals(v.variableType()) && jsonText.containsKey(v.id()) ? jsonText.get(v.id()) : v.value(),
+                        v.variableType(), v.activityInstanceId(), v.time()))
                 .toList();
     }
 
@@ -735,12 +744,45 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record HistoricVariableInstanceRaw(String name, Object value, String type, String activityInstanceId) {
+    private record HistoricVariableInstanceRaw(String id, String name, Object value, String type, String activityInstanceId) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record HistoricVariableUpdateRaw(String variableName, Object value, String variableType,
+    private record HistoricVariableUpdateRaw(String id, String variableName, Object value, String variableType,
                                               String activityInstanceId, String time) {
+    }
+
+    // Variável Json (lista gravada pela saída de integração do tipo lista, ADR-002): no modo padrão a
+    // API do motor devolve o objeto técnico do Spin ({nodeType, array, ...}), não o JSON. Só pra
+    // essas variáveis o valor é trocado pelo texto JSON (deserializeValues=false); as de outros tipos
+    // continuam exatamente como sempre foram lidas.
+    private Map<String, Map<String, Object>> withJsonAsText(Map<String, Map<String, Object>> raw, String processInstanceId) {
+        if (raw == null || raw.values().stream().noneMatch(v -> "Json".equals(v.get("type")))) {
+            return raw;
+        }
+        Map<String, Map<String, Object>> text = restClient.get()
+                .uri(baseUrl + "/process-instance/{id}/variables?deserializeValues=false", processInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<Map<String, Map<String, Object>>>() {
+                });
+        Map<String, Map<String, Object>> result = new LinkedHashMap<>(raw);
+        if (text != null) {
+            result.replaceAll((name, v) -> "Json".equals(v.get("type")) && text.containsKey(name) ? text.get(name) : v);
+        }
+        return result;
+    }
+
+    private Map<String, Object> jsonTextById(String uri, String processInstanceId) {
+        List<Map<String, Object>> text = call(() -> restClient.get()
+                .uri(uri, processInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                }));
+        Map<String, Object> byId = new LinkedHashMap<>();
+        if (text != null) {
+            text.forEach(v -> byId.put(String.valueOf(v.get("id")), v.get("value")));
+        }
+        return byId;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -2,13 +2,14 @@ export const SDUI_COMPONENT_TYPES = [
   'ui.screen', 'ui.container', 'ui.stack', 'ui.card', 'ui.text', 'ui.image',
   'ui.icon', 'ui.divider', 'ui.spacer', 'ui.textInput', 'ui.textArea',
   'ui.select', 'ui.checkbox', 'ui.datePicker', 'ui.button', 'ui.link',
-  'ui.alert', 'ui.progress', 'ui.loading',
+  'ui.alert', 'ui.progress', 'ui.loading', 'ui.selectList',
 ] as const;
 
 export type SduiComponentType = (typeof SDUI_COMPONENT_TYPES)[number];
 export const RENDER_TARGETS = ['react.web', 'react.mobile', 'flutter.web', 'flutter.mobile', 'whatsapp'] as const;
 export type RenderTarget = (typeof RENDER_TARGETS)[number];
-export const SDUI_ACTION_TYPES = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss'] as const;
+// action.retry: refaz a montagem da tela (fonte de dados obrigatória que falhou — ADR-002).
+export const SDUI_ACTION_TYPES = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss', 'action.retry'] as const;
 export type SduiActionType = (typeof SDUI_ACTION_TYPES)[number];
 export type BindingMode = 'oneWay' | 'twoWay';
 export type BindingNamespace = 'form' | 'data';
@@ -45,11 +46,17 @@ export interface SduiSnapshot {
   publishedAt: string;
   supportedTargets: RenderTarget[];
   minRendererVersion: Partial<Record<RenderTarget, ComponentVersion>>;
+  // Sempre vazio no documento entregue ao canal: a configuração das fontes nunca sai do servidor.
   dataSources: Record<string, never>;
   data: SduiScreenTuple;
 }
 
 export type SduiDocument = SduiScreenTuple | SduiSnapshot;
+
+// Lista de seleção entregue ao canal (ADR-002): itens já montados pelo servidor.
+export interface SelectListItem { value: string; title: string; description?: string; hint?: string; enabledActions: string[] }
+export interface SelectListAction { id: string; label: string; variant: 'primary' | 'secondary' | 'danger' }
+export interface SourceLoadError { message: string; required: boolean }
 
 /** Árvore normalizada exclusivamente para uso interno de runtimes e adapters. */
 export interface SduiNode<T extends SduiComponentType = SduiComponentType> {

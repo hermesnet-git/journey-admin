@@ -17,6 +17,8 @@ interface Props {
   // lado produtor (SERVICE_TASK), que passa a esperar uma ação explícita em vez do worker automático.
   manualKafkaControl: boolean;
   onCompleteTask: (answers: Record<string, unknown>) => void;
+  /** Refaz a montagem da tela atual (action.retry). */
+  onRetryStep?: () => void;
   onSkipStep: () => void;
   onSendTestMessage: (nodeId: string, message: TestMessageInput) => Promise<void>;
   onSendKafkaMessage: (payload?: Record<string, unknown>) => Promise<void>;
@@ -36,6 +38,7 @@ export function DevicePreview({
   businessKey,
   manualKafkaControl,
   onCompleteTask,
+  onRetryStep,
   onSkipStep,
   onSendTestMessage,
   onSendKafkaMessage,
@@ -63,7 +66,7 @@ export function DevicePreview({
                 <Form> da Mística) entre User Tasks diferentes — os valores digitados na tela
                 anterior vazavam pra tela seguinte, mesmo sem nenhum campo em comum de verdade. */}
             {step.form.sdui ? (
-              <SduiNodeRenderer key={step.taskId} sdui={fromCanonicalTuple(step.form.sdui.data)} onSubmit={onCompleteTask} submitting={busy} />
+              <SduiNodeRenderer key={step.taskId} sdui={fromCanonicalTuple(step.form.sdui.data)} onSubmit={onCompleteTask} submitting={busy} onRetry={onRetryStep} />
             ) : (
               <Text size={14}>{step.form.description ?? 'Etapa sem interface visual.'}</Text>
             )}

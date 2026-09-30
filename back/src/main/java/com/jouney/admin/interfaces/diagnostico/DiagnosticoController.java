@@ -1,5 +1,6 @@
 package com.jouney.admin.interfaces.diagnostico;
 
+import com.jouney.admin.application.diagnostico.DataSourceCallPort;
 import com.jouney.admin.application.diagnostico.GetExecutionHistoryDetail;
 import com.jouney.admin.application.diagnostico.SearchExecutionHistory;
 import com.jouney.admin.domain.diagnostico.HistoricInstanceEntry;
@@ -26,11 +27,21 @@ public class DiagnosticoController {
 
     private final SearchExecutionHistory searchExecutionHistory;
     private final GetExecutionHistoryDetail getExecutionHistoryDetail;
+    private final DataSourceCallPort dataSourceCallPort;
 
     public DiagnosticoController(SearchExecutionHistory searchExecutionHistory,
-                                  GetExecutionHistoryDetail getExecutionHistoryDetail) {
+                                  GetExecutionHistoryDetail getExecutionHistoryDetail,
+                                  DataSourceCallPort dataSourceCallPort) {
         this.searchExecutionHistory = searchExecutionHistory;
         this.getExecutionHistoryDetail = getExecutionHistoryDetail;
+        this.dataSourceCallPort = dataSourceCallPort;
+    }
+
+    /** "Consulta da tela" (ADR-002): cada busca a uma fonte de dados feita ao montar uma tela desta instância. */
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
+    @GetMapping("/instances/{processInstanceId}/data-source-calls")
+    public List<DataSourceCallPort.DataSourceCall> dataSourceCalls(@PathVariable String processInstanceId) {
+        return dataSourceCallPort.findByProcessInstance(processInstanceId);
     }
 
     @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")

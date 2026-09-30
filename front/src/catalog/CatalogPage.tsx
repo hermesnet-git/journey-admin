@@ -39,6 +39,7 @@ import { getAiCredentialStatus, saveAiCredential, deleteAiCredential, type AiCre
 import { ClusterFormModal } from './ClusterFormModal';
 import { CredentialFormModal } from './CredentialFormModal';
 import { AiCredentialModal } from './AiCredentialModal';
+import { DataSourcesSection } from './DataSourcesSection';
 
 type ConnectionTestState = { status: 'idle' | 'testing' | 'ok' | 'error'; message?: string };
 const IDLE_CONNECTION_TEST: ConnectionTestState = { status: 'idle' };
@@ -226,7 +227,7 @@ function CatalogPageContent() {
           Catálogo de Integrações
         </h1>
         <p className="m-0 text-[13.5px]" style={{ color: c.textSecondary }}>
-          Clusters de mensageria corporativos e referências de credencial usadas pelos conectores das jornadas
+          Clusters de mensageria, credenciais e fontes de dados usadas pelas jornadas
         </p>
       </div>
 
@@ -278,6 +279,8 @@ function CatalogPageContent() {
           onTestConnection={handleTestConnection}
         />
       )}
+
+      <DataSourcesSection canWrite={canWrite} />
 
       <div
         className="flex items-center justify-between gap-3 mt-6 p-4 rounded-xl flex-wrap"

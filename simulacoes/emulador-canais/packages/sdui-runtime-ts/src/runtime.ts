@@ -21,6 +21,8 @@ export interface RuntimeHandlers {
   navigate?: (params: Record<string, unknown>, context: RuntimeActionContext) => void | Promise<void>;
   openUrl?: (params: Record<string, unknown>, context: RuntimeActionContext) => void | Promise<void>;
   track?: (params: Record<string, unknown>, context: RuntimeActionContext) => void | Promise<void>;
+  /** action.retry: o host pede a mesma etapa de novo, o que refaz a montagem da tela (ADR-002). */
+  retry?: (context: RuntimeActionContext) => void | Promise<void>;
 }
 
 export interface RuntimeOptions {
@@ -127,7 +129,12 @@ export class SduiRuntime {
   }
 
   setNodeValue(node: SduiNode, value: unknown): boolean {
-    const binding = node.bindings?.value;
+    return this.setBindingValue(node, 'value', value);
+  }
+
+  /** Grava um vínculo de escrita (value ou, na lista de seleção, action). */
+  setBindingValue(node: SduiNode, name: string, value: unknown): boolean {
+    const binding = node.bindings?.[name];
     if (!binding || binding.mode !== 'twoWay' || !binding.path.startsWith('form.')) return false;
     if (!writePath(this.context, binding.path, value)) return false;
     this.changed();
@@ -145,9 +152,25 @@ export class SduiRuntime {
       if (!INPUT_COMPONENTS.has(node.type) || !this.isVisible(node) || !this.isActiveWithAncestors(node)) return;
       const path = valueBinding(node);
       if (!path?.startsWith('form.')) return;
+      // Fonte de dados obrigatória que falhou: a etapa não avança até "Tentar novamente" dar certo.
+      const loadError = node.attributes.loadError as { message?: string; required?: boolean } | undefined;
+      if (loadError?.required) {
+        errors.push({ nodeId: node.id, path, rule: 'source', message: loadError.message ?? 'Não foi possível carregar as informações.' });
+        return;
+      }
       errors.push(...validateNodeValue(node, path, this.getNodeValue(node)));
     });
     return errors;
+  }
+
+  /** Ação escolhida na lista de seleção: grava a ação (vínculo action) e conclui a etapa (onAction). */
+  async selectListAction(node: SduiNode, actionId: string): Promise<ActionResult> {
+    const selected = this.getNodeValue(node);
+    const item = (Array.isArray(node.attributes.items) ? node.attributes.items : [])
+      .find((candidate) => typeof candidate === 'object' && candidate !== null && (candidate as { value?: unknown }).value === selected) as { enabledActions?: string[] } | undefined;
+    if (!item || !item.enabledActions?.includes(actionId)) return { handled: false, submitted: false, errors: [] };
+    this.setBindingValue(node, 'action', actionId);
+    return this.dispatch(node, 'onAction');
   }
 
   answers(): Record<string, unknown> {
@@ -158,6 +181,11 @@ export class SduiRuntime {
       if (!path?.startsWith('form.')) return;
       const value = this.getNodeValue(node);
       if (value !== undefined && value !== null) answers[path.slice('form.'.length)] = value;
+      const actionPath = node.bindings?.action?.path;
+      if (actionPath?.startsWith('form.')) {
+        const action = readPath(this.context, actionPath);
+        if (action.found && action.value != null) answers[actionPath.slice('form.'.length)] = action.value;
+      }
     });
     return answers;
   }
@@ -194,6 +222,9 @@ export class SduiRuntime {
       case 'action.dismiss':
         this.dismiss(node.id);
         return { handled: true, submitted: false, errors: [] };
+      case 'action.retry':
+        await this.handlers.retry?.(actionContext);
+        return { handled: Boolean(this.handlers.retry), submitted: false, errors: [] };
     }
   }
 

@@ -245,6 +245,23 @@ public class MockApiController {
     }
 
     /**
+     * Recebe a solicitação de avaliação de diagnóstico de conectividade. Só confirma o recebimento —
+     * o resultado do diagnóstico chega depois, de forma assíncrona, pelo Kafka.
+     */
+    @PostMapping("/v1/diagnosticos/solicitacoes")
+    public Map<String, Object> solicitarDiagnostico(@RequestBody(required = false) Map<String, Object> body) {
+        Random random = new Random();
+        OffsetDateTime agora = OffsetDateTime.now();
+        Map<String, Object> solicitacao = new LinkedHashMap<>();
+        solicitacao.put("cnpjCliente", body != null ? body.get("cnpj") : null);
+        solicitacao.put("protocolo", "DG-" + agora.getYear() + "-" + (100000 + random.nextInt(900000)));
+        solicitacao.put("status", "RECEBIDA");
+        solicitacao.put("dataSolicitacao", agora.toString());
+        solicitacao.put("previsaoRetorno", agora.plusMinutes(15).toString());
+        return solicitacao;
+    }
+
+    /**
      * Fonte de dados de teste para datasource SDUI (REQ fora do escopo v1.0.0, mas útil para
      * prototipar campos SINGLE_SELECT/MULTI_SELECT com muitas opções). Formato {label, value}
      * espelha {@link com.jouney.admin.domain.form.FormFieldOption} do admin. Gerada uma única vez

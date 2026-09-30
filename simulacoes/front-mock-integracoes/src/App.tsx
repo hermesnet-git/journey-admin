@@ -184,6 +184,18 @@ const ENDPOINTS: Endpoint[] = [
     descricao: 'Consultar manutenção massiva na região',
     nota: 'CNPJ (só dígitos) faz parte da URL. Só "45537128000127" tem manutenção em andamento (dados fabricados a cada chamada); troque o CNPJ no path pra testar outro cliente — qualquer outro devolve 404.',
   },
+  {
+    metodo: 'POST',
+    path: '/v1/diagnosticos/solicitacoes',
+    descricao: 'Solicitar avaliação de diagnóstico',
+    nota:
+      'Pede a avaliação de conectividade e saúde do sinal do cliente na jornada "Consulta BD" (produto VE), ' +
+      'quando o CNPJ não tem bilhete de defeito aberto, pendência aguardando pagamento nem manutenção massiva ' +
+      'programada. Só confirma o recebimento: devolve 200 com "protocolo", "status" RECEBIDA e ' +
+      '"previsaoRetorno" para qualquer CNPJ. O resultado do diagnóstico chega depois, pelo Kafka, na etapa ' +
+      'seguinte da jornada.',
+    bodyExemplo: { cnpj: '45537128000127', tipoAvaliacao: 'CONECTIVIDADE_E_SINAL' },
+  },
 ]
 
 type Resultado =

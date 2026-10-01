@@ -1,0 +1,970 @@
+{
+  "templateId": "manutencao-fibra-campo",
+  "name": "Manutenção de fibra em campo",
+  "track": "negocio",
+  "area": "Campo",
+  "channelTypes": [
+    "MOBILE"
+  ],
+  "description": "Passo a passo para o técnico: consulta a ordem de serviço, faz o checklist, registra o reparo e encerra ou escala.",
+  "highlights": [
+    "Jornada para o técnico, no app",
+    "Checklist de chegada com campos obrigatórios",
+    "Escalonamento por mensagem quando não resolve"
+  ],
+  "flow": {
+    "name": "Manutenção de fibra em campo",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_OrdemServico",
+        "nodeType": "USER_TASK",
+        "name": "Ordem de serviço",
+        "description": "O técnico informa a OS.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_ordemservico",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Atendimento em campo",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_ordemservico",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_os",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Qual ordem de serviço você vai atender?",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_os",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Número da ordem de serviço",
+                      "placeholder": "OS-2026-0001",
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.numeroOS",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_os",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Abrir OS",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ConsultaOS",
+        "nodeType": "SERVICE_TASK",
+        "name": "Consulta a OS",
+        "description": "Traz os dados da ordem de serviço.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/ordens-servico/{{form_numeroOS}}",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "clienteNome",
+                "jsonPath": "$.clienteNome",
+                "type": "string"
+              },
+              {
+                "name": "enderecoAtendimento",
+                "jsonPath": "$.endereco",
+                "type": "string"
+              },
+              {
+                "name": "defeitoRelatado",
+                "jsonPath": "$.defeitoRelatado",
+                "type": "string"
+              },
+              {
+                "name": "equipamentoModelo",
+                "jsonPath": "$.equipamentoModelo",
+                "type": "string"
+              },
+              {
+                "name": "potenciaEsperadaDbm",
+                "jsonPath": "$.potenciaEsperadaDbm",
+                "type": "number"
+              },
+              {
+                "name": "janelaAtendimento",
+                "jsonPath": "$.janelaAtendimento",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Chegada",
+        "nodeType": "USER_TASK",
+        "name": "Checklist de chegada",
+        "description": "Confere o local e mede o sinal.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_chegada",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Checklist de chegada",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_chegada",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "card_os",
+                    "type": "ui.card",
+                    "version": "1.0.0",
+                    "props": {
+                      "variant": "default",
+                      "paddingToken": "spacing.md",
+                      "elevationToken": "elevation.low"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": [
+                      {
+                        "id": "stk_os",
+                        "type": "ui.stack",
+                        "version": "1.0.0",
+                        "props": {
+                          "direction": "vertical",
+                          "spacingToken": "spacing.sm",
+                          "alignment": "stretch"
+                        },
+                        "bindings": null,
+                        "events": null,
+                        "visibility": null,
+                        "active": null,
+                        "children": [
+                          {
+                            "id": "txt_cliente",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "{{data.clienteNome}}",
+                              "align": "start",
+                              "variant": "heading",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_endereco",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "{{data.enderecoAtendimento}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_defeito",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Defeito relatado: {{data.defeitoRelatado}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_equip",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Equipamento {{data.equipamentoModelo}} · janela {{data.janelaAtendimento}}",
+                              "align": "start",
+                              "variant": "caption",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "chk_presente",
+                    "type": "ui.checkbox",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Cliente ou responsável presente",
+                      "required": true,
+                      "indeterminate": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.clientePresente",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "chk_ligado",
+                    "type": "ui.checkbox",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Equipamento ligado na tomada",
+                      "required": false,
+                      "indeterminate": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.equipamentoLigado",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_potencia",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Potência medida na ONT (dBm)",
+                      "placeholder": "Esperado: {{data.potenciaEsperadaDbm}}",
+                      "inputMode": "number",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.potenciaMedida",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_chegada",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Iniciar reparo",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Reparo",
+        "nodeType": "USER_TASK",
+        "name": "Registro do reparo",
+        "description": "Registra a solução aplicada.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_reparo",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Reparo",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_reparo",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "sel_solucao",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Solução aplicada",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Troca de conector",
+                          "value": "troca_conector"
+                        },
+                        {
+                          "label": "Troca da ONT",
+                          "value": "troca_ont"
+                        },
+                        {
+                          "label": "Reparo do cabo",
+                          "value": "reparo_cabo"
+                        },
+                        {
+                          "label": "Ajuste de configuração",
+                          "value": "ajuste_config"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.solucaoAplicada",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "ta_obs",
+                    "type": "ui.textArea",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Observações",
+                      "maxLines": 5,
+                      "minLines": 3,
+                      "required": false,
+                      "maxLength": 500,
+                      "placeholder": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.observacoesTecnico",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_resolvido",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "O defeito foi resolvido?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Sim",
+                          "value": "sim"
+                        },
+                        {
+                          "label": "Não",
+                          "value": "nao"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.defeitoResolvido",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_reparo",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Registrar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Resolvido",
+        "nodeType": "GATEWAY",
+        "name": "Resolvido?",
+        "description": "Encerra a OS ou escala para a equipe de rede.",
+        "positionX": 835,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EncerraOS",
+        "nodeType": "SERVICE_TASK",
+        "name": "Encerra a OS",
+        "description": "Encerra a ordem de serviço.",
+        "positionX": 971,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/ordens-servico/{{form_numeroOS}}/encerramento",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "solucao": "{{form_solucaoAplicada}}",
+              "observacoes": "{{form_observacoesTecnico}}",
+              "potenciaMedida": "{{form_potenciaMedida}}"
+            },
+            "outputMapping": [
+              {
+                "name": "protocoloEncerramento",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Encerrada",
+        "nodeType": "USER_TASK",
+        "name": "OS encerrada",
+        "description": "Confirma o encerramento.",
+        "positionX": 1121,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_encerrada",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "OS encerrada",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_encerrada",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_encerrada",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "OS encerrada. Protocolo {{data.protocoloEncerramento}}. A pesquisa de satisfação já foi enviada ao cliente.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_encerrada",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EscalaRede",
+        "nodeType": "SERVICE_TASK",
+        "name": "Escala para a equipe de rede",
+        "description": "Publica o caso para a equipe de rede externa.",
+        "positionX": 971,
+        "positionY": 431,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "numeroOS",
+                "value": "{{form_numeroOS}}",
+                "type": "string"
+              },
+              {
+                "name": "defeito",
+                "value": "{{data_defeitoRelatado}}",
+                "type": "string"
+              },
+              {
+                "name": "solucaoTentada",
+                "value": "{{form_solucaoAplicada}}",
+                "type": "string"
+              },
+              {
+                "name": "potenciaMedida",
+                "value": "{{form_potenciaMedida}}",
+                "type": "number"
+              }
+            ],
+            "payload": {
+              "numeroOS": "{{form_numeroOS}}",
+              "defeito": "{{data_defeitoRelatado}}",
+              "solucaoTentada": "{{form_solucaoAplicada}}",
+              "potenciaMedida": "{{form_potenciaMedida}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Escalada",
+        "nodeType": "USER_TASK",
+        "name": "Caso escalado",
+        "description": "Confirma o escalonamento.",
+        "positionX": 1121,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_escalada",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Caso escalado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_escalada",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_escalada",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": null,
+                      "message": "A equipe de rede externa recebeu o caso da OS {{form.numeroOS}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_escalada",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimEncerrada",
+        "nodeType": "END",
+        "name": "Fim — OS encerrada",
+        "description": "Fim — OS encerrada",
+        "positionX": 1284,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimEscalada",
+        "nodeType": "END",
+        "name": "Fim — escalada",
+        "description": "Fim — escalada",
+        "positionX": 1284,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_OrdemServico",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_OrdemServico",
+        "targetNodeId": "Node_ConsultaOS",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_ConsultaOS",
+        "targetNodeId": "Node_Chegada",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Chegada",
+        "targetNodeId": "Node_Reparo",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_Reparo",
+        "targetNodeId": "Node_Resolvido",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_Resolvido",
+        "targetNodeId": "Node_EncerraOS",
+        "condition": "{{form_defeitoResolvido}} == \"sim\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_Resolvido",
+        "targetNodeId": "Node_EscalaRede",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_EncerraOS",
+        "targetNodeId": "Node_Encerrada",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_Encerrada",
+        "targetNodeId": "Node_FimEncerrada",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_10",
+        "sourceNodeId": "Node_EscalaRede",
+        "targetNodeId": "Node_Escalada",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_11",
+        "sourceNodeId": "Node_Escalada",
+        "targetNodeId": "Node_FimEscalada",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Jornada para o técnico, pensada para o app: telas curtas, checklist e medição no próprio local.",
+        "positionX": 465,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_Chegada"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Quando o reparo não resolve, o caso vai por mensagem para a equipe de rede. Antes de publicar: escolha cluster, tópico e credencial.",
+        "positionX": 915,
+        "positionY": 550,
+        "linkedNodeIds": [
+          "Node_EscalaRede"
+        ]
+      }
+    ]
+  }
+}

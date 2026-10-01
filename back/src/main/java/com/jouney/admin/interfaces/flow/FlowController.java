@@ -82,7 +82,7 @@ public class FlowController {
     public void validate(@PathVariable UUID journeyId, @Valid @RequestBody FlowInput input) {
         var nodes = input.nodes().stream().map(FlowNodeInput::toDomain).toList();
         var connections = input.connections().stream().map(FlowConnectionInput::toDomain).toList();
-        FlowValidator.validate(nodes, connections, loadComponentRegistry());
+        FlowValidator.validate(nodes, connections, loadComponentRegistry(), List.of());
     }
 
     // Só preview (protótipo, FT-03): nunca toca em FlowRepository/UpdateFlow — monta um Flow

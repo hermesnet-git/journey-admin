@@ -1,0 +1,700 @@
+{
+  "templateId": "cancelamento-retencao",
+  "name": "Cancelamento com oferta de retenção",
+  "track": "negocio",
+  "area": "Retenção",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Antes de cancelar, calcula a chance de reter o cliente e, se valer a pena, faz uma oferta.",
+  "highlights": [
+    "Score decide se vale ofertar",
+    "Dois caminhos que se encontram no cancelamento",
+    "Desfecho registrado nos sistemas"
+  ],
+  "flow": {
+    "name": "Cancelamento com oferta de retenção",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Motivo",
+        "nodeType": "USER_TASK",
+        "name": "Motivo do cancelamento",
+        "description": "Coleta o motivo.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_motivo",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Cancelar serviço",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_motivo",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Poxa, que pena. Conta pra gente o motivo?",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_motivo",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Motivo",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "O preço está alto",
+                          "value": "preco"
+                        },
+                        {
+                          "label": "Vou mudar de endereço",
+                          "value": "mudanca"
+                        },
+                        {
+                          "label": "Qualidade do sinal",
+                          "value": "qualidade"
+                        },
+                        {
+                          "label": "Outro motivo",
+                          "value": "outro"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.motivoCancelamento",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "ta_detalhes",
+                    "type": "ui.textArea",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Quer contar mais?",
+                      "maxLines": 5,
+                      "minLines": 3,
+                      "required": false,
+                      "maxLength": 500,
+                      "placeholder": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.detalhesMotivo",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_motivo",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Continuar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ScoreRetencao",
+        "nodeType": "SERVICE_TASK",
+        "name": "Calcula chance de retenção",
+        "description": "Calcula o score de retenção.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/retencao/score?motivo={{form_motivoCancelamento}}",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "scoreRetencao",
+                "jsonPath": "$.score",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ValeOfertar",
+        "nodeType": "GATEWAY",
+        "name": "Vale ofertar?",
+        "description": "Score acima de 70 recebe oferta.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Oferta",
+        "nodeType": "USER_TASK",
+        "name": "Oferta de retenção",
+        "description": "Apresenta a oferta.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_oferta",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Temos uma oferta",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_oferta",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_oferta",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": "Uma oferta para você",
+                      "message": "Antes de ir: que tal 30% de desconto por 6 meses?",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_decisao",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "O que você prefere?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Quero o desconto",
+                          "value": "aceitar"
+                        },
+                        {
+                          "label": "Quero cancelar mesmo assim",
+                          "value": "recusar"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.decisaoOferta",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_oferta",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Confirmar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Aceitou",
+        "nodeType": "GATEWAY",
+        "name": "Aceitou?",
+        "description": "Aplica a oferta ou segue para o cancelamento.",
+        "positionX": 835,
+        "positionY": 145,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AplicaOferta",
+        "nodeType": "SERVICE_TASK",
+        "name": "Aplica a oferta",
+        "description": "Aplica o desconto.",
+        "positionX": 971,
+        "positionY": -19,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/retencao/oferta",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "motivo": "{{form_motivoCancelamento}}",
+              "score": "{{data_scoreRetencao}}"
+            },
+            "outputMapping": [
+              {
+                "name": "statusOferta",
+                "jsonPath": "$.status",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Retido",
+        "nodeType": "USER_TASK",
+        "name": "Cliente retido",
+        "description": "Confirma o desconto.",
+        "positionX": 1121,
+        "positionY": -19,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_retido",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Desconto aplicado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_retido",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_retido",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "Desconto aplicado! Que bom que você fica com a gente.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_retido",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Cancela",
+        "nodeType": "SERVICE_TASK",
+        "name": "Cancela o serviço",
+        "description": "Efetiva o cancelamento.",
+        "positionX": 971,
+        "positionY": 431,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/cancelamento",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "motivo": "{{form_motivoCancelamento}}",
+              "detalhes": "{{form_detalhesMotivo}}"
+            },
+            "outputMapping": [
+              {
+                "name": "statusCancelamento",
+                "jsonPath": "$.status",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Cancelado",
+        "nodeType": "USER_TASK",
+        "name": "Cancelamento confirmado",
+        "description": "Confirma o cancelamento.",
+        "positionX": 1121,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_cancelado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Cancelamento confirmado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_cancelado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_cancelado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": null,
+                      "message": "Seu serviço foi cancelado. Se mudar de ideia, estamos aqui.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_cancelado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimRetido",
+        "nodeType": "END",
+        "name": "Fim — retido",
+        "description": "Fim — retido",
+        "positionX": 1284,
+        "positionY": -6,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimCancelado",
+        "nodeType": "END",
+        "name": "Fim — cancelado",
+        "description": "Fim — cancelado",
+        "positionX": 1284,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Motivo",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Motivo",
+        "targetNodeId": "Node_ScoreRetencao",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_ScoreRetencao",
+        "targetNodeId": "Node_ValeOfertar",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_ValeOfertar",
+        "targetNodeId": "Node_Oferta",
+        "condition": "{{data_scoreRetencao}} > 70",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_ValeOfertar",
+        "targetNodeId": "Node_Cancela",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_Oferta",
+        "targetNodeId": "Node_Aceitou",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_Aceitou",
+        "targetNodeId": "Node_AplicaOferta",
+        "condition": "{{form_decisaoOferta}} == \"aceitar\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Aceitou",
+        "targetNodeId": "Node_Cancela",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_AplicaOferta",
+        "targetNodeId": "Node_Retido",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_10",
+        "sourceNodeId": "Node_Retido",
+        "targetNodeId": "Node_FimRetido",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_11",
+        "sourceNodeId": "Node_Cancela",
+        "targetNodeId": "Node_Cancelado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_12",
+        "sourceNodeId": "Node_Cancelado",
+        "targetNodeId": "Node_FimCancelado",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Dois caminhos chegam ao mesmo cancelamento: sem oferta (score baixo) e oferta recusada.",
+        "positionX": 915,
+        "positionY": 550,
+        "linkedNodeIds": [
+          "Node_Cancela"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,853 @@
+{
+  "templateId": "contratacao-plano",
+  "name": "Contratação de plano com análise de crédito",
+  "track": "negocio",
+  "area": "Vendas",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Do CPF ao pedido: análise de crédito, escolha do plano no catálogo, endereço e criação do pedido.",
+  "highlights": [
+    "Análise de crédito decide o caminho",
+    "Planos vindos do catálogo comercial",
+    "Pedido criado com dados de várias telas"
+  ],
+  "flow": {
+    "name": "Contratação de plano",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Identificacao",
+        "nodeType": "USER_TASK",
+        "name": "Identificação",
+        "description": "Coleta CPF e nome.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_identificacao",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Contrate seu plano",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_identificacao",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Contrate seu plano em poucos passos",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cpf",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpf",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_nome",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Nome completo",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.nomeCompleto",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_ident",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Continuar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AnaliseCredito",
+        "nodeType": "SERVICE_TASK",
+        "name": "Análise de crédito",
+        "description": "Consulta o crédito do CPF.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/credito/score",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cpf": "{{form_cpf}}",
+              "nomeCompleto": "{{form_nomeCompleto}}"
+            },
+            "outputMapping": [
+              {
+                "name": "creditoAprovado",
+                "jsonPath": "$.aprovado",
+                "type": "boolean"
+              },
+              {
+                "name": "scoreCredito",
+                "jsonPath": "$.score",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_CreditoAprovado",
+        "nodeType": "GATEWAY",
+        "name": "Crédito aprovado?",
+        "description": "Aprovado segue para os planos; senão, oferta pré-pago.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_BuscaPlanos",
+        "nodeType": "SERVICE_TASK",
+        "name": "Busca planos à venda",
+        "description": "Traz o catálogo comercial.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/planos/ofertas",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "quantidadePlanos",
+                "jsonPath": "$.quantidade",
+                "type": "number"
+              },
+              {
+                "name": "planos",
+                "jsonPath": "$.planos",
+                "type": "list",
+                "keepFields": [
+                  "codigo",
+                  "nome",
+                  "franquia",
+                  "preco",
+                  "destaque",
+                  "disponivel"
+                ]
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EscolhePlano",
+        "nodeType": "USER_TASK",
+        "name": "Escolha do plano",
+        "description": "Lista os planos disponíveis.",
+        "positionX": 821,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_escolheplano",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Escolha seu plano",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_escolheplano",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_plano",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Escolha o seu plano",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "lst_planos",
+                    "type": "ui.selectList",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Planos disponíveis",
+                      "itemValue": "codigo",
+                      "itemTitle": "{{item.nome}}",
+                      "itemDescription": "{{item.franquia}} · R$ {{item.preco}}/mês",
+                      "itemHint": "{{item.destaque}}",
+                      "emptyMessage": "Nenhum plano disponível agora.",
+                      "maxItems": 50,
+                      "actions": [
+                        {
+                          "id": "escolher",
+                          "label": "Contratar",
+                          "variant": "primary",
+                          "enabledWhen": "{{item.disponivel}} == true"
+                        }
+                      ],
+                      "required": true
+                    },
+                    "bindings": {
+                      "items": {
+                        "path": "data.planos",
+                        "mode": "oneWay"
+                      },
+                      "value": {
+                        "path": "form.planoEscolhido",
+                        "mode": "twoWay"
+                      },
+                      "action": {
+                        "path": "form.acaoPlanoEscolhido",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": {
+                      "onAction": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Endereco",
+        "nodeType": "USER_TASK",
+        "name": "Endereço",
+        "description": "Coleta o endereço de entrega.",
+        "positionX": 971,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_endereco",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Onde entregamos o chip?",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_endereco",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_endereco",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Onde entregamos o seu chip?",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cep",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CEP (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 8,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cep",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_numero",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Número",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 10,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.numeroEndereco",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_complemento",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Complemento",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": false,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.complemento",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_endereco",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Finalizar pedido",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_CriaPedido",
+        "nodeType": "SERVICE_TASK",
+        "name": "Cria o pedido",
+        "description": "Cria o pedido de contratação.",
+        "positionX": 1121,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/pedidos",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cpf": "{{form_cpf}}",
+              "plano": "{{form_planoEscolhido}}",
+              "cep": "{{form_cep}}",
+              "numero": "{{form_numeroEndereco}}"
+            },
+            "outputMapping": [
+              {
+                "name": "numeroPedido",
+                "jsonPath": "$.numeroPedido",
+                "type": "string"
+              },
+              {
+                "name": "dataAtivacaoPrevista",
+                "jsonPath": "$.dataAtivacaoPrevista",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Confirmado",
+        "nodeType": "USER_TASK",
+        "name": "Pedido confirmado",
+        "description": "Confirma o pedido.",
+        "positionX": 1271,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_confirmado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Pedido confirmado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_confirmado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_confirmado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Parabéns, {{form.nomeCompleto}}!",
+                      "message": "Pedido {{data.numeroPedido}} confirmado. Ativação prevista para {{data.dataAtivacaoPrevista}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_confirmado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_OfertaPrePago",
+        "nodeType": "USER_TASK",
+        "name": "Oferta pré-pago",
+        "description": "Oferece um plano pré-pago.",
+        "positionX": 671,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_ofertaprepago",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Uma alternativa para você",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_ofertaprepago",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_pre",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": "Uma alternativa",
+                      "message": "Que tal começar com um plano pré-pago? Você recarrega quando quiser, sem análise de crédito.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_pre",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Entendi",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimContratado",
+        "nodeType": "END",
+        "name": "Fim — contratado",
+        "description": "Fim — contratado",
+        "positionX": 1434,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimPrePago",
+        "nodeType": "END",
+        "name": "Fim — pré-pago",
+        "description": "Fim — pré-pago",
+        "positionX": 834,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Identificacao",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Identificacao",
+        "targetNodeId": "Node_AnaliseCredito",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_AnaliseCredito",
+        "targetNodeId": "Node_CreditoAprovado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_CreditoAprovado",
+        "targetNodeId": "Node_BuscaPlanos",
+        "condition": "{{data_creditoAprovado}} == true",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_CreditoAprovado",
+        "targetNodeId": "Node_OfertaPrePago",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_BuscaPlanos",
+        "targetNodeId": "Node_EscolhePlano",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_EscolhePlano",
+        "targetNodeId": "Node_Endereco",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Endereco",
+        "targetNodeId": "Node_CriaPedido",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_CriaPedido",
+        "targetNodeId": "Node_Confirmado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_10",
+        "sourceNodeId": "Node_Confirmado",
+        "targetNodeId": "Node_FimContratado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_11",
+        "sourceNodeId": "Node_OfertaPrePago",
+        "targetNodeId": "Node_FimPrePago",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "O crédito decide o caminho: aprovado segue para o catálogo de planos; reprovado recebe uma alternativa.",
+        "positionX": 465,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_CreditoAprovado"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "O pedido junta dados de três telas diferentes: identificação, plano e endereço.",
+        "positionX": 1065,
+        "positionY": -5,
+        "linkedNodeIds": [
+          "Node_CriaPedido"
+        ]
+      }
+    ]
+  }
+}

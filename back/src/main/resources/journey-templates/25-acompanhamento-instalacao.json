@@ -1,0 +1,647 @@
+{
+  "templateId": "acompanhamento-instalacao",
+  "name": "Acompanhamento da instalação",
+  "track": "negocio",
+  "area": "Campo",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Avisa que o técnico está a caminho e, se o cliente não estiver em casa, reagenda na hora.",
+  "highlights": [
+    "Jornada que começa esperando um evento",
+    "Reagendamento com horários buscados na tela",
+    "Dados do pedido como variáveis de entrada"
+  ],
+  "flow": {
+    "name": "Acompanhamento da instalação",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": [
+          {
+            "name": "numeroPedido",
+            "type": "string"
+          },
+          {
+            "name": "cep",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "nodeId": "Node_TecnicoACaminho",
+        "nodeType": "RECEIVE_TASK",
+        "name": "Aguarda saída do técnico",
+        "description": "Espera o aviso de que o técnico saiu.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "tecnicoNome",
+                "jsonPath": "$.payload.data.tecnicoNome",
+                "type": "string"
+              },
+              {
+                "name": "previsaoChegada",
+                "jsonPath": "$.payload.data.previsaoChegada",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Aviso",
+        "nodeType": "USER_TASK",
+        "name": "Técnico a caminho",
+        "description": "Avisa o cliente e confirma a presença.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_aviso",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Técnico a caminho",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_aviso",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_aviso",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "{{data.tecnicoNome}} está a caminho",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_previsao",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Previsão de chegada: {{data.previsaoChegada}}. Pedido {{data.numeroPedido}}.",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_em_casa",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Você vai estar em casa?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Sim, estarei em casa",
+                          "value": "sim"
+                        },
+                        {
+                          "label": "Não, preciso reagendar",
+                          "value": "nao"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.estaraEmCasa",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_aviso",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Responder",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PrecisaReagendar",
+        "nodeType": "GATEWAY",
+        "name": "Precisa reagendar?",
+        "description": "Se o cliente não estiver em casa, reagenda.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AteJa",
+        "nodeType": "USER_TASK",
+        "name": "Até já",
+        "description": "Confirma a visita.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_ateja",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Até já",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_ateja",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_ate_ja",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "Combinado! {{data.tecnicoNome}} chega em breve.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_ate_ja",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Ok",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_NovoHorario",
+        "nodeType": "USER_TASK",
+        "name": "Novo horário",
+        "description": "Horários livres buscados quando a tela abre.",
+        "positionX": 671,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_novohorario",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Escolha um novo horário",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_novohorario",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_novo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Sem problema. Escolha um novo horário",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_horario",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Horários disponíveis",
+                      "placeholder": "Selecione",
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.novoHorario",
+                        "mode": "twoWay"
+                      },
+                      "options": {
+                        "path": "data.horarios",
+                        "mode": "oneWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_novo",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Reagendar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": [
+            {
+              "alias": "horarios",
+              "source": "",
+              "params": {
+                "cep": "{{data_cep}}"
+              },
+              "required": true,
+              "errorMessage": "Não conseguimos carregar os horários agora."
+            }
+          ]
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Reagenda",
+        "nodeType": "SERVICE_TASK",
+        "name": "Reagenda a instalação",
+        "description": "Confirma o novo horário.",
+        "positionX": 821,
+        "positionY": 431,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/instalacoes/agendamentos",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "pedido": "{{data_numeroPedido}}",
+              "cep": "{{data_cep}}",
+              "horario": "{{form_novoHorario}}"
+            },
+            "outputMapping": [
+              {
+                "name": "protocoloReagendamento",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Reagendado",
+        "nodeType": "USER_TASK",
+        "name": "Instalação reagendada",
+        "description": "Confirma o reagendamento.",
+        "positionX": 971,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_reagendado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Instalação reagendada",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_reagendado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_reagendado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "Instalação reagendada. Protocolo {{data.protocoloReagendamento}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_reagendado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimVisita",
+        "nodeType": "END",
+        "name": "Fim — visita mantida",
+        "description": "Fim — visita mantida",
+        "positionX": 834,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimReagendado",
+        "nodeType": "END",
+        "name": "Fim — reagendado",
+        "description": "Fim — reagendado",
+        "positionX": 1134,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_TecnicoACaminho",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_TecnicoACaminho",
+        "targetNodeId": "Node_Aviso",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_Aviso",
+        "targetNodeId": "Node_PrecisaReagendar",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_PrecisaReagendar",
+        "targetNodeId": "Node_NovoHorario",
+        "condition": "{{form_estaraEmCasa}} == \"nao\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_PrecisaReagendar",
+        "targetNodeId": "Node_AteJa",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_AteJa",
+        "targetNodeId": "Node_FimVisita",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_NovoHorario",
+        "targetNodeId": "Node_Reagenda",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Reagenda",
+        "targetNodeId": "Node_Reagendado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_Reagendado",
+        "targetNodeId": "Node_FimReagendado",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "A jornada começa e fica esperando o aviso de saída do técnico. Antes de publicar: escolha cluster, tópico e credencial.",
+        "positionX": 165,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_TecnicoACaminho"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Antes de publicar: cadastre uma fonte de dados para GET http://localhost:8084/v1/instalacoes/horarios-disponiveis?cep={cep} (itens em $.horarios, campos value e label), escolha-a nesta tela e ligue o parâmetro cep a {{data_cep}}.",
+        "positionX": 615,
+        "positionY": 550,
+        "linkedNodeIds": [
+          "Node_NovoHorario"
+        ]
+      }
+    ]
+  }
+}

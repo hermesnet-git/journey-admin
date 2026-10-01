@@ -1,0 +1,453 @@
+{
+  "templateId": "disparada-por-evento",
+  "name": "Jornada disparada por evento",
+  "track": "integracoes",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Começa sozinha quando chega o evento de fatura vencida e guia o cliente até o pagamento.",
+  "highlights": [
+    "Início por mensagem, sem ninguém iniciar",
+    "Dados do evento viram variáveis da jornada",
+    "Cliente continua a partir do aviso"
+  ],
+  "flow": {
+    "name": "Jornada disparada por evento",
+    "nodes": [
+      {
+        "nodeId": "Node_FaturaVencida",
+        "nodeType": "MESSAGE_START_EVENT",
+        "name": "Fatura vencida",
+        "description": "Começa quando chega o evento de fatura vencida.",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "clienteNome",
+                "jsonPath": "$.payload.data.clienteNome",
+                "type": "string"
+              },
+              {
+                "name": "faturaReferencia",
+                "jsonPath": "$.payload.data.faturaReferencia",
+                "type": "string"
+              },
+              {
+                "name": "faturaValor",
+                "jsonPath": "$.payload.data.faturaValor",
+                "type": "number"
+              },
+              {
+                "name": "faturaVencimento",
+                "jsonPath": "$.payload.data.faturaVencimento",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Aviso",
+        "nodeType": "USER_TASK",
+        "name": "Aviso de fatura vencida",
+        "description": "Avisa o cliente e pergunta o que ele quer fazer.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_aviso",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Sua fatura venceu",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_aviso",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_vencida",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Olá, {{data.clienteNome}}",
+                      "message": "A fatura {{data.faturaReferencia}}, de R$ {{data.faturaValor}}, venceu em {{data.faturaVencimento}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_acao",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "O que você quer fazer?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Quero pagar agora",
+                          "value": "pagar"
+                        },
+                        {
+                          "label": "Já paguei",
+                          "value": "ja_paguei"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.acaoFatura",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_acao",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Continuar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_JaPagou",
+        "nodeType": "GATEWAY",
+        "name": "Já pagou?",
+        "description": "Se já pagou, agradece; senão, mostra como pagar.",
+        "positionX": 385,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Conferir",
+        "nodeType": "USER_TASK",
+        "name": "Pagamento informado",
+        "description": "Agradece e avisa que o pagamento será conferido.",
+        "positionX": 521,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_conferir",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Obrigado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_conferir",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_conferir",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "Obrigado! Vamos conferir o pagamento em até 2 dias úteis.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_conferir",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ComoPagar",
+        "nodeType": "USER_TASK",
+        "name": "Como pagar",
+        "description": "Mostra as formas de pagamento.",
+        "positionX": 521,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_comopagar",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Como pagar",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_comopagar",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_como",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Você pode pagar de três jeitos",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_formas",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Pelo app, por Pix ou no banco, com a linha digitável da fatura.",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_como",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Entendi",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimConferir",
+        "nodeType": "END",
+        "name": "Fim — já pagou",
+        "description": "Fim — já pagou",
+        "positionX": 684,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimComoPagar",
+        "nodeType": "END",
+        "name": "Fim — como pagar",
+        "description": "Fim — como pagar",
+        "positionX": 684,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_FaturaVencida",
+        "targetNodeId": "Node_Aviso",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Aviso",
+        "targetNodeId": "Node_JaPagou",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_JaPagou",
+        "targetNodeId": "Node_Conferir",
+        "condition": "{{form_acaoFatura}} == \"ja_paguei\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_JaPagou",
+        "targetNodeId": "Node_ComoPagar",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_Conferir",
+        "targetNodeId": "Node_FimConferir",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_ComoPagar",
+        "targetNodeId": "Node_FimComoPagar",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Início por mensagem: a jornada começa sozinha quando o evento chega, e os campos do evento viram variáveis. Antes de publicar: escolha cluster, tópico e credencial.",
+        "positionX": 15,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_FaturaVencida"
+        ]
+      }
+    ]
+  }
+}

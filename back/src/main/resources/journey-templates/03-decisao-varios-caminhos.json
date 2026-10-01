@@ -1,0 +1,684 @@
+{
+  "templateId": "decisao-varios-caminhos",
+  "name": "Decisão em vários caminhos",
+  "track": "primeiros-passos",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Direciona cada perfil de cliente para uma oferta diferente encadeando decisões.",
+  "highlights": [
+    "Três resultados com duas decisões encadeadas",
+    "Caminho padrão em cada decisão",
+    "Um fim para cada resultado"
+  ],
+  "flow": {
+    "name": "Decisão em vários caminhos",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Perfil",
+        "nodeType": "USER_TASK",
+        "name": "Perfil do cliente",
+        "description": "Pergunta o perfil e o tamanho da operação.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_perfil",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Vamos encontrar a melhor oferta",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_perfil",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Vamos encontrar a melhor oferta para você",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_perfil",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Para quem é a contratação?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Para minha casa",
+                          "value": "residencial"
+                        },
+                        {
+                          "label": "Pequena empresa (até 49 linhas)",
+                          "value": "pequena"
+                        },
+                        {
+                          "label": "Grande empresa (50 linhas ou mais)",
+                          "value": "grande"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.perfil",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_linhas",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Quantas linhas você tem hoje?",
+                      "placeholder": null,
+                      "inputMode": "number",
+                      "required": false,
+                      "readOnly": false,
+                      "maxLength": 5,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.qtdLinhas",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_ver",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Ver ofertas",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Grande",
+        "nodeType": "GATEWAY",
+        "name": "Grande empresa?",
+        "description": "Grandes empresas vão para o atendimento corporativo.",
+        "positionX": 385,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Pequena",
+        "nodeType": "GATEWAY",
+        "name": "Pequena empresa?",
+        "description": "Pequenas empresas vão para os planos PME; o resto, residencial.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Corporativo",
+        "nodeType": "USER_TASK",
+        "name": "Atendimento corporativo",
+        "description": "Encaminha para um consultor.",
+        "positionX": 521,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_corporativo",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Atendimento corporativo",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_corporativo",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_corp",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Uma proposta feita sob medida",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_corp_linhas",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Com {{form.qtdLinhas}} linhas, um consultor dedicado vai montar uma proposta para a sua empresa.",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "al_corp",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": null,
+                      "message": "Um consultor entra em contato em até 1 dia útil.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_corp",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Pme",
+        "nodeType": "USER_TASK",
+        "name": "Planos para pequenas empresas",
+        "description": "Mostra os planos PME.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_pme",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Planos Vivo Empresas",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_pme",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_pme",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Planos para pequenas empresas",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "card_pme",
+                    "type": "ui.card",
+                    "version": "1.0.0",
+                    "props": {
+                      "variant": "default",
+                      "paddingToken": "spacing.md",
+                      "elevationToken": "elevation.low"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": [
+                      {
+                        "id": "stk_pme",
+                        "type": "ui.stack",
+                        "version": "1.0.0",
+                        "props": {
+                          "direction": "vertical",
+                          "spacingToken": "spacing.sm",
+                          "alignment": "stretch"
+                        },
+                        "bindings": null,
+                        "events": null,
+                        "visibility": null,
+                        "active": null,
+                        "children": [
+                          {
+                            "id": "txt_pme_1",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Empresas 20GB por linha",
+                              "align": "start",
+                              "variant": "heading",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_pme_2",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Gestão das linhas pelo portal e atendimento prioritário.",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "btn_pme",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Residencial",
+        "nodeType": "USER_TASK",
+        "name": "Planos residenciais",
+        "description": "Mostra os planos para casa.",
+        "positionX": 671,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_residencial",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Planos para sua casa",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_residencial",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_res",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Planos para sua casa",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_res_1",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Internet fibra, celular e TV num só lugar.",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_res",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimCorporativo",
+        "nodeType": "END",
+        "name": "Fim — corporativo",
+        "description": "Fim — corporativo",
+        "positionX": 684,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimPme",
+        "nodeType": "END",
+        "name": "Fim — PME",
+        "description": "Fim — PME",
+        "positionX": 834,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimResidencial",
+        "nodeType": "END",
+        "name": "Fim — residencial",
+        "description": "Fim — residencial",
+        "positionX": 834,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Perfil",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Perfil",
+        "targetNodeId": "Node_Grande",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_Grande",
+        "targetNodeId": "Node_Corporativo",
+        "condition": "{{form_perfil}} == \"grande\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Grande",
+        "targetNodeId": "Node_Pequena",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_Pequena",
+        "targetNodeId": "Node_Pme",
+        "condition": "{{form_perfil}} == \"pequena\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_Pequena",
+        "targetNodeId": "Node_Residencial",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_Corporativo",
+        "targetNodeId": "Node_FimCorporativo",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Pme",
+        "targetNodeId": "Node_FimPme",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_Residencial",
+        "targetNodeId": "Node_FimResidencial",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Uma Decisão sempre tem dois caminhos. Para três resultados, encadeie duas — cada uma com seu caminho padrão.",
+        "positionX": 315,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_Grande",
+          "Node_Pequena"
+        ]
+      }
+    ]
+  }
+}

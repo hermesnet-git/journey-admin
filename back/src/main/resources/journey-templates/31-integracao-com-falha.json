@@ -1,0 +1,768 @@
+{
+  "templateId": "integracao-com-falha",
+  "name": "Integração com tratamento de falha",
+  "track": "arquitetura",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE"
+  ],
+  "description": "Trata cada resposta da API: sucesso, dados recusados e sistema fora do ar, com nova tentativa.",
+  "highlights": [
+    "Status HTTP lido como variável",
+    "Nova tentativa voltando à mesma integração",
+    "Correção de dados voltando à tela"
+  ],
+  "flow": {
+    "name": "Integração com tratamento de falha",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Dados",
+        "nodeType": "USER_TASK",
+        "name": "Dados do cadastro",
+        "description": "Coleta nome, CPF e e-mail.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_dados",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Cadastro",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_dados",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Crie seu cadastro",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_nome",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Nome completo",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.nomeCompleto",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cpf",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpf",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_email",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "E-mail",
+                      "placeholder": null,
+                      "inputMode": "email",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.email",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_cadastrar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Cadastrar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Cadastra",
+        "nodeType": "SERVICE_TASK",
+        "name": "Cadastra o cliente",
+        "description": "Envia o cadastro; pode devolver 201, 422 ou 503.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/clientes/cadastro",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "nome": "{{form_nomeCompleto}}",
+              "cpf": "{{form_cpf}}",
+              "email": "{{form_email}}"
+            },
+            "outputMapping": [
+              {
+                "name": "httpStatusCadastro",
+                "jsonPath": "$httpStatus",
+                "type": "number"
+              },
+              {
+                "name": "idCliente",
+                "jsonPath": "$.idCliente",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_DeuCerto",
+        "nodeType": "GATEWAY",
+        "name": "Cadastrou?",
+        "description": "201 é sucesso.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Sucesso",
+        "nodeType": "USER_TASK",
+        "name": "Cadastro concluído",
+        "description": "Confirma o cadastro.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_sucesso",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Cadastro concluído",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_sucesso",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_sucesso",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo certo, {{form.nomeCompleto}}",
+                      "message": "Cadastro concluído. Seu código é {{data.idCliente}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_sucesso",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ForaDoAr",
+        "nodeType": "GATEWAY",
+        "name": "Sistema fora do ar?",
+        "description": "503 é instabilidade; o resto, dado recusado.",
+        "positionX": 685,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Instavel",
+        "nodeType": "USER_TASK",
+        "name": "Sistema instável",
+        "description": "Oferece nova tentativa.",
+        "positionX": 821,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_instavel",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Não conseguimos concluir agora",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_instavel",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_instavel",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Não conseguimos concluir agora",
+                      "message": "O sistema de cadastro está instável no momento. Você pode tentar de novo agora ou mais tarde.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_tentar",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "O que você prefere?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Tentar de novo",
+                          "value": "sim"
+                        },
+                        {
+                          "label": "Tentar mais tarde",
+                          "value": "nao"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.tentarNovamente",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_instavel",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Continuar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TentarDeNovo",
+        "nodeType": "GATEWAY",
+        "name": "Tentar de novo?",
+        "description": "Volta para a mesma integração.",
+        "positionX": 985,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_MaisTarde",
+        "nodeType": "USER_TASK",
+        "name": "Tentar mais tarde",
+        "description": "Encerra sem cadastro.",
+        "positionX": 1121,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_maistarde",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Até logo",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_maistarde",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_depois",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Tudo bem. Seus dados não foram salvos; é só voltar quando quiser.",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_depois",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Ok",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Recusado",
+        "nodeType": "USER_TASK",
+        "name": "Dados recusados",
+        "description": "Mostra o motivo e volta para corrigir.",
+        "positionX": 821,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_recusado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Confira seus dados",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_recusado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_recusado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Confira seus dados",
+                      "message": "Não conseguimos validar seus dados. Confira se o CPF tem 11 dígitos e tente de novo.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_recusado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Corrigir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimSucesso",
+        "nodeType": "END",
+        "name": "Fim — cadastrado",
+        "description": "Fim — cadastrado",
+        "positionX": 834,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimMaisTarde",
+        "nodeType": "END",
+        "name": "Fim — mais tarde",
+        "description": "Fim — mais tarde",
+        "positionX": 1284,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Dados",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Dados",
+        "targetNodeId": "Node_Cadastra",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_Cadastra",
+        "targetNodeId": "Node_DeuCerto",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_DeuCerto",
+        "targetNodeId": "Node_Sucesso",
+        "condition": "{{data_httpStatusCadastro}} == 201",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_DeuCerto",
+        "targetNodeId": "Node_ForaDoAr",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_ForaDoAr",
+        "targetNodeId": "Node_Instavel",
+        "condition": "{{data_httpStatusCadastro}} == 503",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_ForaDoAr",
+        "targetNodeId": "Node_Recusado",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Instavel",
+        "targetNodeId": "Node_TentarDeNovo",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_TentarDeNovo",
+        "targetNodeId": "Node_Cadastra",
+        "condition": "{{form_tentarNovamente}} == \"sim\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_10",
+        "sourceNodeId": "Node_TentarDeNovo",
+        "targetNodeId": "Node_MaisTarde",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_11",
+        "sourceNodeId": "Node_Recusado",
+        "targetNodeId": "Node_Dados",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_12",
+        "sourceNodeId": "Node_Sucesso",
+        "targetNodeId": "Node_FimSucesso",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_13",
+        "sourceNodeId": "Node_MaisTarde",
+        "targetNodeId": "Node_FimMaisTarde",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "O status HTTP vira variável ($httpStatus): a jornada decide o que fazer com 201, 503 ou qualquer outra resposta, sem travar. Fora da faixa 2xx só o status chega; os campos do corpo ficam vazios, por isso as telas de erro usam texto próprio.",
+        "positionX": 315,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_Cadastra"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Nova tentativa volta para a mesma integração. Para testar: um CPF começando com 000 falha na primeira chamada e passa na segunda.",
+        "positionX": 915,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_TentarDeNovo"
+        ]
+      }
+    ]
+  }
+}

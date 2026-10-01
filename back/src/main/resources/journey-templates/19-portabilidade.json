@@ -1,0 +1,582 @@
+{
+  "templateId": "portabilidade",
+  "name": "Portabilidade numérica",
+  "track": "negocio",
+  "area": "Vendas",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Consulta o prazo da portabilidade e, se for curto, solicita e espera a confirmação da operadora de origem.",
+  "highlights": [
+    "Decisão por prazo numérico",
+    "Confirmação da outra operadora por mensagem",
+    "Protocolo e janela exibidos ao cliente"
+  ],
+  "flow": {
+    "name": "Portabilidade numérica",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Dados",
+        "nodeType": "USER_TASK",
+        "name": "Dados da portabilidade",
+        "description": "Coleta o número, a operadora atual e o CPF.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_dados",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Traga seu número",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_dados",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Traga seu número para a Vivo",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_numero",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Número a trazer, com DDD",
+                      "placeholder": null,
+                      "inputMode": "tel",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.numeroPortar",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_operadora",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Operadora atual",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.operadoraAtual",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cpf",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF do titular (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpf",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_consultar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Consultar prazo",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ConsultaPrazo",
+        "nodeType": "SERVICE_TASK",
+        "name": "Consulta prazo",
+        "description": "Pergunta quantos dias a portabilidade leva.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/portabilidade/consulta?numero={{form_numeroPortar}}",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "prazoEstimadoDias",
+                "jsonPath": "$.prazoEstimadoDias",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PrazoCurto",
+        "nodeType": "GATEWAY",
+        "name": "Prazo curto?",
+        "description": "Menos de 3 dias: solicita já; senão, informa o prazo.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Solicita",
+        "nodeType": "SERVICE_TASK",
+        "name": "Solicita portabilidade",
+        "description": "Registra o pedido de portabilidade.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/portabilidade/solicitacoes",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "numero": "{{form_numeroPortar}}",
+              "operadoraAtual": "{{form_operadoraAtual}}",
+              "cpf": "{{form_cpf}}"
+            },
+            "outputMapping": [
+              {
+                "name": "protocoloPortabilidade",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              },
+              {
+                "name": "janelaPortabilidade",
+                "jsonPath": "$.janelaPortabilidade",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AguardaOperadora",
+        "nodeType": "RECEIVE_TASK",
+        "name": "Aguarda a operadora de origem",
+        "description": "Espera a confirmação da outra operadora.",
+        "positionX": 821,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "statusPortabilidade",
+                "jsonPath": "$.payload.data.statusPortabilidade",
+                "type": "string"
+              },
+              {
+                "name": "dataEfetivacao",
+                "jsonPath": "$.payload.data.dataEfetivacao",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Concluida",
+        "nodeType": "USER_TASK",
+        "name": "Portabilidade concluída",
+        "description": "Mostra o resultado.",
+        "positionX": 971,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_concluida",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Seu número é Vivo",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_concluida",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_concluida",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Bem-vindo",
+                      "message": "O número {{form.numeroPortar}} agora é Vivo! Efetivado em {{data.dataEfetivacao}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_protocolo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Protocolo {{data.protocoloPortabilidade}} · janela {{data.janelaPortabilidade}}",
+                      "align": "start",
+                      "variant": "caption",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_concluida",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PrazoEstendido",
+        "nodeType": "USER_TASK",
+        "name": "Prazo estendido",
+        "description": "Informa o prazo maior.",
+        "positionX": 671,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_prazoestendido",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Prazo da portabilidade",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_prazoestendido",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_prazo",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": null,
+                      "message": "A portabilidade do número {{form.numeroPortar}} leva cerca de {{data.prazoEstimadoDias}} dias. Vamos te avisar quando puder seguir.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_prazo",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Entendi",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimConcluida",
+        "nodeType": "END",
+        "name": "Fim — concluída",
+        "description": "Fim — concluída",
+        "positionX": 1134,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimPrazo",
+        "nodeType": "END",
+        "name": "Fim — prazo estendido",
+        "description": "Fim — prazo estendido",
+        "positionX": 834,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Dados",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Dados",
+        "targetNodeId": "Node_ConsultaPrazo",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_ConsultaPrazo",
+        "targetNodeId": "Node_PrazoCurto",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_PrazoCurto",
+        "targetNodeId": "Node_Solicita",
+        "condition": "{{data_prazoEstimadoDias}} < 3",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_PrazoCurto",
+        "targetNodeId": "Node_PrazoEstendido",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_Solicita",
+        "targetNodeId": "Node_AguardaOperadora",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_AguardaOperadora",
+        "targetNodeId": "Node_Concluida",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Concluida",
+        "targetNodeId": "Node_FimConcluida",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_PrazoEstendido",
+        "targetNodeId": "Node_FimPrazo",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "A confirmação da operadora de origem chega por mensagem. Antes de publicar: escolha cluster, tópico e credencial.",
+        "positionX": 765,
+        "positionY": -5,
+        "linkedNodeIds": [
+          "Node_AguardaOperadora"
+        ]
+      }
+    ]
+  }
+}

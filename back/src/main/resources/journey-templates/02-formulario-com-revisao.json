@@ -1,0 +1,662 @@
+{
+  "templateId": "formulario-com-revisao",
+  "name": "Formulário com revisão",
+  "track": "primeiros-passos",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE"
+  ],
+  "description": "Coleta dados, mostra um resumo para conferência e deixa o usuário voltar para corrigir antes de confirmar.",
+  "highlights": [
+    "Decisão que devolve o usuário para a tela anterior",
+    "Campos já preenchidos ao voltar para corrigir",
+    "Data, lista de opções e campos de texto"
+  ],
+  "flow": {
+    "name": "Formulário com revisão",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Dados",
+        "nodeType": "USER_TASK",
+        "name": "Seus dados",
+        "description": "Coleta os dados cadastrais.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_dados",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Seus dados",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_dados",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Conte um pouco sobre você",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_nome",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Nome completo",
+                      "placeholder": "Como está no documento",
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.nome",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_email",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "E-mail",
+                      "placeholder": "voce@exemplo.com",
+                      "inputMode": "email",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.email",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_celular",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Celular com DDD",
+                      "placeholder": "(11) 90000-0000",
+                      "inputMode": "tel",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.celular",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "dt_nascimento",
+                    "type": "ui.datePicker",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Data de nascimento",
+                      "mode": "date",
+                      "format": "locale",
+                      "minDate": null,
+                      "maxDate": null,
+                      "required": true,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.nascimento",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_uf",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Estado",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "São Paulo",
+                          "value": "SP"
+                        },
+                        {
+                          "label": "Rio de Janeiro",
+                          "value": "RJ"
+                        },
+                        {
+                          "label": "Minas Gerais",
+                          "value": "MG"
+                        },
+                        {
+                          "label": "Paraná",
+                          "value": "PR"
+                        },
+                        {
+                          "label": "Outro estado",
+                          "value": "OUTRO"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.uf",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_revisar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Revisar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Revisao",
+        "nodeType": "USER_TASK",
+        "name": "Revisão",
+        "description": "Mostra o resumo e pergunta se está tudo certo.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_revisao",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Confira seus dados",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_revisao",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_confira",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Confira se está tudo certo",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "card_resumo",
+                    "type": "ui.card",
+                    "version": "1.0.0",
+                    "props": {
+                      "variant": "default",
+                      "paddingToken": "spacing.md",
+                      "elevationToken": "elevation.low"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": [
+                      {
+                        "id": "stk_resumo",
+                        "type": "ui.stack",
+                        "version": "1.0.0",
+                        "props": {
+                          "direction": "vertical",
+                          "spacingToken": "spacing.sm",
+                          "alignment": "stretch"
+                        },
+                        "bindings": null,
+                        "events": null,
+                        "visibility": null,
+                        "active": null,
+                        "children": [
+                          {
+                            "id": "txt_nome",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Nome: {{form.nome}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_email",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "E-mail: {{form.email}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_celular",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Celular: {{form.celular}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_nascimento",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Nascimento: {{form.nascimento}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_uf",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Estado: {{form.uf}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "sel_confirmacao",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Está tudo certo?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Sim, pode confirmar",
+                          "value": "confirmar"
+                        },
+                        {
+                          "label": "Quero corrigir",
+                          "value": "corrigir"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.confirmacao",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_seguir",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Continuar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_QuerCorrigir",
+        "nodeType": "GATEWAY",
+        "name": "Quer corrigir?",
+        "description": "Volta para a primeira tela se o usuário pediu para corrigir.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Concluido",
+        "nodeType": "USER_TASK",
+        "name": "Cadastro confirmado",
+        "description": "Confirma o cadastro.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_concluido",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Cadastro confirmado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_concluido",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_ok",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo certo",
+                      "message": "Cadastro confirmado, {{form.nome}}. Obrigado!",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_concluir",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Fim",
+        "nodeType": "END",
+        "name": "Fim",
+        "description": "Fim",
+        "positionX": 834,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Dados",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Dados",
+        "targetNodeId": "Node_Revisao",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_Revisao",
+        "targetNodeId": "Node_QuerCorrigir",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_QuerCorrigir",
+        "targetNodeId": "Node_Dados",
+        "condition": "{{form_confirmacao}} == \"corrigir\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_QuerCorrigir",
+        "targetNodeId": "Node_Concluido",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_Concluido",
+        "targetNodeId": "Node_Fim",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "O caminho \"corrigir\" volta para a primeira tela, que reabre com o que o usuário já tinha digitado.",
+        "positionX": 165,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_Dados"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Toda Decisão tem dois caminhos: um com condição e um padrão, usado quando a condição não vale.",
+        "positionX": 465,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_QuerCorrigir"
+        ]
+      }
+    ]
+  }
+}

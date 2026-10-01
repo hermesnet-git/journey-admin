@@ -1,0 +1,348 @@
+{
+  "templateId": "avisa-e-segue",
+  "name": "Avisa e segue",
+  "track": "integracoes",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE"
+  ],
+  "description": "Publica um evento de alteração de cadastro e segue a jornada sem esperar resposta.",
+  "highlights": [
+    "Publicação de mensagem sem esperar retorno",
+    "Mensagem montada campo a campo",
+    "Valores fixos e respostas da tela no mesmo evento"
+  ],
+  "flow": {
+    "name": "Avisa e segue",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_NovoEmail",
+        "nodeType": "USER_TASK",
+        "name": "Atualizar e-mail",
+        "description": "Coleta o novo e-mail e a preferência de comunicação.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_novoemail",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Atualize seu e-mail",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_novoemail",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Qual é o seu novo e-mail?",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_email",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Novo e-mail",
+                      "placeholder": "voce@exemplo.com",
+                      "inputMode": "email",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.novoEmail",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "chk_novidades",
+                    "type": "ui.checkbox",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Quero receber novidades e ofertas por e-mail",
+                      "required": false,
+                      "indeterminate": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.aceitaNovidades",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_salvar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Salvar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PublicaAlteracao",
+        "nodeType": "SERVICE_TASK",
+        "name": "Publica alteração de cadastro",
+        "description": "Avisa os outros sistemas sobre o novo e-mail.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "evento",
+                "value": "EMAIL_ALTERADO",
+                "type": "string"
+              },
+              {
+                "name": "email",
+                "value": "{{form_novoEmail}}",
+                "type": "string"
+              },
+              {
+                "name": "aceitaNovidades",
+                "value": "{{form_aceitaNovidades}}",
+                "type": "boolean"
+              }
+            ],
+            "payload": {
+              "evento": "EMAIL_ALTERADO",
+              "email": "{{form_novoEmail}}",
+              "aceitaNovidades": "{{form_aceitaNovidades}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Pronto",
+        "nodeType": "USER_TASK",
+        "name": "E-mail atualizado",
+        "description": "Confirma a alteração.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_pronto",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "E-mail atualizado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_pronto",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_pronto",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Pronto",
+                      "message": "Seu e-mail agora é {{form.novoEmail}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_concluir",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Fim",
+        "nodeType": "END",
+        "name": "Fim",
+        "description": "Fim",
+        "positionX": 684,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_NovoEmail",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_NovoEmail",
+        "targetNodeId": "Node_PublicaAlteracao",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_PublicaAlteracao",
+        "targetNodeId": "Node_Pronto",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Pronto",
+        "targetNodeId": "Node_Fim",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Publica e segue: a jornada não espera resposta. Antes de publicar: escolha cluster, tópico e credencial de mensageria.",
+        "positionX": 315,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_PublicaAlteracao"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "O conteúdo da mensagem é montado campo a campo, misturando valores fixos e respostas da tela.",
+        "positionX": 315,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_PublicaAlteracao"
+        ]
+      }
+    ]
+  }
+}

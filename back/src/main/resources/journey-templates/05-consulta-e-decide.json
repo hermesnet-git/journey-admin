@@ -1,0 +1,506 @@
+{
+  "templateId": "consulta-e-decide",
+  "name": "Consulta e decide",
+  "track": "integracoes",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Chama uma API com os dados da tela e segue um caminho diferente conforme a resposta.",
+  "highlights": [
+    "Chamada REST com dados da tela no corpo",
+    "Resposta da API mapeada para variáveis",
+    "Decisão pelo resultado da integração"
+  ],
+  "flow": {
+    "name": "Consulta e decide",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Identificacao",
+        "nodeType": "USER_TASK",
+        "name": "Identificação",
+        "description": "Coleta o CPF e o serviço desejado.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_identificacao",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Consulta de disponibilidade",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_identificacao",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Vamos ver se você já pode contratar",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cpf",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpf",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_servico",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Serviço",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Internet fibra",
+                          "value": "internet"
+                        },
+                        {
+                          "label": "Plano móvel",
+                          "value": "movel"
+                        },
+                        {
+                          "label": "TV por assinatura",
+                          "value": "tv"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.servico",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_consultar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Consultar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ConsultaElegibilidade",
+        "nodeType": "SERVICE_TASK",
+        "name": "Consulta elegibilidade",
+        "description": "Pergunta ao sistema de crédito se o cliente pode contratar.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/elegibilidade",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cpf": "{{form_cpf}}",
+              "servico": "{{form_servico}}"
+            },
+            "outputMapping": [
+              {
+                "name": "elegivel",
+                "jsonPath": "$.elegivel",
+                "type": "boolean"
+              },
+              {
+                "name": "protocoloConsulta",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Elegivel",
+        "nodeType": "GATEWAY",
+        "name": "Elegível?",
+        "description": "Segue conforme a resposta da consulta.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PodeContratar",
+        "nodeType": "USER_TASK",
+        "name": "Pode contratar",
+        "description": "Informa que o cliente pode contratar.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_podecontratar",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Você pode contratar",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_podecontratar",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_pode",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo certo",
+                      "message": "Boa notícia: você já pode contratar este serviço.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_protocolo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Protocolo da consulta: {{data.protocoloConsulta}}",
+                      "align": "start",
+                      "variant": "caption",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_pode",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_NaoPode",
+        "nodeType": "USER_TASK",
+        "name": "Não elegível",
+        "description": "Informa que não é possível contratar agora.",
+        "positionX": 671,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_naopode",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Não foi possível",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_naopode",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_nao",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Não foi possível",
+                      "message": "No momento não é possível contratar este serviço com este CPF.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_nao",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimPode",
+        "nodeType": "END",
+        "name": "Fim — pode contratar",
+        "description": "Fim — pode contratar",
+        "positionX": 834,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimNaoPode",
+        "nodeType": "END",
+        "name": "Fim — não elegível",
+        "description": "Fim — não elegível",
+        "positionX": 834,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Identificacao",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Identificacao",
+        "targetNodeId": "Node_ConsultaElegibilidade",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_ConsultaElegibilidade",
+        "targetNodeId": "Node_Elegivel",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Elegivel",
+        "targetNodeId": "Node_PodeContratar",
+        "condition": "{{data_elegivel}} == true",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_Elegivel",
+        "targetNodeId": "Node_NaoPode",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_PodeContratar",
+        "targetNodeId": "Node_FimPode",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_NaoPode",
+        "targetNodeId": "Node_FimNaoPode",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "No corpo da chamada, {{form_cpf}} e {{form_servico}}: o nome da variável no motor leva o prefixo de onde ela veio (form_ para telas, data_ para integrações).",
+        "positionX": 315,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_ConsultaElegibilidade"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "A Decisão lê {{data_elegivel}}, mapeada do campo $.elegivel da resposta como booleano.",
+        "positionX": 465,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_Elegivel"
+        ]
+      }
+    ]
+  }
+}

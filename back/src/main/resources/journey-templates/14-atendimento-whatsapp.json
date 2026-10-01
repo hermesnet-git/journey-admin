@@ -1,0 +1,924 @@
+{
+  "templateId": "atendimento-whatsapp",
+  "name": "Atendimento pelo WhatsApp",
+  "track": "canais",
+  "area": null,
+  "channelTypes": [
+    "WHATSAPP"
+  ],
+  "description": "Conversa guiada no WhatsApp: menu de opções, lista de faturas e envio da 2ª via.",
+  "highlights": [
+    "Menu de opções numa conversa",
+    "Lista do WhatsApp com botão de ação",
+    "Frases curtas pensadas para mensagem"
+  ],
+  "flow": {
+    "name": "Atendimento pelo WhatsApp",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Menu",
+        "nodeType": "USER_TASK",
+        "name": "Menu de atendimento",
+        "description": "Cumprimenta e pergunta o assunto.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_menu",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Atendimento Vivo",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_menu",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_oi",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Oi! Sou o assistente virtual da Vivo.",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_assunto",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Como posso ajudar?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "2ª via de fatura",
+                          "value": "segunda_via"
+                        },
+                        {
+                          "label": "Falar com um atendente",
+                          "value": "atendente"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.assunto",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_menu",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Enviar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_SegundaViaOuAtendente",
+        "nodeType": "GATEWAY",
+        "name": "2ª via?",
+        "description": "Segue para a 2ª via ou para o atendente.",
+        "positionX": 385,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Cpf",
+        "nodeType": "USER_TASK",
+        "name": "CPF do titular",
+        "description": "Pede o CPF do titular.",
+        "positionX": 521,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_cpf",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "CPF do titular",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_cpf",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_cpf",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Pra encontrar suas faturas, me diz o CPF do titular.",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cpf",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpf",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_cpf",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Enviar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_BuscaFaturas",
+        "nodeType": "SERVICE_TASK",
+        "name": "Busca faturas em aberto",
+        "description": "Traz as faturas em aberto do CPF.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/clientes/{{form_cpf}}/faturas",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "quantidadeFaturas",
+                "jsonPath": "$.quantidade",
+                "type": "number"
+              },
+              {
+                "name": "faturas",
+                "jsonPath": "$.faturas",
+                "type": "list",
+                "keepFields": [
+                  "id",
+                  "referencia",
+                  "valor",
+                  "vencimento",
+                  "status",
+                  "podeSegundaVia",
+                  "podeNegociar",
+                  "motivoBloqueio"
+                ]
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TemFaturas",
+        "nodeType": "GATEWAY",
+        "name": "Tem faturas?",
+        "description": "Sem faturas, avisa e encerra.",
+        "positionX": 835,
+        "positionY": 145,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EscolheFatura",
+        "nodeType": "USER_TASK",
+        "name": "Escolha a fatura",
+        "description": "Lista as faturas com o botão de 2ª via.",
+        "positionX": 971,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_escolhefatura",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Suas faturas",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_escolhefatura",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_escolha",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Encontrei estas faturas. Qual você quer?",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "lst_faturas",
+                    "type": "ui.selectList",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Suas faturas",
+                      "itemValue": "id",
+                      "itemTitle": "Fatura {{item.referencia}}",
+                      "itemDescription": "R$ {{item.valor}} · vence {{item.vencimento}}",
+                      "itemHint": "{{item.status}}",
+                      "emptyMessage": "Você não tem faturas em aberto.",
+                      "maxItems": 50,
+                      "actions": [
+                        {
+                          "id": "segunda_via",
+                          "label": "Enviar 2ª via",
+                          "variant": "primary",
+                          "enabledWhen": "{{item.podeSegundaVia}} == true"
+                        }
+                      ],
+                      "required": true
+                    },
+                    "bindings": {
+                      "items": {
+                        "path": "data.faturas",
+                        "mode": "oneWay"
+                      },
+                      "value": {
+                        "path": "form.faturaEscolhida",
+                        "mode": "twoWay"
+                      },
+                      "action": {
+                        "path": "form.acaoFatura",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": {
+                      "onAction": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_GeraSegundaVia",
+        "nodeType": "SERVICE_TASK",
+        "name": "Gera 2ª via",
+        "description": "Gera linha digitável e Pix da fatura escolhida.",
+        "positionX": 1121,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/faturas/{{form_faturaEscolhida}}/segunda-via",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {},
+            "outputMapping": [
+              {
+                "name": "linhaDigitavel",
+                "jsonPath": "$.linhaDigitavel",
+                "type": "string"
+              },
+              {
+                "name": "pixCopiaECola",
+                "jsonPath": "$.pixCopiaECola",
+                "type": "string"
+              },
+              {
+                "name": "validadeSegundaVia",
+                "jsonPath": "$.validade",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_SegundaVia",
+        "nodeType": "USER_TASK",
+        "name": "Sua 2ª via",
+        "description": "Mostra os dados para pagamento.",
+        "positionX": 1271,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_segundavia",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Sua 2ª via",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_segundavia",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_sv",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Prontinho! Aqui está sua 2ª via",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_sv_linha",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Linha digitável: {{data.linhaDigitavel}}",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_sv_pix",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Pix copia e cola: {{data.pixCopiaECola}}",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_sv_validade",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Válida até {{data.validadeSegundaVia}}",
+                      "align": "start",
+                      "variant": "caption",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_sv",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Encerrar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Atendente",
+        "nodeType": "USER_TASK",
+        "name": "Transferir para atendente",
+        "description": "Avisa que vai transferir.",
+        "positionX": 521,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_atendente",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Atendimento humano",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_atendente",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_atendente",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": null,
+                      "message": "Vou te transferir para um atendente. É rapidinho.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_atendente",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Ok",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EmDia",
+        "nodeType": "USER_TASK",
+        "name": "Tudo em dia",
+        "description": "Informa que não há faturas em aberto.",
+        "positionX": 971,
+        "positionY": -19,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_emdia",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Tudo em dia",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_emdia",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_em_dia",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo em dia",
+                      "message": "Você não tem faturas em aberto.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_em_dia",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Encerrar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimEmDia",
+        "nodeType": "END",
+        "name": "Fim — em dia",
+        "description": "Fim — em dia",
+        "positionX": 1134,
+        "positionY": -6,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimSegundaVia",
+        "nodeType": "END",
+        "name": "Fim — 2ª via enviada",
+        "description": "Fim — 2ª via enviada",
+        "positionX": 1434,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimAtendente",
+        "nodeType": "END",
+        "name": "Fim — atendente",
+        "description": "Fim — atendente",
+        "positionX": 684,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Menu",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Menu",
+        "targetNodeId": "Node_SegundaViaOuAtendente",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_SegundaViaOuAtendente",
+        "targetNodeId": "Node_Cpf",
+        "condition": "{{form_assunto}} == \"segunda_via\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_SegundaViaOuAtendente",
+        "targetNodeId": "Node_Atendente",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_Cpf",
+        "targetNodeId": "Node_BuscaFaturas",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_BuscaFaturas",
+        "targetNodeId": "Node_TemFaturas",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_TemFaturas",
+        "targetNodeId": "Node_EmDia",
+        "condition": "{{data_quantidadeFaturas}} == 0",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_TemFaturas",
+        "targetNodeId": "Node_EscolheFatura",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_EmDia",
+        "targetNodeId": "Node_FimEmDia",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_10",
+        "sourceNodeId": "Node_EscolheFatura",
+        "targetNodeId": "Node_GeraSegundaVia",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_11",
+        "sourceNodeId": "Node_GeraSegundaVia",
+        "targetNodeId": "Node_SegundaVia",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_12",
+        "sourceNodeId": "Node_SegundaVia",
+        "targetNodeId": "Node_FimSegundaVia",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_13",
+        "sourceNodeId": "Node_Atendente",
+        "targetNodeId": "Node_FimAtendente",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "No WhatsApp cada tela vira mensagem: a lista de opções vira um menu e o botão vira resposta rápida.",
+        "positionX": 165,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_Menu"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Na lista do WhatsApp, cada item tem até 3 botões, com no máximo 20 caracteres cada.",
+        "positionX": 915,
+        "positionY": 250,
+        "linkedNodeIds": [
+          "Node_EscolheFatura"
+        ]
+      }
+    ]
+  }
+}

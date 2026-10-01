@@ -1,0 +1,536 @@
+{
+  "templateId": "um-fluxo-tres-canais",
+  "name": "Um fluxo, três canais",
+  "track": "canais",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "As mesmas telas na Web, no App e no WhatsApp, com conteúdo e caminhos ajustados a cada canal.",
+  "highlights": [
+    "Conteúdo que aparece só em alguns canais",
+    "Decisão pelo canal de origem",
+    "Mesmas telas nos três canais"
+  ],
+  "flow": {
+    "name": "Um fluxo, três canais",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_BoasVindas",
+        "nodeType": "USER_TASK",
+        "name": "Boas-vindas",
+        "description": "Coleta nome e e-mail com mensagens por canal.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_boasvindas",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Receba sua proposta",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_boasvindas",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Receba uma proposta em poucos minutos",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "al_wpp",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": null,
+                      "message": "Você está falando com a Vivo pelo WhatsApp. É só responder às mensagens.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": {
+                      "path": "channel",
+                      "rule": "equals",
+                      "value": "WHATSAPP"
+                    },
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "stk_instrucao",
+                    "type": "ui.stack",
+                    "version": "1.0.0",
+                    "props": {
+                      "direction": "vertical",
+                      "spacingToken": "spacing.sm",
+                      "alignment": "stretch"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": {
+                      "path": "channel",
+                      "rule": "notIn",
+                      "value": [
+                        "WHATSAPP"
+                      ]
+                    },
+                    "active": null,
+                    "children": [
+                      {
+                        "id": "txt_instrucao",
+                        "type": "ui.text",
+                        "version": "1.0.0",
+                        "props": {
+                          "text": "Preencha os campos abaixo e enviamos a proposta para o seu e-mail.",
+                          "align": "start",
+                          "variant": "body",
+                          "maxLines": 2,
+                          "colorToken": "color.text.primary"
+                        },
+                        "bindings": null,
+                        "events": null,
+                        "visibility": null,
+                        "active": null,
+                        "children": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": "in_nome",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Seu nome",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.nome",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_email",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Seu e-mail",
+                      "placeholder": null,
+                      "inputMode": "email",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.email",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_enviar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Quero a proposta",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_VeioDoWhatsapp",
+        "nodeType": "GATEWAY",
+        "name": "Veio pelo WhatsApp?",
+        "description": "No WhatsApp a proposta segue na conversa.",
+        "positionX": 385,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PropostaConversa",
+        "nodeType": "USER_TASK",
+        "name": "Proposta na conversa",
+        "description": "Continua a conversa no WhatsApp.",
+        "positionX": 521,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_propostaconversa",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Sua proposta",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_propostaconversa",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_wpp",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Pronto, {{form.nome}}! Vou te mandar a proposta aqui mesmo, nesta conversa.",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_wpp",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Ok",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PropostaEmail",
+        "nodeType": "USER_TASK",
+        "name": "Proposta por e-mail",
+        "description": "Confirma o envio por e-mail.",
+        "positionX": 521,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_propostaemail",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Proposta enviada",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_propostaemail",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_email",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo certo, {{form.nome}}",
+                      "message": "Enviamos a proposta para {{form.email}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_app",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Você também acompanha a proposta em Meus pedidos, no app.",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "lk_planos",
+                    "type": "ui.link",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Conhecer outros planos",
+                      "emphasis": null,
+                      "external": false,
+                      "accessibilityLabel": null
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.navigate",
+                        "params": {}
+                      }
+                    },
+                    "visibility": {
+                      "path": "channel",
+                      "rule": "equals",
+                      "value": "WEB"
+                    },
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_email",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimWhatsapp",
+        "nodeType": "END",
+        "name": "Fim — WhatsApp",
+        "description": "Fim — WhatsApp",
+        "positionX": 684,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimDigital",
+        "nodeType": "END",
+        "name": "Fim — Web e App",
+        "description": "Fim — Web e App",
+        "positionX": 684,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_BoasVindas",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_BoasVindas",
+        "targetNodeId": "Node_VeioDoWhatsapp",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_VeioDoWhatsapp",
+        "targetNodeId": "Node_PropostaConversa",
+        "condition": "{{channel}} == \"WHATSAPP\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_VeioDoWhatsapp",
+        "targetNodeId": "Node_PropostaEmail",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_PropostaConversa",
+        "targetNodeId": "Node_FimWhatsapp",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_PropostaEmail",
+        "targetNodeId": "Node_FimDigital",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Conteúdo por canal: o aviso só aparece no WhatsApp e a instrução só na Web e no App (regra de visibilidade pela variável channel).",
+        "positionX": 165,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_BoasVindas"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "A variável channel também vale em decisões: {{channel}} == \"WHATSAPP\".",
+        "positionX": 315,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_VeioDoWhatsapp"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,492 @@
+{
+  "templateId": "alerta-dispositivo-iot",
+  "name": "Alerta de dispositivo IoT",
+  "track": "integracoes",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE"
+  ],
+  "description": "Um alerta enviado por um dispositivo inicia a jornada e, se for crítico, o gestor aciona um técnico.",
+  "highlights": [
+    "Evento do dispositivo inicia a jornada",
+    "Decisão por valor numérico da mensagem",
+    "Resposta publicada de volta na mensageria"
+  ],
+  "flow": {
+    "name": "Alerta de dispositivo IoT",
+    "nodes": [
+      {
+        "nodeId": "Node_AlertaDispositivo",
+        "nodeType": "MESSAGE_START_EVENT",
+        "name": "Alerta do dispositivo",
+        "description": "Começa quando um dispositivo envia um alerta.",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "dispositivoId",
+                "jsonPath": "$.payload.data.dispositivoId",
+                "type": "string"
+              },
+              {
+                "name": "tipoAlerta",
+                "jsonPath": "$.payload.data.tipoAlerta",
+                "type": "string"
+              },
+              {
+                "name": "nivelBateria",
+                "jsonPath": "$.payload.data.nivelBateria",
+                "type": "number"
+              },
+              {
+                "name": "localizacao",
+                "jsonPath": "$.payload.data.localizacao",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Critico",
+        "nodeType": "GATEWAY",
+        "name": "Bateria crítica?",
+        "description": "Alertas com menos de 10% de bateria vão para o gestor.",
+        "positionX": 235,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Acao",
+        "nodeType": "USER_TASK",
+        "name": "Ação do gestor",
+        "description": "O gestor decide o que fazer.",
+        "positionX": 371,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_acao",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Alerta crítico",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_acao",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_critico",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Atenção",
+                      "message": "Dispositivo {{data.dispositivoId}} em {{data.localizacao}} com {{data.nivelBateria}}% de bateria.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_acao",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "O que fazer?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Enviar um técnico",
+                          "value": "enviar_tecnico"
+                        },
+                        {
+                          "label": "Só monitorar",
+                          "value": "monitorar"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.acaoGestor",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_acao",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Confirmar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_OrdemTecnico",
+        "nodeType": "SERVICE_TASK",
+        "name": "Envia ordem ao técnico",
+        "description": "Publica a ordem para a equipe de campo.",
+        "positionX": 521,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "dispositivoId",
+                "value": "{{data_dispositivoId}}",
+                "type": "string"
+              },
+              {
+                "name": "localizacao",
+                "value": "{{data_localizacao}}",
+                "type": "string"
+              },
+              {
+                "name": "acao",
+                "value": "{{form_acaoGestor}}",
+                "type": "string"
+              }
+            ],
+            "payload": {
+              "dispositivoId": "{{data_dispositivoId}}",
+              "localizacao": "{{data_localizacao}}",
+              "acao": "{{form_acaoGestor}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Enviada",
+        "nodeType": "USER_TASK",
+        "name": "Ordem enviada",
+        "description": "Confirma o envio.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_enviada",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Ordem enviada",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_enviada",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_enviada",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "A equipe de campo recebeu a ordem para o dispositivo {{data.dispositivoId}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_enviada",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Registrado",
+        "nodeType": "USER_TASK",
+        "name": "Alerta registrado",
+        "description": "Registra o alerta sem ação imediata.",
+        "positionX": 371,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_registrado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Alerta registrado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_registrado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_registrado",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Alerta {{data.tipoAlerta}} do dispositivo {{data.dispositivoId}} registrado para acompanhamento.",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_registrado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimOrdem",
+        "nodeType": "END",
+        "name": "Fim — ordem enviada",
+        "description": "Fim — ordem enviada",
+        "positionX": 834,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimRegistrado",
+        "nodeType": "END",
+        "name": "Fim — registrado",
+        "description": "Fim — registrado",
+        "positionX": 534,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_AlertaDispositivo",
+        "targetNodeId": "Node_Critico",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Critico",
+        "targetNodeId": "Node_Acao",
+        "condition": "{{data_nivelBateria}} < 10",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_Critico",
+        "targetNodeId": "Node_Registrado",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Acao",
+        "targetNodeId": "Node_OrdemTecnico",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_OrdemTecnico",
+        "targetNodeId": "Node_Enviada",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_Enviada",
+        "targetNodeId": "Node_FimOrdem",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_Registrado",
+        "targetNodeId": "Node_FimRegistrado",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "O evento do dispositivo inicia a jornada. Antes de publicar: escolha cluster, tópico e credencial aqui e na ordem ao técnico.",
+        "positionX": 15,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_AlertaDispositivo",
+          "Node_OrdemTecnico"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Condição numérica: {{data_nivelBateria}} < 10.",
+        "positionX": 165,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_Critico"
+        ]
+      }
+    ]
+  }
+}

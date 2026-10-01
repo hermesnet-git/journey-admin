@@ -1,0 +1,449 @@
+{
+  "templateId": "abertura-chamado",
+  "name": "Abertura de chamado técnico",
+  "track": "negocio",
+  "area": "Suporte",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "O cliente descreve o problema, o chamado é aberto e a equipe de campo é avisada na hora.",
+  "highlights": [
+    "Chamado aberto por API",
+    "Equipe de campo avisada por mensagem",
+    "Protocolo exibido ao cliente"
+  ],
+  "flow": {
+    "name": "Abertura de chamado técnico",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Problema",
+        "nodeType": "USER_TASK",
+        "name": "Descreva o problema",
+        "description": "Coleta categoria, descrição e período de visita.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_problema",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Abrir chamado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_problema",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Conta pra gente o que está acontecendo",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_categoria",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Tipo de problema",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Sem internet",
+                          "value": "sem_internet"
+                        },
+                        {
+                          "label": "Internet lenta",
+                          "value": "lentidao"
+                        },
+                        {
+                          "label": "TV sem sinal",
+                          "value": "tv"
+                        },
+                        {
+                          "label": "Telefone fixo mudo",
+                          "value": "telefone"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.categoriaProblema",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "ta_descricao",
+                    "type": "ui.textArea",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Descreva o problema",
+                      "maxLines": 5,
+                      "minLines": 3,
+                      "required": true,
+                      "maxLength": 500,
+                      "placeholder": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.descricaoProblema",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_periodo",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Melhor período para a visita",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Manhã",
+                          "value": "manha"
+                        },
+                        {
+                          "label": "Tarde",
+                          "value": "tarde"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.periodoVisita",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "chk_visita",
+                    "type": "ui.checkbox",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Autorizo a visita técnica no endereço de instalação",
+                      "required": true,
+                      "indeterminate": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.autorizaVisita",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_abrir",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Abrir chamado",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AbreChamado",
+        "nodeType": "SERVICE_TASK",
+        "name": "Abre o chamado",
+        "description": "Abre o chamado no sistema de suporte.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/suporte/chamados",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "categoria": "{{form_categoriaProblema}}",
+              "descricao": "{{form_descricaoProblema}}",
+              "periodo": "{{form_periodoVisita}}"
+            },
+            "outputMapping": [
+              {
+                "name": "numeroChamado",
+                "jsonPath": "$.numeroChamado",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AvisaCampo",
+        "nodeType": "SERVICE_TASK",
+        "name": "Avisa a equipe de campo",
+        "description": "Publica o chamado para o despacho técnico.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "numeroChamado",
+                "value": "{{data_numeroChamado}}",
+                "type": "string"
+              },
+              {
+                "name": "categoria",
+                "value": "{{form_categoriaProblema}}",
+                "type": "string"
+              },
+              {
+                "name": "periodo",
+                "value": "{{form_periodoVisita}}",
+                "type": "string"
+              }
+            ],
+            "payload": {
+              "numeroChamado": "{{data_numeroChamado}}",
+              "categoria": "{{form_categoriaProblema}}",
+              "periodo": "{{form_periodoVisita}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Aberto",
+        "nodeType": "USER_TASK",
+        "name": "Chamado aberto",
+        "description": "Mostra o protocolo.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_aberto",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Chamado aberto",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_aberto",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_aberto",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo certo",
+                      "message": "Chamado {{data.numeroChamado}} aberto. A equipe técnica já foi avisada.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_aberto",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Fim",
+        "nodeType": "END",
+        "name": "Fim",
+        "description": "Fim",
+        "positionX": 834,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Problema",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Problema",
+        "targetNodeId": "Node_AbreChamado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_AbreChamado",
+        "targetNodeId": "Node_AvisaCampo",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_AvisaCampo",
+        "targetNodeId": "Node_Aberto",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_Aberto",
+        "targetNodeId": "Node_Fim",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "O chamado é aberto pela API e o despacho técnico é avisado por mensagem. Antes de publicar: escolha cluster, tópico e credencial.",
+        "positionX": 465,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_AvisaCampo"
+        ]
+      }
+    ]
+  }
+}

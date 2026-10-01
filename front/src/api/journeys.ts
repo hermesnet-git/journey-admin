@@ -1,5 +1,6 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './client';
 import type { ChannelType } from './products';
+import type { BackendConnectorType, BackendNodeType } from '../execution/api';
 
 export type JourneyStatus = 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED' | 'INACTIVE';
 export type JourneySort = 'CREATED_AT' | 'UPDATED_AT';
@@ -27,10 +28,31 @@ export interface JourneyCreateInput {
   templateId?: string;
 }
 
+export type JourneyTemplateTrack = 'primeiros-passos' | 'integracoes' | 'canais' | 'negocio' | 'arquitetura';
+
 export interface JourneyTemplate {
   templateId: string;
   name: string;
   description: string;
+  track: JourneyTemplateTrack;
+  area: string | null;
+  channelTypes: ChannelType[];
+  highlights: string[];
+  // Derivadas do próprio fluxo pelo back (o que o exemplo usa de verdade).
+  capabilities: string[];
+  // Partes que dependem do ambiente e vêm em branco de propósito — o autor escolhe no editor.
+  pendingSetup: string[];
+  preview: {
+    nodes: {
+      nodeId: string;
+      nodeType: BackendNodeType;
+      name: string;
+      positionX: number;
+      positionY: number;
+      connectorType: BackendConnectorType | null;
+    }[];
+    connections: { connectionId: string; sourceNodeId: string; targetNodeId: string; condition: string | null; isDefault: boolean }[];
+  };
 }
 
 export interface JourneyUpdateInput {

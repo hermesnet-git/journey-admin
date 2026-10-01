@@ -229,6 +229,102 @@ const ENDPOINTS: Endpoint[] = [
       'seguinte da jornada.',
     bodyExemplo: { cnpj: '45537128000127', tipoAvaliacao: 'CONECTIVIDADE_E_SINAL' },
   },
+  {
+    metodo: 'GET',
+    path: '/v1/planos/ofertas',
+    descricao: 'Catálogo de planos',
+    nota:
+      'Planos à venda, usados pelos templates de escolha de plano (lista vinda de API, contratação e upgrade). ' +
+      'Cada plano traz "disponivel" — a ação de contratar só é liberada nos planos disponíveis (o Família 4 linhas ' +
+      'vem esgotado de propósito).',
+  },
+  {
+    metodo: 'GET',
+    path: '/v1/clientes/12345678909/faturas',
+    descricao: 'Faturas em aberto do cliente',
+    nota:
+      'CPF (só dígitos) faz parte da URL. Qualquer CPF tem três faturas — duas vencidas, que podem ser negociadas, ' +
+      'e uma em aberto, só com 2ª via —, sempre as mesmas para o mesmo CPF. CPFs terminados em "00" estão em dia e ' +
+      'recebem a lista vazia.',
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/faturas/FAT-202609-1234/segunda-via',
+    descricao: 'Gerar 2ª via da fatura',
+    nota: 'Devolve linha digitável, Pix copia e cola e validade da 2ª via. O id da fatura no path é livre.',
+    bodyExemplo: {},
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/acordos',
+    descricao: 'Negociar fatura vencida',
+    nota: 'Parcela a fatura em "parcelas" (2 a 12; padrão 3). Devolve protocolo, valor da parcela e primeiro vencimento.',
+    bodyExemplo: { faturaId: 'FAT-202609-1234', parcelas: 3 },
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/clientes/cadastro',
+    descricao: 'Cadastrar cliente (com falhas simuladas)',
+    nota:
+      'Usado pelo template de tratamento de falha. CPF sem 11 dígitos devolve 422 com "mensagem"; CPF começando ' +
+      'com "000" devolve 503 na primeira tentativa e 201 na seguinte (sistema instável); os demais devolvem 201 ' +
+      'com "idCliente".',
+    bodyExemplo: { nome: 'Nome Exemplo', cpf: '00012345678', email: 'cliente@exemplo.com' },
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/ouvidoria/reclamacoes',
+    descricao: 'Registrar e triar reclamação',
+    nota:
+      'Faz a triagem da reclamação: reincidente ("reincidente": true) ou categoria "cobranca_indevida" vai para o ' +
+      'nível OUVIDORIA; o resto fica no N1, com uma compensação sugerida de R$ 30.',
+    bodyExemplo: { cpf: '12345678909', categoria: 'atendimento', reincidente: false },
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/ouvidoria/compensacoes',
+    descricao: 'Aplicar compensação ao cliente',
+    nota: 'Credita a compensação aceita pelo cliente. Devolve protocolo, valor creditado e status CREDITADO.',
+    bodyExemplo: { protocoloReclamacao: 'RC-123456', valor: 30 },
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/portabilidade/solicitacoes',
+    descricao: 'Solicitar portabilidade',
+    nota:
+      'Registra o pedido de portabilidade e devolve protocolo e a janela agendada. A confirmação da operadora de ' +
+      'origem chega depois, pelo Kafka.',
+    bodyExemplo: { numero: '11999998888', operadoraAtual: 'outra', cpf: '12345678909' },
+  },
+  {
+    metodo: 'GET',
+    path: '/v1/ordens-servico/OS-2026-0001',
+    descricao: 'Consultar ordem de serviço de reparo',
+    nota: 'Dados da ordem de serviço para o técnico em campo: cliente, endereço, defeito, equipamento e potência esperada. Qualquer número devolve uma OS.',
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/ordens-servico/OS-2026-0001/encerramento',
+    descricao: 'Encerrar ordem de serviço',
+    nota: 'Encerra a OS com a solução aplicada pelo técnico. Devolve protocolo, status ENCERRADA e se a pesquisa de satisfação foi enviada.',
+    bodyExemplo: { solucao: 'troca_conector', observacoes: 'Conector oxidado substituído.' },
+  },
+  {
+    metodo: 'GET',
+    path: '/v1/instalacoes/horarios-disponiveis',
+    descricao: 'Horários livres para instalação',
+    nota:
+      'Dado de referência para uma fonte de dados de tela: cada item já vem no formato {label, value}, em ' +
+      '"horarios". Cadastre uma fonte de dados apontando para esta URL com o parâmetro "cep".',
+    queryExemplo: 'cep=01310100',
+  },
+  {
+    metodo: 'POST',
+    path: '/v1/instalacoes/agendamentos',
+    descricao: 'Agendar instalação',
+    nota: 'Confirma o horário escolhido para a instalação. Devolve protocolo, horário e status AGENDADO.',
+    bodyExemplo: { cep: '01310100', horario: '2026-10-02-MANHA' },
+  },
 ]
 
 type Resultado =

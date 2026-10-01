@@ -1,0 +1,329 @@
+{
+  "templateId": "escolha-lista-api",
+  "name": "Escolha numa lista vinda de API",
+  "track": "integracoes",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Busca os planos à venda e deixa o cliente escolher um, com a ação liberada só nos disponíveis.",
+  "highlights": [
+    "Resposta da API gravada como lista",
+    "Lista de seleção com ação liberada item a item",
+    "Cada item montado com campos do plano"
+  ],
+  "flow": {
+    "name": "Escolha numa lista vinda de API",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_BuscaPlanos",
+        "nodeType": "SERVICE_TASK",
+        "name": "Busca planos à venda",
+        "description": "Traz o catálogo comercial de planos.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/planos/ofertas",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "quantidadePlanos",
+                "jsonPath": "$.quantidade",
+                "type": "number"
+              },
+              {
+                "name": "planos",
+                "jsonPath": "$.planos",
+                "type": "list",
+                "keepFields": [
+                  "codigo",
+                  "nome",
+                  "franquia",
+                  "preco",
+                  "destaque",
+                  "disponivel"
+                ]
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EscolhePlano",
+        "nodeType": "USER_TASK",
+        "name": "Escolha o plano",
+        "description": "Lista os planos e a ação de escolher.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_escolheplano",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Escolha seu plano",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_escolheplano",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Qual plano combina com você?",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "lst_planos",
+                    "type": "ui.selectList",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Planos disponíveis",
+                      "itemValue": "codigo",
+                      "itemTitle": "{{item.nome}}",
+                      "itemDescription": "{{item.franquia}} · R$ {{item.preco}}/mês",
+                      "itemHint": "{{item.destaque}}",
+                      "emptyMessage": "Nenhum plano disponível agora.",
+                      "maxItems": 50,
+                      "actions": [
+                        {
+                          "id": "escolher",
+                          "label": "Quero este",
+                          "variant": "primary",
+                          "enabledWhen": "{{item.disponivel}} == true"
+                        }
+                      ],
+                      "required": true
+                    },
+                    "bindings": {
+                      "items": {
+                        "path": "data.planos",
+                        "mode": "oneWay"
+                      },
+                      "value": {
+                        "path": "form.planoEscolhido",
+                        "mode": "twoWay"
+                      },
+                      "action": {
+                        "path": "form.acaoPlanoEscolhido",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": {
+                      "onAction": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PlanoEscolhido",
+        "nodeType": "USER_TASK",
+        "name": "Plano escolhido",
+        "description": "Confirma a escolha.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_planoescolhido",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Plano reservado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_planoescolhido",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_escolhido",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Boa escolha",
+                      "message": "Plano {{form.planoEscolhido}} reservado para você.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_concluir",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Fim",
+        "nodeType": "END",
+        "name": "Fim",
+        "description": "Fim",
+        "positionX": 684,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_BuscaPlanos",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_BuscaPlanos",
+        "targetNodeId": "Node_EscolhePlano",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_EscolhePlano",
+        "targetNodeId": "Node_PlanoEscolhido",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_PlanoEscolhido",
+        "targetNodeId": "Node_Fim",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Saída do tipo lista: $.planos vira a lista data.planos, guardando só os campos que a tela usa.",
+        "positionX": 165,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_BuscaPlanos"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "A ação \"Quero este\" só fica liberada nos planos com disponivel = true — a regra vem da API, não da tela.",
+        "positionX": 315,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_EscolhePlano"
+        ]
+      }
+    ]
+  }
+}

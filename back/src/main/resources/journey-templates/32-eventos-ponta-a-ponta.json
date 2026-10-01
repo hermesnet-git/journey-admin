@@ -1,0 +1,500 @@
+{
+  "templateId": "eventos-ponta-a-ponta",
+  "name": "Jornada orientada a eventos",
+  "track": "arquitetura",
+  "area": null,
+  "channelTypes": [
+    "WEB"
+  ],
+  "description": "Do evento de pedido criado ao faturamento: publica, espera, decide e publica de novo.",
+  "highlights": [
+    "Começa, conversa e termina por mensagens",
+    "Ida e volta com outro sistema no meio do fluxo",
+    "Tela só quando alguém precisa decidir"
+  ],
+  "flow": {
+    "name": "Jornada orientada a eventos",
+    "nodes": [
+      {
+        "nodeId": "Node_PedidoCriado",
+        "nodeType": "MESSAGE_START_EVENT",
+        "name": "Pedido criado",
+        "description": "Começa quando um pedido é criado.",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "pedidoId",
+                "jsonPath": "$.payload.data.pedidoId",
+                "type": "string"
+              },
+              {
+                "name": "clienteNome",
+                "jsonPath": "$.payload.data.clienteNome",
+                "type": "string"
+              },
+              {
+                "name": "valorPedido",
+                "jsonPath": "$.payload.data.valorPedido",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_SolicitaReserva",
+        "nodeType": "SERVICE_TASK",
+        "name": "Solicita reserva de estoque",
+        "description": "Pede a reserva ao sistema de estoque.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "pedidoId",
+                "value": "{{data_pedidoId}}",
+                "type": "string"
+              }
+            ],
+            "payload": {
+              "pedidoId": "{{data_pedidoId}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AguardaReserva",
+        "nodeType": "RECEIVE_TASK",
+        "name": "Aguarda reserva",
+        "description": "Espera a resposta do estoque.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "reservaStatus",
+                "jsonPath": "$.payload.data.reservaStatus",
+                "type": "string"
+              },
+              {
+                "name": "previsaoEstoque",
+                "jsonPath": "$.payload.data.previsaoEstoque",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Reservado",
+        "nodeType": "GATEWAY",
+        "name": "Reservado?",
+        "description": "Fatura se reservou; senão, alguém decide.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_SolicitaFaturamento",
+        "nodeType": "SERVICE_TASK",
+        "name": "Solicita faturamento",
+        "description": "Pede o faturamento do pedido.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "pedidoId",
+                "value": "{{data_pedidoId}}",
+                "type": "string"
+              },
+              {
+                "name": "valor",
+                "value": "{{data_valorPedido}}",
+                "type": "number"
+              }
+            ],
+            "payload": {
+              "pedidoId": "{{data_pedidoId}}",
+              "valor": "{{data_valorPedido}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Acompanhar",
+        "nodeType": "USER_TASK",
+        "name": "Acompanhar pedido",
+        "description": "Mostra o andamento para o back-office.",
+        "positionX": 821,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_acompanhar",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Pedido em faturamento",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_acompanhar",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_faturamento",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "Pedido {{data.pedidoId}} de {{data.clienteNome}} reservado e enviado para faturamento.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_acompanhar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_SemEstoque",
+        "nodeType": "USER_TASK",
+        "name": "Pedido sem estoque",
+        "description": "O back-office decide o que fazer.",
+        "positionX": 671,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_semestoque",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Pedido sem estoque",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_semestoque",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_sem_estoque",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Atenção",
+                      "message": "Sem estoque para o pedido {{data.pedidoId}}. Previsão: {{data.previsaoEstoque}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_decisao",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "O que fazer?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Aguardar o estoque",
+                          "value": "aguardar"
+                        },
+                        {
+                          "label": "Cancelar o pedido",
+                          "value": "cancelar"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.decisaoEstoque",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_decisao",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Confirmar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PublicaDecisao",
+        "nodeType": "SERVICE_TASK",
+        "name": "Publica a decisão",
+        "description": "Avisa os sistemas sobre a decisão.",
+        "positionX": 821,
+        "positionY": 431,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "pedidoId",
+                "value": "{{data_pedidoId}}",
+                "type": "string"
+              },
+              {
+                "name": "decisao",
+                "value": "{{form_decisaoEstoque}}",
+                "type": "string"
+              }
+            ],
+            "payload": {
+              "pedidoId": "{{data_pedidoId}}",
+              "decisao": "{{form_decisaoEstoque}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimFaturado",
+        "nodeType": "END",
+        "name": "Fim — faturado",
+        "description": "Fim — faturado",
+        "positionX": 984,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimDecidido",
+        "nodeType": "END",
+        "name": "Fim — decisão publicada",
+        "description": "Fim — decisão publicada",
+        "positionX": 984,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_PedidoCriado",
+        "targetNodeId": "Node_SolicitaReserva",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_SolicitaReserva",
+        "targetNodeId": "Node_AguardaReserva",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_AguardaReserva",
+        "targetNodeId": "Node_Reservado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Reservado",
+        "targetNodeId": "Node_SolicitaFaturamento",
+        "condition": "{{data_reservaStatus}} == \"RESERVADO\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_Reservado",
+        "targetNodeId": "Node_SemEstoque",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_SolicitaFaturamento",
+        "targetNodeId": "Node_Acompanhar",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_Acompanhar",
+        "targetNodeId": "Node_FimFaturado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_SemEstoque",
+        "targetNodeId": "Node_PublicaDecisao",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_PublicaDecisao",
+        "targetNodeId": "Node_FimDecidido",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Começa por evento, conversa com o estoque por mensagens e termina publicando. Antes de publicar: escolha cluster, tópico e credencial em cada etapa de mensageria.",
+        "positionX": 165,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_PedidoCriado",
+          "Node_SolicitaReserva",
+          "Node_AguardaReserva"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Uma publicação também pode ser a última etapa antes do fim.",
+        "positionX": 765,
+        "positionY": 550,
+        "linkedNodeIds": [
+          "Node_PublicaDecisao"
+        ]
+      }
+    ]
+  }
+}

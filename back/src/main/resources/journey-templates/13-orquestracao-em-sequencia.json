@@ -1,0 +1,563 @@
+{
+  "templateId": "orquestracao-em-sequencia",
+  "name": "Orquestração em sequência",
+  "track": "integracoes",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE"
+  ],
+  "description": "Encadeia análise de crédito, elegibilidade e criação de pedido, cada chamada usando o resultado da anterior.",
+  "highlights": [
+    "Três integrações encadeadas",
+    "Resultado de uma chamada no corpo da próxima",
+    "Sequência terminando numa tela"
+  ],
+  "flow": {
+    "name": "Orquestração em sequência",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Dados",
+        "nodeType": "USER_TASK",
+        "name": "Dados do cliente",
+        "description": "Coleta CPF, nome e plano.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_dados",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Contratação",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_dados",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Vamos montar seu pedido",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cpf",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpf",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_nome",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Nome completo",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 200,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.nomeCompleto",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_plano",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Plano",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Vivo Controle 15GB",
+                          "value": "CTRL-15"
+                        },
+                        {
+                          "label": "Vivo Pós 40GB",
+                          "value": "POS-40"
+                        },
+                        {
+                          "label": "Vivo Pós 100GB",
+                          "value": "POS-100"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.planoDesejado",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_enviar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Enviar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AnaliseCredito",
+        "nodeType": "SERVICE_TASK",
+        "name": "Análise de crédito",
+        "description": "Calcula o score de crédito.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/credito/score",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cpf": "{{form_cpf}}",
+              "nomeCompleto": "{{form_nomeCompleto}}"
+            },
+            "outputMapping": [
+              {
+                "name": "creditoAprovado",
+                "jsonPath": "$.aprovado",
+                "type": "boolean"
+              },
+              {
+                "name": "scoreCredito",
+                "jsonPath": "$.score",
+                "type": "number"
+              },
+              {
+                "name": "limiteSugerido",
+                "jsonPath": "$.limiteSugerido",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Elegibilidade",
+        "nodeType": "SERVICE_TASK",
+        "name": "Elegibilidade",
+        "description": "Confere a elegibilidade usando o score.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/elegibilidade",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cpf": "{{form_cpf}}",
+              "score": "{{data_scoreCredito}}"
+            },
+            "outputMapping": [
+              {
+                "name": "elegivelPedido",
+                "jsonPath": "$.elegivel",
+                "type": "boolean"
+              },
+              {
+                "name": "protocoloElegibilidade",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_CriaPedido",
+        "nodeType": "SERVICE_TASK",
+        "name": "Cria o pedido",
+        "description": "Cria o pedido com o protocolo da elegibilidade.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/pedidos",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cpf": "{{form_cpf}}",
+              "plano": "{{form_planoDesejado}}",
+              "protocoloElegibilidade": "{{data_protocoloElegibilidade}}"
+            },
+            "outputMapping": [
+              {
+                "name": "numeroPedido",
+                "jsonPath": "$.numeroPedido",
+                "type": "string"
+              },
+              {
+                "name": "dataAtivacaoPrevista",
+                "jsonPath": "$.dataAtivacaoPrevista",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Resumo",
+        "nodeType": "USER_TASK",
+        "name": "Resumo do pedido",
+        "description": "Mostra o resultado das três integrações.",
+        "positionX": 821,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_resumo",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Pedido criado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_resumo",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_pedido",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo certo, {{form.nomeCompleto}}",
+                      "message": "Pedido {{data.numeroPedido}} criado. Ativação prevista para {{data.dataAtivacaoPrevista}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "card_resumo",
+                    "type": "ui.card",
+                    "version": "1.0.0",
+                    "props": {
+                      "variant": "default",
+                      "paddingToken": "spacing.md",
+                      "elevationToken": "elevation.low"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": [
+                      {
+                        "id": "stk_resumo",
+                        "type": "ui.stack",
+                        "version": "1.0.0",
+                        "props": {
+                          "direction": "vertical",
+                          "spacingToken": "spacing.sm",
+                          "alignment": "stretch"
+                        },
+                        "bindings": null,
+                        "events": null,
+                        "visibility": null,
+                        "active": null,
+                        "children": [
+                          {
+                            "id": "txt_score",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Score de crédito: {{data.scoreCredito}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_limite",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Limite sugerido: R$ {{data.limiteSugerido}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_protocolo",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Protocolo de elegibilidade: {{data.protocoloElegibilidade}}",
+                              "align": "start",
+                              "variant": "caption",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "btn_concluir",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Fim",
+        "nodeType": "END",
+        "name": "Fim",
+        "description": "Fim",
+        "positionX": 984,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Dados",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Dados",
+        "targetNodeId": "Node_AnaliseCredito",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_AnaliseCredito",
+        "targetNodeId": "Node_Elegibilidade",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Elegibilidade",
+        "targetNodeId": "Node_CriaPedido",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_CriaPedido",
+        "targetNodeId": "Node_Resumo",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_Resumo",
+        "targetNodeId": "Node_Fim",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Cada chamada usa o resultado da anterior: o score vai no corpo da elegibilidade, e o protocolo dela vai no pedido.",
+        "positionX": 465,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_AnaliseCredito",
+          "Node_Elegibilidade",
+          "Node_CriaPedido"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Uma sequência de chamadas REST precisa terminar numa tela ou numa espera: o motor precisa de um ponto de parada antes do fim.",
+        "positionX": 765,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_Resumo"
+        ]
+      }
+    ]
+  }
+}

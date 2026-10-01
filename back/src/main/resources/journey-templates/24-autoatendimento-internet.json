@@ -1,0 +1,1055 @@
+{
+  "templateId": "autoatendimento-internet",
+  "name": "Autoatendimento: falha na internet",
+  "track": "negocio",
+  "area": "Suporte",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Verifica chamado aberto, pendência financeira e manutenção na região antes de diagnosticar a conexão.",
+  "highlights": [
+    "Três verificações antes do diagnóstico",
+    "Resposta 404 tratada como \"nada encontrado\"",
+    "Diagnóstico pedido por API e recebido por mensagem"
+  ],
+  "flow": {
+    "name": "Autoatendimento: falha na internet",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_InformaCnpj",
+        "nodeType": "USER_TASK",
+        "name": "Informe o CNPJ",
+        "description": "Coleta o CNPJ da empresa.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_informacnpj",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Suporte Vivo Empresas",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_informacnpj",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_cnpj",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Vamos verificar a situação da sua empresa",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cnpj",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CNPJ (só números)",
+                      "placeholder": "00000000000000",
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 14,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cnpj",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_cnpj",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Consultar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ConsultaChamado",
+        "nodeType": "SERVICE_TASK",
+        "name": "Consulta chamado aberto",
+        "description": "Verifica se há bilhete de defeito em atendimento.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/clientes/{{form_cnpj}}/bilhetes-defeito",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "bdHttpStatus",
+                "jsonPath": "$httpStatus",
+                "type": "number"
+              },
+              {
+                "name": "bdNumero",
+                "jsonPath": "$.numeroBilhete",
+                "type": "string"
+              },
+              {
+                "name": "bdStatus",
+                "jsonPath": "$.status",
+                "type": "string"
+              },
+              {
+                "name": "bdPrevisao",
+                "jsonPath": "$.previsaoConclusao",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TemChamado",
+        "nodeType": "GATEWAY",
+        "name": "Tem chamado aberto?",
+        "description": "Achou o bilhete (200), mostra os detalhes.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ConsultaPendencia",
+        "nodeType": "SERVICE_TASK",
+        "name": "Consulta pendência financeira",
+        "description": "Verifica pendência aguardando pagamento.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/clientes/{{form_cnpj}}/pendencias-financeiras",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "pendenciaStatus",
+                "jsonPath": "$.statusCobranca",
+                "type": "string"
+              },
+              {
+                "name": "pendenciaValor",
+                "jsonPath": "$.valorPendente",
+                "type": "number"
+              },
+              {
+                "name": "pendenciaLinhaDigitavel",
+                "jsonPath": "$.linhaDigitavel",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TemPendencia",
+        "nodeType": "GATEWAY",
+        "name": "Pendência aguardando pagamento?",
+        "description": "Mostra a pendência se estiver aguardando pagamento.",
+        "positionX": 835,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ConsultaMassiva",
+        "nodeType": "SERVICE_TASK",
+        "name": "Consulta manutenção na região",
+        "description": "Verifica manutenção massiva.",
+        "positionX": 971,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/clientes/{{form_cnpj}}/manutencoes-massivas",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "massivaStatus",
+                "jsonPath": "$.statusManutencao",
+                "type": "string"
+              },
+              {
+                "name": "massivaImpacto",
+                "jsonPath": "$.impacto",
+                "type": "string"
+              },
+              {
+                "name": "massivaPrevisao",
+                "jsonPath": "$.previsaoConclusao",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TemMassiva",
+        "nodeType": "GATEWAY",
+        "name": "Manutenção programada?",
+        "description": "Mostra a manutenção se estiver programada.",
+        "positionX": 1135,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_SolicitaDiagnostico",
+        "nodeType": "SERVICE_TASK",
+        "name": "Solicita diagnóstico",
+        "description": "Pede a avaliação de conexão do cliente.",
+        "positionX": 1271,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/diagnosticos/solicitacoes",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cnpj": "{{form_cnpj}}",
+              "tipoAvaliacao": "CONECTIVIDADE_E_SINAL"
+            },
+            "outputMapping": [
+              {
+                "name": "protocoloDiagnostico",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              },
+              {
+                "name": "previsaoRetorno",
+                "jsonPath": "$.previsaoRetorno",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AguardaDiagnostico",
+        "nodeType": "RECEIVE_TASK",
+        "name": "Aguarda resultado do diagnóstico",
+        "description": "Espera o retorno por mensagem.",
+        "positionX": 1421,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "statusConexao",
+                "jsonPath": "$.payload.data.statusConexao",
+                "type": "string"
+              },
+              {
+                "name": "qualidadeSinal",
+                "jsonPath": "$.payload.data.qualidadeSinal",
+                "type": "string"
+              },
+              {
+                "name": "conclusao",
+                "jsonPath": "$.payload.data.conclusao",
+                "type": "string"
+              },
+              {
+                "name": "recomendacao",
+                "jsonPath": "$.payload.data.recomendacao",
+                "type": "string"
+              },
+              {
+                "name": "velocidadeDownloadMbps",
+                "jsonPath": "$.payload.data.velocidadeDownloadMbps",
+                "type": "number"
+              },
+              {
+                "name": "latenciaMs",
+                "jsonPath": "$.payload.data.latenciaMs",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Resultado",
+        "nodeType": "USER_TASK",
+        "name": "Resultado do diagnóstico",
+        "description": "Mostra o resultado da avaliação de conexão.",
+        "positionX": 1571,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_resultado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Resultado do diagnóstico",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_resultado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_dg_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Resultado do diagnóstico da sua conexão",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "al_dg",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": "Conexão {{data.statusConexao}} — sinal {{data.qualidadeSinal}}",
+                      "message": "{{data.conclusao}}",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "card_dg",
+                    "type": "ui.card",
+                    "version": "1.0.0",
+                    "props": {
+                      "variant": "default",
+                      "paddingToken": "spacing.md",
+                      "elevationToken": "elevation.low"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": [
+                      {
+                        "id": "stk_dg",
+                        "type": "ui.stack",
+                        "version": "1.0.0",
+                        "props": {
+                          "direction": "vertical",
+                          "spacingToken": "spacing.sm",
+                          "alignment": "stretch"
+                        },
+                        "bindings": null,
+                        "events": null,
+                        "visibility": null,
+                        "active": null,
+                        "children": [
+                          {
+                            "id": "txt_dg_download",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Download: {{data.velocidadeDownloadMbps}} Mbps",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_dg_latencia",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Latência: {{data.latenciaMs}} ms",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_dg_protocolo",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Protocolo: {{data.protocoloDiagnostico}}",
+                              "align": "start",
+                              "variant": "caption",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "div_dg",
+                    "type": "ui.divider",
+                    "version": "1.0.0",
+                    "props": {
+                      "orientation": "horizontal",
+                      "colorToken": null,
+                      "spacingToken": "spacing.md"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_dg_recomendacao",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Recomendação: {{data.recomendacao}}",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_dg",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TelaChamado",
+        "nodeType": "USER_TASK",
+        "name": "Chamado em andamento",
+        "description": "Mostra o bilhete aberto.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_telachamado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Chamado em andamento",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_telachamado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_bd",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Você já tem um chamado aberto",
+                      "message": "Bilhete {{data.bdNumero}} — {{data.bdStatus}}. Previsão: {{data.bdPrevisao}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_bd",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Entendi",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TelaPendencia",
+        "nodeType": "USER_TASK",
+        "name": "Pendência financeira",
+        "description": "Mostra a pendência.",
+        "positionX": 971,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_telapendencia",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Pendência financeira",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_telapendencia",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_pend",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Regularize para seguir",
+                      "message": "Há R$ {{data.pendenciaValor}} aguardando pagamento.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_linha",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Linha digitável: {{data.pendenciaLinhaDigitavel}}",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_pend",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Entendi",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TelaMassiva",
+        "nodeType": "USER_TASK",
+        "name": "Manutenção na região",
+        "description": "Mostra a manutenção programada.",
+        "positionX": 1271,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_telamassiva",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Manutenção na sua região",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_telamassiva",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_massiva",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": "Manutenção programada",
+                      "message": "{{data.massivaImpacto}}. Previsão de conclusão: {{data.massivaPrevisao}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_massiva",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Entendi",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimDiagnostico",
+        "nodeType": "END",
+        "name": "Fim — diagnóstico",
+        "description": "Fim — diagnóstico",
+        "positionX": 1734,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimChamado",
+        "nodeType": "END",
+        "name": "Fim — chamado aberto",
+        "description": "Fim — chamado aberto",
+        "positionX": 834,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimPendencia",
+        "nodeType": "END",
+        "name": "Fim — pendência",
+        "description": "Fim — pendência",
+        "positionX": 1134,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimMassiva",
+        "nodeType": "END",
+        "name": "Fim — manutenção",
+        "description": "Fim — manutenção",
+        "positionX": 1434,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_InformaCnpj",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_InformaCnpj",
+        "targetNodeId": "Node_ConsultaChamado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_ConsultaChamado",
+        "targetNodeId": "Node_TemChamado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_TemChamado",
+        "targetNodeId": "Node_TelaChamado",
+        "condition": "{{data_bdHttpStatus}} == 200",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_TemChamado",
+        "targetNodeId": "Node_ConsultaPendencia",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_ConsultaPendencia",
+        "targetNodeId": "Node_TemPendencia",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_TemPendencia",
+        "targetNodeId": "Node_TelaPendencia",
+        "condition": "{{data_pendenciaStatus}} == \"Aguardando pagamento\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_TemPendencia",
+        "targetNodeId": "Node_ConsultaMassiva",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_ConsultaMassiva",
+        "targetNodeId": "Node_TemMassiva",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_10",
+        "sourceNodeId": "Node_TemMassiva",
+        "targetNodeId": "Node_TelaMassiva",
+        "condition": "{{data_massivaStatus}} == \"Programada\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_11",
+        "sourceNodeId": "Node_TemMassiva",
+        "targetNodeId": "Node_SolicitaDiagnostico",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_12",
+        "sourceNodeId": "Node_SolicitaDiagnostico",
+        "targetNodeId": "Node_AguardaDiagnostico",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_13",
+        "sourceNodeId": "Node_AguardaDiagnostico",
+        "targetNodeId": "Node_Resultado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_14",
+        "sourceNodeId": "Node_Resultado",
+        "targetNodeId": "Node_FimDiagnostico",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_15",
+        "sourceNodeId": "Node_TelaChamado",
+        "targetNodeId": "Node_FimChamado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_16",
+        "sourceNodeId": "Node_TelaPendencia",
+        "targetNodeId": "Node_FimPendencia",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_17",
+        "sourceNodeId": "Node_TelaMassiva",
+        "targetNodeId": "Node_FimMassiva",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Cada consulta devolve 404 quando não acha nada; a jornada lê o status HTTP ($httpStatus) e segue para a próxima verificação. Teste com o CNPJ 45537128000127.",
+        "positionX": 315,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_ConsultaChamado"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Antes de publicar: escolha cluster, tópico e credencial na espera do diagnóstico.",
+        "positionX": 1365,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_AguardaDiagnostico"
+        ]
+      }
+    ]
+  }
+}

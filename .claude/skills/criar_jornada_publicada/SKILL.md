@@ -89,6 +89,13 @@ de **entrada da jornada** (`startVariables` do nó START) — ver `FlowValidator
 
 ## Erros comuns
 
+- **CPF/CNPJ/CEP chegam errados na API (ex.: `2.224223781E10`)** — campo com `inputMode: 'number'`
+  vira número (Double) no motor, perde zeros à esquerda e vai em notação científica no corpo. Use
+  `inputMode: 'text'` para qualquer identificador; `number` só para quantidade/medida de verdade.
+- **Campo do corpo de uma resposta de erro sempre `null`** — numa resposta REST fora de 2xx só o
+  `$httpStatus` é mapeado; as regras de campo (`$.mensagem` etc.) ficam vazias por desenho
+  (BpmnTransformer). Tela de erro usa texto próprio, decidido pelo status.
+
 - **422 "Variável de saída 'X' foi declarada mais de uma vez no fluxo"** — o nome colidiu com uma
   variável de saída de integração ou de entrada, não com outro campo de tela (isso é permitido).
   Renomeie um dos dois.
@@ -114,6 +121,22 @@ de **entrada da jornada** (`startVariables` do nó START) — ver `FlowValidator
   de verdade; uma regra com jsonPath errado (ex.: `$.status` tentando ler algo que só existe dentro
   de `payload.data`) nunca resolve, e o erro só aparece quando o BPMN tenta promover a variável —
   trava a instância pra sempre, sem nenhum aviso na tela (mensagem Kafka já foi consumida).
+
+## Templates da aba "Template" em Nova jornada
+
+Os modelos que aparecem em Nova jornada → Template são arquivos JSON em
+`back/src/main/resources/journey-templates/` (um por modelo, ordem pelo prefixo numérico), lidos na
+subida do back por `JsonJourneyTemplateCatalog`. O formato do `flow` é o mesmo do
+`PUT /journeys/{id}/flow`. Para criar ou mudar um modelo, edite `scripts/gerar_templates_jornada.mjs`
+(usa os mesmos construtores de `sdui_helpers.mjs`) e rode `node gerar_templates_jornada.mjs` — ele
+regrava todos os JSON e confere a estrutura de cada fluxo antes. Diferenças em relação a uma jornada
+publicada por esta skill:
+
+- **Kafka sem cluster, tópico nem credencial, e fonte de dados de tela sem `source`**: dependem do
+  ambiente; o autor escolhe no editor (o back lista essas lacunas em `pendingSetup` e bloqueia a
+  publicação até lá). Cada lacuna vem com uma nota no canvas dizendo o que configurar.
+- REST aponta para o `ms-mock-api-rest`; API nova no mock entra também na lista do
+  `simulacoes/front-mock-integracoes`.
 
 ## Conexão com a geração de jornada por IA
 

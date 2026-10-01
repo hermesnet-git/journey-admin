@@ -1,0 +1,427 @@
+{
+  "templateId": "pesquisa-satisfacao",
+  "name": "Pesquisa de satisfação",
+  "track": "canais",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Pesquisa curta depois de um atendimento, com uma pergunta extra só para quem avaliou mal.",
+  "highlights": [
+    "Campo que só aparece conforme a resposta",
+    "Mesma pesquisa em qualquer canal",
+    "Avaliação publicada para análise"
+  ],
+  "flow": {
+    "name": "Pesquisa de satisfação",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": [
+          {
+            "name": "protocoloAtendimento",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "nodeId": "Node_Avaliacao",
+        "nodeType": "USER_TASK",
+        "name": "Avaliação",
+        "description": "Coleta a satisfação e, se baixa, o motivo.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_avaliacao",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Como foi o atendimento?",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_avaliacao",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Como foi o seu atendimento?",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_protocolo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Protocolo {{data.protocoloAtendimento}}",
+                      "align": "start",
+                      "variant": "caption",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_satisfacao",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Sua avaliação",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Muito satisfeito",
+                          "value": "5"
+                        },
+                        {
+                          "label": "Satisfeito",
+                          "value": "4"
+                        },
+                        {
+                          "label": "Neutro",
+                          "value": "3"
+                        },
+                        {
+                          "label": "Insatisfeito",
+                          "value": "2"
+                        },
+                        {
+                          "label": "Muito insatisfeito",
+                          "value": "1"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.satisfacao",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "ta_melhorar",
+                    "type": "ui.textArea",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "O que podemos melhorar?",
+                      "maxLines": 5,
+                      "minLines": 3,
+                      "required": false,
+                      "maxLength": 500,
+                      "placeholder": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.melhoria",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": {
+                      "path": "form.satisfacao",
+                      "rule": "in",
+                      "value": [
+                        "1",
+                        "2",
+                        "3"
+                      ]
+                    },
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "chk_contato",
+                    "type": "ui.checkbox",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Pode entrar em contato comigo sobre esta avaliação",
+                      "required": false,
+                      "indeterminate": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.autorizaContato",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_enviar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Enviar avaliação",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_RegistraAvaliacao",
+        "nodeType": "SERVICE_TASK",
+        "name": "Registra avaliação",
+        "description": "Publica a avaliação para a área de qualidade.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "protocolo",
+                "value": "{{data_protocoloAtendimento}}",
+                "type": "string"
+              },
+              {
+                "name": "satisfacao",
+                "value": "{{form_satisfacao}}",
+                "type": "number"
+              },
+              {
+                "name": "melhoria",
+                "value": "{{form_melhoria}}",
+                "type": "string"
+              },
+              {
+                "name": "autorizaContato",
+                "value": "{{form_autorizaContato}}",
+                "type": "boolean"
+              }
+            ],
+            "payload": {
+              "protocolo": "{{data_protocoloAtendimento}}",
+              "satisfacao": "{{form_satisfacao}}",
+              "melhoria": "{{form_melhoria}}",
+              "autorizaContato": "{{form_autorizaContato}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Obrigado",
+        "nodeType": "USER_TASK",
+        "name": "Agradecimento",
+        "description": "Agradece a participação.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_obrigado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Obrigado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_obrigado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_obrigado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "Obrigado pela avaliação! Ela ajuda a melhorar nosso atendimento.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_obrigado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Fim",
+        "nodeType": "END",
+        "name": "Fim",
+        "description": "Fim",
+        "positionX": 684,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Avaliacao",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Avaliacao",
+        "targetNodeId": "Node_RegistraAvaliacao",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_RegistraAvaliacao",
+        "targetNodeId": "Node_Obrigado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Obrigado",
+        "targetNodeId": "Node_Fim",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Campo condicional: \"O que podemos melhorar?\" só aparece para avaliações de 1 a 3.",
+        "positionX": 165,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_Avaliacao"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Antes de publicar: escolha cluster, tópico e credencial de mensageria.",
+        "positionX": 315,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_RegistraAvaliacao"
+        ]
+      }
+    ]
+  }
+}

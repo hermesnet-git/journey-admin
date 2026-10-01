@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, FilePlus2, GitBranch, Sparkles } from 'lucide-react';
+import { FilePlus2, GitBranch, Sparkles } from 'lucide-react';
 import { FigmaIcon } from '../shared/FigmaIcon';
 import { Modal } from '../products/Modal';
 import { Field, TextInput, TextArea, SelectInput, PrimaryButton, SecondaryButton, ErrorBanner } from '../products/ui';
@@ -11,6 +11,7 @@ import { layoutFlowNodes } from '../flow-designer/model';
 import { ApiClientError } from '../api/client';
 import { useAppTheme } from '../shell/theme';
 import { FigmaImportTab, type FigmaImportSelection } from './FigmaImportTab';
+import { TemplateGallery } from './TemplateGallery';
 import { buildFigmaFlow } from '../api/figma';
 
 interface NewJourneyModalProps {
@@ -24,10 +25,6 @@ interface AiLogEntry {
   text: string;
   error?: boolean;
 }
-
-// Cor de marca (Mística/Vivo) usada só no botão dos cards de template, pra reproduzir de perto o
-// visual de referência (wf-designer) — o resto do modal continua no accent azul padrão do admin.
-const TEMPLATE_ACCENT = '#8A05BE';
 
 const TABS: { mode: StartMode; label: string }[] = [
   { mode: 'blank', label: 'Dados da jornada' },
@@ -51,37 +48,6 @@ const AI_PROMPT_EXAMPLES: { label: string; prompt: string }[] = [
     label: 'Alta',
     prompt:
       'Diagnóstico de falha na internet fixa: identifica o cliente pelo CPF/CNPJ e contrato, verifica pendências financeiras, checa manutenção programada ou preventiva na região, executa diagnóstico remoto de sinal e equipamento, e conforme o resultado abre um bilhete de defeito com prazo estimado ou confirma a normalização diretamente com o cliente.',
-  },
-];
-
-// TEMP (só teste visual): mesmos nome/descrição dos templates do wf-designer, sem fluxo real por
-// trás — só pra ver a grade com várias opções antes de decidir quais valem virar template de verdade
-// no backend. Remover quando isso for decidido.
-const VISUAL_TEST_TEMPLATES: JourneyTemplate[] = [
-  {
-    templateId: '__test_cadastro',
-    name: 'Integração de Cadastro',
-    description: 'Cadastra o cliente via API e trata falhas de integração.',
-  },
-  {
-    templateId: '__test_fila',
-    name: 'Processamento em Fila',
-    description: 'Publica uma mensagem em uma fila para processamento assíncrono.',
-  },
-  {
-    templateId: '__test_autoatendimento',
-    name: 'Autoatendimento: Falha na Internet Fixa',
-    description: 'Portal de relacionamento verifica pendências, manutenções e diagnostica a rede antes de abrir um BD.',
-  },
-  {
-    templateId: '__test_reclamacao',
-    name: 'Resolução de Reclamação Multicanal',
-    description: 'Triagem de reclamações com verificação de histórico, escalonamento e compensação ao cliente.',
-  },
-  {
-    templateId: '__test_tecnico_campo',
-    name: 'Manutenção de Fibra em Campo',
-    description: 'Passo a passo guiado para o técnico atender, diagnosticar e reparar internet de fibra na casa do cliente.',
   },
 ];
 
@@ -218,7 +184,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
     <Modal
       title="Nova jornada"
       subtitle="Defina os dados da jornada e escolha como começar: em branco, a partir de um exemplo, com uma geração por IA ou a partir de um arquivo de design."
-      width={mode === 'ai' || mode === 'figma' ? 640 : 460}
+      width={mode === 'template' ? 1120 : mode === 'ai' || mode === 'figma' ? 640 : 460}
       onClose={onClose}
       footer={
         <>
@@ -237,7 +203,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
         }}
         className="flex flex-col gap-4 flex-1 min-h-0"
       >
-        <div className={`flex flex-col${mode === 'ai' || mode === 'figma' ? ' flex-1 min-h-0' : ''}`}>
+        <div className={`flex flex-col${mode !== 'blank' ? ' flex-1 min-h-0' : ''}`}>
           <div className="flex gap-1 border-b" style={{ borderColor: c.border }}>
             {TABS.map((tab) => {
               const active = mode === tab.mode;
@@ -301,54 +267,18 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
           )}
 
           {mode === 'template' && (
-            <div className="mt-3 flex flex-col gap-3">
+            <div className="mt-3 flex-1 min-h-0 flex flex-col gap-3">
               <div className="text-[12.5px] leading-[1.4]" style={{ color: c.textSecondary }}>
-                O fluxo já vem montado a partir do modelo escolhido, em uma versão Rascunho pronta pra você ajustar no editor.
+                Comece a partir de um exemplo completo: o fluxo, as telas e as integrações já vêm montados numa versão Rascunho, com notas no editor explicando cada parte.
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {[...templates, ...VISUAL_TEST_TEMPLATES].map((template) => {
-                  const selected = templateId === template.templateId;
-                  return (
-                    <button
-                      key={template.templateId}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => setTemplateId(template.templateId)}
-                      className="min-h-[112px] rounded-xl p-4 text-left cursor-pointer flex flex-col gap-[10px]"
-                      style={{
-                        border: `1px solid ${selected ? TEMPLATE_ACCENT : c.border}`,
-                        outline: selected ? `2px solid ${TEMPLATE_ACCENT}` : 'none',
-                        outlineOffset: -1,
-                        background: selected ? c.accentSoft : c.surface,
-                        color: c.textPrimary,
-                      }}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="text-[14.5px] font-bold">{template.name}</span>
-                        {selected && <Check size={16} style={{ color: TEMPLATE_ACCENT, flexShrink: 0 }} />}
-                      </span>
-                      <span className="text-[12.5px] leading-[1.4] flex-1" style={{ color: c.textSecondary }}>
-                        {template.description}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              {templatesLoading && (
-                <div className="mt-2 text-[11.5px]" style={{ color: c.textMuted }}>
-                  Carregando modelos...
-                </div>
-              )}
-              {templatesError && (
-                <div className="mt-2 text-[11.5px]" style={{ color: c.warning }}>
-                  {templatesError}
-                </div>
-              )}
-              {!templatesLoading && !templatesError && templates.length === 0 && (
-                <div className="mt-2 text-[11.5px]" style={{ color: c.textMuted }}>
-                  Nenhum modelo disponível no momento.
-                </div>
-              )}
+              <TemplateGallery
+                templates={templates}
+                loading={templatesLoading}
+                error={templatesError}
+                selectedId={templateId}
+                onSelect={setTemplateId}
+                journeyChannels={channelTypes}
+              />
             </div>
           )}
 

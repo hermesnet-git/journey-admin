@@ -1,0 +1,980 @@
+{
+  "templateId": "negociacao-debito",
+  "name": "2ª via e negociação de débito",
+  "track": "negocio",
+  "area": "Financeiro",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Lista as faturas em aberto e deixa o cliente gerar a 2ª via ou parcelar as vencidas.",
+  "highlights": [
+    "Duas ações por fatura, liberadas conforme a fatura",
+    "Parcelamento com o número de parcelas escolhido",
+    "Caminho próprio para cliente em dia"
+  ],
+  "flow": {
+    "name": "2ª via e negociação de débito",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Cpf",
+        "nodeType": "USER_TASK",
+        "name": "Identificação",
+        "description": "Coleta o CPF do titular.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_cpf",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Suas faturas",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_cpf",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_cpf",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Vamos ver suas faturas",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cpf",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF do titular (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpf",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_cpf",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Consultar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_BuscaFaturas",
+        "nodeType": "SERVICE_TASK",
+        "name": "Busca faturas em aberto",
+        "description": "Traz as faturas em aberto do CPF.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/clientes/{{form_cpf}}/faturas",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "quantidadeFaturas",
+                "jsonPath": "$.quantidade",
+                "type": "number"
+              },
+              {
+                "name": "faturas",
+                "jsonPath": "$.faturas",
+                "type": "list",
+                "keepFields": [
+                  "id",
+                  "referencia",
+                  "valor",
+                  "vencimento",
+                  "status",
+                  "podeSegundaVia",
+                  "podeNegociar",
+                  "motivoBloqueio"
+                ]
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TemFaturas",
+        "nodeType": "GATEWAY",
+        "name": "Tem faturas?",
+        "description": "Sem faturas, avisa e encerra.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EscolheFatura",
+        "nodeType": "USER_TASK",
+        "name": "Escolha a fatura e a ação",
+        "description": "Lista as faturas com 2ª via e negociação.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_escolhefatura",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Suas faturas",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_escolhefatura",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_escolha",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Escolha a fatura e o que deseja fazer",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "lst_faturas",
+                    "type": "ui.selectList",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Faturas em aberto",
+                      "itemValue": "id",
+                      "itemTitle": "Fatura {{item.referencia}} — R$ {{item.valor}}",
+                      "itemDescription": "{{item.status}} · vence {{item.vencimento}}",
+                      "itemHint": "{{item.motivoBloqueio}}",
+                      "emptyMessage": "Você não tem faturas em aberto.",
+                      "maxItems": 50,
+                      "actions": [
+                        {
+                          "id": "segunda_via",
+                          "label": "2ª via",
+                          "variant": "secondary",
+                          "enabledWhen": "{{item.podeSegundaVia}} == true"
+                        },
+                        {
+                          "id": "negociar",
+                          "label": "Negociar",
+                          "variant": "primary",
+                          "enabledWhen": "{{item.podeNegociar}} == true"
+                        }
+                      ],
+                      "required": true
+                    },
+                    "bindings": {
+                      "items": {
+                        "path": "data.faturas",
+                        "mode": "oneWay"
+                      },
+                      "value": {
+                        "path": "form.faturaEscolhida",
+                        "mode": "twoWay"
+                      },
+                      "action": {
+                        "path": "form.acaoFatura",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": {
+                      "onAction": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Negociar",
+        "nodeType": "GATEWAY",
+        "name": "Negociar?",
+        "description": "Segue a ação escolhida.",
+        "positionX": 835,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Parcelas",
+        "nodeType": "USER_TASK",
+        "name": "Parcelamento",
+        "description": "Coleta o número de parcelas.",
+        "positionX": 971,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_parcelas",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Negociar fatura",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_parcelas",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_parcelas",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Em quantas vezes?",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_parcelas",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Número de parcelas",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "2 vezes",
+                          "value": "2"
+                        },
+                        {
+                          "label": "3 vezes",
+                          "value": "3"
+                        },
+                        {
+                          "label": "6 vezes",
+                          "value": "6"
+                        },
+                        {
+                          "label": "10 vezes",
+                          "value": "10"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.parcelasAcordo",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_parcelas",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Fechar acordo",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FechaAcordo",
+        "nodeType": "SERVICE_TASK",
+        "name": "Fecha o acordo",
+        "description": "Registra o parcelamento.",
+        "positionX": 1121,
+        "positionY": 431,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/acordos",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "faturaId": "{{form_faturaEscolhida}}",
+              "parcelas": "{{form_parcelasAcordo}}"
+            },
+            "outputMapping": [
+              {
+                "name": "protocoloAcordo",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              },
+              {
+                "name": "valorParcela",
+                "jsonPath": "$.valorParcela",
+                "type": "number"
+              },
+              {
+                "name": "primeiroVencimento",
+                "jsonPath": "$.primeiroVencimento",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AcordoFechado",
+        "nodeType": "USER_TASK",
+        "name": "Acordo fechado",
+        "description": "Confirma o acordo.",
+        "positionX": 1271,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_acordofechado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Acordo fechado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_acordofechado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_acordo",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Acordo {{data.protocoloAcordo}}",
+                      "message": "{{form.parcelasAcordo}} parcelas de R$ {{data.valorParcela}}. Primeiro vencimento em {{data.primeiroVencimento}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_acordo",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_GeraSegundaVia",
+        "nodeType": "SERVICE_TASK",
+        "name": "Gera 2ª via",
+        "description": "Gera linha digitável e Pix da fatura escolhida.",
+        "positionX": 971,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/faturas/{{form_faturaEscolhida}}/segunda-via",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {},
+            "outputMapping": [
+              {
+                "name": "linhaDigitavel",
+                "jsonPath": "$.linhaDigitavel",
+                "type": "string"
+              },
+              {
+                "name": "pixCopiaECola",
+                "jsonPath": "$.pixCopiaECola",
+                "type": "string"
+              },
+              {
+                "name": "validadeSegundaVia",
+                "jsonPath": "$.validade",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_SegundaVia",
+        "nodeType": "USER_TASK",
+        "name": "Sua 2ª via",
+        "description": "Mostra os dados para pagamento.",
+        "positionX": 1121,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_segundavia",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Sua 2ª via",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_segundavia",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_sv",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Prontinho! Aqui está sua 2ª via",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_sv_linha",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Linha digitável: {{data.linhaDigitavel}}",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_sv_pix",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Pix copia e cola: {{data.pixCopiaECola}}",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_sv_validade",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Válida até {{data.validadeSegundaVia}}",
+                      "align": "start",
+                      "variant": "caption",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_sv",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Encerrar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EmDia",
+        "nodeType": "USER_TASK",
+        "name": "Tudo em dia",
+        "description": "Informa que não há faturas em aberto.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_emdia",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Tudo em dia",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_emdia",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_em_dia",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo em dia",
+                      "message": "Você não tem faturas em aberto.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_em_dia",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Encerrar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimEmDia",
+        "nodeType": "END",
+        "name": "Fim — em dia",
+        "description": "Fim — em dia",
+        "positionX": 834,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimAcordo",
+        "nodeType": "END",
+        "name": "Fim — acordo",
+        "description": "Fim — acordo",
+        "positionX": 1434,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimSegundaVia",
+        "nodeType": "END",
+        "name": "Fim — 2ª via",
+        "description": "Fim — 2ª via",
+        "positionX": 1284,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Cpf",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Cpf",
+        "targetNodeId": "Node_BuscaFaturas",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_BuscaFaturas",
+        "targetNodeId": "Node_TemFaturas",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_TemFaturas",
+        "targetNodeId": "Node_EmDia",
+        "condition": "{{data_quantidadeFaturas}} == 0",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_TemFaturas",
+        "targetNodeId": "Node_EscolheFatura",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_EmDia",
+        "targetNodeId": "Node_FimEmDia",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_EscolheFatura",
+        "targetNodeId": "Node_Negociar",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Negociar",
+        "targetNodeId": "Node_Parcelas",
+        "condition": "{{form_acaoFatura}} == \"negociar\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_Negociar",
+        "targetNodeId": "Node_GeraSegundaVia",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_10",
+        "sourceNodeId": "Node_Parcelas",
+        "targetNodeId": "Node_FechaAcordo",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_11",
+        "sourceNodeId": "Node_FechaAcordo",
+        "targetNodeId": "Node_AcordoFechado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_12",
+        "sourceNodeId": "Node_AcordoFechado",
+        "targetNodeId": "Node_FimAcordo",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_13",
+        "sourceNodeId": "Node_GeraSegundaVia",
+        "targetNodeId": "Node_SegundaVia",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_14",
+        "sourceNodeId": "Node_SegundaVia",
+        "targetNodeId": "Node_FimSegundaVia",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "A API diz o que cada fatura permite (podeSegundaVia, podeNegociar) e o motivo quando bloqueia; a tela só aplica.",
+        "positionX": 615,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_EscolheFatura"
+        ]
+      }
+    ]
+  }
+}

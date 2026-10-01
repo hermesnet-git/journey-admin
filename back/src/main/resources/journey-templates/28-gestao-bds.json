@@ -1,0 +1,914 @@
+{
+  "templateId": "gestao-bds",
+  "name": "Gestão de bilhetes de defeito",
+  "track": "negocio",
+  "area": "Empresas",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "A empresa vê os bilhetes de defeito em aberto e reagenda a visita ou cancela o bilhete.",
+  "highlights": [
+    "Lista de bilhetes com duas ações por item",
+    "Horários de reagendamento buscados na tela",
+    "Cada ação com seu próprio desfecho"
+  ],
+  "flow": {
+    "name": "Gestão de bilhetes de defeito",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_InformaCnpj",
+        "nodeType": "USER_TASK",
+        "name": "Informe o CNPJ",
+        "description": "Coleta o CNPJ da empresa.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_informacnpj",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Suporte Vivo Empresas",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_informacnpj",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_cnpj",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Vamos buscar os bilhetes de defeito da sua empresa",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cnpj",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CNPJ (só números)",
+                      "placeholder": "00000000000000",
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 14,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cnpj",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_cnpj",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Consultar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ConsultaBilhetes",
+        "nodeType": "SERVICE_TASK",
+        "name": "Consulta bilhetes em aberto",
+        "description": "Busca os bilhetes do CNPJ.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/clientes/{{form_cnpj}}/bilhetes",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "quantidadeBilhetes",
+                "jsonPath": "$.quantidade",
+                "type": "number"
+              },
+              {
+                "name": "bilhetes",
+                "jsonPath": "$.bilhetes",
+                "type": "list",
+                "keepFields": [
+                  "numeroBilhete",
+                  "tipoDefeito",
+                  "status",
+                  "prioridade",
+                  "dataAbertura",
+                  "podeReagendar",
+                  "podeCancelar",
+                  "motivoBloqueio"
+                ]
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TemBilhetes",
+        "nodeType": "GATEWAY",
+        "name": "Tem bilhetes?",
+        "description": "Sem bilhetes, avisa e encerra.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_SemBilhetes",
+        "nodeType": "USER_TASK",
+        "name": "Nenhum bilhete",
+        "description": "Informa que não há bilhetes.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_sembilhetes",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Nenhum bilhete em aberto",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_sembilhetes",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_sem",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo certo por aqui",
+                      "message": "Não encontramos bilhetes de defeito em aberto para este CNPJ.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_sem",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EscolheBilhete",
+        "nodeType": "USER_TASK",
+        "name": "Escolha o bilhete e a ação",
+        "description": "Lista os bilhetes e as ações liberadas.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_escolhebilhete",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Seus bilhetes de defeito",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_escolhebilhete",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_bilhetes",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Escolha o bilhete e o que deseja fazer",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "lst_bilhetes",
+                    "type": "ui.selectList",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Bilhetes em aberto",
+                      "itemValue": "numeroBilhete",
+                      "itemTitle": "{{item.tipoDefeito}} — {{item.prioridade}}",
+                      "itemDescription": "{{item.numeroBilhete}} · {{item.status}} · aberto em {{item.dataAbertura}}",
+                      "itemHint": "{{item.motivoBloqueio}}",
+                      "emptyMessage": "Você não tem bilhetes em aberto.",
+                      "maxItems": 50,
+                      "actions": [
+                        {
+                          "id": "reagendar",
+                          "label": "Reagendar visita",
+                          "variant": "primary",
+                          "enabledWhen": "{{item.podeReagendar}} == true"
+                        },
+                        {
+                          "id": "cancelar",
+                          "label": "Cancelar bilhete",
+                          "variant": "danger",
+                          "enabledWhen": "{{item.podeCancelar}} == true"
+                        }
+                      ],
+                      "required": true
+                    },
+                    "bindings": {
+                      "items": {
+                        "path": "data.bilhetes",
+                        "mode": "oneWay"
+                      },
+                      "value": {
+                        "path": "form.bilheteSelecionado",
+                        "mode": "twoWay"
+                      },
+                      "action": {
+                        "path": "form.acaoBilhete",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": {
+                      "onAction": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ReagendarOuCancelar",
+        "nodeType": "GATEWAY",
+        "name": "Reagendar ou cancelar?",
+        "description": "Segue a ação escolhida.",
+        "positionX": 835,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_NovoHorario",
+        "nodeType": "USER_TASK",
+        "name": "Escolha o novo horário",
+        "description": "Horários livres da agenda técnica.",
+        "positionX": 971,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_novohorario",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Reagendar visita técnica",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_novohorario",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_horario",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Novo horário para o bilhete {{form.bilheteSelecionado}}",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_horario",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Horários disponíveis",
+                      "placeholder": "Selecione",
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.horarioEscolhido",
+                        "mode": "twoWay"
+                      },
+                      "options": {
+                        "path": "data.horarios",
+                        "mode": "oneWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_horario",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Confirmar reagendamento",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": [
+            {
+              "alias": "horarios",
+              "source": "",
+              "params": {
+                "bilhete": "{{form_bilheteSelecionado}}"
+              },
+              "required": true,
+              "errorMessage": "Não conseguimos carregar os horários agora."
+            }
+          ]
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Reagenda",
+        "nodeType": "SERVICE_TASK",
+        "name": "Reagenda a visita",
+        "description": "Confirma o novo horário.",
+        "positionX": 1121,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/bilhetes/{{form_bilheteSelecionado}}/reagendamento",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "horario": "{{form_horarioEscolhido}}"
+            },
+            "outputMapping": [
+              {
+                "name": "protocoloReagendamento",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Reagendado",
+        "nodeType": "USER_TASK",
+        "name": "Visita reagendada",
+        "description": "Confirma o reagendamento.",
+        "positionX": 1271,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_reagendado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Visita reagendada",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_reagendado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_reagendado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "Bilhete {{form.bilheteSelecionado}} reagendado. Protocolo {{data.protocoloReagendamento}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_reagendado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Cancela",
+        "nodeType": "SERVICE_TASK",
+        "name": "Cancela o bilhete",
+        "description": "Cancela o bilhete no sistema de origem.",
+        "positionX": 971,
+        "positionY": 431,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/bilhetes/{{form_bilheteSelecionado}}/cancelamento",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "motivo": "Solicitado pelo cliente"
+            },
+            "outputMapping": [
+              {
+                "name": "protocoloCancelamento",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Cancelado",
+        "nodeType": "USER_TASK",
+        "name": "Bilhete cancelado",
+        "description": "Confirma o cancelamento.",
+        "positionX": 1121,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_cancelado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Bilhete cancelado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_cancelado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_cancelado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": null,
+                      "message": "Bilhete {{form.bilheteSelecionado}} cancelado. Protocolo {{data.protocoloCancelamento}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_cancelado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimSem",
+        "nodeType": "END",
+        "name": "Fim — sem bilhetes",
+        "description": "Fim — sem bilhetes",
+        "positionX": 834,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimReagendado",
+        "nodeType": "END",
+        "name": "Fim — reagendado",
+        "description": "Fim — reagendado",
+        "positionX": 1434,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimCancelado",
+        "nodeType": "END",
+        "name": "Fim — cancelado",
+        "description": "Fim — cancelado",
+        "positionX": 1284,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_InformaCnpj",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_InformaCnpj",
+        "targetNodeId": "Node_ConsultaBilhetes",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_ConsultaBilhetes",
+        "targetNodeId": "Node_TemBilhetes",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_TemBilhetes",
+        "targetNodeId": "Node_SemBilhetes",
+        "condition": "{{data_quantidadeBilhetes}} == 0",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_TemBilhetes",
+        "targetNodeId": "Node_EscolheBilhete",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_SemBilhetes",
+        "targetNodeId": "Node_FimSem",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_EscolheBilhete",
+        "targetNodeId": "Node_ReagendarOuCancelar",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_ReagendarOuCancelar",
+        "targetNodeId": "Node_NovoHorario",
+        "condition": "{{form_acaoBilhete}} == \"reagendar\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_ReagendarOuCancelar",
+        "targetNodeId": "Node_Cancela",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_10",
+        "sourceNodeId": "Node_NovoHorario",
+        "targetNodeId": "Node_Reagenda",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_11",
+        "sourceNodeId": "Node_Reagenda",
+        "targetNodeId": "Node_Reagendado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_12",
+        "sourceNodeId": "Node_Reagendado",
+        "targetNodeId": "Node_FimReagendado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_13",
+        "sourceNodeId": "Node_Cancela",
+        "targetNodeId": "Node_Cancelado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_14",
+        "sourceNodeId": "Node_Cancelado",
+        "targetNodeId": "Node_FimCancelado",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Teste com o CNPJ 45537128000127. Cada bilhete diz se pode ser reagendado ou cancelado; a tela só libera o que ele permite.",
+        "positionX": 615,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_EscolheBilhete"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Antes de publicar: cadastre uma fonte de dados para GET http://localhost:8084/v1/bilhetes/{bilhete}/horarios-disponiveis (itens em $.horarios, campos value e label), escolha-a nesta tela e ligue o parâmetro bilhete a {{form_bilheteSelecionado}}.",
+        "positionX": 915,
+        "positionY": -5,
+        "linkedNodeIds": [
+          "Node_NovoHorario"
+        ]
+      }
+    ]
+  }
+}

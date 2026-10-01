@@ -1,0 +1,547 @@
+{
+  "templateId": "processamento-em-fila",
+  "name": "Processamento em fila",
+  "track": "integracoes",
+  "area": null,
+  "channelTypes": [
+    "WEB"
+  ],
+  "description": "Envia uma troca de titularidade para outro sistema processar e espera o retorno para seguir.",
+  "highlights": [
+    "Envio para processamento e espera do retorno",
+    "Ida e volta pela mesma mensageria",
+    "Decisão pelo status devolvido"
+  ],
+  "flow": {
+    "name": "Processamento em fila",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Pedido",
+        "nodeType": "USER_TASK",
+        "name": "Pedido de troca de titularidade",
+        "description": "Coleta os dados da troca.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_pedido",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Troca de titularidade",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_pedido",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Troca de titularidade da linha",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_atual",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF do titular atual",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpfTitular",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_novo",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF do novo titular",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpfNovoTitular",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_motivo",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Motivo",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Mudança de empresa",
+                          "value": "mudanca_empresa"
+                        },
+                        {
+                          "label": "Acordo entre as partes",
+                          "value": "acordo"
+                        },
+                        {
+                          "label": "Outro",
+                          "value": "outro"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.motivoTroca",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_enviar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Enviar pedido",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EnviaProcessamento",
+        "nodeType": "SERVICE_TASK",
+        "name": "Envia para processamento",
+        "description": "Coloca o pedido na fila do sistema de cadastro.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "cpfTitular",
+                "value": "{{form_cpfTitular}}",
+                "type": "string"
+              },
+              {
+                "name": "cpfNovoTitular",
+                "value": "{{form_cpfNovoTitular}}",
+                "type": "string"
+              },
+              {
+                "name": "motivo",
+                "value": "{{form_motivoTroca}}",
+                "type": "string"
+              }
+            ],
+            "payload": {
+              "cpfTitular": "{{form_cpfTitular}}",
+              "cpfNovoTitular": "{{form_cpfNovoTitular}}",
+              "motivo": "{{form_motivoTroca}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AguardaProcessamento",
+        "nodeType": "RECEIVE_TASK",
+        "name": "Aguarda processamento",
+        "description": "Espera o retorno do sistema de cadastro.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "statusProcessamento",
+                "jsonPath": "$.payload.data.statusProcessamento",
+                "type": "string"
+              },
+              {
+                "name": "protocoloProcessamento",
+                "jsonPath": "$.payload.data.protocoloProcessamento",
+                "type": "string"
+              },
+              {
+                "name": "motivoRecusa",
+                "jsonPath": "$.payload.data.motivoRecusa",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Aprovado",
+        "nodeType": "GATEWAY",
+        "name": "Troca aprovada?",
+        "description": "Segue conforme o status devolvido.",
+        "positionX": 685,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Transferida",
+        "nodeType": "USER_TASK",
+        "name": "Titularidade transferida",
+        "description": "Confirma a troca.",
+        "positionX": 821,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_transferida",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Troca concluída",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_transferida",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_feito",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Concluído",
+                      "message": "Titularidade transferida. Protocolo {{data.protocoloProcessamento}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_feito",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Recusada",
+        "nodeType": "USER_TASK",
+        "name": "Troca recusada",
+        "description": "Mostra o motivo da recusa.",
+        "positionX": 821,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_recusada",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Não foi possível",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_recusada",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_recusa",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "A troca não foi aprovada",
+                      "message": "{{data.motivoRecusa}}",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_recusa",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimTransferida",
+        "nodeType": "END",
+        "name": "Fim — transferida",
+        "description": "Fim — transferida",
+        "positionX": 984,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimRecusada",
+        "nodeType": "END",
+        "name": "Fim — recusada",
+        "description": "Fim — recusada",
+        "positionX": 984,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Pedido",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Pedido",
+        "targetNodeId": "Node_EnviaProcessamento",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_EnviaProcessamento",
+        "targetNodeId": "Node_AguardaProcessamento",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_AguardaProcessamento",
+        "targetNodeId": "Node_Aprovado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_Aprovado",
+        "targetNodeId": "Node_Transferida",
+        "condition": "{{data_statusProcessamento}} == \"APROVADO\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_Aprovado",
+        "targetNodeId": "Node_Recusada",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_Transferida",
+        "targetNodeId": "Node_FimTransferida",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Recusada",
+        "targetNodeId": "Node_FimRecusada",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Padrão de fila: publica o pedido e espera o retorno do processamento. Antes de publicar: escolha cluster, tópico e credencial nas duas etapas.",
+        "positionX": 315,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_EnviaProcessamento",
+          "Node_AguardaProcessamento"
+        ]
+      }
+    ]
+  }
+}

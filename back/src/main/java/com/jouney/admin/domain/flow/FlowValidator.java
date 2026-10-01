@@ -115,17 +115,26 @@ public final class FlowValidator {
     private FlowValidator() {
     }
 
+    // Só o desenho: usado pela geração por IA, que deixa cluster/tópico/credencial de mensageria de
+    // fora de propósito (dependem do ambiente) — quem escolhe é o autor, no editor.
     public static void validate(List<FlowNode> nodes, List<FlowConnection> connections,
                                  Map<String, ComponentDefinition> componentRegistry) {
-        validate(nodes, connections, componentRegistry, List.of());
+        validate(nodes, connections, componentRegistry, List.of(), false);
     }
 
     // channelTypes: tipos de canal da jornada sendo publicada — usado só pra checar que nenhuma
     // tela fica sem nenhum componente visível para algum deles (validateChannelVisibilityCoverage).
     // Vazio (ex.: validação de rascunho/preview, antes de a jornada ter canal resolvido) pula essa
-    // checagem — o resto da validação estrutural continua idêntico.
+    // checagem — o resto da validação estrutural continua idêntico. Também cobra o que depende do
+    // ambiente (mensageria sem cluster/tópico/credencial), como os templates deixam de propósito.
     public static void validate(List<FlowNode> nodes, List<FlowConnection> connections,
                                  Map<String, ComponentDefinition> componentRegistry, List<ChannelType> channelTypes) {
+        validate(nodes, connections, componentRegistry, channelTypes, true);
+    }
+
+    private static void validate(List<FlowNode> nodes, List<FlowConnection> connections,
+                                  Map<String, ComponentDefinition> componentRegistry, List<ChannelType> channelTypes,
+                                  boolean requireEnvironmentSetup) {
         List<FlowViolation> violations = new ArrayList<>();
 
         List<FlowNode> starts = nodes.stream().filter(n -> START_TYPES.contains(n.getType())).toList();
@@ -286,6 +295,10 @@ public final class FlowValidator {
                         String friendlyOperation = "PRODUCE".equals(expectedOperation) ? "publicar" : "consumir";
                         violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' (" + friendlyType(node.getType())
                                 + "): a operação de mensageria deveria ser '" + friendlyOperation + "'"));
+                    }
+                    if (requireEnvironmentSetup && !connectorConfig.hasMessagingDestination()) {
+                        violations.add(new FlowViolation(node.getId(), "'" + node.getName()
+                                + "' ainda não tem cluster, tópico e credencial de mensageria escolhidos — configure a integração"));
                     }
                 }
 
@@ -505,9 +518,10 @@ public final class FlowValidator {
                         + "' da jornada — escolha outro apelido"));
                 continue;
             }
+            // Sem fonte escolhida o apelido continua valendo na tela: senão cada componente ligado a
+            // data.<apelido> repetiria o mesmo problema como "variável que não existe".
             if (!(declaration.get("source") instanceof String source) || source.isBlank()) {
                 violations.add(new FlowViolation(node.getId(), subject + " não indica qual fonte do catálogo usar"));
-                continue;
             }
             Set<String> tokens = new HashSet<>();
             collectVariableTokens(declaration.get("params"), tokens);

@@ -181,6 +181,9 @@ interface Props {
   // nós continuam puramente visuais, como antes.
   selectedNodeId?: string | null;
   onNodeSelect?: (nodeId: string | null) => void;
+  // Miniatura (prévia de template em Nova jornada): enquadra o fluxo inteiro, sem rótulo de condição
+  // nas ligações e sem capturar a rolagem do painel em volta (zoom só pelos botões).
+  compact?: boolean;
 }
 
 export function FlowDiagramViewer(props: Props) {
@@ -204,6 +207,7 @@ function FlowDiagramInner({
   staticView,
   selectedNodeId,
   onNodeSelect,
+  compact,
 }: Props) {
   const { zoomIn, zoomOut, fitView, setCenter } = useReactFlow();
   const { dark } = useAppTheme();
@@ -258,7 +262,7 @@ function FlowDiagramInner({
           id: c.id,
           source: c.sourceNodeId,
           target: c.targetNodeId,
-          label: c.isDefault ? 'padrão' : (c.condition ?? undefined),
+          label: compact ? undefined : c.isDefault ? 'padrão' : (c.condition ?? undefined),
           // Contorno (stroke atrás do preenchimento via paintOrder) em vez de uma caixa de fundo —
           // dá contraste pra ler o texto sobre qualquer nó/linha que passe por baixo, sem desenhar
           // um retângulo sólido atrás dele.
@@ -276,7 +280,7 @@ function FlowDiagramInner({
           markerEnd: { type: MarkerType.ArrowClosed, color },
         };
       }),
-    [flowConnections, visited, currentNodeId],
+    [flowConnections, visited, currentNodeId, compact],
   );
 
   // Centraliza a etapa atual sempre que ela muda (inclusive no primeiro carregamento), num zoom
@@ -286,6 +290,7 @@ function FlowDiagramInner({
   // o enquadramento inicial é o início do fluxo (nó START/MESSAGE_START_EVENT), e o diagnóstico de
   // falha ao iniciar (erroredNodeId) assume assim que aparece, com prioridade sobre o início.
   useEffect(() => {
+    if (compact) return;
     const target = staticView
       ? (flowNodes.find((n) => n.id === erroredNodeId) ?? flowNodes.find((n) => n.type === 'START' || n.type === 'MESSAGE_START_EVENT'))
       : flowNodes.find((n) => n.id === currentNodeId);
@@ -321,7 +326,11 @@ function FlowDiagramInner({
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
-        zoomOnScroll
+        zoomOnScroll={!compact}
+        preventScrolling={!compact}
+        fitView={compact}
+        fitViewOptions={{ padding: 0.12 }}
+        minZoom={compact ? 0.05 : undefined}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
         // Mesmo fundo do canvas do designer de Jornadas no claro (LIGHT_COLORS.canvasBg) — sem isso
@@ -334,19 +343,19 @@ function FlowDiagramInner({
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.4} color={skinVars.colors.border} />
       </ReactFlow>
       <div
-        className="absolute bottom-3 right-3 flex items-center gap-[2px] rounded-lg px-1 py-1"
-        style={{ background: skinVars.colors.backgroundContainer, border: `1px solid ${skinVars.colors.border}` }}
-      >
-        <button type="button" onClick={() => zoomOut({ duration: 150 })} className={iconBtn} style={{ color: skinVars.colors.textSecondary }} title="Diminuir zoom">
-          <ZoomOut size={15} />
-        </button>
-        <button type="button" onClick={() => zoomIn({ duration: 150 })} className={iconBtn} style={{ color: skinVars.colors.textSecondary }} title="Aumentar zoom">
-          <ZoomIn size={15} />
-        </button>
-        <button type="button" onClick={() => fitView({ padding: 0.2, duration: 200 })} className={iconBtn} style={{ color: skinVars.colors.textSecondary }} title="Ajustar à tela">
-          <Maximize size={15} />
-        </button>
-      </div>
+          className={`absolute ${compact ? 'bottom-2 right-2' : 'bottom-3 right-3'} flex items-center gap-[2px] rounded-lg px-1 py-1`}
+          style={{ background: skinVars.colors.backgroundContainer, border: `1px solid ${skinVars.colors.border}` }}
+        >
+          <button type="button" onClick={() => zoomOut({ duration: 150 })} className={iconBtn} style={{ color: skinVars.colors.textSecondary }} title="Diminuir zoom">
+            <ZoomOut size={15} />
+          </button>
+          <button type="button" onClick={() => zoomIn({ duration: 150 })} className={iconBtn} style={{ color: skinVars.colors.textSecondary }} title="Aumentar zoom">
+            <ZoomIn size={15} />
+          </button>
+          <button type="button" onClick={() => fitView({ padding: 0.2, duration: 200 })} className={iconBtn} style={{ color: skinVars.colors.textSecondary }} title="Ajustar à tela">
+            <Maximize size={15} />
+          </button>
+        </div>
       {showErrorModal && (
         <ErrorDetailsModal
           title={erroredNodeName ?? 'Erro na etapa'}

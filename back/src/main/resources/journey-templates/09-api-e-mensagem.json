@@ -1,0 +1,514 @@
+{
+  "templateId": "api-e-mensagem",
+  "name": "Pede pela API, recebe por mensagem",
+  "track": "integracoes",
+  "area": null,
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "A API só confirma o pedido de diagnóstico; o resultado chega depois, por mensagem, e vai para a tela.",
+  "highlights": [
+    "API que só confirma o pedido",
+    "Etapa que espera a mensagem de retorno",
+    "Campos da mensagem exibidos na tela"
+  ],
+  "flow": {
+    "name": "Pede pela API, recebe por mensagem",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_InformaCnpj",
+        "nodeType": "USER_TASK",
+        "name": "Informe o CNPJ",
+        "description": "Coleta o CNPJ da empresa.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_informacnpj",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Suporte Vivo Empresas",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_informacnpj",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_cnpj",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Vamos avaliar a conexão da sua empresa",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cnpj",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CNPJ (só números)",
+                      "placeholder": "00000000000000",
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 14,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cnpj",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_cnpj",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Consultar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_SolicitaDiagnostico",
+        "nodeType": "SERVICE_TASK",
+        "name": "Solicita diagnóstico",
+        "description": "Pede a avaliação de conexão do cliente.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/diagnosticos/solicitacoes",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cnpj": "{{form_cnpj}}",
+              "tipoAvaliacao": "CONECTIVIDADE_E_SINAL"
+            },
+            "outputMapping": [
+              {
+                "name": "protocoloDiagnostico",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              },
+              {
+                "name": "previsaoRetorno",
+                "jsonPath": "$.previsaoRetorno",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AguardaDiagnostico",
+        "nodeType": "RECEIVE_TASK",
+        "name": "Aguarda resultado do diagnóstico",
+        "description": "Espera o retorno da avaliação por mensagem.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "statusConexao",
+                "jsonPath": "$.payload.data.statusConexao",
+                "type": "string"
+              },
+              {
+                "name": "qualidadeSinal",
+                "jsonPath": "$.payload.data.qualidadeSinal",
+                "type": "string"
+              },
+              {
+                "name": "conclusao",
+                "jsonPath": "$.payload.data.conclusao",
+                "type": "string"
+              },
+              {
+                "name": "recomendacao",
+                "jsonPath": "$.payload.data.recomendacao",
+                "type": "string"
+              },
+              {
+                "name": "velocidadeDownloadMbps",
+                "jsonPath": "$.payload.data.velocidadeDownloadMbps",
+                "type": "number"
+              },
+              {
+                "name": "latenciaMs",
+                "jsonPath": "$.payload.data.latenciaMs",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Resultado",
+        "nodeType": "USER_TASK",
+        "name": "Resultado do diagnóstico",
+        "description": "Mostra o resultado da avaliação de conexão.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_resultado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Resultado do diagnóstico",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_resultado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_dg_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Resultado do diagnóstico da sua conexão",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "al_dg",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": "Conexão {{data.statusConexao}} — sinal {{data.qualidadeSinal}}",
+                      "message": "{{data.conclusao}}",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "card_dg",
+                    "type": "ui.card",
+                    "version": "1.0.0",
+                    "props": {
+                      "variant": "default",
+                      "paddingToken": "spacing.md",
+                      "elevationToken": "elevation.low"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": [
+                      {
+                        "id": "stk_dg",
+                        "type": "ui.stack",
+                        "version": "1.0.0",
+                        "props": {
+                          "direction": "vertical",
+                          "spacingToken": "spacing.sm",
+                          "alignment": "stretch"
+                        },
+                        "bindings": null,
+                        "events": null,
+                        "visibility": null,
+                        "active": null,
+                        "children": [
+                          {
+                            "id": "txt_dg_download",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Download: {{data.velocidadeDownloadMbps}} Mbps",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_dg_latencia",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Latência: {{data.latenciaMs}} ms",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_dg_protocolo",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Protocolo: {{data.protocoloDiagnostico}}",
+                              "align": "start",
+                              "variant": "caption",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "div_dg",
+                    "type": "ui.divider",
+                    "version": "1.0.0",
+                    "props": {
+                      "orientation": "horizontal",
+                      "colorToken": null,
+                      "spacingToken": "spacing.md"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "txt_dg_recomendacao",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Recomendação: {{data.recomendacao}}",
+                      "align": "start",
+                      "variant": "body",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_dg",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Fim",
+        "nodeType": "END",
+        "name": "Fim",
+        "description": "Fim",
+        "positionX": 834,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_InformaCnpj",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_InformaCnpj",
+        "targetNodeId": "Node_SolicitaDiagnostico",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_SolicitaDiagnostico",
+        "targetNodeId": "Node_AguardaDiagnostico",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_AguardaDiagnostico",
+        "targetNodeId": "Node_Resultado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_Resultado",
+        "targetNodeId": "Node_Fim",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "A API só confirma o pedido (protocolo e previsão). O resultado chega depois, por mensagem.",
+        "positionX": 315,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_SolicitaDiagnostico"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "A jornada fica parada aqui até a mensagem desta execução chegar; os campos de payload.data viram variáveis. Antes de publicar: escolha cluster, tópico e credencial.",
+        "positionX": 465,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_AguardaDiagnostico"
+        ]
+      }
+    ]
+  }
+}

@@ -34,4 +34,15 @@ public class ConnectorConfig {
     public String getCredentialRef() {
         return credentialRef;
     }
+
+    /** Mensageria só funciona com cluster, tópico (ou Event Hub/fila) e credencial escolhidos. */
+    public boolean hasMessagingDestination() {
+        return isFilled(config != null ? config.get("clusterId") : null)
+                && isFilled(config != null ? config.get("topic") : null)
+                && isFilled(credentialRef);
+    }
+
+    private static boolean isFilled(Object value) {
+        return value instanceof String s && !s.isBlank();
+    }
 }

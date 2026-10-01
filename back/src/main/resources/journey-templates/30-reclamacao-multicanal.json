@@ -1,0 +1,782 @@
+{
+  "templateId": "reclamacao-multicanal",
+  "name": "Resolução de reclamação multicanal",
+  "track": "negocio",
+  "area": "Ouvidoria",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Triagem da reclamação, proposta de compensação e escalonamento para a ouvidoria quando preciso.",
+  "highlights": [
+    "Triagem automática por API",
+    "Compensação proposta e aplicada na hora",
+    "Escalonamento por mensagem para a ouvidoria"
+  ],
+  "flow": {
+    "name": "Resolução de reclamação multicanal",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Reclamacao",
+        "nodeType": "USER_TASK",
+        "name": "Registro da reclamação",
+        "description": "Coleta os dados da reclamação.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_reclamacao",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Registrar reclamação",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_reclamacao",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Sentimos muito. Conta o que aconteceu",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cpf",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CPF (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 11,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cpf",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_categoria",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Assunto",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Cobrança indevida",
+                          "value": "cobranca_indevida"
+                        },
+                        {
+                          "label": "Atendimento",
+                          "value": "atendimento"
+                        },
+                        {
+                          "label": "Qualidade do serviço",
+                          "value": "qualidade"
+                        },
+                        {
+                          "label": "Instalação",
+                          "value": "instalacao"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.categoriaReclamacao",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "ta_relato",
+                    "type": "ui.textArea",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "O que aconteceu?",
+                      "maxLines": 5,
+                      "minLines": 3,
+                      "required": true,
+                      "maxLength": 500,
+                      "placeholder": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.relato",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "chk_reincidente",
+                    "type": "ui.checkbox",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Já reclamei disso antes",
+                      "required": false,
+                      "indeterminate": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.reincidente",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_registrar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Registrar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Triagem",
+        "nodeType": "SERVICE_TASK",
+        "name": "Faz a triagem",
+        "description": "Classifica a reclamação.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/ouvidoria/reclamacoes",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cpf": "{{form_cpf}}",
+              "categoria": "{{form_categoriaReclamacao}}",
+              "reincidente": "{{form_reincidente}}",
+              "relato": "{{form_relato}}"
+            },
+            "outputMapping": [
+              {
+                "name": "protocoloReclamacao",
+                "jsonPath": "$.protocolo",
+                "type": "string"
+              },
+              {
+                "name": "nivelAtendimento",
+                "jsonPath": "$.nivel",
+                "type": "string"
+              },
+              {
+                "name": "prazoRespostaDias",
+                "jsonPath": "$.prazoRespostaDias",
+                "type": "number"
+              },
+              {
+                "name": "compensacaoSugerida",
+                "jsonPath": "$.compensacaoSugerida",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_VaiParaOuvidoria",
+        "nodeType": "GATEWAY",
+        "name": "Vai para a ouvidoria?",
+        "description": "Reincidência ou cobrança indevida vão direto para a ouvidoria.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Proposta",
+        "nodeType": "USER_TASK",
+        "name": "Proposta de solução",
+        "description": "Propõe uma compensação.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_proposta",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Uma proposta para resolver",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_proposta",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_proposta",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": "Protocolo {{data.protocoloReclamacao}}",
+                      "message": "Para resolver, oferecemos R$ {{data.compensacaoSugerida}} de crédito na próxima fatura.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_aceita",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Você aceita?",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Sim, aceito",
+                          "value": "sim"
+                        },
+                        {
+                          "label": "Não, quero falar com a ouvidoria",
+                          "value": "nao"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.aceitaCompensacao",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_proposta",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Responder",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Aceitou",
+        "nodeType": "GATEWAY",
+        "name": "Aceitou?",
+        "description": "Aplica a compensação ou escala.",
+        "positionX": 835,
+        "positionY": 145,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AplicaCompensacao",
+        "nodeType": "SERVICE_TASK",
+        "name": "Aplica a compensação",
+        "description": "Credita a compensação.",
+        "positionX": 971,
+        "positionY": -19,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/ouvidoria/compensacoes",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "protocoloReclamacao": "{{data_protocoloReclamacao}}",
+              "valor": "{{data_compensacaoSugerida}}"
+            },
+            "outputMapping": [
+              {
+                "name": "valorCreditado",
+                "jsonPath": "$.valorCreditado",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Resolvida",
+        "nodeType": "USER_TASK",
+        "name": "Reclamação resolvida",
+        "description": "Confirma o crédito.",
+        "positionX": 1121,
+        "positionY": -19,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_resolvida",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Reclamação resolvida",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_resolvida",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_resolvida",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Resolvido",
+                      "message": "Creditamos R$ {{data.valorCreditado}} na sua próxima fatura.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_resolvida",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EscalaOuvidoria",
+        "nodeType": "SERVICE_TASK",
+        "name": "Encaminha para a ouvidoria",
+        "description": "Publica o caso para a ouvidoria.",
+        "positionX": 971,
+        "positionY": 431,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "protocolo",
+                "value": "{{data_protocoloReclamacao}}",
+                "type": "string"
+              },
+              {
+                "name": "categoria",
+                "value": "{{form_categoriaReclamacao}}",
+                "type": "string"
+              },
+              {
+                "name": "relato",
+                "value": "{{form_relato}}",
+                "type": "string"
+              }
+            ],
+            "payload": {
+              "protocolo": "{{data_protocoloReclamacao}}",
+              "categoria": "{{form_categoriaReclamacao}}",
+              "relato": "{{form_relato}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Escalada",
+        "nodeType": "USER_TASK",
+        "name": "Reclamação escalada",
+        "description": "Informa o prazo da ouvidoria.",
+        "positionX": 1121,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_escalada",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Com a ouvidoria",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_escalada",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_escalada",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": "Encaminhado",
+                      "message": "A ouvidoria responde em até {{data.prazoRespostaDias}} dias. Protocolo {{data.protocoloReclamacao}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_escalada",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimResolvida",
+        "nodeType": "END",
+        "name": "Fim — resolvida",
+        "description": "Fim — resolvida",
+        "positionX": 1284,
+        "positionY": -6,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimEscalada",
+        "nodeType": "END",
+        "name": "Fim — ouvidoria",
+        "description": "Fim — ouvidoria",
+        "positionX": 1284,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Reclamacao",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Reclamacao",
+        "targetNodeId": "Node_Triagem",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_Triagem",
+        "targetNodeId": "Node_VaiParaOuvidoria",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_VaiParaOuvidoria",
+        "targetNodeId": "Node_EscalaOuvidoria",
+        "condition": "{{data_nivelAtendimento}} == \"OUVIDORIA\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_VaiParaOuvidoria",
+        "targetNodeId": "Node_Proposta",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_Proposta",
+        "targetNodeId": "Node_Aceitou",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_Aceitou",
+        "targetNodeId": "Node_AplicaCompensacao",
+        "condition": "{{form_aceitaCompensacao}} == \"sim\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Aceitou",
+        "targetNodeId": "Node_EscalaOuvidoria",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_AplicaCompensacao",
+        "targetNodeId": "Node_Resolvida",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_10",
+        "sourceNodeId": "Node_Resolvida",
+        "targetNodeId": "Node_FimResolvida",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_11",
+        "sourceNodeId": "Node_EscalaOuvidoria",
+        "targetNodeId": "Node_Escalada",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_12",
+        "sourceNodeId": "Node_Escalada",
+        "targetNodeId": "Node_FimEscalada",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "A triagem é da API: reincidência ou cobrança indevida vão direto para a ouvidoria.",
+        "positionX": 315,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_Triagem"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Antes de publicar: escolha cluster, tópico e credencial no encaminhamento à ouvidoria.",
+        "positionX": 915,
+        "positionY": 550,
+        "linkedNodeIds": [
+          "Node_EscalaOuvidoria"
+        ]
+      }
+    ]
+  }
+}

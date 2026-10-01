@@ -1,0 +1,612 @@
+{
+  "templateId": "aprovacao-pedido",
+  "name": "Aprovação de pedido",
+  "track": "primeiros-passos",
+  "area": null,
+  "channelTypes": [
+    "WEB"
+  ],
+  "description": "Um aprovador analisa o pedido recebido, decide, e o resultado é avisado por mensagem.",
+  "highlights": [
+    "Dados do pedido recebidos como variáveis de entrada",
+    "Decisão pela escolha do aprovador",
+    "Resultado avisado por mensagem para outros sistemas"
+  ],
+  "flow": {
+    "name": "Aprovação de pedido",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": [
+          {
+            "name": "pedidoId",
+            "type": "string"
+          },
+          {
+            "name": "valorPedido",
+            "type": "number"
+          },
+          {
+            "name": "solicitante",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "nodeId": "Node_Analisar",
+        "nodeType": "USER_TASK",
+        "name": "Analisar pedido",
+        "description": "Mostra o pedido e coleta a decisão do aprovador.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_analisar",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Aprovação de pedido",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_analisar",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_pedido",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Pedido {{data.pedidoId}}",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "card_pedido",
+                    "type": "ui.card",
+                    "version": "1.0.0",
+                    "props": {
+                      "variant": "default",
+                      "paddingToken": "spacing.md",
+                      "elevationToken": "elevation.low"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": [
+                      {
+                        "id": "stk_pedido",
+                        "type": "ui.stack",
+                        "version": "1.0.0",
+                        "props": {
+                          "direction": "vertical",
+                          "spacingToken": "spacing.sm",
+                          "alignment": "stretch"
+                        },
+                        "bindings": null,
+                        "events": null,
+                        "visibility": null,
+                        "active": null,
+                        "children": [
+                          {
+                            "id": "txt_solicitante",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Solicitante: {{data.solicitante}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          },
+                          {
+                            "id": "txt_valor",
+                            "type": "ui.text",
+                            "version": "1.0.0",
+                            "props": {
+                              "text": "Valor: R$ {{data.valorPedido}}",
+                              "align": "start",
+                              "variant": "body",
+                              "maxLines": 2,
+                              "colorToken": "color.text.primary"
+                            },
+                            "bindings": null,
+                            "events": null,
+                            "visibility": null,
+                            "active": null,
+                            "children": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "sel_decisao",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Sua decisão",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Aprovar",
+                          "value": "aprovar"
+                        },
+                        {
+                          "label": "Reprovar",
+                          "value": "reprovar"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.decisao",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "ta_justificativa",
+                    "type": "ui.textArea",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Justificativa",
+                      "maxLines": 5,
+                      "minLines": 3,
+                      "required": false,
+                      "maxLength": 500,
+                      "placeholder": "Opcional para aprovação"
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.justificativa",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_registrar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Registrar decisão",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Aprovado",
+        "nodeType": "GATEWAY",
+        "name": "Aprovado?",
+        "description": "Segue a decisão do aprovador.",
+        "positionX": 385,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AvisaAprovacao",
+        "nodeType": "SERVICE_TASK",
+        "name": "Avisa aprovação",
+        "description": "Publica a aprovação para os sistemas interessados.",
+        "positionX": 521,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "pedidoId",
+                "value": "{{data_pedidoId}}",
+                "type": "string"
+              },
+              {
+                "name": "decisao",
+                "value": "APROVADO",
+                "type": "string"
+              },
+              {
+                "name": "justificativa",
+                "value": "{{form_justificativa}}",
+                "type": "string"
+              }
+            ],
+            "payload": {
+              "pedidoId": "{{data_pedidoId}}",
+              "decisao": "APROVADO",
+              "justificativa": "{{form_justificativa}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AvisaReprovacao",
+        "nodeType": "SERVICE_TASK",
+        "name": "Avisa reprovação",
+        "description": "Publica a reprovação para os sistemas interessados.",
+        "positionX": 521,
+        "positionY": 431,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "pedidoId",
+                "value": "{{data_pedidoId}}",
+                "type": "string"
+              },
+              {
+                "name": "decisao",
+                "value": "REPROVADO",
+                "type": "string"
+              },
+              {
+                "name": "justificativa",
+                "value": "{{form_justificativa}}",
+                "type": "string"
+              }
+            ],
+            "payload": {
+              "pedidoId": "{{data_pedidoId}}",
+              "decisao": "REPROVADO",
+              "justificativa": "{{form_justificativa}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TelaAprovado",
+        "nodeType": "USER_TASK",
+        "name": "Pedido aprovado",
+        "description": "Confirma a aprovação.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_telaaprovado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Pedido aprovado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_telaaprovado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_aprovado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Aprovado",
+                      "message": "Pedido {{data.pedidoId}} aprovado. O solicitante já foi avisado.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_ok_aprovado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_TelaReprovado",
+        "nodeType": "USER_TASK",
+        "name": "Pedido reprovado",
+        "description": "Confirma a reprovação.",
+        "positionX": 671,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_telareprovado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Pedido reprovado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_telareprovado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_reprovado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Reprovado",
+                      "message": "Pedido {{data.pedidoId}} reprovado. O solicitante já foi avisado.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_ok_reprovado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimAprovado",
+        "nodeType": "END",
+        "name": "Fim — aprovado",
+        "description": "Fim — aprovado",
+        "positionX": 834,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimReprovado",
+        "nodeType": "END",
+        "name": "Fim — reprovado",
+        "description": "Fim — reprovado",
+        "positionX": 834,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Analisar",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Analisar",
+        "targetNodeId": "Node_Aprovado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_Aprovado",
+        "targetNodeId": "Node_AvisaAprovacao",
+        "condition": "{{form_decisao}} == \"aprovar\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Aprovado",
+        "targetNodeId": "Node_AvisaReprovacao",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_AvisaAprovacao",
+        "targetNodeId": "Node_TelaAprovado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_TelaAprovado",
+        "targetNodeId": "Node_FimAprovado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_AvisaReprovacao",
+        "targetNodeId": "Node_TelaReprovado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_TelaReprovado",
+        "targetNodeId": "Node_FimReprovado",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Os dados do pedido chegam como variáveis de entrada, informadas pelo sistema que inicia a jornada.",
+        "positionX": 15,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_Inicio"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "Antes de publicar: escolha cluster, tópico e credencial de mensageria nas duas etapas de aviso.",
+        "positionX": 465,
+        "positionY": -5,
+        "linkedNodeIds": [
+          "Node_AvisaAprovacao",
+          "Node_AvisaReprovacao"
+        ]
+      }
+    ]
+  }
+}

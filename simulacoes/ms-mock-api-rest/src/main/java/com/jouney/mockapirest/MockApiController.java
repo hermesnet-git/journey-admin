@@ -338,6 +338,216 @@ public class MockApiController {
         return solicitacao;
     }
 
+    // --- APIs dos templates de jornada (aba Template em "Nova jornada") -----------------------------
+
+    /** Catálogo comercial de planos — saída do tipo lista para escolha de plano. */
+    @GetMapping("/v1/planos/ofertas")
+    public Map<String, Object> planosOfertas() {
+        List<Map<String, Object>> planos = List.of(
+                plano("CTRL-15", "Vivo Controle 15GB", "15GB + apps ilimitados", 54.99, "Mais vendido", true),
+                plano("POS-40", "Vivo Pós 40GB", "40GB + streaming incluso", 129.99, "Inclui streaming", true),
+                plano("POS-100", "Vivo Pós 100GB", "100GB + roaming nas Américas", 219.99, "Para quem viaja", true),
+                plano("FAMILIA-4", "Vivo Família 4 linhas", "200GB compartilhados", 349.99, "Esgotado na sua região", false));
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("quantidade", planos.size());
+        resposta.put("planos", planos);
+        return resposta;
+    }
+
+    private static Map<String, Object> plano(String codigo, String nome, String franquia, double preco, String destaque,
+                                             boolean disponivel) {
+        Map<String, Object> plano = new LinkedHashMap<>();
+        plano.put("codigo", codigo);
+        plano.put("nome", nome);
+        plano.put("franquia", franquia);
+        plano.put("preco", preco);
+        plano.put("destaque", destaque);
+        plano.put("disponivel", disponivel);
+        return plano;
+    }
+
+    /**
+     * Faturas em aberto do CPF. Qualquer CPF tem três faturas (sempre as mesmas para o mesmo CPF), exceto
+     * os que terminam em "00" — cliente em dia, lista vazia.
+     */
+    @GetMapping("/v1/clientes/{cpf}/faturas")
+    public Map<String, Object> faturas(@PathVariable String cpf) {
+        List<Map<String, Object>> faturas = new ArrayList<>();
+        if (!cpf.endsWith("00")) {
+            Random random = new Random(cpf.hashCode());
+            java.time.LocalDate hoje = java.time.LocalDate.now();
+            String[] status = {"Vencida", "Vencida", "Em aberto"};
+            for (int i = 0; i < 3; i++) {
+                java.time.LocalDate vencimento = hoje.minusMonths(2 - i).withDayOfMonth(10);
+                boolean vencida = "Vencida".equals(status[i]);
+                Map<String, Object> fatura = new LinkedHashMap<>();
+                fatura.put("id", "FAT-" + vencimento.getYear() + String.format("%02d", vencimento.getMonthValue()) + "-" + (1000 + random.nextInt(9000)));
+                fatura.put("referencia", String.format("%02d/%d", vencimento.getMonthValue(), vencimento.getYear()));
+                fatura.put("valor", Math.round((89 + random.nextInt(200) + random.nextInt(100) / 100.0) * 100) / 100.0);
+                fatura.put("vencimento", vencimento.toString());
+                fatura.put("status", status[i]);
+                fatura.put("podeSegundaVia", true);
+                fatura.put("podeNegociar", vencida);
+                fatura.put("motivoBloqueio", vencida ? null : "Só faturas vencidas podem ser negociadas.");
+                faturas.add(fatura);
+            }
+        }
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("cpf", cpf);
+        resposta.put("quantidade", faturas.size());
+        resposta.put("faturas", faturas);
+        return resposta;
+    }
+
+    @PostMapping("/v1/faturas/{faturaId}/segunda-via")
+    public Map<String, Object> segundaVia(@PathVariable String faturaId) {
+        Random random = new Random();
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("faturaId", faturaId);
+        resposta.put("linhaDigitavel", gerarLinhaDigitavel(random));
+        resposta.put("pixCopiaECola", "00020126580014BR.GOV.BCB.PIX0136" + java.util.UUID.randomUUID() + "5204000053039865802BR");
+        resposta.put("validade", java.time.LocalDate.now().plusDays(3).toString());
+        return resposta;
+    }
+
+    /** Parcelamento de uma fatura vencida: divide o valor em "parcelas" (2 a 12; padrão 3). */
+    @PostMapping("/v1/acordos")
+    public Map<String, Object> acordos(@RequestBody(required = false) Map<String, Object> body) {
+        int parcelas = 3;
+        if (body != null && body.get("parcelas") != null) {
+            try {
+                parcelas = Math.max(2, Math.min(12, Integer.parseInt(String.valueOf(body.get("parcelas")))));
+            } catch (NumberFormatException ignored) {
+                // mantém o padrão
+            }
+        }
+        double valorTotal = 389.70;
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("protocolo", "AC-" + (100000 + new Random().nextInt(900000)));
+        resposta.put("faturaId", body != null ? body.get("faturaId") : null);
+        resposta.put("parcelas", parcelas);
+        resposta.put("valorParcela", Math.round(valorTotal / parcelas * 100) / 100.0);
+        resposta.put("primeiroVencimento", java.time.LocalDate.now().plusDays(5).toString());
+        return resposta;
+    }
+
+    // CPFs que começam com "000" já falharam uma vez: a próxima tentativa passa (simula instabilidade).
+    private final java.util.Set<String> cadastrosComFalhaSimulada = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * Cadastro de cliente com falhas previsíveis: CPF sem 11 dígitos → 422 com "mensagem"; CPF começando
+     * com "000" → 503 na primeira tentativa e 201 na seguinte (sistema instável); demais → 201.
+     */
+    @PostMapping("/v1/clientes/cadastro")
+    public ResponseEntity<Map<String, Object>> cadastroCliente(@RequestBody(required = false) Map<String, Object> body) {
+        String cpf = body != null && body.get("cpf") != null ? String.valueOf(body.get("cpf")).replaceAll("\\D", "") : "";
+        if (cpf.length() != 11) {
+            return ResponseEntity.status(422)
+                    .body(Map.of("mensagem", "O CPF precisa ter 11 dígitos. Confira o número e tente de novo."));
+        }
+        if (cpf.startsWith("000") && cadastrosComFalhaSimulada.add(cpf)) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("mensagem", "O sistema de cadastro está instável no momento."));
+        }
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("idCliente", "CLI-" + (100000 + new Random().nextInt(900000)));
+        resposta.put("status", "ATIVO");
+        resposta.put("mensagem", "Cadastro concluído.");
+        return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
+    }
+
+    /**
+     * Triagem de reclamação: reincidente (body.reincidente = true) ou categoria "cobranca_indevida" vai
+     * para a OUVIDORIA; o resto fica no N1, com uma compensação sugerida.
+     */
+    @PostMapping("/v1/ouvidoria/reclamacoes")
+    public Map<String, Object> reclamacoes(@RequestBody(required = false) Map<String, Object> body) {
+        boolean reincidente = body != null && Boolean.parseBoolean(String.valueOf(body.get("reincidente")));
+        boolean cobranca = body != null && "cobranca_indevida".equals(body.get("categoria"));
+        boolean ouvidoria = reincidente || cobranca;
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("protocolo", "RC-" + (100000 + new Random().nextInt(900000)));
+        resposta.put("nivel", ouvidoria ? "OUVIDORIA" : "N1");
+        resposta.put("prazoRespostaDias", ouvidoria ? 10 : 2);
+        resposta.put("compensacaoSugerida", ouvidoria ? 0 : 30.0);
+        return resposta;
+    }
+
+    @PostMapping("/v1/ouvidoria/compensacoes")
+    public Map<String, Object> compensacoes(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("protocolo", "CP-" + (100000 + new Random().nextInt(900000)));
+        resposta.put("valorCreditado", body != null && body.get("valor") != null ? body.get("valor") : 30.0);
+        resposta.put("status", "CREDITADO");
+        return resposta;
+    }
+
+    @PostMapping("/v1/portabilidade/solicitacoes")
+    public Map<String, Object> portabilidadeSolicitacoes(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("protocolo", "PT-" + (100000 + new Random().nextInt(900000)));
+        resposta.put("janelaPortabilidade", java.time.LocalDate.now().plusDays(2) + " das 0h às 6h");
+        resposta.put("status", "AGENDADA");
+        return resposta;
+    }
+
+    private static final String[] CLIENTES_OS = {"Ana Paula Mendes", "Roberto Nascimento", "Juliana Ferreira", "Marcos Vinícius Teixeira"};
+
+    /** Ordem de serviço de reparo de fibra — qualquer número devolve uma OS (dados fabricados). */
+    @GetMapping("/v1/ordens-servico/{numero}")
+    public Map<String, Object> ordemServico(@PathVariable String numero) {
+        Random random = new Random(numero.hashCode());
+        String[] cidadeUf = CIDADES_UF[random.nextInt(CIDADES_UF.length)].split("\\|");
+        Map<String, Object> os = new LinkedHashMap<>();
+        os.put("numero", numero);
+        os.put("clienteNome", CLIENTES_OS[random.nextInt(CLIENTES_OS.length)]);
+        os.put("endereco", "Rua das Palmeiras, " + (100 + random.nextInt(900)) + " — " + cidadeUf[0] + "/" + cidadeUf[1]);
+        os.put("defeitoRelatado", TIPOS_DEFEITO[random.nextInt(TIPOS_DEFEITO.length)]);
+        os.put("equipamentoModelo", "ONT-" + (1000 + random.nextInt(9000)));
+        os.put("potenciaEsperadaDbm", -18.5);
+        os.put("janelaAtendimento", "Hoje, 13h às 18h");
+        return os;
+    }
+
+    @PostMapping("/v1/ordens-servico/{numero}/encerramento")
+    public Map<String, Object> encerrarOrdemServico(@PathVariable String numero,
+                                                    @RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("numero", numero);
+        resposta.put("protocolo", "EN-" + (100000 + new Random().nextInt(900000)));
+        resposta.put("status", "ENCERRADA");
+        resposta.put("pesquisaEnviada", true);
+        return resposta;
+    }
+
+    /** Horários livres para instalação no CEP (dado de referência, formato {label, value}). */
+    @GetMapping("/v1/instalacoes/horarios-disponiveis")
+    public Map<String, Object> horariosInstalacao(@RequestParam(required = false) String cep) {
+        String[] periodos = {"Manhã (8h às 12h)", "Tarde (13h às 18h)"};
+        List<Map<String, Object>> horarios = new ArrayList<>();
+        java.time.LocalDate dia = java.time.LocalDate.now().plusDays(2);
+        for (int i = 0; i < 6; i++) {
+            java.time.LocalDate data = dia.plusDays(i / 2);
+            Map<String, Object> horario = new LinkedHashMap<>();
+            horario.put("value", data + (i % 2 == 0 ? "-MANHA" : "-TARDE"));
+            horario.put("label", data.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")) + " — " + periodos[i % 2]);
+            horarios.add(horario);
+        }
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("cep", cep);
+        resposta.put("horarios", horarios);
+        return resposta;
+    }
+
+    @PostMapping("/v1/instalacoes/agendamentos")
+    public Map<String, Object> agendarInstalacao(@RequestBody(required = false) Map<String, Object> body) {
+        Map<String, Object> resposta = new LinkedHashMap<>();
+        resposta.put("protocolo", "AG-" + (100000 + new Random().nextInt(900000)));
+        resposta.put("horario", body != null ? body.get("horario") : null);
+        resposta.put("status", "AGENDADO");
+        return resposta;
+    }
+
     /**
      * Fonte de dados de teste para datasource SDUI (REQ fora do escopo v1.0.0, mas útil para
      * prototipar campos SINGLE_SELECT/MULTI_SELECT com muitas opções). Formato {label, value}

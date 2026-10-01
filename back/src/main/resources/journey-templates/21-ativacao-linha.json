@@ -1,0 +1,545 @@
+{
+  "templateId": "ativacao-linha",
+  "name": "Ativação de linha e chip",
+  "track": "negocio",
+  "area": "Ativação",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "Ativa a linha com chip físico ou eSIM e espera a confirmação da rede para avisar o cliente.",
+  "highlights": [
+    "Campo que só aparece para chip físico",
+    "Confirmação da rede por mensagem",
+    "Decisão pelo status da rede"
+  ],
+  "flow": {
+    "name": "Ativação de linha e chip",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Chip",
+        "nodeType": "USER_TASK",
+        "name": "Dados do chip",
+        "description": "Coleta tipo de chip, número do chip e DDD.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_chip",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Ative sua linha",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_chip",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Vamos ativar sua linha",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_tipo",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Tipo de chip",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Chip físico",
+                          "value": "fisico"
+                        },
+                        {
+                          "label": "eSIM",
+                          "value": "esim"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.tipoChip",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_iccid",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Número do chip (ICCID)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": false,
+                      "readOnly": false,
+                      "maxLength": 20,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.iccid",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": {
+                      "path": "form.tipoChip",
+                      "rule": "equals",
+                      "value": "fisico"
+                    },
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_ddd",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "DDD de preferência",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 2,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.ddd",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_ativar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Ativar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AtivaLinha",
+        "nodeType": "SERVICE_TASK",
+        "name": "Ativa a linha",
+        "description": "Envia o comando de ativação.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/linhas/ativar",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "tipoChip": "{{form_tipoChip}}",
+              "iccid": "{{form_iccid}}",
+              "ddd": "{{form_ddd}}"
+            },
+            "outputMapping": [
+              {
+                "name": "statusAtivacao",
+                "jsonPath": "$.status",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AguardaRede",
+        "nodeType": "RECEIVE_TASK",
+        "name": "Aguarda confirmação da rede",
+        "description": "Espera a rede confirmar a linha.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "CONSUME",
+            "outputMapping": [
+              {
+                "name": "numeroLinha",
+                "jsonPath": "$.payload.data.numeroLinha",
+                "type": "string"
+              },
+              {
+                "name": "statusRede",
+                "jsonPath": "$.payload.data.statusRede",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AtivaNaRede",
+        "nodeType": "GATEWAY",
+        "name": "Linha ativa na rede?",
+        "description": "Segue conforme o status da rede.",
+        "positionX": 685,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Ativada",
+        "nodeType": "USER_TASK",
+        "name": "Linha ativada",
+        "description": "Confirma a ativação.",
+        "positionX": 821,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_ativada",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Linha ativa",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_ativada",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_ativada",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Tudo pronto",
+                      "message": "Sua linha {{data.numeroLinha}} está ativa. Já pode usar!",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_ativada",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EmAnalise",
+        "nodeType": "USER_TASK",
+        "name": "Ativação em análise",
+        "description": "Informa que a ativação está em análise.",
+        "positionX": 821,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_emanalise",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Ativação em análise",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_emanalise",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_analise",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "informative",
+                      "title": null,
+                      "message": "A rede ainda não confirmou sua linha. Vamos te avisar assim que estiver ativa.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_analise",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Entendi",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimAtivada",
+        "nodeType": "END",
+        "name": "Fim — ativada",
+        "description": "Fim — ativada",
+        "positionX": 984,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimAnalise",
+        "nodeType": "END",
+        "name": "Fim — em análise",
+        "description": "Fim — em análise",
+        "positionX": 984,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Chip",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Chip",
+        "targetNodeId": "Node_AtivaLinha",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_AtivaLinha",
+        "targetNodeId": "Node_AguardaRede",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_AguardaRede",
+        "targetNodeId": "Node_AtivaNaRede",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_AtivaNaRede",
+        "targetNodeId": "Node_Ativada",
+        "condition": "{{data_statusRede}} == \"ATIVA\"",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_AtivaNaRede",
+        "targetNodeId": "Node_EmAnalise",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_Ativada",
+        "targetNodeId": "Node_FimAtivada",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_EmAnalise",
+        "targetNodeId": "Node_FimAnalise",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "O número do chip só aparece para chip físico: regra de visibilidade pelo campo tipoChip da própria tela.",
+        "positionX": 165,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_Chip"
+        ]
+      },
+      {
+        "id": "Annotation_2",
+        "text": "A rede confirma por mensagem. Antes de publicar: escolha cluster, tópico e credencial.",
+        "positionX": 465,
+        "positionY": 400,
+        "linkedNodeIds": [
+          "Node_AguardaRede"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,528 @@
+{
+  "templateId": "upgrade-plano",
+  "name": "Upgrade de plano",
+  "track": "negocio",
+  "area": "Vendas",
+  "channelTypes": [
+    "WEB",
+    "MOBILE",
+    "WHATSAPP"
+  ],
+  "description": "O cliente escolhe um plano novo, a elegibilidade é conferida e a troca é aplicada na hora.",
+  "highlights": [
+    "Linha do cliente recebida como variável de entrada",
+    "Escolha do plano numa lista vinda de API",
+    "Troca aplicada só se elegível"
+  ],
+  "flow": {
+    "name": "Upgrade de plano",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": [
+          {
+            "name": "linhaCliente",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "nodeId": "Node_BuscaPlanos",
+        "nodeType": "SERVICE_TASK",
+        "name": "Busca planos à venda",
+        "description": "Traz o catálogo comercial.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/planos/ofertas",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "quantidadePlanos",
+                "jsonPath": "$.quantidade",
+                "type": "number"
+              },
+              {
+                "name": "planos",
+                "jsonPath": "$.planos",
+                "type": "list",
+                "keepFields": [
+                  "codigo",
+                  "nome",
+                  "franquia",
+                  "preco",
+                  "destaque",
+                  "disponivel"
+                ]
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_EscolhePlano",
+        "nodeType": "USER_TASK",
+        "name": "Escolha o plano novo",
+        "description": "Lista os planos para upgrade.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_escolheplano",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Faça upgrade",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_escolheplano",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Mais internet para a linha {{data.linhaCliente}}",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "lst_planos",
+                    "type": "ui.selectList",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Planos disponíveis",
+                      "itemValue": "codigo",
+                      "itemTitle": "{{item.nome}}",
+                      "itemDescription": "{{item.franquia}} · R$ {{item.preco}}/mês",
+                      "itemHint": "{{item.destaque}}",
+                      "emptyMessage": "Nenhum plano disponível agora.",
+                      "maxItems": 50,
+                      "actions": [
+                        {
+                          "id": "escolher",
+                          "label": "Quero este",
+                          "variant": "primary",
+                          "enabledWhen": "{{item.disponivel}} == true"
+                        }
+                      ],
+                      "required": true
+                    },
+                    "bindings": {
+                      "items": {
+                        "path": "data.planos",
+                        "mode": "oneWay"
+                      },
+                      "value": {
+                        "path": "form.planoNovo",
+                        "mode": "twoWay"
+                      },
+                      "action": {
+                        "path": "form.acaoPlanoNovo",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": {
+                      "onAction": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Elegibilidade",
+        "nodeType": "SERVICE_TASK",
+        "name": "Confere elegibilidade",
+        "description": "Confere se a linha pode migrar.",
+        "positionX": 521,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "GET",
+            "url": "http://localhost:8084/v1/planos/elegibilidade-upgrade?linha={{data_linhaCliente}}&plano={{form_planoNovo}}",
+            "headers": {
+              "Accept": "application/json"
+            },
+            "outputMapping": [
+              {
+                "name": "elegivelUpgrade",
+                "jsonPath": "$.elegivel",
+                "type": "boolean"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_PodeTrocar",
+        "nodeType": "GATEWAY",
+        "name": "Pode trocar?",
+        "description": "Aplica a troca se a linha for elegível.",
+        "positionX": 685,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AplicaTroca",
+        "nodeType": "SERVICE_TASK",
+        "name": "Aplica a troca",
+        "description": "Troca o plano no faturamento.",
+        "positionX": 821,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/planos/trocar",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "linha": "{{data_linhaCliente}}",
+              "plano": "{{form_planoNovo}}"
+            },
+            "outputMapping": [
+              {
+                "name": "statusTroca",
+                "jsonPath": "$.status",
+                "type": "string"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Trocado",
+        "nodeType": "USER_TASK",
+        "name": "Plano alterado",
+        "description": "Confirma a troca.",
+        "positionX": 971,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_trocado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Plano alterado",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_trocado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_trocado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Upgrade feito",
+                      "message": "A linha {{data.linhaCliente}} já está no plano {{form.planoNovo}}.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_trocado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Indisponivel",
+        "nodeType": "USER_TASK",
+        "name": "Upgrade indisponível",
+        "description": "Informa que a troca não é possível.",
+        "positionX": 821,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_indisponivel",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Upgrade indisponível",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_indisponivel",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_indisp",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Não foi possível",
+                      "message": "Esta linha ainda não pode migrar para o plano escolhido.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_indisp",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Entendi",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimTrocado",
+        "nodeType": "END",
+        "name": "Fim — upgrade feito",
+        "description": "Fim — upgrade feito",
+        "positionX": 1134,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimIndisponivel",
+        "nodeType": "END",
+        "name": "Fim — indisponível",
+        "description": "Fim — indisponível",
+        "positionX": 984,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_BuscaPlanos",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_BuscaPlanos",
+        "targetNodeId": "Node_EscolhePlano",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_EscolhePlano",
+        "targetNodeId": "Node_Elegibilidade",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_Elegibilidade",
+        "targetNodeId": "Node_PodeTrocar",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_PodeTrocar",
+        "targetNodeId": "Node_AplicaTroca",
+        "condition": "{{data_elegivelUpgrade}} == true",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_PodeTrocar",
+        "targetNodeId": "Node_Indisponivel",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_AplicaTroca",
+        "targetNodeId": "Node_Trocado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Trocado",
+        "targetNodeId": "Node_FimTrocado",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_9",
+        "sourceNodeId": "Node_Indisponivel",
+        "targetNodeId": "Node_FimIndisponivel",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "A linha chega como variável de entrada e vai na URL da consulta: ?linha={{data_linhaCliente}}.",
+        "positionX": 465,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_Inicio",
+          "Node_Elegibilidade"
+        ]
+      }
+    ]
+  }
+}

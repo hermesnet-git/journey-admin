@@ -1,0 +1,585 @@
+{
+  "templateId": "iot-provisionamento",
+  "name": "Provisionamento de dispositivos IoT",
+  "track": "negocio",
+  "area": "IoT",
+  "channelTypes": [
+    "WEB"
+  ],
+  "description": "A empresa pede chips para seus dispositivos, o lote é provisionado e o faturamento é avisado.",
+  "highlights": [
+    "Pedido em lote para empresas",
+    "Decisão pela quantidade provisionada",
+    "Faturamento avisado por mensagem"
+  ],
+  "flow": {
+    "name": "Provisionamento de dispositivos IoT",
+    "nodes": [
+      {
+        "nodeId": "Node_Inicio",
+        "nodeType": "START",
+        "name": "Início",
+        "description": "Início da jornada",
+        "positionX": 84,
+        "positionY": 294,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Pedido",
+        "nodeType": "USER_TASK",
+        "name": "Pedido de provisionamento",
+        "description": "Coleta empresa, dispositivo, quantidade e plano.",
+        "positionX": 221,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_pedido",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Vivo IoT",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_pedido",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "txt_titulo",
+                    "type": "ui.text",
+                    "version": "1.0.0",
+                    "props": {
+                      "text": "Conecte seus dispositivos",
+                      "align": "start",
+                      "variant": "title",
+                      "maxLines": 2,
+                      "colorToken": "color.text.primary"
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_cnpj",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "CNPJ da empresa (só números)",
+                      "placeholder": null,
+                      "inputMode": "text",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 14,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.cnpjEmpresa",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_dispositivo",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Tipo de dispositivo",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "Rastreador veicular",
+                          "value": "rastreador"
+                        },
+                        {
+                          "label": "Sensor industrial",
+                          "value": "sensor"
+                        },
+                        {
+                          "label": "Medidor de consumo",
+                          "value": "medidor"
+                        },
+                        {
+                          "label": "Câmera de segurança",
+                          "value": "camera"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.tipoDispositivo",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "in_qtd",
+                    "type": "ui.textInput",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Quantidade de dispositivos",
+                      "placeholder": null,
+                      "inputMode": "number",
+                      "required": true,
+                      "readOnly": false,
+                      "maxLength": 5,
+                      "validation": null
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.quantidadeDispositivos",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "sel_plano",
+                    "type": "ui.select",
+                    "version": "1.0.0",
+                    "props": {
+                      "label": "Plano de dados por chip",
+                      "placeholder": "Selecione",
+                      "options": [
+                        {
+                          "label": "100 MB",
+                          "value": "iot_100mb"
+                        },
+                        {
+                          "label": "1 GB",
+                          "value": "iot_1gb"
+                        },
+                        {
+                          "label": "5 GB",
+                          "value": "iot_5gb"
+                        }
+                      ],
+                      "required": true,
+                      "searchable": false
+                    },
+                    "bindings": {
+                      "value": {
+                        "path": "form.planoDados",
+                        "mode": "twoWay"
+                      }
+                    },
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_provisionar",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Provisionar",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Provisiona",
+        "nodeType": "SERVICE_TASK",
+        "name": "Provisiona os chips",
+        "description": "Provisiona o lote de chips.",
+        "positionX": 371,
+        "positionY": 281,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "REST",
+          "config": {
+            "method": "POST",
+            "url": "http://localhost:8084/v1/iot/provisionar",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "cnpj": "{{form_cnpjEmpresa}}",
+              "tipo": "{{form_tipoDispositivo}}",
+              "quantidade": "{{form_quantidadeDispositivos}}",
+              "plano": "{{form_planoDados}}"
+            },
+            "outputMapping": [
+              {
+                "name": "quantidadeProvisionada",
+                "jsonPath": "$.quantidadeProvisionada",
+                "type": "number"
+              }
+            ]
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_ProvisionouAlgum",
+        "nodeType": "GATEWAY",
+        "name": "Provisionou algum?",
+        "description": "Segue conforme a quantidade provisionada.",
+        "positionX": 535,
+        "positionY": 295,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_AvisaFaturamento",
+        "nodeType": "SERVICE_TASK",
+        "name": "Avisa o faturamento",
+        "description": "Publica o lote para cobrança.",
+        "positionX": 671,
+        "positionY": 131,
+        "userTaskConfig": null,
+        "connectorConfig": {
+          "connectorType": "KAFKA",
+          "config": {
+            "operation": "PRODUCE",
+            "payloadMode": "CUSTOM",
+            "payloadFields": [
+              {
+                "name": "cnpj",
+                "value": "{{form_cnpjEmpresa}}",
+                "type": "string"
+              },
+              {
+                "name": "quantidade",
+                "value": "{{data_quantidadeProvisionada}}",
+                "type": "number"
+              },
+              {
+                "name": "plano",
+                "value": "{{form_planoDados}}",
+                "type": "string"
+              }
+            ],
+            "payload": {
+              "cnpj": "{{form_cnpjEmpresa}}",
+              "quantidade": "{{data_quantidadeProvisionada}}",
+              "plano": "{{form_planoDados}}"
+            }
+          },
+          "credentialRef": null
+        },
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Ativos",
+        "nodeType": "USER_TASK",
+        "name": "Dispositivos ativos",
+        "description": "Confirma o provisionamento.",
+        "positionX": 821,
+        "positionY": 131,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_ativos",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Dispositivos conectados",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_ativos",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_ativos",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "positive",
+                      "title": "Lote ativo",
+                      "message": "{{data.quantidadeProvisionada}} dispositivos conectados e prontos para uso.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_ativos",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Concluir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_Falha",
+        "nodeType": "USER_TASK",
+        "name": "Falha no provisionamento",
+        "description": "Informa a falha.",
+        "positionX": 671,
+        "positionY": 431,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_falha",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Não foi possível",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_falha",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_falha",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Falha no provisionamento",
+                      "message": "Nenhum chip foi provisionado. Nossa equipe vai entrar em contato.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_falha",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Entendi",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimAtivos",
+        "nodeType": "END",
+        "name": "Fim — ativos",
+        "description": "Fim — ativos",
+        "positionX": 984,
+        "positionY": 144,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      },
+      {
+        "nodeId": "Node_FimFalha",
+        "nodeType": "END",
+        "name": "Fim — falha",
+        "description": "Fim — falha",
+        "positionX": 834,
+        "positionY": 444,
+        "userTaskConfig": null,
+        "connectorConfig": null,
+        "startVariables": null
+      }
+    ],
+    "connections": [
+      {
+        "connectionId": "Flow_1",
+        "sourceNodeId": "Node_Inicio",
+        "targetNodeId": "Node_Pedido",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_2",
+        "sourceNodeId": "Node_Pedido",
+        "targetNodeId": "Node_Provisiona",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_3",
+        "sourceNodeId": "Node_Provisiona",
+        "targetNodeId": "Node_ProvisionouAlgum",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_4",
+        "sourceNodeId": "Node_ProvisionouAlgum",
+        "targetNodeId": "Node_AvisaFaturamento",
+        "condition": "{{data_quantidadeProvisionada}} > 0",
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_5",
+        "sourceNodeId": "Node_ProvisionouAlgum",
+        "targetNodeId": "Node_Falha",
+        "condition": null,
+        "isDefault": true
+      },
+      {
+        "connectionId": "Flow_6",
+        "sourceNodeId": "Node_AvisaFaturamento",
+        "targetNodeId": "Node_Ativos",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_7",
+        "sourceNodeId": "Node_Ativos",
+        "targetNodeId": "Node_FimAtivos",
+        "condition": null,
+        "isDefault": false
+      },
+      {
+        "connectionId": "Flow_8",
+        "sourceNodeId": "Node_Falha",
+        "targetNodeId": "Node_FimFalha",
+        "condition": null,
+        "isDefault": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "Annotation_1",
+        "text": "Antes de publicar: escolha cluster, tópico e credencial no aviso ao faturamento.",
+        "positionX": 615,
+        "positionY": -5,
+        "linkedNodeIds": [
+          "Node_AvisaFaturamento"
+        ]
+      }
+    ]
+  }
+}

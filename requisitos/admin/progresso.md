@@ -16,13 +16,22 @@
 |---|---|
 | Total de Features (FT) | 15 |
 | Total de User Stories (US) | 109 |
-| Total de Requisitos (REQ) | 579 |
-| Concluídos (`done`) | 529 |
+| Total de Requisitos (REQ) | 582 |
+| Concluídos (`done`) | 532 |
 | Em andamento (`in_progress`) | 3 |
 | Não iniciados (`todo`) | 45 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
 | % Concluído | 91% |
+
+> **Execução e Diagnóstico: linha do tempo como painel único, entrada por um campo só e reprodução passo a passo (3 REQs novos, 6 reescritos, 2026-10-01).**
+> Na Execução, os detalhes da etapa passam a ficar só no card da linha do tempo, que pode ser
+> redimensionada e recolhida; Variáveis e Log abrem recolhidos; uma bolinha percorre a ligação de
+> chegada e para na etapa atual (REQ-05.03.004, 008, 009 novo, REQ-05.10.007). A busca de jornadas
+> virou o único campo de entrada, que também retoma execuções em andamento, e "Sair sem parar" deixa
+> a execução rodando (REQ-05.07.001, REQ-05.11.001, REQ-05.11.005 novo). No Diagnóstico, a reprodução
+> ganhou passo anterior/próximo e o histórico de variáveis acompanha o passo (REQ-15.03.005), e o
+> painel de baixo abre recolhido (REQ-15.03.006 novo). Total geral: 579 → 582 REQs.
 
 > **Canvas profissional (23 REQs, 2026-10-01).** O editor de fluxo, a Execução e o Diagnóstico
 > foram redesenhados: etapas em círculo, pílula ou cartão; organização em camadas com caminho
@@ -175,7 +184,7 @@
 | FT-02 | Gestão de Jornadas | 54 | 54 | 100% |
 | FT-03 | Modelagem Visual de Workflows | 126 | 126 | 100% |
 | FT-04 | Catálogo Server Driven UI (SDUI) | 93 | 93 | 100% |
-| FT-05 | Execução | 69 | 69 | 100% |
+| FT-05 | Execução | 71 | 71 | 100% |
 | FT-06 | Versionamento de jornadas | 43 | 43 | 100% |
 | FT-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
 | FT-08 | Auditoria | 37 | 21 | 57% (1 n/a, 15 todo) |
@@ -185,7 +194,7 @@
 | FT-12 | Infraestrutura | 16 | 0 | 0% (1 in_progress) |
 | FT-13 | Dashboard | 24 | 24 | 100% |
 | FT-14 | Catálogo de Integrações | 33 | 32 | 97% (1 in_progress) |
-| FT-15 | Diagnóstico | 18 | 18 | 100% |
+| FT-15 | Diagnóstico | 19 | 19 | 100% |
 
 ---
 
@@ -803,11 +812,12 @@ A execução roda contra o motor de runtime real: `admin/back` (pacotes `applica
 | [x] | REQ-05.03.001 | O sistema deve destacar o caminho percorrido durante a execução. | done | `FlowDiagramViewer.tsx` — nó atual com destaque/pulso (respeitando `prefers-reduced-motion` via regra global de `index.css`), concluídos com selo de sucesso | |
 | [x] | REQ-05.03.002 | O sistema deve destacar as User Tasks e os formulários executados. | done | Mesmo mecanismo de US-05.03.001 + aba Log | |
 | [x] | REQ-05.03.003 | O sistema não deve reposicionar ou reiniciar o zoom do diagrama do fluxo ao alternar entre as abas do painel de observabilidade. | done | `InspectorPanel.tsx` — `FlowDiagramViewer` fica sempre montado (visibilidade alternada via CSS), preservando o estado interno do React Flow (zoom/pan) entre trocas de aba | Antes, desmontar/remontar a cada troca de aba destruía esse estado e repunha o diagrama centralizado no passo atual |
-| [x] | REQ-05.03.004 | Canal, fluxo e linha do tempo lado a lado; Variáveis e Log embaixo. | done | front: `ExecutionWorkspace.tsx`, `InspectorPanel` (`hideWorkflow`) | 2026-10-01 |
+| [x] | REQ-05.03.004 | Canal, fluxo e linha do tempo lado a lado; linha do tempo redimensionável e recolhível; Variáveis e Log embaixo, abrindo recolhido. | done | front: `ExecutionWorkspace.tsx`, `ExecutionTimeline.tsx` (largura/recolher), `InspectorPanel.tsx` (painel inferior recolhível) | 2026-10-01 |
 | [x] | REQ-05.03.005 | Passos numerados nas etapas; o que não foi percorrido fica esmaecido. | done | front: `stepNumbers`/`dimUnvisited` (`FlowDiagramViewer`) | 2026-10-01 |
 | [x] | REQ-05.03.006 | "Seguir a execução" mantém a etapa atual no centro. | done | front: `follow`/`onFollowChange` (`FlowDiagramViewer`) | 2026-10-01 |
 | [x] | REQ-05.03.007 | Etapas percorridas pelo motor destacadas uma a uma (sem animação com movimento reduzido). | done | front: `flashQueue` (`ExecutionWorkspace`), `.flow-step-flash` (`index.css`) | 2026-10-01 |
-| [x] | REQ-05.03.008 | Linha do tempo com passo, tipo, hora, motor, falha, entrada/saída e a espera atual explicada. | done | front: `ExecutionTimeline.tsx`, `explainWait` | 2026-10-01 |
+| [x] | REQ-05.03.008 | Linha do tempo com passo, tipo, hora, motor e falha; o card aberto mostra todos os detalhes da etapa (único lugar na Execução); etapa selecionada no fluxo abre o card; etapa não alcançada mostra a configuração; no fim, a espera atual explicada. | done | front: `ExecutionTimeline.tsx` (`StepDetails`), `explainWait`; `NodeDetailDrawer` removido da Execução | 2026-10-01 |
+| [x] | REQ-05.03.009 | Bolinha percorre uma vez a ligação de chegada e para; halo pulsante na etapa atual; sem movimento com movimento reduzido. | done | front: `TravelDot` e `halo` (`FlowDiagramViewer.tsx`), `.flow-current-halo` (`index.css`) | 2026-10-01 |
 
 ### US-05.04 Arquitetura de execução
 
@@ -842,7 +852,7 @@ A execução roda contra o motor de runtime real: `admin/back` (pacotes `applica
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-05.07.001 | O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado. | done | `ExecutionToolbar.tsx` (`JourneySearchBox`) — dropdown lista todas as jornadas ao focar o campo, com rolagem (até 360px de altura), filtrando conforme o texto digitado; sem limite de resultados | Comportamento revisado: a versão anterior deste requisito (`sem exigir listar todas de uma vez`) foi trocada a pedido do usuário — ver changelog |
+| [x] | REQ-05.07.001 | O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado. O mesmo campo aceita o ID da instância ou o business key de uma execução em andamento (US-05.11) e, na busca por nome, lista também as execuções em andamento das jornadas encontradas. | done | front: `ExecutionEntryField.tsx` — campo único: nome lista jornadas publicadas e execuções em andamento (`searchInstanceHistory({finished:false})`); ID/business key mostra a execução para retomar | Substitui a busca + campo "Retomar" separado (2026-10-01) |
 | [x] | REQ-05.07.002 | A execução deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas. | done | `ExecutionsPage.tsx` alterna `StartPanel` ↔ `ExecutionWorkspace` por estado local sob a `ExecutionToolbar` fixa, sem rota/navegação | |
 | [x] | REQ-05.07.003 | A pré-visualização da execução deve se adaptar ao tipo de canal escolhido para a instância, incluindo uma representação visual compatível (ex.: layout de dispositivo móvel para `MOBILE`). | done | `DevicePreview.tsx` — tipo `MOBILE` renderiza dentro de `PhoneFrame.tsx` (moldura de celular); `WEB`/`WHATSAPP` renderizam num card largo | Mística não tem componente de moldura de dispositivo pronto; construído à mão |
 | [x] | REQ-05.07.004 | O sistema deve exibir o número da versão publicada da jornada (`v<N>`) tanto na lista de busca quanto no cabeçalho de uma execução em andamento. | done | back: `JourneyResponse.publishedVersionNumber` (admin/back), lido direto pelo front sem passar mais por espelho nenhum; front: `ExecutionToolbar.tsx` — "· vN" no item da busca e no cabeçalho de execução; `StartPanel.tsx` — mesma exibição na tela de início | requisito novo nesta sessão (2026-08-24) |
@@ -879,7 +889,7 @@ A execução roda contra o motor de runtime real: `admin/back` (pacotes `applica
 
 ### US-05.10 Inspeção detalhada de nó
 
-> Painel compartilhado com a FT-15 Diagnóstico — `InspectorPanel.tsx` (`NodeDetailDrawer`) é usado tanto por `ExecutionWorkspace.tsx` (ao vivo) quanto por `HistoryWorkspace.tsx` (Diagnóstico), sem duplicação.
+> Na Execução, os detalhes ficam no card da etapa da linha do tempo (`ExecutionTimeline.tsx`, `StepDetails`); no Diagnóstico, no painel de detalhe do nó (`DiagnosticoNodeDrawer`). As seções (`GatewaySection`, `ConnectorConfigSection`, `StartVariablesSection`, `CollapsibleJsonSection`) continuam exportadas por `InspectorPanel.tsx` e reaproveitadas nas duas telas.
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
@@ -889,7 +899,7 @@ A execução roda contra o motor de runtime real: `admin/back` (pacotes `applica
 | [x] | REQ-05.10.004 | Ao selecionar o Início por Mensagem, o painel deve apresentar a configuração do conector, como Consumer. | done | `InspectorPanel.tsx` — `MESSAGE_START_EVENT` incluído em `CONSUMER_NODE_TYPES`; reaproveita `ConnectorConfigSection` | |
 | [x] | REQ-05.10.005 | As seções de entrada e saída do painel devem ser colapsáveis individualmente. | done | `InspectorPanel.tsx` — `CollapsibleJsonSection` (era `JsonSection`, sempre aberta) | |
 | [x] | REQ-05.10.006 | Para conector de tópico, a seção de entrada deve se chamar "Payload da Mensagem". | done | `InspectorPanel.tsx` — título condicional em `NodeDetailDrawer` conforme `connectorConfig.connectorType !== 'REST'` | |
-| [x] | REQ-05.10.007 | O painel de detalhe do nó deve ser redimensionável horizontalmente, sem alterar a altura. | done | `InspectorPanel.tsx` — `NodeDetailDrawer` com alça `col-resize` própria (260–640px), independente da altura (sempre a do pai) | |
+| [x] | REQ-05.10.007 | O painel de detalhe do nó do Diagnóstico e a linha do tempo da Execução devem ser redimensionáveis horizontalmente (largura), sem alterar a altura. | done | Diagnóstico: alça `col-resize` do painel de detalhe; Execução: alça da `ExecutionTimeline.tsx` (300–720px, lembrada no navegador) | 2026-10-01 |
 | [x] | REQ-05.10.008 | O log cronológico deve indicar o tipo de conector também para Tarefa de Recebimento. | done | `ExecutionWorkspace.tsx` (`describeTrailEntry`) e `HistoryWorkspace.tsx` (`describeHistoryStep`) — `RECEIVE_TASK` passou a entrar no mesmo tratamento de `SERVICE_TASK` | |
 | [x] | REQ-05.10.009 | Uma mensagem Kafka recebida (Receive Task ou Início por Mensagem) deve ficar disponível para consulta, como já acontece pro lado produtor. | done | back: `KafkaConnectorWorker.consume()` (`ms-runtime-camunda`) passou a gravar `__kafkaTopic__<nodeId>`/`__kafkaPayload__<nodeId>` antes de correlacionar/iniciar a instância, simétrico ao `publishAndComplete()` do lado produtor — lido por `GetExecutionHistoryDetail.kafkaPayload()` (admin/back, via `DiagnosticoController`), que já esperava essas variáveis | bug real corrigido: o consumo nunca gravava essas variáveis, então o payload recebido sempre aparecia vazio no painel/histórico |
 | [x] | REQ-05.10.010 | O diagrama do fluxo deve permitir zoom com o scroll do mouse. | done | `FlowDiagramViewer.tsx` — removido `panOnScroll` do `ReactFlow`, mantendo `zoomOnScroll` (comportamento padrão do React Flow) | Antes, scroll do mouse fazia pan em vez de zoom |
@@ -898,10 +908,11 @@ A execução roda contra o motor de runtime real: `admin/back` (pacotes `applica
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-05.11.001 | O sistema deve permitir retomar, na própria tela de Execução, uma instância em andamento (`ACTIVE`), buscando por ID da instância ou business key, sem passar pelo Diagnóstico. | done | front: `ResumeExecutionBox.tsx` (campo + botão na tela inicial de Execução) → `resumeInstance()` (`execution/api.ts`) → `GET /api/v1/instances/resume?query=`; back: `ExecutionController.resume` → `ResumeExecution.execute()` — tenta por ID (`getHistoricProcessInstance`), senão por business key (`searchHistoricInstances`) | requisito novo desta sessão (2026-09-12) |
+| [x] | REQ-05.11.001 | O sistema deve permitir retomar, na própria tela de Execução, uma instância em andamento (`ACTIVE`), pelo mesmo campo de busca de jornadas (REQ-05.07.001), colando o ID da instância ou o business key ou escolhendo-a entre as execuções em andamento listadas, sem passar pelo Diagnóstico. | done | front: `ExecutionEntryField.tsx` → `resumeInstance()` (`execution/api.ts`) → `GET /api/v1/instances/resume?query=`; back: `ExecutionController.resume` → `ResumeExecution.execute()` | `ResumeExecutionBox.tsx` removido (2026-10-01) |
 | [x] | REQ-05.11.002 | Ao retomar, o sistema deve reconstruir o estado da execução (fluxo, passo atual, variáveis, canal e controle manual de Kafka) a partir do estado real da instância no motor de runtime, sem depender de nenhum histórico acumulado no navegador antes da retomada. | done | back: `ResumeExecution` resolve o fluxo/versão via `FlowVersionResolver` (extraído de `GetExecutionHistoryDetail`, mesmo mecanismo do Diagnóstico), o passo atual via `ExecutionStepResolver.resolve()`, e `channel`/`KafkaVariableNames.MANUAL_CONTROL` direto de `getProcessVariables`; front: `ExecutionsPage.handleResumed` monta o mesmo `RunningExecution` que `handleStarted` já monta após um início normal | |
-| [x] | REQ-05.11.003 | Buscar por uma instância que exista mas não esteja `ACTIVE` (concluída ou encerrada) deve informar isso ao usuário na própria busca, sem tentar retomá-la ao vivo. | done | back: `InstanceNotResumableException` (409, via `GlobalExceptionHandler`) quando `state != "ACTIVE"`; front: `ResumeExecutionBox.tsx` mostra "Essa execução já foi concluída ou encerrada — consulte-a pelo Diagnóstico" | |
-| [x] | REQ-05.11.004 | Buscar por um ID de instância ou business key que não corresponda a nenhuma instância deve mostrar erro claro na própria busca, sem navegar. | done | back: `InstanceNotFoundException` (404); front: `ResumeExecutionBox.tsx` mostra "Nenhuma execução encontrada para esse valor" | |
+| [x] | REQ-05.11.003 | Buscar por uma instância que exista mas não esteja `ACTIVE` (concluída ou encerrada) deve informar isso ao usuário na própria busca, sem tentar retomá-la ao vivo. | done | back: `InstanceNotResumableException` (409, via `GlobalExceptionHandler`) quando `state != "ACTIVE"`; front: `ExecutionEntryField.tsx` mostra "Essa execução já foi concluída ou encerrada — Consulte-a pelo Diagnóstico" | |
+| [x] | REQ-05.11.004 | Buscar por um ID de instância ou business key que não corresponda a nenhuma instância deve mostrar erro claro na própria busca, sem navegar. | done | back: `InstanceNotFoundException` (404); front: `ExecutionEntryField.tsx` mostra "Nenhuma execução encontrada para esse valor" | |
+| [x] | REQ-05.11.005 | Durante uma execução, o usuário deve poder sair para a tela inicial sem encerrá-la ("Sair sem parar"); a instância continua no motor e o campo de busca volta com o business key dela, pronto para retomar. | done | front: `ExecutionToolbar.tsx` ("Sair sem parar"), `handleLeave` (`ExecutionsPage.tsx`) | 2026-10-01 |
 
 > Nota US-05.06: nosso BPMN nunca tem mais de uma execução viva ao mesmo tempo (sem gateway paralelo, subprocesso ou multi-instância — ver `FlowValidator.java`), então "variável de escopo do processo" e "de etapa" são, na prática, o mesmo escopo — uma tabela única é mais honesta que fingir uma separação que os dados não têm. Se o modelo de fluxo ganhar concorrência real no futuro, o motor já suporta consultar variáveis por execução (`GET /execution/{id}/variables`) para diferenciar.
 
@@ -1505,7 +1516,8 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 | [x] | REQ-15.03.002 | O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior. | done | `DiagnosticoPage.tsx` — `closeDetail` só limpa `selectedId`/`detail`; `raw` (resultado da busca) é estado separado, nunca limpo ao abrir/fechar um detalhe | |
 | [x] | REQ-15.03.003 | O log do detalhe inclui cada consulta a fonte de dados feita ao montar uma tela da instância. | done | ms-espec-registry: `espec_registry.data_source_call` (`V2`), `DataSourceCallController`; back: `GET /instances/{id}/data-source-calls`; front: `HistoryWorkspace` ("Consulta da tela") | implementado e compilado em 2026-09-30; aguardando teste do usuário |
 | [x] | REQ-15.03.004 | "Tentar de novo" em incidente de integração em segundo plano (EDITOR/ADMIN). | done | back: `POST /instances/{id}/nodes/{nodeId}/retry` → `RuntimeExecutionPort.retryFailedJob` (job sem tentativas volta a 1); front: botão no aviso de incidente do `HistoryWorkspace` | 2026-10-01 |
-| [x] | REQ-15.03.005 | Reprodução da execução: play/pausa, controle deslizante; fluxo, log e variáveis até o passo escolhido. | done | front: `ReplayBar.tsx`, `HistoryWorkspace.tsx` | 2026-10-01 |
+| [x] | REQ-15.03.005 | Reprodução: play/pausa, passo anterior/próximo, controle deslizante, voltar ao começo; fluxo com animação de chegada, log e variáveis (com o valor do momento) até o passo escolhido. | done | front: `ReplayBar.tsx`, `HistoryWorkspace.tsx` (`shownVariables`/`shownTimeline`) | 2026-10-01 |
+| [x] | REQ-15.03.006 | O painel de Histórico de Variáveis e Log do detalhe deve abrir recolhido e poder ser expandido ou recolhido. | done | front: `HistoryWorkspace.tsx` (`panelCollapsed`) | 2026-10-01 |
 
 ### US-15.04 Independência da tela de Execução
 
@@ -1520,7 +1532,8 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 
 | Data/Hora | Alteração |
 |---|---|
-| 2026-10-01 05:14 (não commitado) | **Canvas profissional.** Novas US-03.19 Apresentação do fluxo no canvas (REQ-03.19.001 a 008) e US-03.20 Seções do fluxo (REQ-03.20.001 a 005); REQ-03.15.003 reescrito (anotação vinculada vira marcador) e REQ-03.15.006 a 008 novos (marcador numerado, Guia, tour); REQ-02.04.010 (seções nos modelos e tour na primeira abertura); REQ-05.03.004 a 008 (Execução lado a lado, passos numerados, seguir a execução, etapas do motor destacadas, linha do tempo); REQ-15.03.005 (reprodução no Diagnóstico). Implementado em admin/back (`V25`, `V26`, rótulo da ligação) e front. Total geral: 556 → 579 REQs, 506 → 529 concluídos; US: 107 → 109. |
+| 2026-10-01 13:37 (não commitado) | **Execução e Diagnóstico: linha do tempo como painel único, entrada por um campo só e reprodução passo a passo.** Novos: REQ-05.03.009 (bolinha que percorre a ligação de chegada e halo na etapa atual), REQ-05.11.005 ("Sair sem parar"), REQ-15.03.006 (painel de baixo do Diagnóstico abre recolhido). Reescritos: REQ-05.03.004 (linha do tempo redimensionável e recolhível; Variáveis e Log abrem recolhidos), REQ-05.03.008 (card da linha do tempo com todos os detalhes da etapa, único lugar na Execução), REQ-05.07.001 e REQ-05.11.001 (busca única que também retoma execuções em andamento), REQ-05.10.007 (largura do painel do Diagnóstico e da linha do tempo), REQ-15.03.005 (passo anterior/próximo; variáveis com o valor do momento); nota da US-05.10 atualizada. FT-05: 69 → 71; FT-15: 18 → 19; total 579 → 582. |
+| 2026-10-01 05:29 | **Canvas profissional.** Novas US-03.19 Apresentação do fluxo no canvas (REQ-03.19.001 a 008) e US-03.20 Seções do fluxo (REQ-03.20.001 a 005); REQ-03.15.003 reescrito (anotação vinculada vira marcador) e REQ-03.15.006 a 008 novos (marcador numerado, Guia, tour); REQ-02.04.010 (seções nos modelos e tour na primeira abertura); REQ-05.03.004 a 008 (Execução lado a lado, passos numerados, seguir a execução, etapas do motor destacadas, linha do tempo); REQ-15.03.005 (reprodução no Diagnóstico). Implementado em admin/back (`V25`, `V26`, rótulo da ligação) e front. Total geral: 556 → 579 REQs, 506 → 529 concluídos; US: 107 → 109. |
 | 2026-10-01 01:52 | **Catálogo de modelos de jornada e resiliência da integração REST.** US-02.04: REQ-02.04.002/006 reescritos, REQ-02.04.007 a 009 novos (32 modelos em JSON, galeria nova). Nova US-03.18 (REQ-03.18.001 a 007) e REQ-03.02.009 (saída "Se falhar"); REQ-03.02.008 ajustado (REST em segundo plano é checkpoint); REQ-03.09.020, REQ-05.06.008, REQ-05.08.006 e REQ-15.03.004 novos. Implementado em admin/back, front, ms-runtime-camunda, ms-transform-publication, ms-espec-registry, ms-journey e ms-mock-api-rest. Total geral: 541 → 556 REQs, 491 → 506 concluídos; US: 106 → 107. |
 | 2026-09-30 01:32 | **Lista de seleção e fontes de dados da tela (ADR-002).** Novos: US-04.15 Lista de seleção (REQ-04.15.001 a 012), US-04.16 Fontes de dados da tela (REQ-04.16.001 a 009), US-14.07 Catálogo de fontes de dados (REQ-14.07.001 a 005), REQ-03.09.016 a 019 (saída de integração do tipo lista, campos a manter, lista/objeto do Kafka em JSON, lista fora das condições de Decisão), REQ-04.11.005 (ação "tentar novamente") e REQ-15.03.003 (consultas da tela no log do Diagnóstico). Implementado em admin/back (`V24`), ms-espec-registry (`V2`, montagem dos itens e busca das fontes), ms-transform-publication, ms-runtime-camunda, ms-journey, front e emulador de canais; APIs novas no ms-mock (bilhetes, horários, reagendamento, cancelamento); jornada de exemplo "Gestão de BDs" (VE). Catálogo SDUI: `ui.selectList` 1.0.0; nenhuma versão alterada. Compilado em todos os módulos; aguardando teste do usuário. Total geral: 509 → 541 REQs, 459 → 491 concluídos; US: 103 → 106. |
 | 2026-09-27 02:20 (commitado: `89ba457`, `b0dc450`, `817237a`) | **Strapi removido da plataforma (US-04.14) — `ms-espec-registry` passa a ser o próprio dono do armazenamento das telas publicadas.** Novo schema `espec_registry` no Postgres do admin (`journey_admin`), tabela `published_screen` (`envelope jsonb`, `status` published/deprecated, índice único parcial garantindo uma só revisão `published` por tela), migrado por um Flyway próprio do serviço (`config/FlywayMigrationInitializer`, mesmo padrão do admin/back desde que o Spring Boot 4.1 parou de trazer a autoconfiguração do Flyway) — histórico isolado do Flyway do admin/back, que continua no schema `public`. `PostgresSnapshotRepository` substitui `StrapiSnapshotRepository`: marca a revisão anterior como `deprecated` e insere a nova, em vez de só um `POST` sem histórico. Renomeado, só nesta ponta de armazenamento (o modelo do catálogo — `SduiNode`/`SduiEnvelopeBuilder`/`SduiScreenEnvelope`/`FlowNode.sdui` — continua com esse nome): pacotes `domain/sdui`→`domain/screen` e `interfaces/sdui`→`interfaces/screen` no `ms-espec-registry`; `SduiScreenPublicationPort`→`ScreenPublicationPort` e `EspecRegistrySduiAdapter`→`EspecRegistryScreenAdapter` no admin/back; URL de `/api/v1/sdui-snapshots` para `/api/v1/published-screens`. Nenhum REQ novo — só a evidência de REQ-04.14.004/005/006 corrigida pra citar as classes atuais. Testado fim a fim: reset de fábrica republicando as 8 versões/21 telas seguido de um teste real do usuário na tela Execuções, e uma republicação subsequente já demonstrando o `deprecated` funcionando (8 telas). De quebra, corrigidos 3 bugs pré-existentes na massa de fábrica que só apareceram ao republicar do zero (nenhum deles ligado ao Strapi): SemVer incompleto (`"1.0"` em vez de `"1.0.0"`) em componentes das telas de Web/Mobile/WhatsApp v1; a mesma prop `gapToken` desatualizada (hoje `spacingToken`) nos `ui.stack` dessas telas; e os dois Receive Tasks Kafka da jornada Vivo Fibra + Total sem `outputMapping`, então as telas seguintes referenciavam `data.statusAtivacao`/`data.resultadoRevisao`, que nunca existiam — corrigido com `payloadMode: CUSTOM` e `outputMapping` declarado nos dois. Nenhuma mudança de contagem: total geral segue 509 REQs, 459 concluídos. |

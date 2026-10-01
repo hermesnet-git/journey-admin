@@ -749,11 +749,12 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.03.001 - O sistema deve destacar o caminho percorrido durante a execução.
 #### REQ-05.03.002 - O sistema deve destacar as User Tasks e os formulários executados.
 #### REQ-05.03.003 - O sistema não deve reposicionar ou reiniciar o zoom do diagrama do fluxo ao alternar entre as abas do painel de observabilidade.
-#### REQ-05.03.004 - A tela de Execução deve mostrar lado a lado o canal (a tela da etapa atual), o fluxo e a linha do tempo, com Variáveis e Log no painel inferior.
+#### REQ-05.03.004 - A tela de Execução deve mostrar lado a lado o canal (a tela da etapa atual), o fluxo e a linha do tempo, com Variáveis e Log no painel inferior. A linha do tempo pode ser redimensionada na largura e recolhida; o painel de Variáveis e Log abre recolhido e pode ser expandido ou recolhido.
 #### REQ-05.03.005 - Cada etapa percorrida deve ganhar o número do passo (mais de um quando a jornada volta por um laço), e as etapas e ligações ainda não percorridas devem aparecer esmaecidas.
 #### REQ-05.03.006 - "Seguir a execução" deve manter a etapa atual no centro do fluxo a cada passo; desligado, o usuário controla o enquadramento.
 #### REQ-05.03.007 - As etapas que o motor percorre sozinho entre um passo e outro (integrações, Decisões) devem ser destacadas uma a uma no fluxo, em sequência, sem animação para quem pediu movimento reduzido ao sistema.
-#### REQ-05.03.008 - A linha do tempo deve listar os passos em ordem, com o número, o tipo, a hora, se foi feito pelo motor, a falha que levou ao caminho "Se falhar" e, ao abrir, a entrada e a saída do passo; no fim, o que a jornada está esperando agora em linguagem do usuário (cliente respondendo uma tela, mensagem num tópico, integração em segundo plano, concluída ou parada por erro).
+#### REQ-05.03.008 - A linha do tempo deve listar os passos em ordem, com o número, o tipo, a hora, se foi feito pelo motor e a falha que levou ao caminho "Se falhar"; ao abrir um passo, o card mostra todos os detalhes da etapa (US-05.10), e é o único lugar da Execução com esses detalhes. Selecionar uma etapa no fluxo abre o card dela; uma etapa ainda não alcançada aparece num card próprio com a configuração. No fim, o que a jornada está esperando agora em linguagem do usuário (cliente respondendo uma tela, mensagem num tópico, integração em segundo plano, concluída ou parada por erro).
+#### REQ-05.03.009 - Ao chegar a uma etapa, uma bolinha deve percorrer uma vez a ligação por onde a execução chegou e parar no fim, e a etapa atual deve ganhar um halo que pulsa. Para quem pediu movimento reduzido ao sistema, a bolinha não aparece e o halo fica parado.
 ---
 
 ### US-05.04 Arquitetura de execução
@@ -780,7 +781,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 ---
 
 ### US-05.07 Seleção e apresentação
-#### REQ-05.07.001 - O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado.
+#### REQ-05.07.001 - O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado. O mesmo campo aceita o ID da instância ou o business key de uma execução em andamento (US-05.11) e, na busca por nome, lista também as execuções em andamento das jornadas encontradas.
 #### REQ-05.07.002 - A execução deve ocorrer na mesma tela de seleção da jornada, sem navegação entre telas.
 #### REQ-05.07.003 - A pré-visualização da execução deve se adaptar ao tipo de canal escolhido para a instância (REQ-05.04.004), incluindo uma representação visual compatível (ex.: layout de dispositivo móvel para `MOBILE`).
 #### REQ-05.07.004 - O sistema deve exibir o número da versão publicada da jornada (`v<N>`) tanto na lista de busca quanto no cabeçalho de uma execução em andamento.
@@ -821,7 +822,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 
 ### US-05.10 Inspeção detalhada de nó
 
-> O painel de detalhe do nó descrito nesta user story é o mesmo painel de observabilidade compartilhado com a FT-15 Diagnóstico — implementado uma única vez, reaproveitado nas duas telas.
+> Os detalhes de etapa descritos nesta user story aparecem, na Execução, no card da etapa na linha do tempo (REQ-05.03.008) e, no Diagnóstico (FT-15), no painel de detalhe do nó.
 
 #### REQ-05.10.001 - Ao selecionar uma Tarefa de Serviço ou uma Tarefa de Recebimento no Fluxo da Jornada, o painel deve apresentar a configuração do conector: tipo (API REST, Kafka, Event Hubs ou Service Bus) e, para REST, método e URL configurados, quantidade/lista de headers e indicação de body configurado; para conectores de tópico, o nome do tópico/Event Hub, o cluster associado e se a tarefa é produtora (Producer) ou consumidora (Consumer) da mensagem.
 #### REQ-05.10.002 - Ao selecionar um nó de Decisão (Gateway) no Fluxo da Jornada, o painel deve apresentar as condições de cada saída configurada (ou "Caminho padrão"), destacando visualmente qual saída foi de fato percorrida quando houver uma instância associada.
@@ -829,17 +830,18 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.10.004 - Ao selecionar o nó de Início por Mensagem (Message Start Event), o painel deve apresentar a configuração do conector de tópico que inicia a jornada, com o mesmo tratamento de REQ-05.10.001 (a jornada é consumidora da mensagem que a inicia).
 #### REQ-05.10.005 - As seções de entrada e saída do painel devem ser colapsáveis individualmente.
 #### REQ-05.10.006 - Para um conector de tópico (Kafka, Event Hubs ou Service Bus), a seção de entrada deve se chamar "Payload da Mensagem" em vez de "Entrada" — o que chega não é uma requisição/resposta, é a mensagem publicada ou consumida.
-#### REQ-05.10.007 - O painel de detalhe do nó deve ser redimensionável horizontalmente (largura), sem alterar sua altura.
+#### REQ-05.10.007 - O painel de detalhe do nó do Diagnóstico e a linha do tempo da Execução devem ser redimensionáveis horizontalmente (largura), sem alterar a altura.
 #### REQ-05.10.008 - O log cronológico deve indicar o tipo de conector também para uma Tarefa de Recebimento (API REST, Kafka, Event Hubs ou Service Bus), da mesma forma que já indica para uma Tarefa de Serviço.
 #### REQ-05.10.009 - Uma mensagem Kafka recebida por uma Tarefa de Recebimento ou por um Início por Mensagem deve ficar disponível para consulta (painel de detalhe do nó e log) da mesma forma que uma mensagem publicada por uma Tarefa de Serviço — cobrindo tanto o lado produtor quanto o consumidor.
 #### REQ-05.10.010 - O diagrama do fluxo deve permitir aumentar e diminuir o zoom com o scroll do mouse.
 ---
 
 ### US-05.11 Retomada de instância em andamento
-#### REQ-05.11.001 - O sistema deve permitir retomar, na própria tela de Execução, uma instância em andamento (`ACTIVE`), buscando por ID da instância ou business key, sem passar pelo Diagnóstico.
+#### REQ-05.11.001 - O sistema deve permitir retomar, na própria tela de Execução, uma instância em andamento (`ACTIVE`), pelo mesmo campo de busca de jornadas (REQ-05.07.001), colando o ID da instância ou o business key ou escolhendo-a entre as execuções em andamento listadas, sem passar pelo Diagnóstico.
 #### REQ-05.11.002 - Ao retomar, o sistema deve reconstruir o estado da execução (fluxo, passo atual, variáveis, canal e controle manual de Kafka) a partir do estado real da instância no motor de runtime, sem depender de nenhum histórico acumulado no navegador antes da retomada.
 #### REQ-05.11.003 - Buscar por uma instância que exista mas não esteja `ACTIVE` (concluída ou encerrada) deve informar isso ao usuário na própria busca, sem tentar retomá-la ao vivo — essa consulta continua sendo papel do Diagnóstico (FT-15).
 #### REQ-05.11.004 - Buscar por um ID de instância ou business key que não corresponda a nenhuma instância deve mostrar erro claro na própria busca, sem navegar.
+#### REQ-05.11.005 - Durante uma execução, o usuário deve poder sair para a tela inicial sem encerrá-la ("Sair sem parar"); a instância continua no motor e o campo de busca volta com o business key dela, pronto para retomar.
 ---
 
 <br/><br/>
@@ -1251,7 +1253,8 @@ Permitir investigar o comportamento de qualquer execução de jornada no motor d
 #### REQ-15.03.002 - O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.
 #### REQ-15.03.003 - O log do detalhe deve incluir cada consulta a uma fonte de dados feita ao montar uma tela da instância (US-04.16) — fonte, tela, URL, status, duração e quantidade de itens —, já que essa busca acontece fora do Runtime Engine e não aparece no histórico da instância.
 #### REQ-15.03.004 - Quando a execução estiver parada num incidente de integração em segundo plano (REQ-03.18.006), o detalhe deve oferecer "Tentar de novo", que faz o Runtime Engine executar a etapa outra vez e recarrega o detalhe. A ação é restrita aos perfis EDITOR e ADMIN.
-#### REQ-15.03.005 - O detalhe deve oferecer a reprodução da execução: reproduzir/pausar, avançar pelo controle deslizante e voltar ao começo. No passo escolhido, o fluxo mostra só o caminho até ali (numerado, com o resto esmaecido), e o log e o histórico de variáveis ficam limitados ao mesmo momento.
+#### REQ-15.03.005 - O detalhe deve oferecer a reprodução da execução: reproduzir/pausar (avanço automático), passo anterior e próximo passo (avanço manual, que pausa o automático), controle deslizante e voltar ao começo. No passo escolhido, o fluxo mostra só o caminho até ali (numerado, com o resto esmaecido e a mesma animação de chegada da Execução, REQ-05.03.009), o log mostra só o que aconteceu até ali e o histórico de variáveis mostra só as variáveis já definidas, cada uma com o valor que tinha naquele momento.
+#### REQ-15.03.006 - O painel de Histórico de Variáveis e Log do detalhe deve abrir recolhido e poder ser expandido ou recolhido.
 ---
 
 ### US-15.04 Independência da tela de Execução

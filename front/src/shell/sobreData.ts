@@ -1004,11 +1004,12 @@ export const EPICS: Epic[] = [
             notes:
               'O visualizador do fluxo fica sempre montado (visibilidade alternada via CSS), preservando o zoom/posição entre trocas de aba — antes, desmontar/remontar a cada troca destruía esse estado.',
           },
-          d('REQ-05.03.004', 'Canal, fluxo e linha do tempo lado a lado; Variáveis e Log embaixo.'),
+          d('REQ-05.03.004', 'Canal, fluxo e linha do tempo lado a lado; linha do tempo redimensionável e recolhível; Variáveis e Log embaixo, abrindo recolhido.'),
           d('REQ-05.03.005', 'Passos numerados nas etapas; o que não foi percorrido fica esmaecido.'),
           d('REQ-05.03.006', '"Seguir a execução" mantém a etapa atual no centro.'),
           d('REQ-05.03.007', 'Etapas percorridas pelo motor destacadas uma a uma (sem animação com movimento reduzido).'),
-          d('REQ-05.03.008', 'Linha do tempo com passo, tipo, hora, motor, falha, entrada/saída e a espera atual explicada.'),
+          d('REQ-05.03.008', 'Linha do tempo com passo, tipo, hora, motor e falha; o card aberto mostra todos os detalhes da etapa (único lugar na Execução); etapa selecionada no fluxo abre o card; etapa não alcançada mostra a configuração; no fim, a espera atual explicada.'),
+          d('REQ-05.03.009', 'Bolinha percorre uma vez a ligação de chegada e para; halo pulsante na etapa atual; sem movimento com movimento reduzido.'),
         ],
       },
       {
@@ -1100,7 +1101,7 @@ export const EPICS: Epic[] = [
           {
             code: 'REQ-05.07.001',
             description:
-              'O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado.',
+              'O sistema deve permitir localizar uma jornada publicada por busca, listando as jornadas disponíveis e filtrando a lista conforme o texto digitado. O mesmo campo aceita o ID da instância ou o business key de uma execução em andamento (US-05.11) e, na busca por nome, lista também as execuções em andamento das jornadas encontradas.',
             status: 'done',
             notes:
               'Comportamento revisado a pedido do usuário: a versão anterior deste requisito ("sem exigir listar todas de uma vez") foi trocada por listar tudo por padrão e filtrar ao digitar.',
@@ -1243,7 +1244,7 @@ export const EPICS: Epic[] = [
           d('REQ-05.10.004', 'Ao selecionar o Início por Mensagem, o painel deve apresentar a configuração do conector, como Consumer.'),
           d('REQ-05.10.005', 'As seções de entrada e saída do painel devem ser colapsáveis individualmente.'),
           d('REQ-05.10.006', 'Para conector de tópico, a seção de entrada deve se chamar "Payload da Mensagem".'),
-          d('REQ-05.10.007', 'O painel de detalhe do nó deve ser redimensionável horizontalmente, sem alterar a altura.'),
+          d('REQ-05.10.007', 'O painel de detalhe do nó do Diagnóstico e a linha do tempo da Execução devem ser redimensionáveis horizontalmente (largura), sem alterar a altura.'),
           d('REQ-05.10.008', 'O log cronológico deve indicar o tipo de conector também para Tarefa de Recebimento.'),
           {
             code: 'REQ-05.10.009',
@@ -1265,7 +1266,7 @@ export const EPICS: Epic[] = [
         requirements: [
           d(
             'REQ-05.11.001',
-            'O sistema deve permitir retomar, na própria tela de Execução, uma instância em andamento (ACTIVE), buscando por ID da instância ou business key, sem passar pelo Diagnóstico.',
+            'O sistema deve permitir retomar, na própria tela de Execução, uma instância em andamento (ACTIVE), pelo mesmo campo de busca de jornadas (REQ-05.07.001), colando o ID da instância ou o business key ou escolhendo-a entre as execuções em andamento listadas, sem passar pelo Diagnóstico.',
           ),
           d(
             'REQ-05.11.002',
@@ -1278,6 +1279,10 @@ export const EPICS: Epic[] = [
           d(
             'REQ-05.11.004',
             'Buscar por um ID de instância ou business key que não corresponda a nenhuma instância deve mostrar erro claro na própria busca, sem navegar.',
+          ),
+          d(
+            'REQ-05.11.005',
+            'Durante uma execução, o usuário deve poder sair para a tela inicial sem encerrá-la ("Sair sem parar"); a instância continua no motor e o campo de busca volta com o business key dela, pronto para retomar.',
           ),
         ],
       },
@@ -2019,7 +2024,8 @@ export const EPICS: Epic[] = [
           d('REQ-15.03.002', 'O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.'),
           d('REQ-15.03.003', 'O log do detalhe inclui cada consulta a fonte de dados feita ao montar uma tela da instância.'),
           d('REQ-15.03.004', '"Tentar de novo" em incidente de integração em segundo plano (EDITOR/ADMIN).'),
-          d('REQ-15.03.005', 'Reprodução da execução: play/pausa, controle deslizante; fluxo, log e variáveis até o passo escolhido.'),
+          d('REQ-15.03.005', 'Reprodução: play/pausa, passo anterior/próximo, controle deslizante, voltar ao começo; fluxo com animação de chegada, log e variáveis (com o valor do momento) até o passo escolhido.'),
+          d('REQ-15.03.006', 'O painel de Histórico de Variáveis e Log do detalhe deve abrir recolhido e poder ser expandido ou recolhido.'),
         ],
       },
       {
@@ -2099,7 +2105,13 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-10-01 05:14 (não commitado)',
+    date: '2026-10-01 13:37 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Execução e Diagnóstico: linha do tempo como painel único, entrada por um campo só e reprodução passo a passo. Novos: REQ-05.03.009 (bolinha que percorre a ligação de chegada e halo na etapa atual), REQ-05.11.005 ("Sair sem parar"), REQ-15.03.006 (painel de baixo do Diagnóstico abre recolhido). Reescritos: REQ-05.03.004 (linha do tempo redimensionável e recolhível; Variáveis e Log abrem recolhidos), REQ-05.03.008 (card da linha do tempo com todos os detalhes da etapa, único lugar na Execução), REQ-05.07.001 e REQ-05.11.001 (busca única que também retoma execuções em andamento), REQ-05.10.007 (largura do painel do Diagnóstico e da linha do tempo), REQ-15.03.005 (passo anterior/próximo; variáveis com o valor do momento); nota da US-05.10 atualizada. FT-05: 69 → 71; FT-15: 18 → 19; total 579 → 582.',
+  },
+  {
+    date: '2026-10-01 05:29',
     source: 'progresso',
     summary:
       'Canvas profissional. Novas US-03.19 Apresentação do fluxo no canvas (REQ-03.19.001 a 008) e US-03.20 Seções do fluxo (REQ-03.20.001 a 005); REQ-03.15.003 reescrito (anotação vinculada vira marcador) e REQ-03.15.006 a 008 novos (marcador numerado, Guia, tour); REQ-02.04.010 (seções nos modelos e tour na primeira abertura); REQ-05.03.004 a 008 (Execução lado a lado, passos numerados, seguir a execução, etapas do motor destacadas, linha do tempo); REQ-15.03.005 (reprodução no Diagnóstico). Implementado em admin/back (V25, V26, rótulo da ligação) e front. Total geral: 556 → 579 REQs, 506 → 529 concluídos; US: 107 → 109.',
@@ -2540,6 +2552,8 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-01 05:29', source: 'git', summary: 'Requisitos: canvas profissional, seções do fluxo, Execução e Diagnóstico.', epics: ['FT-02', 'FT-03', 'FT-05', 'FT-15'] },
+  { date: '2026-10-01 05:29', source: 'git', summary: 'Canvas profissional: cartões, layout em camadas, linhas automáticas e seções.', epics: ['FT-03', 'FT-05', 'FT-15'] },
   { date: '2026-10-01 01:52', source: 'git', summary: 'Requisitos: catálogo de modelos de jornada e resiliência da integração REST.', epics: ['FT-02', 'FT-03', 'FT-05', 'FT-15'] },
   { date: '2026-10-01 01:45', source: 'git', summary: 'Resiliência da integração REST: tempo limite, novas tentativas, caminho "Se falhar" e execução em segundo plano.', epics: ['FT-03', 'FT-05', 'FT-15'] },
   { date: '2026-10-01 00:49', source: 'git', summary: 'Modelos de jornada: catálogo de 32 exemplos e galeria nova em "Nova jornada".', epics: ['FT-02'] },

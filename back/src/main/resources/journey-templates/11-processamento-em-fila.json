@@ -479,56 +479,64 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Pedido",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Pedido",
         "targetNodeId": "Node_EnviaProcessamento",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_EnviaProcessamento",
         "targetNodeId": "Node_AguardaProcessamento",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_AguardaProcessamento",
         "targetNodeId": "Node_Aprovado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_Aprovado",
         "targetNodeId": "Node_Transferida",
         "condition": "{{data_statusProcessamento}} == \"APROVADO\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_Aprovado",
         "targetNodeId": "Node_Recusada",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_Transferida",
         "targetNodeId": "Node_FimTransferida",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_Recusada",
         "targetNodeId": "Node_FimRecusada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

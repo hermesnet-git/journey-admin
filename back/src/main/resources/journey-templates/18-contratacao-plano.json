@@ -756,77 +756,88 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Identificacao",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Identificacao",
         "targetNodeId": "Node_AnaliseCredito",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_AnaliseCredito",
         "targetNodeId": "Node_CreditoAprovado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_CreditoAprovado",
         "targetNodeId": "Node_BuscaPlanos",
         "condition": "{{data_creditoAprovado}} == true",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_CreditoAprovado",
         "targetNodeId": "Node_OfertaPrePago",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_BuscaPlanos",
         "targetNodeId": "Node_EscolhePlano",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_EscolhePlano",
         "targetNodeId": "Node_Endereco",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_Endereco",
         "targetNodeId": "Node_CriaPedido",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_CriaPedido",
         "targetNodeId": "Node_Confirmado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_10",
         "sourceNodeId": "Node_Confirmado",
         "targetNodeId": "Node_FimContratado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_11",
         "sourceNodeId": "Node_OfertaPrePago",
         "targetNodeId": "Node_FimPrePago",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

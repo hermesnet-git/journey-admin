@@ -46,7 +46,7 @@ public record JourneyTemplate(String id, String name, String description, String
                 .map(connection -> new FlowConnection(FlowIds.newConnectionId(),
                         requiredNodeId(nodeIds, connection.getSourceNodeId()),
                         requiredNodeId(nodeIds, connection.getTargetNodeId()), connection.getCondition(),
-                        connection.isDefault()))
+                        connection.isDefault(), connection.isOnError()))
                 .toList();
         List<FlowAnnotation> instantiatedAnnotations = annotations.stream()
                 .map(annotation -> new FlowAnnotation("Annotation_" + UUID.randomUUID(), annotation.getText(),
@@ -84,6 +84,18 @@ public record JourneyTemplate(String id, String name, String description, String
             if (node.getEmbeddedScreenRoot() != null) {
                 collectScreenCapabilities(node.getEmbeddedScreenRoot(), found);
             }
+            Map<String, Object> config = node.getConnectorConfig() != null ? node.getConnectorConfig().getConfig() : null;
+            if (connector == ConnectorType.REST && config != null) {
+                if (config.get("retries") instanceof Number retries && retries.intValue() > 0) {
+                    found.add("Novas tentativas");
+                }
+                if (Boolean.TRUE.equals(config.get("background"))) {
+                    found.add("Segundo plano");
+                }
+            }
+        }
+        if (connections.stream().anyMatch(FlowConnection::isOnError)) {
+            found.add("Caminho “Se falhar”");
         }
         return List.copyOf(found);
     }

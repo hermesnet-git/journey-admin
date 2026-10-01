@@ -535,56 +535,64 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Analisar",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Analisar",
         "targetNodeId": "Node_Aprovado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_Aprovado",
         "targetNodeId": "Node_AvisaAprovacao",
         "condition": "{{form_decisao}} == \"aprovar\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_Aprovado",
         "targetNodeId": "Node_AvisaReprovacao",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_AvisaAprovacao",
         "targetNodeId": "Node_TelaAprovado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_TelaAprovado",
         "targetNodeId": "Node_FimAprovado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_AvisaReprovacao",
         "targetNodeId": "Node_TelaReprovado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_TelaReprovado",
         "targetNodeId": "Node_FimReprovado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

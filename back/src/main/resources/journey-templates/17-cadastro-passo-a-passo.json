@@ -628,42 +628,48 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Passo1",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Passo1",
         "targetNodeId": "Node_Passo2",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_Passo2",
         "targetNodeId": "Node_Passo3",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_Passo3",
         "targetNodeId": "Node_CriaCadastro",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_CriaCadastro",
         "targetNodeId": "Node_BemVindo",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_BemVindo",
         "targetNodeId": "Node_Fim",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

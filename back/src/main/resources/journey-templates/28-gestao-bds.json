@@ -796,98 +796,112 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_InformaCnpj",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_InformaCnpj",
         "targetNodeId": "Node_ConsultaBilhetes",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_ConsultaBilhetes",
         "targetNodeId": "Node_TemBilhetes",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_TemBilhetes",
         "targetNodeId": "Node_SemBilhetes",
         "condition": "{{data_quantidadeBilhetes}} == 0",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_TemBilhetes",
         "targetNodeId": "Node_EscolheBilhete",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_SemBilhetes",
         "targetNodeId": "Node_FimSem",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_EscolheBilhete",
         "targetNodeId": "Node_ReagendarOuCancelar",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_ReagendarOuCancelar",
         "targetNodeId": "Node_NovoHorario",
         "condition": "{{form_acaoBilhete}} == \"reagendar\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_ReagendarOuCancelar",
         "targetNodeId": "Node_Cancela",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_10",
         "sourceNodeId": "Node_NovoHorario",
         "targetNodeId": "Node_Reagenda",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_11",
         "sourceNodeId": "Node_Reagenda",
         "targetNodeId": "Node_Reagendado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_12",
         "sourceNodeId": "Node_Reagendado",
         "targetNodeId": "Node_FimReagendado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_13",
         "sourceNodeId": "Node_Cancela",
         "targetNodeId": "Node_Cancelado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_14",
         "sourceNodeId": "Node_Cancelado",
         "targetNodeId": "Node_FimCancelado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

@@ -422,49 +422,56 @@
         "sourceNodeId": "Node_AlertaDispositivo",
         "targetNodeId": "Node_Critico",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Critico",
         "targetNodeId": "Node_Acao",
         "condition": "{{data_nivelBateria}} < 10",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_Critico",
         "targetNodeId": "Node_Registrado",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_Acao",
         "targetNodeId": "Node_OrdemTecnico",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_OrdemTecnico",
         "targetNodeId": "Node_Enviada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_Enviada",
         "targetNodeId": "Node_FimOrdem",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_Registrado",
         "targetNodeId": "Node_FimRegistrado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

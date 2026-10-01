@@ -403,35 +403,40 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Problema",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Problema",
         "targetNodeId": "Node_AbreChamado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_AbreChamado",
         "targetNodeId": "Node_AvisaCampo",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_AvisaCampo",
         "targetNodeId": "Node_Aberto",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_Aberto",
         "targetNodeId": "Node_Fim",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

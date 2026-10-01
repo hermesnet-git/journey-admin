@@ -916,119 +916,136 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_InformaCnpj",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_InformaCnpj",
         "targetNodeId": "Node_ConsultaChamado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_ConsultaChamado",
         "targetNodeId": "Node_TemChamado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_TemChamado",
         "targetNodeId": "Node_TelaChamado",
         "condition": "{{data_bdHttpStatus}} == 200",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_TemChamado",
         "targetNodeId": "Node_ConsultaPendencia",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_ConsultaPendencia",
         "targetNodeId": "Node_TemPendencia",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_TemPendencia",
         "targetNodeId": "Node_TelaPendencia",
         "condition": "{{data_pendenciaStatus}} == \"Aguardando pagamento\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_TemPendencia",
         "targetNodeId": "Node_ConsultaMassiva",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_ConsultaMassiva",
         "targetNodeId": "Node_TemMassiva",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_10",
         "sourceNodeId": "Node_TemMassiva",
         "targetNodeId": "Node_TelaMassiva",
         "condition": "{{data_massivaStatus}} == \"Programada\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_11",
         "sourceNodeId": "Node_TemMassiva",
         "targetNodeId": "Node_SolicitaDiagnostico",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_12",
         "sourceNodeId": "Node_SolicitaDiagnostico",
         "targetNodeId": "Node_AguardaDiagnostico",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_13",
         "sourceNodeId": "Node_AguardaDiagnostico",
         "targetNodeId": "Node_Resultado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_14",
         "sourceNodeId": "Node_Resultado",
         "targetNodeId": "Node_FimDiagnostico",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_15",
         "sourceNodeId": "Node_TelaChamado",
         "targetNodeId": "Node_FimChamado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_16",
         "sourceNodeId": "Node_TelaPendencia",
         "targetNodeId": "Node_FimPendencia",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_17",
         "sourceNodeId": "Node_TelaMassiva",
         "targetNodeId": "Node_FimMassiva",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

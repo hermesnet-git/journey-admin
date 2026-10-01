@@ -873,77 +873,88 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_OrdemServico",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_OrdemServico",
         "targetNodeId": "Node_ConsultaOS",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_ConsultaOS",
         "targetNodeId": "Node_Chegada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_Chegada",
         "targetNodeId": "Node_Reparo",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_Reparo",
         "targetNodeId": "Node_Resolvido",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_Resolvido",
         "targetNodeId": "Node_EncerraOS",
         "condition": "{{form_defeitoResolvido}} == \"sim\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_Resolvido",
         "targetNodeId": "Node_EscalaRede",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_EncerraOS",
         "targetNodeId": "Node_Encerrada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_Encerrada",
         "targetNodeId": "Node_FimEncerrada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_10",
         "sourceNodeId": "Node_EscalaRede",
         "targetNodeId": "Node_Escalada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_11",
         "sourceNodeId": "Node_Escalada",
         "targetNodeId": "Node_FimEscalada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

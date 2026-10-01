@@ -32,8 +32,7 @@ public class FlowRepositoryAdapter implements FlowRepository {
                         n.getEmbeddedScreenRoot(), n.getSdui(), n.getScreenDataSources()))
                 .toList());
         String connectionsJson = writeJson(flow.getConnections().stream()
-                .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
-                        c.isDefault()))
+                .map(FlowConnectionRecord::from)
                 .toList());
         String annotationsJson = writeJson(flow.getAnnotations().stream().map(FlowAnnotationRecord::from).toList());
         FlowJpaEntity entity = new FlowJpaEntity(flow.getId(), flow.getJourneyId(), flow.getName(), nodesJson,
@@ -63,7 +62,7 @@ public class FlowRepositoryAdapter implements FlowRepository {
                         n.startVariables(), n.embeddedScreenRoot(), n.sdui(), n.screenDataSources()))
                 .toList();
         List<FlowConnection> connections = connectionRecords.stream()
-                .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
+                .map(FlowConnectionRecord::toDomain)
                 .toList();
         List<FlowAnnotation> annotations = entity.getAnnotations() == null
                 ? List.of()

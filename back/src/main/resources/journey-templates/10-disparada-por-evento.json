@@ -400,42 +400,48 @@
         "sourceNodeId": "Node_FaturaVencida",
         "targetNodeId": "Node_Aviso",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Aviso",
         "targetNodeId": "Node_JaPagou",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_JaPagou",
         "targetNodeId": "Node_Conferir",
         "condition": "{{form_acaoFatura}} == \"ja_paguei\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_JaPagou",
         "targetNodeId": "Node_ComoPagar",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_Conferir",
         "targetNodeId": "Node_FimConferir",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_ComoPagar",
         "targetNodeId": "Node_FimComoPagar",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

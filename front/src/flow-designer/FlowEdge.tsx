@@ -42,7 +42,7 @@ function createFlowEdge(shape: keyof typeof PATH_FN) {
     const [labelPos, setLabelPos] = useState<{ x: number; y: number } | null>(null);
 
     const [path] = PATH_FN[shape]({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
-    const labelText = data?.isDefault ? 'padrão' : data?.condition;
+    const labelText = data?.onError ? 'Se falhar' : data?.isDefault ? 'padrão' : data?.condition;
 
     useLayoutEffect(() => {
       if (!labelText) return;

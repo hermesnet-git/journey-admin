@@ -53,6 +53,9 @@ import {
   FRONT_TO_BACKEND_TYPE,
   BACKEND_TO_FRONT_TYPE,
   outgoingLimitFor,
+  ERROR_HANDLE,
+  isErrorEdge,
+  canHaveErrorPath,
   gatewayViolations,
   makeAnnotation,
   isAnnotationId,
@@ -107,6 +110,7 @@ function buildFlowSnapshot(
       targetNodeId: e.target,
       condition: e.data?.condition ?? null,
       isDefault: !!e.data?.isDefault,
+      onError: !!e.data?.onError,
     })),
     annotations: annotations.map((a) => ({
       id: a.id,
@@ -142,6 +146,7 @@ function buildFlowInput(nodes: WFNode[], edges: WFEdge[], annotations: WFAnnotat
       targetNodeId: e.target,
       condition: e.data?.condition ?? null,
       isDefault: !!e.data?.isDefault,
+      onError: !!e.data?.onError,
     })),
     annotations: annotations.map((a) => ({
       id: a.id,
@@ -394,7 +399,8 @@ function DesignerInner({
         id: c.connectionId,
         source: c.sourceNodeId,
         target: c.targetNodeId,
-        data: { condition: c.condition ?? undefined, isDefault: c.isDefault },
+        ...(c.onError ? { sourceHandle: ERROR_HANDLE } : {}),
+        data: { condition: c.condition ?? undefined, isDefault: c.isDefault, onError: c.onError || undefined },
       })) as WFEdge[],
       annotations: flow.annotations.map((a) => ({
         id: a.id,
@@ -518,8 +524,15 @@ function DesignerInner({
         return;
       }
       const source = nodesRef.current.find((n) => n.id === params.source);
+      // Saída "Se falhar": só em integração REST, uma por etapa, e fora da contagem de saídas normais.
+      if (params.sourceHandle === ERROR_HANDLE) {
+        if (!canHaveErrorPath(source) || edgesRef.current.some((e) => e.source === params.source && isErrorEdge(e))) return;
+        pushHistory();
+        setEdges((eds) => addEdge({ ...params, id: newConnectionId(), data: { onError: true } }, eds));
+        return;
+      }
       if (source?.type) {
-        const outCount = edgesRef.current.filter((e) => e.source === params.source).length;
+        const outCount = edgesRef.current.filter((e) => e.source === params.source && !isErrorEdge(e)).length;
         if (outCount >= outgoingLimitFor(source.type)) return;
       }
       pushHistory();
@@ -535,8 +548,10 @@ function DesignerInner({
       if (isAnnotationId(oldEdge.source)) return;
       if (newConnection.source !== oldEdge.source) {
         const source = nodesRef.current.find((n) => n.id === newConnection.source);
-        if (source?.type) {
-          const outCount = edgesRef.current.filter((e) => e.source === newConnection.source && e.id !== oldEdge.id).length;
+        if (isErrorEdge(oldEdge)) {
+          if (!canHaveErrorPath(source) || edgesRef.current.some((e) => e.source === newConnection.source && isErrorEdge(e))) return;
+        } else if (source?.type) {
+          const outCount = edgesRef.current.filter((e) => e.source === newConnection.source && e.id !== oldEdge.id && !isErrorEdge(e)).length;
           if (outCount >= outgoingLimitFor(source.type)) return;
         }
       }
@@ -673,7 +688,7 @@ function DesignerInner({
         showToast('Não foi possível criar a Tarefa de Usuário porque a definição de Tela não está disponível no catálogo.', 'error');
         return;
       }
-      const outCount = edgesRef.current.filter((e) => e.source === nodeId).length;
+      const outCount = edgesRef.current.filter((e) => e.source === nodeId && !isErrorEdge(e)).length;
       if (outCount >= outgoingLimitFor(source.type)) return;
       pushHistory();
       // Os dois ramos do Gateway se abrem acima/abaixo da origem (em vez de empilhar na mesma linha)
@@ -855,7 +870,7 @@ function DesignerInner({
   const displayNodes = useMemo(
     () =>
       nodes.map((n) => {
-        const outgoing = edges.filter((e) => e.source === n.id);
+        const outgoing = edges.filter((e) => e.source === n.id && !isErrorEdge(e));
         // Direção média das linhas de saída já existentes, pra nascer o botão "+" do lado oposto em
         // vez de sempre centralizado (onde uma linha existente passaria por cima dele).
         const offsets = outgoing
@@ -872,6 +887,7 @@ function DesignerInner({
             invalid: invalidReason !== undefined,
             invalidReason,
             outgoingLimitReached: !!n.type && outgoing.length >= outgoingLimitFor(n.type),
+            errorPathTaken: edges.some((e) => e.source === n.id && isErrorEdge(e)),
             quickAddAvoid: avgOffset > 0 ? ('down' as const) : avgOffset < 0 ? ('up' as const) : undefined,
             zoom,
           },
@@ -912,7 +928,7 @@ function DesignerInner({
       edges.map((e) => {
         const onFocusedPath = !!focusNodeId && (e.source === focusNodeId || e.target === focusNodeId);
         const dimmed = !!focusNodeId && !onFocusedPath;
-        const color = e.selected || onFocusedPath ? c.accent : c.edgeColor;
+        const color = isErrorEdge(e) ? c.danger : e.selected || onFocusedPath ? c.accent : c.edgeColor;
         return {
           ...e,
           type: edgeShape,
@@ -921,6 +937,7 @@ function DesignerInner({
           style: {
             stroke: color,
             strokeWidth: e.selected || onFocusedPath ? 2.5 : 1.5,
+            strokeDasharray: isErrorEdge(e) ? '5 4' : undefined,
             opacity: dimmed ? 0.25 : 1,
             vectorEffect: 'non-scaling-stroke' as const,
             transition: 'opacity 150ms ease-out, stroke 150ms ease-out',

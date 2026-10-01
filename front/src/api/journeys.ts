@@ -51,7 +51,7 @@ export interface JourneyTemplate {
       positionY: number;
       connectorType: BackendConnectorType | null;
     }[];
-    connections: { connectionId: string; sourceNodeId: string; targetNodeId: string; condition: string | null; isDefault: boolean }[];
+    connections: { connectionId: string; sourceNodeId: string; targetNodeId: string; condition: string | null; isDefault: boolean; onError: boolean }[];
   };
 }
 

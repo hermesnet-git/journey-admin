@@ -109,10 +109,10 @@ public class JsonJourneyTemplateCatalog implements JourneyTemplateCatalog {
     }
 
     private record ConnectionFile(String connectionId, String sourceNodeId, String targetNodeId, String condition,
-                                  boolean isDefault) {
+                                  boolean isDefault, boolean onError) {
 
         FlowConnection toDomain() {
-            return new FlowConnection(connectionId, sourceNodeId, targetNodeId, condition, isDefault);
+            return new FlowConnection(connectionId, sourceNodeId, targetNodeId, condition, isDefault, onError);
         }
     }
 

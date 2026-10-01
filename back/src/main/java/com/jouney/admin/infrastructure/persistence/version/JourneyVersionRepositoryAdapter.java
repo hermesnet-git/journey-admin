@@ -42,8 +42,7 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
                                 n.getStartVariables(), n.getEmbeddedScreenRoot(), n.getSdui(), n.getScreenDataSources()))
                         .toList(),
                 version.getFlowConnections().stream()
-                        .map(c -> new FlowConnectionRecord(c.getId(), c.getSourceNodeId(), c.getTargetNodeId(), c.getCondition(),
-                                c.isDefault()))
+                        .map(FlowConnectionRecord::from)
                         .toList());
 
         JourneyVersionJpaEntity entity = new JourneyVersionJpaEntity(version.getId(), version.getJourneyId(),
@@ -94,7 +93,7 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
                         n.startVariables(), n.embeddedScreenRoot(), n.sdui(), n.screenDataSources()))
                 .toList();
         List<FlowConnection> flowConnections = record.flowConnections().stream()
-                .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
+                .map(FlowConnectionRecord::toDomain)
                 .toList();
 
         return new JourneyVersion(entity.getId(), entity.getJourneyId(), entity.getVersionNumber(),

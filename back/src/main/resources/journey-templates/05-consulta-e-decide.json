@@ -437,49 +437,56 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Identificacao",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Identificacao",
         "targetNodeId": "Node_ConsultaElegibilidade",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_ConsultaElegibilidade",
         "targetNodeId": "Node_Elegivel",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_Elegivel",
         "targetNodeId": "Node_PodeContratar",
         "condition": "{{data_elegivel}} == true",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_Elegivel",
         "targetNodeId": "Node_NaoPode",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_PodeContratar",
         "targetNodeId": "Node_FimPode",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_NaoPode",
         "targetNodeId": "Node_FimNaoPode",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

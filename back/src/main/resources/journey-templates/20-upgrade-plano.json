@@ -453,63 +453,72 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_BuscaPlanos",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_BuscaPlanos",
         "targetNodeId": "Node_EscolhePlano",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_EscolhePlano",
         "targetNodeId": "Node_Elegibilidade",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_Elegibilidade",
         "targetNodeId": "Node_PodeTrocar",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_PodeTrocar",
         "targetNodeId": "Node_AplicaTroca",
         "condition": "{{data_elegivelUpgrade}} == true",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_PodeTrocar",
         "targetNodeId": "Node_Indisponivel",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_AplicaTroca",
         "targetNodeId": "Node_Trocado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_Trocado",
         "targetNodeId": "Node_FimTrocado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_Indisponivel",
         "targetNodeId": "Node_FimIndisponivel",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

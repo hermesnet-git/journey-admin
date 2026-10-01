@@ -518,56 +518,64 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Pedido",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Pedido",
         "targetNodeId": "Node_Provisiona",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_Provisiona",
         "targetNodeId": "Node_ProvisionouAlgum",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_ProvisionouAlgum",
         "targetNodeId": "Node_AvisaFaturamento",
         "condition": "{{data_quantidadeProvisionada}} > 0",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_ProvisionouAlgum",
         "targetNodeId": "Node_Falha",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_AvisaFaturamento",
         "targetNodeId": "Node_Ativos",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_Ativos",
         "targetNodeId": "Node_FimAtivos",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_Falha",
         "targetNodeId": "Node_FimFalha",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

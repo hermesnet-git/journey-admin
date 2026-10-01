@@ -18,7 +18,7 @@ import {
   type PayloadField,
 } from './PropertiesPanel';
 import { SearchSelect } from './SearchSelect';
-import { engineVariableToken, type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin, type VariableType } from './model';
+import { RESILIENCE_DEFAULTS, RESILIENCE_MAX, engineVariableToken, type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin, type VariableType } from './model';
 import { testCredentialConnection, listClusterTopics, type MessagingCluster, type CredentialReference } from '../api/messaging';
 
 const inputStyle = (c: FlowColors): React.CSSProperties => ({
@@ -150,7 +150,7 @@ function PayloadPreview({ title, note, envelope, c }: { title: string; note?: st
   );
 }
 
-const REST_STEPS = ['Conexão', 'Headers', 'Parâmetros & Corpo', 'Testar e Mapear'] as const;
+const REST_STEPS = ['Conexão', 'Headers', 'Parâmetros & Corpo', 'Testar e Mapear', 'Resiliência'] as const;
 // Um único passo de dados: pra quem produz (SERVICE_TASK) é o que sai; pra quem consome
 // (RECEIVE_TASK/MESSAGE_START_EVENT) é o que entra. Não existe mais um "Mapear saída" separado —
 // pro lado de consumo, "Escolher o que aproveitar" (dentro deste mesmo passo) É o mapeamento.
@@ -294,6 +294,105 @@ export function ConnectorWizard({
   const showBody = METHODS_WITH_BODY.has(method);
   const outputMappingRules = (draft.config?.[OUTPUT_MAPPING_FIELD] as OutputMappingRule[]) ?? [];
 
+  // Valor guardado em ms no config; a tela mostra segundos. Ausente = padrão do conector no motor.
+  function resilienceValue(key: keyof typeof RESILIENCE_DEFAULTS): number {
+    const value = draft.config?.[key];
+    return typeof value === 'number' ? value : RESILIENCE_DEFAULTS[key];
+  }
+
+  function setResilienceSeconds(key: 'connectTimeoutMs' | 'readTimeoutMs' | 'retryIntervalMs', seconds: string, minMs: number) {
+    const parsed = Number(seconds.replace(',', '.'));
+    if (!Number.isFinite(parsed)) return;
+    updateDraftConfig(key, Math.min(RESILIENCE_MAX[key], Math.max(minMs, Math.round(parsed * 1000))));
+  }
+
+  function renderResilienceStep() {
+    const retries = resilienceValue('retries');
+    const background = draft.config?.background === true;
+    const secondsField = (key: 'connectTimeoutMs' | 'readTimeoutMs' | 'retryIntervalMs', label: string, hint: string, minMs: number) => (
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={labelStyle(c)}>{label}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="number"
+            min={minMs / 1000}
+            max={RESILIENCE_MAX[key] / 1000}
+            step={0.5}
+            style={{ ...inputStyle(c), width: 90 }}
+            value={resilienceValue(key) / 1000}
+            onChange={(e) => setResilienceSeconds(key, e.target.value, minMs)}
+          />
+          <span style={{ fontSize: 12.5, color: c.textSecondary }}>segundos</span>
+        </div>
+        <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 4 }}>{hint}</div>
+      </div>
+    );
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', gap: 16 }}>
+          {secondsField('connectTimeoutMs', 'Tempo para conectar', `Até ${RESILIENCE_MAX.connectTimeoutMs / 1000} s.`, 100)}
+          {secondsField('readTimeoutMs', 'Tempo para responder', `Até ${RESILIENCE_MAX.readTimeoutMs / 1000} s. Passou disso, conta como falha.`, 100)}
+        </div>
+
+        <div>
+          <div style={labelStyle(c)}>Novas tentativas</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[0, 1, 2].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => updateDraftConfig('retries', n)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: `1px solid ${retries === n ? c.accent : c.border}`,
+                  background: retries === n ? c.accentSoft : c.cardBg,
+                  color: retries === n ? c.accent : c.textPrimary,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {n === 0 ? 'Nenhuma' : n}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 4 }}>
+            Só quando a falha pode ser passageira: sem conexão, tempo esgotado ou o serviço respondendo 429, 502, 503 ou 504.
+            Respostas como 400 ou 404 não se repetem. Chamadas POST levam uma chave de idempotência, para o serviço não criar nada em dobro.
+          </div>
+        </div>
+
+        {retries > 0 && (
+          <div style={{ display: 'flex' }}>
+            {secondsField('retryIntervalMs', 'Intervalo entre tentativas', 'Dobra a cada nova tentativa.', 0)}
+          </div>
+        )}
+
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={background}
+            onChange={(e) => updateDraftConfig('background', e.target.checked)}
+            style={{ marginTop: 2 }}
+          />
+          <span>
+            <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>Executar em segundo plano</span>
+            <span style={{ display: 'block', fontSize: 11.5, color: c.textSecondary, marginTop: 2 }}>
+              O usuário não espera pela chamada: o canal mostra que a jornada está aguardando. Se ela falhar de vez e a etapa não
+              tiver o caminho "Se falhar", a execução para no Diagnóstico, com a opção de tentar de novo.
+            </span>
+          </span>
+        </label>
+
+        <div style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.border}`, background: c.canvasBg, fontSize: 12, color: c.textSecondary }}>
+          Para decidir o que acontece quando a chamada falha de vez, ligue o caminho <strong style={{ color: c.danger }}>Se falhar</strong>{' '}
+          — o ponto vermelho embaixo da etapa no fluxo. Sem esse caminho, uma falha volta com erro para quem estava na tela anterior.
+        </div>
+      </div>
+    );
+  }
+
   function renderRestStep(label: string) {
     switch (label) {
       case 'Conexão':
@@ -374,6 +473,8 @@ export function ConnectorWizard({
             )}
           </div>
         );
+      case 'Resiliência':
+        return renderResilienceStep();
       case 'Testar e Mapear':
         return (
           <TestAndMapPanel

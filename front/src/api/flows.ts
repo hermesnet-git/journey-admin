@@ -43,6 +43,8 @@ export interface FlowConnection {
   // REQ-03.11.002/003: only meaningful when sourceNodeId is a GATEWAY node.
   condition: string | null;
   isDefault: boolean;
+  // Saída "Se falhar" de uma integração REST — usada quando a chamada falha de vez.
+  onError: boolean;
 }
 
 // A free-floating note on the designer canvas — never part of the executable flow (never reaches

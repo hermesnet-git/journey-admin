@@ -263,21 +263,24 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_BoasVindas",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_BoasVindas",
         "targetNodeId": "Node_Agradecimento",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_Agradecimento",
         "targetNodeId": "Node_Fim",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

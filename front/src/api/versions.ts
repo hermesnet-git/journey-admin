@@ -19,6 +19,7 @@ export interface FlowConnectionSnapshot {
   targetNodeId: string;
   condition: string | null;
   default: boolean;
+  onError?: boolean;
 }
 
 export interface FormSnapshot {

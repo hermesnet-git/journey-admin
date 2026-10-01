@@ -137,6 +137,9 @@ publicada por esta skill:
   publicação até lá). Cada lacuna vem com uma nota no canvas dizendo o que configurar.
 - REST aponta para o `ms-mock-api-rest`; API nova no mock entra também na lista do
   `simulacoes/front-mock-integracoes`.
+- Resiliência de uma integração REST vai no próprio `config`: `connectTimeoutMs`, `readTimeoutMs`,
+  `retries` (0–2), `retryIntervalMs` e `background` (segundo plano). A saída "Se falhar" é uma
+  ligação com `onError: true` saindo da etapa REST (`f.link(rest, destino, { onError: true })`).
 
 ## Conexão com a geração de jornada por IA
 

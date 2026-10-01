@@ -129,7 +129,10 @@ export interface WFNodeData extends Record<string, unknown> {
   // do badge, em vez do genérico "Configuração incompleta".
   invalidReason?: string;
   // Client-only flag: these node types may have at most one outgoing path (REQ-03.02.007/03.02.004).
+  // Conta só as saídas normais — a "Se falhar" é à parte (errorPathTaken).
   outgoingLimitReached?: boolean;
+  // Client-only: a integração REST já tem a saída "Se falhar" ligada.
+  errorPathTaken?: boolean;
   // Client-only: current canvas zoom, passed down so the node can hide secondary detail (description,
   // linked-form row) when zoomed out far enough that they'd render as illegible clutter.
   zoom?: number;
@@ -141,12 +144,44 @@ export interface WFNodeData extends Record<string, unknown> {
 
 export type WFNode = Node<WFNodeData, NodeType>;
 
-// REQ-03.11.002/003: only meaningful for an edge whose source is a GATEWAY node.
+// REQ-03.11.002/003: condition/isDefault only meaningful for an edge whose source is a GATEWAY node.
+// onError: saída "Se falhar" de uma integração REST (sai do ponto de baixo do nó, ERROR_HANDLE).
 export interface WFEdgeData extends Record<string, unknown> {
   condition?: string;
   isDefault?: boolean;
+  onError?: boolean;
 }
 export type WFEdge = Edge<WFEdgeData>;
+
+// Resiliência da integração REST (passo "Resiliência" do assistente): mesmos padrões e tetos do
+// conector no motor (HttpConnectorDelegate) e do FlowValidator. Guardado em ms no config.
+export const RESILIENCE_DEFAULTS = { connectTimeoutMs: 2000, readTimeoutMs: 10000, retries: 0, retryIntervalMs: 1000 };
+export const RESILIENCE_MAX = { connectTimeoutMs: 10000, readTimeoutMs: 30000, retries: 2, retryIntervalMs: 5000 };
+
+export function describeResilience(cfg: Record<string, unknown>): string {
+  const read = typeof cfg.readTimeoutMs === 'number' ? cfg.readTimeoutMs : RESILIENCE_DEFAULTS.readTimeoutMs;
+  const retries = typeof cfg.retries === 'number' ? cfg.retries : RESILIENCE_DEFAULTS.retries;
+  const parts = [`Tempo limite ${formatSeconds(read)}`];
+  parts.push(retries > 0 ? `${retries} nova${retries > 1 ? 's' : ''} tentativa${retries > 1 ? 's' : ''}` : 'sem novas tentativas');
+  if (cfg.background === true) parts.push('em segundo plano');
+  return parts.join(' · ');
+}
+
+export function formatSeconds(ms: number): string {
+  return `${(ms / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} s`;
+}
+
+// Id do ponto de saída "Se falhar" (embaixo da Tarefa de Serviço REST).
+export const ERROR_HANDLE = 'falha';
+
+export function isErrorEdge(edge: WFEdge): boolean {
+  return !!edge.data?.onError;
+}
+
+// Só uma Tarefa de Serviço com integração REST pode ter a saída "Se falhar" (mesma regra do FlowValidator).
+export function canHaveErrorPath(node: WFNode | undefined): boolean {
+  return node?.type === 'serviceTask' && node.data.connectorConfig?.connectorType === 'REST';
+}
 
 // A free-floating note on the canvas — not part of the executable flow (never validated, never
 // published to BPMN), kept in its own React state in the designer (not mixed into `nodes`) so

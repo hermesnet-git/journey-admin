@@ -678,84 +678,96 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Reclamacao",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Reclamacao",
         "targetNodeId": "Node_Triagem",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_Triagem",
         "targetNodeId": "Node_VaiParaOuvidoria",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_VaiParaOuvidoria",
         "targetNodeId": "Node_EscalaOuvidoria",
         "condition": "{{data_nivelAtendimento}} == \"OUVIDORIA\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_VaiParaOuvidoria",
         "targetNodeId": "Node_Proposta",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_Proposta",
         "targetNodeId": "Node_Aceitou",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_Aceitou",
         "targetNodeId": "Node_AplicaCompensacao",
         "condition": "{{form_aceitaCompensacao}} == \"sim\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_Aceitou",
         "targetNodeId": "Node_EscalaOuvidoria",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_AplicaCompensacao",
         "targetNodeId": "Node_Resolvida",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_10",
         "sourceNodeId": "Node_Resolvida",
         "targetNodeId": "Node_FimResolvida",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_11",
         "sourceNodeId": "Node_EscalaOuvidoria",
         "targetNodeId": "Node_Escalada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_12",
         "sourceNodeId": "Node_Escalada",
         "targetNodeId": "Node_FimEscalada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

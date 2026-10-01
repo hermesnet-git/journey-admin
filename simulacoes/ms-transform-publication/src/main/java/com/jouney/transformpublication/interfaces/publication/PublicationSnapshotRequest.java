@@ -46,7 +46,14 @@ public record PublicationSnapshotRequest(
     }
 
     // condition/isDefault only apply when sourceNodeId is a GATEWAY node (REQ-03.11.002/003).
+    // onError: saída "Se falhar" de uma integração REST — vira um evento de erro preso à tarefa.
+    // Boxed: publicações anteriores não mandam o campo.
     public record FlowConnectionRequest(@NotBlank String id, @NotBlank String sourceNodeId,
-                                         @NotBlank String targetNodeId, String condition, boolean isDefault) {
+                                         @NotBlank String targetNodeId, String condition, boolean isDefault,
+                                         Boolean onError) {
+
+        public boolean isOnError() {
+            return Boolean.TRUE.equals(onError);
+        }
     }
 }

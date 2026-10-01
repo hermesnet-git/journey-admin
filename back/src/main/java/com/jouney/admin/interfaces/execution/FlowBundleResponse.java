@@ -42,11 +42,11 @@ public record FlowBundleResponse(List<ChannelType> channelTypes, List<FlowNodeIn
     }
 
     public record FlowConnectionInfo(String id, String sourceNodeId, String targetNodeId, String condition,
-                                      boolean isDefault) {
+                                      boolean isDefault, boolean onError) {
 
         public static FlowConnectionInfo from(FlowConnection connection) {
             return new FlowConnectionInfo(connection.getId(), connection.getSourceNodeId(),
-                    connection.getTargetNodeId(), connection.getCondition(), connection.isDefault());
+                    connection.getTargetNodeId(), connection.getCondition(), connection.isDefault(), connection.isOnError());
         }
     }
 }

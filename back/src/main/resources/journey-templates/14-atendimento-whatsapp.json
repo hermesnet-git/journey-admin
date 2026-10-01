@@ -813,91 +813,104 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Menu",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Menu",
         "targetNodeId": "Node_SegundaViaOuAtendente",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_SegundaViaOuAtendente",
         "targetNodeId": "Node_Cpf",
         "condition": "{{form_assunto}} == \"segunda_via\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_SegundaViaOuAtendente",
         "targetNodeId": "Node_Atendente",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_Cpf",
         "targetNodeId": "Node_BuscaFaturas",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_BuscaFaturas",
         "targetNodeId": "Node_TemFaturas",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_TemFaturas",
         "targetNodeId": "Node_EmDia",
         "condition": "{{data_quantidadeFaturas}} == 0",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_TemFaturas",
         "targetNodeId": "Node_EscolheFatura",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_EmDia",
         "targetNodeId": "Node_FimEmDia",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_10",
         "sourceNodeId": "Node_EscolheFatura",
         "targetNodeId": "Node_GeraSegundaVia",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_11",
         "sourceNodeId": "Node_GeraSegundaVia",
         "targetNodeId": "Node_SegundaVia",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_12",
         "sourceNodeId": "Node_SegundaVia",
         "targetNodeId": "Node_FimSegundaVia",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_13",
         "sourceNodeId": "Node_Atendente",
         "targetNodeId": "Node_FimAtendente",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

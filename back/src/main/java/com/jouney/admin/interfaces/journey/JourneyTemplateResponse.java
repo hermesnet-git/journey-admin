@@ -35,11 +35,11 @@ public record JourneyTemplateResponse(String templateId, String name, String des
     }
 
     public record PreviewConnection(String connectionId, String sourceNodeId, String targetNodeId, String condition,
-                                    boolean isDefault) {
+                                    boolean isDefault, boolean onError) {
 
         static PreviewConnection from(FlowConnection connection) {
             return new PreviewConnection(connection.getId(), connection.getSourceNodeId(),
-                    connection.getTargetNodeId(), connection.getCondition(), connection.isDefault());
+                    connection.getTargetNodeId(), connection.getCondition(), connection.isDefault(), connection.isOnError());
         }
     }
 }

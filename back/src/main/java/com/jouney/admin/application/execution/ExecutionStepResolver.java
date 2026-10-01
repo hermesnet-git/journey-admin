@@ -116,7 +116,8 @@ public class ExecutionStepResolver {
                 continue;
             }
             String url = null, response = null, method = null, requestHeaders = null, requestBody = null,
-                    kafkaTopic = null, kafkaPayload = null, taskId = null;
+                    kafkaTopic = null, kafkaPayload = null, taskId = null, failure = null;
+            Integer attempts = null;
             Map<String, Object> formAnswers = null;
             if (node.getType() == FlowNodeType.SERVICE_TASK || node.getType() == FlowNodeType.RECEIVE_TASK) {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
@@ -130,6 +131,8 @@ public class ExecutionStepResolver {
                     requestHeaders = stringValue(local.get("headers"));
                     requestBody = stringValue(local.get("payload"));
                     response = stringValue(local.get("response"));
+                    attempts = local.get("attempts") instanceof Number n ? n.intValue() : null;
+                    failure = stringValue(local.get("failure"));
                 } else {
                     if (processVariables == null) {
                         processVariables = runtimeExecutionPort.getProcessVariables(processInstanceId);
@@ -148,7 +151,7 @@ public class ExecutionStepResolver {
             }
             trail.add(new TrailEntry(node.getId(), node.getName(), node.getType().name(), url, response, method,
                     requestHeaders, requestBody, kafkaTopic, kafkaPayload, activity.id(), activity.endTime(), taskId,
-                    formAnswers));
+                    formAnswers, attempts, failure));
         }
         return trail;
     }

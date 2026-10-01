@@ -469,56 +469,64 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Chip",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Chip",
         "targetNodeId": "Node_AtivaLinha",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_AtivaLinha",
         "targetNodeId": "Node_AguardaRede",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_AguardaRede",
         "targetNodeId": "Node_AtivaNaRede",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_AtivaNaRede",
         "targetNodeId": "Node_Ativada",
         "condition": "{{data_statusRede}} == \"ATIVA\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_AtivaNaRede",
         "targetNodeId": "Node_EmAnalise",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_Ativada",
         "targetNodeId": "Node_FimAtivada",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_EmAnalise",
         "targetNodeId": "Node_FimAnalise",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

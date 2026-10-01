@@ -564,63 +564,72 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_TecnicoACaminho",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_TecnicoACaminho",
         "targetNodeId": "Node_Aviso",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_Aviso",
         "targetNodeId": "Node_PrecisaReagendar",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_PrecisaReagendar",
         "targetNodeId": "Node_NovoHorario",
         "condition": "{{form_estaraEmCasa}} == \"nao\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_PrecisaReagendar",
         "targetNodeId": "Node_AteJa",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_AteJa",
         "targetNodeId": "Node_FimVisita",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_NovoHorario",
         "targetNodeId": "Node_Reagenda",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_Reagenda",
         "targetNodeId": "Node_Reagendado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_Reagendado",
         "targetNodeId": "Node_FimReagendado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

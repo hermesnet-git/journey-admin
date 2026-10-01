@@ -415,63 +415,72 @@
         "sourceNodeId": "Node_PedidoCriado",
         "targetNodeId": "Node_SolicitaReserva",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_SolicitaReserva",
         "targetNodeId": "Node_AguardaReserva",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_AguardaReserva",
         "targetNodeId": "Node_Reservado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_Reservado",
         "targetNodeId": "Node_SolicitaFaturamento",
         "condition": "{{data_reservaStatus}} == \"RESERVADO\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_Reservado",
         "targetNodeId": "Node_SemEstoque",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_SolicitaFaturamento",
         "targetNodeId": "Node_Acompanhar",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_Acompanhar",
         "targetNodeId": "Node_FimFaturado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_SemEstoque",
         "targetNodeId": "Node_PublicaDecisao",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_PublicaDecisao",
         "targetNodeId": "Node_FimDecidido",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

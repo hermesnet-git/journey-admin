@@ -459,35 +459,40 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_InformaCnpj",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_InformaCnpj",
         "targetNodeId": "Node_SolicitaDiagnostico",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_SolicitaDiagnostico",
         "targetNodeId": "Node_AguardaDiagnostico",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_AguardaDiagnostico",
         "targetNodeId": "Node_Resultado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_Resultado",
         "targetNodeId": "Node_Fim",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

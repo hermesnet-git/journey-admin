@@ -14,15 +14,18 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.BaseElement;
+import org.camunda.bpm.model.bpmn.instance.BoundaryEvent;
 import org.camunda.bpm.model.bpmn.instance.ConditionExpression;
 import org.camunda.bpm.model.bpmn.instance.Definitions;
 import org.camunda.bpm.model.bpmn.instance.EndEvent;
+import org.camunda.bpm.model.bpmn.instance.ErrorEventDefinition;
 import org.camunda.bpm.model.bpmn.instance.ExclusiveGateway;
 import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
@@ -40,6 +43,7 @@ import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnPlane;
 import org.camunda.bpm.model.bpmn.instance.bpmndi.BpmnShape;
 import org.camunda.bpm.model.bpmn.instance.dc.Bounds;
 import org.camunda.bpm.model.bpmn.instance.di.Waypoint;
+import org.camunda.bpm.model.bpmn.instance.camunda.CamundaFailedJobRetryTimeCycle;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaInputOutput;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaInputParameter;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaOutputParameter;
@@ -87,6 +91,10 @@ public class BpmnTransformer {
     }
 
 
+    // Mesmo código que o HttpConnectorDelegate (ms-runtime-camunda) usa no BpmnError da falha.
+    private static final String INTEGRATION_FAILED_ERROR_CODE = "INTEGRACAO_FALHOU";
+    private static final List<String> RESILIENCE_KEYS = List.of("connectTimeoutMs", "readTimeoutMs", "retries", "retryIntervalMs");
+
     public record Result(String processId, byte[] bpmnXml) {
     }
 
@@ -121,18 +129,32 @@ public class BpmnTransformer {
         process.setCamundaVersionTag("v" + request.versionNumber());
         definitions.getRootElements().add(process);
 
+        Set<String> nodesWithErrorPath = request.flowConnections().stream()
+                .filter(FlowConnectionRequest::isOnError)
+                .map(FlowConnectionRequest::sourceNodeId)
+                .collect(Collectors.toSet());
         Map<String, FlowNode> byId = new HashMap<>();
         for (FlowNodeRequest node : request.flowNodes()) {
-            FlowNode element = createNode(modelInstance, process, definitions, node);
+            FlowNode element = createNode(modelInstance, process, definitions, node, nodesWithErrorPath.contains(node.id()));
             byId.put(node.id(), element);
         }
 
         Map<String, SequenceFlow> flowsById = new HashMap<>();
+        Map<String, BoundaryEvent> errorBoundaries = new HashMap<>();
         for (FlowConnectionRequest connection : request.flowConnections()) {
-            FlowNode source = byId.get(connection.sourceNodeId());
             FlowNode target = byId.get(connection.targetNodeId());
+            FlowNode source = byId.get(connection.sourceNodeId());
             if (source == null || target == null) {
                 throw new BpmnTransformationException("Connection " + connection.id() + " references an unknown node");
+            }
+            // Saída "Se falhar": a linha sai de um evento de erro preso à tarefa, não da tarefa.
+            if (connection.isOnError()) {
+                if (!(source instanceof ServiceTask task)) {
+                    throw new BpmnTransformationException("Connection " + connection.id() + " is an error path from a node that is not a service task");
+                }
+                BoundaryEvent boundary = errorBoundary(modelInstance, process, definitions, task, connection);
+                errorBoundaries.put(connection.id(), boundary);
+                source = boundary;
             }
             // Order matters: reference-setting calls below (setSource/setTarget/setDefault) resolve
             // the target element's id within the document, so `flow` must already be attached to the
@@ -157,10 +179,40 @@ public class BpmnTransformer {
             }
         }
 
-        addDiagramInterchange(modelInstance, definitions, process, request, byId, flowsById);
+        addDiagramInterchange(modelInstance, definitions, process, request, byId, flowsById, errorBoundaries);
 
         Bpmn.validateModel(modelInstance);
         return new Result(processId, toXmlBytes(modelInstance));
+    }
+
+    // Evento de erro preso à tarefa REST, interrompendo-a: pega o BpmnError que o HttpConnectorDelegate
+    // (ms-runtime-camunda) lança quando a chamada falha de vez, com o mesmo código.
+    private BoundaryEvent errorBoundary(BpmnModelInstance modelInstance, Process process, Definitions definitions,
+                                        ServiceTask task, FlowConnectionRequest connection) {
+        BoundaryEvent boundary = modelInstance.newInstance(BoundaryEvent.class);
+        boundary.setId("Boundary_" + connection.id());
+        boundary.setName("Se falhar");
+        process.getFlowElements().add(boundary);
+        boundary.setAttachedTo(task);
+        boundary.setCancelActivity(true);
+        ErrorEventDefinition definition = modelInstance.newInstance(ErrorEventDefinition.class);
+        boundary.getEventDefinitions().add(definition);
+        definition.setError(integrationError(modelInstance, definitions));
+        return boundary;
+    }
+
+    private org.camunda.bpm.model.bpmn.instance.Error integrationError(BpmnModelInstance modelInstance, Definitions definitions) {
+        for (org.camunda.bpm.model.bpmn.instance.Error existing : modelInstance.getModelElementsByType(org.camunda.bpm.model.bpmn.instance.Error.class)) {
+            if (INTEGRATION_FAILED_ERROR_CODE.equals(existing.getErrorCode())) {
+                return existing;
+            }
+        }
+        org.camunda.bpm.model.bpmn.instance.Error error = modelInstance.newInstance(org.camunda.bpm.model.bpmn.instance.Error.class);
+        error.setId("Error_IntegracaoFalhou");
+        error.setName("Falha de integração");
+        error.setErrorCode(INTEGRATION_FAILED_ERROR_CODE);
+        definitions.getRootElements().add(error);
+        return error;
     }
 
     // Reprojects each node's own positionX/positionY (already tracked by the admin canvas) as a
@@ -169,7 +221,7 @@ public class BpmnTransformer {
     // process instead of showing an empty canvas, without reimplementing a layout algorithm.
     private void addDiagramInterchange(BpmnModelInstance modelInstance, Definitions definitions, Process process,
                                         PublicationSnapshotRequest request, Map<String, FlowNode> byId,
-                                        Map<String, SequenceFlow> flowsById) {
+                                        Map<String, SequenceFlow> flowsById, Map<String, BoundaryEvent> errorBoundaries) {
         BpmnDiagram diagram = modelInstance.newInstance(BpmnDiagram.class);
         diagram.setId("BPMNDiagram_" + process.getId());
         definitions.getBpmDiagrams().add(diagram);
@@ -210,8 +262,24 @@ public class BpmnTransformer {
             BpmnEdge edge = modelInstance.newInstance(BpmnEdge.class);
             edge.setId("BPMNEdge_" + connection.id());
             edge.setBpmnElement(flow);
-            edge.getWaypoints().add(waypoint(modelInstance, sourceBounds.getX() + sourceBounds.getWidth(),
-                    sourceBounds.getY() + sourceBounds.getHeight() / 2.0));
+            BoundaryEvent boundary = errorBoundaries.get(connection.id());
+            if (boundary != null) {
+                // Evento de erro desenhado na borda de baixo da tarefa; a linha sai dele.
+                BpmnShape shape = modelInstance.newInstance(BpmnShape.class);
+                shape.setId("BPMNShape_" + boundary.getId());
+                shape.setBpmnElement(boundary);
+                Bounds bounds = modelInstance.newInstance(Bounds.class);
+                bounds.setX(sourceBounds.getX() + sourceBounds.getWidth() / 2.0 - 18);
+                bounds.setY(sourceBounds.getY() + sourceBounds.getHeight() - 18);
+                bounds.setWidth(36);
+                bounds.setHeight(36);
+                shape.setBounds(bounds);
+                plane.getDiagramElements().add(shape);
+                edge.getWaypoints().add(waypoint(modelInstance, bounds.getX() + 18, bounds.getY() + 36));
+            } else {
+                edge.getWaypoints().add(waypoint(modelInstance, sourceBounds.getX() + sourceBounds.getWidth(),
+                        sourceBounds.getY() + sourceBounds.getHeight() / 2.0));
+            }
             edge.getWaypoints().add(waypoint(modelInstance, targetBounds.getX(),
                     targetBounds.getY() + targetBounds.getHeight() / 2.0));
             plane.getDiagramElements().add(edge);
@@ -241,7 +309,8 @@ public class BpmnTransformer {
         };
     }
 
-    private FlowNode createNode(BpmnModelInstance modelInstance, Process process, Definitions definitions, FlowNodeRequest node) {
+    private FlowNode createNode(BpmnModelInstance modelInstance, Process process, Definitions definitions, FlowNodeRequest node,
+                                boolean hasErrorPath) {
         return switch (node.type()) {
             case "START" -> newElement(modelInstance, process, StartEvent.class, node);
             case "MESSAGE_START_EVENT" -> {
@@ -260,7 +329,7 @@ public class BpmnTransformer {
             case "USER_TASK" -> newElement(modelInstance, process, UserTask.class, node);
             case "SERVICE_TASK" -> {
                 ServiceTask task = newElement(modelInstance, process, ServiceTask.class, node);
-                attachServiceTask(modelInstance, task, node);
+                attachServiceTask(modelInstance, task, node, hasErrorPath);
                 yield task;
             }
             case "RECEIVE_TASK" -> {
@@ -312,10 +381,11 @@ public class BpmnTransformer {
      * pattern, since this Camunda distribution has no native broker connector — a worker is still
      * required for that case.
      */
-    private void attachServiceTask(BpmnModelInstance modelInstance, ServiceTask element, FlowNodeRequest node) {
+    private void attachServiceTask(BpmnModelInstance modelInstance, ServiceTask element, FlowNodeRequest node,
+                                   boolean hasErrorPath) {
         ConnectorConfigRequest connectorConfig = node.connectorConfig();
         if (connectorConfig != null && "REST".equalsIgnoreCase(connectorConfig.connectorType())) {
-            attachHttpConnector(modelInstance, element, connectorConfig);
+            attachHttpConnector(modelInstance, element, connectorConfig, hasErrorPath);
             return;
         }
         element.setCamundaType("external");
@@ -375,9 +445,32 @@ public class BpmnTransformer {
      * reserved __httpXxx__ variable naming needed, and our own delegate code decides exactly what
      * happens with credentialRef.
      */
-    private void attachHttpConnector(BpmnModelInstance modelInstance, ServiceTask element, ConnectorConfigRequest connectorConfig) {
+    private void attachHttpConnector(BpmnModelInstance modelInstance, ServiceTask element, ConnectorConfigRequest connectorConfig,
+                                     boolean hasErrorPath) {
         Map<String, Object> config = connectorConfig.config() != null ? connectorConfig.config() : Map.of();
         element.setCamundaDelegateExpression("${httpConnectorDelegate}");
+
+        // Resiliência (passo "Resiliência" do conector): o delegate aplica tempo limite e novas
+        // tentativas; ausente, usa os padrões dele. hasErrorPath diz se a falha tem pra onde ir
+        // (saída "Se falhar") ou se a etapa deve falhar.
+        for (String key : RESILIENCE_KEYS) {
+            if (config.get(key) instanceof Number || config.get(key) instanceof String) {
+                addInputParameter(modelInstance, element, key, String.valueOf(config.get(key)));
+            }
+        }
+        addInputParameter(modelInstance, element, "hasErrorPath", String.valueOf(hasErrorPath));
+        // Segundo plano: a chamada sai da transação do envio da tela (o canal vê "aguardando"). As
+        // tentativas já são feitas pelo delegate, então o motor não repete o job: esgotou sem
+        // "Se falhar", vira incidente direto (R1) — e "Tentar de novo" no Diagnóstico reativa o job.
+        if (Boolean.TRUE.equals(config.get("background"))) {
+            element.setCamundaAsyncBefore(true);
+            ExtensionElements extensionElements = element.getExtensionElements();
+            if (extensionElements == null) {
+                extensionElements = modelInstance.newInstance(ExtensionElements.class);
+                element.setExtensionElements(extensionElements);
+            }
+            extensionElements.addExtensionElement(CamundaFailedJobRetryTimeCycle.class).setTextContent("R1/PT1S");
+        }
 
         String url = appendQueryParams(resolveVariables(asString(config.get("url"), "")), config.get("params"));
         addInputParameter(modelInstance, element, "url", url);

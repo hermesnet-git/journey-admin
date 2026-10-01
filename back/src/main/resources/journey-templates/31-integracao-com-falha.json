@@ -7,11 +7,11 @@
     "WEB",
     "MOBILE"
   ],
-  "description": "Trata cada resposta da API: sucesso, dados recusados e sistema fora do ar, com nova tentativa.",
+  "description": "Cadastro que resiste a falhas: novas tentativas automáticas, caminho \"Se falhar\" quando o serviço não responde e correção dos dados recusados.",
   "highlights": [
-    "Status HTTP lido como variável",
-    "Nova tentativa voltando à mesma integração",
-    "Correção de dados voltando à tela"
+    "Tempo limite e novas tentativas configurados na integração",
+    "Caminho \"Se falhar\" quando o serviço não responde",
+    "Dados recusados voltando à tela para correção"
   ],
   "flow": {
     "name": "Integração com tratamento de falha",
@@ -189,7 +189,7 @@
         "nodeId": "Node_Cadastra",
         "nodeType": "SERVICE_TASK",
         "name": "Cadastra o cliente",
-        "description": "Envia o cadastro; pode devolver 201, 422 ou 503.",
+        "description": "Envia o cadastro, com novas tentativas automáticas.",
         "positionX": 371,
         "positionY": 281,
         "userTaskConfig": null,
@@ -217,7 +217,10 @@
                 "jsonPath": "$.idCliente",
                 "type": "string"
               }
-            ]
+            ],
+            "readTimeoutMs": 5000,
+            "retries": 2,
+            "retryIntervalMs": 1000
           },
           "credentialRef": null
         },
@@ -227,7 +230,7 @@
         "nodeId": "Node_DeuCerto",
         "nodeType": "GATEWAY",
         "name": "Cadastrou?",
-        "description": "201 é sucesso.",
+        "description": "201 é sucesso; o resto, dado recusado.",
         "positionX": 535,
         "positionY": 295,
         "userTaskConfig": null,
@@ -320,26 +323,100 @@
         "startVariables": null
       },
       {
-        "nodeId": "Node_ForaDoAr",
-        "nodeType": "GATEWAY",
-        "name": "Sistema fora do ar?",
-        "description": "503 é instabilidade; o resto, dado recusado.",
-        "positionX": 685,
-        "positionY": 295,
-        "userTaskConfig": null,
+        "nodeId": "Node_Recusado",
+        "nodeType": "USER_TASK",
+        "name": "Dados recusados",
+        "description": "Mostra o motivo e volta para corrigir.",
+        "positionX": 671,
+        "positionY": 281,
+        "userTaskConfig": {
+          "embeddedScreenRoot": {
+            "id": "screen_recusado",
+            "type": "ui.screen",
+            "version": "1.0.0",
+            "props": {
+              "title": "Confira seus dados",
+              "scrollable": true,
+              "paddingToken": "spacing.md",
+              "backgroundToken": "color.background.primary"
+            },
+            "bindings": null,
+            "events": null,
+            "visibility": null,
+            "active": null,
+            "children": [
+              {
+                "id": "stack_recusado",
+                "type": "ui.stack",
+                "version": "1.0.0",
+                "props": {
+                  "direction": "vertical",
+                  "spacingToken": "spacing.md",
+                  "alignment": "stretch"
+                },
+                "bindings": null,
+                "events": null,
+                "visibility": null,
+                "active": null,
+                "children": [
+                  {
+                    "id": "al_recusado",
+                    "type": "ui.alert",
+                    "version": "1.0.0",
+                    "props": {
+                      "severity": "warning",
+                      "title": "Confira seus dados",
+                      "message": "Não conseguimos validar seus dados. Confira se o CPF tem 11 dígitos e tente de novo.",
+                      "dismissible": false
+                    },
+                    "bindings": null,
+                    "events": null,
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  },
+                  {
+                    "id": "btn_recusado",
+                    "type": "ui.button",
+                    "version": "1.0.0",
+                    "props": {
+                      "size": "medium",
+                      "label": "Corrigir",
+                      "loading": false,
+                      "variant": "primary",
+                      "disabled": false,
+                      "fullWidth": true
+                    },
+                    "bindings": null,
+                    "events": {
+                      "onPress": {
+                        "action": "action.submit",
+                        "params": {}
+                      }
+                    },
+                    "visibility": null,
+                    "active": null,
+                    "children": null
+                  }
+                ]
+              }
+            ]
+          },
+          "dataSources": null
+        },
         "connectorConfig": null,
         "startVariables": null
       },
       {
-        "nodeId": "Node_Instavel",
+        "nodeId": "Node_Indisponivel",
         "nodeType": "USER_TASK",
-        "name": "Sistema instável",
-        "description": "Oferece nova tentativa.",
-        "positionX": 821,
-        "positionY": 281,
+        "name": "Serviço indisponível",
+        "description": "Usada quando a chamada falha de vez.",
+        "positionX": 521,
+        "positionY": 431,
         "userTaskConfig": {
           "embeddedScreenRoot": {
-            "id": "screen_instavel",
+            "id": "screen_indisponivel",
             "type": "ui.screen",
             "version": "1.0.0",
             "props": {
@@ -354,7 +431,7 @@
             "active": null,
             "children": [
               {
-                "id": "stack_instavel",
+                "id": "stack_indisponivel",
                 "type": "ui.stack",
                 "version": "1.0.0",
                 "props": {
@@ -368,13 +445,13 @@
                 "active": null,
                 "children": [
                   {
-                    "id": "al_instavel",
+                    "id": "al_indisponivel",
                     "type": "ui.alert",
                     "version": "1.0.0",
                     "props": {
                       "severity": "warning",
                       "title": "Não conseguimos concluir agora",
-                      "message": "O sistema de cadastro está instável no momento. Você pode tentar de novo agora ou mais tarde.",
+                      "message": "O sistema de cadastro não está respondendo. Você pode tentar de novo agora ou mais tarde.",
                       "dismissible": false
                     },
                     "bindings": null,
@@ -415,7 +492,7 @@
                     "children": null
                   },
                   {
-                    "id": "btn_instavel",
+                    "id": "btn_indisponivel",
                     "type": "ui.button",
                     "version": "1.0.0",
                     "props": {
@@ -451,8 +528,8 @@
         "nodeType": "GATEWAY",
         "name": "Tentar de novo?",
         "description": "Volta para a mesma integração.",
-        "positionX": 985,
-        "positionY": 295,
+        "positionX": 685,
+        "positionY": 445,
         "userTaskConfig": null,
         "connectorConfig": null,
         "startVariables": null
@@ -462,8 +539,8 @@
         "nodeType": "USER_TASK",
         "name": "Tentar mais tarde",
         "description": "Encerra sem cadastro.",
-        "positionX": 1121,
-        "positionY": 281,
+        "positionX": 821,
+        "positionY": 431,
         "userTaskConfig": {
           "embeddedScreenRoot": {
             "id": "screen_maistarde",
@@ -544,91 +621,6 @@
         "startVariables": null
       },
       {
-        "nodeId": "Node_Recusado",
-        "nodeType": "USER_TASK",
-        "name": "Dados recusados",
-        "description": "Mostra o motivo e volta para corrigir.",
-        "positionX": 821,
-        "positionY": 431,
-        "userTaskConfig": {
-          "embeddedScreenRoot": {
-            "id": "screen_recusado",
-            "type": "ui.screen",
-            "version": "1.0.0",
-            "props": {
-              "title": "Confira seus dados",
-              "scrollable": true,
-              "paddingToken": "spacing.md",
-              "backgroundToken": "color.background.primary"
-            },
-            "bindings": null,
-            "events": null,
-            "visibility": null,
-            "active": null,
-            "children": [
-              {
-                "id": "stack_recusado",
-                "type": "ui.stack",
-                "version": "1.0.0",
-                "props": {
-                  "direction": "vertical",
-                  "spacingToken": "spacing.md",
-                  "alignment": "stretch"
-                },
-                "bindings": null,
-                "events": null,
-                "visibility": null,
-                "active": null,
-                "children": [
-                  {
-                    "id": "al_recusado",
-                    "type": "ui.alert",
-                    "version": "1.0.0",
-                    "props": {
-                      "severity": "warning",
-                      "title": "Confira seus dados",
-                      "message": "Não conseguimos validar seus dados. Confira se o CPF tem 11 dígitos e tente de novo.",
-                      "dismissible": false
-                    },
-                    "bindings": null,
-                    "events": null,
-                    "visibility": null,
-                    "active": null,
-                    "children": null
-                  },
-                  {
-                    "id": "btn_recusado",
-                    "type": "ui.button",
-                    "version": "1.0.0",
-                    "props": {
-                      "size": "medium",
-                      "label": "Corrigir",
-                      "loading": false,
-                      "variant": "primary",
-                      "disabled": false,
-                      "fullWidth": true
-                    },
-                    "bindings": null,
-                    "events": {
-                      "onPress": {
-                        "action": "action.submit",
-                        "params": {}
-                      }
-                    },
-                    "visibility": null,
-                    "active": null,
-                    "children": null
-                  }
-                ]
-              }
-            ]
-          },
-          "dataSources": null
-        },
-        "connectorConfig": null,
-        "startVariables": null
-      },
-      {
         "nodeId": "Node_FimSucesso",
         "nodeType": "END",
         "name": "Fim — cadastrado",
@@ -644,8 +636,8 @@
         "nodeType": "END",
         "name": "Fim — mais tarde",
         "description": "Fim — mais tarde",
-        "positionX": 1284,
-        "positionY": 294,
+        "positionX": 984,
+        "positionY": 444,
         "userTaskConfig": null,
         "connectorConfig": null,
         "startVariables": null
@@ -657,97 +649,102 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Dados",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Dados",
         "targetNodeId": "Node_Cadastra",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_Cadastra",
         "targetNodeId": "Node_DeuCerto",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
-        "sourceNodeId": "Node_DeuCerto",
-        "targetNodeId": "Node_Sucesso",
-        "condition": "{{data_httpStatusCadastro}} == 201",
-        "isDefault": false
+        "sourceNodeId": "Node_Cadastra",
+        "targetNodeId": "Node_Indisponivel",
+        "condition": null,
+        "isDefault": false,
+        "onError": true
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_DeuCerto",
-        "targetNodeId": "Node_ForaDoAr",
-        "condition": null,
-        "isDefault": true
+        "targetNodeId": "Node_Sucesso",
+        "condition": "{{data_httpStatusCadastro}} == 201",
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
-        "sourceNodeId": "Node_ForaDoAr",
-        "targetNodeId": "Node_Instavel",
-        "condition": "{{data_httpStatusCadastro}} == 503",
-        "isDefault": false
+        "sourceNodeId": "Node_DeuCerto",
+        "targetNodeId": "Node_Recusado",
+        "condition": null,
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
-        "sourceNodeId": "Node_ForaDoAr",
-        "targetNodeId": "Node_Recusado",
+        "sourceNodeId": "Node_Recusado",
+        "targetNodeId": "Node_Dados",
         "condition": null,
-        "isDefault": true
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
-        "sourceNodeId": "Node_Instavel",
+        "sourceNodeId": "Node_Indisponivel",
         "targetNodeId": "Node_TentarDeNovo",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_TentarDeNovo",
         "targetNodeId": "Node_Cadastra",
         "condition": "{{form_tentarNovamente}} == \"sim\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_10",
         "sourceNodeId": "Node_TentarDeNovo",
         "targetNodeId": "Node_MaisTarde",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_11",
-        "sourceNodeId": "Node_Recusado",
-        "targetNodeId": "Node_Dados",
-        "condition": null,
-        "isDefault": false
-      },
-      {
-        "connectionId": "Flow_12",
         "sourceNodeId": "Node_Sucesso",
         "targetNodeId": "Node_FimSucesso",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
-        "connectionId": "Flow_13",
+        "connectionId": "Flow_12",
         "sourceNodeId": "Node_MaisTarde",
         "targetNodeId": "Node_FimMaisTarde",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [
       {
         "id": "Annotation_1",
-        "text": "O status HTTP vira variável ($httpStatus): a jornada decide o que fazer com 201, 503 ou qualquer outra resposta, sem travar. Fora da faixa 2xx só o status chega; os campos do corpo ficam vazios, por isso as telas de erro usam texto próprio.",
+        "text": "Resiliência da integração: até 5 s para responder e 2 novas tentativas. Teste com um CPF começando com 000: a primeira chamada responde 503 e a nova tentativa já passa, sem o usuário perceber.",
         "positionX": 315,
         "positionY": 145,
         "linkedNodeIds": [
@@ -756,11 +753,20 @@
       },
       {
         "id": "Annotation_2",
-        "text": "Nova tentativa volta para a mesma integração. Para testar: um CPF começando com 000 falha na primeira chamada e passa na segunda.",
-        "positionX": 915,
-        "positionY": 400,
+        "text": "Caminho \"Se falhar\": usado quando o serviço não responde, estoura o tempo limite ou continua com erro depois das tentativas. Para ver, desligue a API do mock.",
+        "positionX": 465,
+        "positionY": 550,
         "linkedNodeIds": [
-          "Node_TentarDeNovo"
+          "Node_Indisponivel"
+        ]
+      },
+      {
+        "id": "Annotation_3",
+        "text": "Respostas de negócio chegam à Decisão pelo status HTTP ($httpStatus); fora de 2xx só o status chega, por isso as telas de erro usam texto próprio.",
+        "positionX": 465,
+        "positionY": 145,
+        "linkedNodeIds": [
+          "Node_DeuCerto"
         ]
       }
     ]

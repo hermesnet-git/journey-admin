@@ -9,9 +9,11 @@ public record FlowConnectionInput(
         @NotBlank @Pattern(regexp = "^Node_.+") String sourceNodeId,
         @NotBlank @Pattern(regexp = "^Node_.+") String targetNodeId,
         String condition,
-        boolean isDefault) {
+        boolean isDefault,
+        // Saída "Se falhar" de uma integração REST.
+        boolean onError) {
 
     public FlowConnection toDomain() {
-        return new FlowConnection(connectionId, sourceNodeId, targetNodeId, condition, isDefault);
+        return new FlowConnection(connectionId, sourceNodeId, targetNodeId, condition, isDefault, onError);
     }
 }

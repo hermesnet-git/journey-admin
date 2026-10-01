@@ -268,7 +268,8 @@ const ENDPOINTS: Endpoint[] = [
     nota:
       'Usado pelo template de tratamento de falha. CPF sem 11 dígitos devolve 422 com "mensagem"; CPF começando ' +
       'com "000" devolve 503 na primeira tentativa e 201 na seguinte (sistema instável); os demais devolvem 201 ' +
-      'com "idCliente".',
+      'com "idCliente". Como todo POST deste mock, respeita o header Idempotency-Key: a mesma chave devolve a ' +
+      'resposta de sucesso já dada (o header Idempotent-Replayed indica a repetição); falhas não ficam guardadas.',
     bodyExemplo: { nome: 'Nome Exemplo', cpf: '00012345678', email: 'cliente@exemplo.com' },
   },
   {

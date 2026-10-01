@@ -41,6 +41,9 @@ public final class ConnectorIO {
         Map<String, Object> response = new LinkedHashMap<>();
         putIfPresent(response, "statusCode", local.get("statusCode"));
         putIfPresent(response, "response", local.get("response"));
+        // Resiliência: quantas tentativas a chamada levou e, se falhou de vez, por quê.
+        putIfPresent(response, "attempts", local.get("attempts"));
+        putIfPresent(response, "failure", local.get("failure"));
         return response.isEmpty() ? null : response;
     }
 

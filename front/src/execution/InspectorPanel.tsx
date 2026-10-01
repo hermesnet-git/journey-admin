@@ -426,7 +426,7 @@ export function GatewaySection({
                   </Text>
                 </div>
                 <Text size={11} color={skinVars.colors.textSecondary}>
-                  {connection.isDefault ? 'Caminho padrão' : (connection.condition ?? 'Sem condição')}
+                  {connection.onError ? 'Se falhar' : connection.isDefault ? 'Caminho padrão' : (connection.condition ?? 'Sem condição')}
                 </Text>
               </div>
             );

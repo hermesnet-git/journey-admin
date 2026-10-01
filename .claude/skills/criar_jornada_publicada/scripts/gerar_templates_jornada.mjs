@@ -90,10 +90,10 @@ function flow(name) {
     decision: (id, nodeName, description, col, lane) => add(id, 'GATEWAY', nodeName, description, col, lane),
     link: (from, to, opts = {}) => connections.push({
       connectionId: `Flow_${connections.length + 1}`, sourceNodeId: from, targetNodeId: to,
-      condition: opts.when ?? null, isDefault: !!opts.otherwise,
+      condition: opts.when ?? null, isDefault: !!opts.otherwise, onError: !!opts.onError,
     }),
     chain: (...ids) => ids.slice(1).forEach((to, i) => connections.push({
-      connectionId: `Flow_${connections.length + 1}`, sourceNodeId: ids[i], targetNodeId: to, condition: null, isDefault: false,
+      connectionId: `Flow_${connections.length + 1}`, sourceNodeId: ids[i], targetNodeId: to, condition: null, isDefault: false, onError: false,
     })),
     // Nota no canvas: acima da célula por padrão, abaixo com below=true.
     note: (value, col, lane, linkedNodeIds = [], below = false) => {
@@ -1594,11 +1594,11 @@ template({
 
 template({
   templateId: 'integracao-com-falha', name: 'Integração com tratamento de falha', track: 'arquitetura', area: null, channelTypes: DIGITAL,
-  description: 'Trata cada resposta da API: sucesso, dados recusados e sistema fora do ar, com nova tentativa.',
+  description: 'Cadastro que resiste a falhas: novas tentativas automáticas, caminho "Se falhar" quando o serviço não responde e correção dos dados recusados.',
   highlights: [
-    'Status HTTP lido como variável',
-    'Nova tentativa voltando à mesma integração',
-    'Correção de dados voltando à tela',
+    'Tempo limite e novas tentativas configurados na integração',
+    'Caminho "Se falhar" quando o serviço não responde',
+    'Dados recusados voltando à tela para correção',
   ],
 }, () => {
   const f = flow('Integração com tratamento de falha');
@@ -1610,44 +1610,46 @@ template({
     textInput('in_email', 'E-mail', 'email', { inputMode: 'email' }),
     ok('btn_cadastrar', 'Cadastrar'),
   ]);
-  const cadastro = f.rest('Cadastra', 'Cadastra o cliente', 'Envia o cadastro; pode devolver 201, 422 ou 503.', 2, 0, {
+  // Resiliência: 5 s pra responder e até 2 novas tentativas (só falha passageira: sem conexão, tempo
+  // esgotado, 429/502/503/504), com a mesma Idempotency-Key em todas.
+  const cadastro = f.rest('Cadastra', 'Cadastra o cliente', 'Envia o cadastro, com novas tentativas automáticas.', 2, 0, {
     method: 'POST', url: `${MOCK}/clientes/cadastro`, headers: JSON_HEADERS,
     body: { nome: '{{form_nomeCompleto}}', cpf: '{{form_cpf}}', email: '{{form_email}}' },
     outputMapping: [out('httpStatusCadastro', '$httpStatus', 'number'), out('idCliente', '$.idCliente')],
+    readTimeoutMs: 5000, retries: 2, retryIntervalMs: 1000,
   });
-  const deuCerto = f.decision('DeuCerto', 'Cadastrou?', '201 é sucesso.', 3, 0);
+  const deuCerto = f.decision('DeuCerto', 'Cadastrou?', '201 é sucesso; o resto, dado recusado.', 3, 0);
   const sucesso = f.screen('Sucesso', 'Cadastro concluído', 'Confirma o cadastro.', 4, -1, 'Cadastro concluído', [
     alert('al_sucesso', 'positive', 'Cadastro concluído. Seu código é {{data.idCliente}}.', { title: 'Tudo certo, {{form.nomeCompleto}}' }),
     ok('btn_sucesso', 'Concluir'),
   ]);
-  const foraDoAr = f.decision('ForaDoAr', 'Sistema fora do ar?', '503 é instabilidade; o resto, dado recusado.', 4, 0);
-  const instavel = f.screen('Instavel', 'Sistema instável', 'Oferece nova tentativa.', 5, 0, 'Não conseguimos concluir agora', [
-    alert('al_instavel', 'warning', 'O sistema de cadastro está instável no momento. Você pode tentar de novo agora ou mais tarde.', { title: 'Não conseguimos concluir agora' }),
-    select('sel_tentar', 'O que você prefere?', 'tentarNovamente', [opt('Tentar de novo', 'sim'), opt('Tentar mais tarde', 'nao')]),
-    ok('btn_instavel', 'Continuar'),
-  ]);
-  const tentar = f.decision('TentarDeNovo', 'Tentar de novo?', 'Volta para a mesma integração.', 6, 0);
-  const depois = f.screen('MaisTarde', 'Tentar mais tarde', 'Encerra sem cadastro.', 7, 0, 'Até logo', [
-    body('txt_depois', 'Tudo bem. Seus dados não foram salvos; é só voltar quando quiser.'),
-    ok('btn_depois', 'Ok'),
-  ]);
-  const recusado = f.screen('Recusado', 'Dados recusados', 'Mostra o motivo e volta para corrigir.', 5, 1, 'Confira seus dados', [
+  const recusado = f.screen('Recusado', 'Dados recusados', 'Mostra o motivo e volta para corrigir.', 4, 0, 'Confira seus dados', [
     alert('al_recusado', 'warning', 'Não conseguimos validar seus dados. Confira se o CPF tem 11 dígitos e tente de novo.', { title: 'Confira seus dados' }),
     ok('btn_recusado', 'Corrigir'),
   ]);
+  const indisponivel = f.screen('Indisponivel', 'Serviço indisponível', 'Usada quando a chamada falha de vez.', 3, 1, 'Não conseguimos concluir agora', [
+    alert('al_indisponivel', 'warning', 'O sistema de cadastro não está respondendo. Você pode tentar de novo agora ou mais tarde.', { title: 'Não conseguimos concluir agora' }),
+    select('sel_tentar', 'O que você prefere?', 'tentarNovamente', [opt('Tentar de novo', 'sim'), opt('Tentar mais tarde', 'nao')]),
+    ok('btn_indisponivel', 'Continuar'),
+  ]);
+  const tentar = f.decision('TentarDeNovo', 'Tentar de novo?', 'Volta para a mesma integração.', 4, 1);
+  const depois = f.screen('MaisTarde', 'Tentar mais tarde', 'Encerra sem cadastro.', 5, 1, 'Até logo', [
+    body('txt_depois', 'Tudo bem. Seus dados não foram salvos; é só voltar quando quiser.'),
+    ok('btn_depois', 'Ok'),
+  ]);
   f.chain(ini, dados, cadastro, deuCerto);
+  f.link(cadastro, indisponivel, { onError: true });
   f.link(deuCerto, sucesso, { when: '{{data_httpStatusCadastro}} == 201' });
-  f.link(deuCerto, foraDoAr, { otherwise: true });
-  f.link(foraDoAr, instavel, { when: '{{data_httpStatusCadastro}} == 503' });
-  f.link(foraDoAr, recusado, { otherwise: true });
-  f.chain(instavel, tentar);
+  f.link(deuCerto, recusado, { otherwise: true });
+  f.chain(recusado, dados);
+  f.chain(indisponivel, tentar);
   f.link(tentar, cadastro, { when: '{{form_tentarNovamente}} == "sim"' });
   f.link(tentar, depois, { otherwise: true });
-  f.chain(recusado, dados);
   f.chain(sucesso, f.end('FimSucesso', 'Fim — cadastrado', 5, -1));
-  f.chain(depois, f.end('FimMaisTarde', 'Fim — mais tarde', 8, 0));
-  f.note('O status HTTP vira variável ($httpStatus): a jornada decide o que fazer com 201, 503 ou qualquer outra resposta, sem travar. Fora da faixa 2xx só o status chega; os campos do corpo ficam vazios, por isso as telas de erro usam texto próprio.', 2, 0, [cadastro]);
-  f.note('Nova tentativa volta para a mesma integração. Para testar: um CPF começando com 000 falha na primeira chamada e passa na segunda.', 6, 0, [tentar], true);
+  f.chain(depois, f.end('FimMaisTarde', 'Fim — mais tarde', 6, 1));
+  f.note('Resiliência da integração: até 5 s para responder e 2 novas tentativas. Teste com um CPF começando com 000: a primeira chamada responde 503 e a nova tentativa já passa, sem o usuário perceber.', 2, 0, [cadastro]);
+  f.note('Caminho "Se falhar": usado quando o serviço não responde, estoura o tempo limite ou continua com erro depois das tentativas. Para ver, desligue a API do mock.', 3, 1, [indisponivel], true);
+  f.note('Respostas de negócio chegam à Decisão pelo status HTTP ($httpStatus); fora de 2xx só o status chega, por isso as telas de erro usam texto próprio.', 3, 0, [deuCerto]);
   return f.build();
 });
 
@@ -1696,10 +1698,14 @@ function selfCheck(t, fl) {
   const fail = (msg) => { throw new Error(`[${t.templateId}] ${msg}`); };
   const byId = new Map(fl.nodes.map((n) => [n.nodeId, n]));
   if (byId.size !== fl.nodes.length) fail('nodeId duplicado');
-  const outs = new Map(); const ins = new Map(); const back = new Map();
+  const outs = new Map(); const errorOuts = new Map(); const ins = new Map(); const back = new Map();
   for (const c of fl.connections) {
     if (!byId.has(c.sourceNodeId) || !byId.has(c.targetNodeId)) fail(`ligação ${c.connectionId} aponta para etapa inexistente`);
-    outs.set(c.sourceNodeId, [...(outs.get(c.sourceNodeId) ?? []), c]);
+    if (c.onError) {
+      errorOuts.set(c.sourceNodeId, [...(errorOuts.get(c.sourceNodeId) ?? []), c]);
+    } else {
+      outs.set(c.sourceNodeId, [...(outs.get(c.sourceNodeId) ?? []), c]);
+    }
     ins.set(c.targetNodeId, (ins.get(c.targetNodeId) ?? 0) + 1);
     back.set(c.targetNodeId, [...(back.get(c.targetNodeId) ?? []), c.sourceNodeId]);
   }
@@ -1708,6 +1714,9 @@ function selfCheck(t, fl) {
   const outputNames = new Set();
   for (const n of fl.nodes) {
     const o = outs.get(n.nodeId) ?? []; const i = ins.get(n.nodeId) ?? 0;
+    const e = errorOuts.get(n.nodeId) ?? [];
+    if (e.length > 0 && !(n.nodeType === 'SERVICE_TASK' && n.connectorConfig?.connectorType === 'REST')) fail(`${n.nodeId}: "Se falhar" só em integração REST`);
+    if (e.length > 1 || e.some((c) => c.condition || c.isDefault)) fail(`${n.nodeId}: no máximo um "Se falhar", sem condição`);
     if (['START', 'MESSAGE_START_EVENT'].includes(n.nodeType) && (i !== 0 || o.length !== 1)) fail(`${n.nodeId}: início com entradas/saídas erradas`);
     if (['USER_TASK', 'SERVICE_TASK', 'RECEIVE_TASK'].includes(n.nodeType) && (i < 1 || o.length !== 1)) fail(`${n.nodeId}: precisa de entrada e exatamente uma saída`);
     if (n.nodeType === 'END' && (i < 1 || o.length !== 0)) fail(`${n.nodeId}: fim com saída ou sem entrada`);
@@ -1726,7 +1735,8 @@ function selfCheck(t, fl) {
     }
   }
   // Nenhum Fim alcançável voltando só por REST, sem uma pausa (tela, espera ou publicação) no meio.
-  const isRest = (n) => n.nodeType === 'SERVICE_TASK' && n.connectorConfig?.connectorType === 'REST';
+  // REST em segundo plano vira job: o motor pausa ali, então não conta como chamada síncrona.
+  const isRest = (n) => n.nodeType === 'SERVICE_TASK' && n.connectorConfig?.connectorType === 'REST' && n.connectorConfig.config?.background !== true;
   const isPause = (n) => n.nodeType === 'USER_TASK' || n.nodeType === 'RECEIVE_TASK' || (n.nodeType === 'SERVICE_TASK' && !isRest(n));
   for (const end of fl.nodes.filter((n) => n.nodeType === 'END')) {
     const seen = new Set([end.nodeId]); const queue = [end.nodeId];

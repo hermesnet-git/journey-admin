@@ -262,7 +262,7 @@ function FlowDiagramInner({
           id: c.id,
           source: c.sourceNodeId,
           target: c.targetNodeId,
-          label: compact ? undefined : c.isDefault ? 'padrão' : (c.condition ?? undefined),
+          label: compact ? undefined : c.onError ? 'Se falhar' : c.isDefault ? 'padrão' : (c.condition ?? undefined),
           // Contorno (stroke atrás do preenchimento via paintOrder) em vez de uma caixa de fundo —
           // dá contraste pra ler o texto sobre qualquer nó/linha que passe por baixo, sem desenhar
           // um retângulo sólido atrás dele.
@@ -276,7 +276,12 @@ function FlowDiagramInner({
           },
           labelBgStyle: { fill: 'transparent' },
           labelBgPadding: [0, 0] as [number, number],
-          style: { stroke: color, strokeWidth: traversed ? 2 : 1.5 },
+          // Saída "Se falhar": tracejada, na cor de erro enquanto não foi percorrida.
+          style: {
+            stroke: c.onError && !traversed ? skinVars.colors.error : color,
+            strokeWidth: traversed ? 2 : 1.5,
+            strokeDasharray: c.onError ? '5 4' : undefined,
+          },
           markerEnd: { type: MarkerType.ArrowClosed, color },
         };
       }),

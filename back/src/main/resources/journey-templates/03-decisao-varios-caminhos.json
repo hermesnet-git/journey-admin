@@ -609,63 +609,72 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Perfil",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Perfil",
         "targetNodeId": "Node_Grande",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_Grande",
         "targetNodeId": "Node_Corporativo",
         "condition": "{{form_perfil}} == \"grande\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_Grande",
         "targetNodeId": "Node_Pequena",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_Pequena",
         "targetNodeId": "Node_Pme",
         "condition": "{{form_perfil}} == \"pequena\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_Pequena",
         "targetNodeId": "Node_Residencial",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_Corporativo",
         "targetNodeId": "Node_FimCorporativo",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_Pme",
         "targetNodeId": "Node_FimPme",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_Residencial",
         "targetNodeId": "Node_FimResidencial",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

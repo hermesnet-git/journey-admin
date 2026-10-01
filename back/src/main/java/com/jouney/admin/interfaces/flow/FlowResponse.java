@@ -53,11 +53,11 @@ public record FlowResponse(String flowId, UUID journeyId, String name, List<Node
     }
 
     public record ConnectionResponse(String connectionId, String sourceNodeId, String targetNodeId, String condition,
-                                      boolean isDefault) {
+                                      boolean isDefault, boolean onError) {
 
         public static ConnectionResponse from(FlowConnection connection) {
             return new ConnectionResponse(connection.getId(), connection.getSourceNodeId(),
-                    connection.getTargetNodeId(), connection.getCondition(), connection.isDefault());
+                    connection.getTargetNodeId(), connection.getCondition(), connection.isDefault(), connection.isOnError());
         }
     }
 

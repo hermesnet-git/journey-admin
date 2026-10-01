@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, RefreshCw, ScrollText, Sliders } from 'lucide-react';
+import { AlertTriangle, RefreshCw, RotateCw, ScrollText, Sliders } from 'lucide-react';
 import { skinVars, Text } from '@telefonica/mistica';
 import type { ComponentType } from 'react';
 import { FlowDiagramViewer } from '../execution/FlowDiagramViewer';
 import type { FlowConnectionInfo, FlowNodeInfo, NodeIODetail } from '../execution/api';
 import { SummaryField } from '../execution/SummaryField';
-import { getDataSourceCalls, getInstanceHistory, type DataSourceCall, type IncidentEntry, type InstanceHistoryResponse } from './api';
+import { getDataSourceCalls, getInstanceHistory, retryIncident, type DataSourceCall, type IncidentEntry, type InstanceHistoryResponse } from './api';
 import { DiagnosticoNodeDrawer } from './DiagnosticoNodeDrawer';
 import { VariableTimeline } from './VariableTimeline';
 import { DiagnosticoLogPanel, type LogEntry } from './DiagnosticoLogPanel';
@@ -188,6 +188,24 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
   // terminal (Concluída/Encerrada) nunca mais muda — atualizar não traria nada de novo.
   const canRefresh = history.state === 'ACTIVE' || history.state === 'SUSPENDED';
 
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
+
+  // Reativa a etapa parada no motor e recarrega o histórico logo em seguida — a nova tentativa roda
+  // em segundo plano, então o resultado pode levar um instante pra aparecer (botão Atualizar).
+  async function retry(nodeId: string) {
+    setRetrying(true);
+    setRetryError(null);
+    try {
+      await retryIncident(history.processInstanceId, nodeId);
+      setHistory(await getInstanceHistory(history.processInstanceId));
+    } catch {
+      setRetryError('Não foi possível tentar de novo. Atualize e confira se o incidente ainda está aberto.');
+    } finally {
+      setRetrying(false);
+    }
+  }
+
   async function refresh() {
     setRefreshing(true);
     try {
@@ -307,7 +325,24 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
                 </Text>
               </div>
             )}
+            {retryError && (
+              <div className="mt-[2px]">
+                <Text size={12} color={skinVars.colors.error}>
+                  {retryError}
+                </Text>
+              </div>
+            )}
           </div>
+          <button
+            type="button"
+            onClick={() => retry(openIncident.nodeId)}
+            disabled={retrying}
+            className="ml-auto shrink-0 flex items-center gap-[6px] px-3 py-[7px] rounded-md text-[12.5px] font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-default"
+            style={{ background: skinVars.colors.error, color: skinVars.colors.textPrimaryInverse }}
+          >
+            <RotateCw size={13} className={retrying ? 'animate-spin' : undefined} />
+            Tentar de novo
+          </button>
         </div>
       )}
 

@@ -49,7 +49,7 @@ public class PublicationRepositoryAdapter implements PublicationRepository {
                         n.startVariables(), n.embeddedScreenRoot(), n.sdui(), n.screenDataSources()))
                 .toList();
         List<FlowConnection> flowConnections = record.flowConnections().stream()
-                .map(c -> new FlowConnection(c.id(), c.sourceNodeId(), c.targetNodeId(), c.condition(), c.isDefaultOrFalse()))
+                .map(FlowConnectionRecord::toDomain)
                 .toList();
 
         return new Publication(entity.getId(), entity.getJourneyId(), record.journeyName(),

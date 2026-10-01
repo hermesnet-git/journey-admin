@@ -5,6 +5,7 @@
 // o contrário (REQ-15.04.001: funcionalidades separadas, mas o motor por trás é o mesmo).
 
 import { apiGet, type FlowBundle, type NodeIODetail } from '../execution/api';
+import { apiPost } from '../api/client';
 
 export interface HistoricInstanceSummary {
   id: string;
@@ -115,4 +116,9 @@ export interface DataSourceCall {
 
 export function getDataSourceCalls(processInstanceId: string): Promise<DataSourceCall[]> {
   return apiGet(`/instances/${processInstanceId}/data-source-calls`);
+}
+
+// "Tentar de novo" de um incidente de integração em segundo plano: o motor roda a etapa outra vez.
+export function retryIncident(processInstanceId: string, nodeId: string): Promise<void> {
+  return apiPost<void>(`/instances/${processInstanceId}/nodes/${encodeURIComponent(nodeId)}/retry`);
 }

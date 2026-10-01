@@ -361,6 +361,7 @@ function toViewerFlow(template: JourneyTemplate): { nodes: FlowNodeInfo[]; conne
       targetNodeId: cn.targetNodeId,
       condition: cn.condition,
       isDefault: cn.isDefault,
+      onError: cn.onError,
     })),
   };
 }

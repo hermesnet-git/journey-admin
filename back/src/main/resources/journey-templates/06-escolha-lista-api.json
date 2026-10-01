@@ -281,28 +281,32 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_BuscaPlanos",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_BuscaPlanos",
         "targetNodeId": "Node_EscolhePlano",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_EscolhePlano",
         "targetNodeId": "Node_PlanoEscolhido",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_PlanoEscolhido",
         "targetNodeId": "Node_Fim",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

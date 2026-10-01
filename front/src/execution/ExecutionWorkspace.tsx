@@ -98,6 +98,9 @@ function describeTrailEntry(entry: TrailEntry, connectorTypeByNodeId: Record<str
     const label = entry.nodeType === 'SERVICE_TASK' ? 'Tarefa de serviço' : 'Tarefa de recebimento';
     const verb = entry.nodeType === 'SERVICE_TASK' ? 'executada' : 'concluída';
     const connectorLabel = CONNECTOR_TYPE_LABEL[connectorTypeByNodeId[entry.nodeId]];
+    if (entry.failure) {
+      return `${label}${connectorLabel ? ` (${connectorLabel})` : ''} "${entry.nodeName}" falhou e seguiu pelo caminho "Se falhar": ${entry.failure}`;
+    }
     return connectorLabel ? `${label} (${connectorLabel}) "${entry.nodeName}" ${verb}.` : `${label} "${entry.nodeName}" ${verb}.`;
   }
   const describe = TRAIL_TYPE_LABEL[entry.nodeType];
@@ -113,6 +116,8 @@ function trailLogData(entry: TrailEntry): Record<string, unknown> | undefined {
     if (entry.requestHeaders) data.requestHeaders = parseMaybeJson(entry.requestHeaders);
     if (entry.requestBody) data.requestBody = parseMaybeJson(entry.requestBody);
     data.resposta = parseMaybeJson(entry.response);
+    if (entry.attempts && entry.attempts > 1) data.tentativas = entry.attempts;
+    if (entry.failure) data.falha = entry.failure;
     return data;
   }
   if (entry.kafkaTopic || entry.kafkaPayload) {
@@ -164,7 +169,13 @@ function trailEntryToNodeIO(entry: TrailEntry): NodeIODetail {
     if (entry.url) request.url = entry.url;
     if (entry.requestHeaders) request.headers = parseMaybeJson(entry.requestHeaders);
     if (entry.requestBody) request.body = parseMaybeJson(entry.requestBody);
-    const response = entry.response ? { response: parseMaybeJson(entry.response) } : null;
+    const response = entry.response || entry.failure
+      ? {
+          ...(entry.response ? { response: parseMaybeJson(entry.response) } : {}),
+          ...(entry.attempts && entry.attempts > 1 ? { attempts: entry.attempts } : {}),
+          ...(entry.failure ? { failure: entry.failure } : {}),
+        }
+      : null;
     if (entry.method && WRITE_VERBS.has(entry.method.toUpperCase())) {
       output = { ...request, ...response };
     } else {

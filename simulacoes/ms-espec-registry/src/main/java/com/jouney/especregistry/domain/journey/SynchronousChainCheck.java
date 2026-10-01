@@ -61,8 +61,12 @@ public final class SynchronousChainCheck {
     }
 
     private static boolean isSynchronousRestTask(FlowNode node) {
+        // Em segundo plano (passo "Resiliência") a chamada vira um job: o motor pausa ali como num
+        // external task, então ela deixa de ser síncrona.
         return "SERVICE_TASK".equals(node.type()) && node.connectorConfig() != null
-                && "REST".equalsIgnoreCase(node.connectorConfig().connectorType());
+                && "REST".equalsIgnoreCase(node.connectorConfig().connectorType())
+                && !(node.connectorConfig().config() != null
+                        && Boolean.TRUE.equals(node.connectorConfig().config().get("background")));
     }
 
     private static boolean isCheckpoint(FlowNode node) {

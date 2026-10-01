@@ -8,6 +8,7 @@ import com.jouney.admin.domain.version.JourneyVersion;
 import java.util.Map;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
+import tools.jackson.databind.ObjectMapper;
 
 /** Heurística compartilhada por {@link CompleteExecutionTask} e {@link SkipStep}: a transação da
  * engine dá rollback inteira quando um conector síncrono falha no meio da continuação — nada
@@ -15,6 +16,7 @@ import org.springframework.web.client.RestClientException;
  * conector a partir do passo atual é a melhor hipótese de onde a falha aconteceu (ver {@link
  * com.jouney.admin.domain.execution.FlowGraph}). */
 final class ExecutionErrorAttribution {
+
 
     private ExecutionErrorAttribution() {
     }
@@ -31,10 +33,23 @@ final class ExecutionErrorAttribution {
 
     private static String errorMessageFrom(RestClientException e) {
         if (e instanceof HttpStatusCodeException httpEx && !httpEx.getResponseBodyAsString().isBlank()) {
-            return httpEx.getResponseBodyAsString();
+            return engineMessage(httpEx.getResponseBodyAsString());
         }
         return e.getMessage();
     }
+
+    // O motor responde {"type":...,"message":"..."}; a mensagem é o que importa (ex.: "O serviço
+    // localhost não aceitou a conexão (3 tentativas)."). Corpo em outro formato segue como veio.
+    private static String engineMessage(String body) {
+        try {
+            String message = JSON.readTree(body).path("message").asString(null);
+            return message != null && !message.isBlank() ? message : body;
+        } catch (RuntimeException notJson) {
+            return body;
+        }
+    }
+
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     // O erro que volta da engine não diz pra onde a chamada ia — prefixa com o que o conector do
     // nó de fato tentou chamar (método+URL/tópico), antes de qualquer resolução de {{variável}} (a

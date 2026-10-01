@@ -12,9 +12,10 @@ import java.util.Map;
  * de fato submetidas, via {@code getSubmittedFormValues} — mesmo dado que o Diagnóstico já mostra
  * como "Entrada" pra essa etapa). Mesmo modelo do Diagnóstico ({@code HistoryStep}), aqui só pra
  * alimentar o cabeçalho do drawer de nó da Execução ao vivo com a mesma informação (não a aba
- * Variáveis). */
+ * Variáveis). {@code attempts}/{@code failure}: só REST — tentativas da chamada e, se ela falhou de
+ * vez (saída "Se falhar"), o motivo. */
 public record TrailEntry(String nodeId, String nodeName, String nodeType, String url, String response,
                           String method, String requestHeaders, String requestBody, String kafkaTopic,
                           String kafkaPayload, String activityInstanceId, String endTime, String taskId,
-                          Map<String, Object> formAnswers) {
+                          Map<String, Object> formAnswers, Integer attempts, String failure) {
 }

@@ -55,6 +55,7 @@ export function JourneyFlowPreviewModal({ version, onClose }: Props) {
     targetNodeId: conn.targetNodeId,
     condition: conn.condition,
     isDefault: conn.default,
+    onError: conn.onError,
   }));
 
   return (

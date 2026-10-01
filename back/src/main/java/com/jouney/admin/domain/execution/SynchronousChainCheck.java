@@ -70,7 +70,10 @@ public final class SynchronousChainCheck {
 
     private static boolean isSynchronousRestTask(FlowNode node) {
         ConnectorConfig config = node.getConnectorConfig();
-        return node.getType() == FlowNodeType.SERVICE_TASK && config != null && config.getConnectorType() == ConnectorType.REST;
+        // Em segundo plano (passo "Resiliência") a chamada vira um job: o motor pausa ali como num
+        // external task, então ela deixa de ser síncrona.
+        return node.getType() == FlowNodeType.SERVICE_TASK && config != null && config.getConnectorType() == ConnectorType.REST
+                && !(config.getConfig() != null && Boolean.TRUE.equals(config.getConfig().get("background")));
     }
 
     private static boolean isCheckpoint(FlowNode node) {

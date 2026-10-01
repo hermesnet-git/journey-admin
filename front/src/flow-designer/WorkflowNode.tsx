@@ -4,7 +4,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Plus, X } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
-import { NODE_META, NODE_DIMENSIONS, NODE_ICON, TYPE_COLOR, connectorMissingFields, type NodeType, type WFNode } from './model';
+import { ERROR_HANDLE, NODE_META, NODE_DIMENSIONS, NODE_ICON, TYPE_COLOR, connectorMissingFields, type NodeType, type WFNode } from './model';
 import { NodeShape } from './NodeShape';
 
 const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask', 'gateway', 'end'];
@@ -125,6 +125,9 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
   const hasInput = nodeType !== 'start' && nodeType !== 'messageStartEvent';
   const hasOutput = nodeType !== 'end';
   const outgoingLimitReached = !!data.outgoingLimitReached;
+  // Saída "Se falhar" (ponto vermelho embaixo): só na Tarefa de Serviço com integração REST.
+  const hasErrorOutput = nodeType === 'serviceTask' && data.connectorConfig?.connectorType === 'REST';
+  const errorPathTaken = !!data.errorPathTaken;
   // Semantic zoom: em zoom baixo o rótulo quebrado é a primeira coisa a virar ruído ilegível — a
   // própria forma continua reconhecível sem ele, então só o texto some abaixo do limiar.
   const showLabel = (data.zoom ?? 1) >= 0.65;
@@ -233,6 +236,24 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
           {!outgoingLimitReached && <QuickAdd nodeId={id} avoid={data.quickAddAvoid} />}
         </>
       )}
+      {hasErrorOutput && (
+        <Handle
+          id={ERROR_HANDLE}
+          type="source"
+          position={Position.Bottom}
+          isConnectable={!errorPathTaken}
+          title={errorPathTaken ? 'Caminho "Se falhar" já ligado' : 'Arraste daqui o caminho "Se falhar"'}
+          className="transition-transform duration-150 hover:scale-[1.8] [&.connectingfrom]:scale-[1.8] [&.connectingfrom]:!shadow-[0_0_0_4px_var(--handle-ring)]"
+          style={{
+            width: 7.5,
+            height: 7.5,
+            background: errorPathTaken ? c.danger : c.cardBg,
+            border: `1.75px solid ${c.danger}`,
+            zIndex: 5,
+            ['--handle-ring' as string]: c.dangerSoft,
+          }}
+        />
+      )}
     </div>
   );
 },
@@ -245,6 +266,7 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
   prev.data.invalid === next.data.invalid &&
   prev.data.invalidReason === next.data.invalidReason &&
   prev.data.outgoingLimitReached === next.data.outgoingLimitReached &&
+  prev.data.errorPathTaken === next.data.errorPathTaken &&
   prev.data.quickAddAvoid === next.data.quickAddAvoid &&
   prev.data.connectorConfig === next.data.connectorConfig &&
   prev.data.embeddedScreenRoot === next.data.embeddedScreenRoot,

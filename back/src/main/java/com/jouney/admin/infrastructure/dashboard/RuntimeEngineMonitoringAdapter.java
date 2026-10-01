@@ -678,6 +678,27 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
     }
 
     @Override
+    public boolean retryFailedJob(String processInstanceId, String nodeId) {
+        List<JobRaw> jobs = call(() -> restClient.get()
+                .uri(baseUrl + "/job?processInstanceId={id}&activityId={nodeId}&noRetriesLeft=true", processInstanceId, nodeId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<JobRaw>>() {
+                }));
+        if (jobs == null || jobs.isEmpty()) return false;
+        jobs.forEach(job -> call(() -> restClient.put()
+                .uri(baseUrl + "/job/{id}/retries", job.id())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("retries", 1))
+                .retrieve()
+                .toBodilessEntity()));
+        return true;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record JobRaw(String id) {
+    }
+
+    @Override
     public Optional<TaskDetail> getHistoricTaskDetail(String activityInstanceId) {
         List<HistoricTaskInstanceRaw> raw = call(() -> restClient.get()
                 .uri(baseUrl + "/history/task?activityInstanceIdIn={id}", activityInstanceId)

@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Fachada real da plataforma Dynamic Journey pros BFFs de canal: roda instâncias falando direto
@@ -89,9 +91,27 @@ public class JourneyController {
             // continuação — nada avança. Diferente do simulador interno do admin, não tenta apontar
             // qual nó falhou (diagnóstico de debug, fora de escopo aqui): só devolve o mesmo passo
             // atual com uma mensagem de erro, pro canal poder avisar o usuário e deixar tentar de novo.
-            return current.withError(ex.getMessage());
+            return current.withError(engineMessage(ex));
         }
         return stepResolver.resolve(processInstanceId);
+    }
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+
+    // O motor responde {"type":...,"message":"..."} — o canal só precisa do texto (ex.: "O serviço
+    // localhost não aceitou a conexão (3 tentativas)."), não do JSON de erro inteiro.
+    private static String engineMessage(RestClientException ex) {
+        if (ex instanceof HttpStatusCodeException httpEx && !httpEx.getResponseBodyAsString().isBlank()) {
+            try {
+                String message = JSON.readTree(httpEx.getResponseBodyAsString()).path("message").asString(null);
+                if (message != null && !message.isBlank()) {
+                    return message;
+                }
+            } catch (RuntimeException notJson) {
+                // segue com a mensagem original
+            }
+        }
+        return ex.getMessage();
     }
 
     @DeleteMapping("/instances/{processInstanceId}")

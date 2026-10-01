@@ -605,84 +605,96 @@
         "sourceNodeId": "Node_Inicio",
         "targetNodeId": "Node_Motivo",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_2",
         "sourceNodeId": "Node_Motivo",
         "targetNodeId": "Node_ScoreRetencao",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_3",
         "sourceNodeId": "Node_ScoreRetencao",
         "targetNodeId": "Node_ValeOfertar",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_4",
         "sourceNodeId": "Node_ValeOfertar",
         "targetNodeId": "Node_Oferta",
         "condition": "{{data_scoreRetencao}} > 70",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_5",
         "sourceNodeId": "Node_ValeOfertar",
         "targetNodeId": "Node_Cancela",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_6",
         "sourceNodeId": "Node_Oferta",
         "targetNodeId": "Node_Aceitou",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_7",
         "sourceNodeId": "Node_Aceitou",
         "targetNodeId": "Node_AplicaOferta",
         "condition": "{{form_decisaoOferta}} == \"aceitar\"",
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_8",
         "sourceNodeId": "Node_Aceitou",
         "targetNodeId": "Node_Cancela",
         "condition": null,
-        "isDefault": true
+        "isDefault": true,
+        "onError": false
       },
       {
         "connectionId": "Flow_9",
         "sourceNodeId": "Node_AplicaOferta",
         "targetNodeId": "Node_Retido",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_10",
         "sourceNodeId": "Node_Retido",
         "targetNodeId": "Node_FimRetido",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_11",
         "sourceNodeId": "Node_Cancela",
         "targetNodeId": "Node_Cancelado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       },
       {
         "connectionId": "Flow_12",
         "sourceNodeId": "Node_Cancelado",
         "targetNodeId": "Node_FimCancelado",
         "condition": null,
-        "isDefault": false
+        "isDefault": false,
+        "onError": false
       }
     ],
     "annotations": [

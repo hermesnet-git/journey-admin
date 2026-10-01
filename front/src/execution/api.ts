@@ -213,6 +213,9 @@ export interface TrailEntry {
   // Only set for a USER_TASK: the answers actually submitted for that step (same data the
   // Diagnóstico screen already shows as "Entrada" for the equivalent history step).
   formAnswers: Record<string, unknown> | null;
+  // Só REST: quantas tentativas a chamada levou e, se falhou de vez (saída "Se falhar"), o motivo.
+  attempts?: number | null;
+  failure?: string | null;
 }
 
 export interface StepResponse {
@@ -265,6 +268,8 @@ export interface FlowConnectionInfo {
   targetNodeId: string;
   condition: string | null;
   isDefault: boolean;
+  // Saída "Se falhar" de uma integração REST.
+  onError?: boolean;
 }
 
 export interface FlowBundle {

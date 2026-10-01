@@ -217,14 +217,22 @@ public final class FlowValidator {
             backward.put(node.getId(), new ArrayList<>());
             outgoingConnections.put(node.getId(), new ArrayList<>());
         }
+        // A saída "Se falhar" não conta no grau de saída nem nas regras de Decisão: é um caminho a mais,
+        // só da integração REST, conferido à parte (errorOutgoing). Pra alcançabilidade e variáveis
+        // disponíveis ela vale como qualquer ligação.
+        Map<String, List<FlowConnection>> errorOutgoing = new HashMap<>();
         for (FlowConnection connection : connections) {
-            outDegree.merge(connection.getSourceNodeId(), 1, Integer::sum);
+            if (connection.isOnError()) {
+                errorOutgoing.computeIfAbsent(connection.getSourceNodeId(), k -> new ArrayList<>()).add(connection);
+            } else {
+                outDegree.merge(connection.getSourceNodeId(), 1, Integer::sum);
+                outgoingConnections.computeIfAbsent(connection.getSourceNodeId(), k -> new ArrayList<>()).add(connection);
+            }
             inDegree.merge(connection.getTargetNodeId(), 1, Integer::sum);
             forward.computeIfAbsent(connection.getSourceNodeId(), k -> new ArrayList<>())
                     .add(connection.getTargetNodeId());
             backward.computeIfAbsent(connection.getTargetNodeId(), k -> new ArrayList<>())
                     .add(connection.getSourceNodeId());
-            outgoingConnections.computeIfAbsent(connection.getSourceNodeId(), k -> new ArrayList<>()).add(connection);
         }
 
         for (FlowNode node : nodes) {
@@ -276,8 +284,27 @@ public final class FlowValidator {
                 }
             }
 
+            List<FlowConnection> errorPaths = errorOutgoing.getOrDefault(node.getId(), List.of());
+            if (!errorPaths.isEmpty()) {
+                boolean restTask = node.getType() == FlowNodeType.SERVICE_TASK && node.getConnectorConfig() != null
+                        && node.getConnectorConfig().getConnectorType() == ConnectorType.REST;
+                if (!restTask) {
+                    violations.add(new FlowViolation(node.getId(), "'" + node.getName()
+                            + "' tem um caminho \"Se falhar\", mas só uma Tarefa de Serviço com integração REST pode ter esse caminho"));
+                } else if (errorPaths.size() > 1) {
+                    violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' tem mais de um caminho \"Se falhar\""));
+                }
+                if (errorPaths.stream().anyMatch(c -> c.isDefault() || (c.getCondition() != null && !c.getCondition().isBlank()))) {
+                    violations.add(new FlowViolation(node.getId(), "O caminho \"Se falhar\" de '" + node.getName()
+                            + "' não pode ter condição nem ser o caminho padrão"));
+                }
+            }
+
             if (node.getConnectorConfig() != null) {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
+                if (connectorConfig.getConnectorType() == ConnectorType.REST) {
+                    validateResilience(node, connectorConfig.getConfig(), violations);
+                }
                 if (!connectorConfig.getConnectorType().isEnabled()) {
                     violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' usa um conector desabilitado ("
                             + connectorConfig.getConnectorType() + ")"));
@@ -411,6 +438,38 @@ public final class FlowValidator {
 
         if (!violations.isEmpty()) {
             throw new FlowValidationException(violations);
+        }
+    }
+
+    // Passo "Resiliência" da integração REST: valores em milissegundos (tempo limite e intervalo) e
+    // número de novas tentativas. Ausente = padrão do conector no motor (2 s, 10 s, 0, 1 s).
+    private static final List<ResilienceLimit> RESILIENCE_LIMITS = List.of(
+            new ResilienceLimit("connectTimeoutMs", 100, 10_000, "o tempo para conectar precisa ficar entre 0,1 e 10 segundos"),
+            new ResilienceLimit("readTimeoutMs", 100, 30_000, "o tempo para responder precisa ficar entre 0,1 e 30 segundos"),
+            new ResilienceLimit("retries", 0, 2, "as novas tentativas precisam ficar entre 0 e 2"),
+            new ResilienceLimit("retryIntervalMs", 0, 5_000, "o intervalo entre tentativas precisa ficar entre 0 e 5 segundos"));
+
+    private record ResilienceLimit(String key, long min, long max, String message) {
+    }
+
+    private static void validateResilience(FlowNode node, Map<String, Object> config, List<FlowViolation> violations) {
+        if (config == null) {
+            return;
+        }
+        for (ResilienceLimit limit : RESILIENCE_LIMITS) {
+            Object value = config.get(limit.key());
+            if (value == null) {
+                continue;
+            }
+            if (!(value instanceof Number number) || number.doubleValue() != Math.floor(number.doubleValue())
+                    || number.longValue() < limit.min() || number.longValue() > limit.max()) {
+                violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "': " + limit.message()));
+            }
+        }
+        Object background = config.get("background");
+        if (background != null && !(background instanceof Boolean)) {
+            violations.add(new FlowViolation(node.getId(), "'" + node.getName()
+                    + "': a opção \"Executar em segundo plano\" precisa ser sim ou não"));
         }
     }
 

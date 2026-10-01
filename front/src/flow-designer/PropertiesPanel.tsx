@@ -25,6 +25,7 @@ import {
   type WFEdge,
   type WFEdgeData,
   type WFNodeData,
+  describeResilience,
 } from './model';
 import { Section } from './PropertiesSection';
 import { ConnectorWizard } from './ConnectorWizard';
@@ -638,6 +639,7 @@ function describeConnector(connectorConfig: ConnectorConfig, brokerOperation?: '
       ...(headersCount > 0 ? [`${headersCount} header${headersCount > 1 ? 's' : ''}`] : []),
       ...(hasBody ? ['Body configurado'] : []),
       `Credencial: ${connectorConfig.credentialRef || '—'}`,
+      describeResilience(cfg),
       mappingCount > 0
         ? `${mappingCount} variável${mappingCount > 1 ? 'is' : ''} de saída mapeada${mappingCount > 1 ? 's' : ''}`
         : 'Nenhuma variável de saída mapeada',

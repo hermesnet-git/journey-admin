@@ -25,7 +25,7 @@ import {
   type VariableEntry,
 } from './api';
 import { DevicePreview } from './DevicePreview';
-import { InspectorPanel, NodeDetailDrawer, type LogEntry } from './InspectorPanel';
+import { InspectorPanel, type LogEntry } from './InspectorPanel';
 import { FlowDiagramViewer } from './FlowDiagramViewer';
 import { ExecutionTimeline, type TimelineStep, type TimelineWait } from './ExecutionTimeline';
 import { SummaryField } from './SummaryField';
@@ -151,7 +151,7 @@ function parseMaybeJson(value: string | null): unknown {
 }
 
 // Mesmos campos que trailLogData já extrai de um TrailEntry, só que separados em input/output —
-// alimenta o drawer de detalhe do nó (InspectorPanel/NodeDetailDrawer), que usa a mesma forma
+// alimenta o card da etapa na linha do tempo (ExecutionTimeline), que usa a mesma forma
 // nodeIO tanto ao vivo (aqui, montado incrementalmente) quanto no modo Histórico (tudo de uma vez).
 // Sem timestamp por nó no fluxo ao vivo hoje (o backend só manda a trilha em si, não quando cada
 // etapa individualmente começou/terminou) — usa o instante em que o front recebeu a resposta pros
@@ -217,7 +217,9 @@ function trailEntryToNodeIO(entry: TrailEntry): NodeIODetail {
 }
 
 function trailToStep(e: TrailEntry): TimelineStep {
-  return { nodeId: e.nodeId, nodeName: e.nodeName, nodeType: e.nodeType, time: now(), auto: e.nodeType !== 'USER_TASK', failure: e.failure };
+  // Horário do motor quando houver: ao retomar, a tela recebe todas as etapas de uma vez.
+  const time = e.endTime ? new Date(e.endTime).toLocaleTimeString('pt-BR') : now();
+  return { nodeId: e.nodeId, nodeName: e.nodeName, nodeType: e.nodeType, time, auto: e.nodeType !== 'USER_TASK', failure: e.failure };
 }
 
 function currentToStep(step: StepResponse): TimelineStep {
@@ -583,47 +585,24 @@ export function ExecutionWorkspace({
               onFollowChange={setFollow}
             />
           </div>
-          {selectedNodeId && (
-            <NodeDetailDrawer
-              detail={nodeIO[selectedNodeId]}
-              flowNode={flow.flowNodes.find((n) => n.id === selectedNodeId)}
-              flowNodes={flow.flowNodes}
-              flowConnections={flow.flowConnections}
-              currentNodeId={step.type === 'ENDED' ? null : step.nodeId}
-              visitedNodeIds={visitedPath}
-              variables={variables}
-              fallbackName={flow.flowNodes.find((n) => n.id === selectedNodeId)?.name ?? selectedNodeId}
-              onClose={() => setSelectedNodeId(null)}
-            />
-          )}
         </div>
 
-        {/* Linha do tempo */}
-        <div className="w-[340px] shrink-0 min-h-0" style={{ borderLeft: `1px solid ${skinVars.colors.border}`, background: skinVars.colors.background }}>
-          <ExecutionTimeline
-            steps={steps}
-            nodeIO={nodeIO}
-            wait={explainWait(step, flow, channelType, erroredMessage ? `${erroredNodeName ?? 'Etapa'}: ${erroredMessage}` : null)}
-            selectedNodeId={selectedNodeId}
-            onSelect={setSelectedNodeId}
-          />
-        </div>
+        {/* Linha do tempo: os detalhes de cada etapa ficam no card dela. */}
+        <ExecutionTimeline
+          steps={steps}
+          nodeIO={nodeIO}
+          wait={explainWait(step, flow, channelType, erroredMessage ? `${erroredNodeName ?? 'Etapa'}: ${erroredMessage}` : null)}
+          flowNodes={flow.flowNodes}
+          flowConnections={flow.flowConnections}
+          visitedNodeIds={visitedPath}
+          currentNodeId={step.type === 'ENDED' ? null : step.nodeId}
+          variables={variables}
+          selectedNodeId={selectedNodeId}
+          onSelect={setSelectedNodeId}
+        />
       </div>
 
-      <InspectorPanel
-        flowNodes={flow.flowNodes}
-        flowConnections={flow.flowConnections}
-        currentNodeId={step.type === 'ENDED' ? null : step.nodeId}
-        visitedNodeIds={visitedPath}
-        erroredNodeId={erroredNodeId}
-        erroredNodeName={erroredNodeName}
-        erroredMessage={erroredMessage}
-        nodeIO={nodeIO}
-        variables={variables}
-        onEditVariable={handleEditVariable}
-        log={log}
-        hideWorkflow
-      />
+      <InspectorPanel variables={variables} onEditVariable={handleEditVariable} log={log} />
     </div>
   );
 }

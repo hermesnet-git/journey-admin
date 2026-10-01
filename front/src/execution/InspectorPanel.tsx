@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, ChevronUp, Copy, GitBranch, Maximize2, Pencil, Plug, Route, Search, Sliders, ScrollText, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ChevronUp, Copy, GitBranch, Maximize2, Pencil, Plug, Search, Sliders, ScrollText, X } from 'lucide-react';
 import { Stack, Text, TextFieldBase, skinVars } from '@telefonica/mistica';
 import {
   isInternalVariableName,
@@ -10,7 +10,6 @@ import {
   type NodeIODetail,
   type VariableEntry,
 } from './api';
-import { FlowDiagramViewer } from './FlowDiagramViewer';
 import { highlightText } from '../shared/textHighlight';
 import { skinVarsJsonColors } from '../shared/JsonTreeViewer';
 import { JsonModal } from '../shared/JsonModal';
@@ -24,66 +23,36 @@ export interface LogEntry {
 }
 
 interface Props {
-  flowNodes: FlowNodeInfo[];
-  flowConnections: FlowConnectionInfo[];
-  currentNodeId: string | null;
-  visitedNodeIds: string[];
-  erroredNodeId?: string | null;
-  erroredNodeName?: string | null;
-  erroredMessage?: string | null;
-  // Input/output de cada nó já visitado, por nodeId — ao vivo (acumulado passo a passo) ou histórico
-  // (tudo de uma vez) alimentam o mesmo mapa. Clicar num nó no Fluxo mostra a entrada dele aqui.
-  nodeIO: Record<string, NodeIODetail>;
   variables: VariableEntry[];
-  // Ausente em modo histórico (instância já terminada — editar variável não faz sentido nela): a
-  // tabela simplesmente esconde o lápis de edição quando não há callback.
+  // Ausente quando editar variável não faz sentido: a tabela esconde o lápis sem callback.
   onEditVariable?: (name: string, rawValue: string, type: string) => void;
   log: LogEntry[];
-  // Quando true, ocupa 100% da altura do pai em vez do drawer redimensionável de altura fixa — usado
-  // no Histórico, onde não há nada acima competindo por espaço (o modo Ao Vivo mantém o drawer, que
-  // fica abaixo do preview do canal e por isso precisa de altura própria/arrastável).
-  fillHeight?: boolean;
-  // Execução ao vivo: o fluxo fica na coluna do meio da tela, então o painel mostra só Variáveis e Log.
-  hideWorkflow?: boolean;
 }
 
-type TabKey = 'workflow' | 'variaveis' | 'log';
+type TabKey = 'variaveis' | 'log';
 
-const TABS: { key: TabKey; label: string; icon: typeof Route }[] = [
-  { key: 'workflow', label: 'Fluxo da Jornada', icon: Route },
+const TABS: { key: TabKey; label: string; icon: typeof Sliders }[] = [
   { key: 'variaveis', label: 'Variáveis', icon: Sliders },
   { key: 'log', label: 'Log', icon: ScrollText },
 ];
 
-const MIN_HEIGHT = 220;
-const DEFAULT_HEIGHT = 380;
+const MIN_HEIGHT = 160;
+const DEFAULT_HEIGHT = 240;
 
-export function InspectorPanel({
-  flowNodes,
-  flowConnections,
-  currentNodeId,
-  visitedNodeIds,
-  erroredNodeId,
-  erroredNodeName,
-  erroredMessage,
-  nodeIO,
-  variables,
-  onEditVariable,
-  log,
-  fillHeight = false,
-  hideWorkflow = false,
-}: Props) {
-  const [tab, setTab] = useState<TabKey>(hideWorkflow ? 'variaveis' : 'workflow');
-  const [height, setHeight] = useState(hideWorkflow ? 240 : DEFAULT_HEIGHT);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+// Painel de baixo da Execução (Variáveis e Log). Altura arrastável pela borda de cima; pode ser
+// recolhido até ficar só a barra das abas (clicar numa aba recolhida abre de novo). Abre recolhido.
+export function InspectorPanel({ variables, onEditVariable, log }: Props) {
+  const [tab, setTab] = useState<TabKey>('variaveis');
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const [collapsed, setCollapsed] = useState(true);
   const draggingRef = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (tab === 'log') {
+    if (tab === 'log' && !collapsed) {
       logEndRef.current?.scrollIntoView({ block: 'end' });
     }
-  }, [tab, log.length]);
+  }, [tab, log.length, collapsed]);
 
   useEffect(() => {
     function onMove(e: MouseEvent) {
@@ -113,14 +82,10 @@ export function InspectorPanel({
 
   return (
     <div
-      className={fillHeight ? 'w-full flex-1 min-h-0 flex flex-col' : 'w-full shrink-0 flex flex-col min-h-0'}
-      style={
-        fillHeight
-          ? { background: skinVars.colors.backgroundContainer }
-          : { height, background: skinVars.colors.backgroundContainer, borderTop: `1px solid ${skinVars.colors.border}` }
-      }
+      className="w-full shrink-0 flex flex-col min-h-0"
+      style={{ height: collapsed ? undefined : height, background: skinVars.colors.backgroundContainer, borderTop: `1px solid ${skinVars.colors.border}` }}
     >
-      {!fillHeight && (
+      {!collapsed && (
         <div
           onMouseDown={startDrag}
           className="w-full h-[7px] shrink-0 flex items-center justify-center cursor-ns-resize"
@@ -131,15 +96,18 @@ export function InspectorPanel({
         </div>
       )}
 
-      <div className="flex shrink-0" style={{ borderBottom: `1px solid ${skinVars.colors.border}` }}>
-        {TABS.filter((t) => !hideWorkflow || t.key !== 'workflow').map((t) => {
+      <div className="flex shrink-0 items-center" style={{ borderBottom: collapsed ? undefined : `1px solid ${skinVars.colors.border}` }}>
+        {TABS.map((t) => {
           const Icon = t.icon;
-          const active = t.key === tab;
+          const active = t.key === tab && !collapsed;
           return (
             <button
               key={t.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => {
+                setTab(t.key);
+                setCollapsed(false);
+              }}
               className="flex items-center gap-[6px] px-4 py-[10px] text-[13px] font-medium cursor-pointer border-0"
               style={{
                 background: active ? skinVars.colors.background : 'transparent',
@@ -160,49 +128,28 @@ export function InspectorPanel({
             </button>
           );
         })}
+        <span className="flex-1" />
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          title={collapsed ? 'Expandir Variáveis e Log' : 'Recolher Variáveis e Log'}
+          className="mr-3 w-[28px] h-[28px] rounded-md flex items-center justify-center border-0 bg-transparent cursor-pointer"
+          style={{ color: skinVars.colors.textSecondary }}
+        >
+          {collapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
       </div>
 
-      <div className="flex-1 min-h-0">
-        {/* Sempre montado (só escondido via CSS) — desmontar e remontar a cada troca de aba
-            destruía o estado interno do React Flow (zoom/posição do pan), repondo o fluxo sempre
-            centralizado no passo atual mesmo quando o usuário tinha arrastado/dado zoom manual. */}
-        <div className={tab === 'workflow' && !hideWorkflow ? 'h-full flex' : 'hidden'}>
-          <div className="flex-1 min-w-0 h-full">
-            <FlowDiagramViewer
-              flowNodes={flowNodes}
-              flowConnections={flowConnections}
-              currentNodeId={currentNodeId}
-              visitedNodeIds={visitedNodeIds}
-              erroredNodeId={erroredNodeId}
-              erroredNodeName={erroredNodeName}
-              erroredMessage={erroredMessage}
-              selectedNodeId={selectedNodeId}
-              onNodeSelect={setSelectedNodeId}
-            />
-          </div>
-          {selectedNodeId && (
-            <NodeDetailDrawer
-              detail={nodeIO[selectedNodeId]}
-              flowNode={flowNodes.find((n) => n.id === selectedNodeId)}
-              flowNodes={flowNodes}
-              flowConnections={flowConnections}
-              currentNodeId={currentNodeId}
-              visitedNodeIds={visitedNodeIds}
-              variables={variables}
-              fallbackName={flowNodes.find((n) => n.id === selectedNodeId)?.name ?? selectedNodeId}
-              onClose={() => setSelectedNodeId(null)}
-            />
+      {!collapsed && (
+        <div className="flex-1 min-h-0">
+          {tab === 'variaveis' && (
+            <div className="h-full overflow-auto p-4">
+              <VariablesTable variables={variables} onEdit={onEditVariable} />
+            </div>
           )}
+          {tab === 'log' && <LogPanel log={log} endRef={logEndRef} />}
         </div>
-
-        {tab === 'variaveis' && (
-          <div className="h-full overflow-auto p-4">
-            <VariablesTable variables={variables} onEdit={onEditVariable} />
-          </div>
-        )}
-
-        {tab === 'log' && <LogPanel log={log} endRef={logEndRef} />}
-      </div>
+      )}
     </div>
   );
 }
@@ -222,159 +169,12 @@ export const NODE_TYPE_LABEL_PT: Record<string, string> = {
   END: 'Fim',
 };
 
-const DEFAULT_DRAWER_WIDTH = 300;
-const MIN_DRAWER_WIDTH = 260;
-const MAX_DRAWER_WIDTH = 640;
-
 const CONNECTOR_TYPE_LABEL: Record<BackendConnectorType, string> = {
   REST: 'API REST',
   KAFKA: 'Kafka',
   EVENT_HUBS: 'Event Hubs',
   SERVICE_BUS: 'Service Bus',
 };
-
-// Painel que abre ao clicar num nó do Fluxo (ao vivo ou histórico) — mostra o que aquele nó
-// especificamente recebeu/produziu, sem competir com as abas Variáveis/Log (que continuam sendo a
-// visão de tudo, sem filtro). `detail` vem ausente pra um nó sem input/output (START/END/GATEWAY) ou
-// ainda não resolvido no mapa nodeIO — nos dois casos mostra só o nome/tipo que dá pra inferir do
-// próprio fluxo, com um aviso no lugar dos blocos JSON. `flowNode` traz a configuração do conector
-// (existe pro nó independente de ele já ter sido executado ou não), usada pela seção de conector.
-export function NodeDetailDrawer({
-  detail,
-  flowNode,
-  flowNodes,
-  flowConnections,
-  currentNodeId,
-  visitedNodeIds,
-  variables,
-  fallbackName,
-  onClose,
-}: {
-  detail: NodeIODetail | undefined;
-  flowNode: FlowNodeInfo | undefined;
-  flowNodes: FlowNodeInfo[];
-  flowConnections: FlowConnectionInfo[];
-  currentNodeId: string | null;
-  visitedNodeIds: string[];
-  variables: VariableEntry[];
-  fallbackName: string;
-  onClose: () => void;
-}) {
-  const [width, setWidth] = useState(DEFAULT_DRAWER_WIDTH);
-  const draggingRef = useRef<{ startX: number; startWidth: number } | null>(null);
-  const typeLabel = NODE_TYPE_LABEL_PT[detail?.nodeType ?? flowNode?.type ?? ''] ?? null;
-  const connectorConfig = flowNode?.connectorConfig ?? null;
-  const isGateway = (detail?.nodeType ?? flowNode?.type) === 'GATEWAY';
-  // Só o nó START comum declara isso (REQ-03.12.001) — MESSAGE_START_EVENT não tem início manual,
-  // a config dele é só o conector (mostrado por ConnectorConfigSection acima).
-  const startVariables = flowNode?.type === 'START' ? (flowNode.startVariables ?? []) : [];
-
-  useEffect(() => {
-    function onMove(e: MouseEvent) {
-      const drag = draggingRef.current;
-      if (!drag) return;
-      const next = drag.startWidth + (drag.startX - e.clientX);
-      setWidth(Math.min(Math.max(next, MIN_DRAWER_WIDTH), MAX_DRAWER_WIDTH));
-    }
-    function onUp() {
-      if (!draggingRef.current) return;
-      draggingRef.current = null;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    }
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, []);
-
-  function startDrag(e: React.MouseEvent) {
-    draggingRef.current = { startX: e.clientX, startWidth: width };
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }
-
-  return (
-    <div className="shrink-0 h-full flex" style={{ width }}>
-      {/* Alça só horizontal (col-resize) — a altura acompanha sempre o pai, nunca redimensiona
-          verticalmente, diferente do drawer de baixo (InspectorPanel) que só redimensiona vertical. */}
-      <div
-        onMouseDown={startDrag}
-        className="w-[5px] shrink-0 h-full cursor-col-resize flex items-center justify-center"
-        style={{ background: skinVars.colors.backgroundAlternative, borderLeft: `1px solid ${skinVars.colors.border}` }}
-        title="Arraste para redimensionar"
-      >
-        <div className="w-[3px] h-10 rounded-full" style={{ background: skinVars.colors.border }} />
-      </div>
-      <div className="flex-1 min-w-0 h-full overflow-auto" style={{ background: skinVars.colors.background }}>
-        <div className="flex items-start justify-between gap-2 p-3 border-b" style={{ borderColor: skinVars.colors.border }}>
-          <div className="min-w-0">
-            <Text size={13} weight="medium" color={skinVars.colors.textPrimary}>
-              {detail?.nodeName ?? fallbackName}
-            </Text>
-            {typeLabel && (
-              <div className="mt-[2px]">
-                <Text size={11} color={skinVars.colors.textSecondary}>
-                  {typeLabel} · {nodeDurationLabel(detail)}
-                </Text>
-              </div>
-            )}
-            {detail?.endTime && (
-              <div className="mt-[2px]">
-                <Text size={11} color={skinVars.colors.textSecondary}>
-                  concluída em {new Date(detail.endTime).toLocaleString('pt-BR')}
-                </Text>
-              </div>
-            )}
-            {(detail?.taskDetail?.taskId ?? detail?.activityInstanceId) && (
-              <div className="mt-[2px]">
-                <Text size={11} color={skinVars.colors.textSecondary}>
-                  task id: {detail?.taskDetail?.taskId ?? detail?.activityInstanceId}
-                </Text>
-                <CopyTextButton text={(detail?.taskDetail?.taskId ?? detail?.activityInstanceId)!} />
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            title="Fechar"
-            className="shrink-0 cursor-pointer border-0 bg-transparent"
-            style={{ color: skinVars.colors.textSecondary }}
-          >
-            <X size={15} />
-          </button>
-        </div>
-        <div className="p-3 flex flex-col gap-3">
-          {isGateway && flowNode && (
-            <GatewaySection
-              gatewayId={flowNode.id}
-              flowNodes={flowNodes}
-              flowConnections={flowConnections}
-              currentNodeId={currentNodeId}
-              visitedNodeIds={visitedNodeIds}
-            />
-          )}
-          {connectorConfig && <ConnectorConfigSection connectorConfig={connectorConfig} nodeType={flowNode?.type} />}
-          {startVariables.length > 0 && <StartVariablesSection startVariables={startVariables} variables={variables} />}
-          {/* Conector de tópico (Kafka/Event Hubs/Service Bus) não tem "entrada" no sentido de
-              request/response — o que entra é a própria mensagem publicada/consumida. */}
-          {detail?.input && (
-            <CollapsibleJsonSection title={connectorConfig && connectorConfig.connectorType !== 'REST' ? 'Payload da Mensagem' : 'Entrada'} data={detail.input} />
-          )}
-          {detail?.output && <CollapsibleJsonSection title="Saída" data={detail.output} />}
-          {!isGateway && !connectorConfig && startVariables.length === 0 && !detail?.input && !detail?.output && (
-            <Text size={12.5} color={skinVars.colors.textSecondary}>
-              Sem dados de entrada/saída para esta etapa.
-            </Text>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Lista as saídas do gateway (condição/"padrão" de cada uma) — mesmo critério de "caminho
 // percorrido" que já colore as arestas no diagrama (FlowDiagramViewer): a aresta cujo destino está
@@ -482,7 +282,7 @@ export function ConnectorConfigSection({ connectorConfig, nodeType }: { connecto
 // chegou pra cada uma (lido do mesmo mapa de variáveis de processo da aba Variáveis, por nome),
 // não a declaração de tipo: é isso que ajuda a diagnosticar "veio vazio"/"veio o valor errado".
 // Sem valor ainda resolvido (nó nunca visitado/instância nunca chegou a iniciar) mostra "—".
-function StartVariablesSection({
+export function StartVariablesSection({
   startVariables,
   variables,
 }: {
@@ -1155,7 +955,7 @@ export function CopyJsonButton({ data }: { data: Record<string, unknown> }) {
 // Ícone de copiar pra um texto curto (ex.: task id) — mesma peça de diagnostics/CopyTextButton.tsx,
 // duplicada aqui em vez de importada de lá pra não criar uma dependência de execution sobre
 // diagnostics (a composição do Diagnóstico é que depende de execution, não o contrário).
-function CopyTextButton({ text }: { text: string }) {
+export function CopyTextButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {

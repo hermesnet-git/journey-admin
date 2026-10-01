@@ -21,6 +21,8 @@ interface Props {
   // pós-conclusão (nada pra encerrar no motor, a instância já terminou sozinha).
   isEnded: boolean;
   onStop: () => void;
+  // Volta à tela inicial deixando a instância rodando no motor (dá para retomar depois).
+  onLeave: () => void;
   stopping: boolean;
   onRestart: () => void;
   onChooseNew: () => void;
@@ -36,6 +38,7 @@ export function ExecutionToolbar({
   running,
   isEnded,
   onStop,
+  onLeave,
   stopping,
   onRestart,
   onChooseNew,
@@ -85,6 +88,7 @@ export function ExecutionToolbar({
         <>
           <LiveIndicator />
           <div className="flex-1" />
+          <SecondaryButton onPress={onLeave}>Sair sem parar</SecondaryButton>
           <StopButton onStop={onStop} stopping={stopping} />
         </>
       )}

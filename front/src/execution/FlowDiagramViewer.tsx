@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -65,6 +65,8 @@ interface SimNodeData extends Record<string, unknown> {
   dimmed?: boolean;
   // O motor está passando por esta etapa agora (animação do que ele faz sozinho entre passos).
   flash?: boolean;
+  // Etapa atual com halo que pulsa (Execução e reprodução do Diagnóstico) no lugar do contorno piscando.
+  halo?: boolean;
 }
 
 // Cores por status — mesma forma/ícone do designer (NodeShape), só a "pintura" muda conforme a
@@ -125,7 +127,7 @@ function statusStyle(status: NodeStatus, typeColor: string) {
 }
 
 function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
-  const { frontType, name, status, connectorType, connectorConfig, screenRoot, mode, selected, onShowError, onSelect, stepNumbers, dimmed, flash, lod } = data;
+  const { frontType, name, status, connectorType, connectorConfig, screenRoot, mode, selected, onShowError, onSelect, stepNumbers, dimmed, flash, lod, halo } = data;
   const { dark } = useAppTheme();
   const zoom = useStore((state) => state.transform[2]);
   // Mesmos três níveis do editor (cartão, pílula, ponto); a miniatura de modelo não usa.
@@ -133,7 +135,7 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
   const typeColor = TYPE_COLOR[frontType];
   const dim = nodeSize(frontType, mode);
   const asCard = mode !== 'circle' && isTaskType(frontType);
-  const baseStyle = statusStyle(status, typeColor);
+  const baseStyle = { ...statusStyle(status, typeColor), ...(halo ? { pulse: false } : {}) };
   // Eventos e Decisão ainda não alcançados: fundo e borda da cor do tipo, como no editor.
   const style =
     !isTaskType(frontType) && (status === 'type' || status === 'pending')
@@ -169,6 +171,12 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
       onClick={onSelect}
     >
       <Handle type="target" position={Position.Left} style={HANDLE_STYLE} />
+      {halo && (
+        <div
+          className="flow-current-halo absolute inset-0 pointer-events-none"
+          style={{ borderRadius: asCard && mode === 'detailed' && detail === 'full' ? 12 : 999, ['--halo' as string]: skinVars.colors.brand }}
+        />
+      )}
       {detail === 'dot' ? (
         <NodeDot color={dotColor} />
       ) : asCard ? (
@@ -294,6 +302,24 @@ interface ViewerEdgeData extends Record<string, unknown> {
   rawCondition?: string;
   danger?: boolean;
   dimmed?: boolean;
+  // Ligação por onde a execução chegou à etapa atual: uma bolinha a percorre sem parar.
+  travel?: boolean;
+}
+
+const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Bolinha que percorre a ligação uma vez e para no fim (na etapa atual). Começa ao aparecer, antes da
+// primeira pintura: com begin="indefinite" e sem isso ela ficaria parada na origem do canvas.
+function TravelDot({ path, color }: { path: string; color: string }) {
+  const motionRef = useRef<SVGAnimateMotionElement>(null);
+  useLayoutEffect(() => {
+    motionRef.current?.beginElement();
+  }, []);
+  return (
+    <circle r={5} fill={color} style={{ pointerEvents: 'none' }}>
+      <animateMotion ref={motionRef} begin="indefinite" dur="2.4s" fill="freeze" path={path} keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines="0.42 0 0.58 1" />
+    </circle>
+  );
 }
 
 // Linha somente-leitura pela rota calculada (desvia das etapas); sem rota, o caminho simples. O rótulo
@@ -326,6 +352,9 @@ function RoutedViewerEdge({ source, target, sourceX, sourceY, targetX, targetY, 
   return (
     <>
       <BaseEdge path={path} style={style} markerEnd={far ? undefined : markerEnd} />
+      {data?.travel && !REDUCED_MOTION && (
+        <TravelDot path={path} color={data.danger ? skinVars.colors.error : skinVars.colors.success} />
+      )}
       {data?.labelText && (
         <EdgeLabel
           x={at.x}
@@ -490,6 +519,7 @@ function FlowDiagramInner({
             lod: !compact,
             dimmed: !!dimUnvisited && status === 'pending',
             flash: n.id === flashNodeId,
+            halo: !!dimUnvisited && status === 'current',
           },
         };
       }),
@@ -526,6 +556,15 @@ function FlowDiagramInner({
     });
   }, [sections, placed, mode, compact, flowConnections]);
 
+  // Ligação da etapa anterior para a atual (ou a que o motor está percorrendo sozinho agora).
+  const arrivalId = useMemo(() => {
+    const target = flashNodeId ?? currentNodeId;
+    if (!dimUnvisited || !target) return null;
+    const i = visitedNodeIds.lastIndexOf(target);
+    const prev = i === -1 ? visitedNodeIds.at(-1) : visitedNodeIds[i - 1];
+    return flowConnections.find((c) => c.sourceNodeId === prev && c.targetNodeId === target)?.id ?? null;
+  }, [dimUnvisited, flashNodeId, currentNodeId, visitedNodeIds, flowConnections]);
+
   const edges: Edge[] = useMemo(
     () =>
       flowConnections.map((c) => {
@@ -544,6 +583,7 @@ function FlowDiagramInner({
             danger: !!c.onError,
             lod: !compact,
             dimmed: !!dimUnvisited && !traversed,
+            travel: c.id === arrivalId,
           },
           // Saída "Se falhar": tracejada, na cor de erro enquanto não foi percorrida.
           style: {
@@ -555,7 +595,7 @@ function FlowDiagramInner({
           markerEnd: { type: MarkerType.ArrowClosed, color },
         };
       }),
-    [flowConnections, visited, currentNodeId, compact, routes, variableLabels, dimUnvisited],
+    [flowConnections, visited, currentNodeId, compact, routes, variableLabels, dimUnvisited, arrivalId],
   );
 
   // Centraliza a etapa atual sempre que ela muda (inclusive no primeiro carregamento), num zoom

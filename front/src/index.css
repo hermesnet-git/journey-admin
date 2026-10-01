@@ -45,8 +45,19 @@ html, body, #root {
   animation: flow-step-flash 600ms ease-out forwards;
 }
 
+/* Execução e reprodução do Diagnóstico: halo que se expande e some em volta da etapa atual. */
+@keyframes flow-current-halo {
+  from { box-shadow: 0 0 0 0 var(--halo); opacity: 0.55; }
+  to { box-shadow: 0 0 0 14px var(--halo); opacity: 0; }
+}
+
+.flow-current-halo {
+  animation: flow-current-halo 1.6s ease-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .flow-step-flash { animation: none; opacity: 0.6; }
+  .flow-current-halo { animation: none; box-shadow: 0 0 0 4px var(--halo); opacity: 0.4; }
 }
 
 @keyframes dashboard-spin {

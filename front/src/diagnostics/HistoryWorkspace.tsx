@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ReplayBar } from './ReplayBar';
-import { AlertTriangle, RefreshCw, RotateCw, ScrollText, Sliders } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw, RotateCw, ScrollText, Sliders } from 'lucide-react';
 import { skinVars, Text } from '@telefonica/mistica';
 import type { ComponentType } from 'react';
 import { FlowDiagramViewer } from '../execution/FlowDiagramViewer';
@@ -150,6 +150,8 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
   const [replayPosition, setReplayPosition] = useState<number | null>(null);
   const [replayPlaying, setReplayPlaying] = useState(false);
   const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
+  // Painel de baixo abre recolhido (só a barra das abas); clicar numa aba ou na seta abre.
+  const [panelCollapsed, setPanelCollapsed] = useState(true);
   const draggingRef = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
   const [dataSourceCalls, setDataSourceCalls] = useState<DataSourceCall[]>([]);
@@ -295,6 +297,19 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
     ? (replayCutoff ?? history.startTime)
     : selectedNodeId ? (selectedDetail?.endTime ?? (selectedNodeId === history.currentNodeId ? new Date().toISOString() : null)) : null;
 
+  // Na reprodução, igual ao Log: só as mudanças até o passo escolhido, e cada variável com o valor
+  // que tinha naquele momento (no começo da reprodução, nenhuma).
+  const replayCutoffMs = replayCutoff ? new Date(replayCutoff).getTime() : null;
+  const shownTimeline = replaying
+    ? history.variableTimeline.filter((e) => replayCutoffMs !== null && new Date(e.time).getTime() <= replayCutoffMs)
+    : history.variableTimeline;
+  const shownVariables = replaying
+    ? history.variables.flatMap((v) => {
+        const last = shownTimeline.filter((e) => e.name === v.name).at(-1);
+        return last ? [{ ...v, value: last.value, type: last.type }] : [];
+      })
+    : history.variables;
+
   return (
     <div className="flex-1 min-h-0 flex flex-col" style={{ background: skinVars.colors.background }}>
       <div
@@ -415,8 +430,9 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
             inteiro como uma aba de tela cheia fazia antes. */}
         <div
           className="shrink-0 flex flex-col min-h-0"
-          style={{ height: panelHeight, borderTop: `1px solid ${skinVars.colors.border}`, background: skinVars.colors.background }}
+          style={{ height: panelCollapsed ? undefined : panelHeight, borderTop: `1px solid ${skinVars.colors.border}`, background: skinVars.colors.background }}
         >
+          {!panelCollapsed && (
           <div
             onMouseDown={startDrag}
             className="w-full h-[7px] shrink-0 flex items-center justify-center cursor-ns-resize"
@@ -425,16 +441,20 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
           >
             <div className="w-10 h-[3px] rounded-full" style={{ background: skinVars.colors.border }} />
           </div>
+          )}
 
-          <div className="flex shrink-0" style={{ borderBottom: `1px solid ${skinVars.colors.border}` }}>
+          <div className="flex shrink-0 items-center" style={{ borderBottom: panelCollapsed ? undefined : `1px solid ${skinVars.colors.border}` }}>
             {BOTTOM_TABS.map((t) => {
               const Icon = t.icon;
-              const active = t.key === bottomTab;
+              const active = t.key === bottomTab && !panelCollapsed;
               return (
                 <button
                   key={t.key}
                   type="button"
-                  onClick={() => setBottomTab(t.key)}
+                  onClick={() => {
+                    setBottomTab(t.key);
+                    setPanelCollapsed(false);
+                  }}
                   className="flex items-center gap-[6px] px-4 py-[10px] text-[13px] font-medium cursor-pointer border-0"
                   style={{
                     background: active ? skinVars.colors.background : 'transparent',
@@ -452,14 +472,25 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
                 </button>
               );
             })}
+            <span className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setPanelCollapsed((c) => !c)}
+              title={panelCollapsed ? 'Expandir Variáveis e Log' : 'Recolher Variáveis e Log'}
+              className="mr-3 w-[28px] h-[28px] rounded-md flex items-center justify-center border-0 bg-transparent cursor-pointer"
+              style={{ color: skinVars.colors.textSecondary }}
+            >
+              {panelCollapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
           </div>
 
+          {!panelCollapsed && (
           <div className="flex-1 min-h-0">
             {bottomTab === 'variaveis' ? (
               <div className="h-full overflow-auto p-4">
                 <VariableTimeline
-                  variables={history.variables}
-                  timeline={history.variableTimeline}
+                  variables={shownVariables}
+                  timeline={shownTimeline}
                   highlightUpToTime={highlightUpToTime}
                   onNodeSelect={setSelectedNodeId}
                 />
@@ -468,6 +499,7 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
               <DiagnosticoLogPanel log={log} endRef={logEndRef} onNodeSelect={setSelectedNodeId} />
             )}
           </div>
+          )}
         </div>
       </div>
     </div>

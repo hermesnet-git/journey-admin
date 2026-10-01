@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PlayCircle, Search } from 'lucide-react';
 import { Text, skinVars } from '@telefonica/mistica';
-import { ExecutionToolbar, JourneySearchBox } from './ExecutionToolbar';
+import { ExecutionToolbar } from './ExecutionToolbar';
 import { StartPanel } from './StartPanel';
 import { ExecutionWorkspace } from './ExecutionWorkspace';
-import { ResumeExecutionBox } from './ResumeExecutionBox';
+import { ExecutionEntryField } from './ExecutionEntryField';
 import {
   apiCallLogData,
   formatApiCallLog,
@@ -189,6 +189,16 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
     preStartLogRef.current = [];
   }
 
+  // Sai da tela sem encerrar a instância: ela continua no motor e a busca da tela inicial já volta
+  // com o business key dela, pronta para retomar.
+  function handleLeave() {
+    if (!running) return;
+    const key = running.businessKey;
+    showToast('A execução continua em andamento. O business key dela ficou na busca para você retomar quando quiser.', 'success');
+    handleChooseNew();
+    setQuery(key);
+  }
+
   function handleChooseNew() {
     setRunning(null);
     setCurrentStep(null);
@@ -224,6 +234,7 @@ function ExecutionsPageContent({ active, initialJourney }: Props) {
         running={running.journey}
         isEnded={isEnded}
         onStop={handleStop}
+        onLeave={handleLeave}
         stopping={stopping}
         onRestart={handleRestart}
         onChooseNew={handleChooseNew}
@@ -287,19 +298,7 @@ function SetupState({
         className="rounded-xl p-3 mb-6"
         style={{ border: `1px solid ${skinVars.colors.border}`, background: skinVars.colors.backgroundContainer }}
       >
-        <div className="max-w-[420px]">
-          <JourneySearchBox journeys={journeys} loadError={loadError} query={query} onQueryChange={onQueryChange} selected={selected} onSelect={onSelect} />
-        </div>
-
-        <div className="flex items-center gap-3 my-3 max-w-[420px]">
-          <div className="flex-1 h-px" style={{ background: skinVars.colors.border }} />
-          <Text size={11} color={skinVars.colors.textSecondary}>
-            ou
-          </Text>
-          <div className="flex-1 h-px" style={{ background: skinVars.colors.border }} />
-        </div>
-
-        <ResumeExecutionBox onResumed={onResumed} />
+        <ExecutionEntryField journeys={journeys} query={query} onQueryChange={onQueryChange} onSelect={onSelect} onResumed={onResumed} />
       </div>
 
       {selected ? (
@@ -314,7 +313,7 @@ function SetupState({
             Busque uma jornada para executar
           </Text>
           <Text size={12} color={skinVars.colors.textSecondary}>
-            Digite o nome de uma jornada publicada na busca acima.
+            Digite o nome de uma jornada publicada, ou cole o ID da instância ou o business key de uma execução em andamento para retomá-la.
           </Text>
         </div>
       )}

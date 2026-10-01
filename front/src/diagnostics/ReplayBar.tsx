@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Pause, Play, RotateCcw, X } from 'lucide-react';
+import { Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react';
 import { skinVars } from '@telefonica/mistica';
 
 interface Props {
@@ -14,8 +14,8 @@ interface Props {
 
 const STEP_MS = 1200;
 
-// Reprodução da execução: avança passo a passo (ou pelo controle deslizante) e o resto da tela mostra
-// o estado da jornada até aquele passo.
+// Reprodução da execução: avança sozinha (play), um passo por vez (anterior/próximo) ou pelo controle
+// deslizante, e o resto da tela mostra o estado da jornada até aquele passo.
 export function ReplayBar({ total, position, playing, stepLabel, onPositionChange, onPlayingChange }: Props) {
   useEffect(() => {
     if (!playing) return;
@@ -28,13 +28,24 @@ export function ReplayBar({ total, position, playing, stepLabel, onPositionChang
   }, [playing, position, total, onPositionChange, onPlayingChange]);
 
   if (total === 0) return null;
-  const btn = 'shrink-0 w-[30px] h-[30px] rounded-full flex items-center justify-center border-0 cursor-pointer';
+  const btn = 'shrink-0 w-[30px] h-[30px] rounded-full flex items-center justify-center border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
+  const current = position ?? total;
+  // Passo manual: pausa a reprodução automática e anda um passo (fora da reprodução, "anterior" a liga
+  // no penúltimo passo).
+  function stepBy(delta: number) {
+    onPlayingChange(false);
+    onPositionChange(Math.min(total, Math.max(0, current + delta)));
+  }
+  const stepBtnStyle = { background: skinVars.colors.backgroundAlternative, color: skinVars.colors.textPrimary };
 
   return (
     <div
       className="shrink-0 flex items-center gap-3 px-6 py-2"
       style={{ borderBottom: `1px solid ${skinVars.colors.border}`, background: skinVars.colors.backgroundContainer }}
     >
+      <button type="button" onClick={() => stepBy(-1)} disabled={current <= 0} title="Passo anterior" className={btn} style={stepBtnStyle}>
+        <SkipBack size={13} />
+      </button>
       <button
         type="button"
         onClick={() => {
@@ -46,6 +57,9 @@ export function ReplayBar({ total, position, playing, stepLabel, onPositionChang
         style={{ background: skinVars.colors.brand, color: '#fff' }}
       >
         {playing ? <Pause size={14} /> : <Play size={14} />}
+      </button>
+      <button type="button" onClick={() => stepBy(1)} disabled={position === null || position >= total} title="Próximo passo" className={btn} style={stepBtnStyle}>
+        <SkipForward size={13} />
       </button>
       <span className="shrink-0 text-[12.5px] font-medium" style={{ color: skinVars.colors.textPrimary }}>
         Reprodução

@@ -215,11 +215,16 @@ canais de um produto.
 
 ### US-02.04 Modelos de jornada
 #### REQ-02.04.001 - Ao criar uma jornada, o sistema deve permitir que o usuário escolha entre iniciar com o fluxo em branco ou usar um modelo de jornada predefinido.
-#### REQ-02.04.002 - O sistema deve listar os modelos disponíveis com identificador estável, nome e descrição; no piloto da versão 1.0.0, deve oferecer o modelo `aprovacao-pedido` (“Aprovação de Pedido”).
+#### REQ-02.04.002 - O sistema deve listar os modelos disponíveis com identificador estável, nome, descrição, trilha (Primeiros passos, Integrações, Canais, Jornadas de negócio ou Padrões avançados), área de negócio quando houver, canais para os quais o modelo foi pensado, o que o exemplo mostra, os recursos que ele usa e o desenho do fluxo para prévia. Os recursos usados devem ser obtidos do próprio fluxo do modelo, nunca declarados à parte, para que a lista não anuncie algo que o exemplo não faz.
 #### REQ-02.04.003 - O modelo escolhido deve preencher somente o fluxo. Nome, descrição, produto e canais da nova jornada devem ser sempre os valores informados pelo usuário.
 #### REQ-02.04.004 - Cada uso de um modelo deve gerar novos identificadores de fluxo, nós e conexões, sem compartilhar identidade ou estado mutável entre jornadas.
 #### REQ-02.04.005 - A criação da jornada, do fluxo escolhido e da versão inicial `DRAFT` deve ocorrer numa única transação; o snapshot da versão 1 deve conter exatamente os mesmos nós e conexões do fluxo criado.
-#### REQ-02.04.006 - Um modelo é um esqueleto editável e pode deixar configurações dependentes do contexto — tela, condição, endpoint ou credencial — para o autor completar. O fluxo resultante permanece sujeito às mesmas regras de validação e publicação de qualquer rascunho.
+#### REQ-02.04.006 - Um modelo é uma jornada de exemplo completa — telas, integrações, decisões e notas no canvas explicando cada parte — que o autor ajusta livremente. As configurações que dependem do ambiente (cluster, tópico e credencial de mensageria; fonte de dados de tela) vêm em branco de propósito, são listadas ao autor como "Antes de publicar, escolha" e sinalizadas por nota no canvas. O fluxo resultante permanece sujeito às mesmas regras de validação e publicação de qualquer rascunho.
+#### REQ-02.04.007 - A escolha do modelo deve oferecer filtro por trilha (com a quantidade de modelos de cada uma), busca por nome, descrição, área ou recurso sem diferenciar acentos e maiúsculas, e um painel de detalhe com a prévia do fluxo, a quantidade de telas, integrações e decisões, o que o modelo mostra, os recursos usados, os canais e o que configurar antes de publicar. Quando nenhum canal do modelo estiver entre os canais escolhidos para a jornada, o painel deve avisar.
+#### REQ-02.04.008 - O catálogo deve conter apenas modelos que a plataforma executa de ponta a ponta: um modelo que dependa de capacidade ainda inexistente (ex.: temporizador, execução em paralelo, subprocesso) só entra junto com a capacidade. As integrações REST dos modelos apontam para o serviço de simulação de APIs do ambiente local.
+#### REQ-02.04.009 - Os modelos devem ser mantidos como arquivos versionados com o produto, no mesmo formato do fluxo do editor; na versão 1.0.0 não há cadastro de modelos pela interface.
+
+> **Nota de revisão (2026-10-01):** o piloto com um único modelo (“Aprovação de Pedido”) deu lugar a um catálogo de 32 exemplos em cinco trilhas, pensado como ponto de partida e material de aprendizado para quem desenha jornadas. Cada modelo passou a trazer o fluxo completo, em vez de um esqueleto, e a deixar em branco só o que depende do ambiente.
 
 ### US-02.05 Jornadas específicas por canal
 #### REQ-02.05.001 - O sistema deve permitir criar jornadas distintas para diferentes canais do mesmo produto.
@@ -289,11 +294,12 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.02.001 - O sistema deve permitir criar conexões entre elementos.
 #### REQ-03.02.002 - O sistema deve permitir remover conexões.
 #### REQ-03.02.003 - O sistema deve permitir editar conexões.
-#### REQ-03.02.004 - O elemento inicial não deve possuir entrada e deve possuir exatamente uma saída; cada `USER_TASK`, `SERVICE_TASK` e `RECEIVE_TASK` deve possuir ao menos uma entrada e exatamente uma saída; o nó `END` deve possuir ao menos uma entrada e nenhuma saída.
+#### REQ-03.02.004 - O elemento inicial não deve possuir entrada e deve possuir exatamente uma saída; cada `USER_TASK`, `SERVICE_TASK` e `RECEIVE_TASK` deve possuir ao menos uma entrada e exatamente uma saída; o nó `END` deve possuir ao menos uma entrada e nenhuma saída. A saída "Se falhar" de uma integração REST (REQ-03.02.009) é adicional e não conta nesse limite.
 #### REQ-03.02.005 - Todos os nós devem pertencer a um caminho contínuo e alcançável entre o elemento inicial e `END`.
 #### REQ-03.02.006 - O editor deve impedir ações que produ zam uma estrutura incompatível, e o backend deve rejeitar com `422` qualquer tentativa de persistir um fluxo que não cumpra as restrições estruturais.
 #### REQ-03.02.007 - Uma `USER_TASK` deve possuir no máximo um caminho de saída; o editor não deve permitir a criação de uma segunda conexão partindo de uma `USER_TASK` que já possua saída.
-#### REQ-03.02.008 - O backend deve rejeitar (422), ao salvar o fluxo, um caminho que parta do elemento inicial e alcance um nó `END` sem passar por nenhum "checkpoint" (`USER_TASK`, `RECEIVE_TASK` ou `SERVICE_TASK` com conector diferente de `REST`) — evita uma jornada que resolveria inteiramente dentro de uma única transação síncrona do motor de runtime, cenário em que o motor não expõe histórico algum da execução (sofre rollback antes de qualquer consulta conseguir lê-lo).
+#### REQ-03.02.008 - O backend deve rejeitar (422), ao salvar o fluxo, um caminho que parta do elemento inicial e alcance um nó `END` sem passar por nenhum "checkpoint" (`USER_TASK`, `RECEIVE_TASK`, `SERVICE_TASK` com conector diferente de `REST`, ou `SERVICE_TASK` REST executada em segundo plano — REQ-03.18.006) — evita uma jornada que resolveria inteiramente dentro de uma única transação síncrona do motor de runtime, cenário em que o motor não expõe histórico algum da execução (sofre rollback antes de qualquer consulta conseguir lê-lo).
+#### REQ-03.02.009 - Uma `SERVICE_TASK` com conector `REST` pode ter, além da saída normal, uma única saída "Se falhar", usada quando a chamada falha de vez (REQ-03.18.004). Essa saída não leva condição nem pode ser o caminho padrão, e não é permitida em nenhum outro tipo de etapa; o editor deve oferecê-la por um ponto de conexão próprio na etapa e desenhá-la de forma distinta (linha tracejada na cor de erro, com o rótulo "Se falhar"), e o backend deve rejeitar (422) qualquer saída "Se falhar" fora dessas regras.
 ---
 
 ### US-03.03 Navegação
@@ -365,6 +371,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.09.017 - A regra do tipo lista deve permitir declarar os campos a manter de cada item; só esses campos são gravados na variável, para não guardar no histórico da instância dados que a tela e as regras não usam. Sem campos declarados, o item é gravado inteiro.
 #### REQ-03.09.018 - Um campo de lista ou de objeto recebido numa mensagem Kafka também deve ser gravado como variável em formato JSON do Runtime Engine, nunca como objeto binário.
 #### REQ-03.09.019 - Uma variável do tipo lista não deve ser oferecida em condição de Decisão — ela só alimenta a lista de seleção (US-04.15) e as opções de um select (US-04.16).
+#### REQ-03.09.020 - A validação sob demanda ("Validar") e a publicação devem recusar uma integração de mensageria sem cluster, tópico e credencial escolhidos. A geração de fluxo por IA (US-03.17) não faz essa exigência, já que esses valores dependem do ambiente e são escolhidos pelo autor no editor.
 ---
 
 ### US-03.10 Teste de conectores
@@ -436,6 +443,16 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.17.003 - Um fluxo gerado que viole as regras estruturais de validação (US-03.02) deve ser automaticamente corrigido e reenviado ao modelo de IA (retry/reparo) antes de ser apresentado ao usuário, dentro de um número limitado de tentativas — inclui a rejeição de aspas escapadas (`\"`) em condição de gateway, formato que quebra o parser de expressão do motor de runtime.
 #### REQ-03.17.004 - O fluxo gerado deve ser apresentado como um rascunho editável no canvas, sujeito às mesmas regras de validação e à mesma revisão manual de qualquer fluxo criado por edição direta — a geração por IA não substitui a revisão do usuário antes de salvar ou publicar.
 #### REQ-03.17.005 - Ao concluir a geração, o canvas deve reposicionar automaticamente a visualização do fluxo gerado (REQ-03.05.005).
+---
+
+### US-03.18 Resiliência da integração REST
+#### REQ-03.18.001 - O assistente de configuração da integração REST (US-03.14) deve ter um passo "Resiliência" com o tempo para conectar e o tempo para responder, em segundos. Sem configuração, valem 2 s para conectar e 10 s para responder; o máximo é 10 s e 30 s, respectivamente. Esgotado o tempo, a chamada conta como falha.
+#### REQ-03.18.002 - O autor deve poder configurar de 0 a 2 novas tentativas e o intervalo entre elas (até 5 s, dobrando a cada nova tentativa, com pequena variação aleatória). Só falhas passageiras se repetem: sem conexão, tempo esgotado ou resposta 429, 502, 503 ou 504. Qualquer outra resposta, inclusive 4xx, é definitiva.
+#### REQ-03.18.003 - Toda chamada `POST` deve levar o cabeçalho `Idempotency-Key`, com o mesmo valor em todas as tentativas de uma mesma execução da etapa, para o serviço chamado não criar nada em dobro. Uma chave definida pelo autor nos headers deve ser respeitada.
+#### REQ-03.18.004 - A chamada falha de vez quando, esgotadas as tentativas, não houve resposta, o tempo se esgotou ou o serviço continuou respondendo com erro 5xx. Com a saída "Se falhar" (REQ-03.02.009), a jornada segue por ela; os campos mapeados da resposta ficam vazios e o status HTTP fica sem valor quando não houve resposta.
+#### REQ-03.18.005 - Sem a saída "Se falhar", uma chamada sem resposta ou com tempo esgotado faz a etapa falhar: o envio da tela anterior volta com uma mensagem legível (serviço chamado, motivo e quantidade de tentativas). Uma resposta 5xx, nesse caso, segue para a etapa seguinte com o status disponível para a Decisão, como qualquer outra resposta.
+#### REQ-03.18.006 - O autor deve poder marcar a integração para executar em segundo plano: a chamada sai da espera do usuário, e o canal mostra que a jornada está aguardando até ela terminar. Se ela falhar de vez sem a saída "Se falhar", a execução para num incidente — sem novas tentativas do Runtime Engine além das configuradas no passo "Resiliência" — que pode ser retomado pelo Diagnóstico (REQ-15.03.004).
+#### REQ-03.18.007 - O backend deve rejeitar (422), na validação sob demanda e na publicação, valores de resiliência fora dos limites (REQ-03.18.001/002). O resumo da integração no painel de propriedades deve mostrar o tempo para responder, as novas tentativas e se a execução é em segundo plano.
 ---
 
 
@@ -731,6 +748,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.06.005 - O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida.
 #### REQ-05.06.006 - O log cronológico deve registrar toda chamada de API entre o frontend e o backend relacionada à execução (método, caminho, status, headers e corpo da requisição), com exceção da consulta de variáveis do processo, que não representa uma ação da jornada.
 #### REQ-05.06.007 - O log deve permitir busca textual, com navegação entre ocorrências, e permitir expandir ou recolher cada entrada individualmente ou em bloco.
+#### REQ-05.06.008 - O log e o detalhe de uma etapa de integração REST devem mostrar quantas tentativas a chamada levou e, quando ela falhou de vez e seguiu pela saída "Se falhar", o motivo da falha.
 ---
 
 ### US-05.07 Seleção e apresentação
@@ -756,6 +774,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.08.003 - O sistema deve registrar a falha no log cronológico da execução.
 #### REQ-05.08.004 - O sistema deve permitir consultar a mensagem de erro completa da falha sob demanda, sem exibi-la de forma intrusiva na tela principal de execução.
 #### REQ-05.08.005 - Antes de iniciar uma instância, completar uma tarefa ou pular uma etapa, o sistema deve detectar quando o trecho seguinte do fluxo executaria integralmente dentro de uma única transação síncrona do motor de runtime até um nó `END`, sem passar por nenhum checkpoint (mesma regra estrutural de REQ-03.02.008), e recusar a operação com uma mensagem explicativa — proteção em tempo de execução para fluxos persistidos antes da validação estrutural existir, complementando a prevenção em tempo de edição.
+#### REQ-05.08.006 - A mensagem de uma falha de integração apresentada na Execução e devolvida ao canal deve ser só o texto do erro (ex.: "O serviço X não aceitou a conexão (3 tentativas)."), nunca o corpo técnico bruto devolvido pelo Runtime Engine.
 ---
 
 ### US-05.09 Mensageria Kafka real
@@ -1203,6 +1222,7 @@ Permitir investigar o comportamento de qualquer execução de jornada no motor d
 #### REQ-15.03.001 - Ao selecionar uma execução, o sistema deve apresentar o fluxo percorrido, as variáveis do processo e o log cronológico, reaproveitando o mesmo painel de observabilidade da Execução (FT-05 US-05.06/US-05.10).
 #### REQ-15.03.002 - O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.
 #### REQ-15.03.003 - O log do detalhe deve incluir cada consulta a uma fonte de dados feita ao montar uma tela da instância (US-04.16) — fonte, tela, URL, status, duração e quantidade de itens —, já que essa busca acontece fora do Runtime Engine e não aparece no histórico da instância.
+#### REQ-15.03.004 - Quando a execução estiver parada num incidente de integração em segundo plano (REQ-03.18.006), o detalhe deve oferecer "Tentar de novo", que faz o Runtime Engine executar a etapa outra vez e recarrega o detalhe. A ação é restrita aos perfis EDITOR e ADMIN.
 ---
 
 ### US-15.04 Independência da tela de Execução

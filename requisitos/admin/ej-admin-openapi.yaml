@@ -426,7 +426,7 @@ paths:
   /journey-templates:
     get:
       tags: [Journey Templates]
-      summary: List predefined journey templates
+      summary: List the journey template catalog (example journeys shown in "Nova jornada")
       operationId: listJourneyTemplates
       responses:
         '200':
@@ -1171,16 +1171,65 @@ components:
 
     JourneyTemplate:
       type: object
-      required: [templateId, name, description]
+      required: [templateId, name, description, track, channelTypes, highlights, capabilities, pendingSetup, preview]
       properties:
         templateId:
           type: string
           example: aprovacao-pedido
         name:
           type: string
-          example: Aprovação de Pedido
+          example: Aprovação de pedido
         description:
           type: string
+        track:
+          type: string
+          enum: [primeiros-passos, integracoes, canais, negocio, arquitetura]
+        area:
+          type: string
+          nullable: true
+          description: Business area, only for business journeys.
+          example: Financeiro
+        channelTypes:
+          type: array
+          description: Channels the example was written for.
+          items:
+            type: string
+            enum: [WEB, MOBILE, WHATSAPP]
+        highlights:
+          type: array
+          description: What the example shows.
+          items:
+            type: string
+        capabilities:
+          type: array
+          description: Features the example uses, derived from its own flow.
+          items:
+            type: string
+          example: [Integração REST, Decisão, Caminho “Se falhar”]
+        pendingSetup:
+          type: array
+          description: Environment-dependent settings left blank on purpose (messaging cluster/topic/credential, screen data source).
+          items:
+            type: string
+        preview:
+          type: object
+          description: Flow drawing for the gallery preview (no screens or connector settings).
+          properties:
+            nodes:
+              type: array
+              items:
+                type: object
+                properties:
+                  nodeId: { type: string }
+                  nodeType: { type: string }
+                  name: { type: string }
+                  positionX: { type: integer }
+                  positionY: { type: integer }
+                  connectorType: { type: string, nullable: true }
+            connections:
+              type: array
+              items:
+                $ref: '#/components/schemas/FlowConnection'
 
     JourneyUpdateInput:
       type: object
@@ -1445,6 +1494,16 @@ components:
         targetNodeId:
           type: string
           example: Node_f47ac10b-58cc-4372-a567-0e02b2c3d479
+        condition:
+          type: string
+          nullable: true
+          description: Only on the non-default path of a GATEWAY.
+        isDefault:
+          type: boolean
+          description: Default path of a GATEWAY.
+        onError:
+          type: boolean
+          description: '"Se falhar" path of a REST SERVICE_TASK, taken when the call fails for good (no response, timeout, or 5xx after retries). At most one per node, never with condition or isDefault.'
 
     FlowAnnotation:
       type: object

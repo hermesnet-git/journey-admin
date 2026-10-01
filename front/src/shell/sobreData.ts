@@ -147,9 +147,9 @@ export const EPICS: Epic[] = [
           d('REQ-02.04.001', 'Ao criar uma jornada, o sistema deve permitir que o usuário escolha entre iniciar com o fluxo em branco ou usar um modelo de jornada predefinido.'),
           {
             code: 'REQ-02.04.002',
-            description: 'O sistema deve listar os modelos disponíveis com identificador estável, nome e descrição; no piloto da versão 1.0.0, deve oferecer o modelo aprovacao-pedido ("Aprovação de Pedido").',
+            description: 'Listar modelos com identificador, nome, descrição, trilha, área, canais, o que mostra, recursos usados (derivados do fluxo) e desenho do fluxo para prévia.',
             status: 'done',
-            notes: 'Catálogo fixo, sem CRUD no piloto.',
+            notes: 'Revisado em 2026-10-01: o piloto de um modelo virou catálogo de 32.',
           },
           d('REQ-02.04.003', 'O modelo escolhido deve preencher somente o fluxo. Nome, descrição, produto e canais da nova jornada devem ser sempre os valores informados pelo usuário.'),
           {
@@ -166,10 +166,18 @@ export const EPICS: Epic[] = [
           },
           {
             code: 'REQ-02.04.006',
-            description: 'Um modelo é um esqueleto editável e pode deixar configurações dependentes do contexto — tela, condição, endpoint ou credencial — para o autor completar. O fluxo resultante permanece sujeito às mesmas regras de validação e publicação de qualquer rascunho.',
+            description: 'Modelo é uma jornada de exemplo completa (telas, integrações, decisões, notas no canvas); o que depende do ambiente (mensageria, fonte de dados) vem em branco e é listado como "Antes de publicar, escolha".',
             status: 'done',
-            notes: 'A saída "Reprovação" nasce como padrão; a condição da saída "Aprovação" deve ser configurada pelo autor.',
+            notes: 'Revisado em 2026-10-01; testado pelo usuário criando as 32 jornadas no produto "Exemplos".',
           },
+          d('REQ-02.04.007', 'Galeria com filtro por trilha (com contagem), busca sem acento, painel com prévia do fluxo, contagens, o que mostra, recursos, canais, o que configurar e aviso de canal fora da jornada.'),
+          {
+            code: 'REQ-02.04.008',
+            description: 'Só modelos que a plataforma executa de ponta a ponta; REST dos modelos aponta para o serviço de simulação de APIs local.',
+            status: 'done',
+            notes: 'Event Hubs/Service Bus viraram Kafka nos exemplos (sem execução local).',
+          },
+          d('REQ-02.04.009', 'Modelos mantidos como arquivos versionados no formato do fluxo do editor; sem cadastro pela interface na 1.0.0.'),
         ],
       },
       {
@@ -301,11 +309,12 @@ export const EPICS: Epic[] = [
           {
             code: 'REQ-03.02.008',
             description:
-              'O backend deve rejeitar (422), ao salvar o fluxo, um caminho que alcance um END via SERVICE_TASK REST síncrona sem passar por nenhum checkpoint (USER_TASK, RECEIVE_TASK ou SERVICE_TASK não-REST).',
+              'O backend deve rejeitar (422), ao salvar o fluxo, um caminho que alcance um END via SERVICE_TASK REST síncrona sem passar por nenhum checkpoint (USER_TASK, RECEIVE_TASK, SERVICE_TASK não-REST ou REST em segundo plano).',
             status: 'done',
             notes:
               'Achado ao vivo: uma jornada nesse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha ao tentar ler o histórico depois (a transação sofre rollback antes de qualquer consulta conseguir lê-lo). Ver REQ-05.08.005 para a checagem equivalente em tempo de execução.',
           },
+          d('REQ-03.02.009', 'SERVICE_TASK REST pode ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa; ponto de conexão próprio e linha distinta no editor; 422 fora das regras.'),
         ],
       },
       {
@@ -456,6 +465,7 @@ export const EPICS: Epic[] = [
           d('REQ-03.09.017', 'A regra do tipo lista declara os campos a manter de cada item; sem campos, grava o item inteiro.'),
           d('REQ-03.09.018', 'Lista ou objeto recebido numa mensagem Kafka vira variável JSON do Runtime Engine, nunca objeto binário.'),
           d('REQ-03.09.019', 'Variável do tipo lista não é oferecida em condição de Decisão.'),
+          d('REQ-03.09.020', 'Validar e publicação recusam mensageria sem cluster, tópico e credencial; a geração por IA não exige.'),
         ],
       },
       {
@@ -660,6 +670,24 @@ export const EPICS: Epic[] = [
             'REQ-03.17.006',
             'A geração deve considerar o fluxo já desenhado no canvas como contexto — pedido aditivo/pontual não deve remover ou recriar o que não tem relação com ele; id, posição e tela de um nó não afetado devem ser preservados.',
           ),
+        ],
+      },
+      {
+        code: 'US-03.18',
+        name: 'Resiliência da integração REST',
+        requirements: [
+          d('REQ-03.18.001', 'Passo "Resiliência": tempo para conectar e para responder (padrão 2 s / 10 s, máximo 10 s / 30 s); esgotado, conta como falha.'),
+          d('REQ-03.18.002', 'De 0 a 2 novas tentativas com intervalo (até 5 s, dobrando, com variação); só falha passageira (sem conexão, tempo esgotado, 429/502/503/504).'),
+          d('REQ-03.18.003', 'Idempotency-Key em todo POST, mesma em todas as tentativas da mesma execução da etapa; chave do autor respeitada.'),
+          {
+            code: 'REQ-03.18.004',
+            description: 'Falha de vez (sem resposta, tempo esgotado, 5xx após tentativas) segue pela saída "Se falhar"; campos mapeados vazios, status sem valor quando não houve resposta.',
+            status: 'done',
+            notes: '2026-10-01; testado pelo usuário com o mock fora do ar',
+          },
+          d('REQ-03.18.005', 'Sem "Se falhar": sem resposta/tempo esgotado faz a etapa falhar com mensagem legível; 5xx segue para a Decisão.'),
+          d('REQ-03.18.006', 'Execução em segundo plano: o canal vê "aguardando"; falha sem "Se falhar" vira incidente sem novas tentativas do Runtime Engine.'),
+          d('REQ-03.18.007', '422 para valores de resiliência fora dos limites; resumo da resiliência no painel da integração.'),
         ],
       },
     ],
@@ -1031,6 +1059,7 @@ export const EPICS: Epic[] = [
             'REQ-05.06.007',
             'O log deve permitir busca textual, com navegação entre ocorrências, e permitir expandir ou recolher cada entrada individualmente ou em bloco.',
           ),
+          d('REQ-05.06.008', 'Log e detalhe da etapa REST mostram as tentativas e, quando falhou e seguiu por "Se falhar", o motivo.'),
         ],
       },
       {
@@ -1103,6 +1132,7 @@ export const EPICS: Epic[] = [
             notes:
               'Achado ao vivo depois que uma edição de condição de gateway tornou um caminho já existente 100% síncrono, reproduzindo o erro do motor de runtime; REQ-03.02.008 já bloqueia isso ao salvar fluxos novos, esta camada cobre fluxos persistidos antes da regra existir.',
           },
+          d('REQ-05.08.006', 'Mensagem de falha de integração na Execução e no canal é só o texto do erro, nunca o corpo técnico do Runtime Engine.'),
         ],
       },
       {
@@ -1957,6 +1987,7 @@ export const EPICS: Epic[] = [
           d('REQ-15.03.001', 'Ao selecionar uma execução, o sistema deve apresentar o fluxo percorrido, as variáveis do processo e o log cronológico, reaproveitando o mesmo painel de observabilidade da Execução.'),
           d('REQ-15.03.002', 'O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.'),
           d('REQ-15.03.003', 'O log do detalhe inclui cada consulta a fonte de dados feita ao montar uma tela da instância.'),
+          d('REQ-15.03.004', '"Tentar de novo" em incidente de integração em segundo plano (EDITOR/ADMIN).'),
         ],
       },
       {
@@ -2036,7 +2067,13 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-09-30 00:59 (não commitado)',
+    date: '2026-10-01 01:49 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Catálogo de modelos de jornada e resiliência da integração REST. US-02.04: REQ-02.04.002/006 reescritos, REQ-02.04.007 a 009 novos (32 modelos em JSON, galeria nova). Nova US-03.18 (REQ-03.18.001 a 007) e REQ-03.02.009 (saída "Se falhar"); REQ-03.02.008 ajustado (REST em segundo plano é checkpoint); REQ-03.09.020, REQ-05.06.008, REQ-05.08.006 e REQ-15.03.004 novos. Implementado em admin/back, front, ms-runtime-camunda, ms-transform-publication, ms-espec-registry, ms-journey e ms-mock-api-rest. Total geral: 541 → 556 REQs, 491 → 506 concluídos; US: 106 → 107.',
+  },
+  {
+    date: '2026-09-30 01:32',
     source: 'progresso',
     summary:
       'Lista de seleção e fontes de dados da tela (ADR-002). Novos: US-04.15 Lista de seleção (REQ-04.15.001 a 012), US-04.16 Fontes de dados da tela (REQ-04.16.001 a 009), US-14.07 Catálogo de fontes de dados (REQ-14.07.001 a 005), REQ-03.09.016 a 019 (saída de integração do tipo lista, campos a manter, lista/objeto do Kafka em JSON, lista fora das condições de Decisão), REQ-04.11.005 (ação "tentar novamente") e REQ-15.03.003 (consultas da tela no log do Diagnóstico). Implementado em admin/back (V24), ms-espec-registry (V2, montagem dos itens e busca das fontes), ms-transform-publication, ms-runtime-camunda, ms-journey, front e emulador de canais; APIs novas no ms-mock (bilhetes, horários, reagendamento, cancelamento); jornada de exemplo "Gestão de BDs" (VE). Catálogo SDUI: ui.selectList 1.0.0; nenhuma versão alterada. Compilado em todos os módulos; aguardando teste do usuário. Total geral: 509 → 541 REQs, 459 → 491 concluídos; US: 103 → 106.',
@@ -2465,6 +2502,9 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-01 01:45', source: 'git', summary: 'Resiliência da integração REST: tempo limite, novas tentativas, caminho "Se falhar" e execução em segundo plano.', epics: ['FT-03', 'FT-05', 'FT-15'] },
+  { date: '2026-10-01 00:49', source: 'git', summary: 'Modelos de jornada: catálogo de 32 exemplos e galeria nova em "Nova jornada".', epics: ['FT-02'] },
+  { date: '2026-09-30 01:32', source: 'git', summary: 'Lista de seleção e fontes de dados da tela (ADR-002) e jornada Gestão de BDs.', epics: ['FT-04', 'FT-14', 'FT-15'] },
   { date: '2026-09-29 21:52', source: 'git', summary: 'Jornada Consulta BD (VE): API de diagnóstico no mock e entrada na massa de fábrica.' },
   { date: '2026-09-29 21:38', source: 'git', summary: 'Jornadas: visualizar o fluxo passa a ser por versão, a partir do snapshot.' },
   { date: '2026-09-28 01:53', source: 'git', summary: 'Import do Figma: opções viram seleção e elementos ocultos ficam de fora; preview com skin própria.' },

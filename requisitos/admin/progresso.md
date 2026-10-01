@@ -15,14 +15,25 @@
 | Métrica | Valor |
 |---|---|
 | Total de Features (FT) | 15 |
-| Total de User Stories (US) | 106 |
-| Total de Requisitos (REQ) | 541 |
-| Concluídos (`done`) | 491 |
+| Total de User Stories (US) | 107 |
+| Total de Requisitos (REQ) | 556 |
+| Concluídos (`done`) | 506 |
 | Em andamento (`in_progress`) | 3 |
 | Não iniciados (`todo`) | 45 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
 | % Concluído | 91% |
+
+> **Catálogo de modelos de jornada e resiliência da integração REST (15 REQs, 2026-10-01).** US-02.04
+> deixou de ser o piloto de um modelo só: são 32 jornadas de exemplo em cinco trilhas, com galeria
+> nova (filtro, busca, prévia do fluxo, o que configurar antes de publicar) — REQ-02.04.002/006
+> reescritos, REQ-02.04.007 a 009 novos. Nova US-03.18 Resiliência da integração REST (REQ-03.18.001
+> a 007): tempo limite, novas tentativas só para falha passageira, `Idempotency-Key` em POST,
+> execução em segundo plano e a saída "Se falhar" (REQ-03.02.009). Também novos: REQ-03.09.020
+> (mensageria sem cluster/tópico/credencial recusada em Validar/publicação), REQ-05.06.008
+> (tentativas e motivo da falha no log), REQ-05.08.006 (mensagem de falha legível) e REQ-15.03.004
+> ("Tentar de novo" em incidente). Ficaram de fora, a discutir: disjuntor, limite de chamadas
+> simultâneas e tratamento de falha em mensageria. Total geral: 541 → 556 REQs.
 
 > **FT-05 Execução ganhou US-05.11 Retomada de instância em andamento (4 REQs, 2026-09-12).** A
 > tela de Execução só sabia iniciar instância nova; agora também permite buscar (por ID de instância
@@ -152,10 +163,10 @@
 | FT | Nome | REQs | Concluídos | % |
 |---|---|---:|---:|---:|
 | FT-01 | Gestão de Produtos e Canais | 12 | 12 | 100% |
-| FT-02 | Gestão de Jornadas | 50 | 50 | 100% |
-| FT-03 | Modelagem Visual de Workflows | 101 | 101 | 100% |
+| FT-02 | Gestão de Jornadas | 53 | 53 | 100% |
+| FT-03 | Modelagem Visual de Workflows | 110 | 110 | 100% |
 | FT-04 | Catálogo Server Driven UI (SDUI) | 93 | 93 | 100% |
-| FT-05 | Execução | 62 | 62 | 100% |
+| FT-05 | Execução | 64 | 64 | 100% |
 | FT-06 | Versionamento de jornadas | 43 | 43 | 100% |
 | FT-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
 | FT-08 | Auditoria | 37 | 21 | 57% (1 n/a, 15 todo) |
@@ -165,7 +176,7 @@
 | FT-12 | Infraestrutura | 16 | 0 | 0% (1 in_progress) |
 | FT-13 | Dashboard | 24 | 24 | 100% |
 | FT-14 | Catálogo de Integrações | 33 | 32 | 97% (1 in_progress) |
-| FT-15 | Diagnóstico | 16 | 16 | 100% |
+| FT-15 | Diagnóstico | 17 | 17 | 100% |
 
 ---
 
@@ -243,11 +254,14 @@
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
 | [x] | REQ-02.04.001 | Permitir escolher entre fluxo em branco e modelo predefinido ao criar a jornada. | done | front: `NewJourneyModal`; back: `JourneyCreateInput.templateId` | |
-| [x] | REQ-02.04.002 | Listar modelos por identificador, nome e descrição; piloto com “Aprovação de Pedido”. | done | `GET /api/v1/journey-templates`; `PredefinedJourneyTemplateCatalog` | Catálogo fixo, sem CRUD no piloto. |
+| [x] | REQ-02.04.002 | Listar modelos com identificador, nome, descrição, trilha, área, canais, o que mostra, recursos usados (derivados do fluxo) e desenho do fluxo para prévia. | done | `GET /api/v1/journey-templates` (`JourneyTemplateResponse`); `JourneyTemplate.capabilities()`/`pendingSetup()` | Revisado em 2026-10-01: o piloto de um modelo virou catálogo de 32. |
 | [x] | REQ-02.04.003 | Aplicar o modelo somente ao fluxo, preservando metadados informados pelo usuário. | done | `CreateJourney` usa o modelo apenas ao criar `Flow` | |
 | [x] | REQ-02.04.004 | Gerar identificadores novos em cada instanciação. | done | `JourneyTemplate.instantiate` usa `FlowIds` para Flow, nós e conexões | Sem teste automatizado — o `JourneyTemplateTest` foi removido em 2026-09-26. |
 | [x] | REQ-02.04.005 | Persistir jornada, fluxo e versão inicial coerentes numa única transação. | done | `CreateJourney.execute` com `@Transactional`; `JourneyVersion` nasce dos nós/conexões do Flow persistido | Sem teste automatizado — o `CreateJourneyTest` foi removido em 2026-09-26. |
-| [x] | REQ-02.04.006 | Tratar o modelo como esqueleto editável, sujeito à validação normal. | done | modelo não preenche tela, condição contextual ou conectores; editor abre o Flow criado normalmente | A saída “Reprovação” nasce como padrão; a condição da saída “Aprovação” deve ser configurada pelo autor. |
+| [x] | REQ-02.04.006 | Modelo é uma jornada de exemplo completa (telas, integrações, decisões, notas no canvas); o que depende do ambiente (mensageria, fonte de dados) vem em branco e é listado como "Antes de publicar, escolha". | done | 32 JSON em `back/src/main/resources/journey-templates`; `JourneyTemplate.pendingSetup()`; notas (`FlowAnnotation`) em cada lacuna | Revisado em 2026-10-01; testado pelo usuário criando as 32 jornadas no produto "Exemplos". |
+| [x] | REQ-02.04.007 | Galeria com filtro por trilha (com contagem), busca sem acento, painel com prévia do fluxo, contagens, o que mostra, recursos, canais, o que configurar e aviso de canal fora da jornada. | done | front: `journeys/TemplateGallery.tsx` (prévia com `FlowDiagramViewer` compacto); `NewJourneyModal` | 2026-10-01 |
+| [x] | REQ-02.04.008 | Só modelos que a plataforma executa de ponta a ponta; REST dos modelos aponta para o serviço de simulação de APIs local. | done | gerador `.claude/skills/criar_jornada_publicada/scripts/gerar_templates_jornada.mjs` (checagem estrutural e de cadeia síncrona); 12 APIs novas no `ms-mock-api-rest` | Event Hubs/Service Bus viraram Kafka nos exemplos (sem execução local). |
+| [x] | REQ-02.04.009 | Modelos mantidos como arquivos versionados no formato do fluxo do editor; sem cadastro pela interface na 1.0.0. | done | `JsonJourneyTemplateCatalog` lê `classpath:journey-templates/*.json` na subida | 2026-10-01 |
 
 ### US-02.05 Jornadas específicas por canal
 
@@ -284,7 +298,9 @@
 | [x] | REQ-03.02.005 | Todos os nós devem pertencer a um caminho contínuo e alcançável entre o elemento inicial e algum `END`. | done | back: `FlowValidator` (BFS a partir do elemento inicial e, em reverso, a partir de todos os `END`s); front: `validateFlow` (`api/flows.ts`) chama a mesma checagem do back sob demanda | ajustado para múltiplos `END` (US-03.11): um nó só precisa alcançar *algum* `END`, não um específico |
 | [x] | REQ-03.02.006 | O editor deve impedir ações incompatíveis, e o backend deve rejeitar com `422` qualquer tentativa de persistir um fluxo que viole as restrições estruturais. | done | back: `FlowValidationException` + `GlobalExceptionHandler` (422); front: `ErrorModal` exibe violações antes de salvar | |
 | [x] | REQ-03.02.007 | Uma `USER_TASK` deve possuir no máximo um caminho de saída; o editor não deve permitir a criação de uma segunda conexão partindo de uma `USER_TASK` que já possua saída. | done | front: `SINGLE_OUTPUT_TYPES` (`model.ts`) usado em `onConnect`/`onQuickAdd`/`displayNodes` (`JourneyDesignerPage.tsx`) e no handle/quick-add de `WorkflowNode.tsx`; back: `FlowValidator` (`in < 1 \|\| out != 1`) | regra estendida também a `SERVICE_TASK`/`RECEIVE_TASK` (mesma restrição estrutural de saída única) |
-| [x] | REQ-03.02.008 | O backend deve rejeitar (422), ao salvar o fluxo, um caminho que parta do elemento inicial e alcance um `END` sem passar por nenhum checkpoint (`USER_TASK`, `RECEIVE_TASK` ou `SERVICE_TASK` não-REST). | done | back: `FlowValidator.reachesEndWithoutCheckpoint`/`isSynchronousRestTask`/`isCheckpoint` (`domain/flow/FlowValidator.java`) — BFS a partir do elemento inicial, rejeitando qualquer caminho que alcance `END` via `SERVICE_TASK` REST sem passar por um checkpoint | achado ao vivo: uma jornada com esse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha com `NullValueException: execution ... doesn't exist` ao tentar ler o histórico depois; camada equivalente em tempo de execução, ver REQ-05.08.005 |
+| [x] | REQ-03.02.008 | O backend deve rejeitar (422), ao salvar o fluxo, um caminho que parta do elemento inicial e alcance um `END` sem passar por nenhum checkpoint (`USER_TASK`, `RECEIVE_TASK`, `SERVICE_TASK` não-REST ou REST em segundo plano). | done | back: `FlowValidator.reachesEndWithoutCheckpoint`/`isSynchronousRestTask`/`isCheckpoint` (`domain/flow/FlowValidator.java`) — BFS a partir do elemento inicial, rejeitando qualquer caminho que alcance `END` via `SERVICE_TASK` REST sem passar por um checkpoint | achado ao vivo: uma jornada com esse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha com `NullValueException: execution ... doesn't exist` ao tentar ler o histórico depois; camada equivalente em tempo de execução, ver REQ-05.08.005 |
+
+| [x] | REQ-03.02.009 | `SERVICE_TASK` REST pode ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa; ponto de conexão próprio e linha distinta no editor; 422 fora das regras. | done | back: `FlowConnection.onError`, `FlowValidator` (errorOutgoing); front: `ERROR_HANDLE` em `WorkflowNode`, `onConnect`/`onReconnect` (`JourneyDesignerPage`), `FlowEdge`; ms-transform-publication: evento de erro preso à tarefa | 2026-10-01; testado pelo usuário |
 
 ### US-03.03 Navegação
 
@@ -368,6 +384,7 @@
 | [x] | REQ-03.09.017 | A regra do tipo lista declara os campos a manter de cada item; sem campos, grava o item inteiro. | done | front: "Campos a manter" no `OutputMappingEditor` (`keepFields`); `ListOutput.toSpin`; Kafka: `outputMapping.<nome>.keepFields` lido por `BpmnConnectorElements` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
 | [x] | REQ-03.09.018 | Lista ou objeto recebido numa mensagem Kafka vira variável JSON do Runtime Engine, nunca objeto binário. | done | ms-runtime-camunda: `KafkaConnectorWorker.asEngineValue` | implementado e compilado em 2026-09-30; aguardando teste do usuário |
 | [x] | REQ-03.09.019 | Variável do tipo lista não é oferecida em condição de Decisão. | done | front: `OPERATORS_BY_TYPE.list = []` (`shared/condition.ts`) | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-03.09.020 | Validar e publicação recusam mensageria sem cluster, tópico e credencial; a geração por IA não exige. | done | back: `ConnectorConfig.hasMessagingDestination`; `FlowValidator.validate(..., requireEnvironmentSetup)` — 4 parâmetros (Validar/publicação) exige, 3 parâmetros (IA) não | 2026-10-01 (catálogo de modelos) |
 
 ### US-03.10 Teste de conectores
 
@@ -450,6 +467,18 @@
 | [x] | REQ-03.17.004 | O fluxo gerado deve ser apresentado como rascunho editável, sujeito às mesmas regras de validação e revisão manual de um fluxo criado por edição direta. | done | front: `journeys/NewJourneyModal.tsx` salva o fluxo gerado como rascunho da jornada nova (`updateFlow`) e o editor o abre pra revisão; o back (`GenerateFlow`) não persiste nada — segue o mesmo fluxo de validar/publicar de qualquer edição manual | |
 | [x] | REQ-03.17.005 | Ao concluir a geração, o canvas deve reposicionar automaticamente a visualização do fluxo gerado. | done | front: o editor chama `fitViewLeftAligned()` (REQ-03.05.005) ao carregar a jornada recém-gerada | |
 | [x] | REQ-03.17.006 | A geração deve considerar o fluxo já desenhado no canvas (nós, conexões e tela embutida de cada User Task) como contexto — pedido aditivo/pontual não deve remover ou recriar o que não tem relação com ele; id, posição e tela de um nó não afetado devem ser preservados. | done | back: `GenerateFlow.execute` lê `FlowRepository`/passa `currentFlowNodes`/`currentFlowConnections` em `GenerationContext`; `FlowGenerationPrompt.buildUserPrompt`/`SYSTEM_PROMPT` instrui a IA a reusar id de nó existente; `toDomain` preserva id/posição/`embeddedScreen` de um nó cujo id bate com um já existente | requisito novo nesta sessão (2026-08-24) — antes a IA nunca via o fluxo atual, e todo pedido (mesmo aditivo) zerava a jornada; hoje a interface só oferece a geração ao criar uma jornada nova (fluxo vazio) — a leitura do fluxo existente permanece no back |
+
+### US-03.18 Resiliência da integração REST
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-03.18.001 | Passo "Resiliência": tempo para conectar e para responder (padrão 2 s / 10 s, máximo 10 s / 30 s); esgotado, conta como falha. | done | front: `ConnectorWizard` (`renderResilienceStep`), `RESILIENCE_DEFAULTS`/`RESILIENCE_MAX` (`model.ts`); ms-transform-publication: parâmetros `connectTimeoutMs`/`readTimeoutMs`; ms-runtime-camunda: `HttpConnectorDelegate` (`SimpleClientHttpRequestFactory`) | 2026-10-01 |
+| [x] | REQ-03.18.002 | De 0 a 2 novas tentativas com intervalo (até 5 s, dobrando, com variação); só falha passageira (sem conexão, tempo esgotado, 429/502/503/504). | done | ms-runtime-camunda: `HttpConnectorDelegate` (`TRANSIENT_STATUS`, `backoff`) | 2026-10-01 |
+| [x] | REQ-03.18.003 | `Idempotency-Key` em todo POST, mesma em todas as tentativas da mesma execução da etapa; chave do autor respeitada. | done | ms-runtime-camunda: `HttpConnectorDelegate.idempotencyKey` (id do job em segundo plano, senão a instância da atividade); ms-mock-api-rest: `IdempotencyFilter` (guarda só 2xx) | 2026-10-01 |
+| [x] | REQ-03.18.004 | Falha de vez (sem resposta, tempo esgotado, 5xx após tentativas) segue pela saída "Se falhar"; campos mapeados vazios, status sem valor quando não houve resposta. | done | ms-runtime-camunda: `BpmnError` `INTEGRACAO_FALHOU` (grava `statusCode`/`response` vazios antes, porque o mapeamento de saída roda mesmo assim); ms-transform-publication: `errorBoundary` | 2026-10-01; testado pelo usuário com o mock fora do ar |
+| [x] | REQ-03.18.005 | Sem "Se falhar": sem resposta/tempo esgotado faz a etapa falhar com mensagem legível; 5xx segue para a Decisão. | done | ms-runtime-camunda: `IllegalStateException` com serviço, motivo e tentativas | 2026-10-01 |
+| [x] | REQ-03.18.006 | Execução em segundo plano: o canal vê "aguardando"; falha sem "Se falhar" vira incidente sem novas tentativas do Runtime Engine. | done | ms-transform-publication: `asyncBefore` + `failedJobRetryTimeCycle` R1; admin/back e ms-espec-registry: `SynchronousChainCheck` não conta REST em segundo plano | 2026-10-01 |
+| [x] | REQ-03.18.007 | 422 para valores de resiliência fora dos limites; resumo da resiliência no painel da integração. | done | back: `FlowValidator.validateResilience`; front: `describeResilience` (`PropertiesPanel`) | 2026-10-01 |
 
 ## FT-04 Catálogo Server Driven UI (SDUI)
 
@@ -764,6 +793,7 @@ A execução roda contra o motor de runtime real: `admin/back` (pacotes `applica
 | [x] | REQ-05.06.005 | O log cronológico deve apresentar os dados efetivamente submetidos em cada User Task respondida, não apenas a indicação de que foi respondida. | done | `ExecutionWorkspace.tsx` passa `answers` para `appendLog`; `InspectorPanel.tsx` renderiza um bloco `<pre>` com o JSON da resposta abaixo da mensagem do log | |
 | [x] | REQ-05.06.006 | O log cronológico deve registrar toda chamada de API entre o frontend e o backend relacionada à execução (método, caminho, status, headers e corpo), com exceção da consulta de variáveis do processo. | done | front: `execution/api.ts` — `setApiCallLogger`/`shouldLogApiCall` (exclui `GET .../variables`)/`formatApiCallLog`, `request()` captura `requestHeaders`/`requestBody`; `ExecutionsPage.tsx` é o dono único do registro do logger (`liveLoggerRef`/`onApiCallHandlerChange`), evitando uma corrida entre `ExecutionsPage` e `ExecutionWorkspace` registrando o mesmo callback | |
 | [x] | REQ-05.06.007 | O log deve permitir busca textual, com navegação entre ocorrências, e permitir expandir ou recolher cada entrada individualmente ou em bloco. | done | front: `InspectorPanel.tsx` — `LogPanel`/`LogToolbar` (busca com Enter/Shift+Enter, contador de ocorrências, botões anterior/próximo, destaque via `highlightText`) e `LogRow` clicável, com "Expandir tudo"/"Recolher tudo" | |
+| [x] | REQ-05.06.008 | Log e detalhe da etapa REST mostram as tentativas e, quando falhou e seguiu por "Se falhar", o motivo. | done | back: `TrailEntry.attempts/failure`, `ConnectorIO.restResponse` (Diagnóstico); front: `trailLogData`/`describeTrailEntry` (`ExecutionWorkspace`) | 2026-10-01 |
 
 ### US-05.07 Seleção e apresentação
 
@@ -786,6 +816,7 @@ A execução roda contra o motor de runtime real: `admin/back` (pacotes `applica
 | [x] | REQ-05.08.003 | O sistema deve registrar a falha no log cronológico da execução. | done | `ExecutionWorkspace.tsx` — `applyNewStep` registra `Falha ao executar "X": mensagem` no log quando `newStep.errorNodeId` vem preenchido | |
 | [x] | REQ-05.08.004 | O sistema deve permitir consultar a mensagem de erro completa da falha sob demanda, sem exibi-la de forma intrusiva na tela principal de execução. | done | `ErrorDetailsModal.tsx` — ícone no nó com erro abre modal (via `createPortal`) com a mensagem completa, botão copiar, fechar e tecla Esc; a tela de execução não exibe mais nenhum aviso de erro inline | |
 | [x] | REQ-05.08.005 | Antes de iniciar uma instância, completar uma tarefa ou pular uma etapa, o sistema deve detectar quando o trecho seguinte do fluxo executaria integralmente de forma síncrona até um `END` sem passar por checkpoint, e recusar a operação com mensagem explicativa. | done | admin/back: `SynchronousChainCheck.verify()` (`domain/execution`, porta da mesma regra de `FlowValidator`) chamada em `StartExecution`, `CompleteExecutionTask` e `SkipStep` antes de qualquer chamada ao motor; `SynchronousChainUnsupportedException` → `GlobalExceptionHandler` devolve 422 (`SYNCHRONOUS_CHAIN_UNSUPPORTED`) com mensagem clara em vez do `NullValueException` cru do motor | 2026-09-12: reportada como regressão após a migração de Execução do `ms-espec-registry` pro admin/back (2026-09-11) — a checagem tinha ficado só no caminho do canal digital (`ms-journey` → `ms-espec-registry`/`FormSpecController`), sem cobrir a própria tela de Execução; portada de volta. REQ-03.02.008 já bloqueia isso ao salvar fluxos novos, esta camada cobre fluxos persistidos antes da regra existir |
+| [x] | REQ-05.08.006 | Mensagem de falha de integração na Execução e no canal é só o texto do erro, nunca o corpo técnico do Runtime Engine. | done | back: `ExecutionErrorAttribution.engineMessage`; ms-journey: `JourneyController.engineMessage` | 2026-10-01 |
 
 ### US-05.09 Mensageria Kafka real
 
@@ -1430,6 +1461,7 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 | [x] | REQ-15.03.001 | Ao selecionar uma execução, o sistema deve apresentar o fluxo percorrido, as variáveis do processo e o log cronológico, reaproveitando o mesmo painel de observabilidade da Execução. | done | `DiagnosticoPage.tsx` renderiza `HistoryWorkspace` (`execution/HistoryWorkspace.tsx`), o mesmo componente já usado pela Execução — nenhuma duplicação | |
 | [x] | REQ-15.03.002 | O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior. | done | `DiagnosticoPage.tsx` — `closeDetail` só limpa `selectedId`/`detail`; `raw` (resultado da busca) é estado separado, nunca limpo ao abrir/fechar um detalhe | |
 | [x] | REQ-15.03.003 | O log do detalhe inclui cada consulta a fonte de dados feita ao montar uma tela da instância. | done | ms-espec-registry: `espec_registry.data_source_call` (`V2`), `DataSourceCallController`; back: `GET /instances/{id}/data-source-calls`; front: `HistoryWorkspace` ("Consulta da tela") | implementado e compilado em 2026-09-30; aguardando teste do usuário |
+| [x] | REQ-15.03.004 | "Tentar de novo" em incidente de integração em segundo plano (EDITOR/ADMIN). | done | back: `POST /instances/{id}/nodes/{nodeId}/retry` → `RuntimeExecutionPort.retryFailedJob` (job sem tentativas volta a 1); front: botão no aviso de incidente do `HistoryWorkspace` | 2026-10-01 |
 
 ### US-15.04 Independência da tela de Execução
 
@@ -1444,7 +1476,8 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 
 | Data/Hora | Alteração |
 |---|---|
-| 2026-09-30 00:59 (não commitado) | **Lista de seleção e fontes de dados da tela (ADR-002).** Novos: US-04.15 Lista de seleção (REQ-04.15.001 a 012), US-04.16 Fontes de dados da tela (REQ-04.16.001 a 009), US-14.07 Catálogo de fontes de dados (REQ-14.07.001 a 005), REQ-03.09.016 a 019 (saída de integração do tipo lista, campos a manter, lista/objeto do Kafka em JSON, lista fora das condições de Decisão), REQ-04.11.005 (ação "tentar novamente") e REQ-15.03.003 (consultas da tela no log do Diagnóstico). Implementado em admin/back (`V24`), ms-espec-registry (`V2`, montagem dos itens e busca das fontes), ms-transform-publication, ms-runtime-camunda, ms-journey, front e emulador de canais; APIs novas no ms-mock (bilhetes, horários, reagendamento, cancelamento); jornada de exemplo "Gestão de BDs" (VE). Catálogo SDUI: `ui.selectList` 1.0.0; nenhuma versão alterada. Compilado em todos os módulos; aguardando teste do usuário. Total geral: 509 → 541 REQs, 459 → 491 concluídos; US: 103 → 106. |
+| 2026-10-01 01:49 (não commitado) | **Catálogo de modelos de jornada e resiliência da integração REST.** US-02.04: REQ-02.04.002/006 reescritos, REQ-02.04.007 a 009 novos (32 modelos em JSON, galeria nova). Nova US-03.18 (REQ-03.18.001 a 007) e REQ-03.02.009 (saída "Se falhar"); REQ-03.02.008 ajustado (REST em segundo plano é checkpoint); REQ-03.09.020, REQ-05.06.008, REQ-05.08.006 e REQ-15.03.004 novos. Implementado em admin/back, front, ms-runtime-camunda, ms-transform-publication, ms-espec-registry, ms-journey e ms-mock-api-rest. Total geral: 541 → 556 REQs, 491 → 506 concluídos; US: 106 → 107. |
+| 2026-09-30 01:32 | **Lista de seleção e fontes de dados da tela (ADR-002).** Novos: US-04.15 Lista de seleção (REQ-04.15.001 a 012), US-04.16 Fontes de dados da tela (REQ-04.16.001 a 009), US-14.07 Catálogo de fontes de dados (REQ-14.07.001 a 005), REQ-03.09.016 a 019 (saída de integração do tipo lista, campos a manter, lista/objeto do Kafka em JSON, lista fora das condições de Decisão), REQ-04.11.005 (ação "tentar novamente") e REQ-15.03.003 (consultas da tela no log do Diagnóstico). Implementado em admin/back (`V24`), ms-espec-registry (`V2`, montagem dos itens e busca das fontes), ms-transform-publication, ms-runtime-camunda, ms-journey, front e emulador de canais; APIs novas no ms-mock (bilhetes, horários, reagendamento, cancelamento); jornada de exemplo "Gestão de BDs" (VE). Catálogo SDUI: `ui.selectList` 1.0.0; nenhuma versão alterada. Compilado em todos os módulos; aguardando teste do usuário. Total geral: 509 → 541 REQs, 459 → 491 concluídos; US: 103 → 106. |
 | 2026-09-27 02:20 (commitado: `89ba457`, `b0dc450`, `817237a`) | **Strapi removido da plataforma (US-04.14) — `ms-espec-registry` passa a ser o próprio dono do armazenamento das telas publicadas.** Novo schema `espec_registry` no Postgres do admin (`journey_admin`), tabela `published_screen` (`envelope jsonb`, `status` published/deprecated, índice único parcial garantindo uma só revisão `published` por tela), migrado por um Flyway próprio do serviço (`config/FlywayMigrationInitializer`, mesmo padrão do admin/back desde que o Spring Boot 4.1 parou de trazer a autoconfiguração do Flyway) — histórico isolado do Flyway do admin/back, que continua no schema `public`. `PostgresSnapshotRepository` substitui `StrapiSnapshotRepository`: marca a revisão anterior como `deprecated` e insere a nova, em vez de só um `POST` sem histórico. Renomeado, só nesta ponta de armazenamento (o modelo do catálogo — `SduiNode`/`SduiEnvelopeBuilder`/`SduiScreenEnvelope`/`FlowNode.sdui` — continua com esse nome): pacotes `domain/sdui`→`domain/screen` e `interfaces/sdui`→`interfaces/screen` no `ms-espec-registry`; `SduiScreenPublicationPort`→`ScreenPublicationPort` e `EspecRegistrySduiAdapter`→`EspecRegistryScreenAdapter` no admin/back; URL de `/api/v1/sdui-snapshots` para `/api/v1/published-screens`. Nenhum REQ novo — só a evidência de REQ-04.14.004/005/006 corrigida pra citar as classes atuais. Testado fim a fim: reset de fábrica republicando as 8 versões/21 telas seguido de um teste real do usuário na tela Execuções, e uma republicação subsequente já demonstrando o `deprecated` funcionando (8 telas). De quebra, corrigidos 3 bugs pré-existentes na massa de fábrica que só apareceram ao republicar do zero (nenhum deles ligado ao Strapi): SemVer incompleto (`"1.0"` em vez de `"1.0.0"`) em componentes das telas de Web/Mobile/WhatsApp v1; a mesma prop `gapToken` desatualizada (hoje `spacingToken`) nos `ui.stack` dessas telas; e os dois Receive Tasks Kafka da jornada Vivo Fibra + Total sem `outputMapping`, então as telas seguintes referenciavam `data.statusAtivacao`/`data.resultadoRevisao`, que nunca existiam — corrigido com `payloadMode: CUSTOM` e `outputMapping` declarado nos dois. Nenhuma mudança de contagem: total geral segue 509 REQs, 459 concluídos. |
 | 2026-09-27 01:19 (não commitado) | **Namespaces de dado reduzidos a `form` e `data`; formato do token por lugar; canal sem namespace.** Catálogo SDUI: `session`, `route` e `computed` removidos (única alteração — nada foi acrescentado ao catálogo; os dois exemplos que usavam `computed` passaram a `data`). REQ-04.10.001, REQ-04.12.004, REQ-04.13.008 e REQ-04.13.010, mais a evidência de REQ-04.09.012 e REQ-04.10.004, deixam de citá-los; o canal passa a ser o caminho `channel`, sem namespace. REQ-04.13.011 (novo, FT-04): placeholder de texto de tela só vale como `{{form.x}}`/`{{data.x}}`, `{{form_x}}`/`{{data_x}}` ou `{{channel}}` — sem prefixo ou de outro namespace é recusado. Conector, mensageria e Decisão (REQ-03.09.012, REQ-03.09.014, REQ-03.11.004) usam só o nome da variável no motor (`{{form_x}}`, `{{data_x}}`, `{{channel}}`) — `{{form.x}}` e o token cru são recusados; REQ-03.12.003 e REQ-03.13.002 ajustados à nova forma. Hífen aceito no editor de condição da Decisão e no painel de teste da integração; a saída de conector Kafka deixa de tratar o hífen como subtração. Implementado e compilado (back, ms-espec-registry, ms-transform-publication, front e emulador-canais); ainda não testado em execução. Total de FT-04: 70 → 71 REQs; total geral: 508 → 509 REQs, 458 → 459 concluídos. |
 | 2026-09-26 21:50 (não commitado) | **FT-14 e dois REQs de FT-04/FT-06 com o texto revisado para o que o código faz (nenhum REQ novo ou removido).** FT-14 (US-14.01 a US-14.03, 11 REQs: 14.01.002 a 14.01.005, 14.02.002, 14.02.004 a 14.02.006, 14.03.001 a 14.03.003): cluster e credencial deixam de ter status ativo/inativo (coluna removida em `V5__drop_messaging_status.sql`) e "desativar" vira "excluir"; o filtro por status sai de REQ-14.01.005 e REQ-14.02.006; REQ-14.01.004 passa a barrar a exclusão só quando o cluster, ou uma credencial dele, é usado por jornada publicada — sem isso, excluir o cluster remove também as credenciais dele; a auditoria (REQ-14.03.003) registra `CLUSTER_DELETE`/`CREDENTIAL_DELETE`. REQ-04.09.007: o painel de camadas seleciona e reordena; a remoção é feita no canvas. REQ-06.02.004: deixa de citar `embeddedScreenSdui`, que não existe mais. REQ-14.01.005 segue "done", mas a tela só busca cluster por nome — o filtro por tipo existe só na API. |

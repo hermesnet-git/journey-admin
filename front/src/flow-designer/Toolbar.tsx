@@ -2,9 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Undo2,
   Redo2,
-  ZoomOut,
-  ZoomIn,
-  Maximize,
   Save,
   LayoutGrid,
   ChevronDown,
@@ -21,10 +18,12 @@ import {
 } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { EDGE_SHAPE_OPTIONS, type EdgeShape } from './model';
+import { NODE_DISPLAY_MODES, type NodeDisplayMode } from './nodeMode';
 
 // Miniature preview of each edge renderer's path shape — a native <select> can't render icons
 // inside its options, so the shape picker below is a small custom dropdown instead.
 const EDGE_SHAPE_PATH: Record<EdgeShape, string> = {
+  routed: 'M3 11 H6 V6 H14 V3 H17',
   default: 'M3 11 C9 11 11 3 17 3',
   smoothstep: 'M3 11 H8 Q10 11 10 8 Q10 3 12 3 H17',
   step: 'M3 11 H10 V3 H17',
@@ -93,52 +92,6 @@ function EdgeShapePicker({ value, onChange }: { value: EdgeShape; onChange: (sha
   );
 }
 
-// Input controlado com buffer de texto próprio: sem isso, cada dígito digitado seria imediatamente
-// sobrescrito pelo zoomPct real (arredondado) vindo de volta do canvas a cada render. O valor só é
-// aplicado (onZoomChange) ao confirmar — Enter ou blur —, e o buffer resincroniza com zoomPct depois
-// que ele muda por outro meio (scroll, botões +/-, fit à tela).
-function ZoomInput({ zoomPct, onZoomChange }: { zoomPct: number; onZoomChange: (pct: number) => void }) {
-  const { c } = useFlowTheme();
-  const [text, setText] = useState(String(zoomPct));
-  const editingRef = useRef(false);
-
-  useEffect(() => {
-    if (!editingRef.current) setText(String(zoomPct));
-  }, [zoomPct]);
-
-  function commit() {
-    editingRef.current = false;
-    const parsed = parseInt(text, 10);
-    if (Number.isFinite(parsed)) {
-      onZoomChange(Math.min(400, Math.max(10, parsed)));
-    } else {
-      setText(String(zoomPct));
-    }
-  }
-
-  return (
-    <div className="flex items-center w-[38px]">
-      <input
-        value={text}
-        onFocus={(e) => {
-          editingRef.current = true;
-          e.target.select();
-        }}
-        onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, ''))}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') e.currentTarget.blur();
-        }}
-        title="Digite o zoom desejado"
-        className="w-full text-center text-[11px] font-medium bg-transparent border-0 p-0"
-        style={{ color: c.textSecondary }}
-      />
-      <span className="text-[11px] font-medium" style={{ color: c.textSecondary }}>
-        %
-      </span>
-    </div>
-  );
-}
 
 export function Toolbar({
   canUndo,
@@ -150,14 +103,11 @@ export function Toolbar({
   onEdgeShapeChange,
   nodeFill,
   onNodeFillChange,
+  nodeMode,
+  onNodeModeChange,
   selectedCount,
   onAlign,
   onDistribute,
-  zoomPct,
-  onZoomIn,
-  onZoomOut,
-  onZoomChange,
-  onFitToScreen,
   onSave,
   saving,
   onValidate,
@@ -175,14 +125,11 @@ export function Toolbar({
   onEdgeShapeChange: (shape: EdgeShape) => void;
   nodeFill: boolean;
   onNodeFillChange: (fill: boolean) => void;
+  nodeMode: NodeDisplayMode;
+  onNodeModeChange: (mode: NodeDisplayMode) => void;
   selectedCount: number;
   onAlign: (mode: 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom') => void;
   onDistribute: (axis: 'horizontal' | 'vertical') => void;
-  zoomPct: number;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onZoomChange: (pct: number) => void;
-  onFitToScreen: () => void;
   onSave: () => void;
   saving: boolean;
   onValidate: () => void;
@@ -210,6 +157,7 @@ export function Toolbar({
         >
           <LayoutGrid size={14} />
         </button>
+
         {(
           [
             { icon: AlignStartVertical, title: 'Alinhar à esquerda', action: () => onAlign('left') },
@@ -243,6 +191,25 @@ export function Toolbar({
           <AlignVerticalDistributeCenter size={14} />
         </button>
         {divider}
+        <div role="group" aria-label="Exibição das etapas" className="flex rounded-lg p-[2px]" style={{ background: c.chipBg }}>
+          {NODE_DISPLAY_MODES.map((m) => (
+            <button
+              key={m.value}
+              type="button"
+              aria-pressed={nodeMode === m.value}
+              onClick={() => onNodeModeChange(m.value)}
+              title={`Exibir etapas: ${m.label.toLowerCase()} (reorganiza o fluxo)`}
+              className="h-[23px] px-[8px] rounded-[6px] border-0 text-[11.5px] font-medium cursor-pointer"
+              style={{
+                background: nodeMode === m.value ? c.cardBg : 'transparent',
+                color: nodeMode === m.value ? c.textPrimary : c.textSecondary,
+                boxShadow: nodeMode === m.value ? '0 1px 2px rgba(0,0,0,.12)' : 'none',
+              }}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
         <EdgeShapePicker value={edgeShape} onChange={onEdgeShapeChange} />
         <button
           onClick={() => onNodeFillChange(!nodeFill)}
@@ -260,16 +227,7 @@ export function Toolbar({
           <Redo2 size={16} />
         </button>
         {divider}
-        <button onClick={onZoomOut} className={iconBtn} style={{ color: c.textSecondary }} title="Diminuir zoom">
-          <ZoomOut size={16} />
-        </button>
-        <ZoomInput zoomPct={zoomPct} onZoomChange={onZoomChange} />
-        <button onClick={onZoomIn} className={iconBtn} style={{ color: c.textSecondary }} title="Aumentar zoom">
-          <ZoomIn size={16} />
-        </button>
-        <button onClick={onFitToScreen} className={iconBtn} style={{ color: c.textSecondary }} title="Ajustar à tela">
-          <Maximize size={16} />
-        </button>
+
         {divider}
         <button
           onClick={onValidate}

@@ -2,6 +2,7 @@ package com.jouney.admin.infrastructure.persistence.flow;
 
 import com.jouney.admin.domain.flow.Flow;
 import com.jouney.admin.domain.flow.FlowAnnotation;
+import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowRepository;
@@ -36,7 +37,8 @@ public class FlowRepositoryAdapter implements FlowRepository {
                 .toList());
         String annotationsJson = writeJson(flow.getAnnotations().stream().map(FlowAnnotationRecord::from).toList());
         FlowJpaEntity entity = new FlowJpaEntity(flow.getId(), flow.getJourneyId(), flow.getName(), nodesJson,
-                connectionsJson, annotationsJson, flow.getCreatedAt(), flow.getUpdatedAt());
+                connectionsJson, annotationsJson, flow.getLayoutMode(), writeJson(flow.getSections()), flow.getCreatedAt(),
+                flow.getUpdatedAt());
         return toDomain(jpaRepository.save(entity));
     }
 
@@ -69,7 +71,10 @@ public class FlowRepositoryAdapter implements FlowRepository {
                 : readJson(entity.getAnnotations(), new TypeReference<List<FlowAnnotationRecord>>() {
                 }).stream().map(FlowAnnotationRecord::toDomain).toList();
         return new Flow(entity.getId(), entity.getJourneyId(), entity.getName(), nodes, connections, annotations,
-                entity.getCreatedAt(), entity.getUpdatedAt());
+                entity.getCreatedAt(), entity.getUpdatedAt()).withLayoutMode(entity.getLayoutMode())
+                .withSections(entity.getSections() == null ? List.of()
+                        : readJson(entity.getSections(), new TypeReference<List<FlowSection>>() {
+                        }));
     }
 
     private String writeJson(Object value) {

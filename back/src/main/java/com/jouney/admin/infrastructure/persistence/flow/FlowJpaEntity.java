@@ -35,6 +35,13 @@ public class FlowJpaEntity {
     @Column(nullable = false)
     private String annotations;
 
+    @Column(name = "layout_mode")
+    private String layoutMode;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false)
+    private String sections;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -45,7 +52,9 @@ public class FlowJpaEntity {
     }
 
     public FlowJpaEntity(String id, UUID journeyId, String name, String nodes, String connections, String annotations,
-                          OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                          String layoutMode, String sections, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this.layoutMode = layoutMode;
+        this.sections = sections;
         this.id = id;
         this.journeyId = journeyId;
         this.name = name;
@@ -66,6 +75,14 @@ public class FlowJpaEntity {
 
     public String getName() {
         return name;
+    }
+
+    public String getSections() {
+        return sections;
+    }
+
+    public String getLayoutMode() {
+        return layoutMode;
     }
 
     public String getNodes() {

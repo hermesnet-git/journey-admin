@@ -10,6 +10,9 @@ package com.jouney.admin.domain.flow;
  *
  * {@code onError}: saída "Se falhar" de uma integração REST — usada quando a chamada falha de vez
  * (sem resposta, tempo esgotado, ou erro do servidor depois das novas tentativas).
+ *
+ * {@code label}: rótulo opcional escrito pelo autor na ligação ("corrigir dados") — só apresentação,
+ * mostrado no canvas, na Execução e no Diagnóstico; nunca chega ao motor.
  */
 public class FlowConnection {
 
@@ -19,6 +22,7 @@ public class FlowConnection {
     private final String condition;
     private final boolean isDefault;
     private final boolean onError;
+    private final String label;
 
     public FlowConnection(String id, String sourceNodeId, String targetNodeId, String condition, boolean isDefault) {
         this(id, sourceNodeId, targetNodeId, condition, isDefault, false);
@@ -26,6 +30,12 @@ public class FlowConnection {
 
     public FlowConnection(String id, String sourceNodeId, String targetNodeId, String condition, boolean isDefault,
                           boolean onError) {
+        this(id, sourceNodeId, targetNodeId, condition, isDefault, onError, null);
+    }
+
+    public FlowConnection(String id, String sourceNodeId, String targetNodeId, String condition, boolean isDefault,
+                          boolean onError, String label) {
+        this.label = label;
         this.id = id;
         this.sourceNodeId = sourceNodeId;
         this.targetNodeId = targetNodeId;
@@ -56,5 +66,9 @@ public class FlowConnection {
 
     public boolean isOnError() {
         return onError;
+    }
+
+    public String getLabel() {
+        return label;
     }
 }

@@ -13,11 +13,11 @@ const CONNECTOR_BADGE_COLOR: Record<string, string> = {
 // Rótulo abaixo da forma (evento/decisão) — quebra em até 2 linhas em vez de truncar, mesma
 // convenção de ferramentas BPMN de mercado (bpmn.io/Camunda Modeler), onde o nome não cabe dentro
 // da forma pequena e por isso flutua logo abaixo dela, centralizado.
-function ShapeLabel({ text, color, subtitle }: { text: string; color: string; subtitle?: string | null }) {
+function ShapeLabel({ text, color, subtitle, large }: { text: string; color: string; subtitle?: string | null; large?: boolean }) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none" style={{ top: '100%', marginTop: 6, width: 110 }}>
+    <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none" style={{ top: '100%', marginTop: 6, width: large ? 150 : 110 }}>
       <span
-        className="text-[11px] font-medium"
+        className={large ? 'text-[13.5px] font-semibold' : 'text-[11px] font-medium'}
         style={{ color, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}
       >
         {text}
@@ -47,6 +47,8 @@ export interface NodeShapeProps {
   // Cor de preenchimento dos badges de formulário/conector (designer: c.accent).
   badgeColor: string;
   showLabel?: boolean;
+  // Nome maior embaixo da forma (modos cartão/compacto, onde as tarefas também têm letra maior).
+  largeLabel?: boolean;
   connectorType?: string | null;
   // Contorno pulsante (execução: "etapa atual", aguardando ação) — precisa ir no elemento que
   // corresponde à forma visual de verdade (a própria forma no evento/tarefa, o quadrado ANTES de
@@ -64,6 +66,8 @@ export interface NodeShapeProps {
   // Texto do hover no badge de erro — o motivo específico (ex.: campos faltando), não um rótulo
   // genérico, já que é exatamente onde o usuário vai passar o mouse pra entender o problema.
   errorMessage?: string;
+  // Tamanho da forma no modo de exibição atual (nodeSize) — sem ele, o tamanho do modo círculo.
+  size?: { width: number; height: number };
 }
 
 // Desenho puro da forma (círculo/losango/caixa) + ícone + badges + rótulo — única implementação,
@@ -82,15 +86,17 @@ export function NodeShape({
   surfaceColor,
   badgeColor,
   showLabel = true,
+  largeLabel = false,
   connectorType,
   pulse,
   pulseColor,
   showErrorBadge,
   errorColor,
   errorMessage,
+  size,
 }: NodeShapeProps) {
   const shape = NODE_SHAPE[nodeType];
-  const dim = NODE_DIMENSIONS[nodeType];
+  const dim = size ?? NODE_DIMENSIONS[nodeType];
   const Icon = NODE_ICON[nodeType];
   const hasConnectorBadge = !!connectorType;
   // Mesmo badge de sempre, mas o ícone distingue de cara "chama uma API" (REST, tomada) de "manda/
@@ -147,7 +153,7 @@ export function NodeShape({
             <TriangleAlert size={11} color="#fff" strokeWidth={2.5} />
           </div>
         )}
-        {showLabel && <ShapeLabel text={name} color={labelColor} />}
+        {showLabel && <ShapeLabel text={name} color={labelColor} large={largeLabel} />}
       </div>
     );
   }
@@ -183,7 +189,7 @@ export function NodeShape({
             <TriangleAlert size={11} color="#fff" strokeWidth={2.5} />
           </div>
         )}
-        {showLabel && <ShapeLabel text={name} color={labelColor} />}
+        {showLabel && <ShapeLabel text={name} color={labelColor} large={largeLabel} />}
       </div>
     );
   }
@@ -222,7 +228,7 @@ export function NodeShape({
           </div>
         )}
       </div>
-      {showLabel && <ShapeLabel text={name} color={labelColor} subtitle={hasConnectorBadge ? connectorType : null} />}
+      {showLabel && <ShapeLabel text={name} color={labelColor} subtitle={hasConnectorBadge && !largeLabel ? connectorType : null} large={largeLabel} />}
     </div>
   );
 }

@@ -8,7 +8,10 @@ export interface WorkflowActions {
   onUpdateAnnotationText: (annotationId: string, text: string) => void;
   onDeleteAnnotation: (annotationId: string) => void;
   onUnlinkAnnotation: (annotationId: string, nodeId: string) => void;
-  getNodeName: (nodeId: string) => string | undefined;
+  // Rótulo da ligação: texto vazio remove; fecha a edição em seguida.
+  onSetEdgeLabel: (edgeId: string, label: string) => void;
+  onCancelEdgeLabel: () => void;
+  onEditEdgeLabel: (edgeId: string) => void;
 }
 
 export const WorkflowActionsContext = createContext<WorkflowActions | null>(null);

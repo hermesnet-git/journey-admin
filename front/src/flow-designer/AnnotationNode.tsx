@@ -1,11 +1,12 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { StickyNote, X, Link2, Link2Off } from 'lucide-react';
+import { StickyNote, X } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
 import type { WFAnnotation } from './model';
 
-const ANNOTATION_WIDTH = 190;
+// Menor que antes: só a nota solta vira post-it (a ligada a uma etapa é marcador numerado nela).
+const ANNOTATION_WIDTH = 160;
 
 // Deliberately its own warm palette (not FlowColors) — a post-it needs to read as "not part of the
 // flow" at a glance, distinct from every task/gateway/event card's neutral surface. Sem borda
@@ -24,7 +25,6 @@ export const AnnotationNode = memo(function AnnotationNode({ id, data, selected 
   const p = dark ? PALETTE.dark : PALETTE.light;
   const [editing, setEditing] = useState(!data.text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const showDetails = (data.zoom ?? 1) >= 0.5;
 
   useEffect(() => {
     if (editing) {
@@ -87,42 +87,19 @@ export const AnnotationNode = memo(function AnnotationNode({ id, data, selected 
           onBlur={() => setEditing(false)}
           onPointerDown={(e) => e.stopPropagation()}
           placeholder="Escreva a nota..."
-          className="nodrag w-full text-[12px] leading-[1.4] bg-transparent border-0 outline-none resize-none"
+          className="nodrag w-full text-[11.5px] leading-[1.4] bg-transparent border-0 outline-none resize-none"
           style={{ color: p.text, minHeight: 48, fontFamily: 'inherit' }}
         />
       ) : (
-        <div className="text-[12px] leading-[1.4] whitespace-pre-wrap break-words" style={{ color: p.text, minHeight: 20 }}>
+        <div className="text-[11.5px] leading-[1.4] whitespace-pre-wrap break-words" style={{ color: p.text, minHeight: 20 }}>
           {data.text || <span style={{ color: p.textSoft }}>Clique duas vezes para escrever...</span>}
-        </div>
-      )}
-
-      {showDetails && data.linkedNodeIds.length > 0 && (
-        <div className="flex flex-col gap-[3px] mt-[7px] pt-[6px]" style={{ borderTop: `1px solid ${p.fold}66` }}>
-          {data.linkedNodeIds.map((nodeId) => (
-            <div key={nodeId} className="flex items-center gap-[4px] text-[10px]" style={{ color: p.textSoft }}>
-              <Link2 size={10} className="shrink-0" />
-              <span className="truncate flex-1">{actions.getNodeName(nodeId) ?? nodeId}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  actions.onUnlinkAnnotation(id, nodeId);
-                }}
-                onPointerDown={(e) => e.stopPropagation()}
-                title="Desvincular"
-                className="nodrag shrink-0 border-0 bg-transparent cursor-pointer p-0 flex items-center"
-                style={{ color: p.textSoft }}
-              >
-                <Link2Off size={10} />
-              </button>
-            </div>
-          ))}
         </div>
       )}
 
       <Handle
         type="source"
         position={Position.Right}
-        title="Arraste até um nó do fluxo para vincular"
+        title="Arraste até uma etapa para ligar a anotação a ela"
         className="transition-transform duration-150 hover:scale-[1.8]"
         style={{ width: 7.5, height: 7.5, background: p.bg, border: `1.75px solid ${p.fold}`, zIndex: 5 }}
       />

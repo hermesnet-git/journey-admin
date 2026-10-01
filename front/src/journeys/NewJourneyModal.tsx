@@ -7,11 +7,13 @@ import { ChannelTypeChecklist } from '../products/ChannelTypeChecklist';
 import { listProducts, type ChannelType, type Product } from '../api/products';
 import { createJourney, listJourneyTemplates, type Journey, type JourneyTemplate } from '../api/journeys';
 import { generateFlow, updateFlow } from '../api/flows';
-import { layoutFlowNodes } from '../flow-designer/model';
+import { layoutFlowNodes } from '../flow-designer/layout';
+import { readNodeDisplayMode } from '../flow-designer/nodeMode';
 import { ApiClientError } from '../api/client';
 import { useAppTheme } from '../shell/theme';
 import { FigmaImportTab, type FigmaImportSelection } from './FigmaImportTab';
 import { TemplateGallery } from './TemplateGallery';
+import { markTourPending } from '../flow-designer/notes';
 import { buildFigmaFlow } from '../api/figma';
 
 interface NewJourneyModalProps {
@@ -122,9 +124,10 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
           // Organiza igual à geração por IA. As posições que vêm do desenho são fiéis a ele, mas
           // numa escala que o editor não comporta: um desenho se espalha por dezenas de milhares
           // de pixels, e trazer isso vira um canvas vazio e grande demais para navegar.
-          nodes: layoutFlowNodes(built.nodes, built.connections),
+          nodes: await layoutFlowNodes(built.nodes, built.connections, readNodeDisplayMode()),
           connections: built.connections,
           annotations: [],
+          layoutMode: readNodeDisplayMode(),
         });
         onCreated(journey);
         return;
@@ -139,9 +142,10 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
         );
         await updateFlow(journey.journeyId, {
           name: flow.name,
-          nodes: layoutFlowNodes(flow.nodes, flow.connections),
+          nodes: await layoutFlowNodes(flow.nodes, flow.connections, readNodeDisplayMode()),
           connections: flow.connections,
           annotations: flow.annotations,
+          layoutMode: readNodeDisplayMode(),
         });
         onCreated(journey);
         return;
@@ -153,6 +157,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
         description,
         templateId: mode === 'template' ? templateId ?? undefined : undefined,
       });
+      if (mode === 'template' && templateId) markTourPending(journey.journeyId);
       onCreated(journey);
     } catch (err) {
       // Erro na geração por IA fica no log inline (a jornada em branco já criada é reaproveitada

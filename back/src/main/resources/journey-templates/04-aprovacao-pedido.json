@@ -615,6 +615,34 @@
           "Node_AvisaReprovacao"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Análise",
+        "nodeIds": [
+          "Node_Analisar",
+          "Node_Aprovado"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Aprovado",
+        "nodeIds": [
+          "Node_AvisaAprovacao",
+          "Node_TelaAprovado",
+          "Node_FimAprovado"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Reprovado",
+        "nodeIds": [
+          "Node_AvisaReprovacao",
+          "Node_TelaReprovado",
+          "Node_FimReprovado"
+        ]
+      }
     ]
   }
 }

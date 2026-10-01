@@ -3,6 +3,7 @@ package com.jouney.admin.domain.version;
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
+import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.flow.SduiScreenEnvelope;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -37,6 +38,8 @@ public class JourneyVersion {
     private List<ChannelType> channelTypes;
     private List<FlowNode> flowNodes;
     private List<FlowConnection> flowConnections;
+    // Seções do canvas no momento da versão, para Execução e Diagnóstico desenharem os grupos.
+    private List<FlowSection> sections = List.of();
 
     public JourneyVersion(UUID id, UUID journeyId, int versionNumber, VersionStatus status, String description,
                            UUID createdBy, OffsetDateTime createdAt, OffsetDateTime publishedAt,
@@ -185,5 +188,14 @@ public class JourneyVersion {
 
     public List<FlowConnection> getFlowConnections() {
         return flowConnections;
+    }
+
+    public List<FlowSection> getSections() {
+        return sections;
+    }
+
+    public JourneyVersion withSections(List<FlowSection> sections) {
+        this.sections = sections != null ? sections : List.of();
+        return this;
     }
 }

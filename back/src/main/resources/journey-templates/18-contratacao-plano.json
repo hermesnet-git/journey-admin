@@ -859,6 +859,43 @@
           "Node_CriaPedido"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Identificação e crédito",
+        "nodeIds": [
+          "Node_Identificacao",
+          "Node_AnaliseCredito",
+          "Node_CreditoAprovado"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Pré-pago",
+        "nodeIds": [
+          "Node_OfertaPrePago",
+          "Node_FimPrePago"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Escolha do plano",
+        "nodeIds": [
+          "Node_BuscaPlanos",
+          "Node_EscolhePlano"
+        ]
+      },
+      {
+        "id": "Section_4",
+        "name": "Pedido",
+        "nodeIds": [
+          "Node_Endereco",
+          "Node_CriaPedido",
+          "Node_Confirmado",
+          "Node_FimContratado"
+        ]
+      }
     ]
   }
 }

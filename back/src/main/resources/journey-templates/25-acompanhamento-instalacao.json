@@ -651,6 +651,35 @@
           "Node_NovoHorario"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Aviso",
+        "nodeIds": [
+          "Node_TecnicoACaminho",
+          "Node_Aviso",
+          "Node_PrecisaReagendar"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Visita",
+        "nodeIds": [
+          "Node_AteJa",
+          "Node_FimVisita"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Reagendamento",
+        "nodeIds": [
+          "Node_NovoHorario",
+          "Node_Reagenda",
+          "Node_Reagendado",
+          "Node_FimReagendado"
+        ]
+      }
     ]
   }
 }

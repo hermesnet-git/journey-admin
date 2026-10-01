@@ -5,6 +5,7 @@ import com.jouney.admin.domain.flow.ConnectorConfig;
 import com.jouney.admin.domain.flow.ConnectorType;
 import com.jouney.admin.domain.flow.Flow;
 import com.jouney.admin.domain.flow.FlowAnnotation;
+import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowIds;
 import com.jouney.admin.domain.flow.FlowNode;
@@ -31,7 +32,7 @@ import java.util.UUID;
 public record JourneyTemplate(String id, String name, String description, String track, String area,
                               List<ChannelType> channelTypes, List<String> highlights, String flowName,
                               List<FlowNode> nodes, List<FlowConnection> connections,
-                              List<FlowAnnotation> annotations) {
+                              List<FlowAnnotation> annotations, List<FlowSection> sections) {
 
     public Flow instantiate(UUID journeyId) {
         Map<String, String> nodeIds = new HashMap<>();
@@ -46,16 +47,20 @@ public record JourneyTemplate(String id, String name, String description, String
                 .map(connection -> new FlowConnection(FlowIds.newConnectionId(),
                         requiredNodeId(nodeIds, connection.getSourceNodeId()),
                         requiredNodeId(nodeIds, connection.getTargetNodeId()), connection.getCondition(),
-                        connection.isDefault(), connection.isOnError()))
+                        connection.isDefault(), connection.isOnError(), connection.getLabel()))
                 .toList();
         List<FlowAnnotation> instantiatedAnnotations = annotations.stream()
                 .map(annotation -> new FlowAnnotation("Annotation_" + UUID.randomUUID(), annotation.getText(),
                         annotation.getPositionX(), annotation.getPositionY(),
                         annotation.getLinkedNodeIds().stream().map(id -> requiredNodeId(nodeIds, id)).toList()))
                 .toList();
+        List<FlowSection> instantiatedSections = sections.stream()
+                .map(section -> new FlowSection("Section_" + UUID.randomUUID(), section.name(),
+                        section.nodeIds().stream().map(id -> requiredNodeId(nodeIds, id)).toList()))
+                .toList();
         OffsetDateTime now = OffsetDateTime.now();
         return new Flow(FlowIds.newFlowId(), journeyId, flowName, instantiatedNodes, instantiatedConnections,
-                instantiatedAnnotations, now, now);
+                instantiatedAnnotations, now, now).withSections(instantiatedSections);
     }
 
     /** What the example exercises, derived from the flow itself so the gallery never claims something

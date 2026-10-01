@@ -1067,6 +1067,48 @@
           "Node_AguardaDiagnostico"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Chamado aberto",
+        "nodeIds": [
+          "Node_ConsultaChamado",
+          "Node_TemChamado",
+          "Node_TelaChamado",
+          "Node_FimChamado"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Pendência financeira",
+        "nodeIds": [
+          "Node_ConsultaPendencia",
+          "Node_TemPendencia",
+          "Node_TelaPendencia",
+          "Node_FimPendencia"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Falha massiva",
+        "nodeIds": [
+          "Node_ConsultaMassiva",
+          "Node_TemMassiva",
+          "Node_TelaMassiva",
+          "Node_FimMassiva"
+        ]
+      },
+      {
+        "id": "Section_4",
+        "name": "Diagnóstico",
+        "nodeIds": [
+          "Node_SolicitaDiagnostico",
+          "Node_AguardaDiagnostico",
+          "Node_Resultado",
+          "Node_FimDiagnostico"
+        ]
+      }
     ]
   }
 }

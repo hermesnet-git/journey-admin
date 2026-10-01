@@ -45,6 +45,8 @@ export interface FlowConnection {
   isDefault: boolean;
   // Saída "Se falhar" de uma integração REST — usada quando a chamada falha de vez.
   onError: boolean;
+  // Rótulo opcional escrito pelo autor na ligação (só apresentação).
+  label?: string | null;
 }
 
 // A free-floating note on the designer canvas — never part of the executable flow (never reaches
@@ -65,6 +67,16 @@ export interface Flow {
   nodes: FlowNode[];
   connections: FlowConnection[];
   annotations: FlowAnnotation[];
+  // Modo de exibição (círculo/compacto/detalhado) em que as posições foram organizadas.
+  layoutMode: 'circle' | 'compact' | 'detailed' | null;
+  // Seções do canvas: nome para um grupo de etapas (só apresentação).
+  sections: FlowSection[];
+}
+
+export interface FlowSection {
+  id: string;
+  name: string;
+  nodeIds: string[];
 }
 
 export interface FlowUpdateInput {
@@ -72,6 +84,8 @@ export interface FlowUpdateInput {
   nodes: FlowNode[];
   connections: FlowConnection[];
   annotations: FlowAnnotation[];
+  layoutMode?: 'circle' | 'compact' | 'detailed';
+  sections?: FlowSection[];
 }
 
 export function getFlow(journeyId: string): Promise<Flow> {

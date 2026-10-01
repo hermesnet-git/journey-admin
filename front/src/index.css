@@ -25,6 +25,30 @@ html, body, #root {
   50% { outline-color: var(--sim-outline-dim, transparent); }
 }
 
+/* Editor de jornadas: pontos de conexão só aparecem ao passar o mouse na etapa, com ela
+   selecionada ou enquanto uma ligação está sendo puxada. */
+.react-flow__node .wf-handle { opacity: 0; transition: opacity 150ms ease-out, transform 150ms ease-out; }
+.react-flow__node:hover .wf-handle,
+.react-flow__node.selected .wf-handle,
+.react-flow__node .wf-handle.connectingfrom,
+.react-flow__node .wf-handle.connectingto,
+.react-flow__node .wf-handle.valid,
+.react-flow.wf-connecting .wf-handle { opacity: 1; }
+
+/* Execução: o motor passou por esta etapa sozinho (anel que se expande e some). */
+@keyframes flow-step-flash {
+  from { opacity: 1; transform: scale(0.96); }
+  to { opacity: 0; transform: scale(1.12); }
+}
+
+.flow-step-flash {
+  animation: flow-step-flash 600ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-step-flash { animation: none; opacity: 0.6; }
+}
+
 @keyframes dashboard-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

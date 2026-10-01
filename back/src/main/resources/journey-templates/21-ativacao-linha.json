@@ -548,6 +548,28 @@
           "Node_AguardaRede"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Ativação",
+        "nodeIds": [
+          "Node_Chip",
+          "Node_AtivaLinha",
+          "Node_AguardaRede",
+          "Node_AtivaNaRede"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Resultado",
+        "nodeIds": [
+          "Node_Ativada",
+          "Node_EmAnalise",
+          "Node_FimAtivada",
+          "Node_FimAnalise"
+        ]
+      }
     ]
   }
 }

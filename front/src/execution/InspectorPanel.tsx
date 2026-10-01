@@ -43,6 +43,8 @@ interface Props {
   // no Histórico, onde não há nada acima competindo por espaço (o modo Ao Vivo mantém o drawer, que
   // fica abaixo do preview do canal e por isso precisa de altura própria/arrastável).
   fillHeight?: boolean;
+  // Execução ao vivo: o fluxo fica na coluna do meio da tela, então o painel mostra só Variáveis e Log.
+  hideWorkflow?: boolean;
 }
 
 type TabKey = 'workflow' | 'variaveis' | 'log';
@@ -69,9 +71,10 @@ export function InspectorPanel({
   onEditVariable,
   log,
   fillHeight = false,
+  hideWorkflow = false,
 }: Props) {
-  const [tab, setTab] = useState<TabKey>('workflow');
-  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const [tab, setTab] = useState<TabKey>(hideWorkflow ? 'variaveis' : 'workflow');
+  const [height, setHeight] = useState(hideWorkflow ? 240 : DEFAULT_HEIGHT);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const draggingRef = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -129,7 +132,7 @@ export function InspectorPanel({
       )}
 
       <div className="flex shrink-0" style={{ borderBottom: `1px solid ${skinVars.colors.border}` }}>
-        {TABS.map((t) => {
+        {TABS.filter((t) => !hideWorkflow || t.key !== 'workflow').map((t) => {
           const Icon = t.icon;
           const active = t.key === tab;
           return (
@@ -163,7 +166,7 @@ export function InspectorPanel({
         {/* Sempre montado (só escondido via CSS) — desmontar e remontar a cada troca de aba
             destruía o estado interno do React Flow (zoom/posição do pan), repondo o fluxo sempre
             centralizado no passo atual mesmo quando o usuário tinha arrastado/dado zoom manual. */}
-        <div className={tab === 'workflow' ? 'h-full flex' : 'hidden'}>
+        <div className={tab === 'workflow' && !hideWorkflow ? 'h-full flex' : 'hidden'}>
           <div className="flex-1 min-w-0 h-full">
             <FlowDiagramViewer
               flowNodes={flowNodes}
@@ -236,7 +239,7 @@ const CONNECTOR_TYPE_LABEL: Record<BackendConnectorType, string> = {
 // ainda não resolvido no mapa nodeIO — nos dois casos mostra só o nome/tipo que dá pra inferir do
 // próprio fluxo, com um aviso no lugar dos blocos JSON. `flowNode` traz a configuração do conector
 // (existe pro nó independente de ele já ter sido executado ou não), usada pela seção de conector.
-function NodeDetailDrawer({
+export function NodeDetailDrawer({
   detail,
   flowNode,
   flowNodes,

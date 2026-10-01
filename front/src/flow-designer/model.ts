@@ -1,7 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
-import dagre from '@dagrejs/dagre';
 import { Play, UserRoundPen, CheckCircle2, Settings, Mail, Webhook, X, type LucideIcon } from 'lucide-react';
-import type { FlowNode, FlowConnection, FlowNodeType } from '../api/flows';
+import type { FlowNodeType } from '../api/flows';
 import { collectFormVariableNames, type SduiNode } from '../sdui/model';
 
 export type NodeType = 'start' | 'userTask' | 'end' | 'serviceTask' | 'receiveTask' | 'messageStartEvent' | 'gateway';
@@ -39,6 +38,7 @@ export interface ConnectorConfig {
 // 'list' só existe em saída de integração (ADR-002): o array vira variável JSON do motor e alimenta a
 // lista de seleção ou as opções de um select — nunca em variável de entrada da jornada.
 import type { ScreenDataSource } from '../api/flows';
+import type { EdgeRoute } from './edgeRouter';
 
 export type VariableType = 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'list';
 
@@ -133,6 +133,8 @@ export interface WFNodeData extends Record<string, unknown> {
   outgoingLimitReached?: boolean;
   // Client-only: a integração REST já tem a saída "Se falhar" ligada.
   errorPathTaken?: boolean;
+  // Client-only: notas ligadas a esta etapa, mostradas como marcadores numerados.
+  notes?: NodeNote[];
   // Client-only: current canvas zoom, passed down so the node can hide secondary detail (description,
   // linked-form row) when zoomed out far enough that they'd render as illegible clutter.
   zoom?: number;
@@ -150,6 +152,14 @@ export interface WFEdgeData extends Record<string, unknown> {
   condition?: string;
   isDefault?: boolean;
   onError?: boolean;
+  // Client-only: rota calculada (edgeRouter) para a linha automática; nunca vai para o backend.
+  route?: EdgeRoute;
+  // Client-only: a condição em linguagem de gente (conditionLabel.ts); a expressão fica no hover.
+  conditionText?: string;
+  // Rótulo escrito pelo autor ("corrigir dados"); tem prioridade sobre a condição no canvas.
+  label?: string;
+  // Client-only: o rótulo está sendo editado (duplo clique na linha).
+  editingLabel?: boolean;
 }
 export type WFEdge = Edge<WFEdgeData>;
 
@@ -195,6 +205,13 @@ export interface AnnotationData extends Record<string, unknown> {
   zoom?: number;
 }
 export type WFAnnotation = Node<AnnotationData, 'annotation'>;
+
+// Nota ligada exibida como marcador numerado na etapa (notes.ts numera; client-only).
+export interface NodeNote {
+  id: string;
+  number: number;
+  text: string;
+}
 
 // Ids get this prefix instead of Node_/Flow_ (see newNodeId/newConnectionId below) both for
 // readability and so the designer can tell an annotation id from a flow node id at a glance (used to
@@ -407,9 +424,10 @@ export const NODE_WIDTH = NODE_DIMENSIONS.userTask.width;
 
 // Client-only display preference (not persisted with the flow) — lets the user try out the
 // built-in @xyflow/react edge renderers directly in the designer.
-export type EdgeShape = 'smoothstep' | 'default' | 'step' | 'straight';
+export type EdgeShape = 'routed' | 'smoothstep' | 'default' | 'step' | 'straight';
 
 export const EDGE_SHAPE_OPTIONS: { value: EdgeShape; label: string }[] = [
+  { value: 'routed', label: 'Automática (desvia das etapas)' },
   { value: 'default', label: 'Curva (bezier)' },
   { value: 'smoothstep', label: 'Ortogonal suave' },
   { value: 'step', label: 'Ortogonal reta' },
@@ -682,283 +700,9 @@ export function initialFlowEdges(_nodes: WFNode[]): WFEdge[] {
   return [];
 }
 
-// Gap between nodes of adjacent layers / within the same layer. dagre's ranker already handles
-// crossing minimization and rank assignment properly, so layout tuning is just these two numbers.
-// Um gateway tem sua própria regra de espaçamento (GATEWAY_BRANCH_GAP/GATEWAY_GAP_X abaixo,
-// aplicada em applyGatewayBranchSpacing) — estes dois valores só regem o resto do fluxo. RANK_SEP
-// exportado pra onQuickAdd (JourneyDesignerPage) nascer um nó novo com a mesma distância horizontal
-// que "Organizar" chegaria via dagre — sem isso os dois caminhos divergiam.
+// Distância horizontal com que o "+" de adicionar etapa (onQuickAdd, JourneyDesignerPage) cria a
+// próxima etapa, e o afastamento dos dois ramos de uma Decisão. O layout completo (Organizar) é do
+// ELK, em layout.ts.
 export const RANK_SEP = 60;
-const NODE_SEP = 24;
-
-// Regra específica do Gateway (mesma usada pelo quick-add em JourneyDesignerPage.onQuickAdd, e
-// reaplicada aqui depois do dagre pra "Organizar" seguir a mesma regra): ramos mais afastados
-// verticalmente entre si (fica óbvio que são caminhos distintos) e ainda mais próximos
-// horizontalmente do próprio Gateway do que o RANK_SEP genérico já enxuto do resto do fluxo.
 export const GATEWAY_BRANCH_GAP = 50;
 export const GATEWAY_GAP_X = 50;
-
-// O rótulo (nome do nó, ShapeLabel em NodeShape.tsx) flutua ABAIXO da forma via position:absolute —
-// não faz parte da caixa width/height do próprio nó, então o dagre nunca soube que precisava
-// reservar espaço pra ele. Resultado: com NODE_SEP pequeno, o rótulo de um nó podia sobrepor o nó
-// (ou o rótulo do nó) logo abaixo dele na mesma coluna. Reserva ~2 linhas de texto (11px) + subtítulo
-// de conector (9px) + as margens do ShapeLabel, só como altura "fantasma" pro cálculo do dagre —
-// menos que o pior caso (2 linhas + subtítulo) de propósito, pra não espalhar demais o layout todo
-// só pro nome ocasional mais longo; esse continua coberto pelo espaçamento residual do NODE_SEP.
-const LABEL_RESERVE = 34;
-
-// Cópia nova a cada chamada — dagre.layout muta o próprio objeto do label (escreve x/y nele
-// direto), e NODE_DIMENSIONS[type] é a MESMA referência pra todo nó daquele tipo. Sem copiar, todo
-// nó do mesmo tipo (ex.: todas as USER_TASK) compartilha um único objeto, e a última escrita do
-// dagre vence pra todos eles — colapsando todos na mesma posição (x,y). Foi isso que fez o canvas
-// parecer "doidinho" depois de eventos/decisão pararem de usar NODE_WIDTH/NODE_HEIGHT fixos.
-function dimensionsOf(n: WFNode) {
-  return { ...(NODE_DIMENSIONS[n.type as NodeType] ?? NODE_DIMENSIONS.userTask) };
-}
-
-// Núcleo do auto-layout via dagre (replaces a hand-rolled barycenter-sweep layout that was ported
-// from the wf-designer reference project — dagre does real crossing minimization and holds up
-// better on larger, denser flows) — devolve só as posições calculadas, sem já aplicar nos nós, pra
-// dar pra reaproveitar tanto no layout do canvas inteiro quanto no de um subconjunto selecionado.
-// Nó sem nenhuma ligação não tem lugar numa sequência — o dagre o trata como um fluxo à parte e
-// reserva faixa para ele no meio dos outros, afastando etapas que se seguem. Eles saem do cálculo e
-// vão para uma coluna própria embaixo, onde ficam visíveis para serem ligados ou apagados sem
-// atrapalhar a leitura do que já está ligado.
-const LOOSE_NODE_GAP_Y = 110;
-const LOOSE_NODE_MARGIN_Y = 140;
-
-function dagreLayout(nodes: WFNode[], edges: WFEdge[]): Map<string, { x: number; y: number }> {
-  const connected = new Set<string>();
-  edges.forEach((e) => {
-    connected.add(e.source);
-    connected.add(e.target);
-  });
-  const loose = nodes.filter((n) => !connected.has(n.id));
-  if (loose.length > 0 && loose.length < nodes.length) {
-    const positions = layoutConnected(nodes.filter((n) => connected.has(n.id)), edges);
-    const ys = [...positions.values()].map((p) => p.y);
-    const xs = [...positions.values()].map((p) => p.x);
-    let y = (ys.length ? Math.max(...ys) : 0) + LOOSE_NODE_MARGIN_Y;
-    const x = xs.length ? Math.min(...xs) : 0;
-    loose.forEach((n) => {
-      positions.set(n.id, { x, y });
-      y += LOOSE_NODE_GAP_Y;
-    });
-    return positions;
-  }
-  return layoutConnected(nodes, edges);
-}
-
-function layoutConnected(nodes: WFNode[], edges: WFEdge[]): Map<string, { x: number; y: number }> {
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'LR', nodesep: NODE_SEP, ranksep: RANK_SEP, marginx: 80, marginy: 80 });
-
-  // A caixa registrada no dagre é mais alta que a forma de verdade (dim.height + LABEL_RESERVE) só
-  // pra reservar espaço embaixo — a posição final ainda alinha a forma ao TOPO dessa caixa (ver
-  // cálculo de y abaixo), deixando a folga inteira embaixo, onde o rótulo realmente renderiza.
-  nodes.forEach((n) => {
-    const dim = dimensionsOf(n);
-    g.setNode(n.id, { width: dim.width, height: dim.height + LABEL_RESERVE });
-  });
-  edges.forEach((e) => {
-    if (g.hasNode(e.source) && g.hasNode(e.target)) g.setEdge(e.source, e.target);
-  });
-
-  dagre.layout(g);
-
-  const positions = new Map<string, { x: number; y: number }>();
-  nodes.forEach((n) => {
-    const pos = g.node(n.id);
-    const dim = dimensionsOf(n);
-    positions.set(n.id, { x: pos.x - dim.width / 2, y: pos.y - (dim.height + LABEL_RESERVE) / 2 });
-  });
-  return positions;
-}
-
-// Desloca um nó e tudo que é alcançável a partir dele (seguindo as arestas de saída) pelo mesmo
-// (dx, dy) — sem isso, mover só o filho direto do Gateway "descentralizava" tudo que vinha depois
-// (ex.: um "Fim" ligado a esse filho ficava pra trás, fora do centro em relação à nova posição do
-// pai). `visited` é compartilhado entre as duas chamadas de um mesmo Gateway (uma por ramo): se os
-// dois ramos reconvergirem num nó comum mais à frente, só o primeiro ramo a chegar nele o desloca —
-// evita mover o mesmo nó duas vezes (ou entrar em loop num fluxo com ciclo).
-function shiftSubtree(rootId: string, dx: number, dy: number, positions: Map<string, { x: number; y: number }>, edges: WFEdge[], visited: Set<string>): void {
-  if (visited.has(rootId)) return;
-  visited.add(rootId);
-  const pos = positions.get(rootId);
-  if (pos) positions.set(rootId, { x: pos.x + dx, y: pos.y + dy });
-  edges.filter((e) => e.source === rootId).forEach((e) => shiftSubtree(e.target, dx, dy, positions, edges, visited));
-}
-
-// Conta quantos nós são alcançáveis a partir de `rootId` (incluindo ele mesmo), seguindo as arestas
-// de saída — usado só pra ordenar em que sequência os Gateways são espaçados (ver
-// applyGatewayBranchSpacing): o subconjunto alcançável a partir de um Gateway aninhado num ramo de
-// outro Gateway é sempre um subconjunto PRÓPRIO (estritamente menor) do alcançável a partir do
-// Gateway externo, então ordenar por esse tamanho crescente processa sempre o mais interno primeiro.
-function countReachable(rootId: string, edges: WFEdge[]): number {
-  const seen = new Set([rootId]);
-  const queue = [rootId];
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    edges.filter((e) => e.source === current).forEach((e) => {
-      if (!seen.has(e.target)) {
-        seen.add(e.target);
-        queue.push(e.target);
-      }
-    });
-  }
-  return seen.size;
-}
-
-// Extensão vertical (topo/base) da subárvore alcançável a partir de `rootId`, nas posições ATUAIS —
-// se essa subárvore já contém um Gateway cujo espaçamento foi aplicado antes (ver ordem em
-// applyGatewayBranchSpacing), essa extensão já reflete os dois ramos internos dele, não só a altura
-// de um nó solto.
-function subtreeVerticalBounds(rootId: string, positions: Map<string, { x: number; y: number }>, edges: WFEdge[], byId: Map<string, WFNode>): { top: number; bottom: number } {
-  let top = Infinity;
-  let bottom = -Infinity;
-  const seen = new Set([rootId]);
-  const queue = [rootId];
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    const pos = positions.get(current);
-    const node = byId.get(current);
-    if (pos && node) {
-      const dim = dimensionsOf(node);
-      top = Math.min(top, pos.y);
-      bottom = Math.max(bottom, pos.y + dim.height);
-    }
-    edges.filter((e) => e.source === current).forEach((e) => {
-      if (!seen.has(e.target)) {
-        seen.add(e.target);
-        queue.push(e.target);
-      }
-    });
-  }
-  return { top, bottom };
-}
-
-// Reaplica a regra do Gateway (GATEWAY_BRANCH_GAP/GATEWAY_GAP_X) por cima do resultado do dagre —
-// "Organizar" usa o mesmo dagreLayout genérico de todo o resto do fluxo, então sem isso os dois
-// ramos saíam espaçados pelo NODE_SEP/RANK_SEP genérico, não pela regra específica do Gateway que o
-// quick-add (onQuickAdd, JourneyDesignerPage) já segue.
-//
-// Processa os Gateways do mais interno pro mais externo (ver countReachable) e, pra cada ramo, usa a
-// extensão vertical REAL da subárvore inteira dele (subtreeVerticalBounds) — não só a altura do nó
-// filho direto — pra decidir o quanto afastar do centro do Gateway. Sem isso, um Gateway encadeado
-// dentro de um ramo (ex.: uma segunda Decisão a poucos passos da primeira) tinha seu próprio
-// espaçamento aplicado DEPOIS, ignorado pelo cálculo do Gateway externo: o ramo que contém esse
-// Gateway aninhado acaba precisando de bem mais altura do que um nó sozinho, e reservar só
-// `dim.height/2 + GATEWAY_BRANCH_GAP` pra ele deixava os dois ramos próximos demais — o ramo aninhado
-// (já aberto em dois) caía por cima do OUTRO ramo do Gateway externo.
-// O ajuste abaixo mede cada ramo pela extensão vertical de tudo que vem depois dele, o que só faz
-// sentido enquanto os ramos seguem caminhos próprios. Quando eles voltam a se encontrar adiante —
-// comum num fluxo com várias Decisões encadeadas — essa extensão passa a ser a do fluxo quase
-// inteiro, e cada Decisão afasta seus ramos por ela, uma sobre a outra, esticando o canvas até
-// ninguém conseguir ler a sequência. Em vez de limitar o afastamento no chute, o ajuste é feito
-// numa cópia e só vale se não tiver esticado o resultado: o dagre sozinho já entrega um layout
-// navegável, e um refinamento que piora não deve ser aplicado.
-const GATEWAY_SPACING_MAX_GROWTH = 1.6;
-
-function verticalSpanOf(positions: Map<string, { x: number; y: number }>): number {
-  const ys = [...positions.values()].map((p) => p.y);
-  return ys.length === 0 ? 0 : Math.max(...ys) - Math.min(...ys);
-}
-
-function applyGatewayBranchSpacing(positions: Map<string, { x: number; y: number }>, nodes: WFNode[], edges: WFEdge[]): void {
-  const before = verticalSpanOf(positions);
-  const candidate = new Map(positions);
-  spaceGatewayBranches(candidate, nodes, edges);
-  const after = verticalSpanOf(candidate);
-  if (before > 0 && after > before * GATEWAY_SPACING_MAX_GROWTH) return;
-  candidate.forEach((pos, id) => positions.set(id, pos));
-}
-
-function spaceGatewayBranches(positions: Map<string, { x: number; y: number }>, nodes: WFNode[], edges: WFEdge[]): void {
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const gateways = nodes.filter((n) => n.type === 'gateway' && positions.has(n.id));
-  const order = [...gateways].sort((a, b) => countReachable(a.id, edges) - countReachable(b.id, edges));
-
-  for (const n of order) {
-    const outIds = [...new Set(edges.filter((e) => e.source === n.id).map((e) => e.target))].filter((id) => positions.has(id));
-    if (outIds.length < 2) continue;
-    // Um Gateway tem no máximo 2 saídas (REQ-03.02.007) — ordena pelo Y atual só pra decidir quem
-    // fica "de cima"/"de baixo" sem depender de qual ramo foi criado primeiro.
-    const [aId, bId] = outIds.sort((x, y) => positions.get(x)!.y - positions.get(y)!.y);
-    const gwPos = positions.get(n.id)!;
-    const gwDim = dimensionsOf(n);
-    const gwCenterY = gwPos.y + gwDim.height / 2;
-    const gwRight = gwPos.x + gwDim.width;
-    const visited = new Set<string>([n.id]);
-    ([
-      [aId, -1],
-      [bId, 1],
-    ] as const).forEach(([id, sign]) => {
-      const target = byId.get(id);
-      const oldPos = positions.get(id);
-      if (!target || !oldPos) return;
-      const { top, bottom } = subtreeVerticalBounds(id, positions, edges, byId);
-      const halfSpan = (bottom - top) / 2;
-      const currentCenterY = (top + bottom) / 2;
-      const desiredCenterY = gwCenterY + sign * (halfSpan + GATEWAY_BRANCH_GAP);
-      const newX = gwRight + GATEWAY_GAP_X;
-      shiftSubtree(id, newX - oldPos.x, desiredCenterY - currentCenterY, positions, edges, visited);
-    });
-  }
-}
-
-// Layered auto-layout do canvas inteiro.
-export function computeLayout(nodes: WFNode[], edges: WFEdge[]): WFNode[] {
-  const positions = dagreLayout(nodes, edges);
-  applyGatewayBranchSpacing(positions, nodes, edges);
-  return nodes.map((n) => ({ ...n, position: positions.get(n.id)! }));
-}
-
-// Mesmo auto-layout, mas direto no formato do backend (FlowNode/FlowConnection) — usado fora do
-// designer (ex.: criação de jornada por IA) pra já persistir o fluxo gerado com posições
-// organizadas, em vez do que a IA tenha colocado em positionX/positionY (frequentemente tudo
-// empilhado nas mesmas coordenadas).
-export function layoutFlowNodes(nodes: FlowNode[], connections: FlowConnection[]): FlowNode[] {
-  const wfNodes: WFNode[] = nodes.map((n) => ({
-    id: n.nodeId,
-    type: BACKEND_TO_FRONT_TYPE[n.nodeType],
-    position: { x: n.positionX, y: n.positionY },
-    data: { name: n.name, description: n.description ?? '', connectorConfig: n.connectorConfig },
-  }));
-  const wfEdges: WFEdge[] = connections.map((c) => ({ id: c.connectionId, source: c.sourceNodeId, target: c.targetNodeId }));
-  const positions = dagreLayout(wfNodes, wfEdges);
-  applyGatewayBranchSpacing(positions, wfNodes, wfEdges);
-  return nodes.map((n) => {
-    const pos = positions.get(n.nodeId);
-    return pos ? { ...n, positionX: pos.x, positionY: pos.y } : n;
-  });
-}
-
-function boundsCenterOf(nodes: WFNode[]): { cx: number; cy: number } {
-  const xs = nodes.map((n) => n.position.x);
-  const ys = nodes.map((n) => n.position.y);
-  const xe = nodes.map((n) => n.position.x + dimensionsOf(n).width);
-  const ye = nodes.map((n) => n.position.y + dimensionsOf(n).height);
-  return { cx: (Math.min(...xs) + Math.max(...xe)) / 2, cy: (Math.min(...ys) + Math.max(...ye)) / 2 };
-}
-
-// Auto-organiza só os nós selecionados (2+), preservando a posição de todo o resto — o grupo
-// selecionado é reorganizado internamente via dagre (só as arestas entre eles conta, arestas pra
-// fora do grupo são ignoradas) e depois recentralizado onde já estava, senão o dagre jogaria o
-// grupo pra uma origem absoluta longe do resto do fluxo.
-export function computeLayoutForSelection(nodes: WFNode[], edges: WFEdge[], selectedIds: Set<string>): WFNode[] {
-  const selectedNodes = nodes.filter((n) => selectedIds.has(n.id));
-  if (selectedNodes.length < 2) return nodes;
-  const relevantEdges = edges.filter((e) => selectedIds.has(e.source) && selectedIds.has(e.target));
-
-  const oldCenter = boundsCenterOf(selectedNodes);
-  const rawPositions = dagreLayout(selectedNodes, relevantEdges);
-  applyGatewayBranchSpacing(rawPositions, selectedNodes, relevantEdges);
-  const laidOut = selectedNodes.map((n) => ({ ...n, position: rawPositions.get(n.id)! }));
-  const newCenter = boundsCenterOf(laidOut);
-  const dx = oldCenter.cx - newCenter.cx;
-  const dy = oldCenter.cy - newCenter.cy;
-
-  const finalPositions = new Map(laidOut.map((n) => [n.id, { x: n.position.x + dx, y: n.position.y + dy }]));
-  return nodes.map((n) => (finalPositions.has(n.id) ? { ...n, position: finalPositions.get(n.id)! } : n));
-}

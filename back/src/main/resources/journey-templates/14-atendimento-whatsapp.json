@@ -932,6 +932,39 @@
           "Node_EscolheFatura"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Menu",
+        "nodeIds": [
+          "Node_Menu",
+          "Node_SegundaViaOuAtendente"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Atendente",
+        "nodeIds": [
+          "Node_Atendente",
+          "Node_FimAtendente"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Segunda via",
+        "nodeIds": [
+          "Node_Cpf",
+          "Node_BuscaFaturas",
+          "Node_TemFaturas",
+          "Node_EmDia",
+          "Node_EscolheFatura",
+          "Node_FimEmDia",
+          "Node_GeraSegundaVia",
+          "Node_SegundaVia",
+          "Node_FimSegundaVia"
+        ]
+      }
     ]
   }
 }

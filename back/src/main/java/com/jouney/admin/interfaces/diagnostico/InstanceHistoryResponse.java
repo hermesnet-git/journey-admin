@@ -20,7 +20,8 @@ public record InstanceHistoryResponse(String processInstanceId, String businessK
         return new InstanceHistoryResponse(detail.processInstanceId(), detail.businessKey(), detail.journeyId(),
                 detail.journeyName(), detail.versionNumber(), detail.state(), detail.startTime(), detail.endTime(),
                 detail.durationMillis(),
-                FlowBundleResponse.of(detail.channelTypes(), detail.flowNodes(), detail.flowConnections()),
+                FlowBundleResponse.of(detail.channelTypes(), detail.flowNodes(), detail.flowConnections(),
+                        detail.sections()),
                 detail.steps(), detail.variables(), detail.variableTimeline(), detail.incidents(),
                 detail.currentNodeId());
     }

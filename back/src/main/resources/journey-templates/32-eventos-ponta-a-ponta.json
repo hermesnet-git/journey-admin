@@ -504,6 +504,36 @@
           "Node_PublicaDecisao"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Reserva",
+        "nodeIds": [
+          "Node_PedidoCriado",
+          "Node_SolicitaReserva",
+          "Node_AguardaReserva",
+          "Node_Reservado"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Faturamento",
+        "nodeIds": [
+          "Node_SolicitaFaturamento",
+          "Node_FimFaturado"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Sem estoque",
+        "nodeIds": [
+          "Node_SemEstoque",
+          "Node_Acompanhar",
+          "Node_PublicaDecisao",
+          "Node_FimDecidido"
+        ]
+      }
     ]
   }
 }

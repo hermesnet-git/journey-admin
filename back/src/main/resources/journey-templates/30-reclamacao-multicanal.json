@@ -789,6 +789,37 @@
           "Node_EscalaOuvidoria"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Triagem",
+        "nodeIds": [
+          "Node_Reclamacao",
+          "Node_Triagem",
+          "Node_VaiParaOuvidoria"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Ouvidoria",
+        "nodeIds": [
+          "Node_EscalaOuvidoria",
+          "Node_Escalada",
+          "Node_FimEscalada"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Proposta",
+        "nodeIds": [
+          "Node_Proposta",
+          "Node_Aceitou",
+          "Node_AplicaCompensacao",
+          "Node_Resolvida",
+          "Node_FimResolvida"
+        ]
+      }
     ]
   }
 }

@@ -3,6 +3,7 @@ package com.jouney.admin.domain.diagnostico;
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
+import com.jouney.admin.domain.flow.FlowSection;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,5 +16,5 @@ public record ExecutionHistoryDetail(String processInstanceId, String businessKe
                                       List<FlowNode> flowNodes, List<FlowConnection> flowConnections,
                                       List<HistoryStep> steps, List<VariableSnapshot> variables,
                                       List<VariableTimelineEntry> variableTimeline, List<IncidentEntry> incidents,
-                                      String currentNodeId) {
+                                      String currentNodeId, List<FlowSection> sections) {
 }

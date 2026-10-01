@@ -12,6 +12,11 @@ public class Flow {
     private List<FlowNode> nodes;
     private List<FlowConnection> connections;
     private List<FlowAnnotation> annotations;
+    // Modo de exibição do canvas em que as posições foram organizadas (circle | compact | detailed);
+    // null quando nunca foi informado. Só apresentação: não chega à validação nem à execução.
+    private String layoutMode;
+    // Seções do canvas (grupos de etapas com nome); só apresentação, como as anotações.
+    private List<FlowSection> sections = List.of();
     private final OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -41,12 +46,32 @@ public class Flow {
     // Quem quiser saber se o fluxo atual é consistente antes de salvar usa o botão "Validar"
     // (POST .../flow/validate), que roda a mesma validação sem persistir nada.
     public void replace(String name, List<FlowNode> nodes, List<FlowConnection> connections,
-                         List<FlowAnnotation> annotations) {
+                         List<FlowAnnotation> annotations, String layoutMode, List<FlowSection> sections) {
+        this.layoutMode = layoutMode;
+        this.sections = sections;
         this.name = name;
         this.nodes = nodes;
         this.connections = connections;
         this.annotations = annotations;
         this.updatedAt = OffsetDateTime.now();
+    }
+
+    public String getLayoutMode() {
+        return layoutMode;
+    }
+
+    public Flow withLayoutMode(String layoutMode) {
+        this.layoutMode = layoutMode;
+        return this;
+    }
+
+    public List<FlowSection> getSections() {
+        return sections;
+    }
+
+    public Flow withSections(List<FlowSection> sections) {
+        this.sections = sections;
+        return this;
     }
 
     public String getId() {

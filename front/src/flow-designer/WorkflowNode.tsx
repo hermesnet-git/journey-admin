@@ -1,11 +1,143 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Plus, X } from 'lucide-react';
+import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react';
+import { Check, Link2Off, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
-import { ERROR_HANDLE, NODE_META, NODE_DIMENSIONS, NODE_ICON, TYPE_COLOR, connectorMissingFields, type NodeType, type WFNode } from './model';
+import { ERROR_HANDLE, NODE_META, NODE_ICON, TYPE_COLOR, connectorMissingFields, type NodeNote, type NodeType, type WFNode } from './model';
 import { NodeShape } from './NodeShape';
+import { NodeCard, NodeDot, NodePill, detailForZoom, type NodeCardColors } from './NodeCard';
+import { isTaskType, nodeChips, nodeSize, nodeTypeLabel } from './nodeMode';
+
+// Nota ligada a esta etapa: marcador numerado no canto; clicar abre o balão com o texto (editável).
+const NOTE_COLORS = {
+  light: { bg: '#fef3b8', border: '#eab308', text: '#713f12', soft: '#a16207' },
+  dark: { bg: '#4a3a10', border: '#ca8a04', text: '#fef3c7', soft: '#d1a53d' },
+};
+
+// Título do balão: o trecho antes de ":" no começo da anotação ("Resiliência da integração: …");
+// sem esse formato, "Anotação N" e o texto inteiro no corpo.
+function splitNote(text: string, number: number): { title: string; body: string } {
+  const match = /^([^:\n]{3,48}):\s*([\s\S]*)$/.exec(text.trim());
+  const capitalized = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  return match ? { title: match[1].trim(), body: capitalized(match[2].trim()) } : { title: `Anotação ${number}`, body: text.trim() };
+}
+
+const MARKER_RING = '#38a3f1';
+
+function NoteMarkers({ nodeId, notes }: { nodeId: string; notes: NodeNote[] }) {
+  const { dark, c } = useFlowTheme();
+  const actions = useWorkflowActions();
+  const p = dark ? NOTE_COLORS.dark : NOTE_COLORS.light;
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const open = notes.find((n) => n.id === openId) ?? null;
+  const parts = open ? splitNote(open.text, open.number) : null;
+  const iconBtn = 'border-0 bg-transparent cursor-pointer p-[3px] rounded flex opacity-70 hover:opacity-100';
+  return (
+    <>
+      <div className="absolute -top-[9px] -left-[9px] flex gap-[3px]" style={{ zIndex: 6 }}>
+        {notes.map((note) => {
+          const active = note.id === openId;
+          return (
+            <button
+              key={note.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(false);
+                setOpenId(active ? null : note.id);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              title="Anotação desta etapa"
+              className="nodrag w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold cursor-pointer"
+              style={{
+                background: p.bg,
+                color: p.text,
+                border: `1.5px solid ${p.border}`,
+                boxShadow: active ? `0 0 0 2px ${c.cardBg}, 0 0 0 4px ${MARKER_RING}` : '0 1px 3px rgba(0,0,0,.18)',
+              }}
+            >
+              {note.number}
+            </button>
+          );
+        })}
+      </div>
+      <NodeToolbar isVisible={!!open} position={Position.Top} align="start" offset={18}>
+        {open && parts && (
+          <div
+            className="nodrag nowheel group/note relative rounded-[12px] px-[16px] py-[12px] w-[300px]"
+            style={{
+              marginLeft: -26,
+              background: c.cardBg,
+              border: `1px solid ${c.border}`,
+              boxShadow: dark ? '0 10px 28px rgba(0,0,0,.55)' : '0 10px 28px rgba(15,15,20,.16)',
+            }}
+          >
+            <div className="flex items-start gap-[6px] mb-[4px]">
+              <span className="flex-1 min-w-0 text-[14.5px] font-semibold leading-[1.3]" style={{ color: c.textPrimary }}>
+                {parts.title}
+              </span>
+              <span className="flex gap-[1px] opacity-0 group-hover/note:opacity-100 transition-opacity" style={{ color: c.textSecondary }}>
+                <button title={editing ? 'Concluir edição' : 'Editar anotação'} onClick={() => setEditing((v) => !v)} className={iconBtn} style={{ color: 'inherit' }}>
+                  {editing ? <Check size={13} /> : <Pencil size={13} />}
+                </button>
+                <button
+                  title="Soltar da etapa (volta a ficar solta no canvas)"
+                  onClick={() => {
+                    setOpenId(null);
+                    actions.onUnlinkAnnotation(open.id, nodeId);
+                  }}
+                  className={iconBtn}
+                  style={{ color: 'inherit' }}
+                >
+                  <Link2Off size={13} />
+                </button>
+                <button
+                  title="Excluir anotação"
+                  onClick={() => {
+                    setOpenId(null);
+                    actions.onDeleteAnnotation(open.id);
+                  }}
+                  className={iconBtn}
+                  style={{ color: 'inherit' }}
+                >
+                  <Trash2 size={13} />
+                </button>
+                <button title="Fechar" onClick={() => setOpenId(null)} className={iconBtn} style={{ color: 'inherit' }}>
+                  <X size={13} />
+                </button>
+              </span>
+            </div>
+            {editing ? (
+              <textarea
+                autoFocus
+                value={open.text}
+                onChange={(e) => actions.onUpdateAnnotationText(open.id, e.target.value)}
+                placeholder="Título: texto da anotação"
+                rows={Math.min(8, Math.max(3, Math.ceil(open.text.length / 38)))}
+                className="w-full text-[13px] leading-[1.5] rounded-md px-[8px] py-[6px] outline-none resize-none"
+                style={{ color: c.textPrimary, background: 'transparent', border: `1px solid ${c.border}`, fontFamily: 'inherit' }}
+              />
+            ) : (
+              <div className="text-[13px] leading-[1.5] whitespace-pre-wrap break-words" style={{ color: c.textSecondary }}>
+                {parts.body || 'Sem texto ainda — use o lápis para escrever.'}
+              </div>
+            )}
+            {/* Seta apontando para o marcador da etapa. */}
+            <span
+              className="absolute w-[12px] h-[12px] rotate-45"
+              style={{ left: 20, bottom: -7, background: c.cardBg, borderRight: `1px solid ${c.border}`, borderBottom: `1px solid ${c.border}` }}
+            />
+          </div>
+        )}
+      </NodeToolbar>
+    </>
+  );
+}
+
+const sameNotes = (a: NodeNote[] | undefined, b: NodeNote[] | undefined) =>
+  (a?.length ?? 0) === (b?.length ?? 0) && (a ?? []).every((n, i) => n.id === b![i].id && n.number === b![i].number && n.text === b![i].text);
 
 const QUICK_ADD_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask', 'gateway', 'end'];
 
@@ -120,8 +252,9 @@ function QuickAdd({ nodeId, avoid }: { nodeId: string; avoid?: 'up' | 'down' }) 
 export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, type }: NodeProps<WFNode>) {
   const nodeType = type as NodeType;
   const actions = useWorkflowActions();
-  const { c, dark, nodeFill } = useFlowTheme();
-  const dim = NODE_DIMENSIONS[nodeType];
+  const { c, dark, nodeFill, nodeMode } = useFlowTheme();
+  const dim = nodeSize(nodeType, nodeMode);
+  const asCard = nodeMode !== 'circle' && isTaskType(nodeType);
   const hasInput = nodeType !== 'start' && nodeType !== 'messageStartEvent';
   const hasOutput = nodeType !== 'end';
   const outgoingLimitReached = !!data.outgoingLimitReached;
@@ -187,7 +320,7 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
         <Handle
           type="target"
           position={Position.Left}
-          className="transition-transform duration-150 hover:scale-[1.8] [&.valid]:scale-[1.8] [&.valid]:!shadow-[0_0_0_4px_var(--handle-ring)]"
+          className="wf-handle transition-transform duration-150 hover:scale-[1.8] [&.valid]:scale-[1.8] [&.valid]:!shadow-[0_0_0_4px_var(--handle-ring)]"
           style={{
             width: 7.5,
             height: 7.5,
@@ -199,13 +332,49 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
         />
       )}
 
+      {detailForZoom(data.zoom) === 'dot' ? (
+        <NodeDot color={TYPE_COLOR[nodeType]} selected={selected} ringColor={c.accent} />
+      ) : asCard ? (
+        (() => {
+          const colors: NodeCardColors = {
+            background: cardFill,
+            border: borderColor,
+            textPrimary: c.textPrimary,
+            textSecondary: c.textSecondary,
+            chipBg: c.chipBg,
+            warnBg: c.dangerSoft,
+            warnText: c.danger,
+            typeColor: TYPE_COLOR[nodeType],
+            error: c.danger,
+          };
+          return nodeMode === 'detailed' ? (
+            <NodeCard
+              nodeType={nodeType}
+              name={data.name}
+              colors={colors}
+              boxShadow={ring}
+              showErrorBadge={invalid}
+              errorMessage={invalidReason}
+              detail={detailForZoom(data.zoom)}
+              typeLabel={nodeTypeLabel(nodeType, data.connectorConfig?.connectorType)}
+              chips={nodeChips(nodeType, data.connectorConfig, data.embeddedScreenRoot, (data.screenDataSources?.length ?? 0) > 0)}
+            />
+          ) : (
+            <NodePill detail={detailForZoom(data.zoom)} nodeType={nodeType} name={data.name} colors={colors} boxShadow={ring} showErrorBadge={invalid} errorMessage={invalidReason} />
+          );
+        })()
+      ) : (
       <NodeShape
+        size={dim}
         nodeType={nodeType}
         name={data.name}
-        background={cardFill}
-        borderColor={borderColor}
+        // Eventos e Decisão ganham o fundo e a borda da cor do tipo (como no desenho de referência);
+        // o nome embaixo fica no tamanho da letra dos cartões, em todos os modos.
+        background={isTaskType(nodeType) ? cardFill : `color-mix(in srgb, ${TYPE_COLOR[nodeType]} 20%, ${c.cardBg})`}
+        borderColor={isTaskType(nodeType) || selected ? borderColor : TYPE_COLOR[nodeType]}
         iconColor={TYPE_COLOR[nodeType]}
-        labelColor={c.textSecondary}
+        largeLabel
+        labelColor={c.textPrimary}
         boxShadow={ring}
         surfaceColor={c.cardBg}
         badgeColor={c.accent}
@@ -215,6 +384,7 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
         errorColor={c.danger}
         errorMessage={invalidReason}
       />
+      )}
 
       {hasOutput && (
         <>
@@ -222,7 +392,7 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
             type="source"
             position={Position.Right}
             isConnectable={!outgoingLimitReached}
-            className="transition-transform duration-150 hover:scale-[1.8] [&.connectingfrom]:scale-[1.8] [&.connectingfrom]:!shadow-[0_0_0_4px_var(--handle-ring)]"
+            className="wf-handle transition-transform duration-150 hover:scale-[1.8] [&.connectingfrom]:scale-[1.8] [&.connectingfrom]:!shadow-[0_0_0_4px_var(--handle-ring)]"
             style={{
               width: 7.5,
               height: 7.5,
@@ -236,6 +406,7 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
           {!outgoingLimitReached && <QuickAdd nodeId={id} avoid={data.quickAddAvoid} />}
         </>
       )}
+      {data.notes && data.notes.length > 0 && <NoteMarkers nodeId={id} notes={data.notes} />}
       {hasErrorOutput && (
         <Handle
           id={ERROR_HANDLE}
@@ -243,7 +414,7 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
           position={Position.Bottom}
           isConnectable={!errorPathTaken}
           title={errorPathTaken ? 'Caminho "Se falhar" já ligado' : 'Arraste daqui o caminho "Se falhar"'}
-          className="transition-transform duration-150 hover:scale-[1.8] [&.connectingfrom]:scale-[1.8] [&.connectingfrom]:!shadow-[0_0_0_4px_var(--handle-ring)]"
+          className="wf-handle transition-transform duration-150 hover:scale-[1.8] [&.connectingfrom]:scale-[1.8] [&.connectingfrom]:!shadow-[0_0_0_4px_var(--handle-ring)]"
           style={{
             width: 7.5,
             height: 7.5,
@@ -269,5 +440,7 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
   prev.data.errorPathTaken === next.data.errorPathTaken &&
   prev.data.quickAddAvoid === next.data.quickAddAvoid &&
   prev.data.connectorConfig === next.data.connectorConfig &&
-  prev.data.embeddedScreenRoot === next.data.embeddedScreenRoot,
+  prev.data.embeddedScreenRoot === next.data.embeddedScreenRoot &&
+  prev.data.screenDataSources === next.data.screenDataSources &&
+  sameNotes(prev.data.notes, next.data.notes),
 );

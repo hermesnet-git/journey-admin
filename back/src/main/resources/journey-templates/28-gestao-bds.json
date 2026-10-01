@@ -923,6 +923,46 @@
           "Node_NovoHorario"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Consulta",
+        "nodeIds": [
+          "Node_InformaCnpj",
+          "Node_ConsultaBilhetes",
+          "Node_TemBilhetes",
+          "Node_SemBilhetes",
+          "Node_FimSem"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Ação",
+        "nodeIds": [
+          "Node_EscolheBilhete",
+          "Node_ReagendarOuCancelar"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Reagendamento",
+        "nodeIds": [
+          "Node_NovoHorario",
+          "Node_Reagenda",
+          "Node_Reagendado",
+          "Node_FimReagendado"
+        ]
+      },
+      {
+        "id": "Section_4",
+        "name": "Cancelamento",
+        "nodeIds": [
+          "Node_Cancela",
+          "Node_Cancelado",
+          "Node_FimCancelado"
+        ]
+      }
     ]
   }
 }

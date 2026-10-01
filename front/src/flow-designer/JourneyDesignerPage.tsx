@@ -36,15 +36,12 @@ import { Toolbar } from './Toolbar';
 import { flowEdgeTypes } from './FlowEdge';
 import {
   NODE_WIDTH,
-  NODE_DIMENSIONS,
   TYPE_COLOR,
   initialFlowNodes,
   initialFlowEdges,
   makeNode,
   newNodeId,
   newConnectionId,
-  computeLayout,
-  computeLayoutForSelection,
   GATEWAY_BRANCH_GAP,
   GATEWAY_GAP_X,
   RANK_SEP,
@@ -68,6 +65,7 @@ import {
   type WFNodeData,
   type WFAnnotation,
   type EdgeShape,
+  type NodeNote,
 } from './model';
 import { updateJourney, type Journey } from '../api/journeys';
 import { getFlow, updateFlow, validateFlow, type Flow, type FlowUpdateInput } from '../api/flows';
@@ -75,7 +73,17 @@ import { listClusters, listCredentials, type MessagingCluster, type CredentialRe
 import { ApiClientError } from '../api/client';
 import { useToast } from '../products/Toast';
 import { listAuthoringComponentDefinitions, type ComponentDefinition } from '../api/componentDefinitions';
-import { createNode as createSduiNode } from '../sdui/model';
+import { createNode as createSduiNode, type SduiNode } from '../sdui/model';
+import { computeLayout, computeLayoutForSelection, computeRoutes } from './layout';
+import type { EdgeRoute } from './edgeRouter';
+import { labelReserve, nodeSize, useNodeDisplayMode, type NodeDisplayMode } from './nodeMode';
+import { readableCondition, screenVariableLabels } from './conditionLabel';
+import { clearTourPending, guideNotes, isTourPending } from './notes';
+import { GuidePanel } from './GuidePanel';
+import { NodeSearch } from './NodeSearch';
+import { NavigationBar } from './NavigationBar';
+import { SectionNode, type WFSectionNode } from './SectionNode';
+import type { FlowSection } from '../api/flows';
 
 // Mesmo formato enviado a updateJourney/updateFlow — usado tanto pro save de verdade quanto pra
 // detectar, comparando com o snapshot salvo pela última vez, se há algo pra salvar. Sem isso,
@@ -87,10 +95,12 @@ function buildFlowSnapshot(
   nodes: WFNode[],
   edges: WFEdge[],
   annotations: WFAnnotation[],
+  sections: FlowSection[],
 ) {
   return JSON.stringify({
     name,
     description,
+    sections,
     nodes: nodes.map((n) => ({
       nodeId: n.id,
       nodeType: FRONT_TO_BACKEND_TYPE[n.type as NodeType],
@@ -109,6 +119,7 @@ function buildFlowSnapshot(
       sourceNodeId: e.source,
       targetNodeId: e.target,
       condition: e.data?.condition ?? null,
+      label: e.data?.label || null,
       isDefault: !!e.data?.isDefault,
       onError: !!e.data?.onError,
     })),
@@ -124,9 +135,11 @@ function buildFlowSnapshot(
 
 // Mesmo mapeamento WFNode/WFEdge/WFAnnotation → FlowUpdateInput usado tanto por Salvar (updateFlow)
 // quanto por Validar (validateFlow) — extraído aqui pra não duplicar a conversão duas vezes.
-function buildFlowInput(nodes: WFNode[], edges: WFEdge[], annotations: WFAnnotation[]): FlowUpdateInput {
+function buildFlowInput(nodes: WFNode[], edges: WFEdge[], annotations: WFAnnotation[], layoutMode: NodeDisplayMode, sections: FlowSection[]): FlowUpdateInput {
   return {
     name: 'Fluxo principal',
+    layoutMode,
+    sections,
     nodes: nodes.map((n) => ({
       nodeId: n.id,
       nodeType: FRONT_TO_BACKEND_TYPE[n.type as NodeType],
@@ -145,6 +158,7 @@ function buildFlowInput(nodes: WFNode[], edges: WFEdge[], annotations: WFAnnotat
       sourceNodeId: e.source,
       targetNodeId: e.target,
       condition: e.data?.condition ?? null,
+      label: e.data?.label || null,
       isDefault: !!e.data?.isDefault,
       onError: !!e.data?.onError,
     })),
@@ -167,7 +181,13 @@ const nodeTypes = {
   messageStartEvent: WorkflowNode,
   gateway: WorkflowNode,
   annotation: AnnotationNode,
+  section: SectionNode,
 };
+
+// Moldura da seção: folga em volta das etapas e espaço do cabeçalho em cima.
+const SECTION_PAD = 24;
+const SECTION_HEADER = 40;
+const COLLAPSED_SECTION = { width: 280, height: 100 };
 
 interface HistorySnapshot {
   nodes: WFNode[];
@@ -250,14 +270,52 @@ function DesignerInner({
   // Client-only, purely visual: highlights the path through the flow connected to whichever node
   // is hovered or selected, dimming the rest so a busy diagram stays readable.
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  // Etapa destacada pelo "Guia deste modelo" (passar o mouse numa anotação ou passo do tour).
+  const [guideNodeId, setGuideNodeId] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  // Ligação cujo rótulo está sendo escrito (duplo clique na linha).
+  const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
+  const [sections, setSections] = useState<FlowSection[]>([]);
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
+  // Recolhida/aberta é preferência de quem olha (por jornada), não vai para o fluxo.
+  const collapsedKey = `flow:collapsed-sections:${journey.journeyId}`;
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(collapsedKey) ?? '[]') as string[]);
+    } catch {
+      return new Set();
+    }
+  });
+  const collapsedRef = useRef(collapsedSections);
+  collapsedRef.current = collapsedSections;
+  useEffect(() => {
+    try {
+      localStorage.setItem(collapsedKey, JSON.stringify([...collapsedSections]));
+    } catch {
+      // sem armazenamento: vale só nesta sessão
+    }
+  }, [collapsedKey, collapsedSections]);
+  // Lido uma vez na abertura; a marca some num efeito (seguro mesmo com renderização dupla).
+  const [tourPending] = useState(() => isTourPending(journey.journeyId));
+  useEffect(() => {
+    if (tourPending) clearTourPending(journey.journeyId);
+  }, [tourPending, journey.journeyId]);
   // Client-only display preference (which @xyflow/react edge renderer to use), remembered across
   // sessions but never sent to the backend — it isn't part of the flow's saved data.
   const [edgeShape, setEdgeShape] = useState<EdgeShape>(
-    () => (localStorage.getItem('flow-designer:edge-shape') as EdgeShape | null) ?? 'smoothstep',
+    () => (localStorage.getItem('flow-designer:edge-shape-v2') as EdgeShape | null) ?? 'routed',
   );
   useEffect(() => {
-    localStorage.setItem('flow-designer:edge-shape', edgeShape);
+    localStorage.setItem('flow-designer:edge-shape-v2', edgeShape);
   }, [edgeShape]);
+  // Círculo, compacto ou detalhado: preferência por usuário, a mesma da Execução e do Diagnóstico.
+  const [nodeMode, setNodeMode] = useNodeDisplayMode();
+  const nodeModeRef = useRef(nodeMode);
+  nodeModeRef.current = nodeMode;
+  // Modo em que as posições atuais foram organizadas — trocar de modo reorganiza o fluxo.
+  const laidOutModeRef = useRef<NodeDisplayMode | null>(null);
   // Mesma ideia do edgeShape: preferência só de exibição, lembrada entre sessões. Padrão vazio
   // (sem tingir o fundo do card com a cor do tipo do nó) — pedido explícito do usuário.
   const [nodeFill, setNodeFill] = useState<boolean>(
@@ -269,6 +327,52 @@ function DesignerInner({
   // Minimapa começa recolhido de propósito (pedido do usuário) — só um botão no canto até clicar
   // pra usar; não persiste entre sessões (sempre volta a recolhido, diferente de edgeShape/nodeFill).
   const [minimapOpen, setMinimapOpen] = useState(false);
+
+  // Rotas das linhas automáticas, recalculadas quando o fluxo para de mudar (depois de arrastar,
+  // organizar ou ligar etapas); enquanto isso, cada linha segue a etapa pelo caminho simples.
+  const [routes, setRoutes] = useState<Map<string, EdgeRoute>>(new Map());
+  const sectionViewRef = useRef<{
+    hidden: Set<string>;
+    blocks: { id: string; type: NodeType; x: number; y: number; width: number; height: number }[];
+    links: { id: string; source: string; target: string; onError: boolean }[];
+  }>({ hidden: new Set(), blocks: [], links: [] });
+  const geometryKey = useMemo(
+    () =>
+      JSON.stringify([
+        nodeMode,
+        nodes.map((n) => [n.id, n.type, Math.round(n.position.x), Math.round(n.position.y)]),
+        edges.map((e) => [e.id, e.source, e.target, !!e.data?.onError]),
+        sections,
+        [...collapsedSections],
+      ]),
+    [nodes, edges, nodeMode, sections, collapsedSections],
+  );
+  useEffect(() => {
+    if (edgeShape !== 'routed') return;
+    const timer = setTimeout(() => {
+      setRoutes(
+        computeRoutes(
+          // Seção recolhida: as etapas dela somem e o bloco entra no lugar, com as linhas ligadas nele.
+          [
+            ...nodesRef.current
+              .filter((n) => !sectionViewRef.current.hidden.has(n.id))
+              .map((n) => ({ id: n.id, type: n.type as NodeType, x: n.position.x, y: n.position.y })),
+            ...sectionViewRef.current.blocks,
+          ],
+          [
+            ...edgesRef.current
+              .filter((e) => !sectionViewRef.current.hidden.has(e.source) && !sectionViewRef.current.hidden.has(e.target))
+              .map((e) => ({ id: e.id, source: e.source, target: e.target, onError: !!e.data?.onError })),
+            ...sectionViewRef.current.links,
+          ],
+          nodeModeRef.current,
+          // Seções abertas: o cabeçalho delas vira obstáculo para as linhas.
+          sectionsRef.current.filter((sec) => !collapsedRef.current.has(sec.id)),
+        ),
+      );
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [geometryKey, edgeShape]);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -400,7 +504,7 @@ function DesignerInner({
         source: c.sourceNodeId,
         target: c.targetNodeId,
         ...(c.onError ? { sourceHandle: ERROR_HANDLE } : {}),
-        data: { condition: c.condition ?? undefined, isDefault: c.isDefault, onError: c.onError || undefined },
+        data: { condition: c.condition ?? undefined, isDefault: c.isDefault, onError: c.onError || undefined, label: c.label || undefined },
       })) as WFEdge[],
       annotations: flow.annotations.map((a) => ({
         id: a.id,
@@ -413,18 +517,25 @@ function DesignerInner({
   );
 
   useEffect(() => {
-    getFlow(journey.journeyId).then((flow) => {
+    getFlow(journey.journeyId).then(async (flow) => {
       const mapped = mapFlowToState(flow);
-      setNodes(mapped.nodes);
+      const mode = nodeModeRef.current;
+      // Organizado em outro modo (ou antes de existir o modo): reorganiza para o modo de quem abre,
+      // sem contar como alteração — só vira gravação se a pessoa salvar.
+      const laidOut = flow.layoutMode !== mode && mapped.nodes.length > 0 ? await computeLayout(mapped.nodes, mapped.edges, mode, flow.sections ?? []) : mapped.nodes;
+      laidOutModeRef.current = mode;
+      setNodes(laidOut);
       setEdges(mapped.edges);
       setAnnotations(mapped.annotations);
       savedSnapshotRef.current = buildFlowSnapshot(
         journey.name,
         journey.description ?? '',
-        mapped.nodes,
+        laidOut,
         mapped.edges,
         mapped.annotations,
+        flow.sections ?? [],
       );
+      setSections(flow.sections ?? []);
       setLoading(false);
       // Os nós só recebem seu tamanho medido de verdade (do que o cálculo de bounds precisa) depois
       // que esse render é commitado — mesmo raciocínio do requestAnimationFrame no organize() abaixo.
@@ -495,7 +606,7 @@ function DesignerInner({
   // route each half back to its own state.
   const onNodesChange = useCallback<OnNodesChange<WFNode | WFAnnotation>>(
     (changes) => {
-      const nodeChanges = changes.filter((c) => !('id' in c) || !isAnnotationId(c.id)) as NodeChange<WFNode>[];
+      const nodeChanges = changes.filter((c) => !('id' in c) || (!isAnnotationId(c.id) && !c.id.startsWith('Section'))) as NodeChange<WFNode>[];
       const annotationChanges = changes.filter((c) => 'id' in c && isAnnotationId(c.id)) as NodeChange<WFAnnotation>[];
       if (nodeChanges.length) setNodes((nds) => applyNodeChanges(nodeChanges, nds));
       if (annotationChanges.length) setAnnotations((anns) => applyNodeChanges(annotationChanges, anns));
@@ -503,7 +614,8 @@ function DesignerInner({
     [],
   );
   const onEdgesChange = useCallback<OnEdgesChange>(
-    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    (changes: EdgeChange[]) =>
+      setEdges((eds) => applyEdgeChanges(changes.filter((c) => !('id' in c) || !c.id.startsWith('SectionLink_')), eds)),
     [],
   );
   const onConnect = useCallback<OnConnect>(
@@ -594,7 +706,7 @@ function DesignerInner({
       const rect = wrapperRef.current?.getBoundingClientRect();
       const center = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : { x: 400, y: 300 };
       const pos = screenToFlowPosition(center);
-      const dim = NODE_DIMENSIONS[type];
+      const dim = nodeSize(type, nodeModeRef.current);
       addNodeAt(type, pos.x - dim.width / 2, pos.y - dim.height / 2);
     },
     [addNodeAt, screenToFlowPosition],
@@ -615,7 +727,7 @@ function DesignerInner({
       const type = e.dataTransfer.getData('text/plain') as NodeType;
       if (!type) return;
       const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const dim = NODE_DIMENSIONS[type];
+      const dim = nodeSize(type, nodeModeRef.current);
       addNodeAt(type, pos.x - dim.width / 2, pos.y - dim.height / 2);
     },
     [addNodeAt, screenToFlowPosition],
@@ -700,16 +812,17 @@ function DesignerInner({
       // receiveTask, 78px). O primeiro adicionado é sugerido como caminho padrão — exatamente um dos
       // dois precisa ser (REQ-03.11.002) — o usuário pode trocar no GatewayFields.
       const isGateway = source.type === 'gateway';
-      const branchYOffset = isGateway ? (NODE_DIMENSIONS[type].height / 2 + GATEWAY_BRANCH_GAP) * (outCount === 0 ? -1 : 1) : 0;
+      const mode = nodeModeRef.current;
+      const branchYOffset = isGateway ? (nodeSize(type, mode).height / 2 + GATEWAY_BRANCH_GAP) * (outCount === 0 ? -1 : 1) : 0;
       const gapX = isGateway ? GATEWAY_GAP_X : RANK_SEP;
       // n.position é o canto superior-esquerdo, não o centro — tipos diferentes têm alturas
       // diferentes (ex.: Início 52px vs Tarefa de Usuário 78px), então alinhar os "y" direto deixava
       // os CENTROS desalinhados (linha inclinada em vez de reta). Centraliza pelo centro vertical de
       // verdade da origem antes de aplicar o deslocamento dos ramos do gateway.
-      const sourceCenterY = source.position.y + NODE_DIMENSIONS[source.type].height / 2;
-      const targetY = sourceCenterY - NODE_DIMENSIONS[type].height / 2 + branchYOffset;
+      const sourceCenterY = source.position.y + nodeSize(source.type, mode).height / 2;
+      const targetY = sourceCenterY - nodeSize(type, mode).height / 2 + branchYOffset;
       const node = {
-        ...makeNode(type, source.position.x + NODE_DIMENSIONS[source.type].width + gapX, targetY, nodesRef.current),
+        ...makeNode(type, source.position.x + nodeSize(source.type, mode).width + gapX, targetY, nodesRef.current),
         selected: true,
       };
       // A criação rápida segue a mesma invariável da paleta: uma Tarefa de Usuário já
@@ -751,7 +864,7 @@ function DesignerInner({
       pushHistory();
       const boxes = selectedNodeIds.map((id) => {
         const n = nodesRef.current.find((x) => x.id === id)!;
-        const dim = NODE_DIMENSIONS[n.type as NodeType] ?? NODE_DIMENSIONS.userTask;
+        const dim = nodeSize(n.type as NodeType, nodeModeRef.current);
         return { id, x: n.position.x, y: n.position.y, width: dim.width, height: dim.height };
       });
       let target: number;
@@ -789,7 +902,7 @@ function DesignerInner({
       const boxes = selectedNodeIds
         .map((id) => {
           const n = nodesRef.current.find((x) => x.id === id)!;
-          const dim = NODE_DIMENSIONS[n.type as NodeType] ?? NODE_DIMENSIONS.userTask;
+          const dim = nodeSize(n.type as NodeType, nodeModeRef.current);
           return { id, x: n.position.x, y: n.position.y, width: dim.width, height: dim.height };
         })
         .sort((a, b) => (axis === 'horizontal' ? a.x - b.x : a.y - b.y));
@@ -834,12 +947,17 @@ function DesignerInner({
   const onUnlinkAnnotation = useCallback(
     (annotationId: string, nodeId: string) => {
       pushHistory();
+      // Sem nenhuma etapa ligada, a nota volta a ser um post-it — logo abaixo da etapa que deixou.
+      const node = nodesRef.current.find((n) => n.id === nodeId);
+      const below = node
+        ? { x: node.position.x, y: node.position.y + nodeSize(node.type as NodeType, nodeModeRef.current).height + 60 }
+        : null;
       setAnnotations((anns) =>
-        anns.map((a) =>
-          a.id === annotationId
-            ? { ...a, data: { ...a.data, linkedNodeIds: a.data.linkedNodeIds.filter((id) => id !== nodeId) } }
-            : a,
-        ),
+        anns.map((a) => {
+          if (a.id !== annotationId) return a;
+          const linkedNodeIds = a.data.linkedNodeIds.filter((id) => id !== nodeId);
+          return { ...a, position: linkedNodeIds.length === 0 && below ? below : a.position, data: { ...a.data, linkedNodeIds } };
+        }),
       );
     },
     [pushHistory],
@@ -856,9 +974,18 @@ function DesignerInner({
       onUpdateAnnotationText,
       onDeleteAnnotation,
       onUnlinkAnnotation,
-      getNodeName: (nodeId) => nodesRef.current.find((n) => n.id === nodeId)?.data.name,
+      onSetEdgeLabel: (edgeId, label) => {
+        setEditingEdgeId(null);
+        const text = label.trim();
+        const current = edgesRef.current.find((e) => e.id === edgeId)?.data?.label ?? '';
+        if (text === current) return;
+        pushHistory();
+        setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, data: { ...e.data, label: text || undefined } } : e)));
+      },
+      onCancelEdgeLabel: () => setEditingEdgeId(null),
+      onEditEdgeLabel: (edgeId) => setEditingEdgeId(edgeId),
     }),
-    [onQuickAdd, selectOnlyNode, deleteNode, onUpdateAnnotationText, onDeleteAnnotation, onUnlinkAnnotation],
+    [onQuickAdd, selectOnlyNode, deleteNode, onUpdateAnnotationText, onDeleteAnnotation, onUnlinkAnnotation, pushHistory],
   );
 
   // Regras de Decisão calculáveis ao vivo no cliente (grau, padrão único, condição obrigatória) —
@@ -866,6 +993,106 @@ function DesignerInner({
   // (do "Validar" contra o back) tem prioridade quando as duas coincidirem, por trazer o texto mais
   // completo (pode juntar mais de uma violação do mesmo nó).
   const liveGatewayReasons = useMemo(() => gatewayViolations(nodes, edges), [nodes, edges]);
+
+  const notes = useMemo(() => guideNotes(annotations, nodes, edges), [annotations, nodes, edges]);
+
+  // Seções só com etapas que ainda existem (apagar etapas não deixa referência solta).
+  const liveSections = useMemo(() => {
+    const ids = new Set(nodes.map((n) => n.id));
+    return sections
+      .map((s) => ({ ...s, nodeIds: s.nodeIds.filter((id) => ids.has(id)) }))
+      .filter((s) => s.nodeIds.length > 0);
+  }, [sections, nodes]);
+
+  const groupSelection = useCallback(() => {
+    const selected = new Set(nodesRef.current.filter((n) => n.selected).map((n) => n.id));
+    if (selected.size < 2) return;
+    setSections((prev) => {
+      const rest = prev.map((s) => ({ ...s, nodeIds: s.nodeIds.filter((id) => !selected.has(id)) })).filter((s) => s.nodeIds.length > 0);
+      return [...rest, { id: `Section_${crypto.randomUUID()}`, name: `Seção ${rest.length + 1}`, nodeIds: [...selected] }];
+    });
+  }, []);
+
+  // Etapa escondida dentro de seção recolhida → id da seção.
+  const hiddenBySection = useMemo(() => {
+    const map = new Map<string, string>();
+    liveSections.forEach((s) => collapsedSections.has(s.id) && s.nodeIds.forEach((id) => map.set(id, s.id)));
+    return map;
+  }, [liveSections, collapsedSections]);
+
+  const sectionNodes = useMemo(
+    () =>
+      liveSections.flatMap((s): WFSectionNode[] => {
+        const members = nodes.filter((n) => s.nodeIds.includes(n.id));
+        const boxes = members.map((n) => {
+          const size = nodeSize(n.type as NodeType, nodeMode);
+          return { x: n.position.x, y: n.position.y, r: n.position.x + size.width, b: n.position.y + size.height + labelReserve(n.type as NodeType, nodeMode) };
+        });
+        const x0 = Math.min(...boxes.map((b) => b.x)) - SECTION_PAD;
+        const y0 = Math.min(...boxes.map((b) => b.y)) - SECTION_HEADER;
+        const x1 = Math.max(...boxes.map((b) => b.r)) + SECTION_PAD;
+        const y1 = Math.max(...boxes.map((b) => b.b)) + SECTION_PAD / 2;
+        const collapsed = collapsedSections.has(s.id);
+        const toggle = () =>
+          setCollapsedSections((prev) => {
+            const next = new Set(prev);
+            if (next.has(s.id)) next.delete(s.id);
+            else next.add(s.id);
+            return next;
+          });
+        const common = {
+          type: 'section' as const,
+          draggable: false,
+          selectable: false,
+        };
+        // Seção que contém o destino de um "Se falhar" é a faixa de falha: nome em vermelho.
+        const failure = edges.some((e) => isErrorEdge(e) && s.nodeIds.includes(e.target));
+        const base = {
+          tone: failure ? ('danger' as const) : undefined,
+          name: s.name,
+          count: s.nodeIds.length,
+          onToggle: toggle,
+          onRename: (newName: string) => setSections((prev) => prev.map((x) => (x.id === s.id ? { ...x, name: newName } : x))),
+          onRemove: () => setSections((prev) => prev.filter((x) => x.id !== s.id)),
+        };
+        if (collapsed) {
+          return [
+            {
+              ...common,
+              id: `Section_${s.id}`,
+              position: { x: x0 + SECTION_PAD, y: y0 + SECTION_HEADER },
+              data: { ...base, variant: 'block', width: COLLAPSED_SECTION.width, height: COLLAPSED_SECTION.height },
+            },
+          ];
+        }
+        // Moldura atrás de tudo e cabeçalho por cima de tudo: as linhas de etapas selecionadas
+        // sobem de camada e, sem isso, cobririam o cabeçalho e roubariam o clique.
+        return [
+          {
+            ...common,
+            id: `Section_${s.id}`,
+            position: { x: x0, y: y0 },
+            zIndex: -1,
+            data: { ...base, variant: 'frame', width: x1 - x0, height: y1 - y0 },
+          },
+          {
+            ...common,
+            id: `SectionHeader_${s.id}`,
+            position: { x: x0, y: y0 },
+            zIndex: 2000,
+            data: { ...base, variant: 'header', width: x1 - x0, height: SECTION_HEADER - 8 },
+          },
+        ];
+      }),
+    [liveSections, nodes, edges, nodeMode, collapsedSections],
+  );
+  const notesByNode = useMemo(() => {
+    const map = new Map<string, NodeNote[]>();
+    notes.forEach((note) =>
+      note.nodeIds.forEach((id) => map.set(id, [...(map.get(id) ?? []), { id: note.id, number: note.number, text: note.text }])),
+    );
+    return map;
+  }, [notes]);
 
   const displayNodes = useMemo(
     () =>
@@ -889,39 +1116,36 @@ function DesignerInner({
             outgoingLimitReached: !!n.type && outgoing.length >= outgoingLimitFor(n.type),
             errorPathTaken: edges.some((e) => e.source === n.id && isErrorEdge(e)),
             quickAddAvoid: avgOffset > 0 ? ('down' as const) : avgOffset < 0 ? ('up' as const) : undefined,
+            notes: notesByNode.get(n.id),
             zoom,
           },
+          hidden: hiddenBySection.has(n.id),
         };
       }),
-    [nodes, edges, invalidNodeReasons, liveGatewayReasons, zoom],
+    [nodes, edges, invalidNodeReasons, liveGatewayReasons, zoom, notesByNode, hiddenBySection],
   );
 
-  const displayAnnotations = useMemo(() => annotations.map((a) => ({ ...a, data: { ...a.data, zoom } })), [annotations, zoom]);
-
-  // Derived, not stored: a faint dashed line per (annotation, linkedNodeId) pair, straight from the
-  // annotation's own linkedNodeIds — there's no separate "link" state to keep in sync.
-  const annotationLinkEdges = useMemo(
-    () =>
-      annotations.flatMap((a) =>
-        a.data.linkedNodeIds.map((nodeId) => ({
-          id: `AnnotationLink_${a.id}_${nodeId}`,
-          source: a.id,
-          target: nodeId,
-          type: 'straight' as const,
-          selectable: false,
-          style: {
-            stroke: dark ? 'rgba(202,138,4,0.55)' : 'rgba(180,130,10,0.5)',
-            strokeWidth: 1,
-            strokeDasharray: '3 4',
-            vectorEffect: 'non-scaling-stroke' as const,
-          },
-        })),
-      ),
-    [annotations, dark],
+  // Nota ligada vira marcador na etapa; só a nota solta aparece como post-it no canvas.
+  const displayAnnotations = useMemo(
+    () => annotations.filter((a) => a.data.linkedNodeIds.length === 0).map((a) => ({ ...a, data: { ...a.data, zoom } })),
+    [annotations, zoom],
   );
+
 
   const selectedNodeId = useMemo(() => nodes.find((n) => n.selected)?.id ?? null, [nodes]);
-  const focusNodeId = hoveredNodeId ?? selectedNodeId;
+  const focusNodeId = guideNodeId ?? hoveredNodeId ?? selectedNodeId;
+
+  // Rótulos das telas para as condições legíveis — refeito só quando alguma tela muda, não a cada
+  // arraste (as raízes das telas mantêm a mesma referência enquanto ninguém edita).
+  const screenRootsRef = useRef<(SduiNode | null | undefined)[]>([]);
+  const screenRoots = useMemo(() => {
+    const next = nodes.map((n) => n.data.embeddedScreenRoot);
+    const prev = screenRootsRef.current;
+    if (next.length === prev.length && next.every((r, i) => r === prev[i])) return prev;
+    screenRootsRef.current = next;
+    return next;
+  }, [nodes]);
+  const variableLabels = useMemo(() => screenVariableLabels(screenRoots), [screenRoots]);
 
   const displayEdges = useMemo(
     () =>
@@ -931,6 +1155,12 @@ function DesignerInner({
         const color = isErrorEdge(e) ? c.danger : e.selected || onFocusedPath ? c.accent : c.edgeColor;
         return {
           ...e,
+          data: {
+            ...e.data,
+            route: routes.get(e.id),
+            conditionText: readableCondition(e.data?.condition, variableLabels) ?? undefined,
+            editingLabel: e.id === editingEdgeId,
+          },
           type: edgeShape,
           // O texto ("padrão"/condição) some daqui — FlowEdge (edgeTypes) monta o próprio rótulo a
           // partir de e.data.isDefault/condition, ancorado perto do destino (ver FlowEdge.tsx).
@@ -945,7 +1175,46 @@ function DesignerInner({
           markerEnd: { type: MarkerType.ArrowClosed, color },
         };
       }),
-    [edges, c, focusNodeId, edgeShape],
+    [edges, c, focusNodeId, edgeShape, routes, variableLabels, editingEdgeId],
+  );
+
+  // O que o roteamento precisa saber das seções recolhidas (lido no efeito das rotas).
+  sectionViewRef.current = {
+    hidden: new Set(hiddenBySection.keys()),
+    blocks: sectionNodes
+      .filter((n) => n.data.variant === 'block')
+      .map((n) => ({ id: n.id, type: 'userTask' as NodeType, x: n.position.x, y: n.position.y, width: n.data.width, height: n.data.height })),
+    links: edges.flatMap((e) => {
+      const s = hiddenBySection.get(e.source);
+      const t = hiddenBySection.get(e.target);
+      if ((!s && !t) || s === t) return [];
+      return [{ id: `SectionLink_${e.id}`, source: s ? `Section_${s}` : e.source, target: t ? `Section_${t}` : e.target, onError: !!e.data?.onError }];
+    }),
+  };
+
+  // Linhas que entram ou saem de uma seção recolhida passam a ligar no bloco da seção.
+  const sectionLinkEdges = useMemo(
+    () =>
+      displayEdges.flatMap((e) => {
+        const s = hiddenBySection.get(e.source);
+        const t = hiddenBySection.get(e.target);
+        if ((!s && !t) || s === t) return [];
+        return [
+          {
+            id: `SectionLink_${e.id}`,
+            source: s ? `Section_${s}` : e.source,
+            target: t ? `Section_${t}` : e.target,
+            sourceHandle: s ? undefined : e.sourceHandle,
+            type: edgeShape,
+            selectable: false,
+            deletable: false,
+            style: e.style,
+            markerEnd: e.markerEnd,
+            data: { ...e.data, route: routes.get(`SectionLink_${e.id}`) },
+          },
+        ];
+      }),
+    [displayEdges, hiddenBySection, edgeShape, routes],
   );
 
   function handleSave() {
@@ -958,7 +1227,7 @@ function DesignerInner({
       return;
     }
 
-    if (buildFlowSnapshot(name, description, nodes, edges, annotations) === savedSnapshotRef.current) {
+    if (buildFlowSnapshot(name, description, nodes, edges, annotations, liveSections) === savedSnapshotRef.current) {
       showToast('Nenhuma alteração foi feita — nenhuma nova versão será gerada.', 'info');
       return;
     }
@@ -975,9 +1244,9 @@ function DesignerInner({
     setSaving(true);
     try {
       const journeyRecord = await updateJourney(activeJourney.journeyId, { name, description });
-      await updateFlow(journeyRecord.journeyId, buildFlowInput(nodes, edges, annotations));
+      await updateFlow(journeyRecord.journeyId, buildFlowInput(nodes, edges, annotations, nodeMode, liveSections));
       setActiveJourney(journeyRecord);
-      savedSnapshotRef.current = buildFlowSnapshot(name, description, nodes, edges, annotations);
+      savedSnapshotRef.current = buildFlowSnapshot(name, description, nodes, edges, annotations, liveSections);
       onSaved();
     } catch (err) {
       // Uma violação estrutural (422) vem com uma lista de mensagens em `details` — usar cada uma
@@ -1001,7 +1270,7 @@ function DesignerInner({
   async function handleValidate() {
     setValidating(true);
     try {
-      await validateFlow(activeJourney.journeyId, buildFlowInput(nodes, edges, annotations));
+      await validateFlow(activeJourney.journeyId, buildFlowInput(nodes, edges, annotations, nodeMode, liveSections));
       setValidationStatus('valid');
       setInvalidNodeReasons(new Map());
       showToast('Jornada consistente — nenhuma violação estrutural encontrada.', 'success');
@@ -1054,16 +1323,19 @@ function DesignerInner({
   const previewVariables = previewNode ? availableVariableOriginsAt(previewNode.id, nodes, edges) : [];
   const userTasks = orderedUserTasks(nodes, edges);
   const hasUnsavedChanges = savedSnapshotRef.current !== null
-    && savedSnapshotRef.current !== buildFlowSnapshot(name, description, nodes, edges, annotations);
+    && savedSnapshotRef.current !== buildFlowSnapshot(name, description, nodes, edges, annotations, liveSections);
 
   // 2+ selecionados: organiza só o grupo (mantém o resto do canvas onde está). 0 ou 1 selecionado:
   // organiza o canvas inteiro, comportamento de sempre.
-  const organize = useCallback(() => {
+  const organize = useCallback(async () => {
     pushHistory();
     const selectedIds = new Set(nodesRef.current.filter((n) => n.selected).map((n) => n.id));
-    setNodes((nds) =>
-      selectedIds.size >= 2 ? computeLayoutForSelection(nds, edgesRef.current, selectedIds) : computeLayout(nds, edgesRef.current),
-    );
+    const mode = nodeModeRef.current;
+    const laidOut =
+      selectedIds.size >= 2
+        ? await computeLayoutForSelection(nodesRef.current, edgesRef.current, selectedIds, mode)
+        : await computeLayout(nodesRef.current, edgesRef.current, mode, sectionsRef.current);
+    setNodes(laidOut);
     // Recentraliza o resultado sem trocar o zoom atual do usuário — fitView recalcularia um zoom
     // novo pra caber tudo, o que não é o que "Organizar" deveria fazer (só reposiciona os nós).
     requestAnimationFrame(() => {
@@ -1089,15 +1361,29 @@ function DesignerInner({
     });
   }, [pushHistory, getNodesBounds, getViewport, setViewport, previewNode, dockHeight]);
 
+  // Trocar de modo reorganiza o fluxo no espaçamento do novo modo (também quando o modo muda em
+  // outra tela, já que a preferência é compartilhada).
+  useEffect(() => {
+    if (loading || laidOutModeRef.current === null || laidOutModeRef.current === nodeMode) return;
+    laidOutModeRef.current = nodeMode;
+    pushHistory();
+    computeLayout(nodesRef.current, edgesRef.current, nodeMode, sectionsRef.current).then((laidOut) => {
+      setNodes(laidOut);
+      requestAnimationFrame(() => fitViewLeftAligned());
+    });
+  }, [nodeMode, loading, pushHistory, fitViewLeftAligned]);
+
   // Botão "Ajustar à tela" da Toolbar: o fitView nativo do React Flow calcula contra a altura
   // inteira do pane, sem saber que o Form Builder (FormDesignerDock, position:absolute) cobre a
   // parte de baixo do mesmo container quando aberto — resultado, nós ficavam ajustados atrás do
   // dock. Reaproveita o cálculo manual de fitViewLeftAligned, mas centralizado e restrito à área
   // realmente visível acima do dock.
-  const fitToVisibleArea = useCallback(() => {
+  // Sem ids: o fluxo inteiro; com ids: só essas etapas (zoom na seleção).
+  const fitToVisibleArea = useCallback((ids?: string[]) => {
     const paneEl = wrapperRef.current;
-    if (!paneEl || nodesRef.current.length === 0) return;
-    const bounds = getNodesBounds(nodesRef.current.map((n) => n.id));
+    const target = ids ?? nodesRef.current.map((n) => n.id);
+    if (!paneEl || target.length === 0) return;
+    const bounds = getNodesBounds(target);
     if (bounds.width === 0 && bounds.height === 0) return;
     const { width: paneWidth, height: paneHeight } = paneEl.getBoundingClientRect();
     if (!paneWidth || !paneHeight) return;
@@ -1113,11 +1399,53 @@ function DesignerInner({
       (visibleHeight * (1 - padding)) / bounds.height,
       1.6, // mesmo maxZoom configurado no <ReactFlow> abaixo
     );
-    const boundedZoom = Math.max(zoom, 0.4); // mesmo minZoom configurado no <ReactFlow> abaixo
+    const boundedZoom = Math.max(zoom, 0.2); // mesmo minZoom configurado no <ReactFlow> abaixo
     const x = paneWidth / 2 - (bounds.x + bounds.width / 2) * boundedZoom;
     const y = visibleHeight / 2 - (bounds.y + bounds.height / 2) * boundedZoom;
     setViewport({ x, y, zoom: boundedZoom }, { duration: 200 });
   }, [getNodesBounds, setViewport, previewNode, dockHeight]);
+
+  // Leva a etapa ao centro da tela (Guia/tour), sem afastar além do zoom atual.
+  const focusOnNode = useCallback(
+    (nodeId: string) => {
+      const paneEl = wrapperRef.current;
+      if (!paneEl) return;
+      const bounds = getNodesBounds([nodeId]);
+      const { width, height } = paneEl.getBoundingClientRect();
+      const z = Math.max(getViewport().zoom, 0.9);
+      setViewport({ x: width / 2 - (bounds.x + bounds.width / 2) * z, y: height / 2 - (bounds.y + bounds.height / 2) * z, zoom: z }, { duration: 350 });
+    },
+    [getNodesBounds, getViewport, setViewport],
+  );
+
+  // Atalhos de navegação: Ctrl+F busca, F (ou Shift+1) ajusta à tela, Shift+2 aproxima da seleção,
+  // Shift+0 volta a 100%, Ctrl+G agrupa a seleção numa seção. Fora de campos de texto.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setSearchOpen(true);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        groupSelection();
+      } else if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        fitToVisibleArea();
+      } else if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.code === 'Digit1') fitToVisibleArea();
+        else if (e.code === 'Digit2') {
+          const ids = nodesRef.current.filter((n) => n.selected).map((n) => n.id);
+          if (ids.length) fitToVisibleArea(ids);
+        } else if (e.code === 'Digit0') zoomTo(1, { duration: 150 });
+        else return;
+        e.preventDefault();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [fitToVisibleArea, zoomTo, groupSelection]);
 
   useEffect(() => {
     if (isValidPreviewTarget && propertiesNode) setPinnedPreviewNodeId(propertiesNode.id);
@@ -1125,7 +1453,7 @@ function DesignerInner({
   // Memoizado: sem isso, o objeto era recriado a cada render (inclusive nos dezenas de renders por
   // segundo que o próprio arraste de um nó dispara via onNodesChange), e todo nó que consome esse
   // contexto (useFlowTheme) reage à mudança de referência mesmo memoizado — Context ignora React.memo.
-  const flowTheme = useMemo(() => ({ dark, c, nodeFill }), [dark, c, nodeFill]);
+  const flowTheme = useMemo(() => ({ dark, c, nodeFill, nodeMode }), [dark, c, nodeFill, nodeMode]);
 
   if (loading) {
     return (
@@ -1149,14 +1477,11 @@ function DesignerInner({
             onEdgeShapeChange={setEdgeShape}
             nodeFill={nodeFill}
             onNodeFillChange={setNodeFill}
+            nodeMode={nodeMode}
+            onNodeModeChange={setNodeMode}
             selectedCount={selectedNodeIds.length}
             onAlign={alignSelected}
             onDistribute={distributeSelected}
-            zoomPct={Math.round(zoom * 100)}
-            onZoomIn={() => zoomIn({ duration: 150 })}
-            onZoomOut={() => zoomOut({ duration: 150 })}
-            onZoomChange={(pct) => zoomTo(pct / 100, { duration: 150 })}
-            onFitToScreen={fitToVisibleArea}
             onSave={handleSave}
             saving={saving}
             onValidate={handleValidate}
@@ -1177,17 +1502,24 @@ function DesignerInner({
               onDrop={onDrop}
             >
               <ReactFlow
-                nodes={[...displayNodes, ...displayAnnotations]}
-                edges={[...displayEdges, ...annotationLinkEdges]}
+                nodes={[...(sectionNodes as unknown as WFNode[]), ...displayNodes, ...displayAnnotations]}
+                edges={[...displayEdges, ...sectionLinkEdges]}
                 nodeTypes={nodeTypes}
                 edgeTypes={flowEdgeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                // Enquanto uma ligação é puxada, os pontos de conexão de todas as etapas ficam visíveis.
+                onConnectStart={() => setConnecting(true)}
+                onConnectEnd={() => setConnecting(false)}
+                className={connecting ? 'wf-connecting' : undefined}
                 onReconnect={onReconnect}
+                // Duplo clique na linha: escreve (ou troca) o rótulo dela.
+                onEdgeDoubleClick={(_, edge) => !edge.id.startsWith('SectionLink_') && setEditingEdgeId(edge.id)}
                 onPaneClick={onPaneClick}
                 onNodeDragStart={onNodeDragStart}
-                onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)}
+                // Só etapas destacam o caminho; moldura/bloco de seção não.
+                onNodeMouseEnter={(_, node) => !node.id.startsWith('Section') && setHoveredNodeId(node.id)}
                 onNodeMouseLeave={() => setHoveredNodeId(null)}
                 onBeforeDelete={onBeforeDelete}
                 // Desligado enquanto o dock de edição de tela está aberto (previewNode) — o React
@@ -1199,7 +1531,7 @@ function DesignerInner({
                 deleteKeyCode={previewNode ? null : ['Delete', 'Backspace']}
                 multiSelectionKeyCode={['Control', 'Meta']}
                 selectionKeyCode={['Control', 'Meta']}
-                minZoom={0.4}
+                minZoom={0.2}
                 maxZoom={1.6}
                 connectionRadius={30}
                 defaultEdgeOptions={{ type: edgeShape }}
@@ -1212,6 +1544,36 @@ function DesignerInner({
                 proOptions={{ hideAttribution: true }}
               >
                 <Background variant={BackgroundVariant.Dots} color={journeyDotColor} gap={20} size={1.2} />
+                <NavigationBar
+                  zoomPct={Math.round(zoom * 100)}
+                  selectedCount={selectedNodeIds.length}
+                  onSearch={() => setSearchOpen(true)}
+                  search={
+                    searchOpen ? (
+                      <NodeSearch
+                        nodes={nodes.map((n) => ({ id: n.id, type: n.type as NodeType, name: n.data.name }))}
+                        onPick={(id) => {
+                          selectOnlyNode(id);
+                          focusOnNode(id);
+                        }}
+                        onClose={() => setSearchOpen(false)}
+                      />
+                    ) : null
+                  }
+                  onZoomIn={() => zoomIn({ duration: 150 })}
+                  onZoomOut={() => zoomOut({ duration: 150 })}
+                  onZoom={(pct) => zoomTo(pct / 100, { duration: 150 })}
+                  onFit={() => fitToVisibleArea()}
+                  onZoomToSelection={() => fitToVisibleArea(nodesRef.current.filter((n) => n.selected).map((n) => n.id))}
+                  onGroup={groupSelection}
+                />
+                <GuidePanel
+                  notes={notes}
+                  nodeName={(nodeId) => nodesRef.current.find((n) => n.id === nodeId)?.data.name}
+                  onHighlight={setGuideNodeId}
+                  onFocus={focusOnNode}
+                  startTour={tourPending}
+                />
                 {minimapOpen ? (
                   <>
                     <MiniMap

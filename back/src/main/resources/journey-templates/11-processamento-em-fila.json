@@ -550,6 +550,34 @@
           "Node_AguardaProcessamento"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Pedido",
+        "nodeIds": [
+          "Node_Pedido",
+          "Node_EnviaProcessamento"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Processamento",
+        "nodeIds": [
+          "Node_AguardaProcessamento",
+          "Node_Aprovado"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Resultado",
+        "nodeIds": [
+          "Node_Transferida",
+          "Node_Recusada",
+          "Node_FimTransferida",
+          "Node_FimRecusada"
+        ]
+      }
     ]
   }
 }

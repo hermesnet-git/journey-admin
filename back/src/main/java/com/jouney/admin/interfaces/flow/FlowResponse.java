@@ -7,19 +7,22 @@ import com.jouney.admin.domain.flow.FlowAnnotation;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
+import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.sdui.SduiNode;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public record FlowResponse(String flowId, UUID journeyId, String name, List<NodeResponse> nodes,
-                            List<ConnectionResponse> connections, List<AnnotationResponse> annotations) {
+                            List<ConnectionResponse> connections, List<AnnotationResponse> annotations,
+                            String layoutMode, List<FlowSection> sections) {
 
     public static FlowResponse from(Flow flow) {
         return new FlowResponse(flow.getId(), flow.getJourneyId(), flow.getName(),
                 flow.getNodes().stream().map(NodeResponse::from).toList(),
                 flow.getConnections().stream().map(ConnectionResponse::from).toList(),
-                flow.getAnnotations().stream().map(AnnotationResponse::from).toList());
+                flow.getAnnotations().stream().map(AnnotationResponse::from).toList(),
+                flow.getLayoutMode(), flow.getSections());
     }
 
     public record NodeResponse(String nodeId, FlowNodeType nodeType, String name, String description, int positionX,
@@ -53,11 +56,12 @@ public record FlowResponse(String flowId, UUID journeyId, String name, List<Node
     }
 
     public record ConnectionResponse(String connectionId, String sourceNodeId, String targetNodeId, String condition,
-                                      boolean isDefault, boolean onError) {
+                                      boolean isDefault, boolean onError, String label) {
 
         public static ConnectionResponse from(FlowConnection connection) {
             return new ConnectionResponse(connection.getId(), connection.getSourceNodeId(),
-                    connection.getTargetNodeId(), connection.getCondition(), connection.isDefault(), connection.isOnError());
+                    connection.getTargetNodeId(), connection.getCondition(), connection.isDefault(), connection.isOnError(),
+                    connection.getLabel());
         }
     }
 

@@ -976,6 +976,37 @@
           "Node_EscalaRede"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Atendimento",
+        "nodeIds": [
+          "Node_OrdemServico",
+          "Node_ConsultaOS",
+          "Node_Chegada",
+          "Node_Reparo",
+          "Node_Resolvido"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Encerramento",
+        "nodeIds": [
+          "Node_EncerraOS",
+          "Node_Encerrada",
+          "Node_FimEncerrada"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Escalada",
+        "nodeIds": [
+          "Node_EscalaRede",
+          "Node_Escalada",
+          "Node_FimEscalada"
+        ]
+      }
     ]
   }
 }

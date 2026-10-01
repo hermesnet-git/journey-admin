@@ -7,6 +7,7 @@ import com.jouney.admin.domain.flow.FlowAnnotation;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
+import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.journey.JourneyTemplate;
 import com.jouney.admin.domain.journey.JourneyTemplateCatalog;
 import com.jouney.admin.domain.sdui.SduiNode;
@@ -78,12 +79,13 @@ public class JsonJourneyTemplateCatalog implements JourneyTemplateCatalog {
                     flow.name(),
                     flow.nodes().stream().map(NodeFile::toDomain).toList(),
                     flow.connections().stream().map(ConnectionFile::toDomain).toList(),
-                    flow.annotations().stream().map(AnnotationFile::toDomain).toList());
+                    flow.annotations().stream().map(AnnotationFile::toDomain).toList(),
+                    flow.sections() != null ? flow.sections() : List.of());
         }
     }
 
     private record FlowFile(String name, List<NodeFile> nodes, List<ConnectionFile> connections,
-                            List<AnnotationFile> annotations) {
+                            List<AnnotationFile> annotations, List<FlowSection> sections) {
     }
 
     private record NodeFile(String nodeId, FlowNodeType nodeType, String name, String description, int positionX,
@@ -109,10 +111,10 @@ public class JsonJourneyTemplateCatalog implements JourneyTemplateCatalog {
     }
 
     private record ConnectionFile(String connectionId, String sourceNodeId, String targetNodeId, String condition,
-                                  boolean isDefault, boolean onError) {
+                                  boolean isDefault, boolean onError, String label) {
 
         FlowConnection toDomain() {
-            return new FlowConnection(connectionId, sourceNodeId, targetNodeId, condition, isDefault, onError);
+            return new FlowConnection(connectionId, sourceNodeId, targetNodeId, condition, isDefault, onError, label);
         }
     }
 

@@ -8,6 +8,7 @@ import com.jouney.admin.application.flow.UpdateFlow;
 import com.jouney.admin.domain.componentregistry.ComponentDefinition;
 import com.jouney.admin.domain.flow.Flow;
 import com.jouney.admin.domain.flow.FlowIds;
+import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.domain.flow.FlowValidator;
 import com.jouney.admin.infrastructure.ai.AiRequestDeclinedException;
@@ -68,7 +69,10 @@ public class FlowController {
         var nodes = input.nodes().stream().map(FlowNodeInput::toDomain).toList();
         var connections = input.connections().stream().map(FlowConnectionInput::toDomain).toList();
         var annotations = input.annotations().stream().map(FlowAnnotationInput::toDomain).toList();
-        return FlowResponse.from(updateFlow.execute(journeyId, input.name(), nodes, connections, annotations));
+        var sections = input.sections() == null ? List.<FlowSection>of()
+                : input.sections().stream().map(FlowSectionInput::toDomain).toList();
+        return FlowResponse.from(updateFlow.execute(journeyId, input.name(), nodes, connections, annotations,
+                input.layoutMode(), sections));
     }
 
     // Salvar não valida mais (rascunho pode ficar inconsistente até a publicação) — este endpoint

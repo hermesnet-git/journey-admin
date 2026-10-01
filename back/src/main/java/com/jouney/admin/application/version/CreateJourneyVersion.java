@@ -59,6 +59,7 @@ public class CreateJourneyVersion {
             JourneyVersion draft = existingDraft.get();
             draft.replaceContent(journey.getName(), journey.getDescription(), product.getId(), product.getName(),
                     channelTypes, flow.getNodes(), flow.getConnections());
+            draft.withSections(flow.getSections());
             JourneyVersion saved = journeyVersionRepository.save(draft);
             recordAuditEvent.record("JOURNEY_VERSION_UPDATE", "JOURNEY_VERSION", saved.getId(), AuditResult.SUCCESS,
                     createdBy);
@@ -68,7 +69,7 @@ public class CreateJourneyVersion {
         int nextVersionNumber = journeyVersionRepository.findMaxVersionNumber(journeyId) + 1;
         JourneyVersion version = JourneyVersion.createDraft(journeyId, nextVersionNumber, description, createdBy,
                 journey.getName(), journey.getDescription(), product.getId(), product.getName(), channelTypes,
-                flow.getNodes(), flow.getConnections());
+                flow.getNodes(), flow.getConnections()).withSections(flow.getSections());
         JourneyVersion saved = journeyVersionRepository.save(version);
         recordAuditEvent.record("JOURNEY_VERSION_CREATE", "JOURNEY_VERSION", saved.getId(), AuditResult.SUCCESS,
                 createdBy);

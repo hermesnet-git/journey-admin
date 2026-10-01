@@ -588,6 +588,34 @@
           "Node_AvisaFaturamento"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Provisionamento",
+        "nodeIds": [
+          "Node_Pedido",
+          "Node_Provisiona",
+          "Node_ProvisionouAlgum"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Ativos",
+        "nodeIds": [
+          "Node_AvisaFaturamento",
+          "Node_Ativos",
+          "Node_FimAtivos"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Falha",
+        "nodeIds": [
+          "Node_Falha",
+          "Node_FimFalha"
+        ]
+      }
     ]
   }
 }

@@ -989,6 +989,46 @@
           "Node_EscolheFatura"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Consulta",
+        "nodeIds": [
+          "Node_Cpf",
+          "Node_BuscaFaturas",
+          "Node_TemFaturas",
+          "Node_EmDia",
+          "Node_FimEmDia"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Escolha",
+        "nodeIds": [
+          "Node_EscolheFatura",
+          "Node_Negociar"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Segunda via",
+        "nodeIds": [
+          "Node_GeraSegundaVia",
+          "Node_SegundaVia",
+          "Node_FimSegundaVia"
+        ]
+      },
+      {
+        "id": "Section_4",
+        "name": "Acordo",
+        "nodeIds": [
+          "Node_Parcelas",
+          "Node_FechaAcordo",
+          "Node_AcordoFechado",
+          "Node_FimAcordo"
+        ]
+      }
     ]
   }
 }

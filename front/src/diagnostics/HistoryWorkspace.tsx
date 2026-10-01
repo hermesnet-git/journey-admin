@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ReplayBar } from './ReplayBar';
 import { AlertTriangle, RefreshCw, RotateCw, ScrollText, Sliders } from 'lucide-react';
 import { skinVars, Text } from '@telefonica/mistica';
 import type { ComponentType } from 'react';
@@ -145,6 +146,9 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTabKey>('variaveis');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  // Reprodução: quantos passos estão à mostra (null = execução completa).
+  const [replayPosition, setReplayPosition] = useState<number | null>(null);
+  const [replayPlaying, setReplayPlaying] = useState(false);
   const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
   const draggingRef = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -224,7 +228,18 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
 
   // Início/Início por Mensagem já vêm como um HistoryStep normal (backend não filtra mais o
   // startEvent) — não precisa mais somar o nó inicial à parte, como antes.
-  const visitedNodeIds = history.steps.map((s) => s.nodeId);
+  const replaying = replayPosition !== null;
+  // Ordem real dos passos: pelo início de cada um; no empate (mesmo milissegundo), o início da jornada vem primeiro.
+  const startRank = (t: string) => (t === 'START' || t === 'MESSAGE_START_EVENT' ? 0 : 1);
+  const orderedSteps = [...history.steps].sort((a, b) => a.startTime.localeCompare(b.startTime) || startRank(a.nodeType) - startRank(b.nodeType));
+  const shownSteps = replaying ? orderedSteps.slice(0, replayPosition) : orderedSteps;
+  const visitedNodeIds = shownSteps.map((s) => s.nodeId);
+  const replayStep = replaying && replayPosition! > 0 ? orderedSteps[replayPosition! - 1] : null;
+  // Na reprodução, a "etapa atual" é o passo escolhido; fora dela, a etapa em que a instância está.
+  const shownCurrentNodeId = replaying ? (replayStep?.nodeId ?? null) : history.currentNodeId;
+  const replayCutoff = replayStep ? (replayStep.endTime ?? replayStep.startTime) : null;
+  const stepNumbers: Record<string, number[]> = {};
+  shownSteps.forEach((st, i) => (stepNumbers[st.nodeId] = [...(stepNumbers[st.nodeId] ?? []), i + 1]));
 
   const normalizedSteps = history.steps.map((step) => ({ ...step, input: unwrapKafkaInput(step.input) }));
 
@@ -267,13 +282,18 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
       isError: true,
       nodeId: incident.nodeId,
     })),
-  ].sort((a, b) => a.time.localeCompare(b.time));
+  ]
+    .sort((a, b) => a.time.localeCompare(b.time))
+    // Na reprodução, só o que aconteceu até o passo escolhido.
+    .filter((entry) => !replaying || (replayCutoff !== null && entry.time <= replayCutoff.slice(11, 23)));
 
   const selectedFlowNode = selectedNodeId ? history.flow.flowNodes.find((n) => n.id === selectedNodeId) : undefined;
   const selectedDetail = selectedNodeId ? nodeIO[selectedNodeId] : undefined;
   // Corta a timeline no fim deste nó (ou "agora" pro nó em andamento, sem endTime) — usado tanto
   // pela foto do drawer quanto pra colorir a timeline completa da aba Variáveis.
-  const highlightUpToTime = selectedNodeId ? (selectedDetail?.endTime ?? (selectedNodeId === history.currentNodeId ? new Date().toISOString() : null)) : null;
+  const highlightUpToTime = replaying
+    ? (replayCutoff ?? history.startTime)
+    : selectedNodeId ? (selectedDetail?.endTime ?? (selectedNodeId === history.currentNodeId ? new Date().toISOString() : null)) : null;
 
   return (
     <div className="flex-1 min-h-0 flex flex-col" style={{ background: skinVars.colors.background }}>
@@ -346,15 +366,28 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
         </div>
       )}
 
+      <ReplayBar
+        total={history.steps.length}
+        position={replayPosition}
+        playing={replayPlaying}
+        stepLabel={replayStep?.nodeName ?? null}
+        onPositionChange={setReplayPosition}
+        onPlayingChange={setReplayPlaying}
+      />
+
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0 flex">
           <div className="flex-1 min-w-0 h-full">
             <FlowDiagramViewer
               flowNodes={history.flow.flowNodes}
               flowConnections={history.flow.flowConnections}
-              currentNodeId={history.currentNodeId}
+              sections={history.flow.sections}
+              currentNodeId={shownCurrentNodeId}
               visitedNodeIds={visitedNodeIds}
-              erroredNodeId={openIncident?.nodeId ?? null}
+              stepNumbers={stepNumbers}
+              dimUnvisited={replaying}
+              flashNodeId={replayPlaying ? (replayStep?.nodeId ?? null) : null}
+              erroredNodeId={replaying ? null : (openIncident?.nodeId ?? null)}
               erroredNodeName={openIncident?.nodeName ?? null}
               erroredMessage={openIncident?.message ?? null}
               selectedNodeId={selectedNodeId}

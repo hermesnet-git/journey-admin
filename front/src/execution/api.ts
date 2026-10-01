@@ -180,7 +180,8 @@ export interface JourneySummary {
 }
 
 export type { SduiEnvelope } from '../sdui/model';
-import type { SduiEnvelope } from '../sdui/model';
+import type { SduiEnvelope, SduiNode } from '../sdui/model';
+import type { FlowSection } from '../api/flows';
 
 export interface FormPayload {
   id: string;
@@ -260,6 +261,8 @@ export interface FlowNodeInfo {
   // REQ-03.12.001: {name, type} declarations, meaningful only on the START node — variables the
   // caller must supply when starting an instance (collected by StartPanel before "Executar").
   startVariables: { name: string; type: string }[] | null;
+  // Tela da Tarefa de Usuário: dá os rótulos dos campos para as condições legíveis e as etiquetas.
+  embeddedScreenRoot?: SduiNode | null;
 }
 
 export interface FlowConnectionInfo {
@@ -270,12 +273,15 @@ export interface FlowConnectionInfo {
   isDefault: boolean;
   // Saída "Se falhar" de uma integração REST.
   onError?: boolean;
+  label?: string | null;
 }
 
 export interface FlowBundle {
   channelTypes: string[];
   flowNodes: FlowNodeInfo[];
   flowConnections: FlowConnectionInfo[];
+  // Seções do canvas na versão (grupos de etapas com nome).
+  sections?: FlowSection[];
 }
 
 export interface InstanceResponse {

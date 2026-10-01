@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { skinVars } from '@telefonica/mistica';
 import {
   apiCallLogData,
@@ -25,7 +25,9 @@ import {
   type VariableEntry,
 } from './api';
 import { DevicePreview } from './DevicePreview';
-import { InspectorPanel, type LogEntry } from './InspectorPanel';
+import { InspectorPanel, NodeDetailDrawer, type LogEntry } from './InspectorPanel';
+import { FlowDiagramViewer } from './FlowDiagramViewer';
+import { ExecutionTimeline, type TimelineStep, type TimelineWait } from './ExecutionTimeline';
 import { SummaryField } from './SummaryField';
 
 const WAITING_POLL_MS = 2000;
@@ -214,6 +216,20 @@ function trailEntryToNodeIO(entry: TrailEntry): NodeIODetail {
   };
 }
 
+function trailToStep(e: TrailEntry): TimelineStep {
+  return { nodeId: e.nodeId, nodeName: e.nodeName, nodeType: e.nodeType, time: now(), auto: e.nodeType !== 'USER_TASK', failure: e.failure };
+}
+
+function currentToStep(step: StepResponse): TimelineStep {
+  return {
+    nodeId: step.nodeId!,
+    nodeName: step.nodeName ?? step.nodeId!,
+    nodeType: step.nodeType ?? 'USER_TASK',
+    time: now(),
+    auto: step.type !== 'USER_TASK',
+  };
+}
+
 export function ExecutionWorkspace({
   processInstanceId,
   businessKey,
@@ -254,6 +270,28 @@ export function ExecutionWorkspace({
     return ids;
   });
   const [variables, setVariables] = useState<VariableEntry[]>([]);
+  // Ordem dos passos (com repetição, quando a jornada volta por um laço) — numera as etapas no fluxo e
+  // alimenta a linha do tempo.
+  const [steps, setSteps] = useState<TimelineStep[]>(() => {
+    const list: TimelineStep[] = [];
+    const start = flow.flowNodes.find((n) => n.id === startNodeId);
+    if (start) list.push({ nodeId: start.id, nodeName: start.name, nodeType: start.type, time: now(), auto: true });
+    initialStep.trail.forEach((e) => {
+      if (list[list.length - 1]?.nodeId !== e.nodeId) list.push(trailToStep(e));
+    });
+    if (initialStep.nodeId && list[list.length - 1]?.nodeId !== initialStep.nodeId) list.push(currentToStep(initialStep));
+    return list;
+  });
+  const [follow, setFollow] = useState(true);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  // Etapas que o motor percorreu sozinho desde o último passo, mostradas uma a uma no fluxo.
+  const [flashQueue, setFlashQueue] = useState<string[]>([]);
+  const flashNodeId = flashQueue[0] ?? null;
+  useEffect(() => {
+    if (flashQueue.length === 0) return;
+    const timer = setTimeout(() => setFlashQueue((q) => q.slice(1)), 650);
+    return () => clearTimeout(timer);
+  }, [flashQueue]);
   const [nodeIO, setNodeIO] = useState<Record<string, NodeIODetail>>(() => {
     const map: Record<string, NodeIODetail> = {};
     for (const entry of initialStep.trail) {
@@ -328,6 +366,15 @@ export function ExecutionWorkspace({
     } else {
       clearError();
     }
+    setSteps((prev) => {
+      const next = [...prev];
+      newStep.trail.forEach((e) => {
+        if (next[next.length - 1]?.nodeId !== e.nodeId) next.push(trailToStep(e));
+      });
+      if (newStep.nodeId && next[next.length - 1]?.nodeId !== newStep.nodeId) next.push(currentToStep(newStep));
+      return next;
+    });
+    setFlashQueue(newStep.trail.filter((e) => e.nodeType !== 'USER_TASK').map((e) => e.nodeId));
     for (const entry of newStep.trail) {
       setVisitedPath((prev) => (prev.includes(entry.nodeId) ? prev : [...prev, entry.nodeId]));
       // Nó já narrado por quem chamou (ex.: handleSendKafkaMessage, que detalha a mensagem
@@ -468,6 +515,12 @@ export function ExecutionWorkspace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isWaitingOnKafka, processInstanceId, step.type, step.nodeId]);
 
+  const stepNumbers = useMemo(() => {
+    const map: Record<string, number[]> = {};
+    steps.forEach((s, i) => (map[s.nodeId] = [...(map[s.nodeId] ?? []), i + 1]));
+    return map;
+  }, [steps]);
+
   async function handleEditVariable(name: string, rawValue: string, type: string) {
     try {
       const value = type === 'Boolean' ? rawValue === 'true' : type === 'Double' ? Number(rawValue) : rawValue;
@@ -488,8 +541,9 @@ export function ExecutionWorkspace({
         <SummaryField label="Instance ID" value={processInstanceId} mono copyable />
         <SummaryField label="Business key" value={businessKey} mono copyable />
       </div>
-      <div className="flex-1 min-h-0 overflow-auto">
-        <div className="max-w-[1040px] mx-auto px-6 py-8">
+      <div className="flex-1 min-h-0 flex">
+        {/* Canal */}
+        <div className="w-[440px] shrink-0 overflow-auto px-5 py-6" style={{ borderRight: `1px solid ${skinVars.colors.border}` }}>
           <DevicePreview
             // REQ-05.07.003: usa o canal que o usuário de fato escolheu no StartPanel — só cai pro
             // primeiro canal da jornada quando não há escolha (instância nascida por mensagem).
@@ -507,6 +561,53 @@ export function ExecutionWorkspace({
             onPreviewKafkaMessage={handlePreviewKafkaMessage}
           />
         </div>
+
+        {/* Fluxo */}
+        <div className="flex-1 min-w-0 flex">
+          <div className="flex-1 min-w-0 h-full">
+            <FlowDiagramViewer
+              flowNodes={flow.flowNodes}
+              flowConnections={flow.flowConnections}
+              sections={flow.sections}
+              currentNodeId={step.type === 'ENDED' ? null : step.nodeId}
+              visitedNodeIds={visitedPath}
+              erroredNodeId={erroredNodeId}
+              erroredNodeName={erroredNodeName}
+              erroredMessage={erroredMessage}
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={setSelectedNodeId}
+              stepNumbers={stepNumbers}
+              dimUnvisited
+              flashNodeId={flashNodeId}
+              follow={follow}
+              onFollowChange={setFollow}
+            />
+          </div>
+          {selectedNodeId && (
+            <NodeDetailDrawer
+              detail={nodeIO[selectedNodeId]}
+              flowNode={flow.flowNodes.find((n) => n.id === selectedNodeId)}
+              flowNodes={flow.flowNodes}
+              flowConnections={flow.flowConnections}
+              currentNodeId={step.type === 'ENDED' ? null : step.nodeId}
+              visitedNodeIds={visitedPath}
+              variables={variables}
+              fallbackName={flow.flowNodes.find((n) => n.id === selectedNodeId)?.name ?? selectedNodeId}
+              onClose={() => setSelectedNodeId(null)}
+            />
+          )}
+        </div>
+
+        {/* Linha do tempo */}
+        <div className="w-[340px] shrink-0 min-h-0" style={{ borderLeft: `1px solid ${skinVars.colors.border}`, background: skinVars.colors.background }}>
+          <ExecutionTimeline
+            steps={steps}
+            nodeIO={nodeIO}
+            wait={explainWait(step, flow, channelType, erroredMessage ? `${erroredNodeName ?? 'Etapa'}: ${erroredMessage}` : null)}
+            selectedNodeId={selectedNodeId}
+            onSelect={setSelectedNodeId}
+          />
+        </div>
       </div>
 
       <InspectorPanel
@@ -521,9 +622,42 @@ export function ExecutionWorkspace({
         variables={variables}
         onEditVariable={handleEditVariable}
         log={log}
+        hideWorkflow
       />
     </div>
   );
+}
+
+const CHANNEL_LABEL: Record<string, string> = { WEB: 'Web', MOBILE: 'Mobile', WHATSAPP: 'WhatsApp' };
+
+// O que a jornada está esperando agora, em linguagem de quem acompanha a execução.
+function explainWait(step: StepResponse, flow: FlowBundle, channelType: string | undefined, errorText: string | null): TimelineWait {
+  if (errorText) return { title: 'Parou por erro', detail: errorText, tone: 'error' };
+  if (step.type === 'ENDED') return { title: 'Jornada concluída', detail: 'Todas as etapas terminaram.', tone: 'done' };
+  const node = flow.flowNodes.find((n) => n.id === step.nodeId);
+  const name = step.nodeName ?? node?.name ?? 'etapa';
+  if (step.type === 'USER_TASK') {
+    const channel = channelType ? CHANNEL_LABEL[channelType] ?? channelType : null;
+    return {
+      title: 'Esperando o cliente',
+      detail: `A tela "${name}" está aberta${channel ? ` no canal ${channel}` : ''}. A jornada continua quando ela for respondida.`,
+    };
+  }
+  const connector = node?.connectorConfig;
+  const cfg = connector?.config ?? {};
+  if (connector?.connectorType === 'KAFKA' && (step.nodeType === 'RECEIVE_TASK' || node?.type === 'RECEIVE_TASK')) {
+    return { title: 'Esperando uma mensagem', detail: `"${name}" aguarda uma mensagem chegar no tópico "${String(cfg.topic ?? '')}".` };
+  }
+  if (connector?.connectorType === 'KAFKA') {
+    return { title: 'Publicando mensagem', detail: `"${name}" está enviando a mensagem para o tópico "${String(cfg.topic ?? '')}".` };
+  }
+  if (connector?.connectorType === 'REST') {
+    return {
+      title: 'Integração em segundo plano',
+      detail: `"${name}" está chamando a API. Se ela falhar, o motor tenta de novo sozinho antes de seguir pelo caminho "Se falhar".`,
+    };
+  }
+  return { title: 'Em andamento', detail: `A etapa "${name}" ainda não terminou.` };
 }
 
 function capitalize(s: string): string {

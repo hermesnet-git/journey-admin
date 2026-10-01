@@ -586,6 +586,35 @@
           "Node_AguardaOperadora"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Solicitação",
+        "nodeIds": [
+          "Node_Dados",
+          "Node_ConsultaPrazo",
+          "Node_PrazoCurto"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Prazo estendido",
+        "nodeIds": [
+          "Node_PrazoEstendido",
+          "Node_FimPrazo"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Portabilidade",
+        "nodeIds": [
+          "Node_Solicita",
+          "Node_AguardaOperadora",
+          "Node_Concluida",
+          "Node_FimConcluida"
+        ]
+      }
     ]
   }
 }

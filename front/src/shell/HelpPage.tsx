@@ -76,6 +76,36 @@ const FAQ_ITEMS: FaqItem[] = [
       'Sim. Ao descrever o fluxo desejado em linguagem natural, o sistema monta um rascunho editável no canvas, preservando o que já estava desenhado quando o pedido for pontual. É preciso ter uma credencial de IA cadastrada no Catálogo de Integrações.',
   },
   {
+    topic: 'modelagem',
+    question: 'Como mudo a aparência das etapas no canvas?',
+    answer:
+      'Na barra de cima do editor escolha Círculo, Compacto ou Detalhado. O fluxo se reorganiza no formato escolhido, e a mesma preferência vale na Execução e no Diagnóstico.',
+  },
+  {
+    topic: 'modelagem',
+    question: 'Como escrevo um rótulo numa ligação?',
+    answer:
+      'Clique duas vezes na linha e escreva o rótulo (por exemplo "corrigir dados"). Enter grava, Esc descarta e apagar o texto remove o rótulo. Se a ligação tiver condição, ela continua aparecendo ao passar o mouse no rótulo.',
+  },
+  {
+    topic: 'modelagem',
+    question: 'Como encontro uma etapa num fluxo grande?',
+    answer:
+      'Use a barra no topo do canvas: "Buscar etapa" (Ctrl+F), zoom em 50%, 75% ou 100%, "Ajustar" (F) para ver o fluxo inteiro e, com etapas selecionadas, "Zoom na seleção" (Shift+2). Ao afastar, as etapas viram pílulas e depois pontos coloridos, e o nome das seções fica em destaque.',
+  },
+  {
+    topic: 'modelagem',
+    question: 'Como agrupo etapas em seções?',
+    answer:
+      'Selecione duas ou mais etapas (Ctrl + clique) e use "Agrupar em seção" (Ctrl+G). Clique duas vezes no nome da seção para renomear e na seta para recolher; recolhida, ela vira um bloco com a quantidade de etapas. A seção que recebe o caminho "Se falhar" aparece com o nome em vermelho.',
+  },
+  {
+    topic: 'modelagem',
+    question: 'O que são os números amarelos nas etapas?',
+    answer:
+      'São anotações ligadas àquela etapa. Clique no número para ler ou editar. O botão "Guia" no canto do canvas lista todas em ordem e "Ver guia" percorre uma a uma.',
+  },
+  {
     topic: 'formularios',
     question: 'Como associo um formulário a uma etapa da jornada?',
     answer:
@@ -110,6 +140,12 @@ const FAQ_ITEMS: FaqItem[] = [
     question: 'O que acontece se uma integração falhar durante a execução?',
     answer:
       'O nó que causou a falha é destacado no diagrama, a falha fica registrada no log cronológico da execução, e a mensagem de erro completa pode ser consultada sob demanda, sem aparecer de forma intrusiva na tela.',
+  },
+  {
+    topic: 'execucao',
+    question: 'Como acompanho o que a jornada está fazendo?',
+    answer:
+      'Durante a execução a tela mostra o canal, o fluxo e a linha do tempo lado a lado. Cada etapa percorrida ganha um número, as etapas que o motor percorre sozinho são destacadas uma a uma e "Seguir a execução" mantém a etapa atual no centro. No Diagnóstico, a barra de reprodução refaz a execução passo a passo.',
   },
   {
     topic: 'execucao',

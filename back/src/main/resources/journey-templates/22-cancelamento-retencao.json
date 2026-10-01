@@ -707,6 +707,37 @@
           "Node_Cancela"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Motivo",
+        "nodeIds": [
+          "Node_Motivo",
+          "Node_ScoreRetencao",
+          "Node_ValeOfertar"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Retenção",
+        "nodeIds": [
+          "Node_Oferta",
+          "Node_Aceitou",
+          "Node_AplicaOferta",
+          "Node_Retido",
+          "Node_FimRetido"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Cancelamento",
+        "nodeIds": [
+          "Node_Cancela",
+          "Node_Cancelado",
+          "Node_FimCancelado"
+        ]
+      }
     ]
   }
 }

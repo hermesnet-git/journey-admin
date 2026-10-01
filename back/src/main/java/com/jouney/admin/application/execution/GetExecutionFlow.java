@@ -3,6 +3,7 @@ package com.jouney.admin.application.execution;
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
+import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.domain.publication.PublicationRepository;
@@ -33,17 +34,22 @@ public class GetExecutionFlow {
         if (versionNumber == null) {
             Publication publication = publicationRepository.findByJourneyId(journeyId)
                     .orElseThrow(() -> new JourneyNotPublishedException(journeyId));
-            return new ResolvedFlow(publication.getChannelTypes(), publication.getFlowNodes(), publication.getFlowConnections());
+            List<FlowSection> sections = publication.getVersionId() == null ? List.of()
+                    : journeyVersionRepository.findById(publication.getVersionId()).map(JourneyVersion::getSections)
+                            .orElse(List.of());
+            return new ResolvedFlow(publication.getChannelTypes(), publication.getFlowNodes(), publication.getFlowConnections(),
+                    sections);
         }
         JourneyVersion version = journeyVersionRepository.findByJourneyId(journeyId).stream()
                 .filter(v -> v.getVersionNumber() == versionNumber)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
                         "Versão " + versionNumber + " não encontrada para a jornada " + journeyId));
-        return new ResolvedFlow(version.getChannelTypes(), version.getFlowNodes(), version.getFlowConnections());
+        return new ResolvedFlow(version.getChannelTypes(), version.getFlowNodes(), version.getFlowConnections(),
+                version.getSections());
     }
 
     public record ResolvedFlow(List<ChannelType> channelTypes, List<FlowNode> flowNodes,
-                                List<FlowConnection> flowConnections) {
+                                List<FlowConnection> flowConnections, List<FlowSection> sections) {
     }
 }

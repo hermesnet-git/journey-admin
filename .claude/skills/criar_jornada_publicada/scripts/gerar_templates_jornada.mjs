@@ -1694,6 +1694,32 @@ template({
 
 // --- Checagem estrutural (espelho do essencial de FlowValidator/SynchronousChainCheck) -----------
 
+// Seções do canvas por modelo (só nos de 9+ etapas): nome do grupo e as etapas, pelo id usado acima.
+const SECTIONS = {
+  'decisao-varios-caminhos': [['Escolha do perfil', 'Perfil', 'Grande', 'Pequena'], ['Empresa grande', 'Corporativo', 'FimCorporativo'], ['Pequena empresa', 'Pme', 'FimPme'], ['Residencial', 'Residencial', 'FimResidencial']],
+  'aprovacao-pedido': [['Análise', 'Analisar', 'Aprovado'], ['Aprovado', 'AvisaAprovacao', 'TelaAprovado', 'FimAprovado'], ['Reprovado', 'AvisaReprovacao', 'TelaReprovado', 'FimReprovado']],
+  'processamento-em-fila': [['Pedido', 'Pedido', 'EnviaProcessamento'], ['Processamento', 'AguardaProcessamento', 'Aprovado'], ['Resultado', 'Transferida', 'Recusada', 'FimTransferida', 'FimRecusada']],
+  'atendimento-whatsapp': [['Menu', 'Menu', 'SegundaViaOuAtendente'], ['Atendente', 'Atendente', 'FimAtendente'], ['Segunda via', 'Cpf', 'BuscaFaturas', 'TemFaturas', 'EmDia', 'EscolheFatura', 'FimEmDia', 'GeraSegundaVia', 'SegundaVia', 'FimSegundaVia']],
+  'contratacao-plano': [['Identificação e crédito', 'Identificacao', 'AnaliseCredito', 'CreditoAprovado'], ['Pré-pago', 'OfertaPrePago', 'FimPrePago'], ['Escolha do plano', 'BuscaPlanos', 'EscolhePlano'], ['Pedido', 'Endereco', 'CriaPedido', 'Confirmado', 'FimContratado']],
+  'portabilidade': [['Solicitação', 'Dados', 'ConsultaPrazo', 'PrazoCurto'], ['Prazo estendido', 'PrazoEstendido', 'FimPrazo'], ['Portabilidade', 'Solicita', 'AguardaOperadora', 'Concluida', 'FimConcluida']],
+  'upgrade-plano': [['Escolha do plano', 'BuscaPlanos', 'EscolhePlano'], ['Elegibilidade', 'Elegibilidade', 'PodeTrocar'], ['Troca', 'AplicaTroca', 'Trocado', 'FimTrocado'], ['Sem troca', 'Indisponivel', 'FimIndisponivel']],
+  'ativacao-linha': [['Ativação', 'Chip', 'AtivaLinha', 'AguardaRede', 'AtivaNaRede'], ['Resultado', 'Ativada', 'EmAnalise', 'FimAtivada', 'FimAnalise']],
+  'cancelamento-retencao': [['Motivo', 'Motivo', 'ScoreRetencao', 'ValeOfertar'], ['Retenção', 'Oferta', 'Aceitou', 'AplicaOferta', 'Retido', 'FimRetido'], ['Cancelamento', 'Cancela', 'Cancelado', 'FimCancelado']],
+  'autoatendimento-internet': [['Chamado aberto', 'ConsultaChamado', 'TemChamado', 'TelaChamado', 'FimChamado'], ['Pendência financeira', 'ConsultaPendencia', 'TemPendencia', 'TelaPendencia', 'FimPendencia'], ['Falha massiva', 'ConsultaMassiva', 'TemMassiva', 'TelaMassiva', 'FimMassiva'], ['Diagnóstico', 'SolicitaDiagnostico', 'AguardaDiagnostico', 'Resultado', 'FimDiagnostico']],
+  'acompanhamento-instalacao': [['Aviso', 'TecnicoACaminho', 'Aviso', 'PrecisaReagendar'], ['Visita', 'AteJa', 'FimVisita'], ['Reagendamento', 'NovoHorario', 'Reagenda', 'Reagendado', 'FimReagendado']],
+  'manutencao-fibra-campo': [['Atendimento', 'OrdemServico', 'ConsultaOS', 'Chegada', 'Reparo', 'Resolvido'], ['Encerramento', 'EncerraOS', 'Encerrada', 'FimEncerrada'], ['Escalada', 'EscalaRede', 'Escalada', 'FimEscalada']],
+  'negociacao-debito': [['Consulta', 'Cpf', 'BuscaFaturas', 'TemFaturas', 'EmDia', 'FimEmDia'], ['Escolha', 'EscolheFatura', 'Negociar'], ['Segunda via', 'GeraSegundaVia', 'SegundaVia', 'FimSegundaVia'], ['Acordo', 'Parcelas', 'FechaAcordo', 'AcordoFechado', 'FimAcordo']],
+  'gestao-bds': [['Consulta', 'InformaCnpj', 'ConsultaBilhetes', 'TemBilhetes', 'SemBilhetes', 'FimSem'], ['Ação', 'EscolheBilhete', 'ReagendarOuCancelar'], ['Reagendamento', 'NovoHorario', 'Reagenda', 'Reagendado', 'FimReagendado'], ['Cancelamento', 'Cancela', 'Cancelado', 'FimCancelado']],
+  'iot-provisionamento': [['Provisionamento', 'Pedido', 'Provisiona', 'ProvisionouAlgum'], ['Ativos', 'AvisaFaturamento', 'Ativos', 'FimAtivos'], ['Falha', 'Falha', 'FimFalha']],
+  'reclamacao-multicanal': [['Triagem', 'Reclamacao', 'Triagem', 'VaiParaOuvidoria'], ['Ouvidoria', 'EscalaOuvidoria', 'Escalada', 'FimEscalada'], ['Proposta', 'Proposta', 'Aceitou', 'AplicaCompensacao', 'Resolvida', 'FimResolvida']],
+  'integracao-com-falha': [['Cadastro', 'Dados', 'Cadastra', 'DeuCerto'], ['Resultado', 'Sucesso', 'Recusado', 'FimSucesso'], ['Se falhar', 'Indisponivel', 'TentarDeNovo', 'MaisTarde', 'FimMaisTarde']],
+  'eventos-ponta-a-ponta': [['Reserva', 'PedidoCriado', 'SolicitaReserva', 'AguardaReserva', 'Reservado'], ['Faturamento', 'SolicitaFaturamento', 'FimFaturado'], ['Sem estoque', 'SemEstoque', 'Acompanhar', 'PublicaDecisao', 'FimDecidido']],
+};
+
+function sectionsOf(templateId) {
+  return (SECTIONS[templateId] ?? []).map(([name, ...ids], i) => ({ id: `Section_${i + 1}`, name, nodeIds: ids.map((id) => `Node_${id}`) }));
+}
+
 function selfCheck(t, fl) {
   const fail = (msg) => { throw new Error(`[${t.templateId}] ${msg}`); };
   const byId = new Map(fl.nodes.map((n) => [n.nodeId, n]));
@@ -1748,16 +1774,22 @@ function selfCheck(t, fl) {
     }
   }
   for (const a of fl.annotations) for (const id of a.linkedNodeIds) if (!byId.has(id)) fail(`nota liga a etapa inexistente ${id}`);
+  const grouped = new Set();
+  for (const sec of fl.sections ?? []) for (const id of sec.nodeIds) {
+    if (!byId.has(id)) fail(`seção "${sec.name}" com etapa inexistente ${id}`);
+    if (grouped.has(id)) fail(`etapa ${id} em mais de uma seção`);
+    grouped.add(id);
+  }
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
 for (const file of readdirSync(OUT_DIR)) if (file.endsWith('.json')) rmSync(OUT_DIR + file);
 TEMPLATES.forEach((t, index) => {
-  const fl = t.build();
+  const fl = { ...t.build(), sections: sectionsOf(t.templateId) };
   selfCheck(t, fl);
   const { build, ...meta } = t;
   const file = `${String(index + 1).padStart(2, '0')}-${t.templateId}.json`;
   writeFileSync(OUT_DIR + file, `${JSON.stringify({ ...meta, flow: fl }, null, 2)}\n`);
-  console.log(file, '—', fl.nodes.length, 'etapas,', fl.annotations.length, 'notas');
+  console.log(file, '—', fl.nodes.length, 'etapas,', fl.annotations.length, 'notas,', fl.sections.length, 'seções');
 });
 console.log(`${TEMPLATES.length} templates gravados em ${OUT_DIR}`);

@@ -43,7 +43,8 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
                         .toList(),
                 version.getFlowConnections().stream()
                         .map(FlowConnectionRecord::from)
-                        .toList());
+                        .toList(),
+                version.getSections());
 
         JourneyVersionJpaEntity entity = new JourneyVersionJpaEntity(version.getId(), version.getJourneyId(),
                 version.getVersionNumber(), version.getStatus(), writeJson(record), version.getDescription(),
@@ -100,7 +101,7 @@ public class JourneyVersionRepositoryAdapter implements JourneyVersionRepository
                 entity.getStatus(), entity.getDescription(), entity.getCreatedBy(), entity.getCreatedAt(),
                 entity.getPublishedAt(), entity.getRuntimeDeploymentId(), record.journeyName(),
                 record.journeyDescription(), record.productId(), record.productName(), record.channelTypes(),
-                flowNodes, flowConnections);
+                flowNodes, flowConnections).withSections(record.sections());
     }
 
     private String writeJson(Object value) {

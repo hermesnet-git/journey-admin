@@ -159,7 +159,7 @@ public class GetExecutionHistoryDetail {
         return new ExecutionHistoryDetail(instance.id(), instance.businessKey(), journeyId, resolved.journeyName(),
                 resolved.versionNumber(), instance.state(), instance.startTime(), instance.endTime(),
                 instance.durationInMillis(), resolved.channelTypes(), resolved.flowNodes(), resolved.flowConnections(),
-                steps, variables, variableTimeline, incidents, currentNodeId);
+                steps, variables, variableTimeline, incidents, currentNodeId, resolved.sections());
     }
 
     // Mesmos nomes reservados de KafkaVariableNames (todos com o prefixo "__") — técnicos, nunca

@@ -769,6 +769,36 @@
           "Node_DeuCerto"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Cadastro",
+        "nodeIds": [
+          "Node_Dados",
+          "Node_Cadastra",
+          "Node_DeuCerto"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Resultado",
+        "nodeIds": [
+          "Node_Sucesso",
+          "Node_Recusado",
+          "Node_FimSucesso"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Se falhar",
+        "nodeIds": [
+          "Node_Indisponivel",
+          "Node_TentarDeNovo",
+          "Node_MaisTarde",
+          "Node_FimMaisTarde"
+        ]
+      }
     ]
   }
 }

@@ -688,6 +688,41 @@
           "Node_Pequena"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Escolha do perfil",
+        "nodeIds": [
+          "Node_Perfil",
+          "Node_Grande",
+          "Node_Pequena"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Empresa grande",
+        "nodeIds": [
+          "Node_Corporativo",
+          "Node_FimCorporativo"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Pequena empresa",
+        "nodeIds": [
+          "Node_Pme",
+          "Node_FimPme"
+        ]
+      },
+      {
+        "id": "Section_4",
+        "name": "Residencial",
+        "nodeIds": [
+          "Node_Residencial",
+          "Node_FimResidencial"
+        ]
+      }
     ]
   }
 }

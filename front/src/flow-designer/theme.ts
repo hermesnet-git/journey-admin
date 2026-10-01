@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { JsonViewerColors } from '../shared/JsonTreeViewer';
+import type { NodeDisplayMode } from './nodeMode';
 
 export interface FlowColors {
   headerBg: string;
@@ -70,10 +71,11 @@ export const DARK_COLORS: FlowColors = {
 
 // Fundo só do diagrama de Jornadas (React Flow), não o `canvasBg` genérico acima — esse é
 // reaproveitado como "superfície recuada" em vários outros lugares (ConnectorWizard, editor de
-// tela, linhas de PropertyGrid/PropertiesPanel), então botar o roxo nele vazava pra tudo isso.
+// tela, linhas de PropertyGrid/PropertiesPanel), então mudar o fundo nele vazava pra tudo isso.
 // Modo claro não tem constante própria: usa o `canvasBg` normal (cinza bem claro), sem mudança.
-export const JOURNEY_CANVAS_BG_DARK = '#110b1c';
-export const JOURNEY_CANVAS_DOT_DARK = 'rgba(180,111,224,0.28)';
+// Escuro: quase preto neutro com pontos cinza discretos.
+export const JOURNEY_CANVAS_BG_DARK = '#0e0f14';
+export const JOURNEY_CANVAS_DOT_DARK = 'rgba(255,255,255,0.12)';
 
 export interface FlowTheme {
   dark: boolean;
@@ -81,9 +83,11 @@ export interface FlowTheme {
   // Preferência de exibição dos nós: false (padrão) = card neutro, sem tingir o fundo com a cor do
   // tipo; true = 10% da cor do tipo misturada no fundo do card (comportamento antigo).
   nodeFill: boolean;
+  // Círculo, compacto ou detalhado (nodeMode.ts).
+  nodeMode: NodeDisplayMode;
 }
 
-export const FlowThemeContext = createContext<FlowTheme>({ dark: false, c: LIGHT_COLORS, nodeFill: false });
+export const FlowThemeContext = createContext<FlowTheme>({ dark: false, c: LIGHT_COLORS, nodeFill: false, nodeMode: 'detailed' });
 
 export function useFlowTheme() {
   return useContext(FlowThemeContext);

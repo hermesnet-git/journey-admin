@@ -166,6 +166,7 @@ export function StartPanel({ journey, onStarted }: Props) {
               <FlowDiagramViewer
                 flowNodes={flow.flowNodes}
                 flowConnections={flow.flowConnections}
+                sections={flow.sections}
                 currentNodeId={null}
                 visitedNodeIds={[]}
                 erroredNodeId={diagnosis?.confirmed ? diagnosis.nodeId : null}

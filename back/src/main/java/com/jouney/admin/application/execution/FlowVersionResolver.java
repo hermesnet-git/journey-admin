@@ -3,6 +3,7 @@ package com.jouney.admin.application.execution;
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
+import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.domain.publication.PublicationRepository;
 import com.jouney.admin.domain.version.JourneyVersion;
@@ -41,14 +42,17 @@ public class FlowVersionResolver {
                     .findFirst().orElse(null);
             if (match != null) {
                 return new ResolvedFlow(match.getJourneyName(), versionNumber, match.getChannelTypes(),
-                        match.getFlowNodes(), match.getFlowConnections());
+                        match.getFlowNodes(), match.getFlowConnections(), match.getSections());
             }
         }
         Publication publication = publicationRepository.findByJourneyId(journeyId)
                 .orElseThrow(() -> new IllegalStateException(
                         "Jornada " + journeyId + " não tem publicação ativa nem versão correlacionável"));
         return new ResolvedFlow(publication.getJourneyName(), versionNumber, publication.getChannelTypes(),
-                publication.getFlowNodes(), publication.getFlowConnections());
+                publication.getFlowNodes(), publication.getFlowConnections(),
+                publication.getVersionId() == null ? List.of()
+                        : journeyVersionRepository.findById(publication.getVersionId()).map(JourneyVersion::getSections)
+                                .orElse(List.of()));
     }
 
     private String safeVersionTag(String processDefinitionId) {
@@ -71,6 +75,7 @@ public class FlowVersionResolver {
     }
 
     public record ResolvedFlow(String journeyName, Integer versionNumber, List<ChannelType> channelTypes,
-                                List<FlowNode> flowNodes, List<FlowConnection> flowConnections) {
+                                List<FlowNode> flowNodes, List<FlowConnection> flowConnections,
+                                List<FlowSection> sections) {
     }
 }

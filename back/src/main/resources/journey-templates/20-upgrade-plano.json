@@ -532,6 +532,41 @@
           "Node_Elegibilidade"
         ]
       }
+    ],
+    "sections": [
+      {
+        "id": "Section_1",
+        "name": "Escolha do plano",
+        "nodeIds": [
+          "Node_BuscaPlanos",
+          "Node_EscolhePlano"
+        ]
+      },
+      {
+        "id": "Section_2",
+        "name": "Elegibilidade",
+        "nodeIds": [
+          "Node_Elegibilidade",
+          "Node_PodeTrocar"
+        ]
+      },
+      {
+        "id": "Section_3",
+        "name": "Troca",
+        "nodeIds": [
+          "Node_AplicaTroca",
+          "Node_Trocado",
+          "Node_FimTrocado"
+        ]
+      },
+      {
+        "id": "Section_4",
+        "name": "Sem troca",
+        "nodeIds": [
+          "Node_Indisponivel",
+          "Node_FimIndisponivel"
+        ]
+      }
     ]
   }
 }

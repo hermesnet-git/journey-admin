@@ -178,6 +178,7 @@ export const EPICS: Epic[] = [
             notes: 'Event Hubs/Service Bus viraram Kafka nos exemplos (sem execução local).',
           },
           d('REQ-02.04.009', 'Modelos mantidos como arquivos versionados no formato do fluxo do editor; sem cadastro pela interface na 1.0.0.'),
+          d('REQ-02.04.010', 'Modelos com 9+ etapas trazem seções; jornada recém-criada de modelo abre com o tour na primeira vez.'),
         ],
       },
       {
@@ -626,12 +627,12 @@ export const EPICS: Epic[] = [
             'REQ-03.15.002',
             'Uma anotação deve possuir texto editável e posição livre no canvas; anotações não devem ser incluídas nas regras de validação estrutural do fluxo nem traduzidas para BPMN na publicação.',
           ),
-          d(
-            'REQ-03.15.003',
-            'O sistema deve permitir vincular uma anotação a um ou mais nós do fluxo, exibindo uma linha tracejada entre a anotação e cada nó vinculado.',
-          ),
+          d('REQ-03.15.003', 'Anotação vinculada a etapas vira marcador numerado nelas; a solta continua post-it.'),
           d('REQ-03.15.004', 'O sistema deve permitir desvincular uma anotação de um nó e excluir uma anotação, sem afetar o fluxo executável.'),
           d('REQ-03.15.005', 'As anotações devem ser persistidas junto com o fluxo da jornada e restauradas ao reabrir o editor.'),
+          d('REQ-03.15.006', 'Marcadores numerados na ordem do fluxo; balão com título, editar, soltar e excluir.'),
+          d('REQ-03.15.007', 'Painel "Guia deste modelo" com as anotações em ordem; destaca e leva até a etapa.'),
+          d('REQ-03.15.008', '"Ver guia": tour pelas anotações, uma a uma.'),
         ],
       },
       {
@@ -688,6 +689,31 @@ export const EPICS: Epic[] = [
           d('REQ-03.18.005', 'Sem "Se falhar": sem resposta/tempo esgotado faz a etapa falhar com mensagem legível; 5xx segue para a Decisão.'),
           d('REQ-03.18.006', 'Execução em segundo plano: o canal vê "aguardando"; falha sem "Se falhar" vira incidente sem novas tentativas do Runtime Engine.'),
           d('REQ-03.18.007', '422 para valores de resiliência fora dos limites; resumo da resiliência no painel da integração.'),
+        ],
+      },
+      {
+        code: 'US-03.19',
+        name: 'Apresentação do fluxo no canvas',
+        requirements: [
+          d('REQ-03.19.001', 'Círculo, Compacto ou Detalhado; preferência por usuário no editor, Execução e Diagnóstico; fluxo guarda a forma em que foi organizado.'),
+          d('REQ-03.19.002', 'Cartão com tipo curto ("Tela", "Integração REST"), nome e etiquetas da configuração; eventos e Decisão coloridos.'),
+          d('REQ-03.19.003', 'Organizar em camadas: caminho com condição reto, faixa de falha embaixo, seções como blocos.'),
+          d('REQ-03.19.004', 'Linhas automáticas em ângulo reto, desviando de etapas, nomes e cabeçalhos de seção; laços contornam sem cruzar.'),
+          d('REQ-03.19.005', 'Etiqueta sobre a linha: "Se falhar", "senão" e condição em linguagem do autor; expressão no hover.'),
+          d('REQ-03.19.006', 'Rótulo livre por ligação (até 40), por duplo clique; salvo com a ligação e mostrado na Execução/Diagnóstico.'),
+          d('REQ-03.19.007', 'Três níveis de detalhe por zoom: cartão, pílula, ponto; linhas de centro a centro de longe.'),
+          d('REQ-03.19.008', 'Barra de navegação (busca Ctrl+F, zoom, Ajustar F, zoom na seleção Shift+2, agrupar Ctrl+G); pontos de conexão só no hover.'),
+        ],
+      },
+      {
+        code: 'US-03.20',
+        name: 'Seções do fluxo',
+        requirements: [
+          d('REQ-03.20.001', 'Agrupar duas ou mais etapas numa seção com nome; moldura atrás das etapas.'),
+          d('REQ-03.20.002', 'Renomear (duplo clique) e desfazer a seção.'),
+          d('REQ-03.20.003', 'Recolher em bloco com a contagem; ligações passam a ligar no bloco; estado por usuário.'),
+          d('REQ-03.20.004', 'Seção com destino de "Se falhar" com nome em vermelho.'),
+          d('REQ-03.20.005', 'Seções salvas no fluxo e na versão; moldura na Execução e no Diagnóstico; fora da validação e do Runtime Engine.'),
         ],
       },
     ],
@@ -978,6 +1004,11 @@ export const EPICS: Epic[] = [
             notes:
               'O visualizador do fluxo fica sempre montado (visibilidade alternada via CSS), preservando o zoom/posição entre trocas de aba — antes, desmontar/remontar a cada troca destruía esse estado.',
           },
+          d('REQ-05.03.004', 'Canal, fluxo e linha do tempo lado a lado; Variáveis e Log embaixo.'),
+          d('REQ-05.03.005', 'Passos numerados nas etapas; o que não foi percorrido fica esmaecido.'),
+          d('REQ-05.03.006', '"Seguir a execução" mantém a etapa atual no centro.'),
+          d('REQ-05.03.007', 'Etapas percorridas pelo motor destacadas uma a uma (sem animação com movimento reduzido).'),
+          d('REQ-05.03.008', 'Linha do tempo com passo, tipo, hora, motor, falha, entrada/saída e a espera atual explicada.'),
         ],
       },
       {
@@ -1988,6 +2019,7 @@ export const EPICS: Epic[] = [
           d('REQ-15.03.002', 'O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.'),
           d('REQ-15.03.003', 'O log do detalhe inclui cada consulta a fonte de dados feita ao montar uma tela da instância.'),
           d('REQ-15.03.004', '"Tentar de novo" em incidente de integração em segundo plano (EDITOR/ADMIN).'),
+          d('REQ-15.03.005', 'Reprodução da execução: play/pausa, controle deslizante; fluxo, log e variáveis até o passo escolhido.'),
         ],
       },
       {
@@ -2067,7 +2099,13 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-10-01 01:49 (não commitado)',
+    date: '2026-10-01 05:14 (não commitado)',
+    source: 'progresso',
+    summary:
+      'Canvas profissional. Novas US-03.19 Apresentação do fluxo no canvas (REQ-03.19.001 a 008) e US-03.20 Seções do fluxo (REQ-03.20.001 a 005); REQ-03.15.003 reescrito (anotação vinculada vira marcador) e REQ-03.15.006 a 008 novos (marcador numerado, Guia, tour); REQ-02.04.010 (seções nos modelos e tour na primeira abertura); REQ-05.03.004 a 008 (Execução lado a lado, passos numerados, seguir a execução, etapas do motor destacadas, linha do tempo); REQ-15.03.005 (reprodução no Diagnóstico). Implementado em admin/back (V25, V26, rótulo da ligação) e front. Total geral: 556 → 579 REQs, 506 → 529 concluídos; US: 107 → 109.',
+  },
+  {
+    date: '2026-10-01 01:52',
     source: 'progresso',
     summary:
       'Catálogo de modelos de jornada e resiliência da integração REST. US-02.04: REQ-02.04.002/006 reescritos, REQ-02.04.007 a 009 novos (32 modelos em JSON, galeria nova). Nova US-03.18 (REQ-03.18.001 a 007) e REQ-03.02.009 (saída "Se falhar"); REQ-03.02.008 ajustado (REST em segundo plano é checkpoint); REQ-03.09.020, REQ-05.06.008, REQ-05.08.006 e REQ-15.03.004 novos. Implementado em admin/back, front, ms-runtime-camunda, ms-transform-publication, ms-espec-registry, ms-journey e ms-mock-api-rest. Total geral: 541 → 556 REQs, 491 → 506 concluídos; US: 106 → 107.',
@@ -2502,6 +2540,7 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-01 01:52', source: 'git', summary: 'Requisitos: catálogo de modelos de jornada e resiliência da integração REST.', epics: ['FT-02', 'FT-03', 'FT-05', 'FT-15'] },
   { date: '2026-10-01 01:45', source: 'git', summary: 'Resiliência da integração REST: tempo limite, novas tentativas, caminho "Se falhar" e execução em segundo plano.', epics: ['FT-03', 'FT-05', 'FT-15'] },
   { date: '2026-10-01 00:49', source: 'git', summary: 'Modelos de jornada: catálogo de 32 exemplos e galeria nova em "Nova jornada".', epics: ['FT-02'] },
   { date: '2026-09-30 01:32', source: 'git', summary: 'Lista de seleção e fontes de dados da tela (ADR-002) e jornada Gestão de BDs.', epics: ['FT-04', 'FT-14', 'FT-15'] },

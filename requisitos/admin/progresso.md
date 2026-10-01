@@ -15,14 +15,23 @@
 | Métrica | Valor |
 |---|---|
 | Total de Features (FT) | 15 |
-| Total de User Stories (US) | 107 |
-| Total de Requisitos (REQ) | 556 |
-| Concluídos (`done`) | 506 |
+| Total de User Stories (US) | 109 |
+| Total de Requisitos (REQ) | 579 |
+| Concluídos (`done`) | 529 |
 | Em andamento (`in_progress`) | 3 |
 | Não iniciados (`todo`) | 45 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
 | % Concluído | 91% |
+
+> **Canvas profissional (23 REQs, 2026-10-01).** O editor de fluxo, a Execução e o Diagnóstico
+> foram redesenhados: etapas em círculo, pílula ou cartão; organização em camadas com caminho
+> principal reto, faixa de falha e seções como blocos; linhas automáticas que desviam de etapas e
+> textos; condições em linguagem do autor e rótulo livre por ligação; três níveis de detalhe por zoom
+> e barra de navegação (novas US-03.19 e US-03.20, REQ-03.15.006 a 008, REQ-03.15.003 reescrito). Na
+> Execução, canal, fluxo e linha do tempo lado a lado, passos numerados e etapas do motor destacadas
+> (REQ-05.03.004 a 008); no Diagnóstico, reprodução da execução (REQ-15.03.005). Modelos com nove ou
+> mais etapas trazem seções e abrem com o tour (REQ-02.04.010). Total geral: 556 → 579 REQs.
 
 > **Catálogo de modelos de jornada e resiliência da integração REST (15 REQs, 2026-10-01).** US-02.04
 > deixou de ser o piloto de um modelo só: são 32 jornadas de exemplo em cinco trilhas, com galeria
@@ -163,10 +172,10 @@
 | FT | Nome | REQs | Concluídos | % |
 |---|---|---:|---:|---:|
 | FT-01 | Gestão de Produtos e Canais | 12 | 12 | 100% |
-| FT-02 | Gestão de Jornadas | 53 | 53 | 100% |
-| FT-03 | Modelagem Visual de Workflows | 110 | 110 | 100% |
+| FT-02 | Gestão de Jornadas | 54 | 54 | 100% |
+| FT-03 | Modelagem Visual de Workflows | 126 | 126 | 100% |
 | FT-04 | Catálogo Server Driven UI (SDUI) | 93 | 93 | 100% |
-| FT-05 | Execução | 64 | 64 | 100% |
+| FT-05 | Execução | 69 | 69 | 100% |
 | FT-06 | Versionamento de jornadas | 43 | 43 | 100% |
 | FT-07 | Autenticação e autorização | 25 | 21 | 84% (1 n/a) |
 | FT-08 | Auditoria | 37 | 21 | 57% (1 n/a, 15 todo) |
@@ -176,7 +185,7 @@
 | FT-12 | Infraestrutura | 16 | 0 | 0% (1 in_progress) |
 | FT-13 | Dashboard | 24 | 24 | 100% |
 | FT-14 | Catálogo de Integrações | 33 | 32 | 97% (1 in_progress) |
-| FT-15 | Diagnóstico | 17 | 17 | 100% |
+| FT-15 | Diagnóstico | 18 | 18 | 100% |
 
 ---
 
@@ -262,6 +271,7 @@
 | [x] | REQ-02.04.007 | Galeria com filtro por trilha (com contagem), busca sem acento, painel com prévia do fluxo, contagens, o que mostra, recursos, canais, o que configurar e aviso de canal fora da jornada. | done | front: `journeys/TemplateGallery.tsx` (prévia com `FlowDiagramViewer` compacto); `NewJourneyModal` | 2026-10-01 |
 | [x] | REQ-02.04.008 | Só modelos que a plataforma executa de ponta a ponta; REST dos modelos aponta para o serviço de simulação de APIs local. | done | gerador `.claude/skills/criar_jornada_publicada/scripts/gerar_templates_jornada.mjs` (checagem estrutural e de cadeia síncrona); 12 APIs novas no `ms-mock-api-rest` | Event Hubs/Service Bus viraram Kafka nos exemplos (sem execução local). |
 | [x] | REQ-02.04.009 | Modelos mantidos como arquivos versionados no formato do fluxo do editor; sem cadastro pela interface na 1.0.0. | done | `JsonJourneyTemplateCatalog` lê `classpath:journey-templates/*.json` na subida | 2026-10-01 |
+| [x] | REQ-02.04.010 | Modelos com 9+ etapas trazem seções; jornada recém-criada de modelo abre com o tour na primeira vez. | done | gerador `gerar_templates_jornada.mjs` (`SECTIONS`); back: `JourneyTemplate.instantiate` copia as seções; front: `markTourPending` (`NewJourneyModal`) e `GuidePanel` | 2026-10-01 |
 
 ### US-02.05 Jornadas específicas por canal
 
@@ -446,9 +456,12 @@
 |---|---|---|---|---|---|
 | [x] | REQ-03.15.001 | O sistema deve permitir adicionar anotações (post-it) ao canvas do editor de fluxo, sem que façam parte do fluxo executável. | done | front: `AnnotationNode.tsx` (novo), entrada dedicada na `Palette.tsx` (`onAddAnnotation`) | |
 | [x] | REQ-03.15.002 | Uma anotação deve possuir texto editável e posição livre; não deve ser validada estruturalmente nem traduzida para BPMN. | done | front: `WFAnnotation`/`makeAnnotation` (`model.ts`), edição por duplo-clique em textarea (`AnnotationNode.tsx`); back: `Flow.annotations` persistido à parte de `nodes`/`connections`, nunca lido por `FlowValidator` nem por `BpmnTransformer` (`ms-transform-publication`) | |
-| [x] | REQ-03.15.003 | O sistema deve permitir vincular uma anotação a um ou mais nós do fluxo, com linha tracejada entre eles. | done | front: `onConnect` em `JourneyDesignerPage.tsx` intercepta conexões partindo do handle `source` da anotação; `annotationLinkEdges` (aresta sintética tracejada, sem persistência própria — deriva de `linkedNodeIds`) | reaproveita os handles `target` já existentes dos nós de fluxo, sem tipo de handle novo |
+| [x] | REQ-03.15.003 | Anotação vinculada a etapas vira marcador numerado nelas; a solta continua post-it. | done | front: `displayAnnotations` (só soltas), `NoteMarkers` (`WorkflowNode.tsx`); vínculo arrastando do ponto do post-it até a etapa | 2026-10-01 |
 | [x] | REQ-03.15.004 | O sistema deve permitir desvincular uma anotação de um nó e excluí-la, sem afetar o fluxo executável. | done | front: `onUnlinkAnnotation`/`onDeleteAnnotation` (`actions-context.ts`), botão de unlink por chip (`Link2Off`) e botão de excluir em `AnnotationNode.tsx`; `deleteNode` remove o id de `linkedNodeIds` de qualquer anotação ao excluir um nó de fluxo | |
 | [x] | REQ-03.15.005 | As anotações devem ser persistidas junto com o fluxo e restauradas ao reabrir o editor. | done | back: migration `V3__add_flow_annotations.sql` (`flow.annotations JSONB`), `FlowAnnotation.java`/`FlowAnnotationRecord.java`; front: `annotations` incluído no payload de `updateFlow` e no `HistorySnapshot` (undo/redo) | |
+| [x] | REQ-03.15.006 | Marcadores numerados na ordem do fluxo; balão com título, editar, soltar e excluir. | done | front: `guideNotes` (`notes.ts`), `NoteMarkers`/`splitNote` (`WorkflowNode.tsx`) | 2026-10-01 |
+| [x] | REQ-03.15.007 | Painel "Guia deste modelo" com as anotações em ordem; destaca e leva até a etapa. | done | front: `GuidePanel.tsx` | 2026-10-01 |
+| [x] | REQ-03.15.008 | "Ver guia": tour pelas anotações, uma a uma. | done | front: `GuidePanel.tsx` (passos, `focusOnNode`) | 2026-10-01 |
 
 ### US-03.16 Editor de tela embutido no editor de fluxo
 
@@ -479,6 +492,31 @@
 | [x] | REQ-03.18.005 | Sem "Se falhar": sem resposta/tempo esgotado faz a etapa falhar com mensagem legível; 5xx segue para a Decisão. | done | ms-runtime-camunda: `IllegalStateException` com serviço, motivo e tentativas | 2026-10-01 |
 | [x] | REQ-03.18.006 | Execução em segundo plano: o canal vê "aguardando"; falha sem "Se falhar" vira incidente sem novas tentativas do Runtime Engine. | done | ms-transform-publication: `asyncBefore` + `failedJobRetryTimeCycle` R1; admin/back e ms-espec-registry: `SynchronousChainCheck` não conta REST em segundo plano | 2026-10-01 |
 | [x] | REQ-03.18.007 | 422 para valores de resiliência fora dos limites; resumo da resiliência no painel da integração. | done | back: `FlowValidator.validateResilience`; front: `describeResilience` (`PropertiesPanel`) | 2026-10-01 |
+
+### US-03.19 Apresentação do fluxo no canvas
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-03.19.001 | Círculo, Compacto ou Detalhado; preferência por usuário no editor, Execução e Diagnóstico; fluxo guarda a forma em que foi organizado. | done | front: `nodeMode.ts` (`useNodeDisplayMode`), `Toolbar`; back: `flow.layout_mode` (`V25`) | 2026-10-01 |
+| [x] | REQ-03.19.002 | Cartão com tipo curto ("Tela", "Integração REST"), nome e etiquetas da configuração; eventos e Decisão coloridos. | done | front: `NodeCard.tsx`, `nodeTypeLabel`/`nodeChips` (`nodeMode.ts`), `WorkflowNode` | 2026-10-01 |
+| [x] | REQ-03.19.003 | Organizar em camadas: caminho com condição reto, faixa de falha embaixo, seções como blocos. | done | front: `layout.ts` (ELK em camadas, grupos por seção, `straightenMainPaths`, `alignFailureBranches`) | 2026-10-01 |
+| [x] | REQ-03.19.004 | Linhas automáticas em ângulo reto, desviando de etapas, nomes e cabeçalhos de seção; laços contornam sem cruzar. | done | front: `edgeRouter.ts` (portas, custo de cruzamento, `turnEarly`), `computeRoutes` (`layout.ts`) | 2026-10-01 |
+| [x] | REQ-03.19.005 | Etiqueta sobre a linha: "Se falhar", "senão" e condição em linguagem do autor; expressão no hover. | done | front: `EdgeLabel.tsx`, `readableCondition`/`screenVariableLabels` (`conditionLabel.ts`); back: tela no pacote do diagrama (`FlowBundleResponse`) | 2026-10-01 |
+| [x] | REQ-03.19.006 | Rótulo livre por ligação (até 40), por duplo clique; salvo com a ligação e mostrado na Execução/Diagnóstico. | done | back: `FlowConnection.label`; front: `FlowEdge.tsx` (edição), `onSetEdgeLabel` | 2026-10-01 |
+| [x] | REQ-03.19.007 | Três níveis de detalhe por zoom: cartão, pílula, ponto; linhas de centro a centro de longe. | done | front: `detailForZoom`/`NodeDot` (`NodeCard.tsx`), `FlowEdge`, `FlowDiagramViewer` | 2026-10-01 |
+| [x] | REQ-03.19.008 | Barra de navegação (busca Ctrl+F, zoom, Ajustar F, zoom na seleção Shift+2, agrupar Ctrl+G); pontos de conexão só no hover. | done | front: `NavigationBar.tsx`, `NodeSearch.tsx`, `.wf-handle` (`index.css`) | 2026-10-01 |
+
+### US-03.20 Seções do fluxo
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [x] | REQ-03.20.001 | Agrupar duas ou mais etapas numa seção com nome; moldura atrás das etapas. | done | front: `groupSelection`, `SectionNode.tsx` | 2026-10-01 |
+| [x] | REQ-03.20.002 | Renomear (duplo clique) e desfazer a seção. | done | front: `SectionNode.tsx` | 2026-10-01 |
+| [x] | REQ-03.20.003 | Recolher em bloco com a contagem; ligações passam a ligar no bloco; estado por usuário. | done | front: `hiddenBySection`, `sectionLinkEdges` (`JourneyDesignerPage`) | 2026-10-01 |
+| [x] | REQ-03.20.004 | Seção com destino de "Se falhar" com nome em vermelho. | done | front: `tone` (`SectionNode.tsx`), `SectionFrame` (`FlowDiagramViewer`) | 2026-10-01 |
+| [x] | REQ-03.20.005 | Seções salvas no fluxo e na versão; moldura na Execução e no Diagnóstico; fora da validação e do Runtime Engine. | done | back: `flow.sections` (`V26`), `JourneyVersion.sections`, `FlowBundleResponse.sections` | 2026-10-01 |
+
+---
 
 ## FT-04 Catálogo Server Driven UI (SDUI)
 
@@ -765,6 +803,11 @@ A execução roda contra o motor de runtime real: `admin/back` (pacotes `applica
 | [x] | REQ-05.03.001 | O sistema deve destacar o caminho percorrido durante a execução. | done | `FlowDiagramViewer.tsx` — nó atual com destaque/pulso (respeitando `prefers-reduced-motion` via regra global de `index.css`), concluídos com selo de sucesso | |
 | [x] | REQ-05.03.002 | O sistema deve destacar as User Tasks e os formulários executados. | done | Mesmo mecanismo de US-05.03.001 + aba Log | |
 | [x] | REQ-05.03.003 | O sistema não deve reposicionar ou reiniciar o zoom do diagrama do fluxo ao alternar entre as abas do painel de observabilidade. | done | `InspectorPanel.tsx` — `FlowDiagramViewer` fica sempre montado (visibilidade alternada via CSS), preservando o estado interno do React Flow (zoom/pan) entre trocas de aba | Antes, desmontar/remontar a cada troca de aba destruía esse estado e repunha o diagrama centralizado no passo atual |
+| [x] | REQ-05.03.004 | Canal, fluxo e linha do tempo lado a lado; Variáveis e Log embaixo. | done | front: `ExecutionWorkspace.tsx`, `InspectorPanel` (`hideWorkflow`) | 2026-10-01 |
+| [x] | REQ-05.03.005 | Passos numerados nas etapas; o que não foi percorrido fica esmaecido. | done | front: `stepNumbers`/`dimUnvisited` (`FlowDiagramViewer`) | 2026-10-01 |
+| [x] | REQ-05.03.006 | "Seguir a execução" mantém a etapa atual no centro. | done | front: `follow`/`onFollowChange` (`FlowDiagramViewer`) | 2026-10-01 |
+| [x] | REQ-05.03.007 | Etapas percorridas pelo motor destacadas uma a uma (sem animação com movimento reduzido). | done | front: `flashQueue` (`ExecutionWorkspace`), `.flow-step-flash` (`index.css`) | 2026-10-01 |
+| [x] | REQ-05.03.008 | Linha do tempo com passo, tipo, hora, motor, falha, entrada/saída e a espera atual explicada. | done | front: `ExecutionTimeline.tsx`, `explainWait` | 2026-10-01 |
 
 ### US-05.04 Arquitetura de execução
 
@@ -1462,6 +1505,7 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 | [x] | REQ-15.03.002 | O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior. | done | `DiagnosticoPage.tsx` — `closeDetail` só limpa `selectedId`/`detail`; `raw` (resultado da busca) é estado separado, nunca limpo ao abrir/fechar um detalhe | |
 | [x] | REQ-15.03.003 | O log do detalhe inclui cada consulta a fonte de dados feita ao montar uma tela da instância. | done | ms-espec-registry: `espec_registry.data_source_call` (`V2`), `DataSourceCallController`; back: `GET /instances/{id}/data-source-calls`; front: `HistoryWorkspace` ("Consulta da tela") | implementado e compilado em 2026-09-30; aguardando teste do usuário |
 | [x] | REQ-15.03.004 | "Tentar de novo" em incidente de integração em segundo plano (EDITOR/ADMIN). | done | back: `POST /instances/{id}/nodes/{nodeId}/retry` → `RuntimeExecutionPort.retryFailedJob` (job sem tentativas volta a 1); front: botão no aviso de incidente do `HistoryWorkspace` | 2026-10-01 |
+| [x] | REQ-15.03.005 | Reprodução da execução: play/pausa, controle deslizante; fluxo, log e variáveis até o passo escolhido. | done | front: `ReplayBar.tsx`, `HistoryWorkspace.tsx` | 2026-10-01 |
 
 ### US-15.04 Independência da tela de Execução
 
@@ -1476,7 +1520,8 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 
 | Data/Hora | Alteração |
 |---|---|
-| 2026-10-01 01:49 (não commitado) | **Catálogo de modelos de jornada e resiliência da integração REST.** US-02.04: REQ-02.04.002/006 reescritos, REQ-02.04.007 a 009 novos (32 modelos em JSON, galeria nova). Nova US-03.18 (REQ-03.18.001 a 007) e REQ-03.02.009 (saída "Se falhar"); REQ-03.02.008 ajustado (REST em segundo plano é checkpoint); REQ-03.09.020, REQ-05.06.008, REQ-05.08.006 e REQ-15.03.004 novos. Implementado em admin/back, front, ms-runtime-camunda, ms-transform-publication, ms-espec-registry, ms-journey e ms-mock-api-rest. Total geral: 541 → 556 REQs, 491 → 506 concluídos; US: 106 → 107. |
+| 2026-10-01 05:14 (não commitado) | **Canvas profissional.** Novas US-03.19 Apresentação do fluxo no canvas (REQ-03.19.001 a 008) e US-03.20 Seções do fluxo (REQ-03.20.001 a 005); REQ-03.15.003 reescrito (anotação vinculada vira marcador) e REQ-03.15.006 a 008 novos (marcador numerado, Guia, tour); REQ-02.04.010 (seções nos modelos e tour na primeira abertura); REQ-05.03.004 a 008 (Execução lado a lado, passos numerados, seguir a execução, etapas do motor destacadas, linha do tempo); REQ-15.03.005 (reprodução no Diagnóstico). Implementado em admin/back (`V25`, `V26`, rótulo da ligação) e front. Total geral: 556 → 579 REQs, 506 → 529 concluídos; US: 107 → 109. |
+| 2026-10-01 01:52 | **Catálogo de modelos de jornada e resiliência da integração REST.** US-02.04: REQ-02.04.002/006 reescritos, REQ-02.04.007 a 009 novos (32 modelos em JSON, galeria nova). Nova US-03.18 (REQ-03.18.001 a 007) e REQ-03.02.009 (saída "Se falhar"); REQ-03.02.008 ajustado (REST em segundo plano é checkpoint); REQ-03.09.020, REQ-05.06.008, REQ-05.08.006 e REQ-15.03.004 novos. Implementado em admin/back, front, ms-runtime-camunda, ms-transform-publication, ms-espec-registry, ms-journey e ms-mock-api-rest. Total geral: 541 → 556 REQs, 491 → 506 concluídos; US: 106 → 107. |
 | 2026-09-30 01:32 | **Lista de seleção e fontes de dados da tela (ADR-002).** Novos: US-04.15 Lista de seleção (REQ-04.15.001 a 012), US-04.16 Fontes de dados da tela (REQ-04.16.001 a 009), US-14.07 Catálogo de fontes de dados (REQ-14.07.001 a 005), REQ-03.09.016 a 019 (saída de integração do tipo lista, campos a manter, lista/objeto do Kafka em JSON, lista fora das condições de Decisão), REQ-04.11.005 (ação "tentar novamente") e REQ-15.03.003 (consultas da tela no log do Diagnóstico). Implementado em admin/back (`V24`), ms-espec-registry (`V2`, montagem dos itens e busca das fontes), ms-transform-publication, ms-runtime-camunda, ms-journey, front e emulador de canais; APIs novas no ms-mock (bilhetes, horários, reagendamento, cancelamento); jornada de exemplo "Gestão de BDs" (VE). Catálogo SDUI: `ui.selectList` 1.0.0; nenhuma versão alterada. Compilado em todos os módulos; aguardando teste do usuário. Total geral: 509 → 541 REQs, 459 → 491 concluídos; US: 103 → 106. |
 | 2026-09-27 02:20 (commitado: `89ba457`, `b0dc450`, `817237a`) | **Strapi removido da plataforma (US-04.14) — `ms-espec-registry` passa a ser o próprio dono do armazenamento das telas publicadas.** Novo schema `espec_registry` no Postgres do admin (`journey_admin`), tabela `published_screen` (`envelope jsonb`, `status` published/deprecated, índice único parcial garantindo uma só revisão `published` por tela), migrado por um Flyway próprio do serviço (`config/FlywayMigrationInitializer`, mesmo padrão do admin/back desde que o Spring Boot 4.1 parou de trazer a autoconfiguração do Flyway) — histórico isolado do Flyway do admin/back, que continua no schema `public`. `PostgresSnapshotRepository` substitui `StrapiSnapshotRepository`: marca a revisão anterior como `deprecated` e insere a nova, em vez de só um `POST` sem histórico. Renomeado, só nesta ponta de armazenamento (o modelo do catálogo — `SduiNode`/`SduiEnvelopeBuilder`/`SduiScreenEnvelope`/`FlowNode.sdui` — continua com esse nome): pacotes `domain/sdui`→`domain/screen` e `interfaces/sdui`→`interfaces/screen` no `ms-espec-registry`; `SduiScreenPublicationPort`→`ScreenPublicationPort` e `EspecRegistrySduiAdapter`→`EspecRegistryScreenAdapter` no admin/back; URL de `/api/v1/sdui-snapshots` para `/api/v1/published-screens`. Nenhum REQ novo — só a evidência de REQ-04.14.004/005/006 corrigida pra citar as classes atuais. Testado fim a fim: reset de fábrica republicando as 8 versões/21 telas seguido de um teste real do usuário na tela Execuções, e uma republicação subsequente já demonstrando o `deprecated` funcionando (8 telas). De quebra, corrigidos 3 bugs pré-existentes na massa de fábrica que só apareceram ao republicar do zero (nenhum deles ligado ao Strapi): SemVer incompleto (`"1.0"` em vez de `"1.0.0"`) em componentes das telas de Web/Mobile/WhatsApp v1; a mesma prop `gapToken` desatualizada (hoje `spacingToken`) nos `ui.stack` dessas telas; e os dois Receive Tasks Kafka da jornada Vivo Fibra + Total sem `outputMapping`, então as telas seguintes referenciavam `data.statusAtivacao`/`data.resultadoRevisao`, que nunca existiam — corrigido com `payloadMode: CUSTOM` e `outputMapping` declarado nos dois. Nenhuma mudança de contagem: total geral segue 509 REQs, 459 concluídos. |
 | 2026-09-27 01:19 (não commitado) | **Namespaces de dado reduzidos a `form` e `data`; formato do token por lugar; canal sem namespace.** Catálogo SDUI: `session`, `route` e `computed` removidos (única alteração — nada foi acrescentado ao catálogo; os dois exemplos que usavam `computed` passaram a `data`). REQ-04.10.001, REQ-04.12.004, REQ-04.13.008 e REQ-04.13.010, mais a evidência de REQ-04.09.012 e REQ-04.10.004, deixam de citá-los; o canal passa a ser o caminho `channel`, sem namespace. REQ-04.13.011 (novo, FT-04): placeholder de texto de tela só vale como `{{form.x}}`/`{{data.x}}`, `{{form_x}}`/`{{data_x}}` ou `{{channel}}` — sem prefixo ou de outro namespace é recusado. Conector, mensageria e Decisão (REQ-03.09.012, REQ-03.09.014, REQ-03.11.004) usam só o nome da variável no motor (`{{form_x}}`, `{{data_x}}`, `{{channel}}`) — `{{form.x}}` e o token cru são recusados; REQ-03.12.003 e REQ-03.13.002 ajustados à nova forma. Hífen aceito no editor de condição da Decisão e no painel de teste da integração; a saída de conector Kafka deixa de tratar o hífen como subtração. Implementado e compilado (back, ms-espec-registry, ms-transform-publication, front e emulador-canais); ainda não testado em execução. Total de FT-04: 70 → 71 REQs; total geral: 508 → 509 REQs, 458 → 459 concluídos. |

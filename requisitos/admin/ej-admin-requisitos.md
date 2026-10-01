@@ -223,6 +223,7 @@ canais de um produto.
 #### REQ-02.04.007 - A escolha do modelo deve oferecer filtro por trilha (com a quantidade de modelos de cada uma), busca por nome, descrição, área ou recurso sem diferenciar acentos e maiúsculas, e um painel de detalhe com a prévia do fluxo, a quantidade de telas, integrações e decisões, o que o modelo mostra, os recursos usados, os canais e o que configurar antes de publicar. Quando nenhum canal do modelo estiver entre os canais escolhidos para a jornada, o painel deve avisar.
 #### REQ-02.04.008 - O catálogo deve conter apenas modelos que a plataforma executa de ponta a ponta: um modelo que dependa de capacidade ainda inexistente (ex.: temporizador, execução em paralelo, subprocesso) só entra junto com a capacidade. As integrações REST dos modelos apontam para o serviço de simulação de APIs do ambiente local.
 #### REQ-02.04.009 - Os modelos devem ser mantidos como arquivos versionados com o produto, no mesmo formato do fluxo do editor; na versão 1.0.0 não há cadastro de modelos pela interface.
+#### REQ-02.04.010 - Os modelos com nove ou mais etapas devem trazer o fluxo dividido em seções nomeadas (US-03.20), copiadas para a jornada criada junto com o fluxo. Uma jornada recém-criada a partir de modelo deve abrir no editor com o tour das anotações (REQ-03.15.008) na primeira vez, no navegador de quem a criou.
 
 > **Nota de revisão (2026-10-01):** o piloto com um único modelo (“Aprovação de Pedido”) deu lugar a um catálogo de 32 exemplos em cinco trilhas, pensado como ponto de partida e material de aprendizado para quem desenha jornadas. Cada modelo passou a trazer o fluxo completo, em vez de um esqueleto, e a deixar em branco só o que depende do ambiente.
 
@@ -423,9 +424,12 @@ Permitir a construção visual do fluxo específico de cada jornada.
 ### US-03.15 Anotações
 #### REQ-03.15.001 - O sistema deve permitir adicionar anotações — notas livres em formato de post-it — ao canvas do editor de fluxo, para fins de documentação, sem que façam parte do fluxo executável.
 #### REQ-03.15.002 - Uma anotação deve possuir texto editável e posição livre no canvas; anotações não devem ser incluídas nas regras de validação estrutural do fluxo (US-03.02) nem traduzidas para BPMN na publicação.
-#### REQ-03.15.003 - O sistema deve permitir vincular uma anotação a um ou mais nós do fluxo, exibindo uma linha tracejada entre a anotação e cada nó vinculado.
+#### REQ-03.15.003 - O sistema deve permitir vincular uma anotação a um ou mais nós do fluxo. A anotação vinculada deixa de aparecer como post-it e passa a ser um marcador numerado no canto de cada etapa vinculada (REQ-03.15.006); a anotação solta continua como post-it.
 #### REQ-03.15.004 - O sistema deve permitir desvincular uma anotação de um nó e excluir uma anotação, sem afetar o fluxo executável.
 #### REQ-03.15.005 - As anotações devem ser persistidas junto com o fluxo da jornada e restauradas ao reabrir o editor.
+#### REQ-03.15.006 - Os marcadores das anotações vinculadas devem ser numerados na ordem do fluxo (a primeira etapa vinculada de cada anotação). Clicar no marcador abre um balão com o texto, que permite editar, soltar da etapa (a anotação volta a ser post-it logo abaixo dela) ou excluir. Quando o texto começa com "Título: …", o trecho antes dos dois-pontos é o título do balão.
+#### REQ-03.15.007 - O editor deve oferecer o painel "Guia deste modelo", aberto por um botão no canto do canvas, com as anotações vinculadas em ordem; passar o mouse numa anotação destaca a etapa e clicar leva até ela.
+#### REQ-03.15.008 - O painel deve oferecer "Ver guia", um tour que percorre as anotações uma a uma, centralizando e destacando a etapa de cada passo, com Anterior, Próximo e Concluir.
 ---
 
 ### US-03.16 Editor de tela embutido no editor de fluxo
@@ -453,6 +457,25 @@ Permitir a construção visual do fluxo específico de cada jornada.
 #### REQ-03.18.005 - Sem a saída "Se falhar", uma chamada sem resposta ou com tempo esgotado faz a etapa falhar: o envio da tela anterior volta com uma mensagem legível (serviço chamado, motivo e quantidade de tentativas). Uma resposta 5xx, nesse caso, segue para a etapa seguinte com o status disponível para a Decisão, como qualquer outra resposta.
 #### REQ-03.18.006 - O autor deve poder marcar a integração para executar em segundo plano: a chamada sai da espera do usuário, e o canal mostra que a jornada está aguardando até ela terminar. Se ela falhar de vez sem a saída "Se falhar", a execução para num incidente — sem novas tentativas do Runtime Engine além das configuradas no passo "Resiliência" — que pode ser retomado pelo Diagnóstico (REQ-15.03.004).
 #### REQ-03.18.007 - O backend deve rejeitar (422), na validação sob demanda e na publicação, valores de resiliência fora dos limites (REQ-03.18.001/002). O resumo da integração no painel de propriedades deve mostrar o tempo para responder, as novas tentativas e se a execução é em segundo plano.
+---
+
+### US-03.19 Apresentação do fluxo no canvas
+#### REQ-03.19.001 - O canvas deve oferecer três formas de exibir as etapas: Círculo, Compacto (pílula com ícone e nome) e Detalhado (cartão). A escolha é uma preferência de cada usuário e vale no editor, na Execução e no Diagnóstico. Trocar de forma reorganiza o fluxo; o fluxo guarda a forma em que foi organizado e, ao ser aberto em outra, é reorganizado sem contar como alteração não salva.
+#### REQ-03.19.002 - O cartão detalhado deve mostrar o tipo da etapa em linguagem do autor ("Tela", "Integração REST"; os demais tipos com o nome usado na paleta), o nome e até três etiquetas tiradas da própria configuração (campos ou opções da tela, avisos ou textos de uma tela informativa, método, novas tentativas, segundo plano, tópico, configuração faltando). Fora do modo Círculo, eventos e Decisão aparecem preenchidos com a cor do tipo e com o nome em letra do tamanho do cartão.
+#### REQ-03.19.003 - "Organizar" deve dispor o fluxo em camadas da esquerda para a direita: o caminho com condição de uma Decisão segue reto e o "senão" desvia; o ramo "Se falhar" vai para uma faixa logo abaixo da etapa que falhou, quando houver espaço; cada seção (US-03.20) é organizada como um bloco, sem sobrepor outra.
+#### REQ-03.19.004 - As ligações devem ser desenhadas automaticamente em ângulo reto, desviando das etapas, do nome escrito embaixo delas e do cabeçalho das seções, e recalculadas quando o fluxo para de mudar. Uma ligação de volta (laço) pode sair e chegar por cima ou por baixo e contorna o fluxo sem cruzar as linhas já traçadas sempre que possível; nenhuma linha passa por cima de texto.
+#### REQ-03.19.005 - O rótulo de uma ligação deve aparecer como etiqueta sobre a linha: "Se falhar" em vermelho, "senão" no caminho padrão e, nas demais, a condição em linguagem do autor — a opção escolhida num campo de escolha da tela ("Tentar de novo"), o nome no caso sim/não, a primeira palavra do nome com o valor numa igualdade ("status 201") e o nome com o sinal e o valor nas comparações. A expressão original aparece ao passar o mouse.
+#### REQ-03.19.006 - O autor deve poder escrever um rótulo livre (até 40 caracteres) em qualquer ligação, com duplo clique na linha ou na etiqueta; Enter grava, Esc descarta e texto vazio remove. O rótulo escrito tem prioridade sobre a condição, é salvo junto com a ligação (fluxo e versão), aparece também na Execução e no Diagnóstico e não é usado pelo Runtime Engine.
+#### REQ-03.19.007 - O nível de detalhe deve mudar com o zoom: de perto, o cartão completo; no meio, a pílula com ícone e nome; de longe, cada etapa vira um ponto na cor do tipo (na Execução e no Diagnóstico, na cor do caminho percorrido), as ligações vão de centro a centro sem rótulo e o nome das seções cresce para continuar legível.
+#### REQ-03.19.008 - O canvas deve ter uma barra de navegação com "Buscar etapa" (Ctrl+F, por nome ou tipo, com a lista logo abaixo do campo), diminuir/aumentar zoom, 50%, 75%, 100%, "Ajustar" (F) e, com etapas selecionadas, "Zoom na seleção" (Shift+2) e "Agrupar em seção" (Ctrl+G, com duas ou mais). Os pontos de conexão das etapas só aparecem ao passar o mouse, com a etapa selecionada ou enquanto uma ligação está sendo puxada.
+---
+
+### US-03.20 Seções do fluxo
+#### REQ-03.20.001 - O autor deve poder agrupar duas ou mais etapas selecionadas numa seção com nome; uma etapa pertence a no máximo uma seção. A seção aparece como uma moldura com o nome em maiúsculas atrás das etapas.
+#### REQ-03.20.002 - O autor deve poder renomear a seção (duplo clique no nome) e desfazê-la, sem afetar as etapas.
+#### REQ-03.20.003 - A seção deve poder ser recolhida: vira um bloco com o nome, a quantidade de etapas recolhidas e "Clique para abrir", e as ligações que entram e saem do grupo passam a ligar no bloco. Recolhida ou aberta é preferência de cada usuário, não faz parte do fluxo.
+#### REQ-03.20.004 - A seção que contém o destino de uma saída "Se falhar" deve aparecer com o nome em vermelho (faixa de falha).
+#### REQ-03.20.005 - As seções devem ser salvas junto com o fluxo e com cada versão, e aparecer como moldura com nome na Execução e no Diagnóstico. Uma seção só organiza a apresentação: não é validada, não chega ao Runtime Engine e etapas excluídas saem dela automaticamente.
 ---
 
 
@@ -726,6 +749,11 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.03.001 - O sistema deve destacar o caminho percorrido durante a execução.
 #### REQ-05.03.002 - O sistema deve destacar as User Tasks e os formulários executados.
 #### REQ-05.03.003 - O sistema não deve reposicionar ou reiniciar o zoom do diagrama do fluxo ao alternar entre as abas do painel de observabilidade.
+#### REQ-05.03.004 - A tela de Execução deve mostrar lado a lado o canal (a tela da etapa atual), o fluxo e a linha do tempo, com Variáveis e Log no painel inferior.
+#### REQ-05.03.005 - Cada etapa percorrida deve ganhar o número do passo (mais de um quando a jornada volta por um laço), e as etapas e ligações ainda não percorridas devem aparecer esmaecidas.
+#### REQ-05.03.006 - "Seguir a execução" deve manter a etapa atual no centro do fluxo a cada passo; desligado, o usuário controla o enquadramento.
+#### REQ-05.03.007 - As etapas que o motor percorre sozinho entre um passo e outro (integrações, Decisões) devem ser destacadas uma a uma no fluxo, em sequência, sem animação para quem pediu movimento reduzido ao sistema.
+#### REQ-05.03.008 - A linha do tempo deve listar os passos em ordem, com o número, o tipo, a hora, se foi feito pelo motor, a falha que levou ao caminho "Se falhar" e, ao abrir, a entrada e a saída do passo; no fim, o que a jornada está esperando agora em linguagem do usuário (cliente respondendo uma tela, mensagem num tópico, integração em segundo plano, concluída ou parada por erro).
 ---
 
 ### US-05.04 Arquitetura de execução
@@ -1223,6 +1251,7 @@ Permitir investigar o comportamento de qualquer execução de jornada no motor d
 #### REQ-15.03.002 - O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.
 #### REQ-15.03.003 - O log do detalhe deve incluir cada consulta a uma fonte de dados feita ao montar uma tela da instância (US-04.16) — fonte, tela, URL, status, duração e quantidade de itens —, já que essa busca acontece fora do Runtime Engine e não aparece no histórico da instância.
 #### REQ-15.03.004 - Quando a execução estiver parada num incidente de integração em segundo plano (REQ-03.18.006), o detalhe deve oferecer "Tentar de novo", que faz o Runtime Engine executar a etapa outra vez e recarrega o detalhe. A ação é restrita aos perfis EDITOR e ADMIN.
+#### REQ-15.03.005 - O detalhe deve oferecer a reprodução da execução: reproduzir/pausar, avançar pelo controle deslizante e voltar ao começo. No passo escolhido, o fluxo mostra só o caminho até ali (numerado, com o resto esmaecido), e o log e o histórico de variáveis ficam limitados ao mesmo momento.
 ---
 
 ### US-15.04 Independência da tela de Execução

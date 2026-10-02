@@ -315,7 +315,9 @@ export const EPICS: Epic[] = [
             notes:
               'Achado ao vivo: uma jornada nesse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha ao tentar ler o histórico depois (a transação sofre rollback antes de qualquer consulta conseguir lê-lo). Ver REQ-05.08.005 para a checagem equivalente em tempo de execução.',
           },
-          d('REQ-03.02.009', 'SERVICE_TASK REST pode ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa; ponto de conexão próprio e linha distinta no editor; 422 fora das regras.'),
+          d('REQ-03.02.009', 'SERVICE_TASK REST pode ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa; ponto de conexão próprio, sempre visível e disponível assim que o REST é escolhido, e linha distinta no editor; ponto desabilitado com explicação nas demais SERVICE_TASK e no painel; 422 fora das regras.'),
+          d('REQ-03.02.010', 'Ligação recusada avisa o motivo: já tem "Se falhar" (arrastar a ponta para trocar), "Se falhar" só em REST, ou número máximo de saídas; vale para ligação nova e troca de origem.'),
+          d('REQ-03.02.011', 'Ligação pode ser solta em qualquer parte da etapa de destino; elementos iniciais, a própria origem e anotações não recebem.'),
         ],
       },
       {
@@ -702,7 +704,7 @@ export const EPICS: Epic[] = [
           d('REQ-03.19.005', 'Etiqueta sobre a linha: "Se falhar", "senão" e condição em linguagem do autor; expressão no hover.'),
           d('REQ-03.19.006', 'Rótulo livre por ligação (até 40), por duplo clique; salvo com a ligação e mostrado na Execução/Diagnóstico.'),
           d('REQ-03.19.007', 'Três níveis de detalhe por zoom: cartão, pílula, ponto; linhas de centro a centro de longe.'),
-          d('REQ-03.19.008', 'Barra de navegação (busca Ctrl+F, zoom, Ajustar F, zoom na seleção Shift+2, agrupar Ctrl+G); pontos de conexão só no hover.'),
+          d('REQ-03.19.008', 'Barra de navegação (busca Ctrl+F, zoom, Ajustar F, zoom na seleção Shift+2, agrupar Ctrl+G); pontos de conexão só no hover, exceto o "Se falhar" da integração REST, sempre visível.'),
         ],
       },
       {
@@ -2105,7 +2107,13 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-10-01 13:37 (não commitado)',
+    date: '2026-10-02 02:11 (não commitado)',
+    source: 'progresso',
+    summary:
+      '**Saída "Se falhar" e ligações no editor (2 REQs novos, 2 reescritos).** REQ-03.02.009: o ponto "Se falhar" da integração REST fica sempre visível e liga assim que o REST é escolhido (antes aparecia mas só ligava depois de recarregar); nas demais Tarefas de Serviço o ponto aparece desabilitado, com a explicação, também no painel de propriedades. Novos: REQ-03.02.010 (ligação recusada avisa o motivo) e REQ-03.02.011 (soltar a ligação em qualquer parte da etapa de destino). REQ-03.19.008 ganhou a exceção do ponto "Se falhar". FT-03: 126 → 128; total 582 → 584.',
+  },
+  {
+    date: '2026-10-01 13:38',
     source: 'progresso',
     summary:
       'Execução e Diagnóstico: linha do tempo como painel único, entrada por um campo só e reprodução passo a passo. Novos: REQ-05.03.009 (bolinha que percorre a ligação de chegada e halo na etapa atual), REQ-05.11.005 ("Sair sem parar"), REQ-15.03.006 (painel de baixo do Diagnóstico abre recolhido). Reescritos: REQ-05.03.004 (linha do tempo redimensionável e recolhível; Variáveis e Log abrem recolhidos), REQ-05.03.008 (card da linha do tempo com todos os detalhes da etapa, único lugar na Execução), REQ-05.07.001 e REQ-05.11.001 (busca única que também retoma execuções em andamento), REQ-05.10.007 (largura do painel do Diagnóstico e da linha do tempo), REQ-15.03.005 (passo anterior/próximo; variáveis com o valor do momento); nota da US-05.10 atualizada. FT-05: 69 → 71; FT-15: 18 → 19; total 579 → 582.',
@@ -2552,6 +2560,10 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-01 21:47', source: 'git', summary: 'Apresentação de jornada: sombra neutra e limpeza de estilos sem uso.' },
+  { date: '2026-10-01 21:41', source: 'git', summary: 'Apresentação: autoria de jornadas no Elastic Journey.' },
+  { date: '2026-10-01 13:38', source: 'git', summary: 'Requisitos: linha do tempo da Execução, busca que retoma e reprodução passo a passo.', epics: ['FT-05', 'FT-15'] },
+  { date: '2026-10-01 13:38', source: 'git', summary: 'Execução e Diagnóstico: linha do tempo única, busca que retoma e reprodução passo a passo.', epics: ['FT-05', 'FT-15'] },
   { date: '2026-10-01 05:29', source: 'git', summary: 'Requisitos: canvas profissional, seções do fluxo, Execução e Diagnóstico.', epics: ['FT-02', 'FT-03', 'FT-05', 'FT-15'] },
   { date: '2026-10-01 05:29', source: 'git', summary: 'Canvas profissional: cartões, layout em camadas, linhas automáticas e seções.', epics: ['FT-03', 'FT-05', 'FT-15'] },
   { date: '2026-10-01 01:52', source: 'git', summary: 'Requisitos: catálogo de modelos de jornada e resiliência da integração REST.', epics: ['FT-02', 'FT-03', 'FT-05', 'FT-15'] },

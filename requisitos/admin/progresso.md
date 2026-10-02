@@ -16,13 +16,21 @@
 |---|---|
 | Total de Features (FT) | 15 |
 | Total de User Stories (US) | 109 |
-| Total de Requisitos (REQ) | 582 |
-| Concluídos (`done`) | 532 |
+| Total de Requisitos (REQ) | 584 |
+| Concluídos (`done`) | 534 |
 | Em andamento (`in_progress`) | 3 |
 | Não iniciados (`todo`) | 45 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
 | % Concluído | 91% |
+
+> **Saída "Se falhar" e ligações no editor (2 REQs novos, 2 reescritos, 2026-10-02).**
+> O ponto "Se falhar" de uma integração REST aparecia, mas só deixava puxar a linha depois de
+> recarregar: o canvas não era avisado de que a etapa ganhou esse ponto ao trocar o conector. Agora
+> ele liga assim que o REST é escolhido e fica sempre visível; nas demais Tarefas de Serviço aparece
+> desabilitado, com a explicação, também no painel (REQ-03.02.009, REQ-03.19.008). Ligação recusada
+> passa a avisar o motivo (REQ-03.02.010) e pode ser solta em qualquer parte da etapa de destino
+> (REQ-03.02.011). Total geral: 582 → 584 REQs.
 
 > **Execução e Diagnóstico: linha do tempo como painel único, entrada por um campo só e reprodução passo a passo (3 REQs novos, 6 reescritos, 2026-10-01).**
 > Na Execução, os detalhes da etapa passam a ficar só no card da linha do tempo, que pode ser
@@ -182,7 +190,7 @@
 |---|---|---:|---:|---:|
 | FT-01 | Gestão de Produtos e Canais | 12 | 12 | 100% |
 | FT-02 | Gestão de Jornadas | 54 | 54 | 100% |
-| FT-03 | Modelagem Visual de Workflows | 126 | 126 | 100% |
+| FT-03 | Modelagem Visual de Workflows | 128 | 128 | 100% |
 | FT-04 | Catálogo Server Driven UI (SDUI) | 93 | 93 | 100% |
 | FT-05 | Execução | 71 | 71 | 100% |
 | FT-06 | Versionamento de jornadas | 43 | 43 | 100% |
@@ -319,7 +327,9 @@
 | [x] | REQ-03.02.007 | Uma `USER_TASK` deve possuir no máximo um caminho de saída; o editor não deve permitir a criação de uma segunda conexão partindo de uma `USER_TASK` que já possua saída. | done | front: `SINGLE_OUTPUT_TYPES` (`model.ts`) usado em `onConnect`/`onQuickAdd`/`displayNodes` (`JourneyDesignerPage.tsx`) e no handle/quick-add de `WorkflowNode.tsx`; back: `FlowValidator` (`in < 1 \|\| out != 1`) | regra estendida também a `SERVICE_TASK`/`RECEIVE_TASK` (mesma restrição estrutural de saída única) |
 | [x] | REQ-03.02.008 | O backend deve rejeitar (422), ao salvar o fluxo, um caminho que parta do elemento inicial e alcance um `END` sem passar por nenhum checkpoint (`USER_TASK`, `RECEIVE_TASK`, `SERVICE_TASK` não-REST ou REST em segundo plano). | done | back: `FlowValidator.reachesEndWithoutCheckpoint`/`isSynchronousRestTask`/`isCheckpoint` (`domain/flow/FlowValidator.java`) — BFS a partir do elemento inicial, rejeitando qualquer caminho que alcance `END` via `SERVICE_TASK` REST sem passar por um checkpoint | achado ao vivo: uma jornada com esse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha com `NullValueException: execution ... doesn't exist` ao tentar ler o histórico depois; camada equivalente em tempo de execução, ver REQ-05.08.005 |
 
-| [x] | REQ-03.02.009 | `SERVICE_TASK` REST pode ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa; ponto de conexão próprio e linha distinta no editor; 422 fora das regras. | done | back: `FlowConnection.onError`, `FlowValidator` (errorOutgoing); front: `ERROR_HANDLE` em `WorkflowNode`, `onConnect`/`onReconnect` (`JourneyDesignerPage`), `FlowEdge`; ms-transform-publication: evento de erro preso à tarefa | 2026-10-01; testado pelo usuário |
+| [x] | REQ-03.02.009 | `SERVICE_TASK` REST pode ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa; ponto de conexão próprio, sempre visível e disponível assim que o REST é escolhido, e linha distinta no editor; ponto desabilitado com explicação nas demais `SERVICE_TASK` e no painel; 422 fora das regras. | done | back: `FlowConnection.onError`, `FlowValidator` (errorOutgoing); front: `ERROR_HANDLE` + `useUpdateNodeInternals` + ponto desabilitado em `WorkflowNode`, `.wf-handle-always` (`index.css`), aviso no grupo Conector (`PropertiesPanel`), `onConnect`/`onReconnect` (`JourneyDesignerPage`), `FlowEdge`; ms-transform-publication: evento de erro preso à tarefa | 2026-10-01; testado pelo usuário. 2026-10-02: o ponto aparecia mas não ligava até o nó ser medido de novo (faltava avisar o React Flow da troca de pontos); ponto sempre visível e versão desabilitada — aguardando teste do usuário |
+| [x] | REQ-03.02.010 | Ligação recusada avisa o motivo: já tem "Se falhar" (arrastar a ponta para trocar), "Se falhar" só em REST, ou número máximo de saídas; vale para ligação nova e troca de origem. | done | front: `errorPathRefusal`/`OUTGOING_LIMIT_MESSAGE` + `showToast` em `onConnect`/`onReconnect` (`JourneyDesignerPage`) | 2026-10-02; aguardando teste do usuário |
+| [x] | REQ-03.02.011 | Ligação pode ser solta em qualquer parte da etapa de destino; elementos iniciais, a própria origem e anotações não recebem. | done | front: `onConnectEnd` (`JourneyDesignerPage`) — procura a etapa sob o ponteiro quando a ligação não fechou num ponto | 2026-10-02; aguardando teste do usuário |
 
 ### US-03.03 Navegação
 
@@ -513,7 +523,7 @@
 | [x] | REQ-03.19.005 | Etiqueta sobre a linha: "Se falhar", "senão" e condição em linguagem do autor; expressão no hover. | done | front: `EdgeLabel.tsx`, `readableCondition`/`screenVariableLabels` (`conditionLabel.ts`); back: tela no pacote do diagrama (`FlowBundleResponse`) | 2026-10-01 |
 | [x] | REQ-03.19.006 | Rótulo livre por ligação (até 40), por duplo clique; salvo com a ligação e mostrado na Execução/Diagnóstico. | done | back: `FlowConnection.label`; front: `FlowEdge.tsx` (edição), `onSetEdgeLabel` | 2026-10-01 |
 | [x] | REQ-03.19.007 | Três níveis de detalhe por zoom: cartão, pílula, ponto; linhas de centro a centro de longe. | done | front: `detailForZoom`/`NodeDot` (`NodeCard.tsx`), `FlowEdge`, `FlowDiagramViewer` | 2026-10-01 |
-| [x] | REQ-03.19.008 | Barra de navegação (busca Ctrl+F, zoom, Ajustar F, zoom na seleção Shift+2, agrupar Ctrl+G); pontos de conexão só no hover. | done | front: `NavigationBar.tsx`, `NodeSearch.tsx`, `.wf-handle` (`index.css`) | 2026-10-01 |
+| [x] | REQ-03.19.008 | Barra de navegação (busca Ctrl+F, zoom, Ajustar F, zoom na seleção Shift+2, agrupar Ctrl+G); pontos de conexão só no hover, exceto o "Se falhar" da integração REST, sempre visível. | done | front: `NavigationBar.tsx`, `NodeSearch.tsx`, `.wf-handle` (`index.css`) | 2026-10-01 |
 
 ### US-03.20 Seções do fluxo
 
@@ -1532,7 +1542,8 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 
 | Data/Hora | Alteração |
 |---|---|
-| 2026-10-01 13:37 (não commitado) | **Execução e Diagnóstico: linha do tempo como painel único, entrada por um campo só e reprodução passo a passo.** Novos: REQ-05.03.009 (bolinha que percorre a ligação de chegada e halo na etapa atual), REQ-05.11.005 ("Sair sem parar"), REQ-15.03.006 (painel de baixo do Diagnóstico abre recolhido). Reescritos: REQ-05.03.004 (linha do tempo redimensionável e recolhível; Variáveis e Log abrem recolhidos), REQ-05.03.008 (card da linha do tempo com todos os detalhes da etapa, único lugar na Execução), REQ-05.07.001 e REQ-05.11.001 (busca única que também retoma execuções em andamento), REQ-05.10.007 (largura do painel do Diagnóstico e da linha do tempo), REQ-15.03.005 (passo anterior/próximo; variáveis com o valor do momento); nota da US-05.10 atualizada. FT-05: 69 → 71; FT-15: 18 → 19; total 579 → 582. |
+| 2026-10-02 02:11 (não commitado) | **Saída "Se falhar" e ligações no editor (2 REQs novos, 2 reescritos).** REQ-03.02.009: o ponto "Se falhar" da integração REST fica sempre visível e liga assim que o REST é escolhido (antes aparecia mas só ligava depois de recarregar); nas demais Tarefas de Serviço o ponto aparece desabilitado, com a explicação, também no painel de propriedades. Novos: REQ-03.02.010 (ligação recusada avisa o motivo) e REQ-03.02.011 (soltar a ligação em qualquer parte da etapa de destino). REQ-03.19.008 ganhou a exceção do ponto "Se falhar". FT-03: 126 → 128; total 582 → 584. |
+| 2026-10-01 13:38 | **Execução e Diagnóstico: linha do tempo como painel único, entrada por um campo só e reprodução passo a passo.** Novos: REQ-05.03.009 (bolinha que percorre a ligação de chegada e halo na etapa atual), REQ-05.11.005 ("Sair sem parar"), REQ-15.03.006 (painel de baixo do Diagnóstico abre recolhido). Reescritos: REQ-05.03.004 (linha do tempo redimensionável e recolhível; Variáveis e Log abrem recolhidos), REQ-05.03.008 (card da linha do tempo com todos os detalhes da etapa, único lugar na Execução), REQ-05.07.001 e REQ-05.11.001 (busca única que também retoma execuções em andamento), REQ-05.10.007 (largura do painel do Diagnóstico e da linha do tempo), REQ-15.03.005 (passo anterior/próximo; variáveis com o valor do momento); nota da US-05.10 atualizada. FT-05: 69 → 71; FT-15: 18 → 19; total 579 → 582. |
 | 2026-10-01 05:29 | **Canvas profissional.** Novas US-03.19 Apresentação do fluxo no canvas (REQ-03.19.001 a 008) e US-03.20 Seções do fluxo (REQ-03.20.001 a 005); REQ-03.15.003 reescrito (anotação vinculada vira marcador) e REQ-03.15.006 a 008 novos (marcador numerado, Guia, tour); REQ-02.04.010 (seções nos modelos e tour na primeira abertura); REQ-05.03.004 a 008 (Execução lado a lado, passos numerados, seguir a execução, etapas do motor destacadas, linha do tempo); REQ-15.03.005 (reprodução no Diagnóstico). Implementado em admin/back (`V25`, `V26`, rótulo da ligação) e front. Total geral: 556 → 579 REQs, 506 → 529 concluídos; US: 107 → 109. |
 | 2026-10-01 01:52 | **Catálogo de modelos de jornada e resiliência da integração REST.** US-02.04: REQ-02.04.002/006 reescritos, REQ-02.04.007 a 009 novos (32 modelos em JSON, galeria nova). Nova US-03.18 (REQ-03.18.001 a 007) e REQ-03.02.009 (saída "Se falhar"); REQ-03.02.008 ajustado (REST em segundo plano é checkpoint); REQ-03.09.020, REQ-05.06.008, REQ-05.08.006 e REQ-15.03.004 novos. Implementado em admin/back, front, ms-runtime-camunda, ms-transform-publication, ms-espec-registry, ms-journey e ms-mock-api-rest. Total geral: 541 → 556 REQs, 491 → 506 concluídos; US: 106 → 107. |
 | 2026-09-30 01:32 | **Lista de seleção e fontes de dados da tela (ADR-002).** Novos: US-04.15 Lista de seleção (REQ-04.15.001 a 012), US-04.16 Fontes de dados da tela (REQ-04.16.001 a 009), US-14.07 Catálogo de fontes de dados (REQ-14.07.001 a 005), REQ-03.09.016 a 019 (saída de integração do tipo lista, campos a manter, lista/objeto do Kafka em JSON, lista fora das condições de Decisão), REQ-04.11.005 (ação "tentar novamente") e REQ-15.03.003 (consultas da tela no log do Diagnóstico). Implementado em admin/back (`V24`), ms-espec-registry (`V2`, montagem dos itens e busca das fontes), ms-transform-publication, ms-runtime-camunda, ms-journey, front e emulador de canais; APIs novas no ms-mock (bilhetes, horários, reagendamento, cancelamento); jornada de exemplo "Gestão de BDs" (VE). Catálogo SDUI: `ui.selectList` 1.0.0; nenhuma versão alterada. Compilado em todos os módulos; aguardando teste do usuário. Total geral: 509 → 541 REQs, 459 → 491 concluídos; US: 103 → 106. |

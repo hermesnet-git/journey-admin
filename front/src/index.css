@@ -34,6 +34,9 @@ html, body, #root {
 .react-flow__node .wf-handle.connectingto,
 .react-flow__node .wf-handle.valid,
 .react-flow.wf-connecting .wf-handle { opacity: 1; }
+/* Exceção: a saída "Se falhar" da integração REST fica sempre à vista — é uma saída especial que o
+   usuário precisa descobrir sem ter que passar o mouse em cada etapa. */
+.react-flow__node .wf-handle.wf-handle-always { opacity: 1; }
 
 /* Execução: o motor passou por esta etapa sozinho (anel que se expande e some). */
 @keyframes flow-step-flash {

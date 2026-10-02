@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react';
+import { Handle, NodeToolbar, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Check, Link2Off, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useWorkflowActions } from './actions-context';
 import { useFlowTheme } from './theme';
@@ -261,6 +261,11 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
   // Saída "Se falhar" (ponto vermelho embaixo): só na Tarefa de Serviço com integração REST.
   const hasErrorOutput = nodeType === 'serviceTask' && data.connectorConfig?.connectorType === 'REST';
   const errorPathTaken = !!data.errorPathTaken;
+  // O React Flow só registra os pontos de ligação ao medir o nó; esse ponto nasce/some depois (ao
+  // trocar o tipo do conector) sem mudar o tamanho do nó, então sem este aviso ele aparecia na tela
+  // mas não deixava puxar a linha até o nó ser medido de novo (recarregar, trocar o modo do canvas).
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => updateNodeInternals(id), [hasErrorOutput, id, updateNodeInternals]);
   // Semantic zoom: em zoom baixo o rótulo quebrado é a primeira coisa a virar ruído ilegível — a
   // própria forma continua reconhecível sem ele, então só o texto some abaixo do limiar.
   const showLabel = (data.zoom ?? 1) >= 0.65;
@@ -414,7 +419,7 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
           position={Position.Bottom}
           isConnectable={!errorPathTaken}
           title={errorPathTaken ? 'Caminho "Se falhar" já ligado' : 'Arraste daqui o caminho "Se falhar"'}
-          className="wf-handle transition-transform duration-150 hover:scale-[1.8] [&.connectingfrom]:scale-[1.8] [&.connectingfrom]:!shadow-[0_0_0_4px_var(--handle-ring)]"
+          className="wf-handle wf-handle-always transition-transform duration-150 hover:scale-[1.8] [&.connectingfrom]:scale-[1.8] [&.connectingfrom]:!shadow-[0_0_0_4px_var(--handle-ring)]"
           style={{
             width: 7.5,
             height: 7.5,
@@ -423,6 +428,19 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
             zIndex: 5,
             ['--handle-ring' as string]: c.dangerSoft,
           }}
+        />
+      )}
+      {/* Tarefa de Serviço sem REST: o mesmo ponto, cinza e sem ligar, só pra explicar (ao passar o
+          mouse) por que ali não sai o caminho "Se falhar" — em vez de o ponto simplesmente não existir. */}
+      {nodeType === 'serviceTask' && !hasErrorOutput && (
+        <div
+          title={
+            data.connectorConfig
+              ? 'O caminho "Se falhar" existe só para integração REST.'
+              : 'Escolha um conector REST para habilitar o caminho "Se falhar".'
+          }
+          className="wf-handle nodrag absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rounded-full cursor-not-allowed"
+          style={{ width: 7.5, height: 7.5, background: c.cardBg, border: `1.75px solid ${c.textSecondary}`, zIndex: 5 }}
         />
       )}
     </div>

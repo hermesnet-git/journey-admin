@@ -16,6 +16,7 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
+  type OnConnectEnd,
   type OnReconnect,
   type NodeChange,
   type EdgeChange,
@@ -185,6 +186,17 @@ const nodeTypes = {
 };
 
 // Moldura da seção: folga em volta das etapas e espaço do cabeçalho em cima.
+const OUTGOING_LIMIT_MESSAGE = 'Esta etapa já tem o número máximo de saídas.';
+
+// Motivo de recusa do caminho "Se falhar" (mesma regra do FlowValidator), ou null se pode ligar.
+function errorPathRefusal(source: WFNode | undefined, sourceId: string, edges: WFEdge[]): string | null {
+  if (!canHaveErrorPath(source)) return 'O caminho "Se falhar" existe só para integração REST.';
+  if (edges.some((e) => e.source === sourceId && isErrorEdge(e))) {
+    return 'Esta tarefa já tem um caminho "Se falhar". Arraste a ponta do caminho existente para trocar o destino.';
+  }
+  return null;
+}
+
 const SECTION_PAD = 24;
 const SECTION_HEADER = 40;
 const COLLAPSED_SECTION = { width: 280, height: 100 };
@@ -637,20 +649,43 @@ function DesignerInner({
       }
       const source = nodesRef.current.find((n) => n.id === params.source);
       // Saída "Se falhar": só em integração REST, uma por etapa, e fora da contagem de saídas normais.
+      // Toda recusa vira um aviso com o motivo — antes a linha só sumia, sem explicação.
       if (params.sourceHandle === ERROR_HANDLE) {
-        if (!canHaveErrorPath(source) || edgesRef.current.some((e) => e.source === params.source && isErrorEdge(e))) return;
+        const refusal = errorPathRefusal(source, params.source, edgesRef.current);
+        if (refusal) {
+          showToast(refusal, 'info');
+          return;
+        }
         pushHistory();
         setEdges((eds) => addEdge({ ...params, id: newConnectionId(), data: { onError: true } }, eds));
         return;
       }
       if (source?.type) {
         const outCount = edgesRef.current.filter((e) => e.source === params.source && !isErrorEdge(e)).length;
-        if (outCount >= outgoingLimitFor(source.type)) return;
+        if (outCount >= outgoingLimitFor(source.type)) {
+          showToast(OUTGOING_LIMIT_MESSAGE, 'info');
+          return;
+        }
       }
       pushHistory();
       setEdges((eds) => addEdge({ ...params, id: newConnectionId() }, eds));
     },
-    [pushHistory],
+    [pushHistory, showToast],
+  );
+  // Soltar a linha em qualquer parte da etapa de destino (não só na bolinha de entrada): quando a
+  // ligação não fechou num ponto, procura a etapa debaixo do ponteiro e liga nela.
+  const onConnectEnd = useCallback<OnConnectEnd>(
+    (event, state) => {
+      setConnecting(false);
+      if (state.isValid || !state.fromNode || state.fromHandle?.type !== 'source') return;
+      const point = 'changedTouches' in event ? event.changedTouches[0] : event;
+      const el = document.elementFromPoint(point.clientX, point.clientY)?.closest('.react-flow__node');
+      const targetId = el?.getAttribute('data-id');
+      const target = nodesRef.current.find((n) => n.id === targetId);
+      if (!target || target.id === state.fromNode.id || target.type === 'start' || target.type === 'messageStartEvent') return;
+      onConnect({ source: state.fromNode.id, sourceHandle: state.fromHandle.id ?? null, target: target.id, targetHandle: null });
+    },
+    [onConnect],
   );
   // Arrastar a ponta de uma seta já existente pra outro nó (retarget), em vez de excluir e puxar
   // uma nova — mesma regra de limite de saída do onConnect, só reaplicada quando a origem muda
@@ -661,10 +696,17 @@ function DesignerInner({
       if (newConnection.source !== oldEdge.source) {
         const source = nodesRef.current.find((n) => n.id === newConnection.source);
         if (isErrorEdge(oldEdge)) {
-          if (!canHaveErrorPath(source) || edgesRef.current.some((e) => e.source === newConnection.source && isErrorEdge(e))) return;
+          const refusal = errorPathRefusal(source, newConnection.source, edgesRef.current);
+          if (refusal) {
+            showToast(refusal, 'info');
+            return;
+          }
         } else if (source?.type) {
           const outCount = edgesRef.current.filter((e) => e.source === newConnection.source && e.id !== oldEdge.id && !isErrorEdge(e)).length;
-          if (outCount >= outgoingLimitFor(source.type)) return;
+          if (outCount >= outgoingLimitFor(source.type)) {
+            showToast(OUTGOING_LIMIT_MESSAGE, 'info');
+            return;
+          }
         }
       }
       pushHistory();
@@ -673,7 +715,7 @@ function DesignerInner({
       // (FlowConnectionInput.connectionId, @Pattern "^Flow_.+") e quebra o salvamento.
       setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds, { shouldReplaceId: false }));
     },
-    [pushHistory],
+    [pushHistory, showToast],
   );
   const onNodeDragStart = useCallback(() => pushHistory(), [pushHistory]);
   const onBeforeDelete = useCallback(async () => {
@@ -1511,7 +1553,7 @@ function DesignerInner({
                 onConnect={onConnect}
                 // Enquanto uma ligação é puxada, os pontos de conexão de todas as etapas ficam visíveis.
                 onConnectStart={() => setConnecting(true)}
-                onConnectEnd={() => setConnecting(false)}
+                onConnectEnd={onConnectEnd}
                 className={connecting ? 'wf-connecting' : undefined}
                 onReconnect={onReconnect}
                 // Duplo clique na linha: escreve (ou troca) o rótulo dela.

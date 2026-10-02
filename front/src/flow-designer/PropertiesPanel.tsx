@@ -763,6 +763,11 @@ function ConnectorFields({
             Conector incompleto — falta: {missingFields.join(', ')}
           </div>
         )}
+        {nodeType === 'serviceTask' && connectorConfig?.connectorType !== 'REST' && (
+          <div style={{ padding: '6px 10px', borderTop: `1px solid ${c.border}`, color: c.textSecondary, fontSize: 11.5 }}>
+            O caminho "Se falhar" existe só para integração REST.
+          </div>
+        )}
       </PropertyGrid>
 
       {connectorConfig && (

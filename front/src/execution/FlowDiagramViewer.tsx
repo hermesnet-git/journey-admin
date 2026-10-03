@@ -609,6 +609,7 @@ function FlowDiagramInner({
   // Na visualização estática (prévia de "Executar", sem instância rodando) não há "etapa atual" —
   // o enquadramento inicial é o início do fluxo (nó START/MESSAGE_START_EVENT), e o diagnóstico de
   // falha ao iniciar (erroredNodeId) assume assim que aparece, com prioridade sobre o início.
+  const framedRef = useRef(false);
   useEffect(() => {
     if (placed.length === 0) return;
     if (compact) {
@@ -620,11 +621,15 @@ function FlowDiagramInner({
       : placed.find((n) => n.id === currentNodeId);
     if (!follow && !staticView) return;
     if (!target) {
-      if (!staticView) requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 }));
+      // Sem etapa atual (replay no passo 0) só enquadra tudo na primeira vez; depois mantém a vista do usuário.
+      if (!staticView && !framedRef.current) requestAnimationFrame(() => fitView({ padding: 0.2, duration: 300 }));
       return;
     }
     const dim = nodeSize(BACKEND_TO_FRONT_TYPE[target.type], mode);
-    setCenter(target.positionX + dim.width / 2, target.positionY + dim.height / 2, { zoom: 1, duration: 300 });
+    // Só o primeiro enquadramento fixa o zoom; depois (replay, acompanhar) mantém o do usuário.
+    const zoom = staticView || !framedRef.current ? 1 : getZoom();
+    framedRef.current = true;
+    setCenter(target.positionX + dim.width / 2, target.positionY + dim.height / 2, { zoom, duration: 300 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentNodeId, staticView, erroredNodeId, placed, follow]);
 

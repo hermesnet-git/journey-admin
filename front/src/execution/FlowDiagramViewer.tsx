@@ -136,9 +136,10 @@ function SimNode({ data }: NodeProps<Node<SimNodeData>>) {
   const dim = nodeSize(frontType, mode);
   const asCard = mode !== 'circle' && isTaskType(frontType);
   const baseStyle = { ...statusStyle(status, typeColor), ...(halo ? { pulse: false } : {}) };
-  // Eventos e Decisão ainda não alcançados: fundo e borda da cor do tipo, como no editor.
+  // Eventos e Decisão só ganham a cor do tipo na vista estática (como no editor); ainda não
+  // alcançados numa execução ficam neutros, igual às demais etapas.
   const style =
-    !isTaskType(frontType) && (status === 'type' || status === 'pending')
+    !isTaskType(frontType) && status === 'type'
       ? { ...baseStyle, background: `color-mix(in srgb, ${typeColor} 20%, ${skinVars.colors.backgroundContainer})`, borderColor: typeColor, iconColor: typeColor }
       : baseStyle;
   // Ponto de longe: cor da trilha (percorrida, atual, erro) ou do tipo.

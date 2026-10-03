@@ -3,6 +3,7 @@ package com.jouney.admin.domain.execution;
 import com.jouney.admin.domain.channel.ChannelType;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
+import com.jouney.admin.domain.flow.FlowSection;
 import java.util.List;
 
 /** Resultado de iniciar uma instância: o diagrama da jornada (nós, conexões, canais) — da
@@ -10,5 +11,5 @@ import java.util.List;
  * — e o primeiro passo a mostrar. */
 public record ExecutionInstance(String processInstanceId, String businessKey, List<ChannelType> channelTypes,
                                  List<FlowNode> flowNodes, List<FlowConnection> flowConnections, ExecutionStep step,
-                                 boolean manualKafkaControl) {
+                                 boolean manualKafkaControl, List<FlowSection> sections, String layoutMode) {
 }

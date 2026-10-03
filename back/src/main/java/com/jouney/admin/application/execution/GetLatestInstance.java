@@ -4,6 +4,10 @@ import com.jouney.admin.application.execution.RuntimeExecutionPort.ProcessInstan
 import com.jouney.admin.domain.execution.ExecutionInstance;
 import com.jouney.admin.domain.execution.ExecutionStep;
 import com.jouney.admin.domain.execution.ProcessIds;
+import com.jouney.admin.domain.flow.FlowSection;
+import com.jouney.admin.domain.version.JourneyVersion;
+import com.jouney.admin.domain.version.JourneyVersionRepository;
+import java.util.List;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.domain.publication.PublicationRepository;
@@ -23,9 +27,11 @@ public class GetLatestInstance {
     private final PublicationRepository publicationRepository;
     private final RuntimeExecutionPort runtimeExecutionPort;
     private final ExecutionStepResolver stepResolver;
+    private final JourneyVersionRepository journeyVersionRepository;
 
     public GetLatestInstance(PublicationRepository publicationRepository, RuntimeExecutionPort runtimeExecutionPort,
-                              ExecutionStepResolver stepResolver) {
+                              ExecutionStepResolver stepResolver, JourneyVersionRepository journeyVersionRepository) {
+        this.journeyVersionRepository = journeyVersionRepository;
         this.publicationRepository = publicationRepository;
         this.runtimeExecutionPort = runtimeExecutionPort;
         this.stepResolver = stepResolver;
@@ -43,7 +49,11 @@ public class GetLatestInstance {
         Publication publication = publicationRepository.findByJourneyId(journeyId)
                 .orElseThrow(() -> new JourneyNotPublishedException(journeyId));
         ExecutionStep step = stepResolver.resolve(processInstanceId);
+        JourneyVersion published = publication.getVersionId() == null ? null
+                : journeyVersionRepository.findById(publication.getVersionId()).orElse(null);
+        List<FlowSection> sections = published != null ? published.getSections() : List.of();
         return Optional.of(new ExecutionInstance(processInstanceId, instance.businessKey(), publication.getChannelTypes(),
-                publication.getFlowNodes(), publication.getFlowConnections(), step, false));
+                publication.getFlowNodes(), publication.getFlowConnections(), step, false, sections,
+                published != null ? published.getLayoutMode() : null));
     }
 }

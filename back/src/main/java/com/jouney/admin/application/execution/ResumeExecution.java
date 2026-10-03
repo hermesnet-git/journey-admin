@@ -59,7 +59,8 @@ public class ResumeExecution {
         String channel = (String) variables.get("channel");
 
         ExecutionInstance executionInstance = new ExecutionInstance(instance.id(), instance.businessKey(),
-                resolved.channelTypes(), resolved.flowNodes(), resolved.flowConnections(), step, manualKafkaControl);
+                resolved.channelTypes(), resolved.flowNodes(), resolved.flowConnections(), step, manualKafkaControl,
+                resolved.sections(), resolved.layoutMode());
         return new ResumedExecution(journeyId, resolved.journeyName(), channel, executionInstance);
     }
 

@@ -10,6 +10,7 @@ import com.jouney.admin.domain.execution.SynchronousChainCheck;
 import com.jouney.admin.domain.flow.FlowConnection;
 import com.jouney.admin.domain.flow.FlowNode;
 import com.jouney.admin.domain.flow.FlowNodeType;
+import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.journey.JourneyNotPublishedException;
 import com.jouney.admin.domain.publication.Publication;
 import com.jouney.admin.domain.publication.PublicationRepository;
@@ -86,7 +87,8 @@ public class StartExecution {
                 ProcessIds.keyForJourney(journeyId), startVariables, businessKey, versionNumber);
         ExecutionStep step = stepResolver.resolve(processInstanceId, before);
         return new ExecutionInstance(processInstanceId, businessKey, target.channelTypes(), target.flowNodes(),
-                target.flowConnections(), step, manualKafkaControl);
+                target.flowConnections(), step, manualKafkaControl,
+                target.sections(), target.layoutMode());
     }
 
     /** Sem versão explícita: publicação ativa (comportamento de sempre, REQ-05.04.001). Com versão
@@ -96,7 +98,10 @@ public class StartExecution {
         if (versionNumber == null) {
             Publication publication = publicationRepository.findByJourneyId(journeyId)
                     .orElseThrow(() -> new JourneyNotPublishedException(journeyId));
-            return new ResolvedTarget(publication.getChannelTypes(), publication.getFlowNodes(), publication.getFlowConnections());
+            JourneyVersion published = publication.getVersionId() == null ? null
+                    : journeyVersionRepository.findById(publication.getVersionId()).orElse(null);
+            return new ResolvedTarget(publication.getChannelTypes(), publication.getFlowNodes(), publication.getFlowConnections(),
+                    published != null ? published.getSections() : List.of(), published != null ? published.getLayoutMode() : null);
         }
         JourneyVersion version = journeyVersionRepository.findByJourneyId(journeyId).stream()
                 .filter(v -> v.getVersionNumber() == versionNumber)
@@ -107,10 +112,12 @@ public class StartExecution {
             throw new IllegalStateException(
                     "Versão " + versionNumber + " da jornada " + journeyId + " não está publicada");
         }
-        return new ResolvedTarget(version.getChannelTypes(), version.getFlowNodes(), version.getFlowConnections());
+        return new ResolvedTarget(version.getChannelTypes(), version.getFlowNodes(), version.getFlowConnections(),
+                version.getSections(), version.getLayoutMode());
     }
 
     private record ResolvedTarget(List<ChannelType> channelTypes, List<FlowNode> flowNodes,
-                                   List<FlowConnection> flowConnections) {
+                                   List<FlowConnection> flowConnections, List<FlowSection> sections,
+                                   String layoutMode) {
     }
 }

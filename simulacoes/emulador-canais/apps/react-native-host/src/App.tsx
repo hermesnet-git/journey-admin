@@ -314,7 +314,19 @@ function StepView({ journeyId, instance, onStep, onError, onNotice }: StepViewPr
           if (!await Linking.canOpenURL(destination.toString())) throw new Error('O dispositivo não pode abrir essa URL.');
           await Linking.openURL(destination.toString());
         },
-        navigate: ({ route }) => {
+        navigate: async ({ route }) => {
+          // Destino "voltar": o serviço da jornada reabre a tela anterior, sem concluir esta.
+          if (route === 'voltar') {
+            setSubmitting(true);
+            try {
+              onStep(await client.goBack(instance.processInstanceId));
+            } catch (error) {
+              onError(messageOf(error));
+            } finally {
+              setSubmitting(false);
+            }
+            return;
+          }
           if (typeof route === 'string') onNotice(`Navegação solicitada para: ${route}`);
         },
         track: ({ event }) => {

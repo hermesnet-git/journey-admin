@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { createContext, useContext, useRef, useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import {
@@ -32,10 +32,14 @@ import type { SelectListAction, SelectListItem, SelectListLoadError } from '../s
 
 interface Props {
   sdui: SduiNode;
+  /** Namespace data do contexto devolvido com a tela (variáveis do motor, com o nome real). */
+  data?: Record<string, unknown>;
   onSubmit: (answers: Record<string, unknown>) => void;
   submitting: boolean;
   /** action.retry — refaz a montagem da tela (fonte de dados obrigatória que falhou). */
   onRetry?: () => void;
+  /** action.navigate com destino "voltar": reabre a tela anterior, sem concluir esta. */
+  onBack?: () => void;
 }
 
 // --- Resolução aproximada de tokens (seção 10 do catálogo) — cada alvo de renderização real
@@ -115,10 +119,20 @@ function collectInitialValues(node: SduiNode, acc: Record<string, string>) {
 // neste código (arriscado adivinhar), então uma visibilidade condicionada a um desses tipos não
 // reage ao vivo no simulador ainda. Upgrade: expor o valor ao vivo desses campos quando houver uma
 // necessidade real confirmada contra a API real do Form.
-function evaluateCondition(condition: SduiNode['visibility'], extraValues: Record<string, unknown>): boolean {
-  if (!condition || !condition.path.startsWith('form.')) return true;
-  const name = condition.path.slice('form.'.length);
-  const actual = extraValues[name];
+// Condições sobre data.*: o valor vem do motor (contexto devolvido pelo registry), com o nome real
+// da variável (data_<nome>). Só data é lido daqui; form segue vindo do que o usuário preenche.
+const DataContext = createContext<Record<string, unknown>>({});
+
+function evaluateCondition(condition: SduiNode['visibility'], extraValues: Record<string, unknown>, data: Record<string, unknown>): boolean {
+  if (!condition) return true;
+  let actual: unknown;
+  if (condition.path.startsWith('data.')) {
+    actual = data[`data_${condition.path.slice('data.'.length)}`];
+  } else if (condition.path.startsWith('form.')) {
+    actual = extraValues[condition.path.slice('form.'.length)];
+  } else {
+    return true;
+  }
   const expected = condition.value;
   const equal = String(actual ?? '') === String(expected ?? '');
   if (condition.rule === 'notEquals') return !equal;
@@ -127,7 +141,7 @@ function evaluateCondition(condition: SduiNode['visibility'], extraValues: Recor
   return equal;
 }
 
-export function SduiNodeRenderer({ sdui, onSubmit, submitting, onRetry }: Props) {
+export function SduiNodeRenderer({ sdui, data, onSubmit, submitting, onRetry, onBack }: Props) {
   const [extraValues, setExtraValues] = useState<Record<string, unknown>>({});
   // Ação da lista de seleção: grava item + ação e dispara o submit nativo do <Form> (mesma validação
   // e coleta dos demais campos) por um botão submit oculto.
@@ -160,9 +174,13 @@ export function SduiNodeRenderer({ sdui, onSubmit, submitting, onRetry }: Props)
     if (!event) return;
     const params = event.params ?? {};
     switch (event.action) {
-      case 'action.submit':
-        onSubmit(extraValues);
+      case 'action.submit': {
+        const chosen = typeof params.path === 'string' && params.path.startsWith('form.') && params.value != null
+          ? { [params.path.slice('form.'.length)]: params.value }
+          : {};
+        onSubmit({ ...extraValues, ...chosen });
         return;
+      }
       case 'action.setValue': {
         const path = typeof params.path === 'string' ? params.path : '';
         if (path.startsWith('form.')) setExtraValue(path.slice('form.'.length), params.value);
@@ -172,8 +190,12 @@ export function SduiNodeRenderer({ sdui, onSubmit, submitting, onRetry }: Props)
         if (typeof params.url === 'string') window.open(params.url, '_blank', 'noopener,noreferrer');
         return;
       case 'action.navigate':
+        // Só o destino "voltar" tem efeito aqui (reabre a tela anterior); os demais seguem sem
+        // navegação SPA interna neste simulador.
+        if (params.route === 'voltar') onBack?.();
+        return;
       case 'action.track':
-        return; // fora do escopo deste simulador — sem navegação SPA interna nem telemetria aqui
+        return; // fora do escopo deste simulador — sem telemetria aqui
       case 'action.dismiss':
         return; // tratado no próprio FieldRenderer (fecha localmente via dismissed)
       case 'action.retry':
@@ -183,20 +205,22 @@ export function SduiNodeRenderer({ sdui, onSubmit, submitting, onRetry }: Props)
   }
 
   return (
-    <Form onSubmit={handleFormSubmit} initialValues={initialValues}>
-      <FieldRenderer
-        node={sdui}
-        extraValues={extraValues}
-        setExtraValue={setExtraValue}
-        dismissed={dismissed}
-        setDismissed={setDismissed}
-        dispatch={dispatch}
-        submitting={submitting}
-        submitWith={submitWith}
-        onRetry={onRetry}
-      />
-      <button ref={hiddenSubmitRef} type="submit" hidden aria-hidden tabIndex={-1} />
-    </Form>
+    <DataContext.Provider value={data ?? {}}>
+      <Form onSubmit={handleFormSubmit} initialValues={initialValues}>
+        <FieldRenderer
+          node={sdui}
+          extraValues={extraValues}
+          setExtraValue={setExtraValue}
+          dismissed={dismissed}
+          setDismissed={setDismissed}
+          dispatch={dispatch}
+          submitting={submitting}
+          submitWith={submitWith}
+          onRetry={onRetry}
+        />
+        <button ref={hiddenSubmitRef} type="submit" hidden aria-hidden tabIndex={-1} />
+      </Form>
+    </DataContext.Provider>
   );
 }
 
@@ -221,8 +245,9 @@ function FieldRenderer({
   submitWith: (values: Record<string, unknown>) => void;
   onRetry?: () => void;
 }) {
-  if (dismissed.has(node.id) || !evaluateCondition(node.visibility, extraValues)) return null;
-  const active = evaluateCondition(node.active, extraValues);
+  const data = useContext(DataContext);
+  if (dismissed.has(node.id) || !evaluateCondition(node.visibility, extraValues, data)) return null;
+  const active = evaluateCondition(node.active, extraValues, data);
 
   const props = node.props;
   const label = (props.label as string | undefined) ?? '';
@@ -459,7 +484,13 @@ function FieldRenderer({
       const disabled = props.disabled === true || !active;
       // submit/onPress são mutuamente exclusivos na API da Mística — um botão de ação.submit usa a
       // coleta/validação nativa do <Form>; qualquer outra ação despacha manualmente.
-      const commonProps = isSubmit
+      // Botão que grava um valor ao concluir (params { path: "form.x", value }): diz à jornada qual
+      // botão foi acionado — usa o mesmo submit oculto da lista de seleção, com o valor pendente.
+      const chosenPath = typeof onPress?.params?.path === 'string' ? onPress.params.path : '';
+      const chosenValue = onPress?.params?.value;
+      const commonProps = isSubmit && chosenPath.startsWith('form.') && chosenValue != null
+        ? { onPress: () => submitWith({ [chosenPath.slice('form.'.length)]: chosenValue }), showSpinner: submitting, disabled }
+        : isSubmit
         ? { submit: true as const, showSpinner: submitting, disabled }
         : { onPress: () => dispatch(onPress), showSpinner: submitting, disabled };
       if (variant === 'secondary') return <ButtonSecondary {...commonProps}>{label}</ButtonSecondary>;

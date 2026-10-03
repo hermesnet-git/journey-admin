@@ -67,7 +67,7 @@ const FAQ_ITEMS: FaqItem[] = [
     topic: 'modelagem',
     question: 'Dá para o fluxo seguir caminhos diferentes conforme uma resposta?',
     answer:
-      'Sim, usando um nó de Gateway com duas saídas: uma condicional, que compara uma variável do fluxo, e uma padrão, usada quando a condição não é satisfeita.',
+      'Sim, usando uma Decisão com dois ou mais caminhos: cada um com uma condição que compara uma variável do fluxo, e um padrão, usado quando nenhuma condição é satisfeita. As condições são avaliadas de cima para baixo, na ordem do painel, e vale a primeira verdadeira.',
   },
   {
     topic: 'modelagem',

@@ -31,8 +31,8 @@ import java.util.regex.Pattern;
  * incoming message, it never calls out) and REQ-03.09.008 (Kafka operation is
  * implied by the node's role: SERVICE_TASK produces, RECEIVE_TASK and
  * MESSAGE_START_EVENT only ever consume). REQ-03.11.001/002/003/006: a GATEWAY node has at least
- * one input and exactly two outputs (MVP scope — see FT-03.11 for evolution items out of scope),
- * exactly one of which is the default (no condition) and the other carrying a non-blank condition.
+ * one input and two or more outputs, exactly one of which is the default (no condition) and every
+ * other carrying a non-blank condition — evaluated in list order, the first true one wins.
  */
 public final class FlowValidator {
 
@@ -264,9 +264,9 @@ public final class FlowValidator {
                     }
                 }
                 case GATEWAY -> {
-                    if (in < 1 || out != 2) {
+                    if (in < 1 || out < 2) {
                         violations.add(new FlowViolation(node.getId(), "A Decisão '" + node.getName()
-                                + "' precisa ser alcançada por uma etapa anterior e ter exatamente dois caminhos possíveis"));
+                                + "' precisa ser alcançada por uma etapa anterior e ter pelo menos dois caminhos possíveis"));
                     } else {
                         List<FlowConnection> outgoing = outgoingConnections.getOrDefault(node.getId(), List.of());
                         long defaultCount = outgoing.stream().filter(FlowConnection::isDefault).count();
@@ -852,6 +852,12 @@ public final class FlowValidator {
                     violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id() + "' referencia uma ação inválida: '"
                             + event.action() + "', na tela do nó '" + ownerNode.getName() + "'"));
                 }
+                if ("action.submit".equals(event.action()) && !isBlankSubmitChoice(event)
+                        && submitChoiceVariable(event) == null) {
+                    violations.add(new FlowViolation(ownerNode.getId(), "O componente '" + sduiNode.id()
+                            + "' grava um valor ao concluir a etapa: informe o caminho (form.nome) e o valor, na tela do nó '"
+                            + ownerNode.getName() + "'"));
+                }
             }
         }
         if (children != null && definition != null && definition.isAllowsChildren()) {
@@ -1161,11 +1167,38 @@ public final class FlowValidator {
                 }
             }
         }
+        // Botão que grava um valor ao concluir a etapa (action.submit com path/value): a variável
+        // gravada é tão do formulário quanto a de um campo.
+        if (node.events() != null) {
+            for (SduiEvent event : node.events().values()) {
+                if (event != null && "action.submit".equals(event.action()) && submitChoiceVariable(event) != null) {
+                    names.add(submitChoiceVariable(event));
+                }
+            }
+        }
         if (node.children() != null) {
             for (SduiNode child : node.children()) {
                 collectFormVariableNames(child, names);
             }
         }
+    }
+
+    // action.submit pode gravar um valor junto: params { path: "form.<nome>", value }. Devolve o nome
+    // da variável, ou null quando o par não está completo e válido.
+    private static String submitChoiceVariable(SduiEvent event) {
+        Map<String, Object> params = event.params();
+        if (params == null || !(params.get("path") instanceof String path)
+                || !path.matches("form\\.[A-Za-z_][A-Za-z0-9_]*")) {
+            return null;
+        }
+        Object value = params.get("value");
+        return value == null || value.toString().isBlank() ? null : path.substring("form.".length());
+    }
+
+    // O editor grava params com os campos em branco quando o autor não quer gravar valor nenhum.
+    private static boolean isBlankSubmitChoice(SduiEvent event) {
+        Map<String, Object> params = event.params();
+        return params == null || params.values().stream().allMatch(v -> v == null || v.toString().isBlank());
     }
 
     private static Set<String> bfs(String startId, Map<String, List<String>> graph) {

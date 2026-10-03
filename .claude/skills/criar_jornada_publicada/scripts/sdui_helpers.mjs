@@ -103,6 +103,34 @@ export function submitButton(id, label) {
   };
 }
 
+// Botão que grava um valor ao concluir a etapa (C1: action.submit com params { path, value }) — é o que
+// diz à jornada qual dos botões da tela foi acionado; a decisão seguinte lê form_<varName>. Todos os
+// botões de uma tela que escolhem um caminho devem gravar a MESMA variável. `activeWhen`: { path, rule,
+// value } desabilita o botão conforme um dado (ex.: { path: 'data.podeCancelar', rule: 'equals', value: true }).
+// Atenção: concluir a etapa valida os campos obrigatórios da tela, inclusive ao apertar "Voltar".
+export function actionButton(id, label, varName, value, opts = {}) {
+  return {
+    id, type: 'ui.button', version: '1.0.0',
+    props: { size: 'medium', label, loading: false, variant: opts.variant ?? 'primary', disabled: false, fullWidth: true },
+    bindings: null,
+    events: { onPress: { action: 'action.submit', params: { path: `form.${varName}`, value } } },
+    visibility: null, active: opts.activeWhen ?? null, children: null,
+  };
+}
+
+// Botão "Voltar": reabre a tela anterior da jornada sem concluir a atual (action.navigate com destino
+// "voltar"). Não precisa de Decisão depois da tela nem de ligação de retorno no fluxo, e não valida os
+// campos da tela — eles podem ser obrigatórios. Não volta por cima de uma integração de escrita concluída.
+export function backButton(id, label = 'Voltar', opts = {}) {
+  return {
+    id, type: 'ui.button', version: '1.0.0',
+    props: { size: 'medium', label, loading: false, variant: opts.variant ?? 'secondary', disabled: false, fullWidth: true },
+    bindings: null,
+    events: { onPress: { action: 'action.navigate', params: { route: 'voltar' } } },
+    visibility: null, active: null, children: null,
+  };
+}
+
 // mode: 'date' | 'time' | 'dateTime' (VALID_DATE_PICKER_MODES no FlowValidator).
 export function datePicker(id, label, varName, opts = {}) {
   return {
@@ -336,8 +364,13 @@ export function userTaskNode(id, name, description, positionX, positionY, screen
   };
 }
 
+// onError: saída "Se falhar" de uma etapa REST (usada quando a chamada esgota as tentativas); label: rótulo
+// opcional da ligação (até 40 caracteres).
 export function connection(id, sourceNodeId, targetNodeId, opts = {}) {
-  return { connectionId: id, sourceNodeId, targetNodeId, condition: opts.condition ?? null, isDefault: opts.isDefault ?? false };
+  return {
+    connectionId: id, sourceNodeId, targetNodeId, condition: opts.condition ?? null, isDefault: opts.isDefault ?? false,
+    onError: opts.onError ?? false, label: opts.label ?? null,
+  };
 }
 
 // --- Produto / Jornada / Fluxo / Publicação --------------------------------------------------
@@ -364,12 +397,13 @@ export async function ensureJourney(token, { productId, channelTypes, name, desc
   return api('POST', '/journeys', token, { productId, channelTypes, name, description, templateId: null });
 }
 
+// sections: [{ id, name, nodeIds }] — agrupam etapas numa moldura que o editor pode recolher.
 // Salva o rascunho de fluxo, gera uma nova versão a partir dele e publica essa versão — o mesmo
 // caminho de 3 passos que o editor faz na mão (Salvar → Nova versão → Publicar). Devolve a versão
 // publicada (com versionNumber). Se a jornada já tiver uma versão DRAFT, ela é reaproveitada em vez
 // de criar uma nova (mesmo comportamento de CreateJourneyVersion no back).
-export async function publishNewFlow(token, journeyId, { name, nodes, connections, annotations = [] }, versionDescription) {
-  await api('PUT', `/journeys/${journeyId}/flow`, token, { name, nodes, connections, annotations });
+export async function publishNewFlow(token, journeyId, { name, nodes, connections, annotations = [], sections = [] }, versionDescription) {
+  await api('PUT', `/journeys/${journeyId}/flow`, token, { name, nodes, connections, annotations, sections });
   const version = await api('POST', `/journeys/${journeyId}/versions`, token, { description: versionDescription ?? null });
   return api('POST', `/journeys/${journeyId}/versions/${version.versionId}/publish`, token);
 }

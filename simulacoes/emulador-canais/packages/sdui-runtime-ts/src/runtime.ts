@@ -57,6 +57,14 @@ function valueBinding(node: SduiNode): string | null {
   return node.bindings?.value?.path ?? null;
 }
 
+// Condições ($visibility/$active) sobre data.*: o motor devolve cada variável com o nome real
+// (data_<nome>), e é com esse nome que o contexto chega. Só aqui, e só para data: os vínculos de
+// valor e o namespace form seguem lendo a chave exata.
+function readConditionPath(context: RuntimeContext, path: string): { found: boolean; value: unknown } {
+  const direct = readPath(context, path);
+  return direct.found || !path.startsWith('data.') ? direct : readPath(context, `data.data_${path.slice('data.'.length)}`);
+}
+
 function matchesVisibility(actual: unknown, rule: string, expected: unknown): boolean {
   switch (rule) {
     case 'equals': return Object.is(actual, expected) || String(actual) === String(expected);
@@ -100,13 +108,13 @@ export class SduiRuntime {
   isVisible(node: SduiNode): boolean {
     if (this.dismissed.has(node.id)) return false;
     if (!node.visibility) return true;
-    const actual = readPath(this.context, node.visibility.path);
+    const actual = readConditionPath(this.context, node.visibility.path);
     return matchesVisibility(actual.found ? actual.value : undefined, node.visibility.rule, node.visibility.value);
   }
 
   isActive(node: SduiNode): boolean {
     if (!node.active) return true;
-    const actual = readPath(this.context, node.active.path);
+    const actual = readConditionPath(this.context, node.active.path);
     return matchesVisibility(actual.found ? actual.value : undefined, node.active.rule, node.active.value);
   }
 
@@ -201,7 +209,12 @@ export class SduiRuntime {
       case 'action.submit': {
         const errors = this.validate();
         if (errors.length > 0) return { handled: true, submitted: false, errors };
-        await this.handlers.submit?.(this.answers(), actionContext);
+        // Um botão pode gravar um valor junto com a conclusão (params { path: "form.x", value }): é o
+        // que diz à jornada qual dos botões da tela foi acionado.
+        const chosen = typeof params.path === 'string' && params.path.startsWith('form.') && params.value != null
+          ? { [params.path.slice('form.'.length)]: params.value }
+          : {};
+        await this.handlers.submit?.({ ...this.answers(), ...chosen }, actionContext);
         return { handled: true, submitted: true, errors: [] };
       }
       case 'action.navigate':

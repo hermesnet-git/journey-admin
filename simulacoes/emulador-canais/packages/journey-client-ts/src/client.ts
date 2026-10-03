@@ -108,6 +108,12 @@ export class JourneyClient {
     );
   }
 
+  /** Botão "Voltar" da tela: reabre a tela anterior sem concluir a atual. Se não der para voltar, o
+   * passo volta igual, com o motivo em errorMessage. */
+  goBack(processInstanceId: string, options?: RequestOptions): Promise<JourneyStep> {
+    return this.request(`/instances/${encodeURIComponent(processInstanceId)}/back`, { method: 'POST', body: '{}' }, options);
+  }
+
   async stopInstance(processInstanceId: string, options?: RequestOptions): Promise<void> {
     await this.request(`/instances/${encodeURIComponent(processInstanceId)}`, { method: 'DELETE' }, options);
   }

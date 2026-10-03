@@ -544,7 +544,7 @@ export function FigmaImportTab({ disabled, channelOptions, onChange }: FigmaImpo
                 {', sendo '}
                 <span className="inline-flex items-center gap-[4px]" style={{ color: c.warning, fontWeight: 600 }}>
                   <AlertTriangle size={12} />
-                  {summary.incompleteDecisions} sem os dois caminhos definidos
+                  {summary.incompleteDecisions} com menos de dois caminhos definidos
                 </span>
               </>
             )}

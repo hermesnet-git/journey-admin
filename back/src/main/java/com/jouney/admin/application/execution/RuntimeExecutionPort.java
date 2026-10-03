@@ -56,6 +56,13 @@ public interface RuntimeExecutionPort {
 
     void completeTask(String taskId, Map<String, Object> variables);
 
+    /** Instância ativa (no motor agora) da atividade {@code activityId} — "voltar à tela anterior". */
+    Optional<String> findActiveActivityInstanceId(String processInstanceId, String activityId);
+
+    /** Reabre {@code startBeforeActivityId} e cancela a atividade aberta, numa operação só do motor. */
+    void reopenActivity(String processInstanceId, String startBeforeActivityId, String cancelActivityInstanceId,
+                        String annotation);
+
     /** Correlaciona uma mensagem síncrona (sem publicar nada em tópico nenhum) — usado só por
      * "Pular etapa" num RECEIVE_TASK, fabricando a mensagem em vez de esperar uma real. */
     void correlateMessage(String messageName, String processInstanceId, Map<String, Object> variables);

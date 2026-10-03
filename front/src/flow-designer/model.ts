@@ -237,7 +237,7 @@ export function makeAnnotation(x: number, y: number): WFAnnotation {
 }
 
 // Node types that may have at most one outgoing connection (REQ-03.02.004/03.02.007). GATEWAY has
-// its own rule (exactly two outputs, REQ-03.11.001) enforced separately by the back-end FlowValidator (run on demand via validateFlow).
+// its own rule (two or more outputs, REQ-03.11.001) enforced separately by the back-end FlowValidator (run on demand via validateFlow).
 export const SINGLE_OUTPUT_TYPES: NodeType[] = ['userTask', 'serviceTask', 'receiveTask'];
 
 // Max outgoing connections allowed for a node type, used to disable the connect handle/quick-add
@@ -246,7 +246,6 @@ export const SINGLE_OUTPUT_TYPES: NodeType[] = ['userTask', 'serviceTask', 'rece
 // SINGLE_OUTPUT_TYPES itself — that list also gates copy/duplicate eligibility (Ctrl+C/D), and
 // duplicating the start node would produce a second one, which is invalid (exactly one start per flow).
 export function outgoingLimitFor(type: NodeType): number {
-  if (type === 'gateway') return 2;
   if (type === 'start' || type === 'messageStartEvent' || SINGLE_OUTPUT_TYPES.includes(type)) return 1;
   return Infinity;
 }
@@ -264,8 +263,8 @@ export function gatewayViolations(nodes: WFNode[], edges: WFEdge[]): Map<string,
     const name = node.data.name || NODE_META.gateway.title;
     const outgoing = edges.filter((e) => e.source === node.id);
     const incoming = edges.filter((e) => e.target === node.id);
-    if (incoming.length < 1 || outgoing.length !== 2) {
-      reasons.set(node.id, `A Decisão '${name}' precisa ser alcançada por uma etapa anterior e ter exatamente dois caminhos possíveis`);
+    if (incoming.length < 1 || outgoing.length < 2) {
+      reasons.set(node.id, `A Decisão '${name}' precisa ser alcançada por uma etapa anterior e ter pelo menos dois caminhos possíveis`);
       continue;
     }
     const defaultCount = outgoing.filter((e) => e.data?.isDefault).length;
@@ -361,8 +360,8 @@ export const NODE_META: Record<NodeType, { title: string; subtitle: string; help
   },
   gateway: {
     title: 'Decisão',
-    subtitle: 'Segue por um de dois caminhos, conforme uma condição',
-    help: 'Ramifica o fluxo em dois caminhos (A e B) conforme uma condição sobre uma variável já disponível naquele ponto da jornada. Um dos caminhos precisa ser marcado como padrão, usado quando a condição do outro não é satisfeita — garantindo que sempre haja um caminho definido em tempo de execução.',
+    subtitle: 'Segue por um entre dois ou mais caminhos, conforme condições',
+    help: 'Ramifica o fluxo em dois ou mais caminhos (A, B, C…), cada um com uma condição sobre uma variável já disponível naquele ponto da jornada. As condições são avaliadas de cima para baixo, e vale o primeiro caminho cuja condição for verdadeira. Um dos caminhos precisa ser marcado como padrão, usado quando nenhuma condição é satisfeita — garantindo que sempre haja um caminho definido em tempo de execução.',
   },
 };
 

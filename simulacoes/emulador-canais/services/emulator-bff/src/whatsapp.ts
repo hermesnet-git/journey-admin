@@ -213,7 +213,8 @@ export class WhatsAppSessionManager {
       const conversation = new WhatsAppSduiConversation({
         document: step.form.sdui,
         recipient: session.from,
-        context: { channel: 'WHATSAPP' },
+        // Só o namespace data: é o que as condições ($active/$visibility) da tela leem; form segue como estava.
+        context: { channel: 'WHATSAPP', data: (step.form.context?.data as Record<string, unknown> | undefined) ?? {} },
         handlers: {
           submit: async (answers) => {
             const taskId = session.instance.step.taskId;
@@ -221,7 +222,17 @@ export class WhatsAppSessionManager {
             const next = await this.journey.completeTask(session.instance.processInstanceId, taskId, { answers });
             await this.activateStep(session, next);
           },
-          navigate: async (params) => this.bridge.send(text(session.from, `Navegação solicitada: ${String(params.route ?? params.destination ?? '')}`)),
+          navigate: async (params) => {
+            // Destino "voltar": o serviço da jornada reabre a tela anterior, sem concluir esta.
+            if (params.route === 'voltar') {
+              const previous = await this.journey.goBack(session.instance.processInstanceId);
+              // Recusa (ex.: a operação já foi registrada): avisa e reenvia a mesma tela.
+              if (previous.errorMessage) await this.bridge.send(text(session.from, previous.errorMessage));
+              await this.activateStep(session, previous);
+              return;
+            }
+            await this.bridge.send(text(session.from, `Navegação solicitada: ${String(params.route ?? params.destination ?? '')}`));
+          },
           openUrl: async (params) => {
             const url = String(params.url ?? '');
             if (/^https?:\/\//.test(url)) await this.bridge.send(text(session.from, url));

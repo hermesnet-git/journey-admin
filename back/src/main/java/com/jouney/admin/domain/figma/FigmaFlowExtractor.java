@@ -228,9 +228,9 @@ public final class FigmaFlowExtractor {
 
         int incomplete = 0;
         for (JsonNode diamond : diamonds) {
-            // O fluxo só aceita decisão com exatamente dois caminhos; qualquer outro número tem de
-            // ser resolvido por quem revisa, e é isso que a tela precisa avisar antes de importar.
-            if (outDegree.getOrDefault(diamond.path("id").asText(), 0) != 2) {
+            // O fluxo só aceita decisão com pelo menos dois caminhos; menos que isso tem de ser
+            // resolvido por quem revisa, e é isso que a tela precisa avisar antes de importar.
+            if (outDegree.getOrDefault(diamond.path("id").asText(), 0) < 2) {
                 incomplete++;
             }
         }

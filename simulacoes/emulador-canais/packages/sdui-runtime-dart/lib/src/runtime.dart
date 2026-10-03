@@ -90,7 +90,7 @@ class SduiRuntime {
     if (_dismissed.contains(node.id)) return false;
     final visibility = node.visibility;
     if (visibility == null) return true;
-    final actual = _read(visibility.path).$2;
+    final actual = _readCondition(visibility.path).$2;
     final expected = visibility.value;
     return switch (visibility.rule) {
       'equals' => _equal(actual, expected),
@@ -105,7 +105,7 @@ class SduiRuntime {
   bool isActive(SduiNode node) {
     final active = node.active;
     if (active == null) return true;
-    final actual = _read(active.path).$2;
+    final actual = _readCondition(active.path).$2;
     final expected = active.value;
     return switch (active.rule) {
       'equals' => _equal(actual, expected),
@@ -293,7 +293,16 @@ class SduiRuntime {
         final errors = validate();
         if (errors.isNotEmpty)
           return ActionResult(handled: true, errors: errors);
-        await handlers.submit?.call(answers(), actionContext);
+        // Um botão pode gravar um valor junto com a conclusão (params path "form.x" + value): é o
+        // que diz à jornada qual dos botões da tela foi acionado.
+        final chosenPath = event.params['path'];
+        final JsonMap chosen =
+            chosenPath is String &&
+                chosenPath.startsWith('form.') &&
+                event.params['value'] != null
+            ? {chosenPath.substring(5): event.params['value']}
+            : const {};
+        await handlers.submit?.call({...answers(), ...chosen}, actionContext);
         return const ActionResult(handled: true, submitted: true);
       case 'action.navigate':
         await handlers.navigate?.call(event.params, actionContext);
@@ -321,6 +330,15 @@ class SduiRuntime {
       default:
         return const ActionResult(handled: false);
     }
+  }
+
+  // Condições ($visibility/$active) sobre data.*: o motor devolve cada variável com o nome real
+  // (data_<nome>), e é com esse nome que o contexto chega. Só aqui, e só para data: os vínculos de
+  // valor e o namespace form seguem lendo a chave exata.
+  (bool, dynamic) _readCondition(String path) {
+    final direct = _read(path);
+    if (direct.$1 || !path.startsWith('data.')) return direct;
+    return _read('data.data_${path.substring('data.'.length)}');
   }
 
   (bool, dynamic) _read(String path) {

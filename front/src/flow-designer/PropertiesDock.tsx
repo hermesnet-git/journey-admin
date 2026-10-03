@@ -33,6 +33,7 @@ export function PropertiesDock({
   journeyId,
   onUpdateNode,
   onUpdateEdge,
+  onMoveEdge,
   onDeleteNode,
   journey,
   freshNodeId,
@@ -46,6 +47,7 @@ export function PropertiesDock({
   journeyId: string;
   onUpdateNode: (patch: Partial<WFNodeData>) => void;
   onUpdateEdge: (edgeId: string, patch: Partial<WFEdgeData>) => void;
+  onMoveEdge: (edgeId: string, direction: -1 | 1) => void;
   onDeleteNode: () => void;
   journey: JourneyPanelProps;
   // Id do nó recém-criado (addNodeAt/onQuickAdd) — PropertiesPanel usa isso pra abrir só
@@ -156,6 +158,7 @@ export function PropertiesDock({
               journeyId={journeyId}
               onUpdate={onUpdateNode}
               onUpdateEdge={onUpdateEdge}
+              onMoveEdge={onMoveEdge}
               onDelete={onDeleteNode}
               freshNodeId={freshNodeId}
               onFreshNodeConsumed={onFreshNodeConsumed}

@@ -30,8 +30,14 @@ interface ActionParameter {
 // O formulário segue o registro normativo de ações. Enviar e dispensar não recebem destino:
 // a continuidade pertence à jornada, e não ao componente da tela.
 const ACTION_PARAMETERS: Record<string, ActionParameter[]> = {
-  'action.submit': [],
-  'action.navigate': [{ name: 'route', label: 'Destino interno', placeholder: 'Ex.: /inicio', required: true }],
+  // Opcionais: quando preenchidos, o botão grava o valor ao concluir a etapa (diz à jornada qual
+  // dos botões da tela foi acionado).
+  'action.submit': [
+    { name: 'path', label: 'Guardar a escolha em', placeholder: 'Ex.: form.acaoEscolhida', required: false },
+    { name: 'value', label: 'Valor guardado', placeholder: 'Ex.: reagendar', required: false },
+  ],
+  // "voltar" reabre a tela anterior da jornada, sem concluir a atual.
+  'action.navigate': [{ name: 'route', label: 'Destino interno', placeholder: 'voltar (volta à tela anterior)', required: true }],
   'action.openUrl': [{ name: 'url', label: 'Endereço', placeholder: 'https://', required: true }],
   'action.setValue': [
     { name: 'path', label: 'Valor da jornada', placeholder: 'Ex.: form.aceite', required: true },

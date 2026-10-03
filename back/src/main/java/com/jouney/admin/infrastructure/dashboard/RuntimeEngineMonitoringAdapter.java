@@ -349,6 +349,46 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
         }
     }
 
+    @Override
+    public Optional<String> findActiveActivityInstanceId(String processInstanceId, String activityId) {
+        ActivityInstanceNodeRaw root = call(() -> restClient.get()
+                .uri(baseUrl + "/process-instance/{id}/activity-instances", processInstanceId)
+                .retrieve()
+                .body(ActivityInstanceNodeRaw.class));
+        return Optional.ofNullable(root).flatMap(node -> findInstance(node, activityId));
+    }
+
+    private static Optional<String> findInstance(ActivityInstanceNodeRaw node, String activityId) {
+        if (activityId.equals(node.activityId())) {
+            return Optional.of(node.id());
+        }
+        for (ActivityInstanceNodeRaw child : node.childActivityInstances() != null ? node.childActivityInstances() : List.<ActivityInstanceNodeRaw>of()) {
+            Optional<String> found = findInstance(child, activityId);
+            if (found.isPresent()) {
+                return found;
+            }
+        }
+        return Optional.empty();
+    }
+
+    // Abrir antes de cancelar: cancelar primeiro a única atividade ativa encerraria a instância.
+    @Override
+    public void reopenActivity(String processInstanceId, String startBeforeActivityId, String cancelActivityInstanceId,
+                               String annotation) {
+        call(() -> restClient.post()
+                .uri(baseUrl + "/process-instance/{id}/modification", processInstanceId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "skipCustomListeners", false,
+                        "skipIoMappings", false,
+                        "annotation", annotation,
+                        "instructions", List.of(
+                                Map.of("type", "startBeforeActivity", "activityId", startBeforeActivityId),
+                                Map.of("type", "cancel", "activityInstanceId", cancelActivityInstanceId))))
+                .retrieve()
+                .toBodilessEntity());
+    }
+
     private static ActivityInstanceNodeRaw leafOf(ActivityInstanceNodeRaw node) {
         List<ActivityInstanceNodeRaw> children = node.childActivityInstances();
         if (children == null || children.isEmpty()) {
@@ -412,9 +452,21 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
 
     @Override
     public List<ActivityHistoryEntry> getActivityHistorySince(String processInstanceId, Instant since) {
-        List<ActivityInstanceHistoryRaw> raw = call(() -> restClient.get()
-                .uri(baseUrl + "/history/activity-instance?processInstanceId={id}&finishedAfter={since}&sortBy=startTime&sortOrder=asc",
-                        processInstanceId, QUERY_DATE_FORMAT.format(since))
+        return activityHistory(Map.of("processInstanceId", processInstanceId, "finishedAfter", QUERY_DATE_FORMAT.format(since)));
+    }
+
+    // Ordem de execução: horário de início e, no empate, o contador de execução do motor
+    // ("occurrence"). Só pelo horário, uma Decisão e a etapa seguinte que começam no mesmo
+    // milissegundo saíam trocadas — o Diagnóstico mostrava a etapa antes da Decisão que levou a ela.
+    private List<ActivityHistoryEntry> activityHistory(Map<String, Object> filter) {
+        Map<String, Object> query = new LinkedHashMap<>(filter);
+        query.put("sorting", List.of(
+                Map.of("sortBy", "startTime", "sortOrder", "asc"),
+                Map.of("sortBy", "occurrence", "sortOrder", "asc")));
+        List<ActivityInstanceHistoryRaw> raw = call(() -> restClient.post()
+                .uri(baseUrl + "/history/activity-instance")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(query)
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<ActivityInstanceHistoryRaw>>() {
                 }));
@@ -526,14 +578,7 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
 
     @Override
     public List<ActivityHistoryEntry> getFullActivityHistory(String processInstanceId) {
-        List<ActivityInstanceHistoryRaw> raw = call(() -> restClient.get()
-                .uri(baseUrl + "/history/activity-instance?processInstanceId={id}&sortBy=startTime&sortOrder=asc",
-                        processInstanceId)
-                .retrieve()
-                .body(new ParameterizedTypeReference<List<ActivityInstanceHistoryRaw>>() {
-                }));
-        if (raw == null) return List.of();
-        return raw.stream().map(r -> new ActivityHistoryEntry(r.id(), r.activityId(), r.activityName(), r.activityType(), r.startTime(), r.endTime(), r.durationInMillis(), Boolean.TRUE.equals(r.canceled()))).toList();
+        return activityHistory(Map.of("processInstanceId", processInstanceId));
     }
 
     @Override
@@ -816,7 +861,7 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record ActivityInstanceNodeRaw(String activityId, String activityType, String activityName,
+    private record ActivityInstanceNodeRaw(String id, String activityId, String activityType, String activityName,
                                             List<ActivityInstanceNodeRaw> childActivityInstances) {
     }
 

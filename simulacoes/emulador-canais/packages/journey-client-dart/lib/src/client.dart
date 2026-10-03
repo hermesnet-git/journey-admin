@@ -57,6 +57,12 @@ class JourneyClient {
         body: {'answers': answers},
       ));
 
+  /// Botão "Voltar" da tela: reabre a tela anterior sem concluir a atual. Se
+  /// não der para voltar, o passo volta igual, com o motivo em errorMessage.
+  Future<JourneyStep> goBack(String processInstanceId) async => JourneyStep.fromJson(
+        await _request('POST', '/instances/${Uri.encodeComponent(processInstanceId)}/back', body: const {}),
+      );
+
   Future<void> stopInstance(String processInstanceId) async {
     await _request('DELETE', '/instances/${Uri.encodeComponent(processInstanceId)}', allowEmpty: true);
   }

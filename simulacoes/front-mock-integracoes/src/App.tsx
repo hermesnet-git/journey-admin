@@ -13,6 +13,16 @@ type Endpoint = {
   queryExemplo?: string
 }
 
+// Data local (não toISOString, que usa UTC) daqui a "dias" dias, no formato AAAA-MM-DD.
+function dataEmDias(dias: number) {
+  const d = new Date()
+  d.setDate(d.getDate() + dias)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const amanha = dataEmDias(1)
+// Primeiro dia par a partir de amanhã: nele o mock deixa "14h às 16h" indisponível.
+const diaParEmBreve = Number(amanha.slice(8)) % 2 === 0 ? amanha : dataEmDias(2)
+
 const ENDPOINTS: Endpoint[] = [
   {
     metodo: 'GET',
@@ -325,6 +335,62 @@ const ENDPOINTS: Endpoint[] = [
     descricao: 'Agendar instalação',
     nota: 'Confirma o horário escolhido para a instalação. Devolve protocolo, horário e status AGENDADO.',
     bodyExemplo: { cep: '01310100', horario: '2026-10-02-MANHA' },
+  },
+  {
+    metodo: 'GET',
+    path: '/v2/clientes/45537128000127/solicitacoes',
+    descricao: 'Solicitações técnicas do cliente (v2)',
+    nota:
+      'Lista as solicitações técnicas (bilhetes de defeito) do CNPJ, com estado em memória: reagendar, cancelar e ' +
+      'adicionar informação alteram o que as listas e o detalhe devolvem até o mock reiniciar. "situacao" é ' +
+      '"andamento" (padrão) ou "historico" (concluídas e canceladas). Cada item traz "podeReagendar", "podeCancelar" ' +
+      'e "podeAdicionarInformacao". Só "45537128000127" tem solicitações (4 em andamento, 2 no histórico); ' +
+      'qualquer outro CNPJ recebe a lista vazia.',
+    queryExemplo: 'situacao=andamento',
+  },
+  {
+    metodo: 'GET',
+    path: '/v2/solicitacoes/SR-2026-48001',
+    descricao: 'Detalhe da solicitação técnica (v2)',
+    nota:
+      'Protocolo, serviço, endereço, status, data, visita {data, periodo} e comentários, mais as permissões. ' +
+      'Protocolos de teste: 48001 (reagenda e cancela), 48002 (técnico a caminho: só cancela), 48003 (aguardando ' +
+      'peça: só reagenda), 48004 (em análise), 47110 (concluída) e 47095 (cancelada). Protocolo desconhecido: 404.',
+  },
+  {
+    metodo: 'GET',
+    path: '/v2/solicitacoes/SR-2026-48001/horarios-disponiveis',
+    descricao: 'Horários do dia para reagendar (v2)',
+    nota:
+      'Os períodos livres do dia escolhido, no formato {label, value}, em "horarios" (dado de referência para uma ' +
+      'fonte de dados de tela). O período "14h às 16h" não é oferecido nos dias pares.',
+    queryExemplo: `data=${diaParEmBreve}`,
+  },
+  {
+    metodo: 'POST',
+    path: '/v2/solicitacoes/SR-2026-48001/reagendamento',
+    descricao: 'Reagendar visita (v2)',
+    nota:
+      'Muda a visita da solicitação. A data precisa ser futura e o período, um dos disponíveis (422 se não for). ' +
+      'Se o status não permite reagendar, devolve 409 com uma mensagem.',
+    bodyExemplo: { data: amanha, periodo: '10h às 12h' },
+  },
+  {
+    metodo: 'POST',
+    path: '/v2/solicitacoes/SR-2026-48001/cancelamento',
+    descricao: 'Cancelar solicitação (v2)',
+    nota:
+      'Cancela a solicitação e a move para o histórico com status "Cancelada". Se o status não permite cancelar, ' +
+      'devolve 409 com uma mensagem.',
+    bodyExemplo: { motivo: 'Problema resolvido' },
+  },
+  {
+    metodo: 'POST',
+    path: '/v2/solicitacoes/SR-2026-48001/informacoes',
+    descricao: 'Adicionar informação (v2)',
+    nota:
+      'Acrescenta o texto aos comentários da solicitação. Texto vazio devolve 422; solicitação encerrada devolve 409.',
+    bodyExemplo: { informacao: 'O portão da frente fica na rua lateral.' },
   },
 ]
 

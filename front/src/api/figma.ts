@@ -51,7 +51,7 @@ export interface FigmaScopeAnalysis {
   /** Telas restantes depois de reunir as que repetem o mesmo título. */
   distinctScreens: number;
   decisions: number;
-  /** Decisões sem os dois caminhos definidos no desenho — dependem do usuário pra fechar. */
+  /** Decisões com menos de dois caminhos definidos no desenho — dependem do usuário pra fechar. */
   incompleteDecisions: number;
   /** Largura das telas desenhadas, em px — diz de que formato veio o desenho. */
   screenWidth: number;

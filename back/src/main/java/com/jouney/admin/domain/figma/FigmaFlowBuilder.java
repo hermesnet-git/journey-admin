@@ -257,26 +257,24 @@ public final class FigmaFlowBuilder {
 
     /**
      * Um caminho de decisão carrega a condição no rótulo da seta ("sim", "não"). O fluxo exige que
-     * uma das duas saídas seja a padrão, então a rotulada vira a condição e a outra fica de padrão;
-     * a condição em si entra em branco, porque o desenho diz que existe uma escolha, não sobre qual
+     * uma das saídas seja a padrão, então a última vira a padrão e as demais ficam com condição; a
+     * condição em si entra em branco, porque o desenho diz que existe uma escolha, não sobre qual
      * variável ela é feita.
      */
     private static List<FlowConnection> linkEdges(List<Edge> edges, java.util.Collection<String> gatewayIds) {
         List<FlowConnection> out = new ArrayList<>();
-        Map<String, Integer> perGateway = new HashMap<>();
+        Map<String, Long> totalPerGateway = new HashMap<>();
+        edges.stream().filter(edge -> gatewayIds.contains(edge.from()))
+                .forEach(edge -> totalPerGateway.merge(edge.from(), 1L, Long::sum));
+        Map<String, Long> perGateway = new HashMap<>();
         for (Edge edge : edges) {
             boolean fromGateway = gatewayIds.contains(edge.from());
             if (!fromGateway) {
                 out.add(new FlowConnection(FlowIds.newConnectionId(), edge.from(), edge.to(), null, false));
                 continue;
             }
-            int taken = perGateway.merge(edge.from(), 1, Integer::sum);
-            if (taken > 2) {
-                // Decisão desenhada com mais de dois caminhos: o fluxo só comporta dois, e escolher
-                // quais manter seria palpite. Os excedentes ficam de fora, para serem refeitos à mão.
-                continue;
-            }
-            boolean isDefault = taken == 2;
+            long taken = perGateway.merge(edge.from(), 1L, Long::sum);
+            boolean isDefault = taken == totalPerGateway.get(edge.from()) && taken >= 2;
             out.add(new FlowConnection(FlowIds.newConnectionId(), edge.from(), edge.to(),
                     isDefault ? null : "", isDefault));
         }

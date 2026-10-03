@@ -8,6 +8,9 @@ import com.jouney.journey.especregistry.EspecRegistryClient;
 import com.jouney.journey.especregistry.FlowBundle;
 import com.jouney.journey.especregistry.StepResponse;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -93,6 +96,42 @@ public class JourneyController {
             // atual com uma mensagem de erro, pro canal poder avisar o usuário e deixar tentar de novo.
             return current.withError(engineMessage(ex));
         }
+        return stepResolver.resolve(processInstanceId);
+    }
+
+    // Ids (separados por vírgula) das telas do histórico que já foram destino de um "voltar".
+    private static final String CONSUMED_VARIABLE = "_voltasConsumidas";
+
+    /** Botão "Voltar" (action.navigate com destino "voltar"): reabre a tela anterior sem concluir a
+     * atual. Quando não dá para voltar, devolve o mesmo passo com a mensagem (como completeTask). */
+    @PostMapping("/instances/{processInstanceId}/back")
+    public StepResponse back(@PathVariable String processInstanceId) {
+        StepResponse current = stepResolver.resolve(processInstanceId);
+        if (!"USER_TASK".equals(current.type())) {
+            throw new IllegalStateException("A instância " + processInstanceId + " não está numa tela");
+        }
+        ProcessInstanceInfo instance = engineClient.getProcessInstance(processInstanceId)
+                .orElseThrow(() -> new IllegalStateException("Instância de processo não encontrada: " + processInstanceId));
+        UUID journeyId = ProcessIds.journeyIdFromKey(instance.definitionKey());
+
+        CamundaVariable consumedVariable = engineClient.getProcessVariables(processInstanceId).get(CONSUMED_VARIABLE);
+        String consumedText = consumedVariable != null && consumedVariable.value() != null ? String.valueOf(consumedVariable.value()) : "";
+        Set<String> consumed = consumedText.isBlank() ? new LinkedHashSet<>() : new LinkedHashSet<>(List.of(consumedText.split(",")));
+        List<BackNavigation.Activity> history = engineClient.getActivityHistory(processInstanceId).stream()
+                .map(a -> new BackNavigation.Activity(String.valueOf(a.get("id")), String.valueOf(a.get("activityId")),
+                        String.valueOf(a.get("activityType")), (String) a.get("startTime"), (String) a.get("endTime"),
+                        Boolean.TRUE.equals(a.get("canceled"))))
+                .toList();
+        BackNavigation.Decision decision = BackNavigation.decide(history, current.nodeId(), consumed, espec.writeNodeIds(journeyId));
+        if (decision.target() == null) {
+            return current.withError(decision.refusal());
+        }
+        String openInstance = engineClient.findActiveActivityInstanceId(processInstanceId, current.nodeId())
+                .orElseThrow(() -> new IllegalStateException("Tela atual não encontrada no motor: " + current.nodeId()));
+        engineClient.reopenActivity(processInstanceId, decision.target().activityId(), openInstance,
+                "Voltar à tela anterior: " + current.nodeId() + " → " + decision.target().activityId());
+        consumed.add(decision.target().id());
+        engineClient.setStringVariable(processInstanceId, CONSUMED_VARIABLE, String.join(",", consumed));
         return stepResolver.resolve(processInstanceId);
     }
 

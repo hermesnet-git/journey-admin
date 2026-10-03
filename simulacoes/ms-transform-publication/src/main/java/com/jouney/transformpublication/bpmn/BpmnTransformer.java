@@ -52,8 +52,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Transforms the Admin Portal's journey publication snapshot into an executable BPMN 2.0 process
- * for Camunda 7. The admin's flow model is a general graph since GATEWAY nodes branch into two
- * paths (REQ-03.11.001) that may later reconverge on a common node before END — so every element
+ * for Camunda 7. The admin's flow model is a general graph since GATEWAY nodes branch into two or
+ * more paths (REQ-03.11.001) that may later reconverge on a common node before END — so every element
  * (nodes and sequence flows) is built directly through the low-level BPMN model API instead of the
  * camunda-bpmn-model fluent chain builder, which is inherently linear/backtracking-based.
  *

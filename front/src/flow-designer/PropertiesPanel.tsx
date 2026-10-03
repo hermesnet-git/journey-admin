@@ -328,6 +328,7 @@ export function PropertiesPanel({
   journeyId,
   onUpdate,
   onUpdateEdge,
+  onMoveEdge,
   onDelete,
   freshNodeId,
   onFreshNodeConsumed,
@@ -350,6 +351,7 @@ export function PropertiesPanel({
   journeyId: string;
   onUpdate: (patch: Partial<WFNodeData>) => void;
   onUpdateEdge: (edgeId: string, patch: Partial<WFEdgeData>) => void;
+  onMoveEdge: (edgeId: string, direction: -1 | 1) => void;
   onDelete: () => void;
   // Nó recém-criado — na primeira vez que este painel mostra ele, só "Informações Gerais" nasce
   // aberta (o resto ainda não tem nada configurado). Consumido uma vez via onFreshNodeConsumed pra
@@ -452,6 +454,7 @@ export function PropertiesPanel({
             availableRules={availableVariableRulesAt(node.id, allNodes, allEdges)}
             variableOrigins={availableVariableOriginsAt(node.id, allNodes, allEdges)}
             onUpdateEdge={onUpdateEdge}
+            onMoveEdge={onMoveEdge}
           />
         </Section>
       )}
@@ -494,6 +497,7 @@ function GatewayFields({
   availableRules,
   variableOrigins,
   onUpdateEdge,
+  onMoveEdge,
 }: {
   nodeId: string;
   allNodes: WFNode[];
@@ -501,6 +505,7 @@ function GatewayFields({
   availableRules: OutputMappingRule[];
   variableOrigins: VariableOrigin[];
   onUpdateEdge: (edgeId: string, patch: Partial<WFEdgeData>) => void;
+  onMoveEdge: (edgeId: string, direction: -1 | 1) => void;
 }) {
   const { c } = useFlowTheme();
   const outgoing = allEdges.filter((e) => e.source === nodeId);
@@ -519,8 +524,12 @@ function GatewayFields({
   return (
     <div>
       {outgoing.length === 0 ? (
-        <div style={{ fontSize: 12, color: c.textSecondary }}>Conecte este nó a duas tarefas para configurar os caminhos A e B.</div>
+        <div style={{ fontSize: 12, color: c.textSecondary }}>Conecte este nó a duas ou mais etapas para configurar os caminhos.</div>
       ) : (
+        <>
+        <div style={{ fontSize: 11.5, color: c.textSecondary, marginBottom: 6 }}>
+          As condições são avaliadas de cima para baixo, e vale o primeiro caminho cuja condição for verdadeira. A saída padrão só é usada quando nenhuma condição é verdadeira.
+        </div>
         <PropertyGrid>
           {outgoing.map((edge, i) => {
             const target = allNodes.find((n) => n.id === edge.target);
@@ -547,9 +556,31 @@ function GatewayFields({
             }
 
             return (
-              <PropertyRow key={edge.id} label={`Saída ${i === 0 ? 'A' : 'B'}`} first={i === 0}>
+              <PropertyRow key={edge.id} label={`Saída ${String.fromCharCode(65 + i)}`} first={i === 0}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', padding: '4px 0' }}>
-                  <div style={{ fontSize: 11.5, color: c.textSecondary }}>→ {target?.data.name ?? edge.target}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: c.textSecondary }}>
+                    <span style={{ flex: 1 }}>→ {target?.data.name ?? edge.target}</span>
+                    <button
+                      type="button"
+                      title="Avaliar antes"
+                      aria-label={`Avaliar a saída ${String.fromCharCode(65 + i)} antes`}
+                      disabled={i === 0}
+                      onClick={() => onMoveEdge(edge.id, -1)}
+                      style={{ border: `1px solid ${c.border}`, borderRadius: 4, padding: '0 6px', background: 'transparent', color: c.textSecondary, cursor: i === 0 ? 'default' : 'pointer', opacity: i === 0 ? 0.4 : 1 }}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      title="Avaliar depois"
+                      aria-label={`Avaliar a saída ${String.fromCharCode(65 + i)} depois`}
+                      disabled={i === outgoing.length - 1}
+                      onClick={() => onMoveEdge(edge.id, 1)}
+                      style={{ border: `1px solid ${c.border}`, borderRadius: 4, padding: '0 6px', background: 'transparent', color: c.textSecondary, cursor: i === outgoing.length - 1 ? 'default' : 'pointer', opacity: i === outgoing.length - 1 ? 0.4 : 1 }}
+                    >
+                      ↓
+                    </button>
+                  </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: c.textSecondary, cursor: 'pointer' }}>
                     <input type="checkbox" checked={isDefault} onChange={(e) => toggleDefault(edge, e.target.checked)} />
                     Saída padrão (sem condição)
@@ -609,6 +640,7 @@ function GatewayFields({
             );
           })}
         </PropertyGrid>
+        </>
       )}
     </div>
   );

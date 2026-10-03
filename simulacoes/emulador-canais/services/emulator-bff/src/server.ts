@@ -329,6 +329,12 @@ export function createBffServer(config: BffConfig): Server {
         return;
       }
 
+      const back = match(url.pathname, /^\/api\/v1\/instances\/([^/]+)\/back$/);
+      if (request.method === 'POST' && back) {
+        sendJson(response, 200, await journey.goBack(back[0]!, { correlationId }));
+        return;
+      }
+
       const stop = match(url.pathname, /^\/api\/v1\/instances\/([^/]+)$/);
       if (request.method === 'DELETE' && stop) {
         await journey.stopInstance(stop[0]!, { correlationId });

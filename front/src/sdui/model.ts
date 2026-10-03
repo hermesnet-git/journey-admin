@@ -260,6 +260,13 @@ export function collectFormVariableNames(root: SduiNode): string[] {
       const path = node.bindings?.[key]?.path;
       if (path?.startsWith('form.') && path.length > 'form.'.length) names.push(path.slice('form.'.length));
     }
+    // Botão que grava um valor ao concluir a etapa (action.submit com path/value).
+    for (const event of Object.values(node.events ?? {})) {
+      const path = event?.action === 'action.submit' ? event.params?.path : undefined;
+      if (typeof path === 'string' && /^form\.[A-Za-z_]\w*$/.test(path) && String(event.params?.value ?? '').trim() !== '') {
+        names.push(path.slice('form.'.length));
+      }
+    }
   });
   return names;
 }

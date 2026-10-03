@@ -129,6 +129,66 @@ public class CamundaEngineClient {
                 .toBodilessEntity();
     }
 
+    /** Atividades da instância no histórico do motor, para o "voltar à tela anterior". */
+    public List<Map<String, Object>> getActivityHistory(String processInstanceId) {
+        List<Map<String, Object>> history = restClient.get()
+                .uri(properties.baseUrl() + "/history/activity-instance?processInstanceId={id}&sortBy=startTime&sortOrder=asc",
+                        processInstanceId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                });
+        return history != null ? history : List.of();
+    }
+
+    /** Instância ativa (no motor agora) da atividade {@code activityId}, para cancelá-la ao voltar. */
+    public Optional<String> findActiveActivityInstanceId(String processInstanceId, String activityId) {
+        ActivityInstanceNode root = restClient.get()
+                .uri(properties.baseUrl() + "/process-instance/{id}/activity-instances", processInstanceId)
+                .retrieve()
+                .body(ActivityInstanceNode.class);
+        return Optional.ofNullable(root).flatMap(node -> findInstance(node, activityId));
+    }
+
+    private static Optional<String> findInstance(ActivityInstanceNode node, String activityId) {
+        if (activityId.equals(node.activityId())) {
+            return Optional.of(node.id());
+        }
+        for (ActivityInstanceNode child : node.childActivityInstances() != null ? node.childActivityInstances() : List.<ActivityInstanceNode>of()) {
+            Optional<String> found = findInstance(child, activityId);
+            if (found.isPresent()) {
+                return found;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** Reabre {@code startBeforeActivityId} e cancela a atividade aberta agora, numa operação só
+     * (abrir antes de cancelar: cancelar primeiro a única atividade ativa encerraria a instância). */
+    public void reopenActivity(String processInstanceId, String startBeforeActivityId, String cancelActivityInstanceId,
+                               String annotation) {
+        restClient.post()
+                .uri(properties.baseUrl() + "/process-instance/{id}/modification", processInstanceId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "skipCustomListeners", false,
+                        "skipIoMappings", false,
+                        "annotation", annotation,
+                        "instructions", List.of(
+                                Map.of("type", "startBeforeActivity", "activityId", startBeforeActivityId),
+                                Map.of("type", "cancel", "activityInstanceId", cancelActivityInstanceId))))
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    public void setStringVariable(String processInstanceId, String name, String value) {
+        restClient.put()
+                .uri(properties.baseUrl() + "/process-instance/{id}/variables/{name}", processInstanceId, name)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("value", value, "type", "String"))
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     /** Idempotente: 404 (a instância já tinha terminado sozinha nesse meio-tempo) não é erro — encerrar
      * uma execução que já acabou é um no-op, não uma falha. */
     public void deleteProcessInstance(String processInstanceId) {

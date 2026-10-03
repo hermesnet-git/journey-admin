@@ -2,6 +2,7 @@ package com.jouney.admin.interfaces.execution;
 
 import com.jouney.admin.application.dashboard.RuntimeInstanceControlPort;
 import com.jouney.admin.application.execution.CompleteExecutionTask;
+import com.jouney.admin.application.execution.GoBackExecution;
 import com.jouney.admin.application.execution.ExecutionStepResolver;
 import com.jouney.admin.application.execution.ExecutionVariables;
 import com.jouney.admin.application.execution.GetExecutionFlow;
@@ -61,13 +62,14 @@ public class ExecutionController {
     private final SendTestMessage sendTestMessage;
     private final GetLatestInstance getLatestInstance;
     private final ResumeExecution resumeExecution;
+    private final GoBackExecution goBackExecution;
 
     public ExecutionController(GetExecutionFlow getExecutionFlow, StartExecution startExecution,
                                 ExecutionStepResolver stepResolver, CompleteExecutionTask completeExecutionTask,
                                 ExecutionVariables executionVariables, SendKafkaMessage sendKafkaMessage,
                                 PreviewKafkaMessage previewKafkaMessage, RuntimeInstanceControlPort runtimeInstanceControlPort,
                                 SkipStep skipStep, SendTestMessage sendTestMessage, GetLatestInstance getLatestInstance,
-                                ResumeExecution resumeExecution) {
+                                ResumeExecution resumeExecution, GoBackExecution goBackExecution) {
         this.getExecutionFlow = getExecutionFlow;
         this.startExecution = startExecution;
         this.stepResolver = stepResolver;
@@ -80,6 +82,7 @@ public class ExecutionController {
         this.sendTestMessage = sendTestMessage;
         this.getLatestInstance = getLatestInstance;
         this.resumeExecution = resumeExecution;
+        this.goBackExecution = goBackExecution;
     }
 
     // execution-flow, não /flow: esse já é o path do FlowController (editor de fluxo, Flow editável)
@@ -122,6 +125,13 @@ public class ExecutionController {
                                       @RequestBody(required = false) CompleteTaskRequest body) {
         Map<String, Object> answers = body != null ? body.answers() : Map.of();
         return StepResponse.from(completeExecutionTask.execute(processInstanceId, taskId, answers));
+    }
+
+    // Botão "Voltar" da tela (action.navigate, destino "voltar"): reabre a tela anterior sem concluir a atual.
+    @PreAuthorize("hasAnyRole('VIEWER','EDITOR','ADMIN')")
+    @PostMapping("/instances/{processInstanceId}/back")
+    public StepResponse back(@PathVariable String processInstanceId) {
+        return StepResponse.from(goBackExecution.execute(processInstanceId));
     }
 
     // Chamada bate em /simulate-step — mesmo nome que o front já usa (skipStep), sem relação com

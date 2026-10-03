@@ -31,6 +31,34 @@ public class EspecRegistryClient {
                 .body(FlowBundle.class);
     }
 
+    /**
+     * Ids dos nós de integração que gravam no sistema de origem (tudo que não é REST GET) — o
+     * "voltar à tela anterior" não passa por cima deles. Lê o fluxo cru só aqui: o {@link FlowNode}
+     * repassado aos canais continua sem a configuração das integrações.
+     */
+    @SuppressWarnings("unchecked")
+    public java.util.Set<String> writeNodeIds(UUID journeyId) {
+        Map<String, Object> flow = restClient.get()
+                .uri(properties.baseUrl() + "/api/v1/journeys/{id}/flow", journeyId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        Object nodes = flow != null ? flow.get("flowNodes") : null;
+        for (Object raw : nodes instanceof java.util.List<?> list ? list : java.util.List.of()) {
+            if (!(raw instanceof Map<?, ?> node) || !"SERVICE_TASK".equals(node.get("type"))) {
+                continue;
+            }
+            Map<String, Object> connector = node.get("connectorConfig") instanceof Map<?, ?> c ? (Map<String, Object>) c : Map.of();
+            Map<String, Object> config = connector.get("config") instanceof Map<?, ?> c ? (Map<String, Object>) c : Map.of();
+            boolean restRead = "REST".equals(connector.get("connectorType")) && "GET".equalsIgnoreCase(String.valueOf(config.get("method")));
+            if (!restRead) {
+                ids.add(String.valueOf(node.get("id")));
+            }
+        }
+        return ids;
+    }
+
     public FormPayload resolveForm(UUID journeyId, int journeyVersion, String nodeId, Map<String, Object> variables,
                                    String processInstanceId) {
         return restClient.post()

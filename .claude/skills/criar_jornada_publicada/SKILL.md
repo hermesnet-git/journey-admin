@@ -89,6 +89,22 @@ de **entrada da jornada** (`startVariables` do nó START) — ver `FlowValidator
 
 ## Erros comuns
 
+- **422 "A Decisão '…' precisa ser alcançada por uma etapa anterior e ter pelo menos dois caminhos possíveis"** —
+  a Decisão (GATEWAY) tem 2 ou mais saídas: exatamente uma padrão (`isDefault`, sem condição) e as demais com
+  condição. O motor avalia as condições **na ordem das ligações** no array `connections` e segue a primeira
+  verdadeira; a padrão só vale quando nenhuma é (ver `Node_DecDetalhe` em `jornada_gestao_bds_v2_ve.mjs`).
+- **Vários botões numa tela, cada um para um caminho** — use `actionButton(id, label, varName, value)`: ele grava
+  `value` em `form.<varName>` ao concluir a etapa (`action.submit` com `params { path, value }`), e a Decisão
+  seguinte lê `{{form_<varName>}}`. Todos os botões da tela gravam a MESMA variável (senão sobra valor velho de
+  uma passagem anterior). `activeWhen: { path: 'data.x', rule: 'equals', value: true }` desabilita o botão por um
+  dado da integração (o dado precisa estar mapeado em `outputMapping`). Atenção: concluir a etapa valida os campos
+  obrigatórios da tela, inclusive ao apertar "Voltar" — nas telas com botão de retorno, deixe os campos opcionais.
+- **Testar a falha sistêmica sem derrubar o mock** — `jornada_gestao_bds_v2_ve.mjs` aceita `MOCK_ESCRITA`
+  (ex.: `http://localhost:9/v2`, porta fechada) e `JORNADA_NOME`: publica uma cópia só para o teste. Depois,
+  `POST /journeys/{id}/unpublish` e `DELETE /journeys/{id}` — como ela já foi publicada, o DELETE não apaga: a
+  jornada fica **Inativa** na lista (preserva o histórico de publicação, `DeleteJourney`). Reutilize o mesmo
+  `JORNADA_NOME` nos próximos testes em vez de criar outra cópia.
+
 - **CPF/CNPJ/CEP chegam errados na API (ex.: `2.224223781E10`)** — campo com `inputMode: 'number'`
   vira número (Double) no motor, perde zeros à esquerda e vai em notação científica no corpo. Use
   `inputMode: 'text'` para qualquer identificador; `number` só para quantidade/medida de verdade.

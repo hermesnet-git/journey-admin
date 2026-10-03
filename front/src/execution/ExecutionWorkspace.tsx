@@ -8,6 +8,7 @@ import {
   ExecutionNetworkError,
   formatApiCallLog,
   getCurrentStep,
+  goBack,
   getVariables,
   now,
   previewKafkaMessage,
@@ -444,6 +445,25 @@ export function ExecutionWorkspace({
     }
   }
 
+  // Botão "Voltar" da tela: o motor reabre a tela anterior sem concluir esta. Recusa (ex.: já houve
+  // uma gravação no meio) não é falha de execução — só avisa no log e a tela fica como está.
+  async function handleBack() {
+    setBusy(true);
+    try {
+      const newStep = await goBack(processInstanceId);
+      if (newStep.errorMessage) {
+        appendLog(`Não foi possível voltar: ${newStep.errorMessage}`, undefined, true);
+        return;
+      }
+      appendLog(`Voltou de "${step.nodeName}" para "${newStep.nodeName}".`);
+      applyNewStep(newStep);
+    } catch (e) {
+      appendLog(`Falha de comunicação ao voltar de "${step.nodeName}": ${errorMessage(e)}`, undefined, true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleSkipStep() {
     setBusy(true);
     try {
@@ -607,6 +627,7 @@ export function ExecutionWorkspace({
             manualKafkaControl={manualKafkaControl}
             onCompleteTask={handleCompleteTask}
             onRetryStep={handleRetryStep}
+            onBack={handleBack}
             onSkipStep={handleSkipStep}
             onSendTestMessage={handleSendTestMessage}
             onSendKafkaMessage={handleSendKafkaMessage}

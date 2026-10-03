@@ -596,6 +596,25 @@ function DesignerInner({
     setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, data: { ...e.data, ...patch } } : e)));
   }, []);
 
+  // Sobe/desce uma saída entre as saídas da mesma origem. Numa Decisão, a ordem da lista é a ordem
+  // em que o motor avalia as condições — vale a primeira verdadeira.
+  const moveEdge = useCallback(
+    (edgeId: string, direction: -1 | 1) => {
+      pushHistory();
+      setEdges((eds) => {
+        const index = eds.findIndex((e) => e.id === edgeId);
+        if (index < 0) return eds;
+        let other = index + direction;
+        while (other >= 0 && other < eds.length && eds[other].source !== eds[index].source) other += direction;
+        if (other < 0 || other >= eds.length) return eds;
+        const next = [...eds];
+        [next[index], next[other]] = [next[other], next[index]];
+        return next;
+      });
+    },
+    [pushHistory],
+  );
+
   const deleteNode = useCallback(
     (nodeId: string) => {
       pushHistory();
@@ -855,7 +874,9 @@ function DesignerInner({
       // dois precisa ser (REQ-03.11.002) — o usuário pode trocar no GatewayFields.
       const isGateway = source.type === 'gateway';
       const mode = nodeModeRef.current;
-      const branchYOffset = isGateway ? (nodeSize(type, mode).height / 2 + GATEWAY_BRANCH_GAP) * (outCount === 0 ? -1 : 1) : 0;
+      // Ramos alternam acima/abaixo e se afastam a cada par: 1º acima, 2º abaixo, 3º mais acima…
+      const branchSlot = (outCount % 2 === 0 ? -1 : 1) * (Math.floor(outCount / 2) + 1);
+      const branchYOffset = isGateway ? (nodeSize(type, mode).height / 2 + GATEWAY_BRANCH_GAP) * branchSlot : 0;
       const gapX = isGateway ? GATEWAY_GAP_X : RANK_SEP;
       // n.position é o canto superior-esquerdo, não o centro — tipos diferentes têm alturas
       // diferentes (ex.: Início 52px vs Tarefa de Usuário 78px), então alinhar os "y" direto deixava
@@ -1220,6 +1241,21 @@ function DesignerInner({
     [edges, c, focusNodeId, edgeShape, routes, variableLabels, editingEdgeId],
   );
 
+  // Seção recolhida mostra só a primeira linha que chega nela; as que saem dela somem — o bloco
+  // resume o trecho, sem a teia de retornos e saídas que ele esconde.
+  const visibleSectionLinkIds = useMemo(() => {
+    const visible = new Set<string>();
+    const entered = new Set<string>();
+    for (const e of edges) {
+      const s = hiddenBySection.get(e.source);
+      const t = hiddenBySection.get(e.target);
+      if (s || !t || entered.has(t)) continue;
+      entered.add(t);
+      visible.add(e.id);
+    }
+    return visible;
+  }, [edges, hiddenBySection]);
+
   // O que o roteamento precisa saber das seções recolhidas (lido no efeito das rotas).
   sectionViewRef.current = {
     hidden: new Set(hiddenBySection.keys()),
@@ -1227,26 +1263,24 @@ function DesignerInner({
       .filter((n) => n.data.variant === 'block')
       .map((n) => ({ id: n.id, type: 'userTask' as NodeType, x: n.position.x, y: n.position.y, width: n.data.width, height: n.data.height })),
     links: edges.flatMap((e) => {
-      const s = hiddenBySection.get(e.source);
+      if (!visibleSectionLinkIds.has(e.id)) return [];
       const t = hiddenBySection.get(e.target);
-      if ((!s && !t) || s === t) return [];
-      return [{ id: `SectionLink_${e.id}`, source: s ? `Section_${s}` : e.source, target: t ? `Section_${t}` : e.target, onError: !!e.data?.onError }];
+      return [{ id: `SectionLink_${e.id}`, source: e.source, target: `Section_${t}`, onError: !!e.data?.onError }];
     }),
   };
 
-  // Linhas que entram ou saem de uma seção recolhida passam a ligar no bloco da seção.
+  // A linha que chega numa seção recolhida passa a ligar no bloco da seção.
   const sectionLinkEdges = useMemo(
     () =>
       displayEdges.flatMap((e) => {
-        const s = hiddenBySection.get(e.source);
+        if (!visibleSectionLinkIds.has(e.id)) return [];
         const t = hiddenBySection.get(e.target);
-        if ((!s && !t) || s === t) return [];
         return [
           {
             id: `SectionLink_${e.id}`,
-            source: s ? `Section_${s}` : e.source,
-            target: t ? `Section_${t}` : e.target,
-            sourceHandle: s ? undefined : e.sourceHandle,
+            source: e.source,
+            target: `Section_${t}`,
+            sourceHandle: e.sourceHandle,
             type: edgeShape,
             selectable: false,
             deletable: false,
@@ -1256,7 +1290,7 @@ function DesignerInner({
           },
         ];
       }),
-    [displayEdges, hiddenBySection, edgeShape, routes],
+    [displayEdges, hiddenBySection, visibleSectionLinkIds, edgeShape, routes],
   );
 
   function handleSave() {
@@ -1681,6 +1715,7 @@ function DesignerInner({
               journeyId={activeJourney.journeyId}
               onUpdateNode={(patch) => propertiesNode && updateNodeData(propertiesNode.id, patch)}
               onUpdateEdge={updateEdgeData}
+              onMoveEdge={moveEdge}
               onDeleteNode={() => propertiesNode && deleteNode(propertiesNode.id)}
               freshNodeId={freshNodeId}
               onFreshNodeConsumed={() => setFreshNodeId(null)}

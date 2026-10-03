@@ -150,7 +150,19 @@ function StepView({ instance, onStep, onError }: { instance: JourneyInstance; on
           if (destination.protocol !== 'http:' && destination.protocol !== 'https:') throw new Error('URL bloqueada pelo canal.');
           window.open(destination, '_blank', 'noopener,noreferrer');
         },
-        navigate: ({ route }) => {
+        navigate: async ({ route }) => {
+          // Destino "voltar": o serviço da jornada reabre a tela anterior, sem concluir esta.
+          if (route === 'voltar') {
+            setSubmitting(true);
+            try {
+              onStep(await client.goBack(instance.processInstanceId));
+            } catch (error) {
+              onError(messageOf(error));
+            } finally {
+              setSubmitting(false);
+            }
+            return;
+          }
           window.dispatchEvent(new CustomEvent('elastic-journey:navigate', { detail: { route } }));
         },
         track: ({ event }) => {

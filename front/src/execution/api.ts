@@ -393,6 +393,12 @@ export function completeTask(
   return apiPost(`/instances/${processInstanceId}/tasks/${taskId}/complete`, { answers });
 }
 
+/** Botão "Voltar" da tela: reabre a tela anterior sem concluir a atual. Se não der para voltar, o
+ * passo volta igual, com o motivo em errorMessage. */
+export function goBack(processInstanceId: string): Promise<StepResponse> {
+  return apiPost(`/instances/${processInstanceId}/back`, {});
+}
+
 // Chamada continua batendo em /simulate-step do ms-espec-registry (fora de escopo, não muda) —
 // só o nome local reflete o que a UI oferece hoje: pular a etapa manualmente, fabricando o
 // resultado, como alternativa à execução real (produção/consumo Kafka de verdade).

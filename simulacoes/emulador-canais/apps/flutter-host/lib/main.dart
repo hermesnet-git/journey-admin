@@ -364,14 +364,38 @@ class _ChannelHostPageState extends State<ChannelHostPage> {
         // etapa de novo, o que refaz a montagem da tela no servidor.
         retry: (_, _) => _refreshStep(),
         openUrl: _openUrl,
-        navigate: (params, _) async => _notify(
-          'Navegação solicitada: ${params['route'] ?? params['destination'] ?? 'destino não informado'}',
-        ),
+        navigate: (params, _) async {
+          // Destino "voltar": o serviço da jornada reabre a tela anterior,
+          // sem concluir esta.
+          if (params['route'] == 'voltar') return _goBack();
+          _notify(
+            'Navegação solicitada: ${params['route'] ?? params['destination'] ?? 'destino não informado'}',
+          );
+        },
         track: (params, _) async =>
             _notify('Evento registrado: ${params['event'] ?? 'sem nome'}'),
       ),
     );
     setState(() => _runtime = runtime);
+  }
+
+  Future<void> _goBack() async {
+    final instance = _instance;
+    if (instance == null) return;
+    setState(() => _submitting = true);
+    try {
+      final step = await _client.goBack(instance.processInstanceId);
+      if (!mounted) return;
+      setState(() {
+        _instance = instance.withStep(step);
+        _error = null;
+      });
+      _prepareStep(step);
+    } catch (error) {
+      _showError(error);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   Future<void> _submitAnswers(

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PanelLeftClose, Smartphone } from 'lucide-react';
 import { skinVars } from '@telefonica/mistica';
 import {
   apiCallLogData,
@@ -27,7 +28,7 @@ import {
 import { DevicePreview } from './DevicePreview';
 import { InspectorPanel, type LogEntry } from './InspectorPanel';
 import { FlowDiagramViewer } from './FlowDiagramViewer';
-import { ExecutionTimeline, type TimelineStep, type TimelineWait } from './ExecutionTimeline';
+import { ExecutionTimeline, readNumber, remember, type TimelineStep, type TimelineWait } from './ExecutionTimeline';
 import { SummaryField } from './SummaryField';
 
 const WAITING_POLL_MS = 2000;
@@ -534,6 +535,31 @@ export function ExecutionWorkspace({
     }
   }
 
+  // Painel da tela da jornada: redimensionável pela borda direita e recolhível (lembra a escolha).
+  const [channelWidth, setChannelWidth] = useState(() => Math.min(CHANNEL_MAX, Math.max(CHANNEL_MIN, readNumber(CHANNEL_WIDTH_KEY, 440))));
+  const [channelCollapsed, setChannelCollapsed] = useState(() => readNumber(CHANNEL_COLLAPSED_KEY, 0) === 1);
+  const channelDrag = useRef<{ startX: number; startWidth: number } | null>(null);
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      const d = channelDrag.current;
+      if (d) setChannelWidth(Math.min(CHANNEL_MAX, Math.max(CHANNEL_MIN, d.startWidth + e.clientX - d.startX)));
+    }
+    function onUp() {
+      if (!channelDrag.current) return;
+      channelDrag.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+  useEffect(() => remember(CHANNEL_WIDTH_KEY, String(channelWidth)), [channelWidth]);
+  useEffect(() => remember(CHANNEL_COLLAPSED_KEY, channelCollapsed ? '1' : '0'), [channelCollapsed]);
+
   return (
     <div className="flex-1 min-h-0 flex flex-col" style={{ background: skinVars.colors.background }}>
       <div
@@ -545,7 +571,31 @@ export function ExecutionWorkspace({
       </div>
       <div className="flex-1 min-h-0 flex">
         {/* Canal */}
-        <div className="w-[440px] shrink-0 overflow-auto px-5 py-6" style={{ borderRight: `1px solid ${skinVars.colors.border}` }}>
+        {channelCollapsed ? (
+          <button
+            type="button"
+            onClick={() => setChannelCollapsed(false)}
+            title="Abrir a tela da jornada"
+            className="shrink-0 h-full w-[40px] flex flex-col items-center gap-3 pt-4 border-0 cursor-pointer"
+            style={{ borderRight: `1px solid ${skinVars.colors.border}`, background: skinVars.colors.background, color: skinVars.colors.textSecondary }}
+          >
+            <Smartphone size={16} />
+            <span className="text-[12px] font-semibold" style={{ writingMode: 'vertical-rl' }}>
+              Tela da jornada
+            </span>
+          </button>
+        ) : (
+        <div className="shrink-0 h-full flex" style={{ width: channelWidth }}>
+        <div className="flex-1 min-w-0 overflow-auto px-5 py-6 relative">
+          <button
+            type="button"
+            onClick={() => setChannelCollapsed(true)}
+            title="Recolher a tela da jornada"
+            className="absolute top-2 right-2 border-0 bg-transparent cursor-pointer p-[2px] flex"
+            style={{ color: skinVars.colors.textSecondary }}
+          >
+            <PanelLeftClose size={15} />
+          </button>
           <DevicePreview
             // REQ-05.07.003: usa o canal que o usuário de fato escolheu no StartPanel — só cai pro
             // primeiro canal da jornada quando não há escolha (instância nascida por mensagem).
@@ -563,6 +613,20 @@ export function ExecutionWorkspace({
             onPreviewKafkaMessage={handlePreviewKafkaMessage}
           />
         </div>
+        <div
+          onMouseDown={(e) => {
+            channelDrag.current = { startX: e.clientX, startWidth: channelWidth };
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+          }}
+          className="w-[5px] shrink-0 h-full cursor-col-resize flex items-center justify-center"
+          style={{ background: skinVars.colors.backgroundAlternative, borderRight: `1px solid ${skinVars.colors.border}` }}
+          title="Arraste para redimensionar"
+        >
+          <div className="w-[3px] h-10 rounded-full" style={{ background: skinVars.colors.border }} />
+        </div>
+        </div>
+        )}
 
         {/* Fluxo */}
         <div className="flex-1 min-w-0 flex">
@@ -607,6 +671,11 @@ export function ExecutionWorkspace({
     </div>
   );
 }
+
+const CHANNEL_WIDTH_KEY = 'execution:channel-width';
+const CHANNEL_COLLAPSED_KEY = 'execution:channel-collapsed';
+const CHANNEL_MIN = 320;
+const CHANNEL_MAX = 800;
 
 const CHANNEL_LABEL: Record<string, string> = { WEB: 'Web', MOBILE: 'Mobile', WHATSAPP: 'WhatsApp' };
 

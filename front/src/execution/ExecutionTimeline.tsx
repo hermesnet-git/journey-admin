@@ -49,7 +49,7 @@ const MIN_WIDTH = 300;
 const MAX_WIDTH = 720;
 const DEFAULT_WIDTH = 360;
 
-function readNumber(key: string, fallback: number): number {
+export function readNumber(key: string, fallback: number): number {
   try {
     const value = Number(localStorage.getItem(key));
     return Number.isFinite(value) && value > 0 ? value : fallback;
@@ -58,7 +58,7 @@ function readNumber(key: string, fallback: number): number {
   }
 }
 
-function remember(key: string, value: string) {
+export function remember(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
   } catch {

@@ -167,8 +167,8 @@ function stopAll(signal) {
 process.once('SIGINT', () => stopAll('SIGINT'));
 process.once('SIGTERM', () => stopAll('SIGTERM'));
 
-async function startAll() {
-  const definitions = [
+// Serviços do dev:all — a mesma lista serve ao stop:all (pelas portas).
+const definitions = [
     { name: 'BFF', port: 18085, command: npm, args: ['run', 'dev:bff'] },
     { name: 'WCE Bridge', port: 13001, command: npm, args: ['run', 'dev:wce-bridge'] },
     { name: 'React Web', port: 15171, command: npm, args: ['run', 'dev', '--workspace', '@elastic-journey/react-web-host'] },
@@ -182,7 +182,35 @@ async function startAll() {
     // interfaces/IPv6 e derruba o app com "createBundleURL" nulo.
     { name: 'React Native Metro', port: 18081, command: npm, args: ['run', 'dev:react-native'], readinessTimeoutMs: 60_000, env: { EXPO_PACKAGER_HOSTNAME: '127.0.0.1' } },
     { name: 'Flutter Web', port: 15172, command: flutter, args: ['run', '-d', 'web-server', '--web-hostname', '127.0.0.1', '--web-port', '15172', '--no-pub'], cwd: resolve(root, 'apps/flutter-host'), requires: flutter, readinessTimeoutMs: 90_000 },
-  ];
+];
+
+// Encerra quem estiver ouvindo nas portas dos serviços — inclusive processos que sobraram de uma
+// execução anterior (os "JÁ ATIVO" do dev:all), que o Ctrl+C de um novo dev:all não alcança.
+function listeningPids(port) {
+  const result = windows
+    ? spawnSync('powershell.exe', ['-NoProfile', '-Command',
+      `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique`],
+    { encoding: 'utf8', windowsHide: true })
+    : spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], { encoding: 'utf8' });
+  return (result.stdout ?? '').split(/\s+/).filter(Boolean).map(Number).filter((pid) => pid > 0);
+}
+
+function stopRunning() {
+  for (const definition of definitions) {
+    const pids = listeningPids(definition.port);
+    if (pids.length === 0) {
+      process.stdout.write(`[${definition.name}] porta ${definition.port} livre.\n`);
+      continue;
+    }
+    for (const pid of pids) {
+      if (windows) spawnSync('taskkill.exe', ['/pid', String(pid), '/t', '/f'], { stdio: 'ignore', windowsHide: true });
+      else try { process.kill(pid, 'SIGTERM'); } catch { /* já encerrado */ }
+    }
+    process.stdout.write(`[${definition.name}] encerrado (porta ${definition.port}).\n`);
+  }
+}
+
+async function startAll() {
   const readiness = [];
 
   for (const [index, definition] of definitions.entries()) {
@@ -371,7 +399,8 @@ async function startAndroid() {
 try {
   if (mode === 'all') await startAll();
   else if (mode === 'android') await startAndroid();
-  else throw new Error("Modo inválido. Use 'all' ou 'android'.");
+  else if (mode === 'stop') stopRunning();
+  else throw new Error("Modo inválido. Use 'all', 'android' ou 'stop'.");
 } catch (error) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;

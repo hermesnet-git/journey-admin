@@ -4,23 +4,23 @@ set "ROOT=%~dp0"
 
 if "%~1"=="--run-app" goto :run_app
 
-wt.exe -w new  new-tab --suppressApplicationTitle --title "front"                    cmd /k call "%~f0" --run-app "%ROOT%front" react
+wt.exe -w new  new-tab -d "%ROOT%front" --suppressApplicationTitle --title "front"                    cmd /k call "%~f0" --run-app "%ROOT%front" react
 ping -n 2 127.0.0.1 >nul
-wt.exe -w last new-tab --suppressApplicationTitle --title "back"                     cmd /k call "%~f0" --run-app "%ROOT%back" spring
+wt.exe -w last new-tab -d "%ROOT%back" --suppressApplicationTitle --title "back"                     cmd /k call "%~f0" --run-app "%ROOT%back" spring
 ping -n 2 127.0.0.1 >nul
-wt.exe -w last new-tab --suppressApplicationTitle --title "ms-runtime-camunda"       cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-runtime-camunda" spring
+wt.exe -w last new-tab -d "%ROOT%simulacoes\ms-runtime-camunda" --suppressApplicationTitle --title "ms-runtime-camunda"       cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-runtime-camunda" spring
 ping -n 2 127.0.0.1 >nul
-wt.exe -w last new-tab --suppressApplicationTitle --title "front-mock-integracoes"   cmd /k call "%~f0" --run-app "%ROOT%simulacoes\front-mock-integracoes" react
+wt.exe -w last new-tab -d "%ROOT%simulacoes\front-mock-integracoes" --suppressApplicationTitle --title "front-mock-integracoes"   cmd /k call "%~f0" --run-app "%ROOT%simulacoes\front-mock-integracoes" react
 ping -n 2 127.0.0.1 >nul
-wt.exe -w last new-tab --suppressApplicationTitle --title "ms-espec-registry"        cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-espec-registry" spring
+wt.exe -w last new-tab -d "%ROOT%simulacoes\ms-espec-registry" --suppressApplicationTitle --title "ms-espec-registry"        cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-espec-registry" spring
 ping -n 2 127.0.0.1 >nul
-wt.exe -w last new-tab --suppressApplicationTitle --title "ms-mock-api-rest"         cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-mock-api-rest" spring
+wt.exe -w last new-tab -d "%ROOT%simulacoes\ms-mock-api-rest" --suppressApplicationTitle --title "ms-mock-api-rest"         cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-mock-api-rest" spring
 ping -n 2 127.0.0.1 >nul
-wt.exe -w last new-tab --suppressApplicationTitle --title "ms-transform-publication" cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-transform-publication" spring
+wt.exe -w last new-tab -d "%ROOT%simulacoes\ms-transform-publication" --suppressApplicationTitle --title "ms-transform-publication" cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-transform-publication" spring
 ping -n 2 127.0.0.1 >nul
-wt.exe -w last new-tab --suppressApplicationTitle --title "ms-journey"               cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-journey" spring
+wt.exe -w last new-tab -d "%ROOT%simulacoes\ms-journey" --suppressApplicationTitle --title "ms-journey"               cmd /k call "%~f0" --run-app "%ROOT%simulacoes\ms-journey" spring
 ping -n 2 127.0.0.1 >nul
-wt.exe -w last new-tab --suppressApplicationTitle --title "emulador-canais"          cmd /k call "%~f0" --run-app "%ROOT%simulacoes\emulador-canais" react dev:all
+wt.exe -w last new-tab -d "%ROOT%simulacoes\emulador-canais" --suppressApplicationTitle --title "emulador-canais"          cmd /k call "%~f0" --run-app "%ROOT%simulacoes\emulador-canais" react dev:all
 goto :eof
 
 :run_app

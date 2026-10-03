@@ -512,18 +512,24 @@ export const EPICS: Epic[] = [
         code: 'US-03.11',
         name: 'Bifurcação condicional (Gateway)',
         requirements: [
-          d(
-            'REQ-03.11.001',
-            'O sistema deve suportar um nó de gateway de decisão (exclusivo) no fluxo, com exatamente duas saídas na versão 1.0.0: caminho A e caminho B.',
-          ),
-          d(
-            'REQ-03.11.002',
-            'Uma das duas saídas do gateway deve ser marcada como saída padrão (sem condição própria), usada quando a condição da outra saída não for satisfeita.',
-          ),
+          {
+            code: 'REQ-03.11.001',
+            description:
+              'O sistema deve suportar um nó de gateway de decisão (exclusivo) no fluxo, com duas ou mais saídas (caminhos A, B, C…), sem limite de quantidade.',
+            status: 'done',
+            notes: 'Reescrito em 2026-10-03 (antes: exatamente duas saídas); testado no navegador com uma Decisão de 4 saídas (jornada \"Gestão de BDs v2\").',
+          },
+          {
+            code: 'REQ-03.11.002',
+            description:
+              'Uma das saídas do gateway deve ser marcada como saída padrão (sem condição própria), usada quando nenhuma condição das demais for satisfeita.',
+            status: 'done',
+            notes: 'Reescrito em 2026-10-03.',
+          },
           {
             code: 'REQ-03.11.003',
             description:
-              'A saída não padrão do gateway deve possuir uma condição composta por variável, operador de comparação (igual, diferente, maior que, menor que) e um valor de referência informado pelo usuário, editados como combos/campo tipado.',
+              'Cada saída não padrão do gateway deve possuir uma condição composta por variável, operador de comparação (igual, diferente, maior que, menor que) e um valor de referência informado pelo usuário, editados como combos/campo tipado.',
             status: 'done',
             notes: 'FlowValidator ganhou guarda contra aspas escapadas na condição — formato que quebrava o parser de expressão do motor de runtime quando gerado por IA (US-03.17), rejeitado também na edição manual.',
           },
@@ -535,10 +541,13 @@ export const EPICS: Epic[] = [
             'REQ-03.11.005',
             'O editor deve exibir, ao configurar a condição da saída do gateway, a lista de variáveis disponíveis naquele ponto do fluxo.',
           ),
-          d(
-            'REQ-03.11.006',
-            'O gateway deve possuir ao menos uma entrada e exatamente duas saídas na versão 1.0.0; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição.',
-          ),
+          {
+            code: 'REQ-03.11.006',
+            description:
+              'O gateway deve possuir ao menos uma entrada e duas ou mais saídas; o backend deve rejeitar (422) um gateway com menos de duas saídas, sem exatamente uma saída padrão, ou com alguma saída não padrão sem condição.',
+            status: 'done',
+            notes: 'Reescrito em 2026-10-03; publicação com 4 saídas aceita pelo back.',
+          },
           d(
             'REQ-03.11.007',
             'Na publicação, o gateway deve ser traduzido para um exclusiveGateway BPMN nativo, com cada sequenceFlow de saída carregando a expressão de condição correspondente (ou marcado como fluxo padrão), avaliado pelo próprio motor do runtime.',
@@ -551,6 +560,13 @@ export const EPICS: Epic[] = [
             'REQ-03.11.009',
             'A condição do gateway pode referenciar a variável reservada channel — injetada automaticamente pelo tipo de canal que inicia a instância, nunca declarável pelo usuário no nó START.',
           ),
+          {
+            code: 'REQ-03.11.010',
+            description:
+              'Condições avaliadas na ordem das saídas, vale a primeira verdadeira (a padrão só sem nenhuma verdadeira); o painel informa a regra e permite subir/descer as saídas; ordem salva com o fluxo e mantida na publicação.',
+            status: 'done',
+            notes: 'Novo em 2026-10-03; reordenação testada no navegador (sem salvar).',
+          },
         ],
       },
       {
@@ -713,7 +729,13 @@ export const EPICS: Epic[] = [
         requirements: [
           d('REQ-03.20.001', 'Agrupar duas ou mais etapas numa seção com nome; moldura atrás das etapas.'),
           d('REQ-03.20.002', 'Renomear (duplo clique) e desfazer a seção.'),
-          d('REQ-03.20.003', 'Recolher em bloco com a contagem; ligações passam a ligar no bloco; estado por usuário.'),
+          {
+            code: 'REQ-03.20.003',
+            description:
+              'Recolher em bloco com a contagem; só a primeira ligação que chega no grupo liga no bloco, as que saem dele somem; estado por usuário.',
+            status: 'done',
+            notes: 'Reescrito em 2026-10-03 (antes: todas as ligações que entravam e saíam passavam a ligar no bloco); conferido no navegador com as 4 seções da \"Gestão de BDs v2\" recolhidas.',
+          },
           d('REQ-03.20.004', 'Seção com destino de "Se falhar" com nome em vermelho.'),
           d('REQ-03.20.005', 'Seções salvas no fluxo e na versão; moldura na Execução e no Diagnóstico; fora da validação e do Runtime Engine.'),
         ],
@@ -870,6 +892,27 @@ export const EPICS: Epic[] = [
             notes: 'Validado tanto na publicação quanto na resolução da tela em tempo de execução.',
           },
           d('REQ-04.11.005', 'Ação "tentar novamente": pede de novo a etapa e refaz a montagem da tela (fonte de dados obrigatória que falhou).'),
+          {
+            code: 'REQ-04.11.006',
+            description:
+              '\"Enviar formulário\" pode gravar um valor em form.x ao concluir a etapa (\"Guardar a escolha em\"/\"Valor guardado\"), identificando o botão acionado; a variável vale para a Decisão e para a verificação de nomes.',
+            status: 'done',
+            notes: 'Novo em 2026-10-03; testado na Execução (jornada \"Gestão de BDs v2\").',
+          },
+          {
+            code: 'REQ-04.11.007',
+            description:
+              '\"Navegar\" com destino \"voltar\" reabre a tela anterior sem concluir a atual nem validar campos, sem Decisão nem ligação de retorno; reabre com os valores já informados; Execução e todos os canais.',
+            status: 'done',
+            notes: 'Novo em 2026-10-03; testado na Execução; canais do emulador não testados.',
+          },
+          {
+            code: 'REQ-04.11.008',
+            description:
+              'Regras do \"voltar\": tela já usada como destino não reabre de novo; não volta por cima de integração de escrita (tudo que não é REST GET) concluída com sucesso; integração que seguiu \"Se falhar\" não impede.',
+            status: 'done',
+            notes: 'Novo em 2026-10-03; dois \"voltar\" seguidos testados na Execução; a recusa por escrita não é alcançável pela interface da jornada de teste.',
+          },
         ],
       },
       {
@@ -885,6 +928,13 @@ export const EPICS: Epic[] = [
             notes: 'A avaliação ao vivo no simulador de execução ainda só cobre valores do próprio formulário controlados localmente — gap conhecido, registrado no código.',
           },
           d('REQ-04.12.004', 'As comparações também devem suportar "está em"/"não está em" uma lista de valores, usado para condicionar um componente a um subconjunto dos tipos de canal da jornada (o canal, channel).'),
+          {
+            code: 'REQ-04.12.005',
+            description:
+              'Habilitação condicional com a mesma forma da visibilidade; condição sobre data.x avaliada com o valor da variável no Runtime Engine, na Execução e em todos os canais.',
+            status: 'done',
+            notes: 'Novo em 2026-10-03; botões desabilitados pelo status testados na Execução.',
+          },
         ],
       },
       {
@@ -1012,6 +1062,13 @@ export const EPICS: Epic[] = [
           d('REQ-05.03.007', 'Etapas percorridas pelo motor destacadas uma a uma (sem animação com movimento reduzido).'),
           d('REQ-05.03.008', 'Linha do tempo com passo, tipo, hora, motor e falha; o card aberto mostra todos os detalhes da etapa (único lugar na Execução); etapa selecionada no fluxo abre o card; etapa não alcançada mostra a configuração; no fim, a espera atual explicada.'),
           d('REQ-05.03.009', 'Bolinha percorre uma vez a ligação de chegada e para; halo pulsante na etapa atual; sem movimento com movimento reduzido.'),
+          {
+            code: 'REQ-05.03.010',
+            description:
+              'Ordem dos passos (linha do tempo, caminho destacado e reprodução do Diagnóstico) igual à ordem real do Runtime Engine, mesmo com duas etapas começando no mesmo instante.',
+            status: 'done',
+            notes: 'Novo em 2026-10-03; ordem conferida no motor e na linha do tempo da Execução.',
+          },
         ],
       },
       {
@@ -2067,7 +2124,6 @@ export const OUT_OF_SCOPE: OutOfScopeGroup[] = [
       'Seleção múltipla',
       'Duplicação em massa',
       'Criação automática de próximos passos',
-      'Gateway com mais de duas saídas (múltiplas condições em cascata/"senão se")',
       'Gateway inclusivo (múltiplos caminhos simultâneos)',
       'Gateway paralelo (fork/join)',
       'Combinação de condições com operadores lógicos (E/OU) numa mesma saída',
@@ -2106,6 +2162,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-10-03 05:46 (não commitado)',
+    source: 'progresso',
+    summary:
+      '**Decisão com várias saídas, "voltar" genérico e botão que grava a escolha.** US-03.11: REQ-03.11.001/002/003/006 reescritos (duas ou mais saídas, uma padrão, demais com condição) e REQ-03.11.010 novo (avaliação na ordem das saídas, vale a primeira verdadeira; setas para reordenar); "Gateway com mais de duas saídas" saiu da lista de fora do escopo. REQ-03.20.003 reescrito: seção recolhida mostra só a primeira ligação que chega nela. US-04.11: REQ-04.11.006 (enviar formulário grava a escolha do botão), REQ-04.11.007 e 008 ("navegar" com destino "voltar" reabre a tela anterior, com as regras de tela já usada, integração de escrita e "Se falhar"). REQ-04.12.005 (habilitação condicional e condição sobre `data.x` avaliadas com a variável do motor em todos os canais). REQ-05.03.010 (ordem real dos passos na Execução e no Diagnóstico). Catálogo SDUI não alterado. Implementado em admin/back, ms-journey, ms-transform-publication (comentário), front e emulador-canais; testado no navegador na tela de Execução com a jornada "Gestão de BDs v2"; canais do emulador não testados. FT-03: 128 → 129; FT-04: 93 → 97; FT-05: 71 → 72; total 584 → 590, 534 → 540 concluídos.',
+  },
   {
     date: '2026-10-02 02:11 (não commitado)',
     source: 'progresso',
@@ -2560,6 +2622,14 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-03 00:04', source: 'git', summary: 'Execução: painel da tela da jornada redimensionável e recolhível.', epics: ['FT-05'] },
+  { date: '2026-10-03 00:04', source: 'git', summary: 'Skin e tema claro/escuro lembrados entre sessões.' },
+  { date: '2026-10-02 23:58', source: 'git', summary: 'Diagnóstico: reprodução mantém o zoom do usuário.', epics: ['FT-15'] },
+  { date: '2026-10-02 23:51', source: 'git', summary: 'Fluxo: estilo das etapas por funcionalidade e tela de início da execução reorganizada.', epics: ['FT-03', 'FT-05'] },
+  { date: '2026-10-02 23:30', source: 'git', summary: 'Execução e Diagnóstico: Decisão e Fim não alcançados ficam neutros.', epics: ['FT-05', 'FT-15'] },
+  { date: '2026-10-02 20:26', source: 'git', summary: 'Workspace.' },
+  { date: '2026-10-02 02:12', source: 'git', summary: 'Requisitos: saída "Se falhar" sempre visível e ligações que explicam a recusa.', epics: ['FT-03'] },
+  { date: '2026-10-02 02:12', source: 'git', summary: 'Editor de jornadas: saída "Se falhar" que liga na hora e ligações que explicam a recusa.', epics: ['FT-03'] },
   { date: '2026-10-01 21:47', source: 'git', summary: 'Apresentação de jornada: sombra neutra e limpeza de estilos sem uso.' },
   { date: '2026-10-01 21:41', source: 'git', summary: 'Apresentação: autoria de jornadas no Elastic Journey.' },
   { date: '2026-10-01 13:38', source: 'git', summary: 'Requisitos: linha do tempo da Execução, busca que retoma e reprodução passo a passo.', epics: ['FT-05', 'FT-15'] },

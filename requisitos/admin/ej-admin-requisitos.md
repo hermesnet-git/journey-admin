@@ -388,15 +388,18 @@ Permitir a construção visual do fluxo específico de cada jornada.
 ---
 
 ### US-03.11 Bifurcação condicional (Gateway)
-#### REQ-03.11.001 - O sistema deve suportar um nó de gateway de decisão (exclusivo) no fluxo, com exatamente duas saídas na versão 1.0.0: caminho A e caminho B.
-#### REQ-03.11.002 - Uma das duas saídas do gateway deve ser marcada como saída padrão (sem condição própria), usada quando a condição da outra saída não for satisfeita — garantindo que o fluxo sempre tenha um caminho definido em tempo de execução.
-#### REQ-03.11.003 - A saída não padrão do gateway deve possuir uma condição composta por variável, operador de comparação (igual, diferente, maior que, menor que) e um valor de referência informado pelo usuário, editados como combos/campo tipado (não texto livre).
+#### REQ-03.11.001 - O sistema deve suportar um nó de gateway de decisão (exclusivo) no fluxo, com duas ou mais saídas (caminhos A, B, C…), sem limite de quantidade.
+#### REQ-03.11.002 - Uma das saídas do gateway deve ser marcada como saída padrão (sem condição própria), usada quando nenhuma condição das demais saídas for satisfeita — garantindo que o fluxo sempre tenha um caminho definido em tempo de execução.
+#### REQ-03.11.003 - Cada saída não padrão do gateway deve possuir uma condição composta por variável, operador de comparação (igual, diferente, maior que, menor que) e um valor de referência informado pelo usuário, editados como combos/campo tipado (não texto livre).
 #### REQ-03.11.004 - A condição deve poder referenciar tanto uma variável de saída de um Service Task/Receive Task (mapeamento de saída, REQ-03.09.010) quanto um campo de resposta de um User Task (nome técnico do campo, REQ-04.01.007), desde que alcançável a partir do gateway. A variável é referenciada pelo nome que ela tem no motor (`form_nome`, `data_nome` ou `channel`); a forma com ponto ou sem prefixo é recusada.
 #### REQ-03.11.005 - O editor deve exibir, ao configurar a condição da saída do gateway, a lista de variáveis disponíveis naquele ponto do fluxo — mesmo mecanismo do painel de variáveis do conector (REQ-03.09.013), estendido para incluir campos de formulário de User Tasks alcançáveis.
-#### REQ-03.11.006 - O gateway deve possuir ao menos uma entrada e exatamente duas saídas na versão 1.0.0; o backend deve rejeitar (422) um gateway sem exatamente uma saída padrão, ou cuja saída não padrão esteja sem condição.
+#### REQ-03.11.006 - O gateway deve possuir ao menos uma entrada e duas ou mais saídas; o backend deve rejeitar (422) um gateway com menos de duas saídas, sem exatamente uma saída padrão, ou com alguma saída não padrão sem condição.
 #### REQ-03.11.007 - Na publicação, o gateway deve ser traduzido para um `exclusiveGateway` BPMN nativo, com cada `sequenceFlow` de saída carregando a expressão de condição correspondente (ou marcado como fluxo padrão), avaliado pelo próprio motor do runtime — sem necessidade de implementação especializada (worker), no mesmo princípio do conector REST nativo (US-03.09).
 #### REQ-03.11.008 - Cada variável de saída (REQ-03.09.010) deve possuir um tipo declarado — texto, número, booleano, data ou data e hora — inferido automaticamente ao gerar o mapeamento a partir de uma resposta real (REQ-03.10.001) ou escolhido manualmente pelo usuário. O editor da condição do gateway deve oferecer apenas os operadores compatíveis com o tipo da variável escolhida (texto/booleano: igual/diferente; número/data/data e hora: igual/diferente/maior que/menor que) e um campo de valor no formato correspondente (numérico, seletor verdadeiro/falso, ou seletor de data/data e hora).
 #### REQ-03.11.009 - A condição do gateway pode referenciar a variável reservada `channel` — injetada automaticamente pelo tipo de canal que inicia a instância (REQ-05.04.004), nunca declarável pelo usuário no nó START — permitindo que o fluxo siga caminhos diferentes conforme o tipo de canal (`WEB`, `MOBILE`, `WHATSAPP`).
+#### REQ-03.11.010 - As condições das saídas devem ser avaliadas na ordem em que as saídas aparecem, e vale a primeira cuja condição for verdadeira; a saída padrão só é usada quando nenhuma condição é. O painel da Decisão deve informar essa regra e permitir mudar a ordem das saídas (subir e descer), e essa ordem deve ser salva com o fluxo e mantida na publicação.
+
+> **Nota de revisão (2026-10-03):** a Decisão deixou de ter exatamente duas saídas: uma escolha com três ou mais caminhos (por exemplo, as ações de uma tela) virava uma cadeia de Decisões encadeadas, o que multiplicava as etapas e as linhas do fluxo. As condições não precisam ser mutuamente exclusivas — vale a primeira verdadeira, na ordem do painel, que é como o Runtime Engine já avalia um gateway exclusivo. A importação de um desenho do Figma passa a trazer todos os caminhos de uma decisão (antes só os dois primeiros), com o último como padrão.
 ---
 
 ### US-03.12 Variáveis de entrada da jornada
@@ -475,7 +478,7 @@ Permitir a construção visual do fluxo específico de cada jornada.
 ### US-03.20 Seções do fluxo
 #### REQ-03.20.001 - O autor deve poder agrupar duas ou mais etapas selecionadas numa seção com nome; uma etapa pertence a no máximo uma seção. A seção aparece como uma moldura com o nome em maiúsculas atrás das etapas.
 #### REQ-03.20.002 - O autor deve poder renomear a seção (duplo clique no nome) e desfazê-la, sem afetar as etapas.
-#### REQ-03.20.003 - A seção deve poder ser recolhida: vira um bloco com o nome, a quantidade de etapas recolhidas e "Clique para abrir", e as ligações que entram e saem do grupo passam a ligar no bloco. Recolhida ou aberta é preferência de cada usuário, não faz parte do fluxo.
+#### REQ-03.20.003 - A seção deve poder ser recolhida: vira um bloco com o nome, a quantidade de etapas recolhidas e "Clique para abrir". Só a primeira ligação que chega no grupo passa a ligar no bloco; as ligações que saem do grupo, inclusive retornos a etapas de fora, deixam de aparecer enquanto a seção está recolhida. Recolhida ou aberta é preferência de cada usuário, não faz parte do fluxo.
 #### REQ-03.20.004 - A seção que contém o destino de uma saída "Se falhar" deve aparecer com o nome em vermelho (faixa de falha).
 #### REQ-03.20.005 - As seções devem ser salvas junto com o fluxo e com cada versão, e aparecer como moldura com nome na Execução e no Diagnóstico. Uma seção só organiza a apresentação: não é validada, não chega ao Runtime Engine e etapas excluídas saem dela automaticamente.
 ---
@@ -650,6 +653,11 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.11.003 - Cada ação deve permitir configurar parâmetros próprios (ex.: rota de destino, URL, caminho e valor a definir, nome do evento de telemetria).
 #### REQ-04.11.004 - Um componente não deve poder disparar uma ação fora do conjunto fechado do sistema — isso deve ser impedido na validação estrutural (US-04.13).
 #### REQ-04.11.005 - O conjunto fechado de ações deve incluir "tentar novamente", que pede de novo a etapa atual e refaz a montagem da tela — usada quando uma fonte de dados obrigatória da tela falha (US-04.16).
+#### REQ-04.11.006 - A ação "enviar formulário" deve poder gravar, junto com a conclusão da etapa, um valor num caminho do namespace de variável do fluxo (`form.x`), configurado no editor ("Guardar a escolha em" e "Valor guardado"). Assim, uma tela com mais de um botão diz à jornada qual foi acionado, e a Decisão seguinte segue pelo valor gravado. A variável gravada vale como variável do fluxo para a Decisão e para a verificação de nomes (REQ-04.10.005), como um campo da tela.
+#### REQ-04.11.007 - A ação "navegar" com o destino "voltar" deve reabrir a tela anterior da jornada sem concluir a tela atual nem validar seus campos, sem Decisão depois da tela nem ligação de retorno desenhada no fluxo. A tela anterior é a última tela concluída antes de a atual abrir, e reabre com os valores já informados. Vale na Execução, onde o log registra "Voltou de X para Y", e em todos os canais (web, mobile, Flutter e WhatsApp).
+#### REQ-04.11.008 - O "voltar" deve seguir três regras: uma tela que já serviu de destino de um "voltar" não é reaberta de novo, para que dois "voltar" seguidos recuem duas telas; não se volta por cima de uma integração que grava no sistema de origem (qualquer integração que não seja uma consulta REST `GET`) concluída com sucesso entre as duas telas — a tela continua e o motivo é mostrado; uma integração que falhou e seguiu pelo caminho "Se falhar" não impede voltar, que é o caso de "Tentar novamente" numa tela de indisponibilidade.
+
+> **Nota de revisão (2026-10-03):** sem estas duas ações, cada tela com mais de um botão (ex.: "Continuar" e "Voltar") só concluía a etapa, e o fluxo precisava de uma variável preenchida à mão e de uma Decisão depois de cada tela para saber qual botão foi acionado — além de uma ligação de retorno desenhada para cada "Voltar". O botão que grava a escolha (REQ-04.11.006) resolve as escolhas de verdade; o "voltar" (REQ-04.11.007/008) tira do fluxo as Decisões e ligações que só existiam para voltar. Nada disso entra no catálogo SDUI: o componente continua emitindo as ações que já existiam (`action.submit` e `action.navigate`); o que muda é como a jornada as trata. Como o "voltar" não desenha ligação, uma tela cuja única saída fosse o "voltar" ficaria fora de um caminho até um Fim e é recusada na publicação — nesse caso o retorno continua desenhado, com Decisão.
 
 ---
 
@@ -658,6 +666,7 @@ Permitir que a tela de uma User Task seja composta a partir de um catálogo corp
 #### REQ-04.12.002 - As comparações suportadas devem incluir, no mínimo, igualdade e diferença.
 #### REQ-04.12.003 - Um componente sem condição de visibilidade configurada deve ser sempre exibido.
 #### REQ-04.12.004 - As comparações também devem suportar "está em"/"não está em" uma lista de valores — usado para condicionar um componente a um subconjunto dos tipos de canal da jornada (o canal, `channel`), sem exigir uma regra por tipo de canal.
+#### REQ-04.12.005 - A habilitação condicional de um componente de ação usa a mesma forma de condição da visibilidade. Quando a condição de visibilidade ou de habilitação aponta para um dado somente-leitura (`data.x`), deve ser avaliada com o valor que a variável tem no Runtime Engine, na Execução e em todos os canais (web, mobile, Flutter e WhatsApp) — por exemplo, um botão desabilitado conforme o status devolvido por uma integração.
 
 ---
 
@@ -757,6 +766,7 @@ Permitir a verificação do caminho e das telas de uma jornada publicada, execut
 #### REQ-05.03.007 - As etapas que o motor percorre sozinho entre um passo e outro (integrações, Decisões) devem ser destacadas uma a uma no fluxo, em sequência, sem animação para quem pediu movimento reduzido ao sistema.
 #### REQ-05.03.008 - A linha do tempo deve listar os passos em ordem, com o número, o tipo, a hora, se foi feito pelo motor e a falha que levou ao caminho "Se falhar"; ao abrir um passo, o card mostra todos os detalhes da etapa (US-05.10), e é o único lugar da Execução com esses detalhes. Selecionar uma etapa no fluxo abre o card dela; uma etapa ainda não alcançada aparece num card próprio com a configuração. No fim, o que a jornada está esperando agora em linguagem do usuário (cliente respondendo uma tela, mensagem num tópico, integração em segundo plano, concluída ou parada por erro).
 #### REQ-05.03.009 - Ao chegar a uma etapa, uma bolinha deve percorrer uma vez a ligação por onde a execução chegou e parar no fim, e a etapa atual deve ganhar um halo que pulsa. Para quem pediu movimento reduzido ao sistema, a bolinha não aparece e o halo fica parado.
+#### REQ-05.03.010 - A ordem dos passos na linha do tempo e no caminho destacado da Execução, e na reprodução do Diagnóstico (REQ-15.03.005), deve ser a ordem real de execução do Runtime Engine, mesmo quando duas etapas começam no mesmo instante — por exemplo, uma Decisão e a etapa seguinte, que antes podiam aparecer invertidas.
 ---
 
 ### US-05.04 Arquitetura de execução
@@ -1286,7 +1296,6 @@ Criação rápida de elementos
 Seleção múltipla
 Duplicação em massa
 Criação automática de próximos passos
-Gateway com mais de duas saídas (múltiplas condições em cascata/"senão se")
 Gateway inclusivo (múltiplos caminhos simultâneos)
 Gateway paralelo (fork/join)
 Combinação de condições com operadores lógicos (E/OU) numa mesma saída

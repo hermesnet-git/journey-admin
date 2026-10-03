@@ -56,7 +56,8 @@ public record JourneyTemplate(String id, String name, String description, String
                 .toList();
         List<FlowSection> instantiatedSections = sections.stream()
                 .map(section -> new FlowSection("Section_" + UUID.randomUUID(), section.name(),
-                        section.nodeIds().stream().map(id -> requiredNodeId(nodeIds, id)).toList()))
+                        section.nodeIds().stream().map(id -> requiredNodeId(nodeIds, id)).toList(),
+                        section.x(), section.y(), section.width(), section.height()))
                 .toList();
         OffsetDateTime now = OffsetDateTime.now();
         return new Flow(FlowIds.newFlowId(), journeyId, flowName, instantiatedNodes, instantiatedConnections,

@@ -21,7 +21,7 @@ public record InstanceHistoryResponse(String processInstanceId, String businessK
                 detail.journeyName(), detail.versionNumber(), detail.state(), detail.startTime(), detail.endTime(),
                 detail.durationMillis(),
                 FlowBundleResponse.of(detail.channelTypes(), detail.flowNodes(), detail.flowConnections(),
-                        detail.sections()),
+                        detail.sections(), detail.layoutMode()),
                 detail.steps(), detail.variables(), detail.variableTimeline(), detail.incidents(),
                 detail.currentNodeId());
     }

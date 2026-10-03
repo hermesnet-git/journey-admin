@@ -13,7 +13,8 @@ public record PublicationSnapshotRecord(UUID journeyId, String journeyName, Stri
                                          UUID productId, String productName, List<ChannelType> channelTypes,
                                          Integer versionNumber, List<FlowNodeRecord> flowNodes,
                                          List<FlowConnectionRecord> flowConnections,
-                                         @JsonInclude(JsonInclude.Include.NON_NULL) List<FlowSection> sections) {
+                                         @JsonInclude(JsonInclude.Include.NON_NULL) List<FlowSection> sections,
+                                         @JsonInclude(JsonInclude.Include.NON_NULL) String layoutMode) {
 
     // Shared by the outbound call to the runtime's publication API (PublicationAdapter) and by
     // REQ-02.10.001 (inspecting that same JSON from the admin UI) — one mapping, one shape.
@@ -41,6 +42,6 @@ public record PublicationSnapshotRecord(UUID journeyId, String journeyName, Stri
                 publication.getFlowConnections().stream()
                         .map(FlowConnectionRecord::from)
                         .toList(),
-                null);
+                null, null);
     }
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StickyNote, ChevronLeft, ChevronRight } from 'lucide-react';
+import { StickyNote, SquareDashed, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { NODE_META, NODE_ICON, TYPE_COLOR, type NodeType } from './model';
 import { NodeShape } from './NodeShape';
@@ -94,12 +94,42 @@ function AnnotationHint() {
   );
 }
 
+// Mesmo padrão de dica, para a moldura de seção (também não é um componente do fluxo).
+function SectionHint() {
+  const { c } = useFlowTheme();
+  return (
+    <div
+      className="absolute left-full top-0 ml-2 w-[260px] p-3 rounded-xl opacity-0 scale-95 pointer-events-none origin-left transition-all duration-150 group-hover:opacity-100 group-hover:scale-100 z-30"
+      style={{ background: c.cardBg, border: `1px solid ${c.border}`, boxShadow: `0 12px 32px -8px ${c.accent}40, 0 4px 14px -4px rgba(0,0,0,.18)` }}
+    >
+      <div className="flex items-center gap-[8px] mb-[6px]">
+        <div className="w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0" style={{ background: `${c.accent}22` }}>
+          <SquareDashed size={12} color={c.accent} strokeWidth={1.8} />
+        </div>
+        <div className="text-[12.5px] font-bold" style={{ color: c.textPrimary }}>
+          Seção
+        </div>
+      </div>
+      <div className="text-[11.5px] leading-[1.5]" style={{ color: c.textSecondary }}>
+        Uma moldura com nome para agrupar etapas. As etapas que ficam dentro dela fazem parte da seção:
+        mova a moldura e elas vão junto, e redimensione pelas bordas. Só organiza o desenho — não faz parte do
+        fluxo executável.
+      </div>
+      <div className="text-[10px] font-semibold mt-[8px] pt-[7px] border-t" style={{ color: c.accent, borderColor: c.border }}>
+        Arraste para o canvas ou clique para adicionar
+      </div>
+    </div>
+  );
+}
+
 export function Palette({
   onAdd,
   onAddAnnotation,
+  onAddSection,
 }: {
   onAdd: (type: NodeType) => void;
   onAddAnnotation: () => void;
+  onAddSection: () => void;
 }) {
   const { c } = useFlowTheme();
   const [collapsed, setCollapsed] = useState(true);
@@ -128,6 +158,18 @@ export function Palette({
           </div>
         ))}
         <div className="w-5 h-px" style={{ background: c.border }} />
+        <div className="group relative">
+          <div
+            draggable
+            onDragStart={(e) => e.dataTransfer.setData('text/plain', 'section')}
+            onClick={onAddSection}
+            className="w-[32px] h-[32px] rounded-md flex items-center justify-center shrink-0 cursor-grab"
+            style={{ background: `${c.accent}22` }}
+          >
+            <SquareDashed size={14} color={c.accent} strokeWidth={1.8} />
+          </div>
+          <SectionHint />
+        </div>
         <div className="group relative">
           <div
             onClick={onAddAnnotation}
@@ -185,6 +227,26 @@ export function Palette({
             </div>
           ))}
           <div className="h-px my-[2px]" style={{ background: c.border }} />
+          <div className="group relative">
+            <div
+              draggable
+              onDragStart={(e) => e.dataTransfer.setData('text/plain', 'section')}
+              onClick={onAddSection}
+              className="flex flex-col items-center gap-[8px] py-[10px] px-[6px] rounded-lg cursor-grab hover:opacity-80 transition-opacity"
+            >
+              {/* A moldura em miniatura: retângulo tracejado, como a seção desenhada no canvas. */}
+              <div
+                className="shrink-0 flex items-center justify-center"
+                style={{ width: THUMB_EXPANDED, height: THUMB_EXPANDED, border: `1.5px dashed ${c.border}`, borderRadius: 8, background: `${c.accent}14` }}
+              >
+                <SquareDashed size={18} color={c.accent} strokeWidth={1.8} />
+              </div>
+              <div className="text-[10.5px] font-semibold text-center leading-tight" style={{ color: c.textSecondary }}>
+                Seção
+              </div>
+            </div>
+            <SectionHint />
+          </div>
           <div className="group relative">
             <div
               onClick={onAddAnnotation}

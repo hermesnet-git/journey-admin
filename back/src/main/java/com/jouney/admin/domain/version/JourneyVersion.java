@@ -40,6 +40,8 @@ public class JourneyVersion {
     private List<FlowConnection> flowConnections;
     // Seções do canvas no momento da versão, para Execução e Diagnóstico desenharem os grupos.
     private List<FlowSection> sections = List.of();
+    // Modo de exibição do editor em que as posições e molduras foram salvas (null em versões antigas).
+    private String layoutMode;
 
     public JourneyVersion(UUID id, UUID journeyId, int versionNumber, VersionStatus status, String description,
                            UUID createdBy, OffsetDateTime createdAt, OffsetDateTime publishedAt,
@@ -192,6 +194,15 @@ public class JourneyVersion {
 
     public List<FlowSection> getSections() {
         return sections;
+    }
+
+    public String getLayoutMode() {
+        return layoutMode;
+    }
+
+    public JourneyVersion withLayoutMode(String layoutMode) {
+        this.layoutMode = layoutMode;
+        return this;
     }
 
     public JourneyVersion withSections(List<FlowSection> sections) {

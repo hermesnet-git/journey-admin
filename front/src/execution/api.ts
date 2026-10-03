@@ -282,6 +282,8 @@ export interface FlowBundle {
   flowConnections: FlowConnectionInfo[];
   // Seções do canvas na versão (grupos de etapas com nome).
   sections?: FlowSection[];
+  // Modo de exibição do editor em que posições e molduras foram salvas (ausente em versões antigas).
+  layoutMode?: string | null;
 }
 
 export interface InstanceResponse {

@@ -24,6 +24,19 @@ const SPACING: Record<NodeDisplayMode, { layer: number; node: number }> = {
 export interface LayoutNode {
   id: string;
   type: NodeType;
+  // Tamanho próprio (bloco de seção recolhida); sem ele, o tamanho do tipo no modo atual.
+  width?: number | null;
+  height?: number | null;
+}
+
+// Tamanho do bloco que representa uma seção recolhida (o mesmo que o editor desenha).
+export const COLLAPSED_SECTION = { width: 280, height: 100 };
+
+// Tamanho de uma etapa no layout e o espaço do nome escrito embaixo dela (o bloco não tem nome embaixo).
+function layoutSizeOf(n: LayoutNode, mode: NodeDisplayMode) {
+  return n.width && n.height
+    ? { width: n.width, height: n.height, reserve: 0 }
+    : { ...nodeSize(n.type, mode), reserve: labelReserve(n.type, mode) };
 }
 export interface LayoutEdge {
   id: string;
@@ -63,6 +76,11 @@ export function flowOrder(nodes: LayoutNode[], edges: LayoutEdge[]): LayoutNode[
 export interface LayoutGroup {
   id: string;
   nodeIds: string[];
+  // Moldura própria da seção no editor; sem ela, o cabeçalho segue a caixa das etapas.
+  x?: number | null;
+  y?: number | null;
+  width?: number | null;
+  height?: number | null;
 }
 const GROUP_PADDING = '[top=52,left=30,bottom=22,right=30]';
 
@@ -107,8 +125,8 @@ export async function layoutPositions(
     edges: [],
   };
   const elkNodes = ordered.map((n): ElkNode => {
-      const size = nodeSize(n.type, mode);
-      const height = size.height + labelReserve(n.type, mode);
+      const { reserve, ...size } = layoutSizeOf(n, mode);
+      const height = size.height + reserve;
       // Portas na altura do centro da FORMA (o rótulo embaixo aumenta a caixa): assim o ELK alinha
       // os pontos de conexão de verdade e a linha entre vizinhos sai reta.
       const mid = size.height / 2;
@@ -195,14 +213,14 @@ function exclusiveBranch(start: string, incoming: Map<string, LayoutEdge[]>, out
 // condição (acontece entre seções, onde o ELK não respeita a prioridade de linha reta), as duas
 // fileiras trocam de altura.
 function straightenMainPaths(positions: Map<string, { x: number; y: number }>, nodes: LayoutNode[], edges: LayoutEdge[], mode: NodeDisplayMode) {
-  const typeOf = new Map(nodes.map((n) => [n.id, n.type]));
+  const byId = new Map(nodes.map((n) => [n.id, n]));
   const incoming = new Map<string, LayoutEdge[]>();
   const outgoing = new Map<string, LayoutEdge[]>();
   edges.forEach((e) => {
     incoming.set(e.target, [...(incoming.get(e.target) ?? []), e]);
     outgoing.set(e.source, [...(outgoing.get(e.source) ?? []), e]);
   });
-  const centerY = (id: string) => positions.get(id)!.y + nodeSize(typeOf.get(id)!, mode).height / 2;
+  const centerY = (id: string) => positions.get(id)!.y + layoutSizeOf(byId.get(id)!, mode).height / 2;
   nodes.filter((n) => n.type === 'gateway' && positions.has(n.id)).forEach((g) => {
     const outs = (outgoing.get(g.id) ?? []).filter((e) => !e.onError && positions.has(e.target) && positions.get(e.target)!.x > positions.get(g.id)!.x);
     const main = outs.find((e) => !e.isDefault);
@@ -227,7 +245,7 @@ function alignFailureBranches(
   edges: LayoutEdge[],
   mode: NodeDisplayMode,
 ) {
-  const typeOf = new Map(nodes.map((n) => [n.id, n.type]));
+  const byId = new Map(nodes.map((n) => [n.id, n]));
   const incoming = new Map<string, LayoutEdge[]>();
   const outgoing = new Map<string, LayoutEdge[]>();
   edges.forEach((e) => {
@@ -235,9 +253,8 @@ function alignFailureBranches(
     outgoing.set(e.source, [...(outgoing.get(e.source) ?? []), e]);
   });
   const box = (id: string, p: { x: number; y: number }) => {
-    const type = typeOf.get(id)!;
-    const size = nodeSize(type, mode);
-    return { x: p.x, y: p.y, r: p.x + size.width, b: p.y + size.height + labelReserve(type, mode) };
+    const size = layoutSizeOf(byId.get(id)!, mode);
+    return { x: p.x, y: p.y, r: p.x + size.width, b: p.y + size.height + size.reserve };
   };
   for (const err of edges.filter((e) => e.onError)) {
     const src = positions.get(err.source);
@@ -281,10 +298,88 @@ const toLayoutNodes = (nodes: WFNode[]): LayoutNode[] => nodes.map((n) => ({ id:
 const toLayoutEdges = (edges: WFEdge[]): LayoutEdge[] =>
   edges.map((e) => ({ id: e.id, source: e.source, target: e.target, onError: !!e.data?.onError, isDefault: !!e.data?.isDefault }));
 
-// Organiza o canvas inteiro.
-export async function computeLayout(nodes: WFNode[], edges: WFEdge[], mode: NodeDisplayMode, groups: LayoutGroup[] = []): Promise<WFNode[]> {
-  const positions = await layoutPositions(toLayoutNodes(nodes), toLayoutEdges(edges), mode, groups);
-  return nodes.map((n) => ({ ...n, position: positions.get(n.id) ?? n.position }));
+// Organiza o canvas inteiro. Seção recolhida entra no cálculo como um bloco do tamanho em que aparece
+// recolhida (COLLAPSED_SECTION), não do tamanho que teria aberta; as etapas dela acompanham o bloco,
+// mantendo o arranjo interno que já tinham.
+export async function computeLayout(
+  nodes: WFNode[],
+  edges: WFEdge[],
+  mode: NodeDisplayMode,
+  groups: LayoutGroup[] = [],
+  collapsed: ReadonlySet<string> = new Set(),
+): Promise<WFNode[]> {
+  const present = new Set(nodes.map((n) => n.id));
+  const blocks = groups
+    .filter((g) => collapsed.has(g.id))
+    .map((g) => ({ blockId: `block::${g.id}`, memberIds: g.nodeIds.filter((id) => present.has(id)) }))
+    .filter((b) => b.memberIds.length > 0);
+  if (blocks.length === 0) {
+    const positions = await layoutPositions(toLayoutNodes(nodes), toLayoutEdges(edges), mode, groups);
+    return nodes.map((n) => ({ ...n, position: positions.get(n.id) ?? n.position }));
+  }
+
+  const blockOf = new Map<string, string>();
+  blocks.forEach((b) => b.memberIds.forEach((id) => !blockOf.has(id) && blockOf.set(id, b.blockId)));
+  const layoutNodes: LayoutNode[] = [
+    ...toLayoutNodes(nodes.filter((n) => !blockOf.has(n.id))),
+    ...blocks.map((b): LayoutNode => ({ id: b.blockId, type: 'userTask', ...COLLAPSED_SECTION })),
+  ];
+  // Ligações reescritas para o bloco; as de dentro da mesma seção somem e as repetidas entre os mesmos
+  // dois pontos viram uma só.
+  const seen = new Set<string>();
+  const layoutEdges = toLayoutEdges(edges).flatMap((e): LayoutEdge[] => {
+    const source = blockOf.get(e.source) ?? e.source;
+    const target = blockOf.get(e.target) ?? e.target;
+    const key = `${source}>${target}|${e.onError ? 'err' : 'ok'}`;
+    if (source === target || seen.has(key)) return [];
+    seen.add(key);
+    return [{ ...e, source, target }];
+  });
+  const openGroups = groups.filter((g) => !collapsed.has(g.id));
+  const positions = await layoutPositions(layoutNodes, layoutEdges, mode, openGroups);
+
+  // As etapas de cada seção recolhida vão para onde o bloco ficou: o canto superior esquerdo do grupo
+  // coincide com o do bloco.
+  const shift = new Map<string, { dx: number; dy: number }>();
+  blocks.forEach((b) => {
+    const members = nodes.filter((n) => blockOf.get(n.id) === b.blockId);
+    const at = positions.get(b.blockId);
+    if (!at || members.length === 0) return;
+    const minX = Math.min(...members.map((n) => n.position.x));
+    const minY = Math.min(...members.map((n) => n.position.y));
+    members.forEach((n) => shift.set(n.id, { dx: at.x - minX, dy: at.y - minY }));
+  });
+  return nodes.map((n) => {
+    const d = shift.get(n.id);
+    if (d) return { ...n, position: { x: Math.round(n.position.x + d.dx), y: Math.round(n.position.y + d.dy) } };
+    return { ...n, position: positions.get(n.id) ?? n.position };
+  });
+}
+
+// Reabrir uma seção: reorganiza só o conteúdo dela e o recoloca com o canto superior esquerdo em
+// `anchor` (o canto da moldura, descontada a folga) ou, sem ele, onde as etapas já estavam. Nada fora
+// da seção se mexe.
+export async function computeLayoutForSection(
+  nodes: WFNode[],
+  edges: WFEdge[],
+  memberIds: string[],
+  mode: NodeDisplayMode,
+  anchor?: { x: number; y: number },
+): Promise<WFNode[]> {
+  const ids = new Set(memberIds);
+  const members = nodes.filter((n) => ids.has(n.id));
+  if (members.length === 0) return nodes;
+  const inner = edges.filter((e) => ids.has(e.source) && ids.has(e.target));
+  const positions = await layoutPositions(toLayoutNodes(members), toLayoutEdges(inner), mode);
+  const minX = anchor?.x ?? Math.min(...members.map((n) => n.position.x));
+  const minY = anchor?.y ?? Math.min(...members.map((n) => n.position.y));
+  const laid = members.map((n) => positions.get(n.id) ?? n.position);
+  const dx = minX - Math.min(...laid.map((p) => p.x));
+  const dy = minY - Math.min(...laid.map((p) => p.y));
+  return nodes.map((n) => {
+    const p = ids.has(n.id) ? positions.get(n.id) : undefined;
+    return p ? { ...n, position: { x: Math.round(p.x + dx), y: Math.round(p.y + dy) } } : n;
+  });
 }
 
 function boundsCenter(nodes: WFNode[], mode: NodeDisplayMode): { cx: number; cy: number } {
@@ -334,14 +429,14 @@ export interface PositionedNode {
   x: number;
   y: number;
   // Tamanho próprio (bloco de seção recolhida); sem ele, o tamanho do tipo no modo atual.
-  width?: number;
-  height?: number;
+  width?: number | null;
+  height?: number | null;
 }
 
 // Rotas das linhas a partir das posições atuais, desviando de todas as etapas e do nome escrito
-// embaixo delas. Para a frente: sai pela direita (ou por baixo, no "Se falhar") e chega pela esquerda.
-// De volta (laço, destino à esquerda): pode sair também por cima ou por baixo e chegar por cima — o roteador
-// escolhe o caminho mais curto, como num desenho feito à mão.
+// embaixo delas. Toda saída de etapa sai pela direita — para a frente ou de volta (laço) —, e a única
+// exceção é o "Se falhar", que sai por baixo. A Decisão sai pelos vértices (direita, cima ou baixo).
+// Chega pela esquerda; o laço pode chegar também por cima. O roteador escolhe o caminho mais curto.
 export function computeRoutes(nodes: PositionedNode[], edges: LayoutEdge[], mode: NodeDisplayMode, groups: LayoutGroup[] = []): Map<string, EdgeRoute> {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const sizeOf = (n: PositionedNode) => (n.width && n.height ? { width: n.width, height: n.height } : nodeSize(n.type, mode));
@@ -359,6 +454,10 @@ export function computeRoutes(nodes: PositionedNode[], edges: LayoutEdge[], mode
   });
   // Cabeçalho de cada seção (nome em maiúsculas no topo da moldura): nenhuma linha passa por cima.
   groups.forEach((g) => {
+    if (typeof g.x === 'number' && typeof g.y === 'number' && typeof g.width === 'number') {
+      obstacles.push({ x: g.x, y: g.y, width: g.width, height: 22 });
+      return;
+    }
     const members = g.nodeIds.map((id) => byId.get(id)).filter((n): n is PositionedNode => !!n);
     if (members.length === 0) return;
     const x0 = Math.min(...members.map((n) => n.x)) - 24;
@@ -398,13 +497,17 @@ export function computeRoutes(nodes: PositionedNode[], edges: LayoutEdge[], mode
       anchorEnd: left,
       starts: e.onError
         ? [{ pt: below, dir: 'S' }]
-        : backward
+        : backward && s.type === 'gateway'
           ? [{ pt: right, dir: 'E' }, ...(inSection.has(s.id) ? [] : [{ pt: top, dir: 'N' as const }]), { pt: below, dir: 'S', cost: belowCost }]
           : [{ pt: right, dir: 'E' }, ...gatewayForks],
       // Chegada por baixo ficaria em cima da saída "Se falhar" e do nome das etapas: só esquerda ou topo.
       ends: e.onError
-        ? // Falha: de preferência desce reto e entra pelo topo da etapa (faixa de falha embaixo).
-          [{ pt: left, dir: 'E' }, ...(inSection.has(t.id) ? [] : [{ pt: { x: t.x + ts.width / 2, y: t.y }, dir: 'S' as const }])]
+        ? // Falha: sai por baixo e é a única ligação que chega por cima ou pela direita da etapa alvo; o topo
+          // prevalece (também dentro de seção) e a direita só serve se o topo estiver bloqueado.
+          [
+            { pt: { x: t.x + ts.width / 2, y: t.y }, dir: 'S' as const },
+            { pt: { x: t.x + ts.width, y: t.y + ts.height / 2 }, dir: 'W' as const, cost: 60 },
+          ]
         : backward
         ? [
             { pt: left, dir: 'E' },

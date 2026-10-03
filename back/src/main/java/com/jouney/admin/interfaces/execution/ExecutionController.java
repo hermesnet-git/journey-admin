@@ -93,7 +93,7 @@ public class ExecutionController {
     public FlowBundleResponse flow(@PathVariable UUID journeyId, @RequestParam(required = false) Integer version) {
         GetExecutionFlow.ResolvedFlow resolved = getExecutionFlow.execute(journeyId, version);
         return FlowBundleResponse.of(resolved.channelTypes(), resolved.flowNodes(), resolved.flowConnections(),
-                resolved.sections());
+                resolved.sections(), resolved.layoutMode());
     }
 
     // `version` (número de negócio, não o UUID) opcional — REQ-05.07.007: só faz sentido informar

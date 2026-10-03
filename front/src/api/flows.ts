@@ -76,7 +76,14 @@ export interface Flow {
 export interface FlowSection {
   id: string;
   name: string;
+  // As etapas que estavam dentro da moldura quando o fluxo foi salvo.
   nodeIds: string[];
+  // Moldura própria da seção. Ausente numa seção gravada antes de ela ter moldura: o editor calcula
+  // a moldura a partir das etapas.
+  x?: number | null;
+  y?: number | null;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface FlowUpdateInput {

@@ -42,7 +42,7 @@ public class FlowVersionResolver {
                     .findFirst().orElse(null);
             if (match != null) {
                 return new ResolvedFlow(match.getJourneyName(), versionNumber, match.getChannelTypes(),
-                        match.getFlowNodes(), match.getFlowConnections(), match.getSections());
+                        match.getFlowNodes(), match.getFlowConnections(), match.getSections(), match.getLayoutMode());
             }
         }
         Publication publication = publicationRepository.findByJourneyId(journeyId)
@@ -52,7 +52,10 @@ public class FlowVersionResolver {
                 publication.getFlowNodes(), publication.getFlowConnections(),
                 publication.getVersionId() == null ? List.of()
                         : journeyVersionRepository.findById(publication.getVersionId()).map(JourneyVersion::getSections)
-                                .orElse(List.of()));
+                                .orElse(List.of()),
+                publication.getVersionId() == null ? null
+                        : journeyVersionRepository.findById(publication.getVersionId()).map(JourneyVersion::getLayoutMode)
+                                .orElse(null));
     }
 
     private String safeVersionTag(String processDefinitionId) {
@@ -76,6 +79,6 @@ public class FlowVersionResolver {
 
     public record ResolvedFlow(String journeyName, Integer versionNumber, List<ChannelType> channelTypes,
                                 List<FlowNode> flowNodes, List<FlowConnection> flowConnections,
-                                List<FlowSection> sections) {
+                                List<FlowSection> sections, String layoutMode) {
     }
 }

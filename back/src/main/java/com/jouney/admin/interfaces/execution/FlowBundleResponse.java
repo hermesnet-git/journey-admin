@@ -15,7 +15,8 @@ import java.util.Map;
 /** Diagrama pra desenho na tela de Execução — subconjunto de {@link Publication}, sem os campos
  * administrativos (nome/produto/datas) que essa tela não usa. */
 public record FlowBundleResponse(List<ChannelType> channelTypes, List<FlowNodeInfo> flowNodes,
-                                  List<FlowConnectionInfo> flowConnections, List<FlowSection> sections) {
+                                  List<FlowConnectionInfo> flowConnections, List<FlowSection> sections,
+                                  String layoutMode) {
 
     public static FlowBundleResponse from(Publication publication) {
         return of(publication.getChannelTypes(), publication.getFlowNodes(), publication.getFlowConnections());
@@ -23,13 +24,14 @@ public record FlowBundleResponse(List<ChannelType> channelTypes, List<FlowNodeIn
 
     public static FlowBundleResponse of(List<ChannelType> channelTypes, List<FlowNode> flowNodes,
                                          List<FlowConnection> flowConnections) {
-        return of(channelTypes, flowNodes, flowConnections, List.of());
+        return of(channelTypes, flowNodes, flowConnections, List.of(), null);
     }
 
     public static FlowBundleResponse of(List<ChannelType> channelTypes, List<FlowNode> flowNodes,
-                                         List<FlowConnection> flowConnections, List<FlowSection> sections) {
+                                         List<FlowConnection> flowConnections, List<FlowSection> sections,
+                                         String layoutMode) {
         return new FlowBundleResponse(channelTypes, flowNodes.stream().map(FlowNodeInfo::from).toList(),
-                flowConnections.stream().map(FlowConnectionInfo::from).toList(), sections);
+                flowConnections.stream().map(FlowConnectionInfo::from).toList(), sections, layoutMode);
     }
 
     public record FlowNodeInfo(String id, FlowNodeType type, String name, int positionX, int positionY,

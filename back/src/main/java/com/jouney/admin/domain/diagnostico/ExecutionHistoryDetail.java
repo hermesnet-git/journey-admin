@@ -16,5 +16,6 @@ public record ExecutionHistoryDetail(String processInstanceId, String businessKe
                                       List<FlowNode> flowNodes, List<FlowConnection> flowConnections,
                                       List<HistoryStep> steps, List<VariableSnapshot> variables,
                                       List<VariableTimelineEntry> variableTimeline, List<IncidentEntry> incidents,
-                                      String currentNodeId, List<FlowSection> sections) {
+                                      String currentNodeId, List<FlowSection> sections,
+                                      String layoutMode) {
 }

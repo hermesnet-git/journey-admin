@@ -16,13 +16,20 @@
 |---|---|
 | Total de Features (FT) | 15 |
 | Total de User Stories (US) | 109 |
-| Total de Requisitos (REQ) | 590 |
-| Concluídos (`done`) | 540 |
+| Total de Requisitos (REQ) | 593 |
+| Concluídos (`done`) | 543 |
 | Em andamento (`in_progress`) | 3 |
 | Não iniciados (`todo`) | 45 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
 | % Concluído | 92% |
+
+> **Seções com moldura própria, saídas pela direita e carregamento do canvas (3 REQs novos, 3 reescritos, 2026-10-03).**
+> A seção ganhou moldura própria: nasce da paleta, move com as etapas de dentro, redimensiona pelas bordas
+> e pode ficar vazia (REQ-03.20.001/006); "Organizar" trata a seção recolhida como bloco e, ao
+> reabrir, reorganiza só o conteúdo dela (REQ-03.20.007). A Execução e o Diagnóstico seguem a moldura
+> salva (REQ-03.20.005). As ligações saem sempre pela direita (REQ-03.19.004) e o canvas mostra um
+> indicador enquanto desenha (REQ-03.19.009). Total geral: 590 → 593 REQs.
 
 > **Decisão com várias saídas, "voltar" genérico e botão que grava a escolha (6 REQs novos, 6 reescritos, 2026-10-03).**
 > A Decisão passou a aceitar duas ou mais saídas, avaliadas na ordem do painel, que pode ser
@@ -199,7 +206,7 @@
 |---|---|---:|---:|---:|
 | FT-01 | Gestão de Produtos e Canais | 12 | 12 | 100% |
 | FT-02 | Gestão de Jornadas | 54 | 54 | 100% |
-| FT-03 | Modelagem Visual de Workflows | 129 | 129 | 100% |
+| FT-03 | Modelagem Visual de Workflows | 132 | 132 | 100% |
 | FT-04 | Catálogo Server Driven UI (SDUI) | 97 | 97 | 100% |
 | FT-05 | Execução | 72 | 72 | 100% |
 | FT-06 | Versionamento de jornadas | 43 | 43 | 100% |
@@ -529,21 +536,24 @@
 | [x] | REQ-03.19.001 | Círculo, Compacto ou Detalhado; preferência por usuário no editor, Execução e Diagnóstico; fluxo guarda a forma em que foi organizado. | done | front: `nodeMode.ts` (`useNodeDisplayMode`), `Toolbar`; back: `flow.layout_mode` (`V25`) | 2026-10-01 |
 | [x] | REQ-03.19.002 | Cartão com tipo curto ("Tela", "Integração REST"), nome e etiquetas da configuração; eventos e Decisão coloridos. | done | front: `NodeCard.tsx`, `nodeTypeLabel`/`nodeChips` (`nodeMode.ts`), `WorkflowNode` | 2026-10-01 |
 | [x] | REQ-03.19.003 | Organizar em camadas: caminho com condição reto, faixa de falha embaixo, seções como blocos. | done | front: `layout.ts` (ELK em camadas, grupos por seção, `straightenMainPaths`, `alignFailureBranches`) | 2026-10-01 |
-| [x] | REQ-03.19.004 | Linhas automáticas em ângulo reto, desviando de etapas, nomes e cabeçalhos de seção; laços contornam sem cruzar. | done | front: `edgeRouter.ts` (portas, custo de cruzamento, `turnEarly`), `computeRoutes` (`layout.ts`) | 2026-10-01 |
+| [x] | REQ-03.19.004 | Linhas automáticas em ângulo reto, saindo sempre pela direita (exceto "Se falhar", que sai por baixo e chega por cima ou pela direita do destino, com o topo prevalecendo), desviando de etapas, nomes e cabeçalhos de seção; laços contornam sem cruzar. | done | front: `edgeRouter.ts` (portas, custo de cruzamento, `turnEarly`), `computeRoutes` (`layout.ts`) | 2026-10-01; reescrito em 2026-10-03 (antes: o laço podia sair por cima ou por baixo) |
 | [x] | REQ-03.19.005 | Etiqueta sobre a linha: "Se falhar", "senão" e condição em linguagem do autor; expressão no hover. | done | front: `EdgeLabel.tsx`, `readableCondition`/`screenVariableLabels` (`conditionLabel.ts`); back: tela no pacote do diagrama (`FlowBundleResponse`) | 2026-10-01 |
 | [x] | REQ-03.19.006 | Rótulo livre por ligação (até 40), por duplo clique; salvo com a ligação e mostrado na Execução/Diagnóstico. | done | back: `FlowConnection.label`; front: `FlowEdge.tsx` (edição), `onSetEdgeLabel` | 2026-10-01 |
 | [x] | REQ-03.19.007 | Três níveis de detalhe por zoom: cartão, pílula, ponto; linhas de centro a centro de longe. | done | front: `detailForZoom`/`NodeDot` (`NodeCard.tsx`), `FlowEdge`, `FlowDiagramViewer` | 2026-10-01 |
 | [x] | REQ-03.19.008 | Barra de navegação (busca Ctrl+F, zoom, Ajustar F, zoom na seleção Shift+2, agrupar Ctrl+G); pontos de conexão só no hover, exceto o "Se falhar" da integração REST, sempre visível. | done | front: `NavigationBar.tsx`, `NodeSearch.tsx`, `.wf-handle` (`index.css`) | 2026-10-01 |
+| [x] | REQ-03.19.009 | Indicador de carregamento enquanto o fluxo carrega e o canvas desenha (editor, Execução e Diagnóstico). | done | front: `JourneyDesignerPage` (`drawn`), `FlowDiagramViewer` (`data-canvas-loading`) | 2026-10-03; conferido no navegador no editor |
 
 ### US-03.20 Seções do fluxo
 
 | # | REQ | Descrição | Status | Evidência | Notas |
 |---|---|---|---|---|---|
-| [x] | REQ-03.20.001 | Agrupar duas ou mais etapas numa seção com nome; moldura atrás das etapas. | done | front: `groupSelection`, `SectionNode.tsx` | 2026-10-01 |
+| [x] | REQ-03.20.001 | Agrupar duas ou mais etapas numa seção com nome, ou criar pela paleta (acima de "Anotação"); moldura tracejada atrás das etapas. | done | front: `groupSelection`, `addSectionAt`, `SectionNode.tsx`, `Palette.tsx` | 2026-10-01; reescrito em 2026-10-03 (paleta) |
 | [x] | REQ-03.20.002 | Renomear (duplo clique) e desfazer a seção. | done | front: `SectionNode.tsx` | 2026-10-01 |
 | [x] | REQ-03.20.003 | Recolher em bloco com a contagem; só a primeira ligação que chega no grupo liga no bloco, as que saem dele somem; estado por usuário. | done | front: `hiddenBySection`, `visibleSectionLinkIds`, `sectionLinkEdges` (`JourneyDesignerPage`) | 2026-10-01; reescrito em 2026-10-03 (antes: todas as ligações que entravam e saíam passavam a ligar no bloco); conferido no navegador com as 4 seções da "Gestão de BDs v2" recolhidas |
 | [x] | REQ-03.20.004 | Seção com destino de "Se falhar" com nome em vermelho. | done | front: `tone` (`SectionNode.tsx`), `SectionFrame` (`FlowDiagramViewer`) | 2026-10-01 |
-| [x] | REQ-03.20.005 | Seções salvas no fluxo e na versão; moldura na Execução e no Diagnóstico; fora da validação e do Runtime Engine. | done | back: `flow.sections` (`V26`), `JourneyVersion.sections`, `FlowBundleResponse.sections` | 2026-10-01 |
+| [x] | REQ-03.20.005 | Seções salvas no fluxo e na versão com posição, tamanho da moldura e modo de exibição; Execução e Diagnóstico seguem a moldura salva (mesmo modo) ou a caixa das etapas (outro modo); seção é subfluxo só visual (no motor segue um único fluxo principal), fora da validação e do Runtime Engine. | done | back: `flow.sections` (`V26`), `FlowSection` (x, y, width, height), `JourneyVersion.sections`/`layoutMode`, `FlowBundleResponse`; front: `FlowDiagramViewer` | 2026-10-01; reescrito em 2026-10-03 — moldura salva e na Execução/Diagnóstico ainda não testadas (dependem de reiniciar o back) |
+| [x] | REQ-03.20.006 | Mover a moldura com as etapas e redimensionar pelas bordas e cantos, sem ficar menor que as etapas; etapa pertence à seção onde está o centro dela; seção pode ficar vazia. | done | front: `sections.ts`, `SectionNode.tsx`, `JourneyDesignerPage` | 2026-10-03; conferido no navegador no editor |
+| [x] | REQ-03.20.007 | Organizar trata a seção recolhida como bloco; reabrir reorganiza só o conteúdo, a partir do canto da moldura; Organizar ajusta cada moldura. | done | front: `computeLayout`, `computeLayoutForSection` (`layout.ts`), `refitSections` | 2026-10-03; conferido no navegador |
 
 ---
 
@@ -1557,6 +1567,7 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 
 | Data/Hora | Alteração |
 |---|---|
+| 2026-10-03 15:35 (não commitado) | **Seções com moldura própria, saídas pela direita e indicador de carregamento do canvas.** US-03.20: REQ-03.20.001 reescrito (componente "Seção" na paleta, logo acima de "Anotação"), REQ-03.20.005 reescrito (moldura e modo de exibição salvos; Execução e Diagnóstico seguem a moldura salva quando o modo coincide) e novos REQ-03.20.006 (mover e redimensionar a moldura, pertencimento por posição, seção vazia) e REQ-03.20.007 (Organizar trata a seção recolhida como bloco e, ao reabrir, reorganiza só o conteúdo). US-03.19: REQ-03.19.004 reescrito (ligações saem sempre pela direita; "Se falhar" por baixo) e novo REQ-03.19.009 (indicador de carregamento no editor, na Execução e no Diagnóstico). Implementado em admin/back (moldura em `FlowSection`, `layoutMode` na versão) e front; moldura, mover/redimensionar e indicador de carregamento testados no navegador no editor; salvar a moldura e a moldura na Execução/Diagnóstico ainda não testados (dependem de reiniciar o back). FT-03: 129 → 132; total 590 → 593, 540 → 543 concluídos. |
 | 2026-10-03 05:46 (não commitado) | **Decisão com várias saídas, "voltar" genérico e botão que grava a escolha.** US-03.11: REQ-03.11.001/002/003/006 reescritos (duas ou mais saídas, uma padrão, demais com condição) e REQ-03.11.010 novo (avaliação na ordem das saídas, vale a primeira verdadeira; setas para reordenar); "Gateway com mais de duas saídas" saiu da lista de fora do escopo. REQ-03.20.003 reescrito: seção recolhida mostra só a primeira ligação que chega nela. US-04.11: REQ-04.11.006 (enviar formulário grava a escolha do botão), REQ-04.11.007 e 008 ("navegar" com destino "voltar" reabre a tela anterior, com as regras de tela já usada, integração de escrita e "Se falhar"). REQ-04.12.005 (habilitação condicional e condição sobre `data.x` avaliadas com a variável do motor em todos os canais). REQ-05.03.010 (ordem real dos passos na Execução e no Diagnóstico). Catálogo SDUI não alterado. Implementado em admin/back, ms-journey, ms-transform-publication (comentário), front e emulador-canais; testado no navegador na tela de Execução com a jornada "Gestão de BDs v2"; canais do emulador não testados. FT-03: 128 → 129; FT-04: 93 → 97; FT-05: 71 → 72; total 584 → 590, 534 → 540 concluídos. |
 | 2026-10-02 02:11 (não commitado) | **Saída "Se falhar" e ligações no editor (2 REQs novos, 2 reescritos).** REQ-03.02.009: o ponto "Se falhar" da integração REST fica sempre visível e liga assim que o REST é escolhido (antes aparecia mas só ligava depois de recarregar); nas demais Tarefas de Serviço o ponto aparece desabilitado, com a explicação, também no painel de propriedades. Novos: REQ-03.02.010 (ligação recusada avisa o motivo) e REQ-03.02.011 (soltar a ligação em qualquer parte da etapa de destino). REQ-03.19.008 ganhou a exceção do ponto "Se falhar". FT-03: 126 → 128; total 582 → 584. |
 | 2026-10-01 13:38 | **Execução e Diagnóstico: linha do tempo como painel único, entrada por um campo só e reprodução passo a passo.** Novos: REQ-05.03.009 (bolinha que percorre a ligação de chegada e halo na etapa atual), REQ-05.11.005 ("Sair sem parar"), REQ-15.03.006 (painel de baixo do Diagnóstico abre recolhido). Reescritos: REQ-05.03.004 (linha do tempo redimensionável e recolhível; Variáveis e Log abrem recolhidos), REQ-05.03.008 (card da linha do tempo com todos os detalhes da etapa, único lugar na Execução), REQ-05.07.001 e REQ-05.11.001 (busca única que também retoma execuções em andamento), REQ-05.10.007 (largura do painel do Diagnóstico e da linha do tempo), REQ-15.03.005 (passo anterior/próximo; variáveis com o valor do momento); nota da US-05.10 atualizada. FT-05: 69 → 71; FT-15: 18 → 19; total 579 → 582. |

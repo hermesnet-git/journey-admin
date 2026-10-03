@@ -18,7 +18,7 @@ import {
   type NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { AlertTriangle, Crosshair, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { AlertTriangle, Crosshair, Loader2, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { skinVars } from '@telefonica/mistica';
 import { BACKEND_TO_FRONT_TYPE, ERROR_HANDLE, TYPE_COLOR, type ConnectorConfig, type NodeType } from '../flow-designer/model';
 import { NodeShape } from '../flow-designer/NodeShape';
@@ -402,6 +402,9 @@ interface Props {
   // nas ligações e sem capturar a rolagem do painel em volta (zoom só pelos botões).
   compact?: boolean;
   sections?: FlowSection[];
+  // Modo do editor em que a versão foi desenhada: quando coincide com o modo de quem vê, o desenho
+  // segue as posições e molduras salvas; senão, organiza na hora.
+  layoutMode?: string | null;
   // Execução/Diagnóstico: número de cada passo por etapa, o resto esmaecido e a etapa que o motor
   // está percorrendo agora (destaque animado).
   stepNumbers?: Record<string, number[]>;
@@ -438,6 +441,7 @@ function FlowDiagramInner({
   onNodeSelect,
   compact,
   sections,
+  layoutMode,
   stepNumbers,
   dimUnvisited,
   flashNodeId,
@@ -450,20 +454,40 @@ function FlowDiagramInner({
   const [mode, setMode] = useNodeDisplayMode(compact ? null : (modeScope ?? null));
   // Somente leitura: sempre organizado na hora, no modo de quem está vendo.
   const [positions, setPositions] = useState<Map<string, { x: number; y: number }> | null>(null);
+  // O fluxo foi salvo com seções recolhidas no editor: as etapas escondidas ficam empilhadas sob o bloco. Posição
+  // salva com etapas se sobrepondo não serve para desenhar; nesse caso organiza na hora, uma vez, ao abrir.
+  const savedOverlaps = useMemo(() => {
+    const boxes = flowNodes.map((n) => {
+      const type = BACKEND_TO_FRONT_TYPE[n.type];
+      const size = nodeSize(type, mode);
+      return { x: n.positionX, y: n.positionY, r: n.positionX + size.width, b: n.positionY + size.height + labelReserve(type, mode) };
+    });
+    return boxes.some((p, i) => boxes.slice(i + 1).some((q) => p.x < q.r && q.x < p.r && p.y < q.b && q.y < p.b));
+  }, [flowNodes, mode]);
+  const useSaved = !compact && !!layoutMode && layoutMode === mode && !savedOverlaps;
+  // Moldura salva só vale no modo em que foi desenhada; em outro, as etapas são reorganizadas e a moldura segue a caixa delas.
+  const layoutSections = useMemo(
+    () => (compact ? [] : (sections ?? []).map((s) => (useSaved ? s : { ...s, x: null, y: null, width: null, height: null }))),
+    [sections, compact, useSaved],
+  );
   useEffect(() => {
+    if (useSaved) {
+      setPositions(new Map(flowNodes.map((n) => [n.id, { x: n.positionX, y: n.positionY }])));
+      return;
+    }
     let cancelled = false;
     layoutPositions(
       flowNodes.map((n) => ({ id: n.id, type: BACKEND_TO_FRONT_TYPE[n.type] })),
       flowConnections.map((c) => ({ id: c.id, source: c.sourceNodeId, target: c.targetNodeId, onError: c.onError, isDefault: c.isDefault })),
       mode,
-      compact ? [] : (sections ?? []),
+      layoutSections,
     ).then((p) => {
       if (!cancelled) setPositions(p);
     });
     return () => {
       cancelled = true;
     };
-  }, [flowNodes, flowConnections, mode]);
+  }, [flowNodes, flowConnections, mode, useSaved]);
   const placed = useMemo(
     () =>
       positions
@@ -477,9 +501,9 @@ function FlowDiagramInner({
         placed.map((n) => ({ id: n.id, type: BACKEND_TO_FRONT_TYPE[n.type], x: n.positionX, y: n.positionY })),
         flowConnections.map((c) => ({ id: c.id, source: c.sourceNodeId, target: c.targetNodeId, onError: c.onError, isDefault: c.isDefault })),
         mode,
-        compact ? [] : (sections ?? []),
+        layoutSections,
       ),
-    [placed, flowConnections, mode, sections, compact],
+    [placed, flowConnections, mode, layoutSections],
   );
   const variableLabels = useMemo(() => screenVariableLabels(flowNodes.map((n) => n.embeddedScreenRoot)), [flowNodes]);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -543,10 +567,12 @@ function FlowDiagramInner({
         const size = nodeSize(type, mode);
         return { x: n.positionX, y: n.positionY, r: n.positionX + size.width, b: n.positionY + size.height + labelReserve(type, mode) };
       });
-      const x0 = Math.min(...boxes.map((b) => b.x)) - 24;
-      const y0 = Math.min(...boxes.map((b) => b.y)) - 40;
-      const x1 = Math.max(...boxes.map((b) => b.r)) + 24;
-      const y1 = Math.max(...boxes.map((b) => b.b)) + 12;
+      // Moldura salva no editor (quando o modo coincide); senão, a caixa das etapas com a mesma folga.
+      const own = useSaved && typeof s.x === 'number' && typeof s.y === 'number' && typeof s.width === 'number' && typeof s.height === 'number';
+      const x0 = own ? s.x! : Math.min(...boxes.map((b) => b.x)) - 24;
+      const y0 = own ? s.y! : Math.min(...boxes.map((b) => b.y)) - 40;
+      const x1 = own ? s.x! + s.width! : Math.max(...boxes.map((b) => b.r)) + 24;
+      const y1 = own ? s.y! + s.height! : Math.max(...boxes.map((b) => b.b)) + 12;
       return [
         {
           id: `Section_${s.id}`,
@@ -559,7 +585,7 @@ function FlowDiagramInner({
         },
       ];
     });
-  }, [sections, placed, mode, compact, flowConnections]);
+  }, [sections, placed, mode, compact, flowConnections, useSaved]);
 
   // Ligação da etapa anterior para a atual (ou a que o motor está percorrendo sozinho agora).
   const arrivalId = useMemo(() => {
@@ -659,6 +685,18 @@ function FlowDiagramInner({
 
   return (
     <div className="relative w-full h-full">
+      {positions === null && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-canvas-loading
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-2"
+          style={{ background: skinVars.colors.background, color: skinVars.colors.textSecondary, fontSize: 13 }}
+        >
+          <Loader2 size={compact ? 18 : 26} className="animate-spin" style={{ color: skinVars.colors.brand }} />
+          {!compact && 'Desenhando a jornada…'}
+        </div>
+      )}
       <ReactFlow
         nodes={[...sectionFrames, ...nodes]}
         edges={edges}

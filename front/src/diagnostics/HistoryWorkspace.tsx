@@ -398,6 +398,7 @@ export function HistoryWorkspace({ history: initialHistory }: Props) {
               flowNodes={history.flow.flowNodes}
               flowConnections={history.flow.flowConnections}
               sections={history.flow.sections}
+              layoutMode={history.flow.layoutMode}
               currentNodeId={shownCurrentNodeId}
               visitedNodeIds={visitedNodeIds}
               stepNumbers={stepNumbers}

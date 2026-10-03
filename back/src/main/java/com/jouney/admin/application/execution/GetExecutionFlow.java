@@ -34,11 +34,11 @@ public class GetExecutionFlow {
         if (versionNumber == null) {
             Publication publication = publicationRepository.findByJourneyId(journeyId)
                     .orElseThrow(() -> new JourneyNotPublishedException(journeyId));
-            List<FlowSection> sections = publication.getVersionId() == null ? List.of()
-                    : journeyVersionRepository.findById(publication.getVersionId()).map(JourneyVersion::getSections)
-                            .orElse(List.of());
+            JourneyVersion published = publication.getVersionId() == null ? null
+                    : journeyVersionRepository.findById(publication.getVersionId()).orElse(null);
             return new ResolvedFlow(publication.getChannelTypes(), publication.getFlowNodes(), publication.getFlowConnections(),
-                    sections);
+                    published != null ? published.getSections() : List.of(),
+                    published != null ? published.getLayoutMode() : null);
         }
         JourneyVersion version = journeyVersionRepository.findByJourneyId(journeyId).stream()
                 .filter(v -> v.getVersionNumber() == versionNumber)
@@ -46,10 +46,11 @@ public class GetExecutionFlow {
                 .orElseThrow(() -> new IllegalStateException(
                         "Versão " + versionNumber + " não encontrada para a jornada " + journeyId));
         return new ResolvedFlow(version.getChannelTypes(), version.getFlowNodes(), version.getFlowConnections(),
-                version.getSections());
+                version.getSections(), version.getLayoutMode());
     }
 
     public record ResolvedFlow(List<ChannelType> channelTypes, List<FlowNode> flowNodes,
-                                List<FlowConnection> flowConnections, List<FlowSection> sections) {
+                                List<FlowConnection> flowConnections, List<FlowSection> sections,
+                                String layoutMode) {
     }
 }

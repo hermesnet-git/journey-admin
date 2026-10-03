@@ -657,6 +657,7 @@ export function ExecutionWorkspace({
               flowNodes={flow.flowNodes}
               flowConnections={flow.flowConnections}
               sections={flow.sections}
+              layoutMode={flow.layoutMode}
               currentNodeId={step.type === 'ENDED' ? null : step.nodeId}
               visitedNodeIds={visitedPath}
               erroredNodeId={erroredNodeId}

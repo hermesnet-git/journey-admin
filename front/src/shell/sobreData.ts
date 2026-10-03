@@ -716,18 +716,19 @@ export const EPICS: Epic[] = [
           d('REQ-03.19.001', 'Círculo, Compacto ou Detalhado; preferência por usuário no editor, Execução e Diagnóstico; fluxo guarda a forma em que foi organizado.'),
           d('REQ-03.19.002', 'Cartão com tipo curto ("Tela", "Integração REST"), nome e etiquetas da configuração; eventos e Decisão coloridos.'),
           d('REQ-03.19.003', 'Organizar em camadas: caminho com condição reto, faixa de falha embaixo, seções como blocos.'),
-          d('REQ-03.19.004', 'Linhas automáticas em ângulo reto, desviando de etapas, nomes e cabeçalhos de seção; laços contornam sem cruzar.'),
+          d('REQ-03.19.004', 'Linhas automáticas em ângulo reto, saindo sempre pela direita (exceto "Se falhar", que sai por baixo e chega por cima ou pela direita do destino, com o topo prevalecendo), desviando de etapas, nomes e cabeçalhos de seção; laços contornam sem cruzar.'),
           d('REQ-03.19.005', 'Etiqueta sobre a linha: "Se falhar", "senão" e condição em linguagem do autor; expressão no hover.'),
           d('REQ-03.19.006', 'Rótulo livre por ligação (até 40), por duplo clique; salvo com a ligação e mostrado na Execução/Diagnóstico.'),
           d('REQ-03.19.007', 'Três níveis de detalhe por zoom: cartão, pílula, ponto; linhas de centro a centro de longe.'),
           d('REQ-03.19.008', 'Barra de navegação (busca Ctrl+F, zoom, Ajustar F, zoom na seleção Shift+2, agrupar Ctrl+G); pontos de conexão só no hover, exceto o "Se falhar" da integração REST, sempre visível.'),
+          d('REQ-03.19.009', 'Indicador de carregamento enquanto o fluxo carrega e o canvas desenha (editor, Execução e Diagnóstico).'),
         ],
       },
       {
         code: 'US-03.20',
         name: 'Seções do fluxo',
         requirements: [
-          d('REQ-03.20.001', 'Agrupar duas ou mais etapas numa seção com nome; moldura atrás das etapas.'),
+          d('REQ-03.20.001', 'Agrupar duas ou mais etapas numa seção com nome, ou criar pela paleta (acima de "Anotação"); moldura tracejada atrás das etapas.'),
           d('REQ-03.20.002', 'Renomear (duplo clique) e desfazer a seção.'),
           {
             code: 'REQ-03.20.003',
@@ -737,7 +738,15 @@ export const EPICS: Epic[] = [
             notes: 'Reescrito em 2026-10-03 (antes: todas as ligações que entravam e saíam passavam a ligar no bloco); conferido no navegador com as 4 seções da \"Gestão de BDs v2\" recolhidas.',
           },
           d('REQ-03.20.004', 'Seção com destino de "Se falhar" com nome em vermelho.'),
-          d('REQ-03.20.005', 'Seções salvas no fluxo e na versão; moldura na Execução e no Diagnóstico; fora da validação e do Runtime Engine.'),
+          {
+            code: 'REQ-03.20.005',
+            description:
+              'Seções salvas no fluxo e na versão com posição, tamanho da moldura e modo de exibição; Execução e Diagnóstico seguem a moldura salva (mesmo modo) ou a caixa das etapas (outro modo); seção é subfluxo só visual (no motor segue um único fluxo principal), fora da validação e do Runtime Engine.',
+            status: 'done',
+            notes: 'Reescrito em 2026-10-03 — moldura salva e na Execução/Diagnóstico ainda não testadas (dependem de reiniciar o back).',
+          },
+          d('REQ-03.20.006', 'Mover a moldura com as etapas e redimensionar pelas bordas e cantos, sem ficar menor que as etapas; etapa pertence à seção onde está o centro dela; seção pode ficar vazia.'),
+          d('REQ-03.20.007', 'Organizar trata a seção recolhida como bloco; reabrir reorganiza só o conteúdo, a partir do canto da moldura; Organizar ajusta cada moldura.'),
         ],
       },
     ],
@@ -2162,6 +2171,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-10-03 15:35 (não commitado)',
+    source: 'progresso',
+    summary:
+      '**Seções com moldura própria, saídas pela direita e indicador de carregamento do canvas.** US-03.20: REQ-03.20.001 reescrito (componente "Seção" na paleta, logo acima de "Anotação"), REQ-03.20.005 reescrito (moldura e modo de exibição salvos; Execução e Diagnóstico seguem a moldura salva quando o modo coincide) e novos REQ-03.20.006 (mover e redimensionar a moldura, pertencimento por posição, seção vazia) e REQ-03.20.007 (Organizar trata a seção recolhida como bloco e, ao reabrir, reorganiza só o conteúdo). US-03.19: REQ-03.19.004 reescrito (ligações saem sempre pela direita; "Se falhar" por baixo) e novo REQ-03.19.009 (indicador de carregamento no editor, na Execução e no Diagnóstico). Implementado em admin/back (moldura em `FlowSection`, `layoutMode` na versão) e front; moldura, mover/redimensionar e indicador de carregamento testados no navegador no editor; salvar a moldura e a moldura na Execução/Diagnóstico ainda não testados (dependem de reiniciar o back). FT-03: 129 → 132; total 590 → 593, 540 → 543 concluídos.',
+  },
   {
     date: '2026-10-03 05:46 (não commitado)',
     source: 'progresso',

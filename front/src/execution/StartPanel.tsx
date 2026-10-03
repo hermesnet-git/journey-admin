@@ -162,6 +162,7 @@ export function StartPanel({ journey, onStarted }: Props) {
                 flowNodes={flow.flowNodes}
                 flowConnections={flow.flowConnections}
                 sections={flow.sections}
+                layoutMode={flow.layoutMode}
                 currentNodeId={null}
                 visitedNodeIds={[]}
                 erroredNodeId={diagnosis?.confirmed ? diagnosis.nodeId : null}

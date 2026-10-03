@@ -37,6 +37,23 @@ const NAV_LABELS: Record<string, string> = {
   aprovacoes: 'Aprovações',
 };
 
+const DARK_KEY = 'admin.theme.dark';
+const SKIN_KEY = 'admin.theme.skin';
+function readPref(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function writePref(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // sem armazenamento: vale só nesta sessão
+  }
+}
+
 export function App() {
   return (
     <AppErrorBoundary>
@@ -49,11 +66,23 @@ export function App() {
 
 function AppShell() {
   const { isAuthenticated } = useAuth();
-  // Padrão claro ao logar (pedido explícito) — sem persistência ainda (não tinha antes também: o
-  // toggle nunca sobrevivia a um reload, só o valor inicial mudava).
-  const [dark, setDark] = useState(false);
+  // Claro/escuro e skin ficam guardados no navegador (sobrevivem a F5 e a novo login).
+  const [dark, setDark] = useState(() => readPref(DARK_KEY) === '1');
   const colors = dark ? DARK_APP_COLORS : LIGHT_APP_COLORS;
-  const [skinName, setSkinName] = useState<KnownSkinName>('Blau');
+  const [skinName, setSkinName] = useState<KnownSkinName>(() => {
+    const saved = readPref(SKIN_KEY);
+    try {
+      if (saved) {
+        getSkinByName(saved as KnownSkinName);
+        return saved as KnownSkinName;
+      }
+    } catch {
+      // skin guardada que não existe mais: volta ao padrão
+    }
+    return 'Blau';
+  });
+  useEffect(() => writePref(DARK_KEY, dark ? '1' : '0'), [dark]);
+  useEffect(() => writePref(SKIN_KEY, skinName), [skinName]);
   const skin = getSkinByName(skinName);
   const [tabs, setTabs] = useState<Tab[]>([DASHBOARD_TAB]);
   const [activeKey, setActiveKey] = useState('dashboard');

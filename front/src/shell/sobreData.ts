@@ -728,7 +728,7 @@ export const EPICS: Epic[] = [
         code: 'US-03.20',
         name: 'Seções do fluxo',
         requirements: [
-          d('REQ-03.20.001', 'Agrupar duas ou mais etapas numa seção com nome, ou criar pela paleta (acima de "Anotação"); moldura tracejada atrás das etapas.'),
+          d('REQ-03.20.001', 'Agrupar duas ou mais etapas numa seção com nome, ou criar pela paleta (acima de "Anotação"), arrastando ou clicando (numerada, em lugar livre); moldura tracejada atrás das etapas.'),
           d('REQ-03.20.002', 'Renomear (duplo clique) e desfazer a seção.'),
           {
             code: 'REQ-03.20.003',
@@ -1070,7 +1070,7 @@ export const EPICS: Epic[] = [
           d('REQ-05.03.006', '"Seguir a execução" mantém a etapa atual no centro.'),
           d('REQ-05.03.007', 'Etapas percorridas pelo motor destacadas uma a uma (sem animação com movimento reduzido).'),
           d('REQ-05.03.008', 'Linha do tempo com passo, tipo, hora, motor e falha; o card aberto mostra todos os detalhes da etapa (único lugar na Execução); etapa selecionada no fluxo abre o card; etapa não alcançada mostra a configuração; no fim, a espera atual explicada.'),
-          d('REQ-05.03.009', 'Bolinha percorre uma vez a ligação de chegada e para; halo pulsante na etapa atual; sem movimento com movimento reduzido.'),
+          d('REQ-05.03.009', 'Bolinha percorre a ligação de chegada e recomeça enquanto espera na etapa (para só no Fim; recomeça na nova origem ao avançar de passo); halo pulsante na etapa atual; sem movimento com movimento reduzido.'),
           {
             code: 'REQ-05.03.010',
             description:
@@ -2172,13 +2172,19 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-10-03 15:35 (não commitado)',
+    date: '2026-10-03 18:19 (não commitado)',
+    source: 'progresso',
+    summary:
+      '**Bolinha que recomeça na ligação e seção criada pela paleta num lugar livre.** REQ-05.03.009 reescrito: a bolinha percorre a ligação de chegada de origem a destino e recomeça enquanto a execução espera na etapa, parando só quando o destino é o Fim; ao avançar de passo no Diagnóstico ela recomeça na nova origem na hora. REQ-03.20.001 reescrito: clicar no componente "Seção" da paleta cria uma seção numerada automaticamente num lugar livre (à esquerda e abaixo do início do desenho, sem cobrir etapa, linha ou outra seção), e arrastar cria no ponto onde soltar. Implementado no front; a posição da seção foi conferida no navegador, a bolinha ainda não foi vista em tela. Nenhum REQ novo; totais inalterados (593 REQs, 543 concluídos).',
+  },
+  {
+    date: '2026-10-03 16:39',
     source: 'progresso',
     summary:
       '**Seções com moldura própria, saídas pela direita e indicador de carregamento do canvas.** US-03.20: REQ-03.20.001 reescrito (componente "Seção" na paleta, logo acima de "Anotação"), REQ-03.20.005 reescrito (moldura e modo de exibição salvos; Execução e Diagnóstico seguem a moldura salva quando o modo coincide) e novos REQ-03.20.006 (mover e redimensionar a moldura, pertencimento por posição, seção vazia) e REQ-03.20.007 (Organizar trata a seção recolhida como bloco e, ao reabrir, reorganiza só o conteúdo). US-03.19: REQ-03.19.004 reescrito (ligações saem sempre pela direita; "Se falhar" por baixo) e novo REQ-03.19.009 (indicador de carregamento no editor, na Execução e no Diagnóstico). Implementado em admin/back (moldura em `FlowSection`, `layoutMode` na versão) e front; moldura, mover/redimensionar e indicador de carregamento testados no navegador no editor; salvar a moldura e a moldura na Execução/Diagnóstico ainda não testados (dependem de reiniciar o back). FT-03: 129 → 132; total 590 → 593, 540 → 543 concluídos.',
   },
   {
-    date: '2026-10-03 05:46 (não commitado)',
+    date: '2026-10-03 05:50',
     source: 'progresso',
     summary:
       '**Decisão com várias saídas, "voltar" genérico e botão que grava a escolha.** US-03.11: REQ-03.11.001/002/003/006 reescritos (duas ou mais saídas, uma padrão, demais com condição) e REQ-03.11.010 novo (avaliação na ordem das saídas, vale a primeira verdadeira; setas para reordenar); "Gateway com mais de duas saídas" saiu da lista de fora do escopo. REQ-03.20.003 reescrito: seção recolhida mostra só a primeira ligação que chega nela. US-04.11: REQ-04.11.006 (enviar formulário grava a escolha do botão), REQ-04.11.007 e 008 ("navegar" com destino "voltar" reabre a tela anterior, com as regras de tela já usada, integração de escrita e "Se falhar"). REQ-04.12.005 (habilitação condicional e condição sobre `data.x` avaliadas com a variável do motor em todos os canais). REQ-05.03.010 (ordem real dos passos na Execução e no Diagnóstico). Catálogo SDUI não alterado. Implementado em admin/back, ms-journey, ms-transform-publication (comentário), front e emulador-canais; testado no navegador na tela de Execução com a jornada "Gestão de BDs v2"; canais do emulador não testados. FT-03: 128 → 129; FT-04: 93 → 97; FT-05: 71 → 72; total 584 → 590, 534 → 540 concluídos.',

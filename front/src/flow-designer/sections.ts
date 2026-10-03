@@ -124,6 +124,52 @@ export function refitSections(
   });
 }
 
+// Primeiro lugar livre para uma moldura nova: de preferência à esquerda e abaixo do início do desenho,
+// descendo pela coluna da esquerda e só então andando para a direita, onde não haja etapa (com o nome embaixo), outra seção nem
+// trecho de linha.
+export function freeSectionSpot(
+  nodes: WFNode[],
+  sections: SectionBox[],
+  routes: { points: { x: number; y: number }[] }[],
+  mode: NodeDisplayMode,
+): { x: number; y: number } {
+  const GAP = 24;
+  const taken: { x0: number; y0: number; x1: number; y1: number }[] = [];
+  nodes.forEach((n) => {
+    const b = memberBounds([n], mode);
+    if (b) taken.push(b);
+  });
+  sections.forEach((s) => taken.push({ x0: s.x, y0: s.y, x1: s.x + s.width, y1: s.y + s.height }));
+  routes.forEach((r) =>
+    r.points.slice(1).forEach((p, i) => {
+      const q = r.points[i];
+      taken.push({ x0: Math.min(p.x, q.x), y0: Math.min(p.y, q.y), x1: Math.max(p.x, q.x), y1: Math.max(p.y, q.y) });
+    }),
+  );
+  const start = nodes.find((n) => n.type === 'start' || n.type === 'messageStartEvent') ?? nodes[0];
+  const all = memberBounds(nodes, mode);
+  if (!start || !all) return { x: 0, y: 0 };
+  const { width, height } = SECTION_DEFAULT;
+  const free = (x: number, y: number) =>
+    taken.every((t) => x + width + GAP <= t.x0 || t.x1 + GAP <= x || y + height + GAP <= t.y0 || t.y1 + GAP <= y);
+  // O lugar livre mais perto do canto à esquerda e abaixo do início (a esquerda pesa um pouco mais): as
+  // molduras novas se empilham ali, uma embaixo da outra.
+  const ax = all.x0;
+  const ay = start.position.y + 120;
+  let best: { x: number; y: number } | null = null;
+  let bestCost = Infinity;
+  for (let x = ax; x <= all.x1 + 400; x += 40) {
+    for (let y = ay; y <= all.y1 + 400; y += 40) {
+      const cost = (x - ax) * 1.2 + (y - ay);
+      if (cost < bestCost && free(x, y)) {
+        best = { x, y };
+        bestCost = cost;
+      }
+    }
+  }
+  return best ?? { x: ax, y: all.y1 + 440 };
+}
+
 export type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
 // Novo tamanho ao arrastar uma borda ou canto: nunca menor que o mínimo e nunca menor que a caixa das

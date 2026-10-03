@@ -78,7 +78,7 @@ import { createNode as createSduiNode, type SduiNode } from '../sdui/model';
 import { COLLAPSED_SECTION, computeLayout, computeLayoutForSection, computeLayoutForSelection, computeRoutes } from './layout';
 import type { EdgeRoute } from './edgeRouter';
 import { nodeSize, useNodeDisplayMode, type NodeDisplayMode } from './nodeMode';
-import { fitBox, memberBounds, refitSections, SECTION_DEFAULT, SECTION_HEADER, SECTION_PAD, toSectionState, withMembers, type SectionState } from './sections';
+import { fitBox, freeSectionSpot, memberBounds, refitSections, SECTION_DEFAULT, SECTION_HEADER, SECTION_PAD, toSectionState, withMembers, type SectionState } from './sections';
 import { readableCondition, screenVariableLabels } from './conditionLabel';
 import { clearTourPending, guideNotes, isTourPending } from './notes';
 import { GuidePanel } from './GuidePanel';
@@ -855,12 +855,26 @@ function DesignerInner({
     [pushHistory],
   );
 
+  // Clique na paleta: moldura numerada num lugar livre (à esquerda e abaixo do início do desenho).
   const addSectionFromPalette = useCallback(() => {
-    const rect = wrapperRef.current?.getBoundingClientRect();
-    const center = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : { x: 400, y: 300 };
-    const pos = screenToFlowPosition(center);
-    addSectionAt(pos.x, pos.y);
-  }, [addSectionAt, screenToFlowPosition]);
+    const spot = freeSectionSpot(nodesRef.current, sectionsRef.current, [...routes.values()], nodeModeRef.current);
+    pushHistory();
+    setSections((prev) => {
+      const used = prev.map((s) => /^Seção (\d+)$/.exec(s.name)).flatMap((m) => (m ? [Number(m[1])] : []));
+      return [
+        ...prev,
+        {
+          id: `Section_${crypto.randomUUID()}`,
+          name: `Seção ${Math.max(0, ...used) + 1}`,
+          nodeIds: [],
+          x: spot.x,
+          y: spot.y,
+          width: SECTION_DEFAULT.width,
+          height: SECTION_DEFAULT.height,
+        },
+      ];
+    });
+  }, [routes, pushHistory]);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {

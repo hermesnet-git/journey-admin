@@ -743,7 +743,7 @@ export const EPICS: Epic[] = [
             description:
               'Seções salvas no fluxo e na versão com posição, tamanho da moldura e modo de exibição; Execução e Diagnóstico seguem a moldura salva (mesmo modo) ou a caixa das etapas (outro modo); seção é subfluxo só visual (no motor segue um único fluxo principal), fora da validação e do Runtime Engine.',
             status: 'done',
-            notes: 'Reescrito em 2026-10-03 — moldura salva e na Execução/Diagnóstico ainda não testadas (dependem de reiniciar o back).',
+            notes: 'Reescrito em 2026-10-03 — salvar, Execução e Diagnóstico conferidos no navegador.',
           },
           d('REQ-03.20.006', 'Mover a moldura com as etapas e redimensionar pelas bordas e cantos, sem ficar menor que as etapas; etapa pertence à seção onde está o centro dela; seção pode ficar vazia.'),
           d('REQ-03.20.007', 'Organizar trata a seção recolhida como bloco; reabrir reorganiza só o conteúdo, a partir do canto da moldura; Organizar ajusta cada moldura.'),
@@ -2172,10 +2172,10 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-10-03 18:19 (não commitado)',
+    date: '2026-10-03 2026-10-03 18:19',
     source: 'progresso',
     summary:
-      '**Bolinha que recomeça na ligação e seção criada pela paleta num lugar livre.** REQ-05.03.009 reescrito: a bolinha percorre a ligação de chegada de origem a destino e recomeça enquanto a execução espera na etapa, parando só quando o destino é o Fim; ao avançar de passo no Diagnóstico ela recomeça na nova origem na hora. REQ-03.20.001 reescrito: clicar no componente "Seção" da paleta cria uma seção numerada automaticamente num lugar livre (à esquerda e abaixo do início do desenho, sem cobrir etapa, linha ou outra seção), e arrastar cria no ponto onde soltar. Implementado no front; a posição da seção foi conferida no navegador, a bolinha ainda não foi vista em tela. Nenhum REQ novo; totais inalterados (593 REQs, 543 concluídos).',
+      '**Bolinha que recomeça na ligação e seção criada pela paleta num lugar livre.** REQ-05.03.009 reescrito: a bolinha percorre a ligação de chegada de origem a destino e recomeça enquanto a execução espera na etapa, parando só quando o destino é o Fim; ao avançar de passo no Diagnóstico ela recomeça na nova origem na hora. REQ-03.20.001 reescrito: clicar no componente "Seção" da paleta cria uma seção numerada automaticamente num lugar livre (à esquerda e abaixo do início do desenho, sem cobrir etapa, linha ou outra seção), e arrastar cria no ponto onde soltar. Implementado no front; a posição da seção e a bolinha foram conferidas no navegador. Nenhum REQ novo; totais inalterados (593 REQs, 543 concluídos).',
   },
   {
     date: '2026-10-03 16:39',

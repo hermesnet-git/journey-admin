@@ -303,22 +303,27 @@ interface ViewerEdgeData extends Record<string, unknown> {
   rawCondition?: string;
   danger?: boolean;
   dimmed?: boolean;
-  // Ligação por onde a execução chegou à etapa atual: uma bolinha a percorre sem parar.
+  // Ligação por onde a execução chegou à etapa atual: uma bolinha a percorre de origem a destino e recomeça
+  // enquanto a execução espera nessa etapa; se o destino é o Fim, percorre uma vez e para.
   travel?: boolean;
+  travelRepeat?: boolean;
+  // Muda a cada passo: a bolinha recomeça na nova origem na hora, mesmo numa ligação repetida.
+  travelKey?: string;
 }
 
 const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-// Bolinha que percorre a ligação uma vez e para no fim (na etapa atual). Começa ao aparecer, antes da
-// primeira pintura: com begin="indefinite" e sem isso ela ficaria parada na origem do canvas.
-function TravelDot({ path, color }: { path: string; color: string }) {
+// Bolinha que percorre a ligação de origem a destino, recomeçando enquanto repeat; sem repeat, para no fim.
+// Começa ao aparecer, antes da primeira pintura: com begin="indefinite" e sem isso ela ficaria parada na
+// origem do canvas.
+function TravelDot({ path, color, repeat }: { path: string; color: string; repeat: boolean }) {
   const motionRef = useRef<SVGAnimateMotionElement>(null);
   useLayoutEffect(() => {
     motionRef.current?.beginElement();
   }, []);
   return (
     <circle r={5} fill={color} style={{ pointerEvents: 'none' }}>
-      <animateMotion ref={motionRef} begin="indefinite" dur="2.4s" fill="freeze" path={path} keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines="0.42 0 0.58 1" />
+      <animateMotion ref={motionRef} begin="indefinite" dur="2.4s" repeatCount={repeat ? 'indefinite' : 1} fill={repeat ? 'remove' : 'freeze'} path={path} keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines="0.42 0 0.58 1" />
     </circle>
   );
 }
@@ -354,7 +359,7 @@ function RoutedViewerEdge({ source, target, sourceX, sourceY, targetX, targetY, 
     <>
       <BaseEdge path={path} style={style} markerEnd={far ? undefined : markerEnd} />
       {data?.travel && !REDUCED_MOTION && (
-        <TravelDot path={path} color={data.danger ? skinVars.colors.error : skinVars.colors.success} />
+        <TravelDot key={data.travelKey} repeat={!!data.travelRepeat} path={path} color={data.danger ? skinVars.colors.error : skinVars.colors.success} />
       )}
       {data?.labelText && (
         <EdgeLabel
@@ -615,6 +620,8 @@ function FlowDiagramInner({
             lod: !compact,
             dimmed: !!dimUnvisited && !traversed,
             travel: c.id === arrivalId,
+            travelRepeat: c.id === arrivalId && flowNodes.find((n) => n.id === c.targetNodeId)?.type !== 'END',
+            travelKey: c.id === arrivalId ? `${c.id}:${visitedNodeIds.length}:${flashNodeId ?? currentNodeId}` : undefined,
           },
           // Saída "Se falhar": tracejada, na cor de erro enquanto não foi percorrida.
           style: {
@@ -626,7 +633,7 @@ function FlowDiagramInner({
           markerEnd: { type: MarkerType.ArrowClosed, color },
         };
       }),
-    [flowConnections, visited, currentNodeId, compact, routes, variableLabels, dimUnvisited, arrivalId],
+    [flowConnections, flowNodes, visited, visitedNodeIds, flashNodeId, currentNodeId, compact, routes, variableLabels, dimUnvisited, arrivalId],
   );
 
   // Centraliza a etapa atual sempre que ela muda (inclusive no primeiro carregamento), num zoom

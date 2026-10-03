@@ -140,30 +140,25 @@ export function StartPanel({ journey, onStarted }: Props) {
   const startVariables = startNode?.startVariables ?? [];
   const missingStartVariable = startVariables.some((v) => v.type !== 'boolean' && !startVariableValues[v.name]);
 
-  return (
-    <div className="flex justify-center">
-      <div className="w-full max-w-[640px]">
-        <Stack space={24}>
-          <Stack space={2}>
-            <Text size={18} weight="bold" color={skinVars.colors.textPrimary}>
-              {journey.name}
-            </Text>
-            <Text size={13} color={skinVars.colors.textSecondary}>
-              {journey.productName} · {journey.channelTypes.join(', ')}
-              {journey.publishedVersionNumber != null && ` · v${journey.publishedVersionNumber}`}
-            </Text>
-          </Stack>
+  // O fluxo e o cartão preenchem a altura que a página oferece (a grade abaixo é flex-1).
+  const canvasStyle = { border: `1px solid ${skinVars.colors.border}` };
+  const nodeCount = (...types: string[]) => flow?.flowNodes.filter((n) => types.includes(n.type)).length ?? 0;
+  const summary = [
+    plural(nodeCount('USER_TASK'), 'tela', 'telas'),
+    plural(nodeCount('SERVICE_TASK'), 'integração', 'integrações'),
+    plural(nodeCount('GATEWAY'), 'decisão', 'decisões'),
+  ];
 
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] flex-1 min-h-[460px]">
           {/* Prévia estrutural do fluxo antes de executar — mesmo visualizador somente-leitura da
               aba "Fluxo da Jornada" (staticView: colorido por tipo de nó, sem trilha de execução),
               pra não decidir "Executar" às cegas. Omitida silenciosamente se a busca falhar
-              (flowError) — o formulário abaixo continua funcionando sem ela. */}
+              (flowError) — o formulário ao lado continua funcionando sem ela. */}
           {flow && flow.flowNodes.length > 0 ? (
-            <div
-              className="rounded-lg overflow-hidden"
-              style={{ height: 200, border: `1px solid ${skinVars.colors.border}` }}
-            >
+            <div className="rounded-lg overflow-hidden min-h-[360px]" style={canvasStyle}>
               <FlowDiagramViewer
+                modeScope="execution"
                 flowNodes={flow.flowNodes}
                 flowConnections={flow.flowConnections}
                 sections={flow.sections}
@@ -176,8 +171,41 @@ export function StartPanel({ journey, onStarted }: Props) {
               />
             </div>
           ) : !flowError && !flow ? (
-            <div className="rounded-lg animate-pulse" style={{ height: 200, background: skinVars.colors.backgroundAlternative }} />
-          ) : null}
+            <div className="rounded-lg animate-pulse min-h-[360px]" style={{ ...canvasStyle, background: skinVars.colors.backgroundAlternative }} />
+          ) : (
+            <div />
+          )}
+
+          <div
+            className="rounded-xl p-4 box-border flex flex-col gap-4 min-h-0"
+            style={{ border: `1px solid ${skinVars.colors.border}`, background: skinVars.colors.backgroundContainer }}
+          >
+        <div className="flex-1 min-h-0 overflow-auto">
+        <Stack space={16}>
+          <Stack space={8}>
+            <Stack space={2}>
+              <Text size={18} weight="bold" color={skinVars.colors.textPrimary}>
+                {journey.name}
+              </Text>
+              <Text size={13} color={skinVars.colors.textSecondary}>
+                {journey.productName} · {journey.channelTypes.join(', ')}
+                {journey.publishedVersionNumber != null && ` · v${journey.publishedVersionNumber}`}
+              </Text>
+            </Stack>
+            {flow && (
+              <div className="flex flex-wrap gap-[6px]">
+                {summary.map((label) => (
+                  <span
+                    key={label}
+                    className="text-[11.5px] rounded-full px-[8px] py-[1px]"
+                    style={{ background: skinVars.colors.backgroundAlternative, border: `1px solid ${skinVars.colors.border}`, color: skinVars.colors.textSecondary }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </Stack>
 
           {startError && (
             <div
@@ -223,11 +251,11 @@ export function StartPanel({ journey, onStarted }: Props) {
             </Stack>
           )}
 
-          {publishedVersions.length > 1 && (
-            <Stack space={8}>
-              <Text size={12.5} weight="medium" color={skinVars.colors.textSecondary}>
-                Versão publicada a executar
-              </Text>
+          <Stack space={8}>
+            <Text size={12.5} weight="medium" color={skinVars.colors.textSecondary}>
+              Versão a executar
+            </Text>
+            {publishedVersions.length > 1 ? (
               <select
                 value={versionNumber ?? ''}
                 onChange={(e) => setVersionNumber(e.target.value ? Number(e.target.value) : undefined)}
@@ -251,14 +279,23 @@ export function StartPanel({ journey, onStarted }: Props) {
                     </option>
                   ))}
               </select>
-            </Stack>
-          )}
+            ) : (
+              <Text size={13} color={skinVars.colors.textPrimary}>
+                Publicação ativa{journey.publishedVersionNumber != null ? ` · v${journey.publishedVersionNumber}` : ''}
+              </Text>
+            )}
+          </Stack>
 
-          {!isMessageStart && startVariables.length > 0 && (
+          {!isMessageStart && (
             <Stack space={8}>
               <Text size={12.5} weight="medium" color={skinVars.colors.textSecondary}>
                 Variáveis de entrada
               </Text>
+              {startVariables.length === 0 && (
+                <Text size={13} color={skinVars.colors.textSecondary}>
+                  Esta versão da jornada não tem variáveis de entrada.
+                </Text>
+              )}
               {startVariables.map((v) =>
                 v.type === 'boolean' ? (
                   <label key={v.name} className="flex items-center gap-2">
@@ -305,7 +342,7 @@ export function StartPanel({ journey, onStarted }: Props) {
             </label>
           )}
 
-          {isMessageStart && messageStartTopic ? (
+          {isMessageStart && messageStartTopic && (
             <Stack space={12}>
               <SendTestMessagePanel
                 topic={messageStartTopic}
@@ -322,28 +359,34 @@ export function StartPanel({ journey, onStarted }: Props) {
                 </TextLink>
               </div>
             </Stack>
-          ) : (
-            <button
-              type="button"
-              disabled={starting || missingStartVariable}
-              onClick={handleExecute}
-              className="flex items-center justify-center gap-2 rounded-lg py-3 w-full border-0 font-semibold cursor-pointer transition-opacity"
-              style={{
-                background: skinVars.colors.buttonPrimaryBackground,
-                color: skinVars.colors.textButtonPrimary,
-                opacity: starting || missingStartVariable ? 0.5 : 1,
-                cursor: starting || missingStartVariable ? 'default' : 'pointer',
-              }}
-            >
-              <Play size={16} />
-              {starting ? 'Iniciando...' : 'Executar'}
-            </button>
           )}
         </Stack>
+        </div>
+
+        {/* Sempre no fundo do cartão, qualquer que seja a altura do conteúdo acima. */}
+        {!(isMessageStart && messageStartTopic) && (
+          <button
+            type="button"
+            disabled={starting || missingStartVariable}
+            onClick={handleExecute}
+            className="flex items-center justify-center gap-2 rounded-lg py-3 w-full border-0 font-semibold cursor-pointer transition-opacity shrink-0"
+            style={{
+              background: skinVars.colors.buttonPrimaryBackground,
+              color: skinVars.colors.textButtonPrimary,
+              opacity: starting || missingStartVariable ? 0.5 : 1,
+              cursor: starting || missingStartVariable ? 'default' : 'pointer',
+            }}
+          >
+            <Play size={16} />
+            {starting ? 'Iniciando...' : 'Executar'}
+          </button>
+        )}
       </div>
     </div>
   );
 }
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 async function pollForNewInstance(journeyId: string, since: string): Promise<InstanceResponse> {
   for (let attempt = 0; attempt < LATEST_INSTANCE_MAX_ATTEMPTS; attempt++) {

@@ -26,7 +26,7 @@ import { NodeCard, NodeDot, NodePill, detailForZoom } from '../flow-designer/Nod
 import { DEFAULT_PATH_LABEL, readableCondition, screenVariableLabels } from '../flow-designer/conditionLabel';
 import type { SduiNode } from '../sdui/model';
 import type { FlowSection } from '../api/flows';
-import { isTaskType, labelReserve, nodeChips, nodeSize, nodeTypeLabel, useNodeDisplayMode, type NodeDisplayMode } from '../flow-designer/nodeMode';
+import { isTaskType, labelReserve, nodeChips, nodeSize, nodeTypeLabel, NODE_DISPLAY_MODES, useNodeDisplayMode, type NodeDisplayMode, type NodeModeScope } from '../flow-designer/nodeMode';
 import { computeRoutes, layoutPositions } from '../flow-designer/layout';
 import { fitRoute, labelPoint, roundedPath, type EdgeRoute, type Pt } from '../flow-designer/edgeRouter';
 import { EdgeLabel } from '../flow-designer/EdgeLabel';
@@ -410,6 +410,9 @@ interface Props {
   // "Seguir a execução": centraliza a etapa atual (e a animada) a cada passo. Ausente = segue.
   follow?: boolean;
   onFollowChange?: (follow: boolean) => void;
+  // Funcionalidade que guarda a escolha círculo/compacto/detalhado; sem ela (ou em miniatura) fica
+  // detalhado e sem seletor.
+  modeScope?: NodeModeScope;
 }
 
 export function FlowDiagramViewer(props: Props) {
@@ -440,10 +443,11 @@ function FlowDiagramInner({
   flashNodeId,
   follow = true,
   onFollowChange,
+  modeScope,
 }: Props) {
   const { zoomIn, zoomOut, fitView, setCenter, getZoom } = useReactFlow();
   const { dark } = useAppTheme();
-  const [mode] = useNodeDisplayMode();
+  const [mode, setMode] = useNodeDisplayMode(compact ? null : (modeScope ?? null));
   // Somente leitura: sempre organizado na hora, no modo de quem está vendo.
   const [positions, setPositions] = useState<Map<string, { x: number; y: number }> | null>(null);
   useEffect(() => {
@@ -688,6 +692,27 @@ function FlowDiagramInner({
           <button type="button" onClick={() => fitView({ padding: 0.2, duration: 200 })} className={iconBtn} style={{ color: skinVars.colors.textSecondary }} title="Ajustar à tela">
             <Maximize size={15} />
           </button>
+          {modeScope && !compact && (
+            <div role="group" aria-label="Exibição das etapas" className="flex rounded-md p-[2px] ml-[2px]" style={{ background: skinVars.colors.backgroundAlternative }}>
+              {NODE_DISPLAY_MODES.map((m) => (
+                <button
+                  key={m.value}
+                  type="button"
+                  aria-pressed={mode === m.value}
+                  onClick={() => setMode(m.value)}
+                  title={`Exibir etapas: ${m.label.toLowerCase()} (reorganiza o fluxo)`}
+                  className="h-[24px] px-[8px] rounded-[5px] border-0 text-[12px] font-medium cursor-pointer"
+                  style={{
+                    background: mode === m.value ? skinVars.colors.backgroundContainer : 'transparent',
+                    color: mode === m.value ? skinVars.colors.textPrimary : skinVars.colors.textSecondary,
+                    boxShadow: mode === m.value ? '0 1px 2px rgba(0,0,0,.12)' : 'none',
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
           {onFollowChange && (
             <button
               type="button"

@@ -568,6 +568,7 @@ export function ExecutionWorkspace({
         <div className="flex-1 min-w-0 flex">
           <div className="flex-1 min-w-0 h-full">
             <FlowDiagramViewer
+              modeScope="execution"
               flowNodes={flow.flowNodes}
               flowConnections={flow.flowConnections}
               sections={flow.sections}

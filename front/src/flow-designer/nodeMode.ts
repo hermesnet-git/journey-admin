@@ -3,9 +3,11 @@ import { collectFormVariableNames, walk, type SduiNode } from '../sdui/model';
 import { NODE_DIMENSIONS, NODE_META, connectorMissingFields, type ConnectorConfig, type NodeType } from './model';
 
 // Como as etapas aparecem no canvas: o círculo de sempre, a pílula compacta (ícone + nome) ou o
-// cartão detalhado (tipo, nome e etiquetas). Uma preferência por usuário, a mesma no editor, na
-// Execução e no Diagnóstico. Cada modo tem tamanho próprio, então trocar de modo reorganiza o fluxo.
+// cartão detalhado (tipo, nome e etiquetas). Uma preferência por usuário e por funcionalidade: o
+// editor, a Execução, o Diagnóstico e o "Ver fluxo" lembram cada um a sua escolha. Cada modo tem
+// tamanho próprio, então trocar de modo reorganiza o fluxo.
 export type NodeDisplayMode = 'circle' | 'compact' | 'detailed';
+export type NodeModeScope = 'editor' | 'execution' | 'diagnostic' | 'preview';
 
 export const NODE_DISPLAY_MODES: { value: NodeDisplayMode; label: string }[] = [
   { value: 'circle', label: 'Círculo' },
@@ -13,43 +15,51 @@ export const NODE_DISPLAY_MODES: { value: NodeDisplayMode; label: string }[] = [
   { value: 'detailed', label: 'Detalhado' },
 ];
 
-const STORAGE_KEY = 'flow:node-display-mode';
+const STORAGE_PREFIX = 'flow:node-display-mode:';
 const CHANGE_EVENT = 'flow:node-display-mode-change';
 
 function isMode(value: unknown): value is NodeDisplayMode {
   return value === 'circle' || value === 'compact' || value === 'detailed';
 }
 
-export function readNodeDisplayMode(): NodeDisplayMode {
+export function readNodeDisplayMode(scope: NodeModeScope | null): NodeDisplayMode {
+  if (!scope) return 'detailed';
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_PREFIX + scope);
     return isMode(stored) ? stored : 'detailed';
   } catch {
     return 'detailed';
   }
 }
 
-// Preferência compartilhada: mudar no editor já vale para um visualizador aberto ao mesmo tempo.
-export function useNodeDisplayMode(): [NodeDisplayMode, (mode: NodeDisplayMode) => void] {
-  const [mode, setMode] = useState<NodeDisplayMode>(readNodeDisplayMode);
+// `scope` null = sem preferência (miniaturas): sempre detalhado, sem ler nem gravar. Duas telas da
+// mesma funcionalidade abertas ao mesmo tempo acompanham a troca uma da outra.
+export function useNodeDisplayMode(scope: NodeModeScope | null): [NodeDisplayMode, (mode: NodeDisplayMode) => void] {
+  const [mode, setMode] = useState<NodeDisplayMode>(() => readNodeDisplayMode(scope));
   useEffect(() => {
-    const sync = () => setMode(readNodeDisplayMode());
+    const sync = () => setMode(readNodeDisplayMode(scope));
+    sync();
     window.addEventListener(CHANGE_EVENT, sync);
     window.addEventListener('storage', sync);
     return () => {
       window.removeEventListener(CHANGE_EVENT, sync);
       window.removeEventListener('storage', sync);
     };
-  }, []);
-  const change = useCallback((next: NodeDisplayMode) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // sem armazenamento: vale só nesta tela
-    }
-    setMode(next);
-    window.dispatchEvent(new Event(CHANGE_EVENT));
-  }, []);
+  }, [scope]);
+  const change = useCallback(
+    (next: NodeDisplayMode) => {
+      if (scope) {
+        try {
+          localStorage.setItem(STORAGE_PREFIX + scope, next);
+        } catch {
+          // sem armazenamento: vale só nesta tela
+        }
+      }
+      setMode(next);
+      window.dispatchEvent(new Event(CHANGE_EVENT));
+    },
+    [scope],
+  );
   return [mode, change];
 }
 

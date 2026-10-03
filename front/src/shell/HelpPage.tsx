@@ -79,7 +79,7 @@ const FAQ_ITEMS: FaqItem[] = [
     topic: 'modelagem',
     question: 'Como mudo a aparência das etapas no canvas?',
     answer:
-      'Na barra de cima do editor escolha Círculo, Compacto ou Detalhado. O fluxo se reorganiza no formato escolhido, e a mesma preferência vale na Execução e no Diagnóstico.',
+      'Na barra de cima do editor escolha Círculo, Compacto ou Detalhado. O fluxo se reorganiza no formato escolhido, e a escolha fica guardada separadamente no editor, na Execução, no Diagnóstico e em "Ver fluxo", onde o mesmo seletor aparece junto ao zoom.',
   },
   {
     topic: 'modelagem',

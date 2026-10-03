@@ -124,10 +124,10 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
           // Organiza igual à geração por IA. As posições que vêm do desenho são fiéis a ele, mas
           // numa escala que o editor não comporta: um desenho se espalha por dezenas de milhares
           // de pixels, e trazer isso vira um canvas vazio e grande demais para navegar.
-          nodes: await layoutFlowNodes(built.nodes, built.connections, readNodeDisplayMode()),
+          nodes: await layoutFlowNodes(built.nodes, built.connections, readNodeDisplayMode('editor')),
           connections: built.connections,
           annotations: [],
-          layoutMode: readNodeDisplayMode(),
+          layoutMode: readNodeDisplayMode('editor'),
         });
         onCreated(journey);
         return;
@@ -142,10 +142,10 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
         );
         await updateFlow(journey.journeyId, {
           name: flow.name,
-          nodes: await layoutFlowNodes(flow.nodes, flow.connections, readNodeDisplayMode()),
+          nodes: await layoutFlowNodes(flow.nodes, flow.connections, readNodeDisplayMode('editor')),
           connections: flow.connections,
           annotations: flow.annotations,
-          layoutMode: readNodeDisplayMode(),
+          layoutMode: readNodeDisplayMode('editor'),
         });
         onCreated(journey);
         return;

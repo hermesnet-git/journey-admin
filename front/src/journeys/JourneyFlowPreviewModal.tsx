@@ -104,6 +104,7 @@ export function JourneyFlowPreviewModal({ version, onClose }: Props) {
           ) : (
             <>
               <FlowDiagramViewer
+                modeScope="preview"
                 flowNodes={nodes}
                 flowConnections={connections}
                 currentNodeId={null}

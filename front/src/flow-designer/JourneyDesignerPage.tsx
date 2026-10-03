@@ -323,7 +323,7 @@ function DesignerInner({
     localStorage.setItem('flow-designer:edge-shape-v2', edgeShape);
   }, [edgeShape]);
   // Círculo, compacto ou detalhado: preferência por usuário, a mesma da Execução e do Diagnóstico.
-  const [nodeMode, setNodeMode] = useNodeDisplayMode();
+  const [nodeMode, setNodeMode] = useNodeDisplayMode('editor');
   const nodeModeRef = useRef(nodeMode);
   nodeModeRef.current = nodeMode;
   // Modo em que as posições atuais foram organizadas — trocar de modo reorganiza o fluxo.

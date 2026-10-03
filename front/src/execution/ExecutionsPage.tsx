@@ -279,7 +279,7 @@ function SetupState({
   onResumed: (response: ResumeInstanceResponse) => void;
 }) {
   return (
-    <div className="flex-1 min-h-0 overflow-auto p-[32px_40px] box-border">
+    <div className="flex-1 min-h-0 overflow-auto p-[32px_40px] box-border flex flex-col">
       <div className="mb-6 flex items-start gap-4 flex-wrap">
         <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: skinVars.colors.brand }}>
           <PlayCircle size={24} color="#fff" strokeWidth={2} />

@@ -84,6 +84,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({UnknownRenderTargetException.class, JourneyTemplateNotFoundException.class,
+            com.jouney.admin.domain.ai.InvalidAiCredentialException.class,
             com.jouney.admin.domain.datasource.InvalidDataSourceException.class})
     public ResponseEntity<ApiError> handleBadRequest(RuntimeException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), request, null);

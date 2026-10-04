@@ -3,17 +3,26 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Modal } from '../products/Modal';
 import { Field, TextInput, PrimaryButton, SecondaryButton, ErrorBanner } from '../products/ui';
 import { useAppTheme } from '../shell/theme';
+import type { AiCredentialInput, AiCredentialStatus, AiProviderInfo } from '../api/aiCredentials';
 
 interface Props {
+  provider: AiProviderInfo;
+  status: AiCredentialStatus | null;
+  // Sem nenhum provedor ativo vale o Gemini: a caixa já nasce marcada nele, como o que acontece de fato.
+  usedByDefault: boolean;
   onClose: () => void;
-  onSubmit: (apiKey: string) => Promise<void>;
+  onSubmit: (input: AiCredentialInput) => Promise<void>;
 }
 
-// Só o formulário de digitar a chave — nunca pré-preenchido com o valor salvo (o back não devolve
-// a chave de volta, só se está configurada), mesma prática de nunca reexibir um segredo já salvo.
-export function AiCredentialModal({ onClose, onSubmit }: Props) {
+// A chave nunca é pré-preenchida (o back não devolve o valor salvo, só se está configurada), mesma
+// prática de nunca reexibir um segredo já salvo; com o provedor já configurado, deixá-la em branco
+// mantém a atual e permite trocar só o modelo ou a escolha de provedor ativo.
+export function AiCredentialModal({ provider, status, usedByDefault, onClose, onSubmit }: Props) {
   const { colors: c } = useAppTheme();
+  const configured = !!status?.configured;
   const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState(status?.model ?? '');
+  const [active, setActive] = useState(status?.active ?? usedByDefault);
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,22 +31,22 @@ export function AiCredentialModal({ onClose, onSubmit }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await onSubmit(apiKey);
+      await onSubmit({ apiKey, model, active });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar a chave');
+      setError(err instanceof Error ? err.message : 'Erro ao salvar a credencial');
       setSaving(false);
     }
   }
 
   return (
     <Modal
-      title="Credencial de IA — Gemini"
-      subtitle="Usada para gerar o fluxo de uma jornada por prompt (opção “IA” em “Nova jornada”)"
+      title={`Credencial de IA — ${provider.label}`}
+      subtitle="Usada para gerar a jornada por prompt (opção “IA” em “Nova jornada”)"
       onClose={onClose}
       footer={
         <>
           <SecondaryButton onClick={onClose}>Cancelar</SecondaryButton>
-          <PrimaryButton onClick={submit} loading={saving} disabled={!apiKey.trim()}>
+          <PrimaryButton onClick={submit} loading={saving} disabled={!configured && !apiKey.trim()}>
             Salvar
           </PrimaryButton>
         </>
@@ -51,7 +60,14 @@ export function AiCredentialModal({ onClose, onSubmit }: Props) {
         }}
         className="flex flex-col gap-4"
       >
-        <Field label="Chave de API do Gemini" helperText="Nunca é reexibida depois de salva — só é possível substituir">
+        <Field
+          label={provider.keyLabel}
+          helperText={
+            configured
+              ? 'Deixe em branco para manter a chave atual. Nunca é reexibida depois de salva.'
+              : 'Nunca é reexibida depois de salva — só é possível substituir'
+          }
+        >
           <div className="relative">
             {/* type="text" + -webkit-text-security (não type="password") de propósito: um campo de
                 senha de verdade faz o navegador oferecer "salvar senha?" pro usuário logado, como se
@@ -65,8 +81,8 @@ export function AiCredentialModal({ onClose, onSubmit }: Props) {
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              name="gemini-api-key"
-              placeholder="Cole a chave aqui"
+              name={`ai-api-key-${provider.id.toLowerCase()}`}
+              placeholder={configured ? 'Chave já configurada' : 'Cole a chave aqui'}
               style={{ WebkitTextSecurity: visible ? 'none' : 'disc', paddingRight: 34 } as React.CSSProperties}
             />
             <button
@@ -80,6 +96,28 @@ export function AiCredentialModal({ onClose, onSubmit }: Props) {
             </button>
           </div>
         </Field>
+        <Field
+          label="Modelo"
+          helperText={
+            provider.defaultModel
+              ? `Em branco usa ${provider.defaultModel}.`
+              : 'Em branco usa o modelo padrão configurado no sistema.'
+          }
+        >
+          <TextInput
+            type="text"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            name={`ai-model-${provider.id.toLowerCase()}`}
+            placeholder={provider.defaultModel ?? 'Modelo padrão do sistema'}
+          />
+        </Field>
+        <label className="flex items-center gap-2 text-[13px] cursor-pointer" style={{ color: c.textPrimary }}>
+          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+          Usar este provedor para gerar jornadas
+        </label>
         {error && <ErrorBanner>{error}</ErrorBanner>}
       </form>
     </Modal>

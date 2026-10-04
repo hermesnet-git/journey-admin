@@ -25,6 +25,12 @@ public class AiProviderCredentialJpaEntity {
     @Column(name = "api_key", nullable = false)
     private String apiKey;
 
+    @Column(name = "model")
+    private String model;
+
+    @Column(name = "active", nullable = false)
+    private boolean active;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -34,11 +40,13 @@ public class AiProviderCredentialJpaEntity {
     protected AiProviderCredentialJpaEntity() {
     }
 
-    public AiProviderCredentialJpaEntity(UUID id, AiProvider provider, String apiKey, OffsetDateTime createdAt,
-                                          OffsetDateTime updatedAt) {
+    public AiProviderCredentialJpaEntity(UUID id, AiProvider provider, String apiKey, String model, boolean active,
+                                          OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.provider = provider;
         this.apiKey = apiKey;
+        this.model = model;
+        this.active = active;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -53,6 +61,14 @@ public class AiProviderCredentialJpaEntity {
 
     public String getApiKey() {
         return apiKey;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     public OffsetDateTime getCreatedAt() {

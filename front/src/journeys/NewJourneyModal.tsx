@@ -5,9 +5,9 @@ import { Modal } from '../products/Modal';
 import { Field, TextInput, TextArea, SelectInput, PrimaryButton, SecondaryButton, ErrorBanner } from '../products/ui';
 import { ChannelTypeChecklist } from '../products/ChannelTypeChecklist';
 import { listProducts, type ChannelType, type Product } from '../api/products';
-import { createJourney, listJourneyTemplates, type Journey, type JourneyTemplate } from '../api/journeys';
-import { generateFlow, updateFlow } from '../api/flows';
-import { layoutFlowNodes } from '../flow-designer/layout';
+import { createJourney, deleteJourney, listJourneyTemplates, type Journey, type JourneyTemplate } from '../api/journeys';
+import { generateFlow, type Flow } from '../api/flows';
+import { layoutFlowNodes, placeAnnotations } from '../flow-designer/layout';
 import { readNodeDisplayMode } from '../flow-designer/nodeMode';
 import { ApiClientError } from '../api/client';
 import { useAppTheme } from '../shell/theme';
@@ -18,7 +18,9 @@ import { buildFigmaFlow } from '../api/figma';
 
 interface NewJourneyModalProps {
   onClose: () => void;
-  onCreated: (journey: Journey) => void;
+  // A jornada nasce no servidor, mas só vale depois do Salvar no editor: `draft` é o fluxo gerado (IA ou
+  // Figma) que o editor abre como alteração ainda não salva.
+  onCreated: (journey: Journey, draft?: Flow) => void;
 }
 
 type StartMode = 'blank' | 'template' | 'ai' | 'figma';
@@ -71,8 +73,24 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Se a geração falhar depois que a jornada em branco já foi criada, reaproveita a mesma jornada
-  // na tentativa seguinte em vez de criar uma nova a cada clique em "Gerar e criar".
+  // na tentativa seguinte em vez de criar uma nova a cada clique em "Gerar e criar". Se o modal for
+  // fechado sem a jornada ter sido entregue ao editor, ela é excluída: criar e cancelar não deixa rastro.
   const createdJourneyRef = useRef<Journey | null>(null);
+
+  function handleClose() {
+    const abandoned = createdJourneyRef.current;
+    createdJourneyRef.current = null;
+    if (abandoned) {
+      deleteJourney(abandoned.journeyId).catch(() => undefined);
+    }
+    onClose();
+  }
+
+  // Entrega a jornada ao editor: deste ponto em diante quem decide entre salvar e descartar é ele.
+  function deliver(journey: Journey, draft?: Flow) {
+    createdJourneyRef.current = null;
+    onCreated(journey, draft);
+  }
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -114,12 +132,14 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
           fileKey: figmaSelection.fileKey,
           token: figmaSelection.token,
         });
-        // Mesmo caminho da geração por IA: a jornada nasce vazia e o fluxo montado entra como uma
-        // edição salva por cima, que o usuário revisa no editor.
+        // Mesmo caminho da geração por IA: a jornada nasce vazia e o fluxo montado abre no editor como
+        // alteração ainda não salva, que o usuário revisa e confirma no Salvar.
         const journey =
           createdJourneyRef.current ?? (await createJourney({ productId, channelTypes, name, description }));
         createdJourneyRef.current = journey;
-        await updateFlow(journey.journeyId, {
+        deliver(journey, {
+          flowId: '',
+          journeyId: journey.journeyId,
           name: built.name,
           // Organiza igual à geração por IA. As posições que vêm do desenho são fiéis a ele, mas
           // numa escala que o editor não comporta: um desenho se espalha por dezenas de milhares
@@ -127,9 +147,9 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
           nodes: await layoutFlowNodes(built.nodes, built.connections, readNodeDisplayMode('editor')),
           connections: built.connections,
           annotations: [],
+          sections: [],
           layoutMode: readNodeDisplayMode('editor'),
         });
-        onCreated(journey);
         return;
       }
       if (mode === 'ai') {
@@ -140,14 +160,17 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
         const flow = await generateFlow(journey.journeyId, aiPrompt, (message) =>
           setAiLog((log) => [...log, { text: message }]),
         );
-        await updateFlow(journey.journeyId, {
+        const laidOut = await layoutFlowNodes(flow.nodes, flow.connections, readNodeDisplayMode('editor'), flow.sections);
+        deliver(journey, {
+          flowId: '',
+          journeyId: journey.journeyId,
           name: flow.name,
-          nodes: await layoutFlowNodes(flow.nodes, flow.connections, readNodeDisplayMode('editor')),
+          nodes: laidOut,
           connections: flow.connections,
-          annotations: flow.annotations,
+          annotations: placeAnnotations(flow.annotations, laidOut),
+          sections: flow.sections,
           layoutMode: readNodeDisplayMode('editor'),
         });
-        onCreated(journey);
         return;
       }
       const journey = await createJourney({
@@ -158,7 +181,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
         templateId: mode === 'template' ? templateId ?? undefined : undefined,
       });
       if (mode === 'template' && templateId) markTourPending(journey.journeyId);
-      onCreated(journey);
+      deliver(journey);
     } catch (err) {
       // Erro na geração por IA fica no log inline (a jornada em branco já criada é reaproveitada
       // na próxima tentativa); qualquer outro erro usa o banner padrão do formulário.
@@ -190,10 +213,10 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
       title="Nova jornada"
       subtitle="Defina os dados da jornada e escolha como começar: em branco, a partir de um exemplo, com uma geração por IA ou a partir de um arquivo de design."
       width={mode === 'template' ? 1120 : mode === 'ai' || mode === 'figma' ? 640 : 460}
-      onClose={onClose}
+      onClose={handleClose}
       footer={
         <>
-          <SecondaryButton onClick={onClose}>Cancelar</SecondaryButton>
+          <SecondaryButton onClick={handleClose}>Cancelar</SecondaryButton>
           <PrimaryButton onClick={submit} loading={saving} disabled={!canSubmit}>
             {mode === 'ai' ? 'Gerar e criar jornada' : mode === 'figma' ? 'Importar e criar jornada' : 'Criar jornada'}
           </PrimaryButton>
@@ -296,7 +319,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
           {mode === 'ai' && (
             <div className="mt-3 flex-1 min-h-0 flex flex-col gap-2">
               <div className="text-[11.5px] leading-[1.4]" style={{ color: c.textSecondary }}>
-                Descreva a jornada em linguagem natural. O fluxo é gerado e já criado junto com a jornada.
+                Descreva a jornada em linguagem natural. A IA monta as etapas, as telas e as integrações, e a jornada já nasce em Rascunho para você revisar. O que depende do ambiente, como mensageria e endereços de API, fica anotado no editor.
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[11.5px]" style={{ color: c.textMuted }}>

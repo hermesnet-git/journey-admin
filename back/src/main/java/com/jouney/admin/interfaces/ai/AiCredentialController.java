@@ -48,7 +48,7 @@ public class AiCredentialController {
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{provider}")
     public AiCredentialStatusResponse save(@PathVariable AiProvider provider, @Valid @RequestBody AiCredentialInput input) {
-        return AiCredentialStatusResponse.from(saveAiProviderCredential.execute(provider, input.apiKey()));
+        return AiCredentialStatusResponse.from(saveAiProviderCredential.execute(provider, input.apiKey(), input.model(), input.active()));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

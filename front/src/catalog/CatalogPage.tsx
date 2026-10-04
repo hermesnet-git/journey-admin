@@ -35,7 +35,15 @@ import {
   type CredentialReference,
   type CredentialInput,
 } from '../api/messaging';
-import { getAiCredentialStatus, saveAiCredential, deleteAiCredential, type AiCredentialStatus } from '../api/aiCredentials';
+import {
+  AI_PROVIDERS,
+  getAiCredentialStatus,
+  saveAiCredential,
+  deleteAiCredential,
+  type AiCredentialInput,
+  type AiCredentialStatus,
+  type AiProvider,
+} from '../api/aiCredentials';
 import { ClusterFormModal } from './ClusterFormModal';
 import { CredentialFormModal } from './CredentialFormModal';
 import { AiCredentialModal } from './AiCredentialModal';
@@ -99,22 +107,22 @@ function CatalogPageContent() {
   const [editingCredential, setEditingCredential] = useState<CredentialReference | 'new' | null>(null);
   const [deletingCredential, setDeletingCredential] = useState<CredentialReference | null>(null);
   const [connectionTests, setConnectionTests] = useState<Record<string, ConnectionTestState>>({});
-  const [aiCredential, setAiCredential] = useState<AiCredentialStatus | null>(null);
-  const [configuringAiCredential, setConfiguringAiCredential] = useState(false);
-  const [removingAiCredential, setRemovingAiCredential] = useState(false);
+  const [aiStatuses, setAiStatuses] = useState<Partial<Record<AiProvider, AiCredentialStatus>>>({});
+  const [configuringAiProvider, setConfiguringAiProvider] = useState<AiProvider | null>(null);
+  const [removingAiProvider, setRemovingAiProvider] = useState<AiProvider | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [clusterList, credentialList, aiStatus] = await Promise.all([
+      const [clusterList, credentialList, aiStatusList] = await Promise.all([
         listClusters(),
         listCredentials(),
-        getAiCredentialStatus('GEMINI'),
+        Promise.all(AI_PROVIDERS.map((provider) => getAiCredentialStatus(provider.id))),
       ]);
       setClusters(clusterList);
       setCredentials(credentialList);
-      setAiCredential(aiStatus);
+      setAiStatuses(Object.fromEntries(AI_PROVIDERS.map((provider, i) => [provider.id, aiStatusList[i]])));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar o catálogo de integrações');
     } finally {
@@ -202,18 +210,25 @@ function CatalogPageContent() {
     }
   }
 
-  async function handleSaveAiCredential(apiKey: string) {
-    const status = await saveAiCredential('GEMINI', apiKey);
-    setAiCredential(status);
-    setConfiguringAiCredential(false);
+  // Sem nenhum provedor marcado como ativo, a geração usa o Gemini.
+  const activeAiProvider: AiProvider = AI_PROVIDERS.find((provider) => aiStatuses[provider.id]?.active)?.id ?? 'GEMINI';
+
+  async function handleSaveAiCredential(provider: AiProvider, input: AiCredentialInput) {
+    await saveAiCredential(provider, input);
+    // Marcar um provedor como ativo desmarca o anterior no servidor: recarrega os quatro estados.
+    const statusList = await Promise.all(AI_PROVIDERS.map((item) => getAiCredentialStatus(item.id)));
+    setAiStatuses(Object.fromEntries(AI_PROVIDERS.map((item, i) => [item.id, statusList[i]])));
+    setConfiguringAiProvider(null);
     showToast('Credencial de IA salva com sucesso.');
   }
 
   async function confirmRemoveAiCredential() {
-    setRemovingAiCredential(false);
+    const provider = removingAiProvider;
+    setRemovingAiProvider(null);
+    if (!provider) return;
     try {
-      await deleteAiCredential('GEMINI');
-      setAiCredential({ configured: false, updatedAt: null });
+      await deleteAiCredential(provider);
+      setAiStatuses((prev) => ({ ...prev, [provider]: { configured: false, model: null, active: false, updatedAt: null } }));
       showToast('Credencial de IA removida.');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Erro ao remover credencial de IA', 'error');
@@ -282,33 +297,55 @@ function CatalogPageContent() {
 
       <DataSourcesSection canWrite={canWrite} />
 
-      <div
-        className="flex items-center justify-between gap-3 mt-6 p-4 rounded-xl flex-wrap"
-        style={{ border: `1px solid ${c.border}`, background: c.surface }}
-      >
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="mt-6 rounded-xl" style={{ border: `1px solid ${c.border}`, background: c.surface }}>
+        <div className="flex items-center gap-3 p-4 pb-2">
           <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: c.accentSoft }}>
             <Sparkles size={16} color={c.accent} />
           </div>
           <div className="min-w-0">
             <div className="text-[13.5px] font-semibold" style={{ color: c.textPrimary }}>
-              Credencial de IA — Gemini
+              Credencial de IA
             </div>
             <div className="text-[12px]" style={{ color: c.textSecondary }}>
-              {aiCredential?.configured
-                ? `Configurada${aiCredential.updatedAt ? ` · atualizada ${formatAiCredentialDate(aiCredential.updatedAt)}` : ''}`
-                : 'Não configurada — a geração de fluxo por IA em “Nova jornada” não funciona até configurar'}
+              Gera a jornada por prompt em “Nova jornada”. O provedor ativo é o que responde; sem nenhum marcado, vale o Gemini.
             </div>
           </div>
         </div>
-        {canWrite && (
-          <div className="flex items-center gap-2 shrink-0">
-            {aiCredential?.configured && <SecondaryButton onClick={() => setRemovingAiCredential(true)}>Remover</SecondaryButton>}
-            <PrimaryButton onClick={() => setConfiguringAiCredential(true)}>
-              {aiCredential?.configured ? 'Substituir chave' : 'Configurar chave'}
-            </PrimaryButton>
-          </div>
-        )}
+        {AI_PROVIDERS.map((provider) => {
+          const status = aiStatuses[provider.id];
+          const isActive = provider.id === activeAiProvider;
+          return (
+            <div
+              key={provider.id}
+              className="flex items-center justify-between gap-3 px-4 py-3 flex-wrap"
+              style={{ borderTop: `1px solid ${c.border}` }}
+            >
+              <div className="min-w-0">
+                <div className="text-[13px] font-medium flex items-center gap-2" style={{ color: c.textPrimary }}>
+                  {provider.label}
+                  {isActive && (
+                    <span className="text-[11px] font-semibold px-2 py-[1px] rounded-full" style={{ background: c.accentSoft, color: c.accent }}>
+                      {status?.active ? 'Ativo' : 'Ativo (padrão)'}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[12px]" style={{ color: c.textSecondary }}>
+                  {status?.configured
+                    ? `Configurada${status.model ? ` · modelo ${status.model}` : ''}${status.updatedAt ? ` · atualizada ${formatAiCredentialDate(status.updatedAt)}` : ''}`
+                    : 'Não configurada'}
+                </div>
+              </div>
+              {canWrite && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {status?.configured && <SecondaryButton onClick={() => setRemovingAiProvider(provider.id)}>Remover</SecondaryButton>}
+                  <PrimaryButton onClick={() => setConfiguringAiProvider(provider.id)}>
+                    {status?.configured ? 'Editar' : 'Configurar chave'}
+                  </PrimaryButton>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {editingCluster && (
@@ -354,16 +391,22 @@ function CatalogPageContent() {
         />
       )}
 
-      {configuringAiCredential && (
-        <AiCredentialModal onClose={() => setConfiguringAiCredential(false)} onSubmit={handleSaveAiCredential} />
+      {configuringAiProvider && (
+        <AiCredentialModal
+          provider={AI_PROVIDERS.find((provider) => provider.id === configuringAiProvider)!}
+          status={aiStatuses[configuringAiProvider] ?? null}
+          usedByDefault={configuringAiProvider === activeAiProvider}
+          onClose={() => setConfiguringAiProvider(null)}
+          onSubmit={(input) => handleSaveAiCredential(configuringAiProvider, input)}
+        />
       )}
-      {removingAiCredential && (
+      {removingAiProvider && (
         <ConfirmDialog
           title="Remover credencial de IA"
-          message="Tem certeza que deseja remover a chave de API do Gemini? A geração de fluxo por prompt para de funcionar até uma nova chave ser configurada."
+          message={`Tem certeza que deseja remover a credencial de ${AI_PROVIDERS.find((provider) => provider.id === removingAiProvider)?.label}? Se ele era o provedor ativo, a geração volta a usar o Gemini.`}
           confirmLabel="Remover"
           onConfirm={confirmRemoveAiCredential}
-          onCancel={() => setRemovingAiCredential(false)}
+          onCancel={() => setRemovingAiProvider(null)}
         />
       )}
     </div>

@@ -2,13 +2,8 @@ package com.jouney.admin.application.flow;
 
 import com.jouney.admin.domain.flow.AiFlowGenerator;
 import com.jouney.admin.domain.flow.ConnectorType;
-import com.jouney.admin.domain.flow.Flow;
-import com.jouney.admin.domain.flow.FlowConnection;
-import com.jouney.admin.domain.flow.FlowNode;
-import com.jouney.admin.domain.flow.FlowRepository;
 import com.jouney.admin.domain.flow.GeneratedFlow;
 import com.jouney.admin.domain.flow.GenerationContext;
-import java.util.List;
 import com.jouney.admin.domain.journey.Journey;
 import com.jouney.admin.domain.journey.JourneyNotFoundException;
 import com.jouney.admin.domain.journey.JourneyRepository;
@@ -33,14 +28,12 @@ public class GenerateFlow {
 
     private final JourneyRepository journeyRepository;
     private final ProductRepository productRepository;
-    private final FlowRepository flowRepository;
     private final AiFlowGenerator aiFlowGenerator;
 
     public GenerateFlow(JourneyRepository journeyRepository, ProductRepository productRepository,
-                         FlowRepository flowRepository, AiFlowGenerator aiFlowGenerator) {
+                         AiFlowGenerator aiFlowGenerator) {
         this.journeyRepository = journeyRepository;
         this.productRepository = productRepository;
-        this.flowRepository = flowRepository;
         this.aiFlowGenerator = aiFlowGenerator;
     }
 
@@ -55,12 +48,9 @@ public class GenerateFlow {
 
         var enabledConnectors = Arrays.stream(ConnectorType.values()).filter(ConnectorType::isEnabled).toList();
 
-        Flow flow = flowRepository.findByJourneyId(journeyId).orElse(null);
-        List<FlowNode> currentNodes = flow != null ? flow.getNodes() : List.of();
-        List<FlowConnection> currentConnections = flow != null ? flow.getConnections() : List.of();
 
         var context = new GenerationContext(prompt, journey.getName(), journey.getDescription(), product.getName(),
-                channelType, enabledConnectors, currentNodes, currentConnections);
+                channelType, enabledConnectors);
         return aiFlowGenerator.generate(context, onProgress);
     }
 }

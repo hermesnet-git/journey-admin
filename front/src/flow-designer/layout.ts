@@ -1,6 +1,6 @@
 import ElkConstructor, { type ELK, type ElkNode } from 'elkjs/lib/elk-api.js';
 import elkWorkerUrl from 'elkjs/lib/elk-worker.min.js?url';
-import type { FlowConnection, FlowNode } from '../api/flows';
+import type { FlowAnnotation, FlowConnection, FlowNode, FlowSection } from '../api/flows';
 import { BACKEND_TO_FRONT_TYPE, type NodeType, type WFEdge, type WFNode } from './model';
 import { isTaskType, labelReserve, nodeSize, type NodeDisplayMode } from './nodeMode';
 import { routeEdges, type Box, type EdgeRoute, type Port, type RouteRequest } from './edgeRouter';
@@ -410,16 +410,38 @@ export async function computeLayoutForSelection(
   return nodes.map((n) => (moved.has(n.id) ? { ...n, position: moved.get(n.id)! } : n));
 }
 
-// Mesmo layout no formato do backend — fluxo gerado por IA ou importado do Figma nasce organizado.
-export async function layoutFlowNodes(nodes: FlowNode[], connections: FlowConnection[], mode: NodeDisplayMode): Promise<FlowNode[]> {
+// Mesmo layout no formato do backend — fluxo gerado por IA ou importado do Figma nasce organizado. Com
+// seções, cada uma é organizada como um bloco, para as molduras não se sobreporem.
+export async function layoutFlowNodes(
+  nodes: FlowNode[],
+  connections: FlowConnection[],
+  mode: NodeDisplayMode,
+  sections: FlowSection[] = [],
+): Promise<FlowNode[]> {
   const positions = await layoutPositions(
     nodes.map((n) => ({ id: n.nodeId, type: BACKEND_TO_FRONT_TYPE[n.nodeType] })),
     connections.map((c) => ({ id: c.connectionId, source: c.sourceNodeId, target: c.targetNodeId, onError: c.onError, isDefault: c.isDefault })),
     mode,
+    sections.map((s) => ({ id: s.id, nodeIds: s.nodeIds })),
   );
   return nodes.map((n) => {
     const pos = positions.get(n.nodeId);
     return pos ? { ...n, positionX: pos.x, positionY: pos.y } : n;
+  });
+}
+
+// Anotação nasce em posição zero (geração por IA): fica acima da etapa a que está ligada, uma ao lado da
+// outra quando há mais de uma na mesma etapa; sem ligação, vai para o canto de cima, fora do fluxo.
+export function placeAnnotations(annotations: FlowAnnotation[], nodes: FlowNode[]): FlowAnnotation[] {
+  const byId = new Map(nodes.map((n) => [n.nodeId, n]));
+  const stacked = new Map<string, number>();
+  const minY = Math.min(0, ...nodes.map((n) => n.positionY));
+  return annotations.map((annotation, index) => {
+    const target = annotation.linkedNodeIds.map((id) => byId.get(id)).find(Boolean);
+    if (!target) return { ...annotation, positionX: index * 240, positionY: minY - 160 };
+    const count = stacked.get(target.nodeId) ?? 0;
+    stacked.set(target.nodeId, count + 1);
+    return { ...annotation, positionX: target.positionX + count * 240, positionY: target.positionY - 150 };
   });
 }
 

@@ -24,6 +24,7 @@ import { ToastProvider, useToast } from '../products/Toast';
 import { ConfirmDialog } from '../products/ConfirmDialog';
 import { ErrorModal } from '../flow-designer/ErrorModal';
 import { ApiClientError, reportServerError } from '../api/client';
+import type { Flow } from '../api/flows';
 import {
   listJourneys,
   deleteJourney,
@@ -143,6 +144,9 @@ function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
   const [sortField, setSortField] = useState<SortField>('updatedAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [editingJourney, setEditingJourney] = useState<Journey | null>(null);
+  // Jornada recém-criada que ainda não foi salva no editor: `draft` é o fluxo gerado (IA ou Figma), que o
+  // editor abre como alteração não salva. Cancelar no editor descarta (exclui) a jornada.
+  const [newJourneyDraft, setNewJourneyDraft] = useState<{ flow?: Flow } | null>(null);
   const [creatingJourney, setCreatingJourney] = useState(false);
   const [deletingJourney, setDeletingJourney] = useState<Journey | null>(null);
   const [unpublishingJourney, setUnpublishingJourney] = useState<Journey | null>(null);
@@ -206,15 +210,31 @@ function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
     return (
       <JourneyDesignerPage
         journey={editingJourney}
+        isNew={newJourneyDraft !== null}
+        draft={newJourneyDraft?.flow}
         onClose={async () => {
           setEditingJourney(null);
+          setNewJourneyDraft(null);
+          await reload();
+        }}
+        onDiscard={async () => {
+          try {
+            await deleteJourney(editingJourney.journeyId);
+            showToast('Jornada descartada.');
+          } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Erro ao descartar a jornada', 'error');
+          }
+          setEditingJourney(null);
+          setNewJourneyDraft(null);
           await reload();
         }}
         onSaved={async () => {
+          const wasNew = newJourneyDraft !== null;
           setEditingJourney(null);
+          setNewJourneyDraft(null);
           await reload();
           const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          showToast(`Jornada salva às ${time}.`);
+          showToast(wasNew ? `Jornada criada às ${time}.` : `Jornada salva às ${time}.`);
         }}
       />
     );
@@ -368,10 +388,10 @@ function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
       {creatingJourney && (
         <NewJourneyModal
           onClose={() => setCreatingJourney(false)}
-          onCreated={(journey) => {
+          onCreated={(journey, draft) => {
             setCreatingJourney(false);
             setEditingJourney(journey);
-            showToast('Jornada criada com sucesso.');
+            setNewJourneyDraft({ flow: draft });
           }}
         />
       )}

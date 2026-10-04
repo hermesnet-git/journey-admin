@@ -102,7 +102,7 @@ public class FlowController {
         // Até 5 tentativas (repair loop), cada uma podendo levar bem mais que alguns segundos num
         // pedido complexo com um modelo "lite" — 120s já se mostrou curto demais na prática (o timeout
         // fechava a conexão antes do resultado sair, front ficava esperando pra sempre porque o evento
-        // final nunca chegava a tempo). Com o read timeout de 90s por tentativa (FlowGenerationPrompt),
+        // final nunca chegava a tempo). Com o read timeout de 90s por tentativa (AiHttp),
         // o pior caso (5 tentativas travando perto do limite) chegaria a 450s — 600s dá folga real.
         SseEmitter emitter = new SseEmitter(600_000L);
         Thread.ofVirtual().start(() -> {
@@ -111,7 +111,8 @@ public class FlowController {
                         message -> sendEvent(emitter, "progress", message));
                 OffsetDateTime now = OffsetDateTime.now();
                 var flow = new Flow(FlowIds.newFlowId(), journeyId, generated.name(), generated.nodes(),
-                        generated.connections(), List.of(), now, now);
+                        generated.connections(), generated.annotations(), now, now)
+                        .withSections(generated.sections());
                 sendEvent(emitter, "result", FlowResponse.from(flow));
                 emitter.complete();
             } catch (Exception ex) {
@@ -139,7 +140,7 @@ public class FlowController {
         }
         if (ex instanceof AiRequestDeclinedException) {
             return new ApiError(OffsetDateTime.now(), 422, "REQUEST_OUT_OF_SCOPE",
-                    "A IA não gerou um fluxo: " + ex.getMessage(), "", null);
+                    "A IA não criou a jornada: " + ex.getMessage(), "", null);
         }
         return new ApiError(OffsetDateTime.now(), 502, "AI_GENERATION_UNAVAILABLE", ex.getMessage(), "", null);
     }

@@ -205,29 +205,44 @@ interface HistorySnapshot {
   sections: SectionState[];
 }
 
+// isNew: jornada recém-criada que ainda não foi confirmada — Salvar confirma (mesmo sem alterações) e
+// Cancelar pede confirmação e descarta (onDiscard exclui a jornada). draft: fluxo gerado (IA ou Figma)
+// que abre como alteração ainda não salva, no lugar do fluxo que está no servidor.
 export function JourneyDesignerPage({
   journey,
+  isNew = false,
+  draft,
   onClose,
+  onDiscard,
   onSaved,
 }: {
   journey: Journey;
+  isNew?: boolean;
+  draft?: Flow;
   onClose: () => void;
+  onDiscard?: () => void | Promise<void>;
   onSaved: () => void;
 }) {
   return (
     <ReactFlowProvider>
-      <DesignerInner journey={journey} onClose={onClose} onSaved={onSaved} />
+      <DesignerInner journey={journey} isNew={isNew} draft={draft} onClose={onClose} onDiscard={onDiscard} onSaved={onSaved} />
     </ReactFlowProvider>
   );
 }
 
 function DesignerInner({
   journey,
+  isNew,
+  draft,
   onClose,
+  onDiscard,
   onSaved,
 }: {
   journey: Journey;
+  isNew: boolean;
+  draft?: Flow;
   onClose: () => void;
+  onDiscard?: () => void | Promise<void>;
   onSaved: () => void;
 }) {
   const { dark, colors: appColors } = useAppTheme();
@@ -258,6 +273,7 @@ function DesignerInner({
   const [errors, setErrors] = useState<string[]>([]);
   const [errorTitle, setErrorTitle] = useState('Não foi possível salvar');
   const [confirmingPublishedEdit, setConfirmingPublishedEdit] = useState(false);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   // Chave = id do nó, valor = a(s) mensagem(ns) de violação daquele nó (join "; " quando mais de
   // uma) — usado tanto pra destacar no canvas (badge de erro) quanto pro texto do tooltip do badge.
   const [invalidNodeReasons, setInvalidNodeReasons] = useState<Map<string, string>>(new Map());
@@ -542,7 +558,9 @@ function DesignerInner({
   );
 
   useEffect(() => {
-    getFlow(journey.journeyId).then(async (flow) => {
+    getFlow(journey.journeyId).then(async (serverFlow) => {
+      // Jornada recém-gerada: o que aparece é o rascunho da IA/Figma, ainda não gravado.
+      const flow = draft ?? serverFlow;
       const mapped = mapFlowToState(flow);
       const mode = nodeModeRef.current;
       // Organizado em outro modo (ou antes de existir o modo): reorganiza para o modo de quem abre,
@@ -559,21 +577,18 @@ function DesignerInner({
       setNodes(laidOut);
       setEdges(mapped.edges);
       setAnnotations(mapped.annotations);
-      savedSnapshotRef.current = buildFlowSnapshot(
-        journey.name,
-        journey.description ?? '',
-        laidOut,
-        mapped.edges,
-        mapped.annotations,
-        loadedSections,
-      );
+      // Com rascunho, nada do que está na tela foi salvo: o marcador vazio nunca bate com o fluxo atual,
+      // então o Salvar grava e a barra mostra "Alterações não salvas".
+      savedSnapshotRef.current = draft
+        ? ''
+        : buildFlowSnapshot(journey.name, journey.description ?? '', laidOut, mapped.edges, mapped.annotations, loadedSections);
       setSections(loadedSections);
       setLoading(false);
       // Os nós só recebem seu tamanho medido de verdade (do que o cálculo de bounds precisa) depois
       // que esse render é commitado — mesmo raciocínio do requestAnimationFrame no organize() abaixo.
       requestAnimationFrame(() => fitViewLeftAligned());
     });
-  }, [journey, fitViewLeftAligned, mapFlowToState]);
+  }, [journey, draft, fitViewLeftAligned, mapFlowToState]);
 
   const [channelsModalOpen, setChannelsModalOpen] = useState(false);
 
@@ -1434,7 +1449,8 @@ function DesignerInner({
       return;
     }
 
-    if (buildFlowSnapshot(name, description, nodes, edges, annotations, liveSections) === savedSnapshotRef.current) {
+    // Jornada nova: Salvar confirma a criação mesmo sem alterações.
+    if (!isNew && buildFlowSnapshot(name, description, nodes, edges, annotations, liveSections) === savedSnapshotRef.current) {
       showToast('Nenhuma alteração foi feita — nenhuma nova versão será gerada.', 'info');
       return;
     }
@@ -1445,6 +1461,15 @@ function DesignerInner({
     }
 
     doSave();
+  }
+
+  // Jornada nova que ainda não foi salva: sair é desistir de criá-la, então pede confirmação e a exclui.
+  function handleCancel() {
+    if (isNew && onDiscard) {
+      setConfirmingDiscard(true);
+    } else {
+      onClose();
+    }
   }
 
   async function doSave() {
@@ -1700,7 +1725,7 @@ function DesignerInner({
             onValidate={handleValidate}
             validating={validating}
             validationStatus={validationStatus}
-            onCancel={onClose}
+            onCancel={handleCancel}
             journeyName={name}
           />
           <div className="flex-1 flex min-h-0">
@@ -1891,6 +1916,19 @@ function DesignerInner({
           />
         )}
         {errors.length > 0 && <ErrorModal errors={errors} title={errorTitle} onClose={() => setErrors([])} />}
+        {confirmingDiscard && (
+          <ConfirmDialog
+            title="Descartar a nova jornada?"
+            message="A jornada ainda não foi salva. Se você sair agora, ela será excluída como se nunca tivesse sido criada."
+            confirmLabel="Descartar"
+            cancelLabel="Continuar editando"
+            onConfirm={() => {
+              setConfirmingDiscard(false);
+              onDiscard?.();
+            }}
+            onCancel={() => setConfirmingDiscard(false)}
+          />
+        )}
         {confirmingPublishedEdit && (
           <ConfirmDialog
             title="Editar jornada publicada?"

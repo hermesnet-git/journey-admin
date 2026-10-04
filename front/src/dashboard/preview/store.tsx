@@ -1,17 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
-  INITIAL_APPROVALS,
   INITIAL_OLD_VERSIONS,
   INITIAL_RULES,
   VIEWS,
   type AlertRule,
-  type Approval,
   type OldVersion,
   type ViewId,
   type Stage,
 } from './mockData';
 
-// Estado da prévia. As ações (aprovar, encerrar, assumir…) só mudam a tela: nada sai do navegador.
+// Estado da prévia. As ações (encerrar versões antigas, ligar regras…) só mudam a tela: nada sai do navegador.
 // Abas e painéis montados ficam guardados no navegador; o resto volta ao exemplo ao recarregar.
 
 export type WidgetSize = 1 | 2 | 4;
@@ -41,7 +39,7 @@ const DEFAULT_LAYOUT: Layout = {
       id: 'b-sust',
       name: 'Meu painel de sustentação',
       widgets: [
-        { uid: 'w1', key: 'governanca.aprovacoes', size: 2 },
+        { uid: 'w1', key: 'governanca.notas', size: 2 },
         { uid: 'w2', key: 'monitoramento.integracoes', size: 2 },
         { uid: 'w3', key: 'governanca.esteira', size: 4 },
       ],
@@ -57,11 +55,11 @@ function readLayout(): Layout {
     const parsed = JSON.parse(raw) as Layout;
     if (!Array.isArray(parsed.addedViews) || !Array.isArray(parsed.boards)) return DEFAULT_LAYOUT;
     // Painéis salvos antes da remoção das visões 5 a 13: some só o que ficou sem tela, e a
-    // Caixa de ações passa a ser a Fila de aprovação para o painel continuar com o mesmo desenho.
+    // Caixa de ações e Fila de aprovação passam a ser as Piores notas de saúde, para o painel continuar com o mesmo desenho.
     return {
       ...parsed,
       addedViews: parsed.addedViews.filter((id) => VIEWS.some((view) => view.id === id)),
-      boards: parsed.boards.map((b) => ({ ...b, widgets: b.widgets.map((w) => (w.key === 'acoes.caixa' ? { ...w, key: 'governanca.aprovacoes' } : w)) })),
+      boards: parsed.boards.map((b) => ({ ...b, widgets: b.widgets.map((w) => (w.key === 'acoes.caixa' || w.key === 'governanca.aprovacoes' ? { ...w, key: 'governanca.notas' } : w)) })),
     };
   } catch {
     return DEFAULT_LAYOUT;
@@ -71,7 +69,6 @@ function readLayout(): Layout {
 
 interface PreviewState {
   layout: Layout;
-  approvals: Approval[];
   oldVersions: OldVersion[];
   rules: AlertRule[];
   agendaDown: boolean;
@@ -91,8 +88,6 @@ interface PreviewActions {
   resizeWidget: (boardId: string, uid: string) => void;
   moveWidget: (boardId: string, uid: string, beforeUid: string | null) => void;
   resetLayout: () => void;
-  approve: (approvalId: string) => void;
-  returnApproval: (approvalId: string) => void;
   terminateOldVersion: (oldVersionId: string) => void;
   recoverAgenda: () => void;
   addRule: (rule: Omit<AlertRule, 'id' | 'firing'>) => void;
@@ -114,7 +109,6 @@ const nextSize = (size: WidgetSize): WidgetSize => (size === 1 ? 2 : size === 2 
 
 export function PreviewStoreProvider({ children }: { children: React.ReactNode }) {
   const [layout, setLayout] = useState<Layout>(readLayout);
-  const [approvals, setApprovals] = useState(INITIAL_APPROVALS);
   const [oldVersions, setOldVersions] = useState(INITIAL_OLD_VERSIONS);
   const [rules, setRules] = useState(INITIAL_RULES);
   const [agendaDown, setAgendaDown] = useState(true);
@@ -162,12 +156,6 @@ export function PreviewStoreProvider({ children }: { children: React.ReactNode }
           return { ...b, widgets: [...rest.slice(0, at), moving, ...rest.slice(at)] };
         }),
       resetLayout: () => setLayout(DEFAULT_LAYOUT),
-      approve: (id) => {
-        setApprovals((a) => a.filter((x) => x.id !== id));
-      },
-      returnApproval: (id) => {
-        setApprovals((a) => a.filter((x) => x.id !== id));
-      },
       terminateOldVersion: (id) => {
         setOldVersions((o) => o.filter((x) => x.id !== id));
       },
@@ -182,6 +170,6 @@ export function PreviewStoreProvider({ children }: { children: React.ReactNode }
     [updateBoard],
   );
 
-  const value = { layout, approvals, oldVersions, rules, agendaDown, stage, ...actions };
+  const value = { layout, oldVersions, rules, agendaDown, stage, ...actions };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

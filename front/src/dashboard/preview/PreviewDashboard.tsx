@@ -109,7 +109,7 @@ function Overview({ onNavigate }: { onNavigate: (tab: string) => void }) {
     ['geral.kpis', 4],
     ['mapa.treemap', 4],
     ['geral.ciclo', 2],
-    ['governanca.aprovacoes', 2],
+    ['governanca.notas', 2],
     ['monitoramento.integracoes', 4],
     ['geral.ranking', 4],
   ];

@@ -5,7 +5,7 @@ import { DataTable, Kpi, colors as v, Bar } from './ui';
 import { ChannelMatrix, HeatLegend, PortfolioTreemap, useVisibleJourneys } from './views/MapaView';
 import { STAGES } from './mockData';
 import { HourlyAnomalyChart, ImpactMap, IntegrationsTable, RulesList } from './views/MonitoramentoView';
-import { ApprovalQueue, AuditFeed, HealthGrades, PipelineStages } from './views/GovernancaView';
+import { AuditFeed, HealthGrades, PipelineStages } from './views/GovernancaView';
 
 export interface WidgetDef {
   key: string;
@@ -17,18 +17,11 @@ export interface WidgetDef {
 }
 
 function KpiRow() {
-  const { approvals } = usePreviewStore();
   return (
     <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
       <Kpi label="Jornadas publicadas" value={String(JOURNEYS.length)} note="em 4 produtos · 3 canais" tag={<Tag type="success" small>+3 na semana</Tag>} />
       <Kpi label="Execuções na semana" value={fmtThousands(TOTAL_EXECUTIONS)} note="todas as jornadas" tag={<Tag type="success" small>▲ 9%</Tag>} />
       <Kpi label="Sucesso médio" value={`${WEIGHTED_SUCCESS}%`} note="ponderado por volume" tag={<Tag type="warning" small>▼ 2 p.p.</Tag>} />
-      <Kpi
-        label="Aguardando aprovação"
-        value={String(approvals.length)}
-        note="versões na fila"
-        tag={approvals.some((a) => a.waitingHours >= 48) ? <Tag type="error" small>{`${approvals.filter((a) => a.waitingHours >= 48).length} há mais de 48 h`}</Tag> : undefined}
-      />
     </div>
   );
 }
@@ -124,7 +117,6 @@ export const WIDGETS: WidgetDef[] = [
   { key: 'monitoramento.anomalia', title: 'Execuções por hora contra o esperado', source: 'monitoramento', kind: 'sustentacao', size: 2, render: () => <HourlyAnomalyChart /> },
   { key: 'monitoramento.regras', title: 'Regras de alerta', source: 'monitoramento', kind: 'sustentacao', size: 2, render: () => <RulesList /> },
   { key: 'governanca.esteira', title: 'Esteira de publicação', source: 'governanca', kind: 'sustentacao', size: 4, render: () => <PipelineStages /> },
-  { key: 'governanca.aprovacoes', title: 'Fila de aprovação', source: 'governanca', kind: 'sustentacao', size: 2, render: () => <ApprovalQueue /> },
   { key: 'governanca.notas', title: 'Piores notas de saúde', source: 'governanca', kind: 'sustentacao', size: 2, render: () => <HealthGrades limit={5} /> },
   { key: 'governanca.auditoria', title: 'Últimas mudanças', source: 'governanca', kind: 'sustentacao', size: 2, render: () => <AuditFeed /> },
 ];

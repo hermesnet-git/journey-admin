@@ -54,14 +54,13 @@ export const VIEWS: ViewMeta[] = [
     title: 'Governança do ciclo de vida',
     tab: 'Governança',
     kind: 'sustentacao',
-    summary: 'Esteira de publicação, fila de aprovação com prazo, versões antigas com clientes e nota de saúde de cada jornada.',
+    summary: 'Esteira de publicação, versões antigas com clientes e nota de saúde de cada jornada.',
     steps: [
       'Clique numa etapa da esteira para listar as jornadas dela.',
-      'Aprove ou devolva versões direto na fila, ordenada por tempo de espera.',
       'Encerre as instâncias de versões antigas que ficaram para trás.',
       'A nota de A a E de cada jornada é recalculada todo dia, com o motivo ao lado.',
     ],
-    have: 'jornadas, versões, aprovações, auditoria e encerrar instância.',
+    have: 'jornadas e seus estados, versões, auditoria e encerrar instância.',
     need: 'só a regra da nota de saúde.',
   },
 ];
@@ -106,7 +105,7 @@ export const JOURNEYS: JourneyStat[] = [
   { id: 'agend', name: 'Agendamento técnico', product: 'Fibra', team: 'Field Ops', executions: 11930, success: 81, deltaPp: 3, version: 12, grade: 'B', gradeReason: 'depende da Agenda de campo, fora do ar agora', stage: 'ativacao' },
   { id: 'upgrade', name: 'Upgrade de velocidade', product: 'Fibra', team: 'Aquisição', executions: 6210, success: 90, deltaPp: 1, version: 4, grade: 'A', gradeReason: '90% de sucesso · todas as integrações com "Se falhar"', stage: 'uso' },
   { id: 'endereco', name: 'Mudança de endereço', product: 'Fibra', team: 'Field Ops', executions: 3880, success: 69, deltaPp: -4, version: 6, grade: 'D', gradeReason: 'integração sem "Se falhar" · caiu 4 p.p.', stage: 'uso' },
-  { id: 'wifi', name: 'Wi-Fi', product: 'Fibra', team: 'Suporte Fibra', executions: 1410, success: 82, deltaPp: 1, version: 2, grade: 'B', gradeReason: 'v2 aguardando aprovação há 20 h', stage: 'uso' },
+  { id: 'wifi', name: 'Wi-Fi', product: 'Fibra', team: 'Suporte Fibra', executions: 1410, success: 82, deltaPp: 1, version: 2, grade: 'B', gradeReason: 'estável · revisada há 15 dias', stage: 'uso' },
   { id: 'bds', name: 'Gestão de BDs v2', product: 'Empresas', team: 'Field Ops', executions: 4380, success: 78, deltaPp: 2, version: 14, grade: 'C', gradeReason: '78% de sucesso · sem time dono', stage: 'uso' },
   { id: 'onboard', name: 'Onboarding PJ', product: 'Empresas', team: 'Empresas', executions: 3960, success: 91, deltaPp: 2, version: 4, grade: 'A', gradeReason: '91% de sucesso · revisada há 9 dias', stage: 'ativacao' },
   { id: 'linhas', name: 'Linhas adicionais', product: 'Empresas', team: 'Empresas', executions: 2740, success: 86, deltaPp: 0, version: 3, grade: 'B', gradeReason: 'estável', stage: 'aquisicao' },
@@ -191,23 +190,6 @@ export const RULE_OPTIONS = {
 
 // ---------------------------------------------------------------- governança
 
-export interface Approval {
-  id: string;
-  journeyId: string;
-  version: number;
-  requestedBy: string;
-  approver: string;
-  waitingHours: number;
-}
-
-export const INITIAL_APPROVALS: Approval[] = [
-  { id: 'ap1', journeyId: 'cancel', version: 9, requestedBy: 'Bruno', approver: 'Carla', waitingHours: 52 },
-  { id: 'ap2', journeyId: 'onboard', version: 5, requestedBy: 'Diego', approver: 'Carla', waitingHours: 49 },
-  { id: 'ap3', journeyId: 'wifi', version: 3, requestedBy: 'Elisa', approver: 'Fábio', waitingHours: 20 },
-  { id: 'ap4', journeyId: 'linhas', version: 4, requestedBy: 'Gabriela', approver: 'Carla', waitingHours: 6 },
-  { id: 'ap5', journeyId: 'contest', version: 3, requestedBy: 'Hugo', approver: 'Fábio', waitingHours: 2 },
-];
-
 export const DRAFTS = [
   { name: 'Recarga pré-paga', team: 'Faturamento', idleDays: 2 },
   { name: 'Troca de chip', team: 'Suporte Móvel', idleDays: 41 },
@@ -250,7 +232,7 @@ export const INITIAL_OLD_VERSIONS: OldVersion[] = [
 export const AUDIT_FEED = [
   { time: '16:39', text: 'Portabilidade v7 publicada por Ana' },
   { time: '15:02', text: 'Agenda de campo: tempo limite alterado de 5 s para 2 s por Rafael' },
-  { time: '11:47', text: 'Cancelamento v9 enviada para aprovação por Bruno' },
+  { time: '11:47', text: 'Cancelamento v9 salva como rascunho por Bruno' },
   { time: '10:20', text: 'Integração "Faturas": nova tentativa configurada por Ígor' },
   { time: '09:15', text: 'Troca de plano (antiga) despublicada por Fábio' },
 ];

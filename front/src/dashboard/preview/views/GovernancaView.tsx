@@ -1,17 +1,15 @@
 import { useState } from 'react';
-import { ButtonDanger, ButtonPrimary, ButtonSecondary, Inline, Stack, Tag, Text1, Text2, Text6 } from '../kit';
+import { ButtonDanger, Inline, Stack, Tag, Text1, Text2, Text6 } from '../kit';
 import { AUDIT_FEED, DRAFTS, JOURNEYS, JOURNEY_BY_ID, UNPUBLISHED, VIEW_BY_ID, fmtInt } from '../mockData';
 import { usePreviewStore } from '../store';
 import { DataTable, GradeBadge, HowItWorks, Panel, colors as v, useToast } from '../ui';
 
-type Stage = 'rascunho' | 'aprovacao' | 'publicada' | 'despublicada';
+type Stage = 'rascunho' | 'publicada' | 'despublicada';
 
 export function PipelineStages({ selected, onSelect }: { selected?: Stage; onSelect?: (s: Stage) => void }) {
-  const { approvals } = usePreviewStore();
   const idleDrafts = DRAFTS.filter((d) => d.idleDays >= 30).length;
   const stages: { id: Stage; label: string; count: number; note: string; color: string }[] = [
     { id: 'rascunho', label: 'Rascunho', count: DRAFTS.length, note: `${idleDrafts} sem edição há 30 dias`, color: v.neutralMedium },
-    { id: 'aprovacao', label: 'Aguardando aprovação', count: approvals.length, note: approvals.length ? `a mais antiga espera há ${Math.max(...approvals.map((a) => a.waitingHours))} h` : 'fila vazia', color: v.warning },
     { id: 'publicada', label: 'Publicada', count: JOURNEYS.length, note: '11 publicações na semana', color: v.success },
     { id: 'despublicada', label: 'Despublicada', count: UNPUBLISHED.length, note: `${UNPUBLISHED.filter((u) => u.activeInstances > 0).length} com instâncias ativas`, color: v.neutralHigh },
   ];
@@ -43,21 +41,12 @@ export function PipelineStages({ selected, onSelect }: { selected?: Stage; onSel
 }
 
 function StageList({ stage }: { stage: Stage }) {
-  const { approvals } = usePreviewStore();
   if (stage === 'rascunho')
     return (
       <DataTable
         head={['Jornada em rascunho', 'Time', 'Sem edição há']}
         align={['left', 'left', 'right']}
         rows={DRAFTS.map((d) => [d.name, d.team, <Text2 key="d" regular color={d.idleDays >= 30 ? v.warningHigh : v.textPrimary}>{`${d.idleDays} dias`}</Text2>])}
-      />
-    );
-  if (stage === 'aprovacao')
-    return (
-      <DataTable
-        head={['Versão', 'Pedida por', 'Aprovação com', 'Esperando']}
-        align={['left', 'left', 'left', 'right']}
-        rows={approvals.map((a) => [`${JOURNEY_BY_ID[a.journeyId].name} · v${a.version}`, a.requestedBy, a.approver, `${a.waitingHours} h`])}
       />
     );
   if (stage === 'publicada')
@@ -76,57 +65,6 @@ function StageList({ stage }: { stage: Stage }) {
   );
 }
 
-export function ApprovalQueue() {
-  const { approvals, approve, returnApproval } = usePreviewStore();
-  const toast = useToast();
-  if (approvals.length === 0)
-    return (
-      <Text2 regular color={v.textSecondary}>
-        Fila vazia. Nenhuma versão esperando aprovação.
-      </Text2>
-    );
-  return (
-    <Stack space={8}>
-      {[...approvals]
-        .sort((a, b) => b.waitingHours - a.waitingHours)
-        .map((a) => (
-          <div key={a.id} className="flex items-center justify-between gap-3 flex-wrap py-2" style={{ borderBottom: `1px solid ${v.divider}` }}>
-            <Stack space={2}>
-              <Text2 medium>
-                {JOURNEY_BY_ID[a.journeyId].name} · v{a.version}
-              </Text2>
-              <Text1 regular color={v.textSecondary}>
-                pedida por {a.requestedBy} · aprovação com {a.approver}
-              </Text1>
-            </Stack>
-            <Inline space={8} alignItems="center">
-              <Tag type={a.waitingHours >= 48 ? 'error' : a.waitingHours >= 12 ? 'warning' : 'inactive'} small>
-                {`${a.waitingHours} h`}
-              </Tag>
-              <ButtonSecondary
-                small
-                onPress={() => {
-                  returnApproval(a.id);
-                  toast(`${JOURNEY_BY_ID[a.journeyId].name} v${a.version} devolvida para ajuste (só na prévia).`);
-                }}
-              >
-                Devolver
-              </ButtonSecondary>
-              <ButtonPrimary
-                small
-                onPress={() => {
-                  approve(a.id);
-                  toast(`${JOURNEY_BY_ID[a.journeyId].name} v${a.version} aprovada (só na prévia).`);
-                }}
-              >
-                Aprovar
-              </ButtonPrimary>
-            </Inline>
-          </div>
-        ))}
-    </Stack>
-  );
-}
 
 export function HealthGrades({ limit }: { limit?: number }) {
   const order = { E: 0, D: 1, C: 2, B: 3, A: 4 };
@@ -194,7 +132,7 @@ export function AuditFeed() {
 }
 
 export function GovernancaView() {
-  const [stage, setStage] = useState<Stage>('aprovacao');
+  const [stage, setStage] = useState<Stage>('rascunho');
   return (
     <Stack space={16}>
       <HowItWorks view={VIEW_BY_ID.governanca} />
@@ -203,9 +141,6 @@ export function GovernancaView() {
         <StageList stage={stage} />
       </Panel>
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))' }}>
-        <Panel title="Fila de aprovação" subtitle="Mais antigas primeiro">
-          <ApprovalQueue />
-        </Panel>
         <Panel title="Versões antigas com clientes em andamento">
           <OldVersions />
         </Panel>

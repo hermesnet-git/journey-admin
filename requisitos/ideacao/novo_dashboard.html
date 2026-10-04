@@ -1,0 +1,699 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Visões do Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: uma coluna de leitura; cada visão é um texto curto + um esboço de tela do portfólio de jornadas em moldura de aplicação. */
+:root {
+  --bg: #f3f2f7;
+  --surface: #ffffff;
+  --surface-2: #f8f7fb;
+  --ink: #1c1a26;
+  --muted: #676379;
+  --line: #e2e0ea;
+  --accent: #6b2bd6;
+  --accent-soft: #eee8fb;
+  --blue: #0a7fcf;
+  --blue-soft: #e3f1fb;
+  --good: #17803d;
+  --good-soft: #e3f4e8;
+  --warn: #b85309;
+  --warn-soft: #fbefe2;
+  --bad: #cc2b2b;
+  --bad-soft: #fbe6e6;
+  --grid: #ebe9f1;
+  --h1: #1f8a4c; --h2: #5f9e37; --h3: #b98a10; --h4: #d26a1a; --h5: #c93a3a;
+  --biz: #0a6fc2; --biz-soft: #e2effa; --ops: #0d7a6f; --ops-soft: #dff3f0;
+  --shadow: 0 1px 2px rgba(28, 26, 38, .06), 0 8px 24px -12px rgba(28, 26, 38, .18);
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121119; --surface: #1b1a24; --surface-2: #211f2b; --ink: #ecebf4; --muted: #a29fb6; --line: #2e2c3b;
+    --accent: #a98bfa; --accent-soft: #2a2142; --blue: #4cb0ef; --blue-soft: #15283a; --good: #4fd17f; --good-soft: #14291c;
+    --warn: #f59e52; --warn-soft: #33220f; --bad: #f47575; --bad-soft: #351718; --grid: #262433;
+    --h1: #2a8a52; --h2: #5a913a; --h3: #a37a12; --h4: #b85a18; --h5: #b33636;
+    --biz: #5cb2f2; --biz-soft: #16283a; --ops: #3cc4b2; --ops-soft: #112b28;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px -14px rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121119; --surface: #1b1a24; --surface-2: #211f2b; --ink: #ecebf4; --muted: #a29fb6; --line: #2e2c3b;
+  --accent: #a98bfa; --accent-soft: #2a2142; --blue: #4cb0ef; --blue-soft: #15283a; --good: #4fd17f; --good-soft: #14291c;
+  --warn: #f59e52; --warn-soft: #33220f; --bad: #f47575; --bad-soft: #351718; --grid: #262433;
+  --h1: #2a8a52; --h2: #5a913a; --h3: #a37a12; --h4: #b85a18; --h5: #b33636;
+  --biz: #5cb2f2; --biz-soft: #16283a; --ops: #3cc4b2; --ops-soft: #112b28;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px -14px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.page { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 48px 72px; display: grid; gap: 72px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -.02em; }
+p { margin: 0; }
+.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+.intro { display: grid; gap: 18px; max-width: 760px; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.intro h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.05; }
+.intro p { color: var(--muted); font-size: 16.5px; max-width: 64ch; }
+.intro p.legend-note { font-size: 13px; }
+.legend-note b { font-weight: 600; color: var(--ink); }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.toc a { text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); padding: 7px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 500; }
+.toc a span { color: var(--accent); font-family: var(--f-data); margin-right: 6px; }
+.toc a:hover, .toc a:focus-visible { border-color: var(--accent); outline: none; }
+
+.vision { display: grid; gap: 22px; scroll-margin-top: 24px; }
+.vhead { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: baseline; }
+.vnum { font-family: var(--f-data); font-size: 13px; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 2px 7px; grid-row: span 2; align-self: start; margin-top: 6px; }
+.vhead h2 { font-size: clamp(22px, 3.2vw, 30px); line-height: 1.15; }
+.vhead p { color: var(--muted); max-width: 70ch; }
+.points { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px 28px; margin: 0; padding: 0; list-style: none; }
+.points li { display: grid; gap: 2px; font-size: 14px; color: var(--muted); min-width: 0; }
+.points li b { color: var(--ink); font-weight: 600; font-size: 14.5px; }
+.surprise { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; font-size: 14.5px; }
+.surprise .tag { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); padding-top: 2px; }
+
+.frame { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.fbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.fbar .title { font-weight: 600; font-size: 14.5px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fbar .title small { font-weight: 500; color: var(--muted); font-size: 12.5px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font: inherit; font-size: 12.5px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch { display: inline-flex; gap: 8px; align-items: center; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.switch i { width: 30px; height: 17px; border-radius: 999px; background: var(--accent); position: relative; }
+.switch i::after { content: ""; position: absolute; width: 13px; height: 13px; border-radius: 50%; background: var(--surface); top: 2px; right: 2px; }
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 2px; flex-wrap: wrap; }
+.seg span { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--muted); }
+.seg span.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2); align-items: center; }
+.chip { font-size: 12.5px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 10px; display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+.chip em { font-style: normal; color: var(--muted); }
+.chip.on { border-color: var(--accent); background: var(--accent-soft); }
+.chip .x { color: var(--muted); }
+.chips .lbl { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+
+.pill { font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent); }
+.pill.mute { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+
+.w { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.w.bare { border: 0; padding: 0; background: transparent; }
+.w h4 { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+.big { font-family: var(--f-display); font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.sub { font-size: 12.5px; color: var(--muted); }
+svg text { font-family: var(--f-data); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.r, th.r { text-align: right; }
+.tbl { overflow-x: auto; }
+
+/* 1 · Montador */
+.builder { display: grid; grid-template-columns: 210px 1fr; }
+.wpal { border-right: 1px solid var(--line); padding: 14px; display: grid; gap: 8px; align-content: start; background: var(--surface-2); }
+.wpal .lbl { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+.witem { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: center; font-size: 13px; font-weight: 500; padding: 6px; border-radius: 8px; border: 1px solid transparent; }
+.witem .ico { width: 28px; height: 28px; border-radius: 7px; background: var(--accent-soft); display: grid; place-items: center; }
+.witem.dragging { border-color: var(--accent); background: var(--surface); box-shadow: var(--shadow); }
+.canvas-grid { padding: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; background-image: radial-gradient(var(--grid) 1px, transparent 1px); background-size: 16px 16px; align-content: start; }
+.span2 { grid-column: span 2; }
+.drop { border: 2px dashed var(--accent); background: var(--accent-soft); border-radius: 12px; display: grid; place-items: center; text-align: center; font-size: 13px; color: var(--accent); font-weight: 600; padding: 18px; min-height: 120px; }
+.trend { font-family: var(--f-data); font-size: 12px; white-space: nowrap; }
+.trend.up { color: var(--good); }
+.trend.down { color: var(--bad); }
+.minibar { height: 6px; border-radius: 999px; background: var(--grid); overflow: hidden; min-width: 50px; }
+.minibar i { display: block; height: 100%; border-radius: 999px; background: var(--good); }
+
+/* 2 · Mapa do portfólio */
+.port { display: grid; grid-template-columns: 1fr 290px; }
+.port .mapwrap { padding: 20px 16px 16px; display: grid; gap: 14px; min-width: 0; border-right: 1px solid var(--line); }
+.tree { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(8, 40px); gap: 14px 6px; }
+.prod { border-radius: 10px; padding: 4px; gap: 4px; background: var(--surface-2); border: 1px solid var(--line); position: relative; display: grid; }
+.prod > .pname { position: absolute; top: -9px; left: 10px; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--surface); padding: 0 6px; z-index: 1; }
+.tile { border-radius: 6px; padding: 6px 8px; color: #fff; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; overflow: hidden; font-size: 12px; line-height: 1.25; }
+.tile b { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile span { font-family: var(--f-data); font-size: 11px; opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.sel { outline: 3px solid var(--ink); outline-offset: 1px; }
+.tile.pulse { animation: pulse 1.8s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--h5) 35%, transparent); } }
+.hscale { display: flex; gap: 6px 12px; align-items: center; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.hscale span { display: inline-flex; gap: 6px; align-items: center; }
+.hscale i { width: 18px; height: 10px; border-radius: 3px; display: inline-block; }
+.port .side { padding: 16px; display: grid; gap: 16px; align-content: start; }
+.matrix { display: grid; grid-template-columns: 70px repeat(3, 1fr); gap: 3px; font-size: 11.5px; }
+.matrix .h { color: var(--muted); font-weight: 600; text-align: center; }
+.matrix .rl { color: var(--muted); font-weight: 600; align-self: center; }
+.matrix .c { border-radius: 5px; color: #fff; text-align: center; padding: 6px 0; font-family: var(--f-data); }
+
+/* 3 · Monitoramento e impacto */
+.rule { padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 15px; border-bottom: 1px solid var(--line); line-height: 2; }
+.tok { border-bottom: 2px solid var(--accent); color: var(--accent); font-weight: 600; padding: 0 2px; }
+.mon { display: grid; grid-template-columns: 1.25fr 1fr; }
+.mon > div { padding: 16px; min-width: 0; display: grid; gap: 16px; align-content: start; }
+.mon > div + div { border-left: 1px solid var(--line); }
+.impact { overflow-x: auto; }
+.insight { background: var(--bad-soft); border-radius: 12px; padding: 14px; display: grid; gap: 8px; }
+.insight h5 { margin: 0; font-size: 13px; color: var(--bad); font-weight: 700; }
+.insight p { font-size: 14px; }
+.state { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; white-space: nowrap; }
+.state i { width: 8px; height: 8px; border-radius: 50%; }
+
+/* 4 · Governança */
+.pipe { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+.stage { padding: 14px 16px; display: grid; gap: 4px; min-width: 0; }
+.stage + .stage { border-left: 1px solid var(--line); }
+.stage .lbl { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.stage .flowbar { height: 6px; border-radius: 999px; margin-top: 4px; }
+.gov { display: grid; grid-template-columns: 1fr 1fr; }
+.gov > div { padding: 16px; display: grid; gap: 18px; align-content: start; min-width: 0; }
+.gov > div + div { border-left: 1px solid var(--line); }
+.grade { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; font-size: 15px; color: #fff; }
+.aging { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.aging:last-child { border-bottom: 0; }
+.feed { display: grid; gap: 10px; font-size: 13px; }
+.feed div { display: grid; grid-template-columns: 46px 1fr; gap: 10px; }
+.feed time { font-family: var(--f-data); color: var(--muted); font-size: 12px; }
+
+/* Marcação Negócio / Sustentação */
+.kind { display: inline-flex; gap: 6px; align-items: center; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border-radius: 6px; padding: 3px 8px; white-space: nowrap; font-family: var(--f-body); }
+.kind.biz { background: var(--biz-soft); color: var(--biz); }
+.kind.ops { background: var(--ops-soft); color: var(--ops); }
+.kind.both { background: var(--accent-soft); color: var(--accent); }
+.vhead .kinds { display: flex; gap: 6px; flex-wrap: wrap; grid-column: 2; }
+
+/* Como as peças se encaixam */
+.fit { display: grid; gap: 18px; }
+.fit h2 { font-size: clamp(22px, 3vw, 28px); }
+.fit > p { color: var(--muted); max-width: 70ch; }
+.fitmap { display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 14px; align-items: stretch; }
+.col { border-radius: 14px; padding: 16px; display: grid; gap: 10px; align-content: start; }
+.col.biz { background: var(--biz-soft); }
+.col.ops { background: var(--ops-soft); }
+.col h3 { font-size: 17px; }
+.col.biz h3 { color: var(--biz); }
+.col.ops h3 { color: var(--ops); }
+.col > p { font-size: 13.5px; color: var(--muted); }
+.vlink { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: start; text-decoration: none; color: var(--ink); background: var(--surface); border-radius: 10px; padding: 9px 10px; font-size: 13.5px; border: 1px solid transparent; }
+.vlink:hover, .vlink:focus-visible { border-color: var(--accent); outline: none; }
+.vlink .n { font-family: var(--f-data); font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; text-align: center; line-height: 20px; }
+.vlink small { display: block; color: var(--muted); font-size: 12px; }
+.center { border: 2px solid var(--accent); border-radius: 14px; padding: 16px; display: grid; gap: 10px; align-content: start; background: var(--surface); }
+.center h3 { font-size: 17px; color: var(--accent); }
+.center p { font-size: 13.5px; color: var(--muted); }
+.slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.slots i { height: 34px; border-radius: 7px; }
+.slots i.b { background: var(--biz-soft); border: 1px solid var(--biz); }
+.slots i.o { background: var(--ops-soft); border: 1px solid var(--ops); }
+.slots i.e { border: 1.5px dashed var(--line); }
+.slots i.w2 { grid-column: span 2; }
+
+/* Abas de visões no painel central */
+.vtabs { display: flex; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.vtabs span { font-size: 13px; font-weight: 600; padding: 10px 10px 9px; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
+.vtabs span.on { color: var(--ink); border-bottom-color: var(--accent); }
+.vtabs span i { width: 7px; height: 7px; border-radius: 50%; }
+.vtabs .add { color: var(--accent); }
+
+/* Como funciona */
+.how { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px 28px; align-items: start; }
+.how h3 { font-size: 15px; font-family: var(--f-body); font-weight: 700; letter-spacing: 0; margin-bottom: 8px; }
+.how ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: h; }
+.how ol li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 14px; counter-increment: h; }
+.how ol li::before { content: counter(h); font-family: var(--f-data); font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 50%; width: 20px; height: 20px; display: grid; place-items: center; margin-top: 1px; }
+.how .data { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 13.5px; display: grid; gap: 6px; }
+.how .data b { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.how .data .have { color: var(--good); font-weight: 600; }
+.how .data .need { color: var(--warn); font-weight: 600; }
+
+.close { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.close h2 { font-size: 26px; margin-bottom: 14px; }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; font-size: 14.5px; counter-increment: s; }
+.steps li::before { content: counter(s); font-family: var(--f-data); color: var(--accent); border: 1px solid var(--accent); border-radius: 50%; width: 26px; height: 26px; display: grid; place-items: center; font-size: 12px; }
+.steps li b { display: block; }
+.steps li span { color: var(--muted); }
+.scope { background: var(--warn-soft); border-radius: 12px; padding: 18px; font-size: 14.5px; display: grid; gap: 8px; align-content: start; }
+.scope b { color: var(--warn); }
+
+@media (max-width: 860px) {
+  .builder, .port, .mon, .gov, .close, .fitmap, .how { grid-template-columns: 1fr; }
+  .wpal { border-right: 0; border-bottom: 1px solid var(--line); grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .wpal .lbl { grid-column: 1 / -1; }
+  .port .mapwrap { border-right: 0; }
+  .port .side, .mon > div + div, .gov > div + div { border-left: 0; border-top: 1px solid var(--line); }
+  .canvas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stage:nth-child(3) { border-left: 0; }
+  .stage:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+@media (max-width: 560px) {
+  .canvas-grid { grid-template-columns: 1fr; }
+  .span2 { grid-column: auto; }
+  .tree { grid-template-columns: 1fr; grid-template-rows: none; gap: 18px; }
+  .prod { grid-column: auto !important; grid-row: auto !important; grid-template-columns: 1fr 1fr !important; grid-template-rows: none !important; padding-top: 14px; }
+  .tile { grid-column: auto !important; grid-row: auto !important; min-height: 52px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile.pulse { animation: none; }
+}
+</style>
+
+<main class="page">
+  <header class="intro">
+    <span class="eyebrow">Dynamic Journey · Dashboard administrativo</span>
+    <h1>Um painel central e as visões que se encaixam nele</h1>
+    <p>O Dashboard é a visão de quem administra todas as jornadas, de todos os produtos e canais. A proposta: o painel montável (visão 1) é o centro, e cada uma das outras três visões é um conjunto de widgets que se adiciona a ele. Cada visão atende um de dois públicos: o <b>negócio</b>, que quer saber se as jornadas entregam resultado, e a <b>sustentação</b>, que mantém a plataforma e as jornadas funcionando.</p>
+    <p class="legend-note">Produtos, jornadas, pessoas e números são <b>ilustrativos</b>. Este é um estudo de ideação: os requisitos estão na US-13.10 (Novo visual) e nada aqui está implementado além da prévia.</p>
+  </header>
+
+  <section class="fit" aria-labelledby="fit-t">
+    <h2 id="fit-t">Como as peças se encaixam</h2>
+    <p>As visões não são alternativas. Você escolhe quais entram e em que ordem. Cada uma, ao ser adicionada, vira uma aba do painel central e libera os seus widgets para quem monta painéis próprios.</p>
+    <div class="fitmap">
+      <div class="col biz">
+        <h3>Negócio</h3>
+        <p>Dono de produto, gestor, diretoria. Pergunta: as jornadas estão entregando resultado?</p>
+        <a class="vlink" href="#v2"><span class="n">2</span><span>Mapa do portfólio<small>volume e sucesso de todas as jornadas</small></span></a>
+      </div>
+      <div class="center">
+        <h3>1 · Painel central</h3>
+        <p>A moldura. Cada visão adicionada vira uma aba e seus widgets entram na paleta para montar painéis próprios.</p>
+        <div class="slots" aria-hidden="true">
+          <i class="b w2"></i><i class="o"></i>
+          <i class="o"></i><i class="b"></i><i class="o"></i>
+          <i class="o w2"></i><i class="e"></i>
+        </div>
+        <a class="vlink" href="#v1"><span class="n">1</span><span>Painéis montáveis<small>ver como funciona</small></span></a>
+      </div>
+      <div class="col ops">
+        <h3>Sustentação</h3>
+        <p>Suporte, operação, administradores da plataforma. Pergunta: o que está quebrado e o que preciso fazer?</p>
+        <a class="vlink" href="#v3"><span class="n">3</span><span>Monitoramento e impacto<small>alertas e queda de integração</small></span></a>
+        <a class="vlink" href="#v4"><span class="n">4</span><span>Governança do ciclo de vida<small>esteira, versões e auditoria</small></span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 -->
+  <section class="vision" id="v1">
+    <div class="vhead">
+      <span class="vnum">1</span>
+      <h2>Painel central com painéis montáveis</h2>
+      <p>O Dashboard abre numa visão geral do portfólio. Em "+ Adicionar visão" o administrador escolhe quais das visões 2 a 4 entram, e cada uma vira uma aba. Os widgets dessas visões ficam na paleta para cada time montar o próprio painel, arrastando para a grade. Os filtros do topo valem para o painel inteiro.</p>
+      <div class="kinds"><span class="kind both">Painel central · negócio e sustentação</span></div>
+    </div>
+    <div class="frame" role="img" aria-label="Esboço do montador de painéis do portfólio">
+      <div class="fbar">
+        <div class="title">Visão da diretoria <small>· painel montado por você</small></div>
+        <div class="actions">
+        </div>
+      </div>
+      <div class="vtabs">
+        <span class="on">Visão geral</span>
+        <span><i style="background:var(--biz)"></i>Mapa do portfólio</span>
+        <span><i style="background:var(--ops)"></i>Monitoramento</span>
+        <span><i style="background:var(--ops)"></i>Governança</span>
+        <span class="add">+ Adicionar visão</span>
+      </div>
+      <div class="chips">
+        <span class="lbl">Filtros</span>
+        <span class="chip on"><em>Período</em> Últimos 7 dias</span>
+        <span class="chip on"><em>Produto</em> Todos</span>
+        <span class="chip"><em>Canal</em> Todos</span>
+        <span class="chip on"><em>Status</em> Publicadas <span class="x">×</span></span>
+        <span class="chip"><em>Time dono</em> Todos</span>
+        <span class="chip">+ Filtro</span>
+      </div>
+      <div class="builder">
+        <aside class="wpal">
+          <span class="lbl">Widgets do portfólio</span>
+          <div class="witem"><span class="ico"><svg width="14" height="14" viewBox="0 0 14 14"><text x="1" y="11" font-size="11" fill="var(--accent)" font-weight="700">42</text></svg></span>Indicador com variação</div>
+          <div class="witem"><span class="ico"><svg width="14" height="12" viewBox="0 0 14 12"><rect x="0" y="0" width="14" height="2" fill="var(--accent)"/><rect x="0" y="5" width="14" height="2" fill="var(--accent)" opacity=".6"/><rect x="0" y="10" width="14" height="2" fill="var(--accent)" opacity=".35"/></svg></span>Ranking de jornadas</div>
+          <div class="witem dragging"><span class="ico"><svg width="14" height="14" viewBox="0 0 14 14"><rect x="0" y="0" width="8" height="8" rx="1" fill="var(--h1)"/><rect x="9" y="0" width="5" height="8" rx="1" fill="var(--h4)"/><rect x="0" y="9" width="14" height="5" rx="1" fill="var(--h2)"/></svg></span>Mapa do portfólio</div>
+          <div class="witem"><span class="ico"><svg width="16" height="12" viewBox="0 0 16 12"><polyline points="1,10 5,6 9,8 15,2" fill="none" stroke="var(--accent)" stroke-width="2"/></svg></span>Execuções por produto</div>
+          <div class="witem"><span class="ico"><svg width="14" height="12" viewBox="0 0 14 12"><rect x="0" y="0" width="3" height="12" rx="1" fill="var(--accent)" opacity=".4"/><rect x="5" y="0" width="3" height="12" rx="1" fill="var(--accent)" opacity=".7"/><rect x="10" y="0" width="3" height="12" rx="1" fill="var(--accent)"/></svg></span>Esteira de publicação</div>
+          <div class="witem"><span class="ico"><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="3" cy="7" r="2.5" fill="var(--accent)"/><circle cx="11" cy="3" r="2" fill="var(--accent)" opacity=".6"/><circle cx="11" cy="11" r="2" fill="var(--accent)" opacity=".6"/><path d="M5 7 L9 3 M5 7 L9 11" stroke="var(--accent)"/></svg></span>Saúde das integrações</div>
+        </aside>
+        <div class="canvas-grid">
+          <div class="w">
+            <h4>Jornadas publicadas <span class="pill good">+3 na semana</span></h4>
+            <div class="big">48</div>
+            <span class="sub">em 4 produtos · 3 canais</span>
+          </div>
+          <div class="w">
+            <h4>Execuções na semana <span class="pill good">▲ 9%</span></h4>
+            <div class="big">86,4 mil</div>
+            <svg viewBox="0 0 120 30" width="100%" height="30" aria-hidden="true"><path id="spark1" fill="none" stroke="var(--good)" stroke-width="2"/></svg>
+          </div>
+          <div class="w">
+            <h4>Sucesso médio <span class="pill warn">▼ 2 p.p.</span></h4>
+            <div class="big">78%</div>
+            <span class="sub">ponderado por volume</span>
+          </div>
+          <div class="w span2">
+            <h4>Ranking de jornadas · por volume</h4>
+            <div class="tbl">
+              <table>
+                <thead><tr><th>Jornada</th><th>Produto</th><th class="r">Execuções</th><th>Sucesso</th><th class="r">7 dias</th></tr></thead>
+                <tbody>
+                  <tr><td>Segunda via de fatura</td><td class="sub">Móvel</td><td class="r num">18.240</td><td><div class="minibar"><i style="width:93%"></i></div></td><td class="r trend up">▲ 4%</td></tr>
+                  <tr><td>Agendamento técnico</td><td class="sub">Fibra</td><td class="r num">11.930</td><td><div class="minibar"><i style="width:81%"></i></div></td><td class="r trend up">▲ 12%</td></tr>
+                  <tr><td>Portabilidade</td><td class="sub">Móvel</td><td class="r num">9.410</td><td><div class="minibar"><i style="width:64%;background:var(--bad)"></i></div></td><td class="r trend down">▼ 11%</td></tr>
+                  <tr><td>Gestão de BDs v2</td><td class="sub">Empresas</td><td class="r num">4.380</td><td><div class="minibar"><i style="width:78%;background:var(--warn)"></i></div></td><td class="r trend up">▲ 2%</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="drop span2">Solte aqui · Mapa do portfólio<br><span class="sub">Ocupa 2 colunas · herda os filtros do painel</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="how">
+      <div><h3>Como funciona</h3><ol><li><span>O administrador abre o Dashboard e cai na aba "Visão geral", com os indicadores do portfólio.</span></li><li><span>Em "+ Adicionar visão" aparece a lista das visões 2 a 4. Escolher uma cria a aba dela.</span></li><li><span>Em "Novo painel", qualquer time começa de uma grade vazia e arrasta widgets da paleta, que só mostra widgets das visões já adicionadas.</span></li><li><span>O painel fica guardado para o usuário que o montou.</span></li></ol></div>
+      <div class="data"><b>De onde vêm os dados</b><span><span class="have">Já existe:</span> os indicadores de hoje do Dashboard e os dados de cada visão adicionada.</span><span><span class="need">Falta:</span> guardar no servidor os painéis, as abas escolhidas e os recortes de cada usuário; recortes por produto, canal, status e time dono (que ainda não existe na jornada); período escolhível.</span></div>
+    </div>
+    <ul class="points">
+      <li><b>Widgets do portfólio</b>indicador, ranking, mapa do portfólio, execuções por produto, esteira de publicação e saúde das integrações.</li>
+      <li><b>Filtros que se cruzam</b>período, produto, canal, status da jornada e time dono, valendo para o painel inteiro.</li>
+      <li><b>Visões que se adicionam</b>cada visão (2 a 4) entra como aba e traz seus widgets para a paleta.</li>
+    </ul>
+  </section>
+
+  <!-- 2 -->
+  <section class="vision" id="v2">
+    <div class="vhead">
+      <span class="vnum">2</span>
+      <h2>Mapa do portfólio</h2>
+      <p>Todas as jornadas numa só tela, agrupadas por produto. O tamanho de cada bloco é o volume de execuções e a cor é a saúde. Em dois segundos se vê onde está o volume e onde está o problema, e um clique leva ao Diagnóstico daquela jornada.</p>
+      <div class="kinds"><span class="kind biz">Negócio</span><span class="kind ops">também serve à sustentação</span></div>
+    </div>
+    <div class="frame" role="img" aria-label="Esboço do mapa do portfólio de jornadas por produto">
+      <div class="fbar">
+        <div class="title">Portfólio de jornadas <small>· 48 publicadas · últimos 7 dias</small></div>
+        <div class="actions">
+          <span class="sub">Cor por</span>
+          <span class="seg"><span class="on">Sucesso</span><span>Incidentes</span><span>Variação</span></span>
+          <span class="sub">Agrupar por</span>
+          <span class="seg"><span class="on">Produto</span><span>Canal</span><span>Time</span></span>
+        </div>
+      </div>
+      <div class="port">
+        <div class="mapwrap">
+          <div class="tree">
+            <div class="prod" style="grid-column:1 / 7;grid-row:1 / 6;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(5,1fr)">
+              <span class="pname">Móvel</span>
+              <div class="tile" style="grid-column:1 / 4;grid-row:1 / 6;background:var(--h1)"><b>Segunda via de fatura</b><span>18.240 · 93%</span></div>
+              <div class="tile sel pulse" style="grid-column:4 / 7;grid-row:1 / 4;background:var(--h5)"><b>Portabilidade</b><span>9.410 · 64% ▼</span></div>
+              <div class="tile" style="grid-column:4 / 6;grid-row:4 / 6;background:var(--h2)"><b>Troca de plano</b><span>5.120 · 84%</span></div>
+              <div class="tile" style="grid-column:6 / 7;grid-row:4 / 6;background:var(--h3)"><b>Desbloqueio</b><span>1,9 mil</span></div>
+            </div>
+            <div class="prod" style="grid-column:7 / 13;grid-row:1 / 5;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(4,1fr)">
+              <span class="pname">Fibra</span>
+              <div class="tile" style="grid-column:1 / 4;grid-row:1 / 5;background:var(--h2)"><b>Agendamento técnico</b><span>11.930 · 81%</span></div>
+              <div class="tile" style="grid-column:4 / 7;grid-row:1 / 3;background:var(--h1)"><b>Upgrade de velocidade</b><span>6.210 · 90%</span></div>
+              <div class="tile" style="grid-column:4 / 6;grid-row:3 / 5;background:var(--h4)"><b>Mudança de endereço</b><span>3.880 · 69%</span></div>
+              <div class="tile" style="grid-column:6 / 7;grid-row:3 / 5;background:var(--h2)"><b>Wi-Fi</b><span>1,4 mil</span></div>
+            </div>
+            <div class="prod" style="grid-column:1 / 7;grid-row:6 / 9;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(3,1fr)">
+              <span class="pname">Empresas</span>
+              <div class="tile" style="grid-column:1 / 3;grid-row:1 / 4;background:var(--h3)"><b>Gestão de BDs v2</b><span>4.380 · 78%</span></div>
+              <div class="tile" style="grid-column:3 / 5;grid-row:1 / 4;background:var(--h1)"><b>Onboarding PJ</b><span>3.960 · 91%</span></div>
+              <div class="tile" style="grid-column:5 / 7;grid-row:1 / 3;background:var(--h2)"><b>Linhas adicionais</b><span>2.740 · 86%</span></div>
+              <div class="tile" style="grid-column:5 / 7;grid-row:3 / 4;background:var(--h4)"><b>Contestação</b><span>1,1 mil</span></div>
+            </div>
+            <div class="prod" style="grid-column:7 / 13;grid-row:5 / 9;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(4,1fr)">
+              <span class="pname">Atendimento</span>
+              <div class="tile" style="grid-column:1 / 4;grid-row:1 / 5;background:var(--h2)"><b>Abertura de chamado</b><span>7.050 · 85%</span></div>
+              <div class="tile" style="grid-column:4 / 7;grid-row:1 / 3;background:var(--h1)"><b>Pesquisa de satisfação</b><span>5.300 · 96%</span></div>
+              <div class="tile" style="grid-column:4 / 7;grid-row:3 / 5;background:var(--h5)"><b>Cancelamento</b><span>2.950 · 58%</span></div>
+            </div>
+          </div>
+          <div class="hscale">Taxa de sucesso
+            <span><i style="background:var(--h5)"></i>&lt; 60%</span><span><i style="background:var(--h4)"></i>60–74%</span><span><i style="background:var(--h3)"></i>75–79%</span><span><i style="background:var(--h2)"></i>80–89%</span><span><i style="background:var(--h1)"></i>90% ou mais</span>
+          </div>
+        </div>
+        <div class="side">
+          <div class="w">
+            <h4>Portabilidade <span class="pill bad">piorou</span></h4>
+            <div style="display:flex;gap:10px;align-items:baseline"><span class="big">64%</span><span class="trend down">▼ 11 p.p.</span></div>
+            <span class="sub">Móvel · time Aquisição · v7 publicada ontem às 16:39</span>
+            <button class="btn primary" type="button">Abrir no Diagnóstico</button>
+          </div>
+          <div class="w bare">
+            <h4>Sucesso (%) por produto × canal</h4>
+            <div class="matrix">
+              <span></span><span class="h">WhatsApp</span><span class="h">Web</span><span class="h">App</span>
+              <span class="rl">Móvel</span><span class="c" style="background:var(--h4)">71</span><span class="c" style="background:var(--h2)">86</span><span class="c" style="background:var(--h1)">92</span>
+              <span class="rl">Fibra</span><span class="c" style="background:var(--h2)">83</span><span class="c" style="background:var(--h2)">80</span><span class="c" style="background:var(--h3)">77</span>
+              <span class="rl">Empresas</span><span class="c" style="background:var(--h3)">76</span><span class="c" style="background:var(--h1)">90</span><span class="c" style="background:var(--h2)">85</span>
+              <span class="rl">Atendim.</span><span class="c" style="background:var(--h5)">59</span><span class="c" style="background:var(--h2)">84</span><span class="c" style="background:var(--h1)">93</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="how">
+      <div><h3>Como funciona</h3><ol><li><span>O dono de produto abre a aba "Mapa do portfólio" e escolhe agrupar por produto, canal ou time.</span></li><li><span>Escolhe colorir por sucesso, incidentes ou variação contra a semana anterior.</span></li><li><span>Clica no bloco que chama atenção e vê o resumo da jornada ao lado.</span></li><li><span>"Abrir no Diagnóstico" leva direto às instâncias daquela jornada.</span></li></ol></div>
+      <div class="data"><b>De onde vêm os dados</b><span><span class="have">Já existe:</span> o volume de execuções por jornada, que o Dashboard já lê do motor.</span><span><span class="need">Falta:</span> dizer o que é sucesso (marcar cada Fim, no editor, como Sucesso, Adiado ou Falha) e guardar o resultado de cada instância; cadastrar o time dono e a etapa do ciclo de cada jornada; obter o canal de cada instância; calcular a variação contra a semana anterior.</span></div>
+    </div>
+    <ul class="points">
+      <li><b>Tudo numa tela</b>as 48 jornadas agrupadas por produto, canal ou time dono.</li>
+      <li><b>Tamanho e cor com significado</b>volume no tamanho, saúde na cor, que pode trocar para incidentes ou variação.</li>
+      <li><b>Matriz produto × canal</b>mostra que o problema é "Atendimento no WhatsApp", e não o produto inteiro.</li>
+      <li><b>Do mapa ao detalhe</b>um clique abre a jornada no Diagnóstico ou no editor.</li>
+    </ul>
+    <div class="surprise"><span class="tag">Surpresa</span><p><b>Blocos que pulsam.</b> Uma jornada que piorou muito contra a semana anterior pulsa no mapa. Quem abre o painel vê o problema antes de ler qualquer número.</p></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="vision" id="v3">
+    <div class="vhead">
+      <span class="vnum">3</span>
+      <h2>Monitoramento proativo e mapa de impacto</h2>
+      <p>Alertas escritos como frase que valem para grupos de jornadas, saúde de cada integração do catálogo e, quando uma integração cai, a lista exata das jornadas e das instâncias em andamento afetadas.</p>
+      <div class="kinds"><span class="kind ops">Sustentação</span></div>
+    </div>
+    <div class="frame" role="img" aria-label="Esboço do monitoramento com regra de alerta e mapa de impacto das integrações">
+      <div class="fbar">
+        <div class="title">Alertas e integrações <small>· 14 regras ativas · 1 disparada</small></div>
+        <div class="actions"><button class="btn" type="button">Testar regra</button><button class="btn primary" type="button">Salvar regra</button></div>
+      </div>
+      <div class="rule">
+        Se <span class="tok">qualquer jornada</span> do produto <span class="tok">Fibra</span> ficar com <span class="tok">sucesso</span> abaixo de <span class="tok">75%</span> por <span class="tok">30 minutos</span>, avisar <span class="tok">o time dono</span> por <span class="tok">Teams</span>.
+      </div>
+      <div class="mon">
+        <div>
+          <div class="w bare">
+            <h4>Mapa de impacto · integração "Agenda de campo" <span class="pill bad">fora do ar há 22 min</span></h4>
+            <div class="impact"><svg id="impact" viewBox="0 0 520 232" width="100%" style="min-width:440px" aria-label="Integrações ligadas às jornadas que as usam"></svg></div>
+          </div>
+          <div class="insight">
+            <h5>O que essa queda afeta agora</h5>
+            <p><b>4 jornadas</b> usam "Agenda de campo". <b>1.312 instâncias</b> estão paradas esperando por ela, 71% delas no WhatsApp. As jornadas com "Se falhar" configurado estão mandando o cliente para "Tentar mais tarde".</p>
+          </div>
+        </div>
+        <div>
+          <div class="w bare">
+            <h4>Saúde das integrações · catálogo</h4>
+            <div class="tbl">
+              <table>
+                <thead><tr><th>Integração</th><th class="r">Jornadas</th><th class="r">p95</th><th class="r">Falha</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="state"><i style="background:var(--bad)"></i>Agenda de campo</span></td><td class="r num">4</td><td class="r num">—</td><td class="r num" style="color:var(--bad)">100%</td></tr>
+                  <tr><td><span class="state"><i style="background:var(--warn)"></i>Portabilidade ABR</span></td><td class="r num">2</td><td class="r num">2,4 s</td><td class="r num" style="color:var(--warn)">6,2%</td></tr>
+                  <tr><td><span class="state"><i style="background:var(--good)"></i>Consulta de cliente</span></td><td class="r num">31</td><td class="r num">410 ms</td><td class="r num">0,3%</td></tr>
+                  <tr><td><span class="state"><i style="background:var(--good)"></i>Faturas</span></td><td class="r num">9</td><td class="r num">380 ms</td><td class="r num">0,1%</td></tr>
+                  <tr><td><span class="state"><i style="background:var(--good)"></i>Tickets</span></td><td class="r num">12</td><td class="r num">620 ms</td><td class="r num">0,8%</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="w bare">
+            <h4>Execuções do portfólio por hora · hoje contra o esperado</h4>
+            <svg id="anom" viewBox="0 0 420 150" width="100%" aria-label="Execuções por hora contra a faixa esperada"></svg>
+            <div class="sub">Faixa azul: mesma hora nas últimas 4 semanas. Linha: hoje.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="how">
+      <div><h3>Como funciona</h3><ol><li><span>O suporte cria uma regra completando a frase (o quê, de quem, limite, por quanto tempo, quem avisar).</span></li><li><span>A plataforma verifica as regras a cada minuto.</span></li><li><span>Quando uma regra dispara, o time dono recebe o aviso.</span></li><li><span>Ao abrir o aviso, o mapa de impacto mostra quais jornadas e quantas instâncias estão paradas.</span></li></ol></div>
+      <div class="data"><b>De onde vêm os dados</b><span><span class="have">Já existe:</span> falhas, incidentes e instâncias paradas, que vêm do motor; quais integrações cada jornada usa.</span><span><span class="need">Falta:</span> o verificador de regras rodando em segundo plano e o envio dos avisos (e-mail, Teams, webhook, chamado); medir latência e falha por integração; um índice integração → jornadas; guardar o histórico por hora para a faixa esperada.</span></div>
+    </div>
+    <ul class="points">
+      <li><b>Regras por grupo</b>valem para um produto, um canal, um time ou o portfólio inteiro, e avisam o time dono.</li>
+      <li><b>Integrações no centro</b>latência, falha e quantas jornadas dependem de cada uma.</li>
+      <li><b>Anomalia sazonal</b>o volume de hoje contra a mesma hora das últimas semanas, sem limite fixo.</li>
+    </ul>
+    <div class="surprise"><span class="tag">Surpresa</span><p><b>Mapa de impacto.</b> Quando uma integração cai, o painel mostra na hora quais jornadas dependem dela, quantos clientes estão parados e quais caminhos "Se falhar" estão segurando o atendimento.</p></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="vision" id="v4">
+    <div class="vhead">
+      <span class="vnum">4</span>
+      <h2>Governança do ciclo de vida das jornadas</h2>
+      <p>A esteira de rascunho e publicação vira painel: versões antigas que ainda têm clientes no meio do caminho, jornadas paradas e uma nota de saúde para cada jornada. Parte disso já está nos dados de Jornadas, versões e Auditoria.</p>
+      <div class="kinds"><span class="kind ops">Sustentação</span></div>
+    </div>
+    <div class="frame" role="img" aria-label="Esboço da governança com esteira de publicação, nota de saúde e auditoria">
+      <div class="fbar">
+        <div class="title">Governança <small>· todas as jornadas</small></div>
+        <div class="actions"><span class="seg"><span class="on">Todos os times</span><span>Meu time</span></span></div>
+      </div>
+      <div class="pipe">
+        <div class="stage"><span class="lbl">Rascunho</span><span class="big">12</span><span class="sub">3 sem edição há 30 dias</span><span class="flowbar" style="background:var(--grid)"></span></div>
+        <div class="stage"><span class="lbl">Publicada</span><span class="big">48</span><span class="sub">11 publicações na semana</span><span class="flowbar" style="background:var(--good)"></span></div>
+        <div class="stage"><span class="lbl">Despublicada</span><span class="big">7</span><span class="sub">2 com instâncias ativas</span><span class="flowbar" style="background:var(--muted)"></span></div>
+      </div>
+      <div class="gov">
+        <div>
+          <div class="w bare">
+            <h4>Nota de saúde por jornada <span class="sub">sucesso · incidentes · revisão · boas práticas</span></h4>
+            <div class="tbl">
+              <table>
+                <thead><tr><th>Nota</th><th>Jornada</th><th>Por quê</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="grade" style="background:var(--h5)">E</span></td><td>Cancelamento</td><td class="sub">58% de sucesso · 2 integrações sem "Se falhar"</td></tr>
+                  <tr><td><span class="grade" style="background:var(--h4)">D</span></td><td>Portabilidade</td><td class="sub">piorou 11 p.p. depois da v7</td></tr>
+                  <tr><td><span class="grade" style="background:var(--h3)">C</span></td><td>Gestão de BDs v2</td><td class="sub">78% de sucesso · sem time dono</td></tr>
+                  <tr><td><span class="grade" style="background:var(--h1)">A</span></td><td>Segunda via de fatura</td><td class="sub">93% · sem incidente há 60 dias</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="w bare">
+            <h4>Versões antigas com clientes em andamento</h4>
+            <div>
+              <div class="aging"><span>Portabilidade · v6</span><span class="pill warn">38 instâncias</span><span class="sub">v7 já publicada · a mais antiga começou há 4 dias</span></div>
+              <div class="aging"><span>Agendamento técnico · v11</span><span class="pill mute">6 instâncias</span><span class="sub">v12 já publicada · a mais antiga começou há 1 dia</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="w bare">
+            <h4>Últimas mudanças · auditoria</h4>
+            <div class="feed">
+              <div><time>16:39</time><span><b>Portabilidade v7</b> publicada por Ana</span></div>
+              <div><time>15:02</time><span><b>Agenda de campo</b>: tempo limite alterado de 5 s para 2 s</span></div>
+              <div><time>11:47</time><span><b>Cancelamento v9</b> salva como rascunho</span></div>
+              <div><time>09:15</time><span><b>Troca de plano</b> despublicada por Fábio</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="how">
+      <div><h3>Como funciona</h3><ol><li><span>A esteira mostra quantas jornadas há em cada etapa; clicar numa etapa lista as jornadas dela.</span></li><li><span>Versões antigas que ainda têm clientes aparecem com a opção de encerrar as instâncias ou aguardar.</span></li><li><span>A nota de A a E de cada jornada é recalculada todo dia, com o motivo escrito ao lado.</span></li></ol></div>
+      <div class="data"><b>De onde vêm os dados</b><span><span class="have">Já existe:</span> jornadas e seus estados (Rascunho, Publicada, Despublicada, Inativa), versões, auditoria e encerrar instância.</span><span><span class="need">Falta:</span> a regra da nota de saúde; a data de entrada da jornada em cada estado; consultar instâncias em andamento por versão; o time dono de cada jornada.</span></div>
+    </div>
+    <ul class="points">
+      <li><b>Esteira de publicação</b>quantas jornadas em cada etapa e quanto tempo ficam paradas.</li>
+      <li><b>Versões que não morrem</b>versões substituídas que ainda têm clientes no meio da jornada.</li>
+      <li><b>Higiene do portfólio</b>jornadas sem time dono, sem execução há 30 dias ou com integração sem "Se falhar".</li>
+    </ul>
+    <div class="surprise"><span class="tag">Surpresa</span><p><b>Nota de saúde de A a E.</b> Uma nota por jornada que junta sucesso, incidentes, tempo desde a última revisão e boas práticas de desenho. Vira o ranking que cada dono de produto quer melhorar.</p></div>
+  </section>
+
+  <section class="close">
+    <div>
+      <h2>Uma ordem possível</h2>
+      <ol class="steps">
+        <li><div><b>Onda 1 · painel central (1) com Governança (4)</b><span>Sustentação primeiro: usa dados que já existem em Jornadas, versões e Auditoria.</span></div></li>
+        <li><div><b>Onda 2 · classificação dos Fins, Mapa do portfólio (2) e Monitoramento (3)</b><span>A classificação dos Fins destrava os indicadores de negócio; o monitoramento depende do verificador de regras e do envio de avisos.</span></div></li>
+      </ol>
+    </div>
+    <div class="scope">
+      <b>Atenção ao escopo da 1.0.0</b>
+      <p>A seção "Fora do Escopo da Versão 1.0.0" dos requisitos lista Analytics e Gestão de Tenants. A visão de negócio (2) entra como evolução depois da 1.0, a menos que se decida subir para a versão atual. As de sustentação (3, 4) esbarram menos nesse limite.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const css = (v) => `var(${v})`;
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', { x, y, 'font-size': 10, fill: css('--muted'), ...attrs }, parent); t.textContent = s; return t; };
+
+  // Execuções do portfólio por dia (7 dias, mil)
+  {
+    const spark = [11.2, 11.8, 12.1, 12.0, 12.6, 13.1, 13.6];
+    const max = Math.max(...spark), min = Math.min(...spark);
+    const d = spark.map((v, i) => `${i ? 'L' : 'M'}${(i / (spark.length - 1)) * 116 + 2} ${28 - ((v - min) / (max - min)) * 24}`).join(' ');
+    document.getElementById('spark1').setAttribute('d', d);
+  }
+
+  // Mapa de impacto: integrações à esquerda, jornadas à direita
+  {
+    const svg = document.getElementById('impact');
+    const ints = [['Agenda de campo', 'bad', 40], ['Consulta de cliente', 'good', 116], ['Tickets', 'good', 192]];
+    const jours = [
+      ['Agendamento técnico', 20, [0, 1], 612],
+      ['Mudança de endereço', 62, [0, 1], 318],
+      ['Upgrade de velocidade', 104, [0, 1], 251],
+      ['Gestão de BDs v2', 146, [0, 1, 2], 131],
+      ['Abertura de chamado', 188, [1, 2], 0],
+    ];
+    jours.forEach(([, y, links]) => links.forEach((i) => {
+      const hit = i === 0;
+      const y0 = ints[i][2];
+      el('path', { d: `M150 ${y0} C 240 ${y0}, 250 ${y}, 330 ${y}`, fill: 'none', stroke: hit ? css('--bad') : css('--line'), 'stroke-width': hit ? 2.5 : 1.5, 'stroke-dasharray': hit ? '5 4' : 'none' }, svg);
+    }));
+    ints.forEach(([name, tone, y]) => {
+      el('rect', { x: 4, y: y - 16, width: 146, height: 32, rx: 8, fill: tone === 'bad' ? css('--bad-soft') : css('--surface-2'), stroke: tone === 'bad' ? css('--bad') : css('--line') }, svg);
+      el('circle', { cx: 18, cy: y, r: 4, fill: tone === 'bad' ? css('--bad') : css('--good') }, svg);
+      txt(svg, 28, y + 4, name, { fill: css('--ink'), 'font-size': 11 });
+    });
+    jours.forEach(([name, y, links, stuck]) => {
+      const hit = links.includes(0);
+      el('rect', { x: 330, y: y - 15, width: 186, height: 30, rx: 8, fill: hit ? css('--surface') : css('--surface-2'), stroke: hit ? css('--bad') : css('--line') }, svg);
+      txt(svg, 340, y + 4, name, { fill: css('--ink'), 'font-size': 11 });
+      if (stuck) txt(svg, 508, y + 4, String(stuck), { fill: css('--bad'), 'font-size': 10.5, 'text-anchor': 'end', 'font-weight': 600 });
+    });
+    txt(svg, 508, 226, 'instâncias paradas', { 'text-anchor': 'end', 'font-size': 9.5 });
+  }
+
+  // Execuções por hora do portfólio contra a faixa esperada
+  {
+    const svg = document.getElementById('anom');
+    const lo = [120, 80, 60, 50, 50, 90, 220, 480, 760, 900, 940, 920, 880, 900, 930, 910, 860, 780, 640, 520, 400, 300, 220, 160];
+    const hi = lo.map((v) => Math.round(v * 1.25 + 40));
+    const today = [140, 95, 70, 60, 58, 100, 240, 510, 800, 930, 960, 940, 900, 920, 950, 610, 560];
+    const X0 = 40, X1 = 412, Y0 = 122, Y1 = 8, MAX = 1300;
+    const x = (h) => X0 + (h / 23) * (X1 - X0);
+    const y = (v) => Y0 - (v / MAX) * (Y0 - Y1);
+    [0, 600, 1200].forEach((v) => { el('line', { x1: X0, x2: X1, y1: y(v), y2: y(v), stroke: css('--grid') }, svg); txt(svg, 0, y(v) + 3, v ? String(v).replace('00', '') + '00' : '0', { 'font-size': 9 }); });
+    [0, 6, 12, 18, 23].forEach((h) => txt(svg, x(h), 140, String(h).padStart(2, '0') + 'h', { 'text-anchor': 'middle', 'font-size': 9 }));
+    const band = hi.map((v, h) => `${h ? 'L' : 'M'}${x(h)} ${y(v)}`).join(' ') + ' ' + lo.map((_, k) => `L${x(23 - k)} ${y(lo[23 - k])}`).join(' ') + ' Z';
+    el('path', { d: band, fill: css('--blue'), 'fill-opacity': .16 }, svg);
+    const d = today.map((v, h) => `${h ? 'L' : 'M'}${x(h)} ${y(v)}`).join(' ');
+    el('path', { d, fill: 'none', stroke: css('--ink'), 'stroke-width': 2 }, svg);
+    const last = today.length - 1;
+    el('circle', { cx: x(last), cy: y(today[last]), r: 4.5, fill: css('--bad') }, svg);
+    txt(svg, x(last) + 8, y(today[last]) + 4, '−38% do esperado', { fill: css('--bad'), 'font-size': 9.5, 'font-weight': 600 });
+  }
+
+})();
+</script>
+
+</body></html>

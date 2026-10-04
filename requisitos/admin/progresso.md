@@ -15,14 +15,24 @@
 | Métrica | Valor |
 |---|---|
 | Total de Features (FT) | 15 |
-| Total de User Stories (US) | 109 |
-| Total de Requisitos (REQ) | 593 |
+| Total de User Stories (US) | 110 |
+| Total de Requisitos (REQ) | 619 |
 | Concluídos (`done`) | 543 |
-| Em andamento (`in_progress`) | 3 |
-| Não iniciados (`todo`) | 45 |
+| Em andamento (`in_progress`) | 8 |
+| Não iniciados (`todo`) | 66 |
 | Bloqueados (`blocked`) | 0 |
 | Não aplicável (`n/a`) | 2 |
-| % Concluído | 92% |
+| % Concluído | 88% |
+
+> **Novo visual do Dashboard: prévia pronta e requisitos para refinamento (26 REQs novos, US-13.10, 2026-10-04).**
+> O Dashboard ganhou, atrás de um interruptor, uma prévia do novo visual com painel central, três visões
+> (Mapa do portfólio, Monitoramento e impacto, Governança do ciclo de vida) e painéis montáveis, tudo com
+> dados de exemplo (REQ-13.10.001 a 005, `in_progress`). Os outros 21 REQs descrevem, sem implementar, o que
+> falta para os dados serem reais: guardar painéis no servidor, classificar o Fim (Sucesso, Adiado ou
+> Falha), time dono e etapa do ciclo de cada jornada, canal da instância, verificador de regras com
+> envio de avisos, saúde por integração, histórico por hora e nota de saúde. Cada um traz na coluna Notas
+> o que ainda precisa ser analisado. O estudo completo está em `requisitos/ideacao/novo_dashboard.html`.
+> Total geral: 593 → 619 REQs.
 
 > **Seções com moldura própria, saídas pela direita e carregamento do canvas (3 REQs novos, 3 reescritos, 2026-10-03).**
 > A seção ganhou moldura própria: nasce da paleta, move com as etapas de dentro, redimensiona pelas bordas
@@ -216,7 +226,7 @@
 | FT-10 | Observabilidade | 12 | 11 | 92% (1 in_progress) |
 | FT-11 | Testes | 12 | 0 | 0% |
 | FT-12 | Infraestrutura | 16 | 0 | 0% (1 in_progress) |
-| FT-13 | Dashboard | 24 | 24 | 100% |
+| FT-13 | Dashboard | 50 | 24 | 48% (5 in_progress, 21 todo) |
 | FT-14 | Catálogo de Integrações | 33 | 32 | 97% (1 in_progress) |
 | FT-15 | Diagnóstico | 19 | 19 | 100% |
 
@@ -1446,6 +1456,37 @@ appender.
 | [x] | REQ-13.09.001 | O encerramento manual de uma instância deve ser registrado na auditoria do portal. | done | back: `TerminateProcessInstance` chama `RecordAuditEvent` (`PROCESS_INSTANCE_TERMINATE`, sucesso e falha) | testado ao vivo |
 | [x] | REQ-13.09.002 | O início de uma execução deve ser registrado na auditoria do portal. | done | back: `POST /api/v1/execution-audit/started` → `RecordExecutionStart` (`EXECUTION_START`); front: `auditApi.ts`, chamado após `startInstance()` em `StartPanel.tsx` | testado ao vivo (curl + consulta em `/api/v1/audit-events`) |
 
+### US-13.10 Novo visual
+
+| # | REQ | Descrição | Status | Evidência | Notas |
+|---|---|---|---|---|---|
+| [~] | REQ-13.10.001 | O Dashboard deve oferecer um interruptor entre o visual atual e o novo visual. | in_progress | front: `dashboard/preview/` (prévia atrás do interruptor, só dados de exemplo) — `VisualToggle` | Visual pronto com dados de exemplo; nada vem do back |
+| [~] | REQ-13.10.002 | O novo visual deve organizar o conteúdo em abas: Visão geral, uma aba para cada visão adicionada e uma aba para cada painel montado. | in_progress | front: `dashboard/preview/PreviewDashboard.tsx` | Visual pronto com dados de exemplo; nada vem do back |
+| [~] | REQ-13.10.003 | O administrador deve poder adicionar e remover as visões prontas (Mapa do portfólio, Monitoramento e impacto, Governança do ciclo de vida); cada visão adicionada vira uma aba e libera os seus widgets para os painéis. | in_progress | front: `dashboard/preview/PreviewDashboard.tsx` (`AddViewPanel`) | Visual pronto com dados de exemplo; nada vem do back |
+| [~] | REQ-13.10.004 | O administrador deve poder criar, renomear e excluir painéis, e montá-los arrastando ou clicando em widgets, reordenando-os e escolhendo a largura de cada um (1, 2 ou 4 colunas). | in_progress | front: `dashboard/preview/PreviewDashboard.tsx` (`BoardEditor`) e `widgets.tsx` | Visual pronto com dados de exemplo; nada vem do back |
+| [~] | REQ-13.10.005 | Os recortes do topo (período e etapa do ciclo de vida) devem valer para a aba ativa inteira. | in_progress | front: `dashboard/preview/PreviewDashboard.tsx` (`FilterBar`) | Visual pronto; o período está fixo em 7 dias e a etapa do ciclo não existe nos dados reais (REQ-13.10.007 e 011) |
+| [ ] | REQ-13.10.006 | O sistema deve guardar no servidor os painéis, as abas escolhidas e os recortes de cada usuário. | todo | | A analisar: onde guardar (banco do Admin) e como identificar o usuário; hoje tudo fica só no navegador |
+| [ ] | REQ-13.10.007 | O sistema deve oferecer recortes por produto, canal, status da jornada e time dono, e permitir escolher o período. | todo | | A analisar: quais recortes cada visão entende; depende de REQ-13.10.010, 011 e 012 |
+| [ ] | REQ-13.10.008 | O editor de fluxo deve permitir classificar cada Fim como Sucesso, Adiado ou Falha, e o sistema deve guardar o resultado de cada instância a partir do Fim em que ela terminou. | todo | | A analisar: onde a classificação mora no fluxo e no snapshot publicado, como o resultado chega do motor de runtime, o que fazer com jornadas já publicadas e com instâncias que terminam por erro. Destrava os indicadores de negócio |
+| [ ] | REQ-13.10.009 | O sistema deve calcular a taxa de sucesso de cada jornada (ponderada pelo volume no portfólio) e a variação em pontos percentuais contra a semana anterior. | todo | | A analisar: de onde vem o histórico por semana e se o cálculo é feito na hora ou guardado. Depende de REQ-13.10.008 |
+| [ ] | REQ-13.10.010 | O sistema deve permitir cadastrar o time dono de cada jornada. | todo | | A analisar: se o time é texto livre ou um cadastro, e quem o preenche. Hoje a jornada não tem time dono |
+| [ ] | REQ-13.10.011 | O sistema deve permitir cadastrar a etapa do ciclo de vida de cada jornada: Aquisição, Ativação, Uso, Cobrança ou Retenção. | todo | | A analisar: se a lista é fixa ou configurável, e se a jornada pode estar em mais de uma etapa. Hoje a jornada não tem etapa |
+| [ ] | REQ-13.10.012 | O sistema deve obter o canal de cada instância, para os recortes e as matrizes por canal. | todo | | A analisar: se o canal já vem como variável da instância no motor de runtime ou precisa ser gravado ao iniciar |
+| [ ] | REQ-13.10.013 | O Mapa do portfólio deve dimensionar cada jornada pelo volume de execuções e colori-la por sucesso, incidentes ou variação, agrupando por produto, canal ou time dono; a jornada que piorou muito deve se destacar, e o clique deve abrir o resumo da jornada e levar ao Diagnóstico dela. | todo | | A analisar: o que conta como "piorou muito" e a contagem de incidentes por jornada. Depende de REQ-13.10.008, 009 e 010 |
+| [ ] | REQ-13.10.014 | O sistema deve apresentar a taxa de sucesso por produto e canal numa matriz. | todo | | Depende de REQ-13.10.008 e 012 |
+| [ ] | REQ-13.10.015 | O sistema deve apresentar, com dados reais, os indicadores do portfólio (jornadas publicadas, execuções da semana e sucesso médio) e o ranking de jornadas por volume. | todo | | A analisar: o volume por jornada já vem do motor de runtime; o sucesso médio depende de REQ-13.10.008 e 009 |
+| [ ] | REQ-13.10.016 | O administrador deve poder criar, editar, excluir e testar regras de alerta escritas como frase: o quê, de quem, limite, janela de tempo, quem avisar e por qual meio. | todo | | A analisar: lista de métricas e escopos permitidos, e como testar uma regra sem enviar aviso. Hoje as regras existem só na prévia |
+| [ ] | REQ-13.10.017 | O sistema deve verificar as regras de alerta em segundo plano, a cada minuto, marcando a regra como disparada e limpando-a quando o valor voltar ao normal. | todo | | A analisar: onde esse verificador roda, o que acontece se ele cair e como evitar avisar a mesma coisa várias vezes |
+| [ ] | REQ-13.10.018 | O sistema deve enviar o aviso de uma regra disparada ao time dono por e-mail, Teams, webhook ou abertura de chamado. | todo | | A analisar: quais meios entram primeiro, onde ficam os endereços e credenciais de envio, e o que vai para a auditoria. Depende de REQ-13.10.010 e 017 |
+| [ ] | REQ-13.10.019 | O sistema deve apresentar a saúde de cada integração do catálogo: latência p95, taxa de falha, jornadas que dependem dela e estado (ok, degradada ou fora do ar). | todo | | A analisar: de onde vêm latência e falha por integração (ainda não são medidas) e os limites de cada estado; é preciso um índice integração → jornadas |
+| [ ] | REQ-13.10.020 | O sistema deve apresentar o impacto de uma integração fora do ar ou degradada: as jornadas que a usam, as instâncias paradas por jornada e por canal, e os caminhos "Se falhar" em uso. | todo | | A analisar: como contar instâncias paradas esperando uma integração. Depende de REQ-13.10.012 e 019 |
+| [ ] | REQ-13.10.021 | O sistema deve comparar as execuções por hora do dia com a faixa esperada, calculada na mesma hora das últimas quatro semanas. | todo | | A analisar: onde guardar o histórico por hora (o motor de runtime não o entrega pronto) e como calcular a faixa |
+| [ ] | REQ-13.10.022 | O sistema deve apresentar a esteira de publicação: quantas jornadas há em cada estado, há quanto tempo estão nele e a lista das jornadas ao escolher um estado. | todo | | A analisar: os estados reais da jornada são Rascunho, Publicada, Despublicada e Inativa; "há quanto tempo" precisa da data de entrada em cada estado |
+| [ ] | REQ-13.10.023 | O sistema deve listar as versões antigas que ainda têm instâncias em andamento, com a opção de encerrá-las (REQ-13.05.002). | todo | | A analisar: consulta de instâncias ativas por versão no motor de runtime; o encerramento já existe |
+| [ ] | REQ-13.10.024 | O sistema deve atribuir a cada jornada uma nota de A a E, recalculada todo dia, com o motivo escrito ao lado; a regra de cálculo será definida no refinamento. | todo | | A analisar: critérios e pesos (sucesso, incidentes, tempo desde a última revisão, boas práticas de desenho) e as faixas de A a E. Depende de REQ-13.10.008, 009 e 010 |
+| [ ] | REQ-13.10.025 | O sistema deve apontar a higiene do portfólio: jornada sem time dono, sem execução há 30 dias, rascunho sem edição há 30 dias, despublicada com instâncias ativas e integração sem "Se falhar". | todo | | A analisar: se os 30 dias são configuráveis. Depende de REQ-13.10.010 |
+| [ ] | REQ-13.10.026 | O sistema deve listar as últimas mudanças do portfólio a partir da auditoria (FT-08). | todo | | A analisar: quais eventos da auditoria entram e se a consulta atual comporta o volume |
+
 ## FT-14 Catálogo de Integrações
 
 ### US-14.01 Catálogo de clusters e brokers corporativos
@@ -1567,6 +1608,7 @@ Tela separada de Execução (`front/src/diagnostics/DiagnosticoPage.tsx`), item 
 
 | Data/Hora | Alteração |
 |---|---|
+| 2026-10-04 05:10 (não commitado) | **Novo visual do Dashboard (US-13.10, 26 REQs novos).** Prévia registrada como REQ-13.10.001 a 005 (`in_progress`, dados de exemplo) e 21 REQs `todo` com o que precisa ser analisado antes de implementar (REQ-13.10.006 a 026). Visões 5 a 13 da ideação inicial, Modo TV, Modelos, Compartilhar, fila de aprovação e metas de serviço ficaram de fora. Estudo salvo em `requisitos/ideacao/novo_dashboard.html`. FT-13: 24 → 50 REQs; total geral: 593 → 619. |
 | 2026-10-03 2026-10-03 18:19 | **Bolinha que recomeça na ligação e seção criada pela paleta num lugar livre.** REQ-05.03.009 reescrito: a bolinha percorre a ligação de chegada de origem a destino e recomeça enquanto a execução espera na etapa, parando só quando o destino é o Fim; ao avançar de passo no Diagnóstico ela recomeça na nova origem na hora. REQ-03.20.001 reescrito: clicar no componente "Seção" da paleta cria uma seção numerada automaticamente num lugar livre (à esquerda e abaixo do início do desenho, sem cobrir etapa, linha ou outra seção), e arrastar cria no ponto onde soltar. Implementado no front; a posição da seção e a bolinha foram conferidas no navegador. Nenhum REQ novo; totais inalterados (593 REQs, 543 concluídos). |
 | 2026-10-03 16:39 | **Seções com moldura própria, saídas pela direita e indicador de carregamento do canvas.** US-03.20: REQ-03.20.001 reescrito (componente "Seção" na paleta, logo acima de "Anotação"), REQ-03.20.005 reescrito (moldura e modo de exibição salvos; Execução e Diagnóstico seguem a moldura salva quando o modo coincide) e novos REQ-03.20.006 (mover e redimensionar a moldura, pertencimento por posição, seção vazia) e REQ-03.20.007 (Organizar trata a seção recolhida como bloco e, ao reabrir, reorganiza só o conteúdo). US-03.19: REQ-03.19.004 reescrito (ligações saem sempre pela direita; "Se falhar" por baixo) e novo REQ-03.19.009 (indicador de carregamento no editor, na Execução e no Diagnóstico). Implementado em admin/back (moldura em `FlowSection`, `layoutMode` na versão) e front; moldura, mover/redimensionar e indicador de carregamento testados no navegador no editor; salvar a moldura e a moldura na Execução/Diagnóstico ainda não testados (dependem de reiniciar o back). FT-03: 129 → 132; total 590 → 593, 540 → 543 concluídos. |
 | 2026-10-03 05:50 | **Decisão com várias saídas, "voltar" genérico e botão que grava a escolha.** US-03.11: REQ-03.11.001/002/003/006 reescritos (duas ou mais saídas, uma padrão, demais com condição) e REQ-03.11.010 novo (avaliação na ordem das saídas, vale a primeira verdadeira; setas para reordenar); "Gateway com mais de duas saídas" saiu da lista de fora do escopo. REQ-03.20.003 reescrito: seção recolhida mostra só a primeira ligação que chega nela. US-04.11: REQ-04.11.006 (enviar formulário grava a escolha do botão), REQ-04.11.007 e 008 ("navegar" com destino "voltar" reabre a tela anterior, com as regras de tela já usada, integração de escrita e "Se falhar"). REQ-04.12.005 (habilitação condicional e condição sobre `data.x` avaliadas com a variável do motor em todos os canais). REQ-05.03.010 (ordem real dos passos na Execução e no Diagnóstico). Catálogo SDUI não alterado. Implementado em admin/back, ms-journey, ms-transform-publication (comentário), front e emulador-canais; testado no navegador na tela de Execução com a jornada "Gestão de BDs v2"; canais do emulador não testados. FT-03: 128 → 129; FT-04: 93 → 97; FT-05: 71 → 72; total 584 → 590, 534 → 540 concluídos. |

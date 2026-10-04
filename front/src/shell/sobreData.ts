@@ -1921,6 +1921,38 @@ export const EPICS: Epic[] = [
           d('REQ-13.09.002', 'O início de uma execução deve ser registrado na auditoria do portal.'),
         ],
       },
+      {
+        code: 'US-13.10',
+        name: 'Novo visual',
+        requirements: [
+          partial('REQ-13.10.001', 'O Dashboard deve oferecer um interruptor entre o visual atual e o novo visual.', 'Visual pronto com dados de exemplo; nada vem do back'),
+          partial('REQ-13.10.002', 'O novo visual deve organizar o conteúdo em abas: Visão geral, uma aba para cada visão adicionada e uma aba para cada painel montado.', 'Visual pronto com dados de exemplo; nada vem do back'),
+          partial('REQ-13.10.003', 'O administrador deve poder adicionar e remover as visões prontas (Mapa do portfólio, Monitoramento e impacto, Governança do ciclo de vida); cada visão adicionada vira uma aba e libera os seus widgets para os painéis.', 'Visual pronto com dados de exemplo; nada vem do back'),
+          partial('REQ-13.10.004', 'O administrador deve poder criar, renomear e excluir painéis, e montá-los arrastando ou clicando em widgets, reordenando-os e escolhendo a largura de cada um (1, 2 ou 4 colunas).', 'Visual pronto com dados de exemplo; nada vem do back'),
+          partial('REQ-13.10.005', 'Os recortes do topo (período e etapa do ciclo de vida) devem valer para a aba ativa inteira.', 'Visual pronto; o período está fixo em 7 dias e a etapa do ciclo não existe nos dados reais (REQ-13.10.007 e 011)'),
+          todo('REQ-13.10.006', 'O sistema deve guardar no servidor os painéis, as abas escolhidas e os recortes de cada usuário.'),
+          todo('REQ-13.10.007', 'O sistema deve oferecer recortes por produto, canal, status da jornada e time dono, e permitir escolher o período.'),
+          todo('REQ-13.10.008', 'O editor de fluxo deve permitir classificar cada Fim como Sucesso, Adiado ou Falha, e o sistema deve guardar o resultado de cada instância a partir do Fim em que ela terminou.'),
+          todo('REQ-13.10.009', 'O sistema deve calcular a taxa de sucesso de cada jornada (ponderada pelo volume no portfólio) e a variação em pontos percentuais contra a semana anterior.'),
+          todo('REQ-13.10.010', 'O sistema deve permitir cadastrar o time dono de cada jornada.'),
+          todo('REQ-13.10.011', 'O sistema deve permitir cadastrar a etapa do ciclo de vida de cada jornada: Aquisição, Ativação, Uso, Cobrança ou Retenção.'),
+          todo('REQ-13.10.012', 'O sistema deve obter o canal de cada instância, para os recortes e as matrizes por canal.'),
+          todo('REQ-13.10.013', 'O Mapa do portfólio deve dimensionar cada jornada pelo volume de execuções e colori-la por sucesso, incidentes ou variação, agrupando por produto, canal ou time dono; a jornada que piorou muito deve se destacar, e o clique deve abrir o resumo da jornada e levar ao Diagnóstico dela.'),
+          todo('REQ-13.10.014', 'O sistema deve apresentar a taxa de sucesso por produto e canal numa matriz.'),
+          todo('REQ-13.10.015', 'O sistema deve apresentar, com dados reais, os indicadores do portfólio (jornadas publicadas, execuções da semana e sucesso médio) e o ranking de jornadas por volume.'),
+          todo('REQ-13.10.016', 'O administrador deve poder criar, editar, excluir e testar regras de alerta escritas como frase: o quê, de quem, limite, janela de tempo, quem avisar e por qual meio.'),
+          todo('REQ-13.10.017', 'O sistema deve verificar as regras de alerta em segundo plano, a cada minuto, marcando a regra como disparada e limpando-a quando o valor voltar ao normal.'),
+          todo('REQ-13.10.018', 'O sistema deve enviar o aviso de uma regra disparada ao time dono por e-mail, Teams, webhook ou abertura de chamado.'),
+          todo('REQ-13.10.019', 'O sistema deve apresentar a saúde de cada integração do catálogo: latência p95, taxa de falha, jornadas que dependem dela e estado (ok, degradada ou fora do ar).'),
+          todo('REQ-13.10.020', 'O sistema deve apresentar o impacto de uma integração fora do ar ou degradada: as jornadas que a usam, as instâncias paradas por jornada e por canal, e os caminhos "Se falhar" em uso.'),
+          todo('REQ-13.10.021', 'O sistema deve comparar as execuções por hora do dia com a faixa esperada, calculada na mesma hora das últimas quatro semanas.'),
+          todo('REQ-13.10.022', 'O sistema deve apresentar a esteira de publicação: quantas jornadas há em cada estado, há quanto tempo estão nele e a lista das jornadas ao escolher um estado.'),
+          todo('REQ-13.10.023', 'O sistema deve listar as versões antigas que ainda têm instâncias em andamento, com a opção de encerrá-las (REQ-13.05.002).'),
+          todo('REQ-13.10.024', 'O sistema deve atribuir a cada jornada uma nota de A a E, recalculada todo dia, com o motivo escrito ao lado; a regra de cálculo será definida no refinamento.'),
+          todo('REQ-13.10.025', 'O sistema deve apontar a higiene do portfólio: jornada sem time dono, sem execução há 30 dias, rascunho sem edição há 30 dias, despublicada com instâncias ativas e integração sem "Se falhar".'),
+          todo('REQ-13.10.026', 'O sistema deve listar as últimas mudanças do portfólio a partir da auditoria (FT-08).'),
+        ],
+      },
     ],
   },
   {
@@ -2171,6 +2203,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-10-04 05:10 (não commitado)',
+    source: 'progresso',
+    summary:
+      '**Novo visual do Dashboard (US-13.10, 26 REQs novos).** Prévia registrada como REQ-13.10.001 a 005 (`in_progress`, dados de exemplo) e 21 REQs `todo` com o que precisa ser analisado antes de implementar (REQ-13.10.006 a 026). Visões 5 a 13 da ideação inicial, Modo TV, Modelos, Compartilhar, fila de aprovação e metas de serviço ficaram de fora. Estudo salvo em `requisitos/ideacao/novo_dashboard.html`. FT-13: 24 → 50 REQs; total geral: 593 → 619.',
+  },
   {
     date: '2026-10-03 2026-10-03 18:19',
     source: 'progresso',
@@ -2643,6 +2681,16 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-04 04:46', source: 'git', summary: 'Dashboard: prévia do novo visual com Mapa, Monitoramento e Governança.', epics: ['FT-13'] },
+  { date: '2026-10-03 18:24', source: 'git', summary: 'Registro: evidência de salvar, Execução e Diagnóstico, e horário real do commit.' },
+  { date: '2026-10-03 18:19', source: 'git', summary: 'Seção criada pela paleta em lugar livre; requisitos da bolinha e da seção.', epics: ['FT-03'] },
+  { date: '2026-10-03 17:22', source: 'git', summary: 'Execução e Diagnóstico: bolinha recomeça na ligação até o Fim.', epics: ['FT-05', 'FT-15'] },
+  { date: '2026-10-03 17:07', source: 'git', summary: 'Execução: resposta da instância passa a levar as seções e o layout.', epics: ['FT-05'] },
+  { date: '2026-10-03 16:39', source: 'git', summary: 'Seções com moldura própria, saídas pela direita e indicador de carregamento do canvas.', epics: ['FT-03'] },
+  { date: '2026-10-03 05:54', source: 'git', summary: 'Massa de fábrica: jornada Gestão de BDs v2.' },
+  { date: '2026-10-03 05:50', source: 'git', summary: 'Requisitos: Decisão com várias saídas, "voltar" genérico e botão que grava a escolha.', epics: ['FT-03', 'FT-04'] },
+  { date: '2026-10-03 05:50', source: 'git', summary: 'Decisão com várias saídas, "voltar" genérico e jornada Gestão de BDs v2.', epics: ['FT-03'] },
+  { date: '2026-10-03 05:50', source: 'git', summary: 'Ambiente local: abas na pasta de cada app e parada geral do emulador.' },
   { date: '2026-10-03 00:04', source: 'git', summary: 'Execução: painel da tela da jornada redimensionável e recolhível.', epics: ['FT-05'] },
   { date: '2026-10-03 00:04', source: 'git', summary: 'Skin e tema claro/escuro lembrados entre sessões.' },
   { date: '2026-10-02 23:58', source: 'git', summary: 'Diagnóstico: reprodução mantém o zoom do usuário.', epics: ['FT-15'] },

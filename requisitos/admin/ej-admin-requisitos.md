@@ -1170,6 +1170,34 @@ Dar visibilidade operacional em tempo real sobre os processos em execução no m
 #### REQ-13.09.001 - O encerramento manual de uma instância deve ser registrado na auditoria do portal.
 #### REQ-13.09.002 - O início de uma execução deve ser registrado na auditoria do portal.
 
+### US-13.10 Novo visual
+#### REQ-13.10.001 - O Dashboard deve oferecer um interruptor entre o visual atual e o novo visual.
+#### REQ-13.10.002 - O novo visual deve organizar o conteúdo em abas: Visão geral, uma aba para cada visão adicionada e uma aba para cada painel montado.
+#### REQ-13.10.003 - O administrador deve poder adicionar e remover as visões prontas (Mapa do portfólio, Monitoramento e impacto, Governança do ciclo de vida); cada visão adicionada vira uma aba e libera os seus widgets para os painéis.
+#### REQ-13.10.004 - O administrador deve poder criar, renomear e excluir painéis, e montá-los arrastando ou clicando em widgets, reordenando-os e escolhendo a largura de cada um (1, 2 ou 4 colunas).
+#### REQ-13.10.005 - Os recortes do topo (período e etapa do ciclo de vida) devem valer para a aba ativa inteira.
+#### REQ-13.10.006 - O sistema deve guardar no servidor os painéis, as abas escolhidas e os recortes de cada usuário.
+#### REQ-13.10.007 - O sistema deve oferecer recortes por produto, canal, status da jornada e time dono, e permitir escolher o período.
+#### REQ-13.10.008 - O editor de fluxo deve permitir classificar cada Fim como Sucesso, Adiado ou Falha, e o sistema deve guardar o resultado de cada instância a partir do Fim em que ela terminou.
+#### REQ-13.10.009 - O sistema deve calcular a taxa de sucesso de cada jornada (ponderada pelo volume no portfólio) e a variação em pontos percentuais contra a semana anterior.
+#### REQ-13.10.010 - O sistema deve permitir cadastrar o time dono de cada jornada.
+#### REQ-13.10.011 - O sistema deve permitir cadastrar a etapa do ciclo de vida de cada jornada: Aquisição, Ativação, Uso, Cobrança ou Retenção.
+#### REQ-13.10.012 - O sistema deve obter o canal de cada instância, para os recortes e as matrizes por canal.
+#### REQ-13.10.013 - O Mapa do portfólio deve dimensionar cada jornada pelo volume de execuções e colori-la por sucesso, incidentes ou variação, agrupando por produto, canal ou time dono; a jornada que piorou muito deve se destacar, e o clique deve abrir o resumo da jornada e levar ao Diagnóstico dela.
+#### REQ-13.10.014 - O sistema deve apresentar a taxa de sucesso por produto e canal numa matriz.
+#### REQ-13.10.015 - O sistema deve apresentar, com dados reais, os indicadores do portfólio (jornadas publicadas, execuções da semana e sucesso médio) e o ranking de jornadas por volume.
+#### REQ-13.10.016 - O administrador deve poder criar, editar, excluir e testar regras de alerta escritas como frase: o quê, de quem, limite, janela de tempo, quem avisar e por qual meio.
+#### REQ-13.10.017 - O sistema deve verificar as regras de alerta em segundo plano, a cada minuto, marcando a regra como disparada e limpando-a quando o valor voltar ao normal.
+#### REQ-13.10.018 - O sistema deve enviar o aviso de uma regra disparada ao time dono por e-mail, Teams, webhook ou abertura de chamado.
+#### REQ-13.10.019 - O sistema deve apresentar a saúde de cada integração do catálogo: latência p95, taxa de falha, jornadas que dependem dela e estado (ok, degradada ou fora do ar).
+#### REQ-13.10.020 - O sistema deve apresentar o impacto de uma integração fora do ar ou degradada: as jornadas que a usam, as instâncias paradas por jornada e por canal, e os caminhos "Se falhar" em uso.
+#### REQ-13.10.021 - O sistema deve comparar as execuções por hora do dia com a faixa esperada, calculada na mesma hora das últimas quatro semanas.
+#### REQ-13.10.022 - O sistema deve apresentar a esteira de publicação: quantas jornadas há em cada estado, há quanto tempo estão nele e a lista das jornadas ao escolher um estado.
+#### REQ-13.10.023 - O sistema deve listar as versões antigas que ainda têm instâncias em andamento, com a opção de encerrá-las (REQ-13.05.002).
+#### REQ-13.10.024 - O sistema deve atribuir a cada jornada uma nota de A a E, recalculada todo dia, com o motivo escrito ao lado; a regra de cálculo será definida no refinamento.
+#### REQ-13.10.025 - O sistema deve apontar a higiene do portfólio: jornada sem time dono, sem execução há 30 dias, rascunho sem edição há 30 dias, despublicada com instâncias ativas e integração sem "Se falhar".
+#### REQ-13.10.026 - O sistema deve listar as últimas mudanças do portfólio a partir da auditoria (FT-08).
+
 <br/><br/>
 
 # FT-14 Catálogo de Integrações
@@ -1324,3 +1352,5 @@ Paginação de opções carregadas dinamicamente
 > **Nota de revisão (2026-08-24):** "Seções" e "Organização dinâmica de campos" saíram desta lista — implementadas nesta revisão (REQ-04.02.011, US-03.16).
 >
 > **Nota de revisão (2026-09-05):** "Exibição condicional" saiu desta lista — implementada nesta revisão como visibilidade condicional de componente (US-04.12), avaliada em runtime. A seção inteira foi renomeada de "Formulários Avançados (SDUI)" pra acompanhar o novo nome da FT-04 (Catálogo Server Driven UI).
+>
+> **Nota de revisão (2026-10-04):** parte do que "Analytics" cobre foi registrada como ideação do novo visual do Dashboard (US-13.10), com os requisitos descritos para refinamento posterior. O estudo completo está em [novo_dashboard.html](../ideacao/novo_dashboard.html). "Analytics" segue nesta lista até que esses requisitos sejam refinados e implementados.

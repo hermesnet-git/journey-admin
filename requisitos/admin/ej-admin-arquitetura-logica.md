@@ -605,7 +605,7 @@ Restringir a administração do catálogo ao papel ADMIN; demais papéis apenas 
 
 Delegar o teste de conexão ao componente de runtime que resolve a credencial e abre a conexão de verdade
 
-Cadastrar, atualizar e remover a credencial de API de um provedor de IA (Gemini), nunca a expondo de volta pela API
+Cadastrar, atualizar e remover a credencial de API de um provedor de IA (Gemini, Claude (Anthropic), OpenAI ou GitHub Models), com o modelo e a marca de provedor ativo, nunca expondo a chave de volta pela API
 ```
 
 ## Entidades
@@ -661,7 +661,7 @@ O Admin Portal nunca acessa o cofre de segredos nem o broker diretamente (mesmo 
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault, usada por um conector de mensageria |
-| AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+| AI Provider Credential | Credencial de API de um provedor de IA (Gemini, Claude (Anthropic), OpenAI ou GitHub Models), usada pela geração de jornada assistida |
 
 ---
 

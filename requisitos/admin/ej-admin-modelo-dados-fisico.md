@@ -48,7 +48,7 @@ A execução de uma jornada publicada roda inteiramente contra o motor de runtim
 
 `messaging_cluster` e `credential_reference` (FT-14) formam o catálogo de integrações: cada credencial referencia um cluster, e um conector de mensageria de `flow_node` referencia uma credencial por `reference_name` (persistido dentro do documento `jsonb` do fluxo, não por chave estrangeira de banco — mesma limitação já descrita para `flow_node`/`flow_connection` no §9). Nunca armazenam o valor de um segredo — só a referência ao Azure Key Vault.
 
-`ai_provider_credential` (FT-14 US-14.06) é uma tabela isolada, sem relacionamento com as demais: guarda a credencial de API de um provedor de IA (Gemini) usada pela geração de fluxo assistida (FT-03 US-03.17). Diferente de `credential_reference`, armazena o segredo em texto plano — desvio deliberado e temporário do princípio de nunca persistir segredo, documentado como TODO no código.
+`ai_provider_credential` (FT-14 US-14.06) é uma tabela isolada, sem relacionamento com as demais: guarda a credencial de API de um provedor de IA (Gemini, Claude (Anthropic), OpenAI ou GitHub Models) usada pela geração de jornada assistida (FT-03 US-03.17). Diferente de `credential_reference`, armazena o segredo em texto plano — desvio deliberado e temporário do princípio de nunca persistir segredo, documentado como TODO no código.
 
 ---
 
@@ -489,14 +489,17 @@ CREATE TABLE credential_reference (
 ```sql
 CREATE TABLE ai_provider_credential (
     credential_id UUID PRIMARY KEY,
-    provider VARCHAR(30) NOT NULL UNIQUE CHECK (provider IN ('GEMINI')),
+    provider VARCHAR(30) NOT NULL UNIQUE CHECK (provider IN ('GEMINI', 'ANTHROPIC', 'OPENAI', 'GITHUB_MODELS')),
     api_key TEXT NOT NULL,
+    model VARCHAR(100),
+    active BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE UNIQUE INDEX uq_ai_provider_credential_active ON ai_provider_credential (active) WHERE active;
 ```
 
-Tabela isolada, sem chave estrangeira — `provider` é único por natureza (um único registro por provedor suportado). `api_key` guarda o segredo em texto plano, ao contrário de `credential_reference`: exceção deliberada e temporária ao princípio de nunca persistir segredo (REQ-14.02.003/REQ-14.06.003), com pendência de criptografia registrada como TODO no código antes de produção. A API nunca retorna `api_key` numa resposta — apenas se `provider` está configurado e `updated_at`.
+Tabela isolada, sem chave estrangeira — `provider` é único por natureza (um único registro por provedor suportado). `api_key` guarda o segredo em texto plano, ao contrário de `credential_reference`: exceção deliberada e temporária ao princípio de nunca persistir segredo (REQ-14.02.003/REQ-14.06.003), com pendência de criptografia registrada como TODO no código antes de produção. O índice único parcial garante no máximo um provedor ativo (`active`); sem nenhum ativo, a geração usa o Gemini. A API nunca retorna `api_key` numa resposta — apenas se `provider` está configurado, `model`, `active` e `updated_at`.
 
 ---
 

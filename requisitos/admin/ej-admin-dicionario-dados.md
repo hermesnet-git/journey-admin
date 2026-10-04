@@ -368,8 +368,10 @@ Nunca armazena o valor de um segredo, em nenhuma circunstância. A resolução d
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
 | CredentialId | UUID | Sim | Identificador único da credencial |
-| Provider | VARCHAR(30) | Sim | Provedor de IA — só `GEMINI` na versão 1.0.0; único (um registro por provedor) |
+| Provider | VARCHAR(30) | Sim | Provedor de IA — `GEMINI`, `ANTHROPIC`, `OPENAI` ou `GITHUB_MODELS`; único (um registro por provedor) |
 | ApiKey | TEXT | Sim | Chave de API do provedor — em texto plano, nunca retornada pela API |
+| Model | VARCHAR(100) | Não | Modelo escolhido para o provedor; vazio usa o modelo padrão do provedor |
+| Active | BOOLEAN | Sim | Provedor usado na geração; no máximo um por vez (sem nenhum ativo vale o Gemini) |
 | CreatedAt | TIMESTAMPTZ | Sim | Data de criação |
 | UpdatedAt | TIMESTAMPTZ | Sim | Data da última alteração |
 
@@ -392,7 +394,7 @@ Entidade isolada, sem chave estrangeira. Diferente de `CredentialReference`, arm
 | JourneyPublication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | MessagingCluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | CredentialReference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
-| AiProviderCredential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+| AiProviderCredential | Credencial de API de um provedor de IA (Gemini, Claude (Anthropic), OpenAI ou GitHub Models), usada pela geração de jornada assistida |
 
 > **Nota de revisão (2026-09-05):** linha `Form / FormField` substituída por `ComponentDefinition / SduiNode` e `UserTaskConfig` atualizada — a tela de uma User Task passou a ser uma árvore de `SduiNode` (`EmbeddedScreenRoot`) que referenciam componentes de um catálogo mantido em tabela própria; não existe mais formulário do catálogo como modelo de cópia. Nota de 2026-08-24 mantida abaixo por histórico.
 

@@ -319,7 +319,7 @@ Especificação OpenAPI
 | Audit Event | Evento de auditoria de uma operação do sistema |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
-| AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+| AI Provider Credential | Credencial de API de um provedor de IA (Gemini, Claude (Anthropic), OpenAI ou GitHub Models), usada pela geração de jornada assistida |
 
 > **Nota de revisão (2026-09-05):** linhas `Form`/`Form Component` substituídas por `Component Registry`/`Sdui Node` e `User Task Configuration` atualizada — ver `ej-admin-requisitos.md` FT-04. Nota de 2026-08-24 mantida abaixo por histórico.
 

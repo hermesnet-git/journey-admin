@@ -116,7 +116,7 @@ domínio fixo declarado como atributo (coleção) tanto de `Product` quanto de `
 | Audit Event | Registro de operação realizada no sistema |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria — nunca o valor do segredo |
-| AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+| AI Provider Credential | Credencial de API de um provedor de IA (Gemini, Claude (Anthropic), OpenAI ou GitHub Models), usada pela geração de jornada assistida |
 
 ---
 
@@ -405,10 +405,10 @@ Messaging Cluster 1 → 0..N Credential Reference
 
 # 14. AI Provider Credential
 
-Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida do Journey Modeler (Seção 9). Entidade isolada, sem relacionamento com nenhuma outra — não pertence ao mesmo agrupamento de `Messaging Cluster`/`Credential Reference`, por servir um único consumidor (a geração de fluxo), não um framework de conectores com múltiplos tipos.
+Credencial de API de um provedor de IA (Gemini, Claude (Anthropic), OpenAI ou GitHub Models), usada pela geração de jornada assistida do Journey Modeler (Seção 9). Entidade isolada, sem relacionamento com nenhuma outra — não pertence ao mesmo agrupamento de `Messaging Cluster`/`Credential Reference`, por servir um único consumidor (a geração de fluxo), não um framework de conectores com múltiplos tipos.
 
 ```text
-Provedor, Chave de API, Data de criação, Data de atualização
+Provedor, Chave de API, Modelo, Ativo, Data de criação, Data de atualização
 ```
 
 Diferente de `Credential Reference`, esta entidade armazena o valor do segredo — exceção deliberada e temporária ao princípio de nunca persistir um segredo (ver Seção 13), com pendência de criptografia registrada como TODO no código antes de produção. A API nunca retorna o valor da chave, apenas se o provedor está configurado e a data da última atualização.
@@ -476,7 +476,7 @@ erDiagram
 | Journey Publication | Snapshot de uma versão imutável enviado para a API de publicação do runtime |
 | Messaging Cluster | Cluster/broker de mensageria corporativo cadastrado no catálogo de integrações |
 | Credential Reference | Referência a um secret do Azure Key Vault usada por um conector de mensageria |
-| AI Provider Credential | Credencial de API de um provedor de IA (Gemini), usada pela geração de fluxo assistida |
+| AI Provider Credential | Credencial de API de um provedor de IA (Gemini, Claude (Anthropic), OpenAI ou GitHub Models), usada pela geração de jornada assistida |
 
 > **Nota de revisão (2026-09-06):** linha `Channel` (entidade) substituída por `Channel Type`
 > (valor de domínio fixo) — canal deixou de ser um CRUD e passou a ser declarado diretamente como

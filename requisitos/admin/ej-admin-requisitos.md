@@ -193,6 +193,8 @@ canais de um produto.
 #### REQ-02.01.006 - O sistema deve impedir a exclusão de uma jornada enquanto sua publicação estiver ativa; o usuário deve despublicá-la antes.
 #### REQ-02.01.008 - Ao excluir uma jornada que já foi publicada (REQ-02.01.005), o sistema deve marcar todas as suas versões (`journey_version`) como `INACTIVE`, junto com a desativação da jornada.
 #### REQ-02.01.009 - Uma jornada `INACTIVE` não deve poder ser editada (nem seus dados nem seu fluxo) nem excluída novamente; as ações "Editar" e "Excluir" devem ficar desabilitadas para essas jornadas.
+#### REQ-02.01.010 - Uma jornada recém-criada, de qualquer forma (em branco, a partir de um modelo, por IA ou por importação do Figma), só passa a valer depois que o autor a confirma com "Salvar" no editor; ao cancelar no editor, o sistema deve pedir confirmação e excluir a jornada como se nunca tivesse existido.
+#### REQ-02.01.011 - O fluxo gerado por IA ou importado do Figma deve abrir no editor como alteração ainda não salva; "Salvar" grava o fluxo e deixa o rascunho (versão `DRAFT`) para publicação posterior, e numa jornada recém-criada confirma a criação mesmo quando nada mais foi alterado.
 
 
 ### US-02.02 Identificação e metadados
@@ -446,12 +448,17 @@ Permitir a construção visual do fluxo específico de cada jornada.
 ---
 
 ### US-03.17 Geração de fluxo assistida por IA
-#### REQ-03.17.001 - O sistema deve permitir gerar automaticamente um rascunho de fluxo a partir de uma descrição em linguagem natural (prompt) informada pelo usuário, preenchendo nós e conexões no canvas do editor.
-#### REQ-03.17.006 - A geração deve considerar o fluxo já desenhado no canvas (nós, conexões e a tela embutida de cada User Task) como contexto do pedido: um pedido aditivo ou pontual (ex.: "adicione uma tarefa para X", "mude a mensagem da tarefa Y") não deve remover ou recriar nós/conexões sem relação com o pedido — o id, a posição no canvas e a tela desenhada de um nó não afetado devem ser preservados. Redesenhar o fluxo inteiro só deve ocorrer quando o pedido pedir isso explicitamente.
-#### REQ-03.17.002 - A geração deve depender de uma credencial de API de IA configurada (US-14.06); sem credencial configurada, o sistema deve informar o usuário e recusar a geração, sem expor detalhe técnico do provedor.
-#### REQ-03.17.003 - Um fluxo gerado que viole as regras estruturais de validação (US-03.02) deve ser automaticamente corrigido e reenviado ao modelo de IA (retry/reparo) antes de ser apresentado ao usuário, dentro de um número limitado de tentativas — inclui a rejeição de aspas escapadas (`\"`) em condição de gateway, formato que quebra o parser de expressão do motor de runtime.
+#### REQ-03.17.001 - O sistema deve permitir criar uma jornada completa a partir de uma descrição em linguagem natural (prompt), na aba "IA" de "Nova jornada": o fluxo (etapas, ligações, decisões e caminho "Se falhar"), as telas com seus campos, as integrações e as seções e anotações do canvas.
+#### REQ-03.17.002 - A geração deve depender de uma credencial de API do provedor de IA ativo (US-14.06; o Gemini quando nenhum outro está ativo); sem credencial configurada, o sistema deve informar o usuário e recusar a geração, sem expor detalhe técnico do provedor.
+#### REQ-03.17.003 - O modelo de IA descreve a jornada de forma compacta (etapas, campos de cada tela, decisões, integrações e ligações pelo nome) e o sistema monta o fluxo real: identificadores, telas com os componentes do catálogo, ligações e grafia das variáveis. O que o sistema consegue inferir (identificador de campo a partir do enunciado, etapa seguinte pela ordem da lista, fim da jornada) é preenchido sem recusar a descrição; o que violar as regras de validação (US-03.02 e as da tela) volta ao modelo para correção, em até três tentativas, com os problemas escritos em termos da descrição e agrupados quando repetidos. Esgotadas as tentativas, o usuário recebe uma mensagem clara do que fazer. Inclui a rejeição de aspas escapadas (`\"`) em condição de decisão, formato que quebra o parser de expressão do motor de runtime.
 #### REQ-03.17.004 - O fluxo gerado deve ser apresentado como um rascunho editável no canvas, sujeito às mesmas regras de validação e à mesma revisão manual de qualquer fluxo criado por edição direta — a geração por IA não substitui a revisão do usuário antes de salvar ou publicar.
 #### REQ-03.17.005 - Ao concluir a geração, o canvas deve reposicionar automaticamente a visualização do fluxo gerado (REQ-03.05.005).
+#### REQ-03.17.007 - A geração deve se limitar a jornadas digitais de atendimento e autoatendimento (questionários e pesquisas, cadastros e formulários, menus, consultas e solicitações com chamada a APIs, decisões, aprovações e mensageria). O sistema deve recusar, com um motivo escrito ao usuário, o pedido que não seja criar uma jornada, que tente revelar, ignorar ou mudar as instruções da IA, que peça para coletar senha, número completo de cartão, CVV, token ou outro segredo, que tenha conteúdo ilegal, fraudulento ou ofensivo, que mande dados a um endereço não informado no pedido, ou que peça mais de 20 telas; o limite de 20 telas também é conferido pelo sistema ao montar a jornada.
+#### REQ-03.17.008 - As telas geradas devem usar somente componentes do catálogo (FT-04) e perguntas de tipo escolha, nota de 1 a 5, nota de 0 a 10, sim ou não, texto curto, texto longo, data ou marcar uma afirmação; em questionário, o sistema deve montar os campos, os valores e as escalas das opções, e quando o pedido deixa o conteúdo em aberto a IA deve criar perguntas e opções completas, nunca telas vazias.
+#### REQ-03.17.009 - A grafia das variáveis deve ser garantida pelo sistema, não pela IA: dentro das telas, vínculos e textos usam `form.x`/`data.x`; em conector, mensageria e decisão, somente a forma do motor (`{{form_x}}`, `{{data_x}}`, `{{channel}}`). Numa decisão sobre pergunta de escolha, a comparação deve aceitar o texto da escolha ou o valor interno e gravar o valor interno; comparações de maior e menor com valor numérico devem ser numéricas; um valor que não é nenhuma das escolhas, ou um campo que nenhuma tela define, deve voltar à IA para correção.
+#### REQ-03.17.010 - O que depende do ambiente ou não foi informado no pedido não deve ser inventado nem ser motivo de recusa: cluster, tópico e credencial de mensageria, endereço de API ausente e o mapeamento da resposta de uma API (que a IA só supõe) devem ficar em branco ou marcados e sinalizados por anotação no canvas, para o autor completar; em chamada com corpo, o corpo deve levar os dados coletados pelas telas.
+#### REQ-03.17.011 - A jornada gerada deve começar pelo canal, sem entradas nem início por mensagem, a menos que o pedido indique isso explicitamente; entradas da jornada que repetem um campo coletado numa tela devem ser descartadas.
+#### REQ-03.17.012 - Falhas passageiras do provedor de IA (excesso de uso, indisponibilidade ou queda de conexão) devem ser repetidas automaticamente algumas vezes antes de falhar; chave recusada, modelo inexistente e excesso de uso devem ter mensagens claras ao usuário, apontando para a credencial de IA.
 ---
 
 ### US-03.18 Resiliência da integração REST
@@ -1261,9 +1268,12 @@ empresa.
 ---
 
 ### US-14.06 Credencial de IA
-#### REQ-14.06.001 - O sistema deve permitir cadastrar, atualizar e remover uma credencial de API de um provedor de IA (Gemini), restrito ao papel `ADMIN`.
-#### REQ-14.06.002 - A API não deve, em nenhuma resposta, retornar o valor da chave salva — apenas seu status (configurada/não configurada) e a data da última atualização.
+#### REQ-14.06.001 - O sistema deve permitir cadastrar, atualizar e remover a credencial de API de um provedor de IA — Gemini, Claude (Anthropic), OpenAI ou GitHub Models —, restrito ao papel `ADMIN`.
+#### REQ-14.06.002 - A API não deve, em nenhuma resposta, retornar o valor da chave salva — apenas se está configurada, o modelo escolhido, se é o provedor ativo e a data da última atualização.
 #### REQ-14.06.003 - Diferente do catálogo de credenciais de mensageria (REQ-14.02.003), esta credencial é armazenada em texto plano no banco de dados, como desvio deliberado e temporário do princípio de nunca persistir segredo — decisão registrada no código com pendência explícita de criptografia antes de produção.
+#### REQ-14.06.004 - Cada provedor deve poder ter o modelo escolhido; em branco, vale o modelo padrão do provedor (no Gemini, o configurado no sistema).
+#### REQ-14.06.005 - No máximo um provedor pode estar ativo para a geração; sem nenhum ativo, vale o Gemini. Ativar um provedor desativa o anterior, e remover a credencial do provedor ativo devolve a geração ao Gemini.
+#### REQ-14.06.006 - Ao editar a credencial de um provedor já configurado, a chave em branco mantém a atual; a chave só é obrigatória na primeira configuração do provedor.
 ---
 
 <br/><br/>

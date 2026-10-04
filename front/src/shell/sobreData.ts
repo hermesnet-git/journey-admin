@@ -87,10 +87,22 @@ export const EPICS: Epic[] = [
         code: 'US-02.01',
         name: 'Cadastro de jornadas',
         requirements: [
-          d('REQ-02.01.001', 'O sistema deve permitir criar jornadas.'),
-          d('REQ-02.01.002', 'O sistema deve permitir editar jornadas.'),
-          d('REQ-02.01.003', 'O sistema deve permitir consultar jornadas.'),
-          d('REQ-02.01.004', 'O sistema deve permitir remover fisicamente somente jornadas que nunca tenham sido publicadas.'),
+          d(
+            'REQ-02.01.001',
+            'O sistema deve permitir criar jornadas.',
+          ),
+          d(
+            'REQ-02.01.002',
+            'O sistema deve permitir editar jornadas.',
+          ),
+          d(
+            'REQ-02.01.003',
+            'O sistema deve permitir consultar jornadas.',
+          ),
+          d(
+            'REQ-02.01.004',
+            'O sistema deve permitir remover fisicamente somente jornadas que nunca tenham sido publicadas.',
+          ),
           d(
             'REQ-02.01.005',
             'Uma jornada que possua ou tenha possuído publicação não deve poder ser removida fisicamente; ao ser excluída, o sistema deve desativá-la automaticamente (em vez de bloquear a operação), preservando o registro de publicação.',
@@ -106,6 +118,14 @@ export const EPICS: Epic[] = [
           d(
             'REQ-02.01.009',
             'Uma jornada INACTIVE não deve poder ser editada (nem seus dados nem seu fluxo) nem excluída novamente; as ações "Editar" e "Excluir" devem ficar desabilitadas para essas jornadas.',
+          ),
+          d(
+            'REQ-02.01.010',
+            'Uma jornada recém-criada, de qualquer forma (em branco, modelo, IA ou Figma), só passa a valer depois que o autor a confirma com "Salvar" no editor; ao cancelar no editor, o sistema deve pedir confirmação e excluir a jornada como se nunca tivesse existido.',
+          ),
+          d(
+            'REQ-02.01.011',
+            'O fluxo gerado por IA ou importado do Figma deve abrir no editor como alteração ainda não salva; "Salvar" grava o fluxo e deixa o rascunho (versão DRAFT) para publicação posterior, e numa jornada recém-criada confirma a criação mesmo quando nada mais foi alterado.',
           ),
         ],
       },
@@ -670,24 +690,47 @@ export const EPICS: Epic[] = [
         requirements: [
           d(
             'REQ-03.17.001',
-            'O sistema deve permitir gerar automaticamente um rascunho de fluxo a partir de uma descrição em linguagem natural (prompt), preenchendo nós e conexões no canvas do editor.',
+            'O sistema deve permitir criar uma jornada completa a partir de uma descrição em linguagem natural (prompt), na aba "IA" de "Nova jornada": o fluxo (etapas, ligações, decisões e caminho "Se falhar"), as telas com seus campos, as integrações e as seções e anotações do canvas.',
           ),
           d(
             'REQ-03.17.002',
-            'A geração deve depender de uma credencial de API de IA configurada (US-14.06); sem credencial, o sistema deve informar o usuário e recusar a geração.',
+            'A geração deve depender de uma credencial de API do provedor de IA ativo (US-14.06; o Gemini quando nenhum outro está ativo); sem credencial configurada, o sistema deve informar o usuário e recusar a geração, sem expor detalhe técnico do provedor.',
           ),
           d(
             'REQ-03.17.003',
-            'Um fluxo gerado que viole a validação estrutural deve ser corrigido e reenviado ao modelo (retry/reparo) dentro de um número limitado de tentativas, incluindo a rejeição de aspas escapadas em condição de gateway.',
+            'O modelo de IA descreve a jornada de forma compacta e o sistema monta o fluxo real (identificadores, telas do catálogo, ligações, grafia das variáveis); o que dá para inferir é preenchido, o que violar as validações volta ao modelo em até três tentativas, com os problemas em termos da descrição e agrupados; esgotadas, mensagem clara ao usuário. Inclui a rejeição de aspas escapadas em condição de decisão.',
           ),
           d(
             'REQ-03.17.004',
             'O fluxo gerado deve ser apresentado como rascunho editável, sujeito às mesmas regras de validação e revisão manual de um fluxo criado por edição direta.',
           ),
-          d('REQ-03.17.005', 'Ao concluir a geração, o canvas deve reposicionar automaticamente a visualização do fluxo gerado (REQ-03.05.005).'),
           d(
-            'REQ-03.17.006',
-            'A geração deve considerar o fluxo já desenhado no canvas como contexto — pedido aditivo/pontual não deve remover ou recriar o que não tem relação com ele; id, posição e tela de um nó não afetado devem ser preservados.',
+            'REQ-03.17.005',
+            'Ao concluir a geração, o canvas deve reposicionar automaticamente a visualização do fluxo gerado.',
+          ),
+          d(
+            'REQ-03.17.007',
+            'A geração deve se limitar a jornadas digitais de atendimento e autoatendimento; o sistema deve recusar, com motivo ao usuário, o pedido que não seja criar uma jornada, que tente revelar, ignorar ou mudar as instruções da IA, que peça coleta de senha, cartão completo, CVV ou token, que tenha conteúdo ilegal, fraudulento ou ofensivo, que mande dados a endereço não informado ou que peça mais de 20 telas (limite também conferido ao montar).',
+          ),
+          d(
+            'REQ-03.17.008',
+            'As telas geradas devem usar só componentes do catálogo e perguntas de escolha, nota de 1 a 5, nota de 0 a 10, sim/não, texto curto, texto longo, data ou marcar; em questionário o sistema monta campos, valores e escalas, e quando o pedido deixa o conteúdo em aberto a IA cria perguntas e opções completas.',
+          ),
+          d(
+            'REQ-03.17.009',
+            'A grafia das variáveis é garantida pelo sistema: nas telas form.x/data.x; em conector, mensageria e decisão, só a forma do motor. Decisão sobre pergunta de escolha aceita o texto ou o valor interno e grava o valor interno; maior/menor com número é numérico; valor que não é uma escolha, ou campo que nenhuma tela define, volta à IA.',
+          ),
+          d(
+            'REQ-03.17.010',
+            'O que depende do ambiente ou não foi informado no pedido não é inventado nem motivo de recusa: cluster, tópico e credencial de mensageria, endereço de API ausente e o mapeamento da resposta de uma API (suposto pela IA) ficam em branco ou marcados e sinalizados por anotação no canvas; em chamada com corpo, o corpo leva os dados coletados pelas telas.',
+          ),
+          d(
+            'REQ-03.17.011',
+            'A jornada gerada começa pelo canal, sem entradas nem início por mensagem, a menos que o pedido indique isso; entradas que repetem um campo coletado numa tela são descartadas.',
+          ),
+          d(
+            'REQ-03.17.012',
+            'Falhas passageiras do provedor de IA (excesso de uso, indisponibilidade ou queda de conexão) são repetidas automaticamente; chave recusada, modelo inexistente e excesso de uso têm mensagens claras apontando para a credencial de IA.',
           ),
         ],
       },
@@ -2057,19 +2100,28 @@ export const EPICS: Epic[] = [
         requirements: [
           d(
             'REQ-14.06.001',
-            'O sistema deve permitir cadastrar, atualizar e remover uma credencial de API de um provedor de IA (Gemini), restrito ao papel ADMIN.',
+            'O sistema deve permitir cadastrar, atualizar e remover a credencial de API de um provedor de IA — Gemini, Claude (Anthropic), OpenAI ou GitHub Models —, restrito ao papel ADMIN.',
           ),
           d(
             'REQ-14.06.002',
-            'A API não deve, em nenhuma resposta, retornar o valor da chave salva — apenas seu status (configurada/não configurada) e a data da última atualização.',
+            'A API não deve, em nenhuma resposta, retornar o valor da chave salva — apenas se está configurada, o modelo escolhido, se é o provedor ativo e a data da última atualização.',
           ),
-          {
-            code: 'REQ-14.06.003',
-            description:
-              'Diferente do catálogo de credenciais de mensageria (REQ-14.02.003), esta credencial é armazenada em texto plano, como desvio deliberado e temporário do princípio de nunca persistir segredo.',
-            status: 'done',
-            notes: 'Pendente: criptografar/descriptografar a chave ao usar, antes de produção — TODO registrado no código.',
-          },
+          d(
+            'REQ-14.06.003',
+            'Diferente do catálogo de credenciais de mensageria (REQ-14.02.003), esta credencial é armazenada em texto plano, como desvio deliberado e temporário do princípio de nunca persistir segredo.',
+          ),
+          d(
+            'REQ-14.06.004',
+            'Cada provedor pode ter o modelo escolhido; em branco, vale o modelo padrão do provedor (no Gemini, o configurado no sistema).',
+          ),
+          d(
+            'REQ-14.06.005',
+            'No máximo um provedor pode estar ativo para a geração; sem nenhum ativo, vale o Gemini. Ativar desativa o anterior, e remover a credencial do ativo devolve a geração ao Gemini.',
+          ),
+          d(
+            'REQ-14.06.006',
+            'Ao editar a credencial de um provedor já configurado, a chave em branco mantém a atual; a chave só é obrigatória na primeira configuração do provedor.',
+          ),
         ],
       },
     ],
@@ -2204,7 +2256,13 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-10-04 05:10 (não commitado)',
+    date: '2026-10-04 13:27',
+    source: 'progresso',
+    summary:
+      '**Geração de jornada por IA reconstruída e criação confirmada no Salvar (US-02.01, US-03.17, US-14.06; 11 REQs novos, 4 reescritos, 1 removido).** REQ-02.01.010/011 novos: toda jornada nova, de qualquer forma de criar, só vale depois do Salvar, o fluxo gerado abre no editor como alteração não salva e cancelar exclui a jornada. US-03.17: REQ-03.17.001, 002 e 003 reescritos (jornada completa, provedor ativo, descrição compacta montada pelo sistema, três tentativas) e REQ-03.17.006 removido (a geração só ocorre na criação); REQ-03.17.007 a 012 novos (escopo e recusas, componentes e perguntas, grafia e decisões garantidas pelo sistema, o que depende do ambiente vira anotação, início só pelo canal, repetição em falha passageira do provedor). US-14.06: REQ-14.06.001 e 002 reescritos e REQ-14.06.004 a 006 novos (Claude, OpenAI e GitHub Models além do Gemini, modelo por provedor, um provedor ativo, chave em branco mantém a atual). Testado ao vivo em 2026-10-04: pedidos fora do escopo recusados, decisões de menu, nota e laço percorridas na execução, integração REST com "Se falhar" e POST de ponta a ponta, e o fluxo de criar, salvar e cancelar no navegador. FT-02: 54 → 56 REQs; FT-03: 132 → 137; FT-14: 33 → 36; total geral: 619 → 629.',
+  },
+  {
+    date: '2026-10-04 05:21',
     source: 'progresso',
     summary:
       '**Novo visual do Dashboard (US-13.10, 26 REQs novos).** Prévia registrada como REQ-13.10.001 a 005 (`in_progress`, dados de exemplo) e 21 REQs `todo` com o que precisa ser analisado antes de implementar (REQ-13.10.006 a 026). Visões 5 a 13 da ideação inicial, Modo TV, Modelos, Compartilhar, fila de aprovação e metas de serviço ficaram de fora. Estudo salvo em `requisitos/ideacao/novo_dashboard.html`. FT-13: 24 → 50 REQs; total geral: 593 → 619.',
@@ -2681,6 +2739,9 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-04 13:27', source: 'git', summary: 'IA: jornada completa por descrição, quatro provedores e criação confirmada no Salvar.', epics: ['FT-02', 'FT-03', 'FT-14'] },
+  { date: '2026-10-04 05:21', source: 'git', summary: 'Requisitos: US-13.10 Novo visual e ideação do novo Dashboard.', epics: ['FT-13'] },
+  { date: '2026-10-04 05:21', source: 'git', summary: 'Dashboard: prévia sem a fila de aprovação.', epics: ['FT-13'] },
   { date: '2026-10-04 04:46', source: 'git', summary: 'Dashboard: prévia do novo visual com Mapa, Monitoramento e Governança.', epics: ['FT-13'] },
   { date: '2026-10-03 18:24', source: 'git', summary: 'Registro: evidência de salvar, Execução e Diagnóstico, e horário real do commit.' },
   { date: '2026-10-03 18:19', source: 'git', summary: 'Seção criada pela paleta em lugar livre; requisitos da bolinha e da seção.', epics: ['FT-03'] },

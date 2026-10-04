@@ -28,6 +28,7 @@ import {
   type TrendGranularity,
 } from './api';
 import { dailyToPoints, hourlyToPoints, HorizontalBarChart, TrendChart } from './charts';
+import { PreviewDashboard, VisualToggle, type DashboardVisual } from './preview/PreviewDashboard';
 
 const AUTO_REFRESH_MS = 30_000;
 
@@ -43,7 +44,33 @@ interface Props {
   onOpenDiagnostics: (instance: { id: string; journeyName: string | null }) => void;
 }
 
-export function DashboardPage({ onOpenDiagnostics }: Props) {
+const VISUAL_KEY = 'dashboard.visual';
+
+function readVisual(): DashboardVisual {
+  try {
+    return localStorage.getItem(VISUAL_KEY) === 'novo' ? 'novo' : 'atual';
+  } catch {
+    return 'atual';
+  }
+}
+
+// Interruptor entre o Dashboard de hoje e a prévia do novo visual (dados de exemplo). A escolha fica
+// guardada no navegador.
+export function DashboardPage(props: Props) {
+  const [visual, setVisual] = useState<DashboardVisual>(readVisual);
+  const change = (next: DashboardVisual) => {
+    setVisual(next);
+    try {
+      localStorage.setItem(VISUAL_KEY, next);
+    } catch {
+      // sem armazenamento: vale só nesta sessão
+    }
+  };
+  if (visual === 'novo') return <PreviewDashboard visual={visual} onVisualChange={change} />;
+  return <CurrentDashboard {...props} headerExtra={<VisualToggle value={visual} onChange={change} />} />;
+}
+
+function CurrentDashboard({ onOpenDiagnostics, headerExtra }: Props & { headerExtra?: React.ReactNode }) {
   const { colors: c } = useAppTheme();
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -160,7 +187,8 @@ export function DashboardPage({ onOpenDiagnostics }: Props) {
             Retrato ao vivo dos processos em execução no motor de runtime
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {headerExtra}
           {lastUpdated && (
             <span className="text-[12px]" style={{ color: c.textMuted }}>
               Atualizado {lastUpdated.toLocaleTimeString('pt-BR')}

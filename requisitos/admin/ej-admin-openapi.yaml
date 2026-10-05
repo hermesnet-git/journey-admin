@@ -38,6 +38,7 @@ tags:
   - name: Authentication
   - name: Versions
   - name: Audit
+  - name: AI
 
 paths:
   /auth/login:
@@ -909,6 +910,108 @@ paths:
               schema:
                 $ref: '#/components/schemas/JourneyPublication'
 
+  # Geração de jornada por IA (US-03.17, reconstruída em 2026-10-04).
+  /journeys/{journeyId}/flow/generate:
+    post:
+      tags: [AI]
+      summary: Generate a journey flow from a natural-language prompt (REQ-03.17.001)
+      description: >
+        Streams Server-Sent Events while the AI builds the flow. Nothing is persisted: the "result"
+        event carries a flow in the same format as GET /flow, which the editor opens as an unsaved
+        change (the author confirms with Save, REQ-02.01.010/011). Events:
+        "progress" (text, one per step of the attempt loop, up to 5 attempts, REQ-03.17.003);
+        "result" (Flow); "clarification" (ClarificationRequest — the AI needs a decisive piece of
+        information first, REQ-03.17.013; call again with the prompt plus the user decisions and
+        rounds incremented, up to 5 rounds); "error" (ApiError — 422 REQUEST_OUT_OF_SCOPE when the
+        request is refused, REQ-03.17.007; 502 AI_GENERATION_UNAVAILABLE when no valid journey was
+        produced or the provider failed, REQ-03.17.012). Requires an active AI provider credential
+        (REQ-03.17.002). Roles EDITOR and ADMIN.
+      operationId: generateFlow
+      parameters:
+        - $ref: '#/components/parameters/JourneyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateFlowRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '200':
+          description: Server-Sent Events stream (progress, result, clarification or error)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  # Credencial de provedor de IA (US-14.06). A chave nunca é devolvida (REQ-14.02.003).
+  /ai-credentials/{provider}:
+    parameters:
+      - $ref: '#/components/parameters/AiProvider'
+    get:
+      tags: [AI]
+      summary: Get the credential status of an AI provider
+      description: Roles VIEWER, EDITOR and ADMIN. Never returns the API key.
+      operationId: getAiCredentialStatus
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Status (configured=false when the provider has no credential)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiCredentialStatus'
+    put:
+      tags: [AI]
+      summary: Save the credential of an AI provider (REQ-14.06.001, REQ-14.06.004 to 006)
+      description: >
+        Role ADMIN. A blank apiKey keeps the one already saved (required only the first time);
+        a blank model uses the provider default; active=true makes this provider the one used by
+        the generation and deactivates the others (one active at a time).
+      operationId: saveAiCredential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiCredentialInput'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '200':
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiCredentialStatus'
+    delete:
+      tags: [AI]
+      summary: Remove the credential of an AI provider
+      description: Role ADMIN.
+      operationId: deleteAiCredential
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '204':
+          description: Removed
+
+
 components:
   securitySchemes:
     bearerAuth:
@@ -976,6 +1079,14 @@ components:
       schema:
         type: string
         format: uuid
+
+    AiProvider:
+      name: provider
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [GEMINI, ANTHROPIC, OPENAI, GITHUB_MODELS]
 
     PublicationId:
       name: publicationId
@@ -1853,3 +1964,81 @@ components:
         journeyId:
           type: string
           format: uuid
+
+    GenerateFlowRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          maxLength: 6000
+          description: >
+            The journey description. After clarification rounds, the original text followed by
+            "Decisões do usuário:" and one line per decision (question and chosen answer).
+        rounds:
+          type: integer
+          minimum: 0
+          maximum: 20
+          default: 0
+          description: How many rounds of clarification questions the prompt already answers.
+
+    ClarificationRequest:
+      type: object
+      required: [questions]
+      properties:
+        questions:
+          type: array
+          description: From one to three independent questions; none depends on another's answer.
+          items:
+            $ref: '#/components/schemas/ClarificationQuestion'
+
+    ClarificationQuestion:
+      type: object
+      required: [question, options]
+      properties:
+        question:
+          type: string
+        header:
+          type: string
+          description: Short title used as the tab label.
+        options:
+          type: array
+          description: Ready answers; the first is the recommended one. "Other answer" is added by the client.
+          items:
+            type: object
+            required: [label]
+            properties:
+              label:
+                type: string
+              description:
+                type: string
+
+    AiCredentialInput:
+      type: object
+      properties:
+        apiKey:
+          type: string
+          format: password
+          description: Blank keeps the key already saved.
+        model:
+          type: string
+          maxLength: 100
+          description: Blank uses the provider default.
+        active:
+          type: boolean
+
+    AiCredentialStatus:
+      type: object
+      required: [configured, active]
+      properties:
+        configured:
+          type: boolean
+        model:
+          type: string
+          nullable: true
+        active:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true

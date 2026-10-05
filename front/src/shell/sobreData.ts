@@ -734,7 +734,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.17.013',
-            'A IA deve perguntar ao usuário, antes de gerar, quando falta um dado decisivo para criar a jornada — o objetivo, o endereço de uma API, os dados que a resposta da API devolve ou o critério de uma decisão —, em vez de supor. Cada rodada traz de uma a três perguntas, em abas (uma por pergunta), cada uma com respostas prontas, a primeira marcada como recomendada, e a opção "Outra resposta" para o usuário escrever a sua. A IA pode perguntar em quantas rodadas forem necessárias, até o limite de cinco, sem repetir uma pergunta já respondida e sem perguntar o que pode decidir sozinha (textos, nomes de etapas, visual das telas).',
+            'A IA deve perguntar ao usuário, antes de gerar, quando falta um dado decisivo para criar a jornada — o objetivo, o endereço de uma API, os dados que a resposta da API devolve ou o critério de uma decisão —, em vez de supor. Cada rodada traz de uma a três perguntas, em abas (uma por pergunta), cada uma com respostas prontas, a primeira marcada como recomendada, e a opção "Outra resposta" para o usuário escrever a sua. Nenhuma resposta vem pré-selecionada: o usuário precisa escolher uma. As perguntas de uma mesma rodada são independentes, porque o usuário as responde de uma vez: nenhuma pressupõe a resposta de outra, e o que depende de outra resposta fica para a rodada seguinte. "Continuar" leva à próxima pergunta sem resposta e só segue para o resumo com todas respondidas. A IA pode perguntar em quantas rodadas forem necessárias, até o limite de cinco, sem repetir uma pergunta já respondida e sem perguntar o que pode decidir sozinha (textos, nomes de etapas, visual das telas).',
           ),
           d(
             'REQ-03.17.014',
@@ -796,9 +796,9 @@ export const EPICS: Epic[] = [
           {
             code: 'REQ-03.20.003',
             description:
-              'Recolher em bloco com a contagem; só a primeira ligação que chega no grupo liga no bloco, as que saem dele somem; estado por usuário.',
+              'Recolher em bloco com a contagem; toda ligação que entra ou sai das etapas recolhidas liga no bloco (a saída vai até o destino ou até o bloco da seção de destino; ligações repetidas viram uma só); linhas só de visualização; estado por usuário.',
             status: 'done',
-            notes: 'Reescrito em 2026-10-03 (antes: todas as ligações que entravam e saíam passavam a ligar no bloco); conferido no navegador com as 4 seções da \"Gestão de BDs v2\" recolhidas.',
+            notes: 'Reescrito em 2026-10-03 e em 2026-10-05 (voltou a mostrar todas as ligações, agora agregadas por par de origem e destino); conferido no navegador com duas seções recolhidas.',
           },
           d('REQ-03.20.004', 'Seção com destino de "Se falhar" com nome em vermelho.'),
           {
@@ -2276,6 +2276,12 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-10-05 00:41 (não commitado)',
+    source: 'progresso',
+    summary:
+      '**Perguntas da IA sem resposta pré-selecionada e independentes, e seção recolhida com todas as ligações (REQ-03.17.013 e REQ-03.20.003 reescritos; nenhum REQ novo).** REQ-03.17.013: nenhuma resposta vem pré-selecionada, "Continuar" leva à próxima pergunta sem resposta e só segue para o resumo com todas respondidas, e as perguntas de uma mesma rodada são independentes (o que depende de outra resposta fica para a rodada seguinte). REQ-03.20.003: a seção recolhida passa a mostrar todas as ligações que entram e saem dela — a saída vai até a etapa de destino ou até o bloco da seção de destino, ligações repetidas entre os mesmos pontos viram uma só, e o usuário não seleciona, apaga, religa nem puxa linha a partir da seção. Perguntas testadas pela API e as seções recolhidas conferidas no navegador em 2026-10-05; o contrato da API de credencial de IA e da geração por IA entrou no OpenAPI.',
+  },
+  {
     date: '2026-10-05 00:00 (não commitado)',
     source: 'progresso',
     summary:
@@ -2765,6 +2771,9 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-05 00:36', source: 'git', summary: 'Canvas: seção recolhida mostra todas as ligações que entram e saem dela.', epics: ['FT-03'] },
+  { date: '2026-10-05 00:10', source: 'git', summary: 'IA: perguntas sem resposta pré-selecionada, Continuar guiado e perguntas independentes.', epics: ['FT-03'] },
+  { date: '2026-10-05 00:01', source: 'git', summary: 'IA: endereço e resposta de API inventados são descartados, fins separados e requisitos atualizados.', epics: ['FT-03'] },
   { date: '2026-10-04 23:37', source: 'git', summary: 'IA: perguntas de esclarecimento em várias rodadas, cinco tentativas e registro colorido.', epics: ['FT-03'] },
   { date: '2026-10-04 23:22', source: 'git', summary: 'Conector de mensageria: credencial logo após o cluster no passo Conexão.', epics: ['FT-03'] },
   { date: '2026-10-04 13:32', source: 'git', summary: 'Requisitos: geração de jornada por IA, provedores de IA e criação confirmada no Salvar.', epics: ['FT-02', 'FT-03', 'FT-14'] },

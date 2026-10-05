@@ -556,6 +556,53 @@ export function ConnectorWizard({
                 inputStyle={inputStyle(c)}
               />
             </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={labelStyle(c)}>Credencial</div>
+              <SearchSelect
+                items={brokerCredentialsForCluster}
+                getId={(cred) => cred.referenceName}
+                getLabel={(cred) => cred.referenceName}
+                value={draft.credentialRef}
+                onChange={(referenceName) => {
+                  updateDraft({ credentialRef: referenceName });
+                  setConnectionTestResult(null);
+                }}
+                placeholder={brokerClusterId ? 'Nenhuma credencial cadastrada' : 'Escolha um cluster primeiro'}
+                emptyLabel="Nenhuma credencial encontrada — cadastre em Catálogo de Integrações"
+                inputStyle={inputStyle(c)}
+              />
+  
+              {draft.credentialRef && (
+                <div style={{ marginTop: 12 }}>
+                  <button
+                    type="button"
+                    onClick={runConnectionTest}
+                    disabled={testingConnection}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '7px 14px',
+                      borderRadius: 8,
+                      border: `1px solid ${c.border}`,
+                      background: c.cardBg,
+                      color: c.textPrimary,
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: testingConnection ? 'default' : 'pointer',
+                    }}
+                  >
+                    {testingConnection ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+                    {testingConnection ? 'Testando...' : 'Testar conexão'}
+                  </button>
+                  {connectionTestResult && (
+                    <div style={{ marginTop: 8, fontSize: 12.5, color: connectionTestResult.ok ? c.accent : c.danger }}>
+                      {connectionTestResult.message}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div style={labelStyle(c)}>{brokerTopicLabel}</div>
             <div style={{ marginBottom: 12 }}>
               <SearchSelect
@@ -580,51 +627,6 @@ export function ConnectorWizard({
             >
               {(draft.config?.operation as string) ?? '—'}
             </div>
-            <div style={labelStyle(c)}>Credencial</div>
-            <SearchSelect
-              items={brokerCredentialsForCluster}
-              getId={(cred) => cred.referenceName}
-              getLabel={(cred) => cred.referenceName}
-              value={draft.credentialRef}
-              onChange={(referenceName) => {
-                updateDraft({ credentialRef: referenceName });
-                setConnectionTestResult(null);
-              }}
-              placeholder={brokerClusterId ? 'Nenhuma credencial cadastrada' : 'Escolha um cluster primeiro'}
-              emptyLabel="Nenhuma credencial encontrada — cadastre em Catálogo de Integrações"
-              inputStyle={inputStyle(c)}
-            />
-
-            {draft.credentialRef && (
-              <div style={{ marginTop: 12 }}>
-                <button
-                  type="button"
-                  onClick={runConnectionTest}
-                  disabled={testingConnection}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '7px 14px',
-                    borderRadius: 8,
-                    border: `1px solid ${c.border}`,
-                    background: c.cardBg,
-                    color: c.textPrimary,
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: testingConnection ? 'default' : 'pointer',
-                  }}
-                >
-                  {testingConnection ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
-                  {testingConnection ? 'Testando...' : 'Testar conexão'}
-                </button>
-                {connectionTestResult && (
-                  <div style={{ marginTop: 8, fontSize: 12.5, color: connectionTestResult.ok ? c.accent : c.danger }}>
-                    {connectionTestResult.message}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         );
       case 'Dados': {

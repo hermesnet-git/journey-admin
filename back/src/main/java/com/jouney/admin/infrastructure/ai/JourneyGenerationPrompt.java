@@ -56,6 +56,11 @@ final class JourneyGenerationPrompt {
             diz;
             - o critério de uma decisão que depende de um valor que só o usuário conhece (ex.: o que é uma nota \
             "baixa").
+            As perguntas de uma mesma rodada são INDEPENDENTES: o usuário responde todas de uma vez, sem ver as \
+            respostas das outras, então nenhuma pode pressupor a resposta de outra nem escolher o que outra ainda \
+            vai decidir. Se uma pergunta só faz sentido depois de outra ser respondida (ex.: o conteúdo de uma \
+            jornada que depende do objetivo ainda não escolhido), faça só a primeira agora e deixe a outra para a \
+            próxima rodada, já com a resposta no pedido. Com um pedido sem objetivo, pergunte só o objetivo.
             Faça de 1 a 3 perguntas curtas por rodada. Cada pergunta traz de 2 a 4 respostas prontas, e a \
             PRIMEIRA é a que você recomenda; o usuário também pode escrever outra resposta — é assim que ele \
             informa um endereço ou um valor. Quando o dado é um texto que só o usuário sabe (um endereço, os \

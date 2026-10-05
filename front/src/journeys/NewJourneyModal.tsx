@@ -15,10 +15,11 @@ import { FigmaImportTab, type FigmaImportSelection } from './FigmaImportTab';
 import {
   ClarificationForm,
   ClarificationSummary,
-  answersComplete,
   buildEnrichedPrompt,
   currentDecisions,
   initialAnswers,
+  nextUnanswered,
+  answerText,
   type AiAnswer,
   type AiDecision,
 } from './AiClarification';
@@ -114,6 +115,8 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
   const [aiStage, setAiStage] = useState<AiStage>('prompt');
   const [aiQuestions, setAiQuestions] = useState<ClarificationQuestion[]>([]);
   const [aiAnswers, setAiAnswers] = useState<AiAnswer[]>([]);
+  // Aba (pergunta) aberta na etapa de perguntas.
+  const [aiTab, setAiTab] = useState(0);
   // Decisões das rodadas anteriores (as da rodada em andamento ficam em aiAnswers) e quantas rodadas já foram respondidas.
   const [aiHistory, setAiHistory] = useState<AiDecision[]>([]);
   const [aiRounds, setAiRounds] = useState(0);
@@ -166,7 +169,13 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
 
   async function submit() {
     if (mode === 'ai' && aiStage === 'questions') {
-      setAiStage('summary');
+      // Continuar leva à próxima pergunta sem resposta; só com todas respondidas segue para o resumo.
+      const next = nextUnanswered(aiQuestions, aiAnswers, aiTab);
+      if (next >= 0) {
+        setAiTab(next);
+      } else {
+        setAiStage('summary');
+      }
       return;
     }
     setSaving(true);
@@ -224,6 +233,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
           setAiRounds(rounds);
           setAiQuestions(outcome.questions);
           setAiAnswers(initialAnswers(outcome.questions));
+          setAiTab(0);
           setAiStage('questions');
           setAiLog([]);
           setSaving(false);
@@ -286,7 +296,8 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
       : mode === 'figma'
         ? baseFieldsValid && !!figmaSelection
         : mode === 'ai'
-          ? baseFieldsValid && !!aiPrompt.trim() && (aiStage !== 'questions' || answersComplete(aiQuestions, aiAnswers))
+          ? baseFieldsValid && !!aiPrompt.trim() && (aiStage !== 'questions' ||
+              (!!aiQuestions[aiTab] && !!aiAnswers[aiTab] && answerText(aiQuestions[aiTab], aiAnswers[aiTab]) !== ''))
           : baseFieldsValid;
 
   return (
@@ -410,7 +421,14 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
 
           {mode === 'ai' && aiStage === 'questions' && (
             <div className="mt-3 flex-1 min-h-0 flex flex-col">
-              <ClarificationForm questions={aiQuestions} answers={aiAnswers} onChange={setAiAnswers} disabled={saving} />
+              <ClarificationForm
+                questions={aiQuestions}
+                answers={aiAnswers}
+                onChange={setAiAnswers}
+                active={aiTab}
+                onActiveChange={setAiTab}
+                disabled={saving}
+              />
             </div>
           )}
           {mode === 'ai' && aiStage === 'summary' && (

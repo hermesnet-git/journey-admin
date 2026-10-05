@@ -1,11 +1,10 @@
-import { useState } from 'react';
 import type { ClarificationQuestion } from '../api/flows';
 import { useAppTheme } from '../shell/theme';
 
 // Resposta do usuário a uma pergunta da IA: uma das respostas prontas (a primeira é a recomendada) ou o
-// texto que ele escreveu no lugar.
+// texto que ele escreveu no lugar. choice null = ainda não respondeu: nada vem pré-selecionado, nem a recomendada.
 export interface AiAnswer {
-  choice: number | 'other';
+  choice: number | 'other' | null;
   other: string;
 }
 
@@ -25,16 +24,12 @@ export function currentDecisions(questions: ClarificationQuestion[], answers: Ai
 }
 
 export function initialAnswers(questions: ClarificationQuestion[]): AiAnswer[] {
-  // A resposta recomendada já vem marcada: aceitar tudo é só continuar.
-  return questions.map(() => ({ choice: 0, other: '' }));
+  return questions.map(() => ({ choice: null, other: '' }));
 }
 
 export function answerText(question: ClarificationQuestion, answer: AiAnswer): string {
+  if (answer.choice === null) return '';
   return answer.choice === 'other' ? answer.other.trim() : question.options[answer.choice]?.label ?? '';
-}
-
-export function answersComplete(questions: ClarificationQuestion[], answers: AiAnswer[]): boolean {
-  return questions.every((q, i) => !!answers[i] && answerText(q, answers[i]) !== '');
 }
 
 // O que a IA recebe a cada chamada depois das perguntas: o pedido de antes mais todas as decisões, de todas as
@@ -44,25 +39,35 @@ export function buildEnrichedPrompt(original: string, decisions: AiDecision[]): 
   return `${original.trim()}\n\nDecisões do usuário:\n${lines}`;
 }
 
+// Próxima pergunta sem resposta depois da aba atual (voltando ao começo se preciso); -1 quando todas foram respondidas.
+export function nextUnanswered(questions: ClarificationQuestion[], answers: AiAnswer[], from: number): number {
+  for (let step = 1; step <= questions.length; step++) {
+    const i = (from + step) % questions.length;
+    if (!answers[i] || answerText(questions[i], answers[i]) === '') return i;
+  }
+  return -1;
+}
+
 interface FormProps {
   questions: ClarificationQuestion[];
   answers: AiAnswer[];
   onChange: (next: AiAnswer[]) => void;
+  active: number;
+  onActiveChange: (index: number) => void;
   disabled?: boolean;
 }
 
-export function ClarificationForm({ questions, answers, onChange, disabled }: FormProps) {
+export function ClarificationForm({ questions, answers, onChange, active, onActiveChange, disabled }: FormProps) {
   const { colors: c } = useAppTheme();
   // Uma aba por pergunta, como no chat: só a pergunta da aba ativa aparece.
-  const [active, setActive] = useState(0);
   const update = (index: number, patch: Partial<AiAnswer>) =>
     onChange(answers.map((a, i) => (i === index ? { ...a, ...patch } : a)));
 
   return (
     <div className="flex flex-col gap-3 overflow-y-auto">
       <div className="text-[11.5px] leading-[1.4]" style={{ color: c.textSecondary }}>
-        A IA precisa de mais informações para montar a jornada. A primeira resposta de cada pergunta é a recomendada;
-        escolha outra ou escreva a sua.
+        A IA precisa de mais informações para montar a jornada. Responda cada pergunta: a primeira resposta é a
+        recomendada, mas você pode escolher outra ou escrever a sua.
       </div>
       {questions.length > 1 && (
         <div className="flex gap-1 border-b flex-wrap" role="tablist" style={{ borderColor: c.border }}>
@@ -75,7 +80,7 @@ export function ClarificationForm({ questions, answers, onChange, disabled }: Fo
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                onClick={() => setActive(qi)}
+                onClick={() => onActiveChange(qi)}
                 className="px-3 py-[6px] text-[12.5px] font-semibold bg-transparent border-0 border-b-2 -mb-px cursor-pointer flex items-center gap-[6px]"
                 style={{ borderBottomColor: selected ? c.accent : 'transparent', color: selected ? c.accent : c.textSecondary }}
               >
@@ -88,7 +93,7 @@ export function ClarificationForm({ questions, answers, onChange, disabled }: Fo
       )}
       {questions.map((q, qi) => {
         if (qi !== active) return null;
-        const answer = answers[qi] ?? { choice: 0, other: '' };
+        const answer = answers[qi] ?? { choice: null, other: '' };
         return (
           <fieldset
             key={qi}

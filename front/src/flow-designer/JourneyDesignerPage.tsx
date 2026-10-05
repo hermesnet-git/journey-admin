@@ -191,7 +191,7 @@ const OUTGOING_LIMIT_MESSAGE = 'Esta etapa já tem o número máximo de saídas.
 
 // Motivo de recusa do caminho "Se falhar" (mesma regra do FlowValidator), ou null se pode ligar.
 function errorPathRefusal(source: WFNode | undefined, sourceId: string, edges: WFEdge[]): string | null {
-  if (!canHaveErrorPath(source)) return 'O caminho "Se falhar" existe só para integração REST ou publicação de mensagem.';
+  if (!canHaveErrorPath(source)) return 'O caminho "Se falhar" existe só para integração REST, publicação de mensagem ou espera por mensagem.';
   if (edges.some((e) => e.source === sourceId && isErrorEdge(e))) {
     return 'Esta tarefa já tem um caminho "Se falhar". Arraste a ponta do caminho existente para trocar o destino.';
   }

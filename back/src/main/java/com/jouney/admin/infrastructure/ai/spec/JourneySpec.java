@@ -79,7 +79,7 @@ public record JourneySpec(String name, List<VariableSpec> inputs, StartMessageSp
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record MessageSpec(String system, Map<String, Object> payload, List<PairSpec> payloadFields,
-                              List<OutputSpec> outputs) {
+                              List<OutputSpec> outputs, Long waitTimeoutSeconds) {
     }
 
     /** Um caminho de uma Decisão: vale quando {@code ref op value} (ou {@code valueRef}) for verdadeiro. */

@@ -27,6 +27,7 @@ import {
   type WFNodeData,
   describeResilience,
   describeMessagingResilience,
+  describeWait,
 } from './model';
 import { Section } from './PropertiesSection';
 import { ConnectorWizard } from './ConnectorWizard';
@@ -658,7 +659,7 @@ export const OUTPUT_MAPPING_FIELD = 'outputMapping';
 // dentro do ConnectorWizard, o único lugar onde o conector é editado). Uma linha por fato (cluster,
 // tópico, credencial, contagem) — só a contagem, sem listar os nomes dos campos (fica grande demais
 // com muitos campos e o usuário pode sempre abrir "Configurar conector" pra ver o detalhe).
-function describeConnector(connectorConfig: ConnectorConfig, brokerOperation?: 'PRODUCE' | 'CONSUME'): string[] {
+function describeConnector(connectorConfig: ConnectorConfig, brokerOperation?: 'PRODUCE' | 'CONSUME', nodeType?: NodeType): string[] {
   const cfg = connectorConfig.config ?? {};
 
   if (connectorConfig.connectorType === 'REST') {
@@ -695,6 +696,7 @@ function describeConnector(connectorConfig: ConnectorConfig, brokerOperation?: '
     `${topicLabel}: ${(cfg.topic as string) || '—'}`,
     `Credencial: ${connectorConfig.credentialRef || '—'}`,
     ...(isConsume ? [] : [describeMessagingResilience(cfg)]),
+    ...(isConsume && nodeType === 'receiveTask' ? [describeWait(cfg)] : []),
   ];
 
   if (payloadMode === 'GENERIC_DUMP') {
@@ -797,9 +799,9 @@ function ConnectorFields({
             Conector incompleto — falta: {missingFields.join(', ')}
           </div>
         )}
-        {nodeType === 'serviceTask' && connectorConfig?.connectorType !== 'REST' && (
+        {nodeType === 'serviceTask' && !connectorConfig && (
           <div style={{ padding: '6px 10px', borderTop: `1px solid ${c.border}`, color: c.textSecondary, fontSize: 11.5 }}>
-            O caminho "Se falhar" existe só para integração REST ou publicação de mensagem.
+            Escolha um conector (integração REST ou publicação de mensagem) para habilitar o caminho "Se falhar".
           </div>
         )}
       </PropertyGrid>
@@ -830,7 +832,7 @@ function ConnectorFields({
           </button>
 
           <div style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.border}`, background: c.canvasBg }}>
-            {describeConnector(connectorConfig, brokerOperation).map((line, i) => (
+            {describeConnector(connectorConfig, brokerOperation, nodeType).map((line, i) => (
               <div
                 key={i}
                 style={{
@@ -855,6 +857,7 @@ function ConnectorFields({
               credentials={credentials}
               journeyId={journeyId}
               nodeId={nodeId}
+              nodeType={nodeType}
               onConfigUpdate={update}
               onClose={() => setWizardOpen(false)}
             />

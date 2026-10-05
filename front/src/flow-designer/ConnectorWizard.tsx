@@ -18,7 +18,7 @@ import {
   type PayloadField,
 } from './PropertiesPanel';
 import { SearchSelect } from './SearchSelect';
-import { MESSAGING_RESILIENCE_DEFAULTS, MESSAGING_RESILIENCE_MAX, RESILIENCE_DEFAULTS, RESILIENCE_MAX, engineVariableToken, type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin, type VariableType } from './model';
+import { WAIT_TIMEOUT_MAX_MS, WAIT_TIMEOUT_MIN_MS, WAIT_UNITS, splitWait, MESSAGING_RESILIENCE_DEFAULTS, MESSAGING_RESILIENCE_MAX, RESILIENCE_DEFAULTS, RESILIENCE_MAX, engineVariableToken, type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin, type VariableType } from './model';
 import { testCredentialConnection, listClusterTopics, type MessagingCluster, type CredentialReference } from '../api/messaging';
 
 const inputStyle = (c: FlowColors): React.CSSProperties => ({
@@ -157,6 +157,8 @@ const REST_STEPS = ['Conexão', 'Headers', 'Parâmetros & Corpo', 'Testar e Mape
 const BROKER_STEPS = ['Conexão', 'Dados'] as const;
 // Quem publica ganha o passo "Resiliência" (tempo limite, novas tentativas e o caminho "Se falhar"); quem recebe não.
 const BROKER_PRODUCE_STEPS = ['Conexão', 'Dados', 'Resiliência'] as const;
+// Quem espera uma mensagem (Tarefa de Recebimento) ganha o passo "Espera", com o tempo limite; o Início por mensagem não espera.
+const BROKER_WAIT_STEPS = ['Conexão', 'Dados', 'Espera'] as const;
 
 // REQ-14.05.005: Event Hubs/Service Bus reaproveitam o mesmo formato de etapas do Kafka.
 const STEPS_BY_TYPE: Record<ConnectorType, readonly string[]> = {
@@ -173,6 +175,7 @@ interface Props {
   credentials: CredentialReference[];
   journeyId: string;
   nodeId: string;
+  nodeType?: string;
   onConfigUpdate: (patch: Partial<ConnectorConfig>) => void;
   onClose: () => void;
 }
@@ -189,6 +192,7 @@ export function ConnectorWizard({
   credentials,
   journeyId,
   nodeId,
+  nodeType,
   onConfigUpdate,
   onClose,
 }: Props) {
@@ -196,7 +200,9 @@ export function ConnectorWizard({
   const steps: readonly string[] =
     connectorConfig.connectorType !== 'REST' && connectorConfig.config?.operation !== 'CONSUME'
       ? BROKER_PRODUCE_STEPS
-      : STEPS_BY_TYPE[connectorConfig.connectorType];
+      : connectorConfig.connectorType !== 'REST' && nodeType === 'receiveTask'
+        ? BROKER_WAIT_STEPS
+        : STEPS_BY_TYPE[connectorConfig.connectorType];
   const [stepIndex, setStepIndex] = useState(0);
   // "Automático" é sempre o padrão pra um conector de mensageria — cobre tanto quem produz quanto
   // quem consome sem exigir nenhuma configuração; "customizado" é uma escolha explícita do usuário.
@@ -396,6 +402,77 @@ export function ConnectorWizard({
           Para decidir o que acontece quando o envio falha de vez, ligue o caminho <strong style={{ color: c.danger }}>Se falhar</strong>{' '}
           — o ponto vermelho embaixo da etapa no fluxo. Sem esse caminho, a execução para num incidente no Diagnóstico, com a opção
           de tentar de novo.
+        </div>
+      </div>
+    );
+  }
+
+  // Passo "Espera" da espera por mensagem: tempo limite opcional; esgotado, a jornada segue pelo caminho "Se falhar".
+  function renderWaitStep() {
+    const timeout = draft.config?.waitTimeoutMs;
+    const limited = typeof timeout === 'number';
+    const { amount, unit } = splitWait(limited ? timeout : 600_000);
+    const apply = (nextAmount: number, unitMs: number) => {
+      const ms = Math.round(nextAmount * unitMs);
+      updateDraftConfig('waitTimeoutMs', Math.min(WAIT_TIMEOUT_MAX_MS, Math.max(WAIT_TIMEOUT_MIN_MS, ms)));
+    };
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={limited}
+            onChange={(e) => updateDraftConfig('waitTimeoutMs', e.target.checked ? 600_000 : undefined)}
+            style={{ marginTop: 2 }}
+          />
+          <span>
+            <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: c.textPrimary }}>Limitar o tempo de espera</span>
+            <span style={{ display: 'block', fontSize: 11.5, color: c.textSecondary, marginTop: 2 }}>
+              Sem limite, a jornada espera a mensagem para sempre. Com limite, se ela não chegar a tempo a jornada segue pelo caminho
+              "Se falhar".
+            </span>
+          </span>
+        </label>
+
+        {limited && (
+          <div>
+            <div style={labelStyle(c)}>Esperar até</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="number"
+                min={1}
+                style={{ ...inputStyle(c), width: 100 }}
+                value={amount}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isFinite(parsed) && parsed > 0) apply(parsed, unit.ms);
+                }}
+              />
+              <select
+                style={{ ...inputStyle(c), width: 120 }}
+                value={unit.id}
+                onChange={(e) => apply(amount, WAIT_UNITS.find((u) => u.id === e.target.value)!.ms)}
+              >
+                {WAIT_UNITS.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 4 }}>De 10 segundos a 30 dias.</div>
+          </div>
+        )}
+
+        <div style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.border}`, background: c.canvasBg, fontSize: 12, color: c.textSecondary }}>
+          {limited ? (
+            <>
+              Ligue o caminho <strong style={{ color: c.danger }}>Se falhar</strong> — o ponto vermelho embaixo da etapa no fluxo — para
+              dizer o que acontece quando o tempo esgotar. O limite e o caminho andam juntos: um sem o outro é recusado na validação.
+            </>
+          ) : (
+            <>Mensagens que não são desta jornada, ou que chegam mal formadas, são descartadas e a espera continua.</>
+          )}
         </div>
       </div>
     );
@@ -726,6 +803,8 @@ export function ConnectorWizard({
         );
       case 'Resiliência':
         return renderMessagingResilienceStep();
+      case 'Espera':
+        return renderWaitStep();
       case 'Dados': {
         const isConsume = draft.config?.operation === 'CONSUME';
         const payloadMode = (draft.config?.payloadMode as string) === 'CUSTOM' ? 'CUSTOM' : 'GENERIC_DUMP';

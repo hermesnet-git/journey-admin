@@ -335,8 +335,8 @@ export const EPICS: Epic[] = [
             notes:
               'Achado ao vivo: uma jornada nesse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha ao tentar ler o histórico depois (a transação sofre rollback antes de qualquer consulta conseguir lê-lo). Ver REQ-05.08.005 para a checagem equivalente em tempo de execução.',
           },
-          d('REQ-03.02.009', 'SERVICE_TASK com conector (REST ou publicar mensagem) pode ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa, nem receber mensagem; ponto de conexão próprio, sempre visível e disponível assim que um conector é escolhido, e linha distinta no editor; ponto desabilitado com explicação na SERVICE_TASK sem conector.'),
-          d('REQ-03.02.010', 'Ligação recusada avisa o motivo: já tem "Se falhar" (arrastar a ponta para trocar), "Se falhar" só em REST ou publicação de mensagem, ou número máximo de saídas; vale para ligação nova e troca de origem.'),
+          d('REQ-03.02.009', 'SERVICE_TASK com conector (REST ou publicar mensagem) e RECEIVE_TASK com conector de mensageria (espera, quando o tempo limite esgota) podem ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa; ponto de conexão próprio, sempre visível e disponível assim que um conector é escolhido, e linha distinta no editor; ponto desabilitado com explicação na SERVICE_TASK sem conector.'),
+          d('REQ-03.02.010', 'Ligação recusada avisa o motivo: já tem "Se falhar" (arrastar a ponta para trocar), "Se falhar" só em REST, publicação de mensagem ou espera por mensagem, ou número máximo de saídas; vale para ligação nova e troca de origem.'),
           d('REQ-03.02.011', 'Ligação pode ser solta em qualquer parte da etapa de destino; elementos iniciais, a própria origem e anotações não recebem.'),
         ],
       },
@@ -752,11 +752,15 @@ export const EPICS: Epic[] = [
             'REQ-03.17.017',
             'O andamento da geração aparece num registro que ocupa o espaço restante do modal "Nova jornada", com cor por tipo de mensagem (jornada válida, problema apontado, pedido de correção, erro e andamento comum); o campo do pedido pode ser redimensionado na vertical e o exemplo e o texto digitado têm a mesma cor.',
           ),
+          d(
+            'REQ-03.17.018',
+            'A IA pode gerar a espera por mensagem com tempo limite quando o pedido disser quanto esperar, ligando o limite ao caminho "Se falhar" que explica que a resposta não chegou; nunca inventa um tempo que o pedido não deu.',
+          ),
         ],
       },
       {
         code: 'US-03.18',
-        name: 'Resiliência das integrações (REST e publicação de mensagem)',
+        name: 'Resiliência das integrações (REST e mensageria)',
         requirements: [
           d('REQ-03.18.001', 'Passo "Resiliência": tempo para conectar e para responder (padrão 2 s / 10 s, máximo 10 s / 30 s); esgotado, conta como falha.'),
           d('REQ-03.18.002', 'De 0 a 2 novas tentativas com intervalo (até 5 s, dobrando, com variação); só falha passageira (sem conexão, tempo esgotado, 429/502/503/504).'),
@@ -775,6 +779,11 @@ export const EPICS: Epic[] = [
           d('REQ-03.18.010', 'A publicação falha de vez quando, esgotadas as tentativas, o envio não foi confirmado. Com a saída "Se falhar" (REQ-03.02.009), a jornada segue por ela; sem ela, a execução para num incidente — sem repetir para sempre — que pode ser retomado pelo Diagnóstico (REQ-15.03.004). O motivo e cada tentativa aparecem no detalhe do Diagnóstico.'),
           d('REQ-03.18.011', 'Com o broker fora do ar, a espera de cada envio fica limitada ao tempo limite da etapa (no máximo 10 s), em vez de até 60 s, para a publicação de uma instância atrasar o mínimo possível a das outras e o recebimento de mensagens.'),
           d('REQ-03.18.012', 'O assistente deve avisar, quando houver novas tentativas, que uma nova tentativa pode entregar a mesma mensagem mais de uma vez e que o consumidor deve tolerar mensagem repetida; o identificador da instância vai na mensagem (correlationId) para reconhecê-la. O backend rejeita (422) valores de resiliência de mensagem fora dos limites, e o resumo da etapa mostra o tempo limite e as tentativas.'),
+          d('REQ-03.18.013', 'Em "Receber mensagem", o assistente de configuração (US-03.14) deve ter um passo "Espera" com o tempo limite da espera, opcional, de 10 segundos a 30 dias, em segundos, minutos, horas ou dias. Sem limite — o padrão —, a jornada espera a mensagem para sempre. O passo não existe no início por mensagem, que não espera.'),
+          d('REQ-03.18.014', 'Esgotado o tempo limite sem a mensagem chegar, a espera é interrompida e a jornada segue pela saída "Se falhar" da etapa (REQ-03.02.009); o motor confere o tempo a cada poucos segundos, então a saída pode disparar um pouco depois do tempo configurado. O limite e a saída andam juntos: o backend rejeita (422) um sem o outro e um limite fora da faixa, na validação sob demanda e na publicação.'),
+          d('REQ-03.18.015', 'Mensagem que não é desta jornada, sem identificador de instância, mal formatada ou dirigida a uma instância que não existe ou não está esperando é descartada sem erro: a espera continua até a mensagem certa chegar ou o tempo esgotar. O descarte fica só no registro do Runtime Engine, sem lista no Diagnóstico.'),
+          d('REQ-03.18.016', 'O detalhe do Diagnóstico deve mostrar há quanto tempo a instância aguarda a mensagem, e o resumo da etapa no painel de propriedades deve mostrar o tempo limite da espera (ou que ela não tem limite).'),
+          d('REQ-03.18.017', 'Uma mensagem enviada enquanto o Runtime Engine estava parado deve ser entregue quando ele voltar: o Runtime Engine só confirma a leitura de uma mensagem depois de tratá-la (entregá-la à jornada ou descartá-la). Uma falha passageira ao tratar a mensagem é repetida até 3 vezes, e depois a mensagem é descartada com registro de erro. Como a entrega é "pelo menos uma vez", uma mensagem repetida só cai em "nenhuma instância esperando" e é descartada, sem efeito na jornada.'),
         ],
       },
       {
@@ -2019,6 +2028,7 @@ export const EPICS: Epic[] = [
           todo('REQ-13.10.024', 'O sistema deve atribuir a cada jornada uma nota de A a E, recalculada todo dia, com o motivo escrito ao lado; a regra de cálculo será definida no refinamento.'),
           todo('REQ-13.10.025', 'O sistema deve apontar a higiene do portfólio: jornada sem time dono, sem execução há 30 dias, rascunho sem edição há 30 dias, despublicada com instâncias ativas e integração sem "Se falhar".'),
           todo('REQ-13.10.026', 'O sistema deve listar as últimas mudanças do portfólio a partir da auditoria (FT-08).'),
+          todo('REQ-13.10.027', 'O sistema deve alertar sobre instâncias aguardando mensagem há mais tempo que um limiar global (padrão de 1 hora, ajustável): a contagem, uma lista curta das mais antigas com jornada, etapa e há quanto tempo, e a abertura do Diagnóstico da instância. O alerta só avisa — não interrompe nem falha nada — e importa sobretudo para a espera sem limite de tempo (US-03.18).'),
         ],
       },
     ],
@@ -2281,22 +2291,34 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
-    date: '2026-10-05 01:29 (não commitado)',
+    date: '2026-10-05 03:32',
     source: 'progresso',
     summary:
-      '**Falha na publicação de mensagem: tempo limite, novas tentativas, "Se falhar" e incidente (US-03.18; 5 REQs novos, 4 reescritos).** REQ-03.18.008 a 012 novos: passo "Resiliência" na publicação de mensagem (tempo limite de 5 s, de 0 a 2 novas tentativas, padrão 2, intervalo de 2 s), só falha passageira se repete e erro definitivo (tópico inválido, credencial recusada, mensagem grande demais) não, esgotadas as tentativas a jornada segue pela saída "Se falhar" ou, sem ela, para num incidente com "Tentar de novo" no Diagnóstico (em vez de repetir para sempre em silêncio), a espera com o broker fora do ar fica limitada ao tempo limite da etapa e o assistente avisa que uma nova tentativa pode entregar mensagem repetida. REQ-03.02.009 e 010 reescritos (a saída "Se falhar" vale também para publicar mensagem), REQ-03.17.015 reescrito (a IA passa a gerar o tratamento de falha de mensagem em vez de anotar a limitação) e REQ-15.03.004 reescrito (Tentar de novo também na publicação parada). Testado ao vivo em 2026-10-05 com o Kafka local, pela API: caminho feliz, tópico inválido (definitivo, "Se falhar" em cerca de 3 s), Kafka parado com 2 novas tentativas (cerca de 31 s até o "Se falhar") e sem novas tentativas com tempo limite de 2 s (cerca de 6 s), incidente sem "Se falhar" e "Tentar de novo" (204 e nova tentativa) e a recuperação com o Kafka de volta (a jornada seguiu para "Sucesso" e o incidente fechou); o passo do assistente no navegador não foi testado. FT-03: 142 → 147 REQs; total geral: 634 → 639. A massa de fábrica (`massa_de_dados_journeys.sql`) ganhou a jornada de referência "Falha na publicação de mensagem" (produto Laboratorio), que também ficou publicada no ambiente atual.',
+      '**Alerta de esperas longas no novo Dashboard (REQ-13.10.027 novo, `todo`) e sincronização dos temas de mensageria.** US-13.10: REQ-13.10.027 registra a ideia de alertar sobre instâncias aguardando mensagem há mais que um limiar global (padrão de 1 hora): contagem, lista das mais antigas e abertura do Diagnóstico, sem interromper nada; fica para refinamento, junto com os demais itens da ideação do novo Dashboard. Os temas implementados nesta rodada (perguntas da IA em abas, falha na publicação de mensagem, limite de espera por mensagem e o commit controlado de offset) passam a constar como testados pelo usuário, e as notas dos REQs foram ajustadas. FT-13: 50 → 51 REQs; total geral: 645 → 646.',
   },
   {
-    date: '2026-10-05 00:41 (não commitado)',
+    date: '2026-10-05 03:11',
+    source: 'progresso',
+    summary:
+      '**Limite de espera por mensagem (US-03.18; 6 REQs novos, 2 reescritos).** REQ-03.18.013 a 016 novos: em "Receber mensagem" o assistente ganhou o passo "Espera" com um tempo limite opcional (de 10 s a 30 dias; sem limite por padrão), esgotado o tempo a jornada segue pela saída "Se falhar" (o limite e a saída andam juntos e o backend recusa um sem o outro), mensagem de outro assunto, sem identificador, mal formatada ou sem instância esperando é descartada e a espera continua (só no registro do Runtime Engine), e o Diagnóstico mostra há quanto tempo a instância aguarda. REQ-03.17.018 novo: a IA gera a espera com limite quando o pedido diz quanto esperar. REQ-03.02.009 e 010 reescritos (a saída "Se falhar" também vale para a espera por mensagem). Testado ao vivo em 2026-10-05 com o Kafka local, pela API: nenhuma mensagem (a jornada seguiu pelo "Se falhar" depois do limite), mensagem certa a tempo (seguiu em cerca de 3 s), três mensagens inválidas sem efeito e a espera até o limite, as três recusas do validador (limite sem saída, saída sem limite, limite fora da faixa) e a IA gerando a espera com limite de 10 minutos. O executor de tarefas do motor passou a buscar a cada 5 s no máximo (antes até 60 s), para o limite não atrasar. REQ-03.18.017 novo: o Runtime Engine só confirma a leitura de uma mensagem depois de tratá-la, então a mensagem enviada com ele parado é entregue quando volta (testado: com o runtime parado, a mensagem certa foi entregue e a jornada seguiu, cerca de 60 s depois de ele voltar, por causa da reentrada no grupo do Kafka). Os passos do assistente no navegador foram considerados testados pelo usuário (2026-10-05). FT-03: 147 → 153 REQs; total geral: 639 → 645.',
+  },
+  {
+    date: '2026-10-05 01:29',
+    source: 'progresso',
+    summary:
+      '**Falha na publicação de mensagem: tempo limite, novas tentativas, "Se falhar" e incidente (US-03.18; 5 REQs novos, 4 reescritos).** REQ-03.18.008 a 012 novos: passo "Resiliência" na publicação de mensagem (tempo limite de 5 s, de 0 a 2 novas tentativas, padrão 2, intervalo de 2 s), só falha passageira se repete e erro definitivo (tópico inválido, credencial recusada, mensagem grande demais) não, esgotadas as tentativas a jornada segue pela saída "Se falhar" ou, sem ela, para num incidente com "Tentar de novo" no Diagnóstico (em vez de repetir para sempre em silêncio), a espera com o broker fora do ar fica limitada ao tempo limite da etapa e o assistente avisa que uma nova tentativa pode entregar mensagem repetida. REQ-03.02.009 e 010 reescritos (a saída "Se falhar" vale também para publicar mensagem), REQ-03.17.015 reescrito (a IA passa a gerar o tratamento de falha de mensagem em vez de anotar a limitação) e REQ-15.03.004 reescrito (Tentar de novo também na publicação parada). Testado ao vivo em 2026-10-05 com o Kafka local, pela API: caminho feliz, tópico inválido (definitivo, "Se falhar" em cerca de 3 s), Kafka parado com 2 novas tentativas (cerca de 31 s até o "Se falhar") e sem novas tentativas com tempo limite de 2 s (cerca de 6 s), incidente sem "Se falhar" e "Tentar de novo" (204 e nova tentativa) e a recuperação com o Kafka de volta (a jornada seguiu para "Sucesso" e o incidente fechou); o passo do assistente no navegador foi considerado testado pelo usuário (2026-10-05). FT-03: 142 → 147 REQs; total geral: 634 → 639. A massa de fábrica (`massa_de_dados_journeys.sql`) ganhou a jornada de referência "Falha na publicação de mensagem" (produto Laboratorio), que também ficou publicada no ambiente atual.',
+  },
+  {
+    date: '2026-10-05 00:41',
     source: 'progresso',
     summary:
       '**Perguntas da IA sem resposta pré-selecionada e independentes, e seção recolhida com todas as ligações (REQ-03.17.013 e REQ-03.20.003 reescritos; nenhum REQ novo).** REQ-03.17.013: nenhuma resposta vem pré-selecionada, "Continuar" leva à próxima pergunta sem resposta e só segue para o resumo com todas respondidas, e as perguntas de uma mesma rodada são independentes (o que depende de outra resposta fica para a rodada seguinte). REQ-03.20.003: a seção recolhida passa a mostrar todas as ligações que entram e saem dela — a saída vai até a etapa de destino ou até o bloco da seção de destino, ligações repetidas entre os mesmos pontos viram uma só, e o usuário não seleciona, apaga, religa nem puxa linha a partir da seção. Perguntas testadas pela API e as seções recolhidas conferidas no navegador em 2026-10-05; o contrato da API de credencial de IA e da geração por IA entrou no OpenAPI.',
   },
   {
-    date: '2026-10-05 00:00 (não commitado)',
+    date: '2026-10-05 00:00',
     source: 'progresso',
     summary:
-      '**Perguntas de esclarecimento da IA, fins separados e ajustes da geração (US-03.17, US-03.14; 5 REQs novos, 3 reescritos).** REQ-03.17.013 e 014 novos: quando falta um dado decisivo (objetivo, endereço da API, dados da resposta, critério de decisão) a IA pergunta em abas, com respostas prontas (a primeira recomendada) e "Outra resposta", em quantas rodadas forem necessárias até cinco, e o usuário confere o resumo do que será enviado antes de gerar. REQ-03.17.015 novo: falha de mensagem não é tratada pela plataforma, então a IA gera sem ela e anota a limitação. REQ-03.17.016 novo: cada caminho de uma ramificação termina no seu próprio fim. REQ-03.17.017 novo: registro colorido do andamento e campo do pedido redimensionável. REQ-03.17.003 reescrito (até cinco tentativas), REQ-03.17.010 reescrito (endereço e campos de resposta inventados pelo modelo são descartados) e REQ-03.14.002 reescrito (no conector de mensageria a credencial vem logo depois do cluster). Perguntas, rodadas, descarte e fins testados pela API em 2026-10-04; as abas, o resumo e o registro colorido só foram compilados, sem teste no navegador. FT-03: 137 → 142 REQs; total geral: 629 → 634.',
+      '**Perguntas de esclarecimento da IA, fins separados e ajustes da geração (US-03.17, US-03.14; 5 REQs novos, 3 reescritos).** REQ-03.17.013 e 014 novos: quando falta um dado decisivo (objetivo, endereço da API, dados da resposta, critério de decisão) a IA pergunta em abas, com respostas prontas (a primeira recomendada) e "Outra resposta", em quantas rodadas forem necessárias até cinco, e o usuário confere o resumo do que será enviado antes de gerar. REQ-03.17.015 novo: falha de mensagem não é tratada pela plataforma, então a IA gera sem ela e anota a limitação. REQ-03.17.016 novo: cada caminho de uma ramificação termina no seu próprio fim. REQ-03.17.017 novo: registro colorido do andamento e campo do pedido redimensionável. REQ-03.17.003 reescrito (até cinco tentativas), REQ-03.17.010 reescrito (endereço e campos de resposta inventados pelo modelo são descartados) e REQ-03.14.002 reescrito (no conector de mensageria a credencial vem logo depois do cluster). Perguntas, rodadas, descarte e fins testados pela API em 2026-10-04; as abas, o resumo e o registro colorido foram considerados testados pelo usuário no navegador (2026-10-05). FT-03: 137 → 142 REQs; total geral: 629 → 634.',
   },
   {
     date: '2026-10-04 13:27',
@@ -2782,6 +2804,9 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-05 03:12', source: 'git', summary: 'Documentação: apresentação técnica da geração de jornada por IA.', epics: ['FT-03'] },
+  { date: '2026-10-05 02:07', source: 'git', summary: 'Falha na publicação de mensagem: tempo limite, novas tentativas, "Se falhar" e incidente.', epics: ['FT-03', 'FT-15'] },
+  { date: '2026-10-05 00:42', source: 'git', summary: 'Requisitos: perguntas da IA independentes e seção recolhida com todas as ligações; OpenAPI da IA.', epics: ['FT-03'] },
   { date: '2026-10-05 00:36', source: 'git', summary: 'Canvas: seção recolhida mostra todas as ligações que entram e saem dela.', epics: ['FT-03'] },
   { date: '2026-10-05 00:10', source: 'git', summary: 'IA: perguntas sem resposta pré-selecionada, Continuar guiado e perguntas independentes.', epics: ['FT-03'] },
   { date: '2026-10-05 00:01', source: 'git', summary: 'IA: endereço e resposta de API inventados são descartados, fins separados e requisitos atualizados.', epics: ['FT-03'] },

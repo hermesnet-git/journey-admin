@@ -204,7 +204,31 @@ export function isErrorEdge(edge: WFEdge): boolean {
 // Só uma Tarefa de Serviço com conector (integração REST ou publicação de mensagem) pode ter a saída "Se falhar"
 // (mesma regra do FlowValidator). Receber mensagem não publica, então não tem esse caminho.
 export function canHaveErrorPath(node: WFNode | undefined): boolean {
-  return node?.type === 'serviceTask' && !!node.data.connectorConfig;
+  if (node?.type === 'serviceTask') return !!node.data.connectorConfig;
+  // Espera por mensagem: o "Se falhar" é o caminho de quando o tempo limite da espera esgota.
+  return node?.type === 'receiveTask' && !!node.data.connectorConfig && node.data.connectorConfig.connectorType !== 'REST';
+}
+
+// Tempo limite da espera por mensagem (em ms): de 10 segundos a 30 dias; sem o campo, a espera não tem limite.
+export const WAIT_TIMEOUT_MIN_MS = 10_000;
+export const WAIT_TIMEOUT_MAX_MS = 2_592_000_000;
+export const WAIT_UNITS = [
+  { id: 'seconds', label: 'segundos', ms: 1_000 },
+  { id: 'minutes', label: 'minutos', ms: 60_000 },
+  { id: 'hours', label: 'horas', ms: 3_600_000 },
+  { id: 'days', label: 'dias', ms: 86_400_000 },
+] as const;
+
+// A maior unidade que divide o tempo certinho (600000 ms → 10 minutos).
+export function splitWait(ms: number): { amount: number; unit: (typeof WAIT_UNITS)[number] } {
+  const unit = [...WAIT_UNITS].reverse().find((u) => ms % u.ms === 0) ?? WAIT_UNITS[0];
+  return { amount: ms / unit.ms, unit };
+}
+
+export function describeWait(cfg: Record<string, unknown>): string {
+  if (typeof cfg.waitTimeoutMs !== 'number') return 'Espera sem limite de tempo';
+  const { amount, unit } = splitWait(cfg.waitTimeoutMs);
+  return `Tempo limite da espera: ${amount} ${unit.label}`;
 }
 
 // A free-floating note on the canvas — not part of the executable flow (never validated, never

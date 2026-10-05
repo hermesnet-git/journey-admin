@@ -99,6 +99,8 @@ public final class JourneySpecSchema {
                 "payloadFields", Map.of("type", "array", "description",
                         "Só em PUBLISH_MESSAGE: os campos da mensagem, um por item; value aceita [[field:x]] e [[data:x]]",
                         "items", object(props("name", string(), "value", string()), "name", "value")),
+                "waitTimeoutSeconds", Map.of("type", "integer", "description",
+                        "Só em WAIT_MESSAGE: segundos de espera antes de seguir pelo onFailure (de 10 a 2592000). Só use quando o pedido disser quanto esperar"),
                 "outputs", array(output())));
         Map<String, Object> branch = object(props(
                 "ref", string("O que comparar: field:nome, data:nome ou channel"),
@@ -118,7 +120,7 @@ public final class JourneySpecSchema {
                 "request", describe(request, "SOMENTE em kind INTEGRATION: a chamada à API"),
                 "message", describe(message, "SOMENTE em kind PUBLISH_MESSAGE ou WAIT_MESSAGE"),
                 "next", string("key da etapa seguinte (todas, menos DECISION e END)"),
-                "onFailure", string("INTEGRATION ou PUBLISH_MESSAGE: key da etapa para onde ir se a chamada ou o envio falhar"),
+                "onFailure", string("INTEGRATION, PUBLISH_MESSAGE ou WAIT_MESSAGE: key da etapa para onde ir se a chamada ou o envio falhar, ou se a espera esgotar o tempo (waitTimeoutSeconds)"),
                 "branches", Map.of("type", "array", "description",
                         "OBRIGATÓRIO em kind DECISION (ao menos um caminho; nunca em outro kind): cada um compara uma referência com um valor e leva a uma etapa",
                         "items", branch),

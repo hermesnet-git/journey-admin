@@ -27,5 +27,11 @@ camunda:
     # já respondiam com dado completo). Deixado explícito aqui só pra não depender de "o default nunca
     # muda" silenciosamente — se algum dia isso for rebaixado, o Log/Variáveis tab quebram de novo.
     history-level: full
+    # Temporizadores (limite de espera por mensagem) e tarefas em segundo plano rodam pelo executor de jobs, que
+    # por padrão espera até 60 s entre buscas quando está ocioso: um limite de 10 s chegava a disparar com 30 s.
+    # Com a espera máxima em 5 s o atraso fica pequeno sem sobrecarregar o banco.
+    job-execution:
+      wait-time-in-millis: 1000
+      max-wait: 5000
     webapp:
       application-path: /camunda

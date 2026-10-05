@@ -198,8 +198,8 @@ public final class JourneySpecCompiler {
             problems.add(label + " é " + step.kind() + " e não usa next");
         }
         if (step.onFailure() != null && !step.onFailure().isBlank()) {
-            if (!"INTEGRATION".equals(step.kind()) && !"PUBLISH_MESSAGE".equals(step.kind())) {
-                problems.add(label + " tem onFailure, mas só uma etapa INTEGRATION ou PUBLISH_MESSAGE pode ter um caminho de falha");
+            if (!"INTEGRATION".equals(step.kind()) && !"PUBLISH_MESSAGE".equals(step.kind()) && !"WAIT_MESSAGE".equals(step.kind())) {
+                problems.add(label + " tem onFailure, mas só uma etapa INTEGRATION, PUBLISH_MESSAGE ou WAIT_MESSAGE pode ter um caminho de falha");
             } else {
                 checkTarget(label + " (onFailure)", step.onFailure(), keys, problems);
             }
@@ -224,6 +224,19 @@ public final class JourneySpecCompiler {
                     problems.add(label + " precisa de message com system KAFKA, EVENT_HUBS ou SERVICE_BUS");
                 } else {
                     checkOutputs(label, step.message().outputs(), problems);
+                    if ("WAIT_MESSAGE".equals(step.kind())) {
+                        Long wait = step.message().waitTimeoutSeconds();
+                        boolean hasFailure = step.onFailure() != null && !step.onFailure().isBlank();
+                        if (wait != null && (wait < 10 || wait > 2_592_000)) {
+                            problems.add(label + ": waitTimeoutSeconds precisa ficar entre 10 e 2592000");
+                        }
+                        if (wait != null && !hasFailure) {
+                            problems.add(label + " tem waitTimeoutSeconds, mas nenhum onFailure para onde seguir quando o tempo esgotar");
+                        }
+                        if (wait == null && hasFailure) {
+                            problems.add(label + " tem onFailure, mas nenhum waitTimeoutSeconds que o dispare; informe quanto esperar ou tire o onFailure");
+                        }
+                    }
                 }
             }
             case "DECISION" -> checkDecision(step, previous, label, keys, optionsByField, fieldNames, problems);
@@ -531,6 +544,9 @@ public final class JourneySpecCompiler {
                         config.put("payload", translateDeep(payload, Mode.ENGINE));
                     }
                     config.put("outputMapping", outputMapping(step.message().outputs()));
+                    if (!publish && step.message().waitTimeoutSeconds() != null) {
+                        config.put("waitTimeoutMs", step.message().waitTimeoutSeconds() * 1000);
+                    }
                     nodes.add(new FlowNode(id, publish ? FlowNodeType.SERVICE_TASK : FlowNodeType.RECEIVE_TASK, step.name(),
                             description, 0, 0,
                             new ConnectorConfig(ConnectorType.valueOf(step.message().system()), config, null), null, null));

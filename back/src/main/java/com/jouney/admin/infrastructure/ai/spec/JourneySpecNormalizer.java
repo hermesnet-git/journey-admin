@@ -186,7 +186,8 @@ final class JourneySpecNormalizer {
                     step.request().headers(), step.request().body(), rewritePairs(step.request().bodyFields(), text), step.request().outputs(),
                     step.request().readTimeoutMs(), step.request().retries(), step.request().background());
             JourneySpec.MessageSpec message = step.message() == null ? null : new JourneySpec.MessageSpec(step.message().system(),
-                    step.message().payload(), rewritePairs(step.message().payloadFields(), text), step.message().outputs());
+                    step.message().payload(), rewritePairs(step.message().payloadFields(), text), step.message().outputs(),
+                    step.message().waitTimeoutSeconds());
             List<BranchSpec> branches = step.branches() == null ? null : step.branches().stream()
                     .map(b -> new BranchSpec(ref.apply(b.ref()), b.op(), b.value(), b.valueType(), ref.apply(b.valueRef()), b.label(), b.to()))
                     .toList();
@@ -270,7 +271,7 @@ final class JourneySpecNormalizer {
         } else if (blank(next)) {
             next = following;
         }
-        String onFailure = "INTEGRATION".equals(kind) || "PUBLISH_MESSAGE".equals(kind) ? step.onFailure() : null;
+        String onFailure = "INTEGRATION".equals(kind) || "PUBLISH_MESSAGE".equals(kind) || "WAIT_MESSAGE".equals(kind) ? step.onFailure() : null;
         // Modelos leves preenchem objetos que não são do tipo da etapa (ex.: um request numa DECISION): ignora.
         ScreenSpec screen = step.screen() == null || !"SCREEN".equals(kind) ? null
                 : new ScreenSpec(step.screen().title(), normalizeBlocks(step.screen().blocks(), new HashSet<>()));

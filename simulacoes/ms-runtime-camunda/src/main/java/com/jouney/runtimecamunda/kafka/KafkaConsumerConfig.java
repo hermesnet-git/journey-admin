@@ -22,6 +22,9 @@ public class KafkaConsumerConfig {
         // "latest": não quer reprocessar mensagem antiga do Kafka contra uma instância viva depois
         // de um restart do serviço — só o que chegar de agora em diante interessa ao worker.
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        // O offset só é confirmado depois que a mensagem foi tratada (KafkaConnectorWorker.consumeTick): mensagem enviada
+        // enquanto o serviço estava parado é entregue quando ele volta, em vez de se perder.
+        config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         return new KafkaConsumer<>(config);
     }
 }

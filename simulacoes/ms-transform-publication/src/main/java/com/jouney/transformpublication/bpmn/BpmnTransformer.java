@@ -21,7 +21,10 @@ import java.util.stream.Collectors;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.BaseElement;
+import org.camunda.bpm.model.bpmn.instance.Activity;
 import org.camunda.bpm.model.bpmn.instance.BoundaryEvent;
+import org.camunda.bpm.model.bpmn.instance.TimeDuration;
+import org.camunda.bpm.model.bpmn.instance.TimerEventDefinition;
 import org.camunda.bpm.model.bpmn.instance.ConditionExpression;
 import org.camunda.bpm.model.bpmn.instance.Definitions;
 import org.camunda.bpm.model.bpmn.instance.EndEvent;
@@ -134,7 +137,9 @@ public class BpmnTransformer {
                 .map(FlowConnectionRequest::sourceNodeId)
                 .collect(Collectors.toSet());
         Map<String, FlowNode> byId = new HashMap<>();
+        Map<String, FlowNodeRequest> requestById = new HashMap<>();
         for (FlowNodeRequest node : request.flowNodes()) {
+            requestById.put(node.id(), node);
             FlowNode element = createNode(modelInstance, process, definitions, node, nodesWithErrorPath.contains(node.id()));
             byId.put(node.id(), element);
         }
@@ -149,10 +154,12 @@ public class BpmnTransformer {
             }
             // Saída "Se falhar": a linha sai de um evento de erro preso à tarefa, não da tarefa.
             if (connection.isOnError()) {
-                if (!(source instanceof ServiceTask task)) {
-                    throw new BpmnTransformationException("Connection " + connection.id() + " is an error path from a node that is not a service task");
+                if (!(source instanceof ServiceTask) && !(source instanceof ReceiveTask)) {
+                    throw new BpmnTransformationException("Connection " + connection.id() + " is an error path from a node that is neither a service task nor a receive task");
                 }
-                BoundaryEvent boundary = errorBoundary(modelInstance, process, definitions, task, connection);
+                BoundaryEvent boundary = source instanceof ReceiveTask
+                        ? waitTimeoutBoundary(modelInstance, process, (ReceiveTask) source, requestById.get(connection.sourceNodeId()), connection)
+                        : errorBoundary(modelInstance, process, definitions, (ServiceTask) source, connection);
                 errorBoundaries.put(connection.id(), boundary);
                 source = boundary;
             }
@@ -198,6 +205,30 @@ public class BpmnTransformer {
         ErrorEventDefinition definition = modelInstance.newInstance(ErrorEventDefinition.class);
         boundary.getEventDefinitions().add(definition);
         definition.setError(integrationError(modelInstance, definitions));
+        return boundary;
+    }
+
+    // Receber mensagem com limite de espera: um temporizador preso à tarefa, interrompendo-a quando o tempo passa sem a
+    // mensagem chegar. A linha "Se falhar" sai dele. Sem o limite configurado a saída não tem como disparar, e o
+    // validador do admin já recusa essa combinação antes de chegar aqui.
+    private BoundaryEvent waitTimeoutBoundary(BpmnModelInstance modelInstance, Process process, ReceiveTask task,
+                                              FlowNodeRequest node, FlowConnectionRequest connection) {
+        Object configured = node != null && node.connectorConfig() != null && node.connectorConfig().config() != null
+                ? node.connectorConfig().config().get("waitTimeoutMs") : null;
+        if (!(configured instanceof Number millis) || millis.longValue() < 1_000) {
+            throw new BpmnTransformationException("Connection " + connection.id() + " is a timeout path from a receive task without a wait limit");
+        }
+        BoundaryEvent boundary = modelInstance.newInstance(BoundaryEvent.class);
+        boundary.setId("Boundary_" + connection.id());
+        boundary.setName("Se falhar");
+        process.getFlowElements().add(boundary);
+        boundary.setAttachedTo((Activity) task);
+        boundary.setCancelActivity(true);
+        TimerEventDefinition definition = modelInstance.newInstance(TimerEventDefinition.class);
+        boundary.getEventDefinitions().add(definition);
+        TimeDuration duration = modelInstance.newInstance(TimeDuration.class);
+        duration.setTextContent("PT" + (millis.longValue() / 1000) + "S");
+        definition.setTimeDuration(duration);
         return boundary;
     }
 

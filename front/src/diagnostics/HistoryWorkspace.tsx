@@ -68,7 +68,7 @@ function describeHistoryStep(step: NodeIODetail, connectorTypeByNodeId: Record<s
   }
   if (step.nodeType === 'SERVICE_TASK' || step.nodeType === 'RECEIVE_TASK') {
     const label = step.nodeType === 'SERVICE_TASK' ? 'Tarefa de serviço' : 'Tarefa de recebimento';
-    const verb = step.nodeType === 'SERVICE_TASK' ? taskState(step, 'executada', 'em execução') : taskState(step, 'concluída', 'aguardando mensagem');
+    const verb = step.nodeType === 'SERVICE_TASK' ? taskState(step, 'executada', 'em execução') : taskState(step, 'concluída', step.endTime == null && !step.canceled ? 'aguardando mensagem há ' + formatDuration(Date.now() - Date.parse(step.startTime)) : 'aguardando mensagem');
     const connectorLabel = CONNECTOR_TYPE_LABEL[connectorTypeByNodeId[step.nodeId]];
     return connectorLabel ? `${label} (${connectorLabel}) "${step.nodeName}" ${verb}.` : `${label} "${step.nodeName}" ${verb}.`;
   }

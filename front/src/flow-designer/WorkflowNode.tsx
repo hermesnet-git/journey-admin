@@ -258,8 +258,11 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
   const hasInput = nodeType !== 'start' && nodeType !== 'messageStartEvent';
   const hasOutput = nodeType !== 'end';
   const outgoingLimitReached = !!data.outgoingLimitReached;
-  // Saída "Se falhar" (ponto vermelho embaixo): só na Tarefa de Serviço com conector (REST ou publicação de mensagem).
-  const hasErrorOutput = nodeType === 'serviceTask' && !!data.connectorConfig;
+  // Saída "Se falhar" (ponto vermelho embaixo): na Tarefa de Serviço com conector (REST ou publicação de mensagem) e
+  // na espera por mensagem (quando o tempo limite esgota).
+  const hasErrorOutput =
+    (nodeType === 'serviceTask' && !!data.connectorConfig) ||
+    (nodeType === 'receiveTask' && !!data.connectorConfig && data.connectorConfig.connectorType !== 'REST');
   const errorPathTaken = !!data.errorPathTaken;
   // O React Flow só registra os pontos de ligação ao medir o nó; esse ponto nasce/some depois (ao
   // trocar o tipo do conector) sem mudar o tamanho do nó, então sem este aviso ele aparecia na tela

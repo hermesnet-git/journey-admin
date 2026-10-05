@@ -103,8 +103,12 @@ final class JourneyGenerationPrompt {
             - INTEGRATION: uma chamada a uma API REST (method, url, bodyFields e outputs). Os outputs \
             guardam partes da resposta em variáveis; use path $httpStatus para o código HTTP.
             - PUBLISH_MESSAGE: publica uma mensagem; WAIT_MESSAGE: espera uma mensagem chegar (system KAFKA, \
-            EVENT_HUBS ou SERVICE_BUS). Uma jornada pode também começar por uma mensagem recebida, com \
-            startMessage em vez do início pelo canal.
+            EVENT_HUBS ou SERVICE_BUS). Sem limite de tempo, a espera dura para sempre. Quando o pedido disser \
+            quanto esperar (ex.: "se a resposta não chegar em 10 minutos"), use message.waitTimeoutSeconds e \
+            onFailure apontando para a etapa que explica que a resposta não chegou — os dois andam juntos: nunca \
+            um sem o outro, e nunca invente um tempo que o pedido não deu. Mensagens que não são desta jornada ou \
+            que chegam mal formadas são descartadas e a espera continua. Uma jornada pode também começar por uma \
+            mensagem recebida, com startMessage em vez do início pelo canal.
             - DECISION: ramifica a jornada. Ela sempre leva a PELO MENOS DOIS destinos: um (ou mais) em branches e \
             outro em otherwise — nunca escreva só otherwise. Para "tentar de novo?" ou "está tudo certo?", o \
             caminho do "Sim" ou do "corrigir" vai em branches (ex.: {"ref":"field:tentar","op":"==","value":"Sim", \

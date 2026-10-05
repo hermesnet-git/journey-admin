@@ -288,12 +288,13 @@ public final class FlowValidator {
             if (!errorPaths.isEmpty()) {
                 // O caminho "Se falhar" vale para a integração REST e para a publicação de mensagem (Tarefa de Serviço
                 // com conector de mensageria); receber mensagem não publica, então não tem esse caminho.
-                boolean failableTask = node.getType() == FlowNodeType.SERVICE_TASK && node.getConnectorConfig() != null
+                boolean failableTask = (node.getType() == FlowNodeType.SERVICE_TASK && node.getConnectorConfig() != null
                         && (node.getConnectorConfig().getConnectorType() == ConnectorType.REST
-                        || node.getConnectorConfig().getConnectorType().isMessageBroker());
+                        || node.getConnectorConfig().getConnectorType().isMessageBroker()))
+                        || isMessageWait(node);
                 if (!failableTask) {
                     violations.add(new FlowViolation(node.getId(), "'" + node.getName()
-                            + "' tem um caminho \"Se falhar\", mas só uma Tarefa de Serviço com integração REST ou com publicação de mensagem pode ter esse caminho"));
+                            + "' tem um caminho \"Se falhar\", mas só uma Tarefa de Serviço com integração REST ou com publicação de mensagem, ou uma espera por mensagem, pode ter esse caminho"));
                 } else if (errorPaths.size() > 1) {
                     violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' tem mais de um caminho \"Se falhar\""));
                 }
@@ -303,8 +304,26 @@ public final class FlowValidator {
                 }
             }
 
+            // Espera por mensagem: o tempo limite e o caminho "Se falhar" andam juntos. Sem o caminho o limite não teria
+            // para onde ir; sem o limite o caminho nunca seria usado.
+            if (isMessageWait(node)) {
+                boolean hasLimit = node.getConnectorConfig().getConfig() != null
+                        && node.getConnectorConfig().getConfig().get("waitTimeoutMs") != null;
+                if (hasLimit && errorPaths.isEmpty()) {
+                    violations.add(new FlowViolation(node.getId(), "'" + node.getName()
+                            + "' tem um tempo limite de espera, mas nenhum caminho \"Se falhar\" para onde seguir quando ele esgotar"));
+                }
+                if (!hasLimit && !errorPaths.isEmpty()) {
+                    violations.add(new FlowViolation(node.getId(), "'" + node.getName()
+                            + "' tem um caminho \"Se falhar\", mas nenhum tempo limite de espera para dispará-lo"));
+                }
+            }
+
             if (node.getConnectorConfig() != null) {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
+                if (isMessageWait(node)) {
+                    validateResilience(node, connectorConfig.getConfig(), WAIT_LIMITS, violations);
+                }
                 if (connectorConfig.getConnectorType() == ConnectorType.REST) {
                     validateResilience(node, connectorConfig.getConfig(), RESILIENCE_LIMITS, violations);
                 } else if (connectorConfig.getConnectorType().isMessageBroker() && node.getType() == FlowNodeType.SERVICE_TASK) {
@@ -460,6 +479,16 @@ public final class FlowValidator {
             new ResilienceLimit("sendTimeoutMs", 1_000, 10_000, "o tempo limite do envio precisa ficar entre 1 e 10 segundos"),
             new ResilienceLimit("retries", 0, 2, "as novas tentativas precisam ficar entre 0 e 2"),
             new ResilienceLimit("retryIntervalMs", 0, 5_000, "o intervalo entre tentativas precisa ficar entre 0 e 5 segundos"));
+
+    // Tempo limite da espera por mensagem, em milissegundos: de 10 segundos a 30 dias.
+    private static final List<ResilienceLimit> WAIT_LIMITS = List.of(
+            new ResilienceLimit("waitTimeoutMs", 10_000, 2_592_000_000L, "o tempo limite da espera precisa ficar entre 10 segundos e 30 dias"));
+
+    /** Receber mensagem (Tarefa de Recebimento com conector de mensageria): o único tipo de etapa que espera por algo de fora. */
+    private static boolean isMessageWait(FlowNode node) {
+        return node.getType() == FlowNodeType.RECEIVE_TASK && node.getConnectorConfig() != null
+                && node.getConnectorConfig().getConnectorType().isMessageBroker();
+    }
 
     private record ResilienceLimit(String key, long min, long max, String message) {
     }

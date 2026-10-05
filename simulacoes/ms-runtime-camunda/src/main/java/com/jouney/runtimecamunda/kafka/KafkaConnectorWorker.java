@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthenticationException;
 import org.apache.kafka.common.errors.AuthorizationException;
@@ -320,16 +322,58 @@ public class KafkaConnectorWorker {
         }
 
         ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(500));
+        // O offset de uma partição só avança até a última mensagem tratada. Falha passageira (ex.: banco do motor
+        // indisponível) volta a mensagem para a próxima rodada, até MAX_PROCESSING_ATTEMPTS vezes.
+        Map<TopicPartition, OffsetAndMetadata> processed = new HashMap<>();
+        Set<TopicPartition> blocked = new java.util.HashSet<>();
         for (ConsumerRecord<String, String> record : records) {
+            TopicPartition partition = new TopicPartition(record.topic(), record.partition());
+            if (blocked.contains(partition)) {
+                continue;
+            }
+            boolean handled = true;
             for (ConsumerNode node : byTopic.getOrDefault(record.topic(), List.of())) {
                 try {
                     consume(record.value(), node);
+                } catch (MismatchingMessageCorrelationException e) {
+                    // Mensagem de outro assunto, de instância que já terminou ou que ainda não espera: descartar é normal.
+                    log.info("Mensagem Kafka do tópico '{}' descartada: nenhuma instância de {} está esperando por ela (correlationId do envelope)",
+                            record.topic(), node.processDefinitionKey());
                 } catch (Exception e) {
-                    log.error("Falha ao processar mensagem Kafka do tópico '{}' pro nó {} (processo {}): {}",
-                            record.topic(), node.nodeId(), node.processDefinitionKey(), e.getMessage(), e);
+                    if (shouldRetry(partition, record.offset(), node, e)) {
+                        handled = false;
+                        break;
+                    }
                 }
             }
+            if (handled) {
+                processed.put(partition, new OffsetAndMetadata(record.offset() + 1));
+            } else {
+                blocked.add(partition);
+                kafkaConsumer.seek(partition, record.offset());
+            }
         }
+        if (!processed.isEmpty()) {
+            kafkaConsumer.commitSync(processed);
+        }
+    }
+
+    private static final int MAX_PROCESSING_ATTEMPTS = 3;
+    private final Map<String, Integer> processingAttempts = new HashMap<>();
+
+    /** Conta a tentativa; {@code true} enquanto ainda vale repetir, {@code false} quando desiste e a mensagem é descartada. */
+    private boolean shouldRetry(TopicPartition partition, long offset, ConsumerNode node, Exception failure) {
+        String key = partition + "@" + offset;
+        int attempt = processingAttempts.merge(key, 1, Integer::sum);
+        if (attempt >= MAX_PROCESSING_ATTEMPTS) {
+            processingAttempts.remove(key);
+            log.error("Desistindo da mensagem Kafka do tópico '{}' (offset {}) pro nó {} (processo {}) depois de {} tentativas: {}",
+                    partition.topic(), offset, node.nodeId(), node.processDefinitionKey(), attempt, failure.getMessage(), failure);
+            return false;
+        }
+        log.warn("Falha ao processar mensagem Kafka do tópico '{}' (offset {}) pro nó {} (processo {}), tentativa {} de {}: {}",
+                partition.topic(), offset, node.nodeId(), node.processDefinitionKey(), attempt, MAX_PROCESSING_ATTEMPTS, failure.getMessage());
+        return true;
     }
 
     private void consume(String jsonBody, ConsumerNode node) {
@@ -337,13 +381,13 @@ public class KafkaConnectorWorker {
         try {
             envelope = objectMapper.readValue(jsonBody, EventMessageDTO.class);
         } catch (Exception e) {
-            log.warn("Mensagem Kafka pro nó {} (processo {}) não é um EventMessageDTO válido — ignorando: {}",
+            log.info("Mensagem Kafka pro nó {} (processo {}) descartada, não é um EventMessageDTO válido — a espera continua: {}",
                     node.nodeId(), node.processDefinitionKey(), e.getMessage());
             return;
         }
         String correlationId = envelope.correlationId();
         if (correlationId == null || correlationId.isBlank()) {
-            log.warn("Mensagem Kafka pro nó {} (processo {}) não tem 'correlationId' — não há como saber a qual instância correlacionar",
+            log.info("Mensagem Kafka pro nó {} (processo {}) descartada, sem 'correlationId' — a espera continua",
                     node.nodeId(), node.processDefinitionKey());
             return;
         }

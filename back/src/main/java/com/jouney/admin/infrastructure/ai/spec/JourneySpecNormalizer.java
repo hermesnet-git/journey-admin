@@ -270,7 +270,7 @@ final class JourneySpecNormalizer {
         } else if (blank(next)) {
             next = following;
         }
-        String onFailure = "INTEGRATION".equals(kind) ? step.onFailure() : null;
+        String onFailure = "INTEGRATION".equals(kind) || "PUBLISH_MESSAGE".equals(kind) ? step.onFailure() : null;
         // Modelos leves preenchem objetos que não são do tipo da etapa (ex.: um request numa DECISION): ignora.
         ScreenSpec screen = step.screen() == null || !"SCREEN".equals(kind) ? null
                 : new ScreenSpec(step.screen().title(), normalizeBlocks(step.screen().blocks(), new HashSet<>()));

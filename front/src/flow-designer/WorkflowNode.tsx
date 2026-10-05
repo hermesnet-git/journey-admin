@@ -258,8 +258,8 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
   const hasInput = nodeType !== 'start' && nodeType !== 'messageStartEvent';
   const hasOutput = nodeType !== 'end';
   const outgoingLimitReached = !!data.outgoingLimitReached;
-  // Saída "Se falhar" (ponto vermelho embaixo): só na Tarefa de Serviço com integração REST.
-  const hasErrorOutput = nodeType === 'serviceTask' && data.connectorConfig?.connectorType === 'REST';
+  // Saída "Se falhar" (ponto vermelho embaixo): só na Tarefa de Serviço com conector (REST ou publicação de mensagem).
+  const hasErrorOutput = nodeType === 'serviceTask' && !!data.connectorConfig;
   const errorPathTaken = !!data.errorPathTaken;
   // O React Flow só registra os pontos de ligação ao medir o nó; esse ponto nasce/some depois (ao
   // trocar o tipo do conector) sem mudar o tamanho do nó, então sem este aviso ele aparecia na tela
@@ -430,15 +430,11 @@ export const WorkflowNode = memo(function WorkflowNode({ id, data, selected, typ
           }}
         />
       )}
-      {/* Tarefa de Serviço sem REST: o mesmo ponto, cinza e sem ligar, só pra explicar (ao passar o
+      {/* Tarefa de Serviço sem conector: o mesmo ponto, cinza e sem ligar, só pra explicar (ao passar o
           mouse) por que ali não sai o caminho "Se falhar" — em vez de o ponto simplesmente não existir. */}
       {nodeType === 'serviceTask' && !hasErrorOutput && (
         <div
-          title={
-            data.connectorConfig
-              ? 'O caminho "Se falhar" existe só para integração REST.'
-              : 'Escolha um conector REST para habilitar o caminho "Se falhar".'
-          }
+          title='Escolha um conector (integração REST ou publicação de mensagem) para habilitar o caminho "Se falhar".'
           className="wf-handle nodrag absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rounded-full cursor-not-allowed"
           style={{ width: 7.5, height: 7.5, background: c.cardBg, border: `1.75px solid ${c.textSecondary}`, zIndex: 5 }}
         />

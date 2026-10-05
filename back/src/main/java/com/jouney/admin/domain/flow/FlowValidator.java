@@ -286,11 +286,14 @@ public final class FlowValidator {
 
             List<FlowConnection> errorPaths = errorOutgoing.getOrDefault(node.getId(), List.of());
             if (!errorPaths.isEmpty()) {
-                boolean restTask = node.getType() == FlowNodeType.SERVICE_TASK && node.getConnectorConfig() != null
-                        && node.getConnectorConfig().getConnectorType() == ConnectorType.REST;
-                if (!restTask) {
+                // O caminho "Se falhar" vale para a integração REST e para a publicação de mensagem (Tarefa de Serviço
+                // com conector de mensageria); receber mensagem não publica, então não tem esse caminho.
+                boolean failableTask = node.getType() == FlowNodeType.SERVICE_TASK && node.getConnectorConfig() != null
+                        && (node.getConnectorConfig().getConnectorType() == ConnectorType.REST
+                        || node.getConnectorConfig().getConnectorType().isMessageBroker());
+                if (!failableTask) {
                     violations.add(new FlowViolation(node.getId(), "'" + node.getName()
-                            + "' tem um caminho \"Se falhar\", mas só uma Tarefa de Serviço com integração REST pode ter esse caminho"));
+                            + "' tem um caminho \"Se falhar\", mas só uma Tarefa de Serviço com integração REST ou com publicação de mensagem pode ter esse caminho"));
                 } else if (errorPaths.size() > 1) {
                     violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' tem mais de um caminho \"Se falhar\""));
                 }
@@ -303,7 +306,9 @@ public final class FlowValidator {
             if (node.getConnectorConfig() != null) {
                 ConnectorConfig connectorConfig = node.getConnectorConfig();
                 if (connectorConfig.getConnectorType() == ConnectorType.REST) {
-                    validateResilience(node, connectorConfig.getConfig(), violations);
+                    validateResilience(node, connectorConfig.getConfig(), RESILIENCE_LIMITS, violations);
+                } else if (connectorConfig.getConnectorType().isMessageBroker() && node.getType() == FlowNodeType.SERVICE_TASK) {
+                    validateResilience(node, connectorConfig.getConfig(), MESSAGING_RESILIENCE_LIMITS, violations);
                 }
                 if (!connectorConfig.getConnectorType().isEnabled()) {
                     violations.add(new FlowViolation(node.getId(), "'" + node.getName() + "' usa um conector desabilitado ("
@@ -449,14 +454,22 @@ public final class FlowValidator {
             new ResilienceLimit("retries", 0, 2, "as novas tentativas precisam ficar entre 0 e 2"),
             new ResilienceLimit("retryIntervalMs", 0, 5_000, "o intervalo entre tentativas precisa ficar entre 0 e 5 segundos"));
 
+    // Passo "Resiliência" da publicação de mensagem: tempo limite do envio, novas tentativas e intervalo. Ausente =
+    // padrão do worker no motor (5 s, 2 novas tentativas, 2 s).
+    private static final List<ResilienceLimit> MESSAGING_RESILIENCE_LIMITS = List.of(
+            new ResilienceLimit("sendTimeoutMs", 1_000, 10_000, "o tempo limite do envio precisa ficar entre 1 e 10 segundos"),
+            new ResilienceLimit("retries", 0, 2, "as novas tentativas precisam ficar entre 0 e 2"),
+            new ResilienceLimit("retryIntervalMs", 0, 5_000, "o intervalo entre tentativas precisa ficar entre 0 e 5 segundos"));
+
     private record ResilienceLimit(String key, long min, long max, String message) {
     }
 
-    private static void validateResilience(FlowNode node, Map<String, Object> config, List<FlowViolation> violations) {
+    private static void validateResilience(FlowNode node, Map<String, Object> config, List<ResilienceLimit> limits,
+                                           List<FlowViolation> violations) {
         if (config == null) {
             return;
         }
-        for (ResilienceLimit limit : RESILIENCE_LIMITS) {
+        for (ResilienceLimit limit : limits) {
             Object value = config.get(limit.key());
             if (value == null) {
                 continue;

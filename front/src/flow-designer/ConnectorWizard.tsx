@@ -18,7 +18,7 @@ import {
   type PayloadField,
 } from './PropertiesPanel';
 import { SearchSelect } from './SearchSelect';
-import { RESILIENCE_DEFAULTS, RESILIENCE_MAX, engineVariableToken, type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin, type VariableType } from './model';
+import { MESSAGING_RESILIENCE_DEFAULTS, MESSAGING_RESILIENCE_MAX, RESILIENCE_DEFAULTS, RESILIENCE_MAX, engineVariableToken, type ConnectorConfig, type ConnectorType, type OutputMappingRule, type VariableOrigin, type VariableType } from './model';
 import { testCredentialConnection, listClusterTopics, type MessagingCluster, type CredentialReference } from '../api/messaging';
 
 const inputStyle = (c: FlowColors): React.CSSProperties => ({
@@ -155,6 +155,8 @@ const REST_STEPS = ['Conexão', 'Headers', 'Parâmetros & Corpo', 'Testar e Mape
 // (RECEIVE_TASK/MESSAGE_START_EVENT) é o que entra. Não existe mais um "Mapear saída" separado —
 // pro lado de consumo, "Escolher o que aproveitar" (dentro deste mesmo passo) É o mapeamento.
 const BROKER_STEPS = ['Conexão', 'Dados'] as const;
+// Quem publica ganha o passo "Resiliência" (tempo limite, novas tentativas e o caminho "Se falhar"); quem recebe não.
+const BROKER_PRODUCE_STEPS = ['Conexão', 'Dados', 'Resiliência'] as const;
 
 // REQ-14.05.005: Event Hubs/Service Bus reaproveitam o mesmo formato de etapas do Kafka.
 const STEPS_BY_TYPE: Record<ConnectorType, readonly string[]> = {
@@ -191,7 +193,10 @@ export function ConnectorWizard({
   onClose,
 }: Props) {
   const { c } = useFlowTheme();
-  const steps: readonly string[] = STEPS_BY_TYPE[connectorConfig.connectorType];
+  const steps: readonly string[] =
+    connectorConfig.connectorType !== 'REST' && connectorConfig.config?.operation !== 'CONSUME'
+      ? BROKER_PRODUCE_STEPS
+      : STEPS_BY_TYPE[connectorConfig.connectorType];
   const [stepIndex, setStepIndex] = useState(0);
   // "Automático" é sempre o padrão pra um conector de mensageria — cobre tanto quem produz quanto
   // quem consome sem exigir nenhuma configuração; "customizado" é uma escolha explícita do usuário.
@@ -304,6 +309,96 @@ export function ConnectorWizard({
     const parsed = Number(seconds.replace(',', '.'));
     if (!Number.isFinite(parsed)) return;
     updateDraftConfig(key, Math.min(RESILIENCE_MAX[key], Math.max(minMs, Math.round(parsed * 1000))));
+  }
+
+  function messagingResilienceValue(key: keyof typeof MESSAGING_RESILIENCE_DEFAULTS): number {
+    const value = draft.config?.[key];
+    return typeof value === 'number' ? value : MESSAGING_RESILIENCE_DEFAULTS[key];
+  }
+
+  function setMessagingSeconds(key: 'sendTimeoutMs' | 'retryIntervalMs', seconds: string, minMs: number) {
+    const parsed = Number(seconds.replace(',', '.'));
+    if (!Number.isFinite(parsed)) return;
+    updateDraftConfig(key, Math.min(MESSAGING_RESILIENCE_MAX[key], Math.max(minMs, Math.round(parsed * 1000))));
+  }
+
+  // Passo "Resiliência" da publicação de mensagem: o que acontece quando o envio não chega ao broker.
+  function renderMessagingResilienceStep() {
+    const retries = messagingResilienceValue('retries');
+    const secondsField = (key: 'sendTimeoutMs' | 'retryIntervalMs', label: string, hint: string, minMs: number) => (
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={labelStyle(c)}>{label}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="number"
+            min={minMs / 1000}
+            max={MESSAGING_RESILIENCE_MAX[key] / 1000}
+            step={0.5}
+            style={{ ...inputStyle(c), width: 90 }}
+            value={messagingResilienceValue(key) / 1000}
+            onChange={(e) => setMessagingSeconds(key, e.target.value, minMs)}
+          />
+          <span style={{ fontSize: 12.5, color: c.textSecondary }}>segundos</span>
+        </div>
+        <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 4 }}>{hint}</div>
+      </div>
+    );
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', gap: 16 }}>
+          {secondsField('sendTimeoutMs', 'Tempo limite do envio', `Até ${MESSAGING_RESILIENCE_MAX.sendTimeoutMs / 1000} s. Passou disso, conta como falha.`, 1000)}
+        </div>
+
+        <div>
+          <div style={labelStyle(c)}>Novas tentativas</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[0, 1, 2].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => updateDraftConfig('retries', n)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  border: `1px solid ${retries === n ? c.accent : c.border}`,
+                  background: retries === n ? c.accentSoft : c.cardBg,
+                  color: retries === n ? c.accent : c.textPrimary,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {n === 0 ? 'Nenhuma' : n}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 4 }}>
+            Só quando a falha pode ser passageira: sem conexão com o broker ou tempo esgotado. Tópico inválido ou credencial
+            recusada não se repetem.
+          </div>
+        </div>
+
+        {retries > 0 && (
+          <div style={{ display: 'flex' }}>
+            {secondsField('retryIntervalMs', 'Intervalo entre tentativas', 'Dobra a cada nova tentativa; a seguinte pode levar até 3 s a mais.', 0)}
+          </div>
+        )}
+
+        {retries > 0 && (
+          <div style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.accent}`, background: c.canvasBg, fontSize: 12, color: c.textSecondary }}>
+            <strong style={{ color: c.accent }}>Mensagem repetida.</strong> Se o broker receber a mensagem mas a confirmação não chegar,
+            uma nova tentativa a entrega de novo. Quem consome deve tolerar mensagem repetida — o identificador da instância
+            vai na mensagem como <code>correlationId</code> e serve para reconhecê-la.
+          </div>
+        )}
+
+        <div style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.border}`, background: c.canvasBg, fontSize: 12, color: c.textSecondary }}>
+          Para decidir o que acontece quando o envio falha de vez, ligue o caminho <strong style={{ color: c.danger }}>Se falhar</strong>{' '}
+          — o ponto vermelho embaixo da etapa no fluxo. Sem esse caminho, a execução para num incidente no Diagnóstico, com a opção
+          de tentar de novo.
+        </div>
+      </div>
+    );
   }
 
   function renderResilienceStep() {
@@ -629,6 +724,8 @@ export function ConnectorWizard({
             </div>
           </div>
         );
+      case 'Resiliência':
+        return renderMessagingResilienceStep();
       case 'Dados': {
         const isConsume = draft.config?.operation === 'CONSUME';
         const payloadMode = (draft.config?.payloadMode as string) === 'CUSTOM' ? 'CUSTOM' : 'GENERIC_DUMP';

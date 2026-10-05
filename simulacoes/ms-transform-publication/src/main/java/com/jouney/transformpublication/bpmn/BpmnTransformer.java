@@ -391,6 +391,9 @@ public class BpmnTransformer {
         element.setCamundaType("external");
         element.setCamundaTopic(topicName(node));
         attachConnectorConfig(modelInstance, element, node);
+        // Mensageria: o worker (ms-runtime-camunda) aplica tempo limite e novas tentativas (chaves da config) e, esgotadas,
+        // segue pela saída "Se falhar" se a etapa tiver uma; senão a tarefa falha e vira incidente.
+        addInputParameter(modelInstance, element, "hasErrorPath", String.valueOf(hasErrorPath));
     }
 
     // Mesma regra de KafkaConnectorWorker.putWithNamespaceFallback (ms-runtime-camunda): uma regra de

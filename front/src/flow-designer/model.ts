@@ -177,20 +177,34 @@ export function describeResilience(cfg: Record<string, unknown>): string {
   return parts.join(' · ');
 }
 
+// Passo "Resiliência" da publicação de mensagem: tempo limite do envio, novas tentativas e intervalo.
+export const MESSAGING_RESILIENCE_DEFAULTS = { sendTimeoutMs: 5000, retries: 2, retryIntervalMs: 2000 };
+export const MESSAGING_RESILIENCE_MAX = { sendTimeoutMs: 10000, retries: 2, retryIntervalMs: 5000 };
+
+export function describeMessagingResilience(cfg: Record<string, unknown>): string {
+  const send = typeof cfg.sendTimeoutMs === 'number' ? cfg.sendTimeoutMs : MESSAGING_RESILIENCE_DEFAULTS.sendTimeoutMs;
+  const retries = typeof cfg.retries === 'number' ? cfg.retries : MESSAGING_RESILIENCE_DEFAULTS.retries;
+  return [
+    `Tempo limite ${formatSeconds(send)}`,
+    retries > 0 ? `${retries} nova${retries > 1 ? 's' : ''} tentativa${retries > 1 ? 's' : ''}` : 'sem novas tentativas',
+  ].join(' · ');
+}
+
 export function formatSeconds(ms: number): string {
   return `${(ms / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} s`;
 }
 
-// Id do ponto de saída "Se falhar" (embaixo da Tarefa de Serviço REST).
+// Id do ponto de saída "Se falhar" (embaixo da Tarefa de Serviço com integração REST ou publicação de mensagem).
 export const ERROR_HANDLE = 'falha';
 
 export function isErrorEdge(edge: WFEdge): boolean {
   return !!edge.data?.onError;
 }
 
-// Só uma Tarefa de Serviço com integração REST pode ter a saída "Se falhar" (mesma regra do FlowValidator).
+// Só uma Tarefa de Serviço com conector (integração REST ou publicação de mensagem) pode ter a saída "Se falhar"
+// (mesma regra do FlowValidator). Receber mensagem não publica, então não tem esse caminho.
 export function canHaveErrorPath(node: WFNode | undefined): boolean {
-  return node?.type === 'serviceTask' && node.data.connectorConfig?.connectorType === 'REST';
+  return node?.type === 'serviceTask' && !!node.data.connectorConfig;
 }
 
 // A free-floating note on the canvas — not part of the executable flow (never validated, never

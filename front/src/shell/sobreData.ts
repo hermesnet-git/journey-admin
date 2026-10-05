@@ -335,8 +335,8 @@ export const EPICS: Epic[] = [
             notes:
               'Achado ao vivo: uma jornada nesse formato roda inteira dentro de uma única transação síncrona do motor de runtime, que falha ao tentar ler o histórico depois (a transação sofre rollback antes de qualquer consulta conseguir lê-lo). Ver REQ-05.08.005 para a checagem equivalente em tempo de execução.',
           },
-          d('REQ-03.02.009', 'SERVICE_TASK REST pode ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa; ponto de conexão próprio, sempre visível e disponível assim que o REST é escolhido, e linha distinta no editor; ponto desabilitado com explicação nas demais SERVICE_TASK e no painel; 422 fora das regras.'),
-          d('REQ-03.02.010', 'Ligação recusada avisa o motivo: já tem "Se falhar" (arrastar a ponta para trocar), "Se falhar" só em REST, ou número máximo de saídas; vale para ligação nova e troca de origem.'),
+          d('REQ-03.02.009', 'SERVICE_TASK com conector (REST ou publicar mensagem) pode ter uma única saída "Se falhar", sem condição nem padrão; nenhum outro tipo de etapa, nem receber mensagem; ponto de conexão próprio, sempre visível e disponível assim que um conector é escolhido, e linha distinta no editor; ponto desabilitado com explicação na SERVICE_TASK sem conector.'),
+          d('REQ-03.02.010', 'Ligação recusada avisa o motivo: já tem "Se falhar" (arrastar a ponta para trocar), "Se falhar" só em REST ou publicação de mensagem, ou número máximo de saídas; vale para ligação nova e troca de origem.'),
           d('REQ-03.02.011', 'Ligação pode ser solta em qualquer parte da etapa de destino; elementos iniciais, a própria origem e anotações não recebem.'),
         ],
       },
@@ -742,7 +742,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.17.015',
-            'A jornada gerada não trata a falha de publicação de mensagem, que a plataforma ainda não oferece (só a integração REST tem o caminho "Se falhar"): quando o pedido exigir esse tratamento, a IA gera a jornada sem ele e deixa, junto da etapa, uma anotação avisando a limitação.',
+            'A IA pode tratar a falha de publicação de mensagem: quando o pedido exigir (sem conexão, tentar de novo), gera a etapa de publicar com a saída "Se falhar" apontando para uma etapa que explica o problema e oferece tentar de novo (uma Decisão que volta ao envio). O envio não devolve status para uma Decisão consultar: a falha só segue pela saída "Se falhar".',
           ),
           d(
             'REQ-03.17.016',
@@ -756,7 +756,7 @@ export const EPICS: Epic[] = [
       },
       {
         code: 'US-03.18',
-        name: 'Resiliência da integração REST',
+        name: 'Resiliência das integrações (REST e publicação de mensagem)',
         requirements: [
           d('REQ-03.18.001', 'Passo "Resiliência": tempo para conectar e para responder (padrão 2 s / 10 s, máximo 10 s / 30 s); esgotado, conta como falha.'),
           d('REQ-03.18.002', 'De 0 a 2 novas tentativas com intervalo (até 5 s, dobrando, com variação); só falha passageira (sem conexão, tempo esgotado, 429/502/503/504).'),
@@ -770,6 +770,11 @@ export const EPICS: Epic[] = [
           d('REQ-03.18.005', 'Sem "Se falhar": sem resposta/tempo esgotado faz a etapa falhar com mensagem legível; 5xx segue para a Decisão.'),
           d('REQ-03.18.006', 'Execução em segundo plano: o canal vê "aguardando"; falha sem "Se falhar" vira incidente sem novas tentativas do Runtime Engine.'),
           d('REQ-03.18.007', '422 para valores de resiliência fora dos limites; resumo da resiliência no painel da integração.'),
+          d('REQ-03.18.008', 'O assistente de configuração da publicação de mensagem (US-03.14) deve ter um passo "Resiliência" com o tempo limite do envio (padrão 5 s, máximo 10 s), de 0 a 2 novas tentativas (padrão 2) e o intervalo entre elas (padrão 2 s, até 5 s, dobrando a cada nova tentativa, com pequena variação aleatória). Esgotado o tempo sem confirmação do broker, o envio conta como falha. O passo não existe em receber mensagem.'),
+          d('REQ-03.18.009', 'Só falhas passageiras de publicação se repetem: sem conexão com o broker ou tempo esgotado. Erros definitivos — nome de tópico inválido, credencial ou permissão recusada, mensagem grande demais, tópico não configurado — não se repetem.'),
+          d('REQ-03.18.010', 'A publicação falha de vez quando, esgotadas as tentativas, o envio não foi confirmado. Com a saída "Se falhar" (REQ-03.02.009), a jornada segue por ela; sem ela, a execução para num incidente — sem repetir para sempre — que pode ser retomado pelo Diagnóstico (REQ-15.03.004). O motivo e cada tentativa aparecem no detalhe do Diagnóstico.'),
+          d('REQ-03.18.011', 'Com o broker fora do ar, a espera de cada envio fica limitada ao tempo limite da etapa (no máximo 10 s), em vez de até 60 s, para a publicação de uma instância atrasar o mínimo possível a das outras e o recebimento de mensagens.'),
+          d('REQ-03.18.012', 'O assistente deve avisar, quando houver novas tentativas, que uma nova tentativa pode entregar a mesma mensagem mais de uma vez e que o consumidor deve tolerar mensagem repetida; o identificador da instância vai na mensagem (correlationId) para reconhecê-la. O backend rejeita (422) valores de resiliência de mensagem fora dos limites, e o resumo da etapa mostra o tempo limite e as tentativas.'),
         ],
       },
       {
@@ -2195,7 +2200,7 @@ export const EPICS: Epic[] = [
           d('REQ-15.03.001', 'Ao selecionar uma execução, o sistema deve apresentar o fluxo percorrido, as variáveis do processo e o log cronológico, reaproveitando o mesmo painel de observabilidade da Execução.'),
           d('REQ-15.03.002', 'O sistema deve permitir voltar da tela de detalhe para a busca sem perder os resultados da busca anterior.'),
           d('REQ-15.03.003', 'O log do detalhe inclui cada consulta a fonte de dados feita ao montar uma tela da instância.'),
-          d('REQ-15.03.004', '"Tentar de novo" em incidente de integração em segundo plano (EDITOR/ADMIN).'),
+          d('REQ-15.03.004', '"Tentar de novo" em incidente de integração em segundo plano ou de publicação de mensagem que esgotou as tentativas (EDITOR/ADMIN).'),
           d('REQ-15.03.005', 'Reprodução: play/pausa, passo anterior/próximo, controle deslizante, voltar ao começo; fluxo com animação de chegada, log e variáveis (com o valor do momento) até o passo escolhido.'),
           d('REQ-15.03.006', 'O painel de Histórico de Variáveis e Log do detalhe deve abrir recolhido e poder ser expandido ou recolhido.'),
         ],
@@ -2275,6 +2280,12 @@ export interface ChangelogEntry {
 // Ordem: mais recente primeiro (mesma ordem da tabela fonte). Ao ressincronizar, apenas
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
+  {
+    date: '2026-10-05 01:29 (não commitado)',
+    source: 'progresso',
+    summary:
+      '**Falha na publicação de mensagem: tempo limite, novas tentativas, "Se falhar" e incidente (US-03.18; 5 REQs novos, 4 reescritos).** REQ-03.18.008 a 012 novos: passo "Resiliência" na publicação de mensagem (tempo limite de 5 s, de 0 a 2 novas tentativas, padrão 2, intervalo de 2 s), só falha passageira se repete e erro definitivo (tópico inválido, credencial recusada, mensagem grande demais) não, esgotadas as tentativas a jornada segue pela saída "Se falhar" ou, sem ela, para num incidente com "Tentar de novo" no Diagnóstico (em vez de repetir para sempre em silêncio), a espera com o broker fora do ar fica limitada ao tempo limite da etapa e o assistente avisa que uma nova tentativa pode entregar mensagem repetida. REQ-03.02.009 e 010 reescritos (a saída "Se falhar" vale também para publicar mensagem), REQ-03.17.015 reescrito (a IA passa a gerar o tratamento de falha de mensagem em vez de anotar a limitação) e REQ-15.03.004 reescrito (Tentar de novo também na publicação parada). Testado ao vivo em 2026-10-05 com o Kafka local, pela API: caminho feliz, tópico inválido (definitivo, "Se falhar" em cerca de 3 s), Kafka parado com 2 novas tentativas (cerca de 31 s até o "Se falhar") e sem novas tentativas com tempo limite de 2 s (cerca de 6 s), incidente sem "Se falhar" e "Tentar de novo" (204 e nova tentativa) e a recuperação com o Kafka de volta (a jornada seguiu para "Sucesso" e o incidente fechou); o passo do assistente no navegador não foi testado. FT-03: 142 → 147 REQs; total geral: 634 → 639. A massa de fábrica (`massa_de_dados_journeys.sql`) ganhou a jornada de referência "Falha na publicação de mensagem" (produto Laboratorio), que também ficou publicada no ambiente atual.',
+  },
   {
     date: '2026-10-05 00:41 (não commitado)',
     source: 'progresso',

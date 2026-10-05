@@ -128,12 +128,10 @@ final class JourneyGenerationPrompt {
             trava.
             - Para tratar a falha de uma API (fora do ar, lenta ou com erro), use onFailure na INTEGRATION, \
             apontando para uma etapa que explica o problema e, se fizer sentido, oferece tentar de novo.
-            - Publicar mensagem (PUBLISH_MESSAGE) NÃO tem caminho de falha nem status que uma DECISION possa \
-            consultar: nunca use onFailure nela, nunca crie tela de falha ou de reenvio para ela nem decida pelo \
-            resultado do envio. Se o pedido exigir tratar a falha da mensagem (sem conexão, reenviar), gere a \
-            jornada normalmente, com a mensagem seguindo direto para a próxima etapa, e deixe uma anotação (notes) \
-            junto da etapa dizendo que a plataforma ainda não trata falha de mensagem e que isso fica para o autor. \
-            O $httpStatus só existe em INTEGRATION.
+            - Publicar mensagem (PUBLISH_MESSAGE) também tem onFailure: use quando o pedido exigir tratar a falha do \
+            envio (sem conexão com o broker, tempo esgotado), apontando para uma etapa que explica o problema e, se \
+            fizer sentido, oferece tentar de novo (uma DECISION que volta para a publicação). O envio não devolve \
+            status para uma DECISION consultar: a falha só vai pelo onFailure. O $httpStatus só existe em INTEGRATION.
             - Você pode agrupar etapas em seções (sections) e deixar anotações (notes) com o raciocínio de \
             partes importantes; jornadas com nove ou mais etapas devem ser organizadas em seções. Só cite \
             etapas que existem na lista.

@@ -118,7 +118,7 @@ public final class JourneySpecSchema {
                 "request", describe(request, "SOMENTE em kind INTEGRATION: a chamada à API"),
                 "message", describe(message, "SOMENTE em kind PUBLISH_MESSAGE ou WAIT_MESSAGE"),
                 "next", string("key da etapa seguinte (todas, menos DECISION e END)"),
-                "onFailure", string("INTEGRATION: key da etapa para onde ir se a chamada falhar"),
+                "onFailure", string("INTEGRATION ou PUBLISH_MESSAGE: key da etapa para onde ir se a chamada ou o envio falhar"),
                 "branches", Map.of("type", "array", "description",
                         "OBRIGATÓRIO em kind DECISION (ao menos um caminho; nunca em outro kind): cada um compara uma referência com um valor e leva a uma etapa",
                         "items", branch),

@@ -156,7 +156,8 @@ public interface RuntimeExecutionPort {
     List<IncidentEntry> getHistoricIncidents(String processInstanceId);
 
     /** "Tentar de novo" de um incidente: devolve uma tentativa ao job parado (sem tentativas) daquele
-     * nó — integração REST em segundo plano. {@code false} quando não há job parado ali. */
+     * nó — integração REST em segundo plano — ou à tarefa externa parada, na publicação de mensagem que
+     * esgotou as tentativas. {@code false} quando não há nada parado ali. */
     boolean retryFailedJob(String processInstanceId, String nodeId);
 
     /** Metadados de uma User Task via {@code /history/task}, nunca consultado até então.

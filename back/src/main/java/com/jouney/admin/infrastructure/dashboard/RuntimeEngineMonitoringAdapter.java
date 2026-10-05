@@ -729,9 +729,24 @@ class RuntimeEngineMonitoringAdapter implements RuntimeMonitoringPort, RuntimeIn
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<JobRaw>>() {
                 }));
-        if (jobs == null || jobs.isEmpty()) return false;
-        jobs.forEach(job -> call(() -> restClient.put()
-                .uri(baseUrl + "/job/{id}/retries", job.id())
+        if (jobs != null && !jobs.isEmpty()) {
+            jobs.forEach(job -> call(() -> restClient.put()
+                    .uri(baseUrl + "/job/{id}/retries", job.id())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("retries", 1))
+                    .retrieve()
+                    .toBodilessEntity()));
+            return true;
+        }
+        // Publicação de mensagem que esgotou as tentativas: a tarefa externa fica sem tentativas e com incidente.
+        List<JobRaw> externalTasks = call(() -> restClient.get()
+                .uri(baseUrl + "/external-task?processInstanceId={id}&activityId={nodeId}&noRetriesLeft=true", processInstanceId, nodeId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<JobRaw>>() {
+                }));
+        if (externalTasks == null || externalTasks.isEmpty()) return false;
+        externalTasks.forEach(task -> call(() -> restClient.put()
+                .uri(baseUrl + "/external-task/{id}/retries", task.id())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("retries", 1))
                 .retrieve()

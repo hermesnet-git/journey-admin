@@ -12,12 +12,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.AuthenticationException;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.InvalidTopicException;
+import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.camunda.bpm.engine.ExternalTaskService;
 import org.camunda.bpm.engine.MismatchingMessageCorrelationException;
 import org.camunda.bpm.engine.RuntimeService;
@@ -59,6 +68,19 @@ public class KafkaConnectorWorker {
     private static final String KAFKA_TOPIC_VAR_PREFIX = "__kafkaTopic__";
     private static final String KAFKA_PAYLOAD_VAR_PREFIX = "__kafkaPayload__";
 
+    /** Mesmo código que BpmnTransformer (ms-transform-publication) e HttpConnectorDelegate usam no evento de
+     * erro preso à tarefa — a saída "Se falhar" desenhada no editor. */
+    static final String INTEGRATION_FAILED_ERROR_CODE = "INTEGRACAO_FALHOU";
+
+    // Resiliência do envio (passo "Resiliência" do conector de mensageria). Padrões e tetos; valores fora da faixa
+    // já são barrados pelo FlowValidator (admin) e o teto é reaplicado aqui só por segurança.
+    private static final int DEFAULT_SEND_MS = 5_000;
+    private static final int MAX_SEND_MS = 10_000;
+    private static final int DEFAULT_RETRIES = 2;
+    private static final int MAX_RETRIES = 2;
+    private static final int DEFAULT_RETRY_INTERVAL_MS = 2_000;
+    private static final int MAX_RETRY_INTERVAL_MS = 5_000;
+
     private final ExternalTaskService externalTaskService;
     private final RuntimeService runtimeService;
     private final KafkaConsumerNodeDiscovery consumerNodeDiscovery;
@@ -66,6 +88,7 @@ public class KafkaConnectorWorker {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final KafkaConsumer<String, String> kafkaConsumer;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ExecutorService sendExecutor = Executors.newCachedThreadPool();
 
     private Set<String> subscribedTopics = Set.of();
 
@@ -97,7 +120,7 @@ public class KafkaConnectorWorker {
 
         ExternalTaskQueryBuilder fetchBuilder = externalTaskService.fetchAndLock(50, WORKER_ID);
         for (String topic : pendingTopics) {
-            fetchBuilder = fetchBuilder.topic(topic, 30000).variables("topic", "payload", "payloadMode", "headers");
+            fetchBuilder = fetchBuilder.topic(topic, 30000).variables("topic", "payload", "payloadMode", "headers", "sendTimeoutMs", "retries", "retryIntervalMs", "hasErrorPath");
         }
         List<LockedExternalTask> locked = fetchBuilder.execute();
 
@@ -112,9 +135,7 @@ public class KafkaConnectorWorker {
                 }
                 publishAndComplete(task, processVariables);
             } catch (Exception e) {
-                // Deixa a task travada — expira o lock (30s) e volta a ser pega no próximo tick.
-                log.error("Falha ao publicar mensagem Kafka pro nó {} (instância {}): {}",
-                        task.getActivityId(), task.getProcessInstanceId(), e.getMessage(), e);
+                handleSendFailure(task, e);
             }
         }
     }
@@ -161,7 +182,11 @@ public class KafkaConnectorWorker {
                 record.headers().add(String.valueOf(k), String.valueOf(resolvedValue).getBytes(StandardCharsets.UTF_8));
             });
         }
-        kafkaTemplate.send(record).get(5, TimeUnit.SECONDS);
+        // O envio roda em outra thread só para o tempo limite da etapa valer também enquanto o cliente espera os
+        // metadados do broker (send() bloqueia até max.block.ms antes de devolver o futuro).
+        CompletableFuture.supplyAsync(() -> kafkaTemplate.send(record), sendExecutor)
+                .thenCompose(future -> future)
+                .get(intVariable(task, "sendTimeoutMs", DEFAULT_SEND_MS, MAX_SEND_MS, 1_000), TimeUnit.MILLISECONDS);
 
         String nodeId = task.getActivityId();
         // Variáveis de PROCESSO reservadas, de propósito: o worker completa de forma assíncrona
@@ -173,6 +198,90 @@ public class KafkaConnectorWorker {
                 KAFKA_PAYLOAD_VAR_PREFIX + nodeId, payloadJson);
         externalTaskService.complete(task.getId(), WORKER_ID, completionVariables);
         log.info("Publicado no tópico Kafka pelo worker automático (nó {}, instância {})", nodeId, task.getProcessInstanceId());
+    }
+
+    /**
+     * Falha ao publicar. Só falha passageira (sem conexão com o broker, tempo esgotado) é repetida, até o número de
+     * novas tentativas da etapa, com espera crescente; erro definitivo (tópico em branco ou inválido, credencial ou
+     * permissão recusada, mensagem grande demais) não se repete. Esgotado, a falha vai pela saída "Se falhar" quando a
+     * etapa tem uma; senão a tarefa externa falha de vez e vira incidente (o Diagnóstico oferece "Tentar de novo").
+     */
+    private void handleSendFailure(LockedExternalTask task, Exception failure) {
+        Throwable cause = failure instanceof ExecutionException && failure.getCause() != null ? failure.getCause() : failure;
+        String message = describeFailure(task, cause);
+        int configured = intVariable(task, "retries", DEFAULT_RETRIES, MAX_RETRIES, 0);
+        int remaining = task.getRetries() == null ? configured : task.getRetries() - 1;
+        boolean definitive = isDefinitive(cause) || remaining <= 0;
+        log.error("Falha ao publicar mensagem Kafka pro nó {} (instância {}), {}: {}", task.getActivityId(),
+                task.getProcessInstanceId(), definitive ? "definitiva" : "nova tentativa em breve", message, failure);
+        try {
+            if (!definitive) {
+                int attempt = configured - remaining;
+                long interval = intVariable(task, "retryIntervalMs", DEFAULT_RETRY_INTERVAL_MS, MAX_RETRY_INTERVAL_MS, 0) * (1L << attempt);
+                long jitter = interval == 0 ? 0 : ThreadLocalRandom.current().nextLong(interval / 5 + 1);
+                externalTaskService.handleFailure(task.getId(), WORKER_ID, message, null, remaining, Math.min(interval + jitter, 10_000L));
+            } else if (Boolean.parseBoolean(asString(task.getVariables().get("hasErrorPath")))) {
+                externalTaskService.handleBpmnError(task.getId(), WORKER_ID, INTEGRATION_FAILED_ERROR_CODE, message);
+            } else {
+                externalTaskService.handleFailure(task.getId(), WORKER_ID, message, null, 0, 0);
+            }
+        } catch (Exception e) {
+            // Sem conseguir registrar a falha, deixa a tarefa travada: o bloqueio expira (30 s) e ela volta no próximo ciclo.
+            log.error("Não foi possível registrar a falha do nó {} (instância {}): {}", task.getActivityId(), task.getProcessInstanceId(), e.getMessage(), e);
+        }
+    }
+
+    private static boolean has(Throwable cause, Class<? extends Throwable> type) {
+        for (Throwable t = cause; t != null; t = t.getCause() == t ? null : t.getCause()) {
+            if (type.isInstance(t)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // O KafkaTemplate embrulha o erro real do cliente ("Send failed"), então a causa é procurada em toda a cadeia.
+    private static boolean isDefinitive(Throwable cause) {
+        return has(cause, IllegalStateException.class)
+                || has(cause, AuthorizationException.class)
+                || has(cause, AuthenticationException.class)
+                || has(cause, InvalidTopicException.class)
+                || has(cause, RecordTooLargeException.class);
+    }
+
+    /** Motivo legível para o Diagnóstico e o log da execução: o que falhou e em qual tópico, sem detalhe técnico do cliente. */
+    private String describeFailure(LockedExternalTask task, Throwable cause) {
+        String topic = asString(task.getVariables().get("topic"));
+        String where = topic == null || topic.isBlank() ? "" : " no tópico " + topic;
+        if (cause instanceof IllegalStateException) {
+            return cause.getMessage();
+        }
+        if (has(cause, AuthorizationException.class) || has(cause, AuthenticationException.class)) {
+            return "O broker recusou a credencial ou a permissão para publicar" + where;
+        }
+        if (has(cause, InvalidTopicException.class)) {
+            return "Nome de tópico inválido" + (topic == null || topic.isBlank() ? "" : ": " + topic);
+        }
+        if (has(cause, RecordTooLargeException.class)) {
+            return "A mensagem é grande demais para publicar" + where;
+        }
+        if (has(cause, java.util.concurrent.TimeoutException.class) || has(cause, org.apache.kafka.common.errors.TimeoutException.class)) {
+            return "Sem resposta do broker no tempo limite ao publicar" + where;
+        }
+        return "Não foi possível publicar" + where + ": " + (cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName());
+    }
+
+    private int intVariable(LockedExternalTask task, String name, int fallback, int max, int min) {
+        Object value = task.getVariables().get(name);
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            int parsed = (int) Double.parseDouble(String.valueOf(value).replace("\"", "").trim());
+            return Math.max(min, Math.min(parsed, max));
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 
     /** Mesmo envelope do wf-journey-v1 ({@code EventMenssageMapper.toEventMessageDTO}): {@code status}/

@@ -26,6 +26,7 @@ import {
   type WFEdgeData,
   type WFNodeData,
   describeResilience,
+  describeMessagingResilience,
 } from './model';
 import { Section } from './PropertiesSection';
 import { ConnectorWizard } from './ConnectorWizard';
@@ -693,6 +694,7 @@ function describeConnector(connectorConfig: ConnectorConfig, brokerOperation?: '
     `Cluster: ${(cfg.clusterId as string) || '—'}`,
     `${topicLabel}: ${(cfg.topic as string) || '—'}`,
     `Credencial: ${connectorConfig.credentialRef || '—'}`,
+    ...(isConsume ? [] : [describeMessagingResilience(cfg)]),
   ];
 
   if (payloadMode === 'GENERIC_DUMP') {
@@ -797,7 +799,7 @@ function ConnectorFields({
         )}
         {nodeType === 'serviceTask' && connectorConfig?.connectorType !== 'REST' && (
           <div style={{ padding: '6px 10px', borderTop: `1px solid ${c.border}`, color: c.textSecondary, fontSize: 11.5 }}>
-            O caminho "Se falhar" existe só para integração REST.
+            O caminho "Se falhar" existe só para integração REST ou publicação de mensagem.
           </div>
         )}
       </PropertyGrid>

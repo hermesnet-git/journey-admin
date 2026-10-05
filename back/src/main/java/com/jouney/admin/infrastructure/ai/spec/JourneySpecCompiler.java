@@ -197,13 +197,9 @@ public final class JourneySpecCompiler {
         } else if (step.next() != null && !step.next().isBlank()) {
             problems.add(label + " é " + step.kind() + " e não usa next");
         }
-        // TODO(falha em mensageria): hoje só INTEGRATION (REST) tem caminho "Se falhar"; PUBLISH_MESSAGE não tem, e o
-        // prompt (JourneyGenerationPrompt, regra sobre PUBLISH_MESSAGE) manda a IA gerar sem tratar a falha e anotar
-        // a limitação. Quando a plataforma passar a tratar falha de mensagem, revisitar esta validação, o prompt, o
-        // esquema (onFailure em PUBLISH_MESSAGE) e a montagem das ligações mais abaixo.
         if (step.onFailure() != null && !step.onFailure().isBlank()) {
-            if (!"INTEGRATION".equals(step.kind())) {
-                problems.add(label + " tem onFailure, mas só uma etapa INTEGRATION pode ter um caminho de falha");
+            if (!"INTEGRATION".equals(step.kind()) && !"PUBLISH_MESSAGE".equals(step.kind())) {
+                problems.add(label + " tem onFailure, mas só uma etapa INTEGRATION ou PUBLISH_MESSAGE pode ter um caminho de falha");
             } else {
                 checkTarget(label + " (onFailure)", step.onFailure(), keys, problems);
             }

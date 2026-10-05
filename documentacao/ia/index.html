@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Geração de jornada por IA · Elastic Journey</title>
+<style>
+  :root{
+    --brand:#660099;
+    --brand-700:#4d0073;
+    --brand-400:#8433ab;
+    --brand-100:#e5d4ef;
+    --brand-050:#f2ebfa;
+    --brand-025:#f8f5fc;
+    --lime:#99cc33;
+    --page:#f4f2f8;
+    --surface:#ffffff;
+    --text:#313235;
+    --text-2:#6b6b73;
+    --border:#e9e6f0;
+    --error-low:#fce4ef;
+    --warn-low:#fdf1de;
+    --info-low:#eef3fb;
+    --brand-ink:#660099;
+    --on-brand:#ffffff;
+    --text-high:#252233;
+    --text-3:#736b80;
+    --nav-bg:rgba(255,255,255,.92);
+    
+    
+    --error-border:#f2c2d5;
+    --error-ink:#8d143c;
+    --warn-border:#ecd2a6;
+    --warn-ink:#7d4b00;
+    --info-border:#c8d8ef;
+    --info-ink:#1f4478;
+    --code-bg:#2a0b3d;
+    --code-fg:#e9dcf3;
+    
+    
+    --arch-bg:linear-gradient(160deg,#fcfcfe 0%,#ebe9f2 100%);
+    --arch-border:#e2e0e9;
+    --ax-stroke:#e5d4ef;
+    --ax-hub:#660099;
+    --ax-line:#8433ab;
+    --ax-accent:#50691a;
+    --ax-band:#660099;
+    --shadow:0 18px 44px -22px rgba(56,0,87,.28);
+    --radius:18px;
+    --pad:clamp(28px,4.2vw,76px);
+    --font:"Vivo Type","Segoe UI",Arial,sans-serif;
+    --mono:"Cascadia Code",Consolas,monospace;
+    color-scheme:light;
+  }
+
+  /* Base dos dois temas escuros. Os tokens de roxo invertem de papel: --brand continua sendo o
+     preenchimento (texto branco por cima) e --brand-ink/--brand-700 passam a ser os tons claros
+     usados em texto. O tema Grafite reaproveita tudo isto e só troca as cores de fundo. */
+  :root[data-theme="dark"],:root[data-theme="graphite"]{
+    --brand:#7a23b3;
+    --brand-ink:#d0a6ec;
+    --brand-700:#d0a6ec;
+    --brand-400:#b273db;
+    --brand-100:#3d3352;
+    --brand-050:#2a2339;
+    --brand-025:#221c2f;
+    --lime:#a8d94a;
+    --page:#161320;
+    --surface:#1e1a2b;
+    --text:#ece9f3;
+    --text-2:#a79fb8;
+    --text-high:#ffffff;
+    --text-3:#a29ab3;
+    --border:#322a45;
+    --nav-bg:rgba(22,19,32,.93);
+    
+    
+    
+    --error-low:#39182a;
+    --error-border:#5d2b40;
+    --error-ink:#ffb3c8;
+    --warn-low:#36291a;
+    --warn-border:#5a452a;
+    --warn-ink:#f0c58a;
+    --info-low:#1c2739;
+    --info-border:#33456b;
+    --info-ink:#a9c6ef;
+    --code-bg:#120c1c;
+    --code-fg:#e4d8ef;
+    
+    
+    --arch-bg:linear-gradient(160deg,#241f2e 0%,#191622 100%);
+    --arch-border:#332c42;
+    --ax-stroke:transparent;
+    --ax-hub:#4d0073;
+    --ax-line:#ffffff;
+    --ax-accent:#a8d94a;
+    --ax-band:#d9b8ec;
+    --shadow:0 18px 44px -22px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+
+  /* Grafite: mesmo tema escuro, com os neutros sem temperatura roxa. O roxo fica só nos acentos. */
+  :root[data-theme="graphite"]{
+    --arch-bg:linear-gradient(160deg,#232328 0%,#18181c 100%);
+    --arch-border:#2f2f35;
+    --page:#0f0f11;
+    --surface:#1a1a1d;
+    --border:#2c2c31;
+    --text:#ededf0;
+    --text-2:#a0a0a8;
+    --text-3:#98929f;
+    --brand-ink:#c78ce8;
+    --brand-700:#c78ce8;
+    --brand-100:#33303a;
+    --brand-050:#26232b;
+    --brand-025:#1f1d23;
+    --nav-bg:rgba(15,15,17,.93);
+    --code-bg:#111013;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    background:var(--page);
+    color:var(--text);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- moldura ---------- */
+  .deck{min-height:100vh;display:flex;flex-direction:column}
+  .progress{height:3px;background:var(--brand-100)}
+  .progress i{display:block;height:100%;width:100%;background:var(--brand);transform-origin:left center;transition:transform .35s cubic-bezier(.2,.7,.3,1)}
+  .masthead{
+    min-height:100px;display:flex;align-items:center;justify-content:space-between;gap:24px;
+    padding:24px var(--pad);flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface);
+  }
+  .lockup{display:flex;align-items:center;gap:21px;font-size:12px;letter-spacing:.17em;font-weight:700;color:var(--text-high)}
+  .lockup svg{width:104px;height:38px;display:block;color:var(--brand)}
+  .lockup .rule{width:1px;height:29px;background:currentColor;opacity:.22}
+  .lockup small{display:block;font-weight:500;letter-spacing:.02em;font-size:12px;margin-top:4px;color:var(--text-2)}
+  .mast-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .proposal{font-size:12px;color:var(--text-2)}
+  .switch{display:flex;gap:3px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--brand-025)}
+  .switch button{font:inherit;cursor:pointer;border:0;background:transparent;color:var(--text-2);border-radius:999px;padding:6px 13px;font-size:11.5px;font-weight:700;transition:background .16s ease,color .16s ease}
+  .switch button:hover{background:var(--brand-050);color:var(--brand-ink)}
+  .switch button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand)}
+
+  .steps{display:flex;gap:2px;align-items:center;flex-wrap:wrap}
+  .steps button{
+    font:inherit;cursor:pointer;border:0;background:transparent;color:var(--text-2);
+    border-radius:999px;padding:8px 13px;font-size:12.5px;font-weight:600;
+    display:flex;align-items:center;gap:9px;transition:background .16s ease,color .16s ease;
+  }
+  .steps button .sn{font-size:11px;font-weight:700;opacity:.6;letter-spacing:.04em}
+  .steps button:hover{background:var(--brand-050);color:var(--brand-ink)}
+  .steps button[aria-current="true"]{color:var(--brand-ink);font-weight:700}
+  .steps button[aria-current="true"] .sn{opacity:1}
+  .counter{font-size:12px;font-weight:700;color:var(--text-2);letter-spacing:.04em}
+
+  /* ---------- capa (slide 1) ---------- */
+
+  .cover{display:grid;grid-template-columns:minmax(0,560px) 1fr;gap:clamp(26px,2.6vw,46px);align-items:center}
+
+  /* Diagrama de runtime da capa. As superfícies ficam claras em todos os temas porque a capa
+     é escura nos três; só o fundo dela muda. */
+  .arch{background:var(--arch-bg);border:1px solid var(--arch-border);border-radius:20px;padding:24px 24px 22px;box-shadow:var(--shadow)}
+  .arch-title{margin:0 0 14px;font-size:17px;font-weight:700;letter-spacing:-.015em;color:var(--text-high)}
+  .arch svg{width:100%;height:auto;display:block}
+  .ax-card{fill:#ffffff;stroke:var(--ax-stroke);stroke-width:1;filter:url(#ax-sombra)}
+  .ax-soft{fill:#f5f0fa;stroke:var(--ax-stroke);stroke-width:1;filter:url(#ax-sombra)}
+  .ax-hub{fill:var(--ax-hub);filter:url(#ax-sombra)}
+  .ax-line{stroke:var(--ax-line);stroke-width:1.6;fill:none;opacity:.9}
+  .ax-back{stroke:var(--ax-accent);stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+  .ax-t{fill:#252233;font-size:15px;font-weight:700}
+  .ax-s{fill:#6b6b73;font-size:12px}
+  .ax-m{font-family:var(--mono);fill:#660099;font-size:11px;font-weight:600}
+  .ax-band{fill:var(--ax-band);font-size:11px;font-weight:700;letter-spacing:.14em}
+  .ax-w{fill:#ffffff;font-size:20px;font-weight:700}
+  .ax-ws{fill:#e0cceb;font-size:12.5px}
+  .ax-note{fill:#a8d94a;font-size:12px;font-weight:600}
+  .ax-chip{fill:#3b0a59;stroke:var(--ax-accent);stroke-width:1}
+  .ax-code{font-family:var(--mono);fill:#e9dcf3;font-size:11.5px}
+  .cover .eyebrow{font-size:11px;letter-spacing:.2em;margin-bottom:24px}
+  .cover h1{font-size:clamp(40px,3.9vw,62px);line-height:1.08;letter-spacing:-.03em;margin:0}
+  .cover .lead{font-size:clamp(18px,1.5vw,24px);line-height:1.45;max-width:470px;margin-top:22px}
+  .metrics{display:flex;gap:clamp(34px,4.6vw,64px);margin:34px 0 30px;flex-wrap:wrap}
+  .metrics b{display:inline-block;background:var(--surface);color:var(--text);font-size:clamp(32px,2.9vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1;padding:12px 18px;border-radius:14px;box-shadow:0 2px 8px -2px rgba(40,10,60,.18),0 0 0 1px rgba(40,10,60,.05)}
+  .metrics span{display:block;font-size:13.5px;color:var(--text-2);margin-top:10px;max-width:160px;line-height:1.35;text-align:left}
+  .persp{border-top:1px solid var(--border);padding-top:23px;max-width:540px}
+  .persp .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .persp .seg button{font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);color:var(--brand-700);border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;transition:all .18s ease}
+  .persp .seg button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .persp .seg button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .persp p{font-size:16px;line-height:1.5;margin:16px 0 0;min-height:72px;color:var(--text-2)}
+
+
+  main{flex:1;display:flex;justify-content:center;padding:20px var(--pad) 90px}
+  .slide{display:none;width:100%;max-width:1680px}
+  .slide.is-on{display:block;animation:rise .36s cubic-bezier(.2,.7,.3,1) both}
+  /* só a capa centraliza na vertical; slides densos continuam a partir do topo, para não
+     empurrar o próprio começo para fora da tela quando o conteúdo passa da altura útil. */
+  .cover-slide.is-on{display:flex;flex-direction:column;justify-content:center}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ---------- tipografia ---------- */
+  .eyebrow{
+    display:block;margin-bottom:12px;
+    font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--brand-ink);
+  }
+  h1{font-size:clamp(28px,3.1vw,46px);line-height:1.12;letter-spacing:-.025em;font-weight:700;margin:0 0 14px;color:var(--text-high)}
+  h1 em{font-style:normal;color:var(--brand-ink)}
+  .lead{max-width:860px;font-size:16px;line-height:1.6;color:var(--text-2);margin:0}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-ink);margin:0 0 12px;font-weight:800}
+  h3{font-size:15px;margin:0 0 6px;font-weight:700;color:var(--text-high)}
+  p{margin:0 0 10px;line-height:1.55}
+  code{font-family:var(--mono);font-size:.92em;background:var(--brand-025);border:1px solid var(--brand-100);border-radius:6px;padding:1px 5px;color:var(--brand-700)}
+
+  /* ---------- blocos ---------- */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px}
+  .grid{display:grid;gap:16px}
+  .targets{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .targets button{
+    font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);
+    border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--brand-700);
+    display:flex;align-items:center;gap:8px;transition:all .18s ease;
+  }
+  .targets button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .targets button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .targets button i{width:7px;height:7px;border-radius:50%;background:var(--lime);font-style:normal}
+  .targets button[aria-pressed="true"] i{background:var(--on-brand)}
+
+  pre{
+    margin:0;font-family:var(--mono);font-size:12.5px;line-height:1.7;
+    background:var(--code-bg);color:var(--code-fg);border-radius:14px;padding:18px 20px;overflow:auto;
+  }
+
+  ul.rules{margin:0;padding-left:18px;font-size:13.2px;line-height:1.75;color:var(--text)}
+  ul.rules li::marker{color:var(--brand-400)}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:13px}
+  table.cmp th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-2);padding:0 10px 8px;font-weight:800}
+  table.cmp td{border-top:1px solid var(--border);padding:9px 10px;vertical-align:top}
+  table.cmp tr.head td{background:var(--brand-050);font-weight:800;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--brand-700);padding:6px 10px;border-top:1px solid var(--brand-100)}
+  table.cmp td.t{font-family:var(--mono);font-size:12px;color:var(--brand-700);white-space:nowrap}
+  table.cmp td.m{color:var(--text-2);line-height:1.45}
+  table.cmp tr.row:hover td{background:var(--brand-025)}
+  table.cmp .props{display:block;font-family:var(--mono);font-size:11px;color:var(--text-3);margin-top:3px}
+  .matrix-wrap{max-height:460px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:14px 8px 8px}
+  .lvl{display:inline-block;font-size:10.5px;font-weight:800;color:var(--on-brand);background:var(--brand-400);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+
+  .sev{display:flex;flex-direction:column;gap:8px}
+  .sev div{border-radius:10px;padding:9px 12px;font-size:12.5px;line-height:1.45;border:1px solid}
+  .sev .e{background:var(--error-low);border-color:var(--error-border);color:var(--error-ink)}
+  .sev .w{background:var(--warn-low);border-color:var(--warn-border);color:var(--warn-ink)}
+  .sev .i{background:var(--info-low);border-color:var(--info-border);color:var(--info-ink)}
+  .sev b{font-family:var(--mono);font-size:11.5px}
+
+  .ask{background:linear-gradient(135deg,var(--brand),var(--brand-700));color:var(--on-brand);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+  .ask h2{color:#d9b8ec}
+  .ask p{font-size:13.5px;color:#f0e4f7;line-height:1.55}
+  .ask ul{margin:0;padding-left:18px;font-size:13.2px;line-height:1.7;color:#f0e4f7}
+  .ask ul li::marker{color:var(--lime)}
+  .ask code{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:var(--on-brand)}
+
+  .out{font-size:12.5px;color:var(--text-2);line-height:1.6}
+  .out b{color:var(--text)}
+
+  /* ---------- slide 4: documento integral ---------- */
+  .doclayout{display:grid;grid-template-columns:268px 1fr;gap:16px;margin-top:22px;align-items:start}
+  .toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px 14px 14px;max-height:calc(100vh - 250px);overflow:auto;position:sticky;top:16px}
+  .toc h2{padding-left:4px}
+  .toc a{display:block;font-size:12.5px;line-height:1.35;color:var(--text-2);text-decoration:none;padding:6px 8px;border-radius:8px;transition:background .14s ease,color .14s ease}
+  .toc a:hover{background:var(--brand-025);color:var(--brand-700)}
+  .toc a.on{background:var(--brand-050);color:var(--brand-700);font-weight:700}
+  .docpane{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px 30px 30px;max-height:calc(100vh - 250px);overflow:auto}
+  .doc{font-size:13.6px;line-height:1.68;color:var(--text);max-width:960px}
+  .doc h1{font-size:25px;line-height:1.2;margin:22px 0 10px;letter-spacing:-.02em}
+  .doc h2{font-size:19px;text-transform:none;letter-spacing:-.01em;color:var(--text-high);margin:34px 0 12px;padding-top:16px;border-top:1px solid var(--border);scroll-margin-top:12px}
+  .doc h2:first-child{border-top:0;padding-top:0;margin-top:8px}
+  .doc h3{font-size:15.5px;color:var(--brand-700);margin:24px 0 8px}
+  .doc h4{font-size:12.5px;color:var(--text-2);margin:18px 0 6px;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+  .doc p{margin:0 0 12px}
+  .doc ul,.doc ol{margin:0 0 14px;padding-left:22px}
+  .doc li{margin-bottom:5px}
+  .doc li::marker{color:var(--brand-400)}
+  .doc strong{color:var(--text-high)}
+  .doc pre{font-size:11.8px;line-height:1.6;margin:0 0 16px}
+  .doc code{white-space:nowrap}
+  .tw{overflow-x:auto;margin:0 0 16px;border:1px solid var(--border);border-radius:12px}
+  .doc table{border-collapse:collapse;width:100%;font-size:12.2px;min-width:540px}
+  .doc th{text-align:left;background:var(--brand-050);color:var(--brand-700);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding:9px 12px;border-bottom:1px solid var(--brand-100)}
+  .doc td{padding:9px 12px;border-top:1px solid var(--border);vertical-align:top;line-height:1.5;color:var(--text-2)}
+  .doc tbody tr:hover td{background:var(--brand-025)}
+
+  /* ---------- navegação ---------- */
+  .nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    background:var(--nav-bg);backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px var(--pad);flex-wrap:wrap;
+  }
+  .nav .btns{align-items:center;gap:12px}
+  .nav .hint{font-size:11.5px;color:var(--text-2)}
+  @media (max-width:1420px){.nav .hint{display:none}}
+  .nav .hint kbd{font-family:var(--mono);font-size:11px;background:var(--brand-025);border:1px solid var(--brand-100);border-radius:5px;padding:1px 6px;color:var(--brand-700)}
+  .nav .btns{display:flex;gap:8px}
+  .nav button{
+    font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);
+    border-radius:999px;padding:9px 20px;font-size:13.5px;font-weight:700;color:var(--brand-700);transition:all .16s ease;
+  }
+  .nav button:hover:not(:disabled){background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .nav button:disabled{opacity:.38;cursor:not-allowed}
+  .nav .title{font-size:12.5px;font-weight:700;color:var(--text-2)}
+
+  @media (max-width:1040px){
+    .two,.doclayout,.cover{grid-template-columns:1fr!important}
+    .cover{gap:28px}
+    .arch{max-width:760px}
+    .toc{position:static;max-height:220px}
+    .docpane{max-height:calc(100vh - 200px)}
+  }
+  @media (min-width:1100px) and (max-height:860px){
+    .cover h1{font-size:54px}
+    .cover .lead{font-size:19px;margin-top:18px}
+    .metrics{margin:22px 0 20px}
+    .metrics b{font-size:46px}
+    .metrics span{font-size:12.5px}
+    .persp{padding-top:16px}
+    .persp p{font-size:15px;min-height:58px;margin-top:10px}
+  }
+  @media print{
+    /* Impressão sempre em claro, com os blocos de código sobre fundo leve, qualquer que seja
+       o tema na tela. Mesma especificidade do bloco escuro, declarado depois: prevalece. */
+    :root[data-theme]{
+      --page:#fff;--surface:#fff;--text:#313235;--text-high:#252233;--text-3:#736b80;
+      --border:#e9e6f0;--text-2:#6b6b73;--brand:#660099;--brand-ink:#660099;--brand-700:#4d0073;--brand-400:#8433ab;
+      --brand-100:#e5d4ef;--brand-050:#f2ebfa;--brand-025:#f8f5fc;
+      --nav-bg:#fff;
+      --code-bg:#f7f4fb;--code-fg:#33124a;--arch-bg:linear-gradient(160deg,#fcfcfe,#ebe9f2);--arch-border:#e2e0e9;--ax-stroke:#e5d4ef;--ax-hub:#660099;--ax-line:#8433ab;--ax-accent:#50691a;--ax-band:#660099;
+      --error-low:#fce4ef;--error-border:#f2c2d5;--error-ink:#8d143c;
+      --warn-low:#fdf1de;--warn-border:#ecd2a6;--warn-ink:#7d4b00;
+      --info-low:#eef3fb;--info-border:#c8d8ef;--info-ink:#1f4478;
+      color-scheme:light;
+    }
+    pre{border:1px solid var(--brand-100)}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .nav,.dots,.progress,.toc,.switch{display:none}
+    .slide{display:block!important;break-after:page;max-width:none}
+    body{background:#fff}
+    .matrix-wrap{max-height:none}
+    .doclayout{display:block}
+    .docpane{max-height:none;overflow:visible;border:0;padding:0}
+    .doc h2{break-before:page}
+  }
+
+  /* ================= específico desta apresentação ================= */
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .four{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .stack-gap{display:flex;flex-direction:column;gap:16px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:2px 8px;background:var(--brand-050);color:var(--brand-700);border:1px solid var(--brand-100)}
+  .tag.ok{background:#e8f3d3;color:#3d5a0a;border-color:#cfe3a3}
+  .tag.warn{background:var(--warn-low);color:var(--warn-ink);border-color:var(--warn-border)}
+  :root[data-theme="dark"] .tag.ok,:root[data-theme="graphite"] .tag.ok{background:#27341a;color:#b9e06a;border-color:#3d5224}
+  .card p,.card li{font-size:13.2px;line-height:1.55;color:var(--text-2)}
+  .card h3{margin-bottom:8px}
+  .big{font-size:13.5px;line-height:1.6;color:var(--text)}
+  .analogy{display:flex;gap:14px;align-items:flex-start;background:var(--brand-025);border:1px dashed var(--brand-400);border-radius:var(--radius);padding:16px 18px}
+  .analogy .ico{flex:none;width:38px;height:38px;border-radius:12px;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;font-weight:800;font-size:18px}
+  .analogy p{margin:0;font-size:13.4px;color:var(--text)}
+  .analogy b{color:var(--brand-ink)}
+
+  /* diagramas SVG que acompanham o tema */
+  .dia{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+  .dia svg{width:100%;height:auto;display:block}
+  .dia .cap{font-size:12px;color:var(--text-2);margin:10px 2px 0}
+  .s-box{fill:var(--surface);stroke:var(--brand-100);stroke-width:1.2}
+  .s-soft{fill:var(--brand-025);stroke:var(--brand-100);stroke-width:1.2}
+  .s-hub{fill:var(--brand)}
+  .s-line{stroke:var(--brand-400);stroke-width:1.6;fill:none}
+  .s-dash{stroke:var(--brand-400);stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+  .s-lime{stroke:#6f9a1c;stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+  .s-t{fill:var(--text-high);font-size:14px;font-weight:700}
+  .s-s{fill:var(--text-2);font-size:11.5px}
+  .s-m{fill:var(--brand-ink);font-size:11px;font-family:var(--mono);font-weight:600}
+  .s-w{fill:#fff;font-size:17px;font-weight:700}
+  .s-ws{fill:#e6d3f2;font-size:12px}
+  .s-lbl{fill:var(--text-2);font-size:11px;font-weight:600}
+  .s-band{fill:var(--brand-050)}
+  .s-bandt{fill:var(--brand-ink);font-size:11px;font-weight:800;letter-spacing:.1em}
+  .s-life{stroke:var(--border);stroke-width:1.4;stroke-dasharray:3 5}
+  .s-msg{fill:var(--text);font-size:12.5px}
+  .s-note{fill:var(--info-low);stroke:var(--info-border)}
+  .s-notet{fill:var(--info-ink);font-size:11.5px}
+
+  /* jornada funcional: abas clicáveis */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .tabs button{font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);border-radius:14px;padding:10px 14px;text-align:left;min-width:150px;flex:1;transition:all .16s ease;color:var(--text)}
+  .tabs button b{display:block;font-size:11px;letter-spacing:.08em;color:var(--brand-ink);margin-bottom:2px}
+  .tabs button span{font-size:13px;font-weight:700}
+  .tabs button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .tabs button[aria-selected="true"]{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+  .tabs button[aria-selected="true"] b{color:#e0cceb}
+  .panel{display:none}
+  .panel.on{display:grid;animation:rise .3s both}
+  .mock{background:var(--page);border:1px solid var(--border);border-radius:14px;padding:14px;font-size:12.5px}
+  .mock .bar{display:flex;gap:6px;margin-bottom:10px}
+  .mock .bar i{width:9px;height:9px;border-radius:50%;background:var(--brand-100)}
+  .mock .field{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:9px 11px;color:var(--text-2);margin-bottom:8px;line-height:1.5}
+  .mock .opt{display:flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 11px;margin-bottom:6px}
+  .mock .opt.rec{border-color:var(--brand-400)}
+  .mock .opt i{width:12px;height:12px;border-radius:50%;border:2px solid var(--brand-400);flex:none}
+  .mock .opt em{margin-left:auto;font-style:normal;font-size:10px;font-weight:800;color:var(--brand-ink);background:var(--brand-050);border-radius:5px;padding:1px 6px}
+  .mock .btn{display:inline-block;background:var(--brand);color:var(--on-brand);font-weight:700;border-radius:999px;padding:6px 16px;font-size:12px}
+  .mock .log{font-family:var(--mono);font-size:11.5px;line-height:1.8}
+  .mock .log .g{color:#4b7a0a}.mock .log .a{color:var(--warn-ink)}.mock .log .b{color:var(--info-ink)}.mock .log .r{color:var(--error-ink)}
+  :root[data-theme="dark"] .mock .log .g,:root[data-theme="graphite"] .mock .log .g{color:#b9e06a}
+
+  /* esteira do laço de geração */
+  .pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;counter-reset:p}
+  .pipe .st{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 14px 12px;counter-increment:p}
+  .pipe .st::before{content:counter(p);position:absolute;top:-11px;left:14px;width:24px;height:24px;border-radius:50%;background:var(--brand);color:var(--on-brand);font-size:12px;font-weight:800;display:grid;place-items:center}
+  .pipe .st h3{margin:6px 0 4px;font-size:14px}
+  .pipe .st p{font-size:12.4px;line-height:1.5;color:var(--text-2);margin:0}
+  .pipe .st.back{border-style:dashed;border-color:var(--brand-400);background:var(--brand-025)}
+  .pipe .st.end{background:var(--brand);border-color:var(--brand)}
+  .pipe .st.end h3,.pipe .st.end p{color:#fff}.pipe .st.end p{color:#e6d3f2}
+  .pipe .st.end::before{background:#fff;color:var(--brand)}
+
+  /* camadas técnicas */
+  .layers{display:flex;flex-direction:column;gap:12px}
+  .layer{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:stretch}
+  .layer .lh{background:var(--brand);color:var(--on-brand);border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:center}
+  .layer .lh b{font-size:13px}.layer .lh span{font-size:11.5px;color:#e0cceb;margin-top:3px;line-height:1.4}
+  .layer .lc{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .comp{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+  .comp code{display:block;white-space:normal;border:0;background:none;padding:0;font-weight:700;font-size:12px;color:var(--brand-700);margin-bottom:3px;word-break:break-word}
+  .comp span{font-size:12px;line-height:1.45;color:var(--text-2)}
+  .layer-ext .lh{background:var(--brand-050);color:var(--brand-700);border:1px solid var(--brand-100)}
+  .layer-ext .lh span{color:var(--text-2)}
+
+  .cmp2 td:first-child{white-space:nowrap}
+  .cmp2 code{white-space:nowrap}
+  table.cmp td{font-size:12.8px}
+  pre .k{color:#e8b7ff}pre .s{color:#b9e06a}pre .c{color:#9a8fb0}
+
+  .stat{display:flex;gap:10px;flex-wrap:wrap}
+  .stat div{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;min-width:130px}
+  .stat b{display:block;font-size:26px;letter-spacing:-.02em;color:var(--brand-ink);line-height:1.1}
+  .stat span{font-size:12px;color:var(--text-2)}
+  @media (max-width:1040px){.three,.four,.pipe,.layer{grid-template-columns:1fr}}
+</style>
+<script>
+  /* Tema aplicado antes da primeira pintura, para não piscar: usa a escolha gravada e,
+     na primeira visita, o tema do sistema operacional. */
+  (function(){
+    var t = null;
+    try {
+      t = localStorage.getItem('ia-tema') ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } catch (e) {}
+    if (['light','dark','graphite'].indexOf(t) < 0) t = 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+</head>
+<body>
+<div class="deck">
+  <div class="progress"><i id="bar" style="transform:scaleX(.1)"></i></div>
+  <header class="masthead">
+    <div class="lockup">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 195 72" fill="currentColor" aria-hidden="true" focusable="false"><path d="M23.3761 61.4297H26.5561C27.0861 61.4297 29.1472 61.1549 30.266 59.0938L43.4176 35.7743C44.7721 33.301 43.1821 31.2006 41.7688 30.6903L38.2748 29.1199C36.3904 28.2759 34.133 29.1592 33.2693 31.1417L25.0054 47.7481H24.8876L16.6433 31.1417C15.7992 29.1788 13.5222 28.2759 11.6575 29.1199L8.16346 30.6903C6.75015 31.2006 5.16018 33.301 6.5146 35.7743L19.6858 59.0938C20.8047 61.1549 22.8462 61.4297 23.3761 61.4297Z" /><path d="M81.204 61.4297H84.3839C84.9139 61.4297 86.975 61.1549 88.0939 59.0938L101.265 35.7743C102.62 33.301 101.03 31.2006 99.6163 30.6903L96.1223 29.1199C94.2378 28.2759 91.9805 29.1592 91.1364 31.1417L82.8725 47.7481H82.7547L74.4908 31.1417C73.6467 29.1788 71.3697 28.2759 69.5049 29.1199L66.0109 30.6903C64.5976 31.2006 63.0077 33.301 64.3621 35.7743L77.5137 59.0938C78.6129 61.1549 80.674 61.4297 81.204 61.4297Z" /><path d="M119.815 28.904C110.746 28.904 103.385 36.265 103.385 45.3337C103.385 54.4024 110.746 61.7634 119.815 61.7634C128.884 61.7634 136.244 54.4024 136.244 45.3337C136.244 36.265 128.903 28.904 119.815 28.904ZM119.815 51.8114C116.242 51.8114 113.337 48.9062 113.337 45.3337C113.337 41.7612 116.242 38.8561 119.815 38.8561C123.387 38.8561 126.292 41.7612 126.292 45.3337C126.312 48.9062 123.407 51.8114 119.815 51.8114Z" /><path d="M60.3184 19.5603C60.3184 23.1132 57.4329 25.9987 53.88 25.9987C50.3271 25.9987 47.4416 23.1132 47.4416 19.5603C47.4416 16.0074 50.3271 13.1219 53.88 13.1219C57.4329 13.1219 60.3184 16.0074 60.3184 19.5603Z" /><path d="M48.2661 33.2226C48.2661 31.0241 50.0327 29.2574 52.2312 29.2574H55.5485C57.747 29.2574 59.5136 31.0241 59.5136 33.2226V57.4647C59.5136 59.6632 57.7274 61.4298 55.5485 61.4298H52.2312C50.0327 61.4298 48.2661 59.6632 48.2661 57.4647V33.2226Z" /><path d="M178.919 19.5409C178.919 21.5627 178.192 24.7427 175.974 26.9608C175.189 27.746 174.502 28.2171 173.952 28.5704C172.912 29.2574 172.146 29.7285 172.559 30.867C172.971 31.9859 174.266 31.6326 175.503 31.3577C175.896 31.2596 183.61 29.4144 183.708 29.4144C185.769 29.0219 187.771 30.337 188.262 32.3588C188.262 32.3588 188.871 34.9499 188.89 34.9695C189.381 36.9913 188.184 39.0721 186.162 39.6609C186.083 39.7002 177.662 41.722 177.643 41.722C176.053 42.1342 175.11 42.9194 175.11 44.4701C175.11 45.1571 175.503 45.903 175.994 46.5312C175.994 46.5312 185.141 57.8769 185.18 57.9554C186.417 59.6632 186.103 62.0187 184.493 63.3338C184.493 63.3338 182.432 65.0023 182.413 65.0219C180.803 66.3371 178.408 66.1604 177.014 64.5901C176.936 64.5312 171.263 57.5432 170.655 56.7973C170.046 56.0514 169.3 54.9325 168.24 54.9325C167.18 54.9325 166.434 56.0514 165.826 56.7973C165.217 57.5432 159.544 64.5116 159.466 64.5901C158.053 66.1604 155.677 66.3371 154.068 65.0219C154.048 65.0023 151.987 63.3338 151.987 63.3338C150.378 62.0187 150.044 59.6435 151.3 57.9554C151.339 57.8769 160.487 46.5312 160.487 46.5312C160.977 45.903 161.37 45.1571 161.37 44.4701C161.37 42.9194 160.428 42.1342 158.838 41.722C158.818 41.722 150.397 39.7002 150.319 39.6609C148.297 39.0721 147.119 36.9913 147.59 34.9695C147.59 34.9499 148.218 32.3785 148.218 32.3588C148.709 30.337 150.711 29.0219 152.772 29.4144C152.87 29.4144 160.565 31.2596 160.977 31.3577C162.214 31.6326 163.51 31.9859 163.922 30.867C164.354 29.7285 163.588 29.2574 162.528 28.5704C161.978 28.2171 161.311 27.746 160.526 26.9608C158.288 24.723 157.562 21.5627 157.562 19.5409C157.562 13.7307 162.41 9 168.24 9C174.07 9 178.919 13.711 178.919 19.5409Z" /></svg>
+      <span class="rule"></span>
+      <span>ELASTIC JOURNEY<small>Geração de jornada por IA</small></span>
+    </div>
+    <div class="mast-actions">
+      <span class="proposal">Apresentação técnica</span>
+      <div class="switch" id="theme" role="group" aria-label="Tema da apresentação">
+        <button type="button" data-theme-choice="light" aria-pressed="true">Claro</button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false">Escuro</button>
+        <button type="button" data-theme-choice="graphite" aria-pressed="false">Grafite</button>
+      </div>
+    </div>
+  </header>
+
+
+  <main>
+    <!-- ============================ SLIDE 1 ============================ -->
+    <section class="slide cover-slide is-on" data-title="Visão geral">
+      <div class="cover">
+        <div>
+          <span class="eyebrow">01 / Visão geral</span>
+          <h1>Geração de jornada<br><em>por IA</em></h1>
+          <p class="lead">
+            O autor descreve a jornada com palavras. A IA escreve um esboço, e o próprio sistema monta o fluxo,
+            as telas e as ligações, já validados e prontos para revisar no editor.
+          </p>
+          <div class="metrics">
+            <div><b>4</b><span>provedores de IA</span></div>
+            <div><b>5</b><span>tentativas de correção</span></div>
+            <div><b>20</b><span>telas no máximo</span></div>
+          </div>
+          <div class="persp">
+            <div class="seg" id="persp" role="group" aria-label="Perspectiva do público"></div>
+            <p id="persp-copy" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <div class="dia">
+          <p class="arch-title">Quem conversa com quem</p>
+          <svg viewBox="0 0 860 470" role="img" aria-label="O autor usa a aba IA da tela Nova jornada, que chama o Admin Back. O Admin Back pede um esboço ao provedor de IA, monta e valida a jornada e devolve o fluxo para o canvas do editor.">
+            <defs>
+              <filter id="sh" x="-12%" y="-25%" width="124%" height="150%"><feDropShadow dx="0" dy="1" stdDeviation="1.6" flood-color="#2a0b3d" flood-opacity=".18"/></filter>
+              <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker>
+              <marker id="arl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#6f9a1c"/></marker>
+            </defs>
+            <!-- coluna 1 -->
+            <rect class="s-box" filter="url(#sh)" x="0" y="40" width="180" height="58" rx="12"/>
+            <text class="s-t" x="16" y="65">Autor da jornada</text><text class="s-s" x="16" y="84">descreve o que quer</text>
+            <rect class="s-box" filter="url(#sh)" x="0" y="150" width="180" height="80" rx="12"/>
+            <text class="s-t" x="16" y="175">Nova jornada · aba IA</text><text class="s-m" x="16" y="195">NewJourneyModal</text><text class="s-s" x="16" y="214">pedido, perguntas, log</text>
+            <rect class="s-box" filter="url(#sh)" x="0" y="360" width="180" height="70" rx="12"/>
+            <text class="s-t" x="16" y="385">Canvas do editor</text><text class="s-s" x="16" y="405">rascunho editável,</text><text class="s-s" x="16" y="420">ainda não salvo</text>
+            <path class="s-line" marker-end="url(#ar)" d="M90 98 L90 148"/>
+            <path class="s-lime" marker-end="url(#arl)" d="M90 230 L90 358"/>
+            <text class="s-lbl" x="100" y="300">fluxo gerado</text>
+            <!-- hub -->
+            <path class="s-line" marker-end="url(#ar)" d="M180 190 L250 190"/>
+            <text class="s-lbl" x="190" y="181">pedido</text>
+            <rect class="s-hub" filter="url(#sh)" x="250" y="90" width="270" height="290" rx="18"/>
+            <text class="s-w" x="270" y="124">Admin Back</text>
+            <text class="s-ws" x="270" y="144">orquestra a geração, não guarda nada</text>
+            <rect x="270" y="162" width="230" height="40" rx="10" fill="#fff" opacity=".95"/><text class="s-t" x="284" y="180" style="font-size:12.5px">FlowController</text><text class="s-s" x="284" y="195">recebe o pedido e transmite o andamento (SSE)</text>
+            <rect x="270" y="210" width="230" height="40" rx="10" fill="#fff" opacity=".95"/><text class="s-t" x="284" y="228" style="font-size:12.5px">LlmFlowGenerator</text><text class="s-s" x="284" y="243">o laço: perguntar, gerar, validar, corrigir</text>
+            <rect x="270" y="258" width="230" height="40" rx="10" fill="#fff" opacity=".95"/><text class="s-t" x="284" y="276" style="font-size:12.5px">Montador (Spec Compiler)</text><text class="s-s" x="284" y="291">transforma o esboço no fluxo real</text>
+            <rect x="270" y="306" width="230" height="40" rx="10" fill="#fff" opacity=".95"/><text class="s-t" x="284" y="324" style="font-size:12.5px">Validador do editor</text><text class="s-s" x="284" y="339">as mesmas regras de qualquer fluxo</text>
+            <text class="s-ws" x="270" y="368" style="fill:#a8d94a;font-weight:600">nada é gravado até o autor salvar</text>
+            <!-- coluna 3 -->
+            <text class="s-bandt" x="620" y="36" style="fill:var(--brand-ink)">PROVEDORES DE IA (UM ATIVO)</text>
+            <g>
+              <rect class="s-soft" x="620" y="48" width="240" height="34" rx="10"/><text class="s-t" x="634" y="70" style="font-size:12.5px">Gemini (padrão)</text>
+              <rect class="s-soft" x="620" y="88" width="240" height="34" rx="10"/><text class="s-t" x="634" y="110" style="font-size:12.5px">Anthropic (Claude)</text>
+              <rect class="s-soft" x="620" y="128" width="240" height="34" rx="10"/><text class="s-t" x="634" y="150" style="font-size:12.5px">OpenAI</text>
+              <rect class="s-soft" x="620" y="168" width="240" height="34" rx="10"/><text class="s-t" x="634" y="190" style="font-size:12.5px">GitHub Models</text>
+            </g>
+            <path class="s-line" marker-end="url(#ar)" d="M520 150 L618 110"/>
+            <text class="s-lbl" x="528" y="116" transform="rotate(-18 528 116)">prompt + ferramentas</text>
+            <path class="s-dash" marker-end="url(#ar)" d="M620 190 L522 224"/>
+            <text class="s-lbl" x="548" y="226" transform="rotate(-16 548 226)">esboço</text>
+            <rect class="s-box" filter="url(#sh)" x="620" y="250" width="240" height="64" rx="12"/>
+            <text class="s-t" x="636" y="275">Catálogo de componentes</text><text class="s-s" x="636" y="294">Component Registry: as telas usam só ui.*</text>
+            <path class="s-line" marker-end="url(#ar)" d="M520 282 L618 282"/>
+            <rect class="s-box" filter="url(#sh)" x="620" y="330" width="240" height="64" rx="12"/>
+            <text class="s-t" x="636" y="355">Credencial de IA</text><text class="s-s" x="636" y="374">chave e modelo, lidos a cada geração</text>
+            <path class="s-line" marker-end="url(#ar)" d="M520 340 L618 356"/>
+          </svg>
+          <p class="cap">Linha tracejada verde: o resultado volta ao canvas como rascunho. Nada é gravado até o autor clicar em Salvar.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 2 ============================ -->
+    <section class="slide" data-title="A ideia central">
+      <span class="eyebrow">02 / A ideia central</span>
+      <h1>A IA descreve. <em>O sistema constrói.</em></h1>
+      <p class="lead">
+        Pedir a um modelo de linguagem que escreva a jornada pronta, com ids, ligações, árvore de componentes e grafia
+        de variáveis, dá resultado frágil. Então a IA recebe uma tarefa menor: escrever só o &ldquo;o quê&rdquo;, de forma compacta.
+        Todo o resto é código determinístico do Admin.
+      </p>
+
+      <div class="analogy" style="margin-top:20px">
+        <div class="ico">?</div>
+        <p><b>Analogia.</b> A IA é a pessoa que desenha a planta da casa num papel: quantos cômodos, onde fica a porta.
+        O sistema é a obra: sabe a bitola de cada cano, numera cada tijolo e recusa uma planta que não fecha.
+        Se a planta tem um erro, a obra devolve a lista de problemas e o desenhista corrige só aquilo.</p>
+      </div>
+
+      <div class="two" style="margin-top:16px;align-items:start">
+        <div class="card">
+          <h2>A IA escreve (a descrição compacta)</h2>
+          <pre>{
+  "name": "Pesquisa de satisfação",
+  "steps": [
+    { "key": "geral", "kind": "SCREEN",
+      "screen": { "title": "Sua experiência",
+        "blocks": [
+          { "kind": "QUESTION",
+            "label": "Como avalia o serviço?",
+            "answer": "SCALE_5" } ] } },
+    { "key": "fim", "kind": "END", "name": "Fim" }
+  ]
+}</pre>
+          <p class="out" style="margin-top:10px">Só nomes, perguntas e ligações. Nenhum identificador, posição nem nome de variável do motor.</p>
+        </div>
+        <div class="card">
+          <h2>O sistema entrega (o fluxo real)</h2>
+          <ul class="rules">
+            <li>Identificadores únicos de etapas e ligações.</li>
+            <li>Tela completa: <code>ui.screen</code>, <code>ui.stack</code>, <code>ui.select</code>, <code>ui.button</code> com os padrões do catálogo.</li>
+            <li>Campo gravado com nome certo (<code>form.notaX</code>) e escala de 1 a 5 montada.</li>
+            <li>Botão &ldquo;Continuar&rdquo; acrescentado quando faltar.</li>
+            <li>Fim da jornada acrescentado quando faltar.</li>
+            <li>Anotações no canvas para o que o autor precisa completar.</li>
+            <li>Validação com as mesmas regras do editor.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ask" style="margin-top:16px">
+        <h2>Por que este desenho</h2>
+        <ul>
+          <li><b>Menos erro:</b> a IA só acerta o que é intenção; a grafia das variáveis e a estrutura ficam garantidas por código.</li>
+          <li><b>Correção barata:</b> quando algo falha, o sistema devolve o problema escrito nos termos da descrição, e a IA corrige só aquilo.</li>
+          <li><b>Qualquer provedor serve:</b> o contrato é &ldquo;chame esta ferramenta com este JSON&rdquo;, igual em Gemini, Claude e OpenAI.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 3 ============================ -->
+    <section class="slide" data-title="Visão funcional">
+      <span class="eyebrow">03 / Visão funcional</span>
+      <h1>O que o autor <em>vive</em>, passo a passo</h1>
+      <p class="lead">
+        Clique em cada etapa para ver o que aparece na tela (telas ilustrativas). As perguntas só surgem quando falta um dado decisivo;
+        com um pedido completo, o caminho vai direto do pedido à geração.
+      </p>
+
+      <div class="tabs" id="tabs-func" role="tablist" style="margin-top:20px">
+        <button role="tab" aria-selected="true" data-p="f1"><b>PASSO 1</b><span>Descrever</span></button>
+        <button role="tab" aria-selected="false" data-p="f2"><b>PASSO 2</b><span>Responder perguntas</span></button>
+        <button role="tab" aria-selected="false" data-p="f3"><b>PASSO 3</b><span>Conferir o resumo</span></button>
+        <button role="tab" aria-selected="false" data-p="f4"><b>PASSO 4</b><span>Acompanhar a geração</span></button>
+        <button role="tab" aria-selected="false" data-p="f5"><b>PASSO 5</b><span>Revisar e salvar</span></button>
+      </div>
+
+      <div class="panel two on" id="f1" style="align-items:start">
+        <div class="mock">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="field"><b>Nova jornada</b> · aba <b>IA</b></div>
+          <div class="field" style="min-height:92px">Quero uma pesquisa de satisfação para clientes depois de uma troca de plano, com nota de 1 a 5 e um campo para comentário.</div>
+          <span class="btn">Gerar jornada</span>
+        </div>
+        <div class="card">
+          <h3>O que acontece</h3>
+          <ul class="rules">
+            <li>Na aba &ldquo;IA&rdquo; de &ldquo;Nova jornada&rdquo;, o autor escolhe produto e canal e escreve o pedido em linguagem natural.</li>
+            <li>A jornada nasce vazia por baixo dos panos. Ela só passa a valer quando o autor confirma com &ldquo;Salvar&rdquo; no editor; cancelar a exclui.</li>
+            <li>A IA só cria jornadas digitais de atendimento: questionários, cadastros, menus, consultas com API, decisões, aprovações e mensageria.</li>
+            <li>Pedido fora disso volta com um motivo escrito (ver slide 8).</li>
+          </ul>
+          <span class="tag">REQ-03.17.001</span> <span class="tag">REQ-03.17.007</span> <span class="tag">REQ-02.01.010</span>
+        </div>
+      </div>
+
+      <div class="panel two" id="f2" style="align-items:start">
+        <div class="mock">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="field"><b>Pergunta 1 de 2</b> · Resposta da API</div>
+          <div class="field">Quais dados a resposta da API da etapa «Consulta plano» devolve?</div>
+          <div class="opt rec"><i></i>Só o código HTTP; completar o mapeamento no editor<em>recomendada</em></div>
+          <div class="opt"><i></i>Outra resposta…</div>
+          <span class="btn">Continuar</span>
+        </div>
+        <div class="card">
+          <h3>O que acontece</h3>
+          <ul class="rules">
+            <li>Se falta um dado decisivo (o objetivo, o endereço de uma API, o que a resposta devolve, o critério de uma decisão), a IA pergunta em vez de supor.</li>
+            <li>Cada rodada tem de 1 a 3 perguntas, em abas, com respostas prontas. A primeira é a recomendada, mas <b>nada vem pré-selecionado</b>.</li>
+            <li>As perguntas de uma rodada são independentes; o que depende de outra resposta fica para a rodada seguinte.</li>
+            <li>Pode haver até 5 rodadas, sem repetir pergunta já respondida e sem perguntar o que a IA decide sozinha (textos, nomes, visual).</li>
+          </ul>
+          <span class="tag">REQ-03.17.013</span>
+        </div>
+      </div>
+
+      <div class="panel two" id="f3" style="align-items:start">
+        <div class="mock">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="field"><b>Resumo do que será enviado à IA</b></div>
+          <div class="field"><b>Pedido:</b> pesquisa de satisfação após troca de plano…</div>
+          <div class="field"><b>Decisões:</b><br>· Resposta da API → só o código HTTP<br>· O que é nota baixa → de 1 a 2</div>
+          <span class="btn">Gerar jornada</span> &nbsp; <span class="tag">Voltar às perguntas</span>
+        </div>
+        <div class="card">
+          <h3>O que acontece</h3>
+          <ul class="rules">
+            <li>Antes de gastar uma chamada de geração, o autor vê o pedido e as decisões de todas as rodadas e confirma.</li>
+            <li>Pode voltar às perguntas ou editar o pedido; editar o pedido recomeça as perguntas, porque as decisões eram sobre o pedido antigo.</li>
+          </ul>
+          <span class="tag">REQ-03.17.014</span>
+        </div>
+      </div>
+
+      <div class="panel two" id="f4" style="align-items:start">
+        <div class="mock">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="log">
+            <div class="b">Tentativa 1/5: chamando Gemini (gemini-3.5-flash-lite)…</div>
+            <div class="b">Tentativa 1: resposta recebida em 6.2s.</div>
+            <div class="b">Tentativa 1: montando a jornada e validando…</div>
+            <div class="a">Tentativa 1: Uma Decisão compara o campo 'nota', que nenhuma tela define</div>
+            <div class="r">Pedindo correção pro modelo…</div>
+            <div class="b">Tentativa 2/5: chamando Gemini…</div>
+            <div class="g">Tentativa 2: jornada válida — 7 etapas, 3 telas, 6 campos, 2 anotações.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>O que acontece</h3>
+          <ul class="rules">
+            <li>O servidor transmite cada passo em tempo real (SSE), e a tela mostra num registro com cor por tipo: válida, problema apontado, pedido de correção, erro e andamento comum.</li>
+            <li>Falhas passageiras do provedor são repetidas sozinhas. Chave recusada, modelo inexistente e excesso de uso viram mensagens claras que apontam para a credencial de IA.</li>
+            <li>Se esgotar as 5 tentativas, o autor recebe o último problema e três saídas: descrever com menos detalhes, trocar para um modelo mais capaz ou criar a jornada em branco.</li>
+          </ul>
+          <span class="tag">REQ-03.17.012</span> <span class="tag">REQ-03.17.017</span>
+        </div>
+      </div>
+
+      <div class="panel two" id="f5" style="align-items:start">
+        <div class="mock">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="field"><b>Canvas</b> · 100% de zoom, início à esquerda</div>
+          <div class="opt"><i></i>Início → Consulta plano → Decisão → Pesquisa → Fim</div>
+          <div class="field" style="border-style:dashed">Anotação: falta informar o endereço (URL) da API desta etapa.</div>
+          <span class="btn">Salvar</span> &nbsp; <span class="tag">Validar</span>
+        </div>
+        <div class="card">
+          <h3>O que acontece</h3>
+          <ul class="rules">
+            <li>O fluxo abre no editor como alteração <b>não salva</b>, organizado automaticamente. A IA não substitui a revisão do autor.</li>
+            <li>O que depende do ambiente (cluster, tópico e credencial de mensageria, endereço de API) vem em branco, com uma anotação no canvas dizendo o que completar.</li>
+            <li>&ldquo;Salvar&rdquo; grava o rascunho (versão <code>DRAFT</code>) e confirma a criação da jornada; a publicação continua exigindo todas as validações.</li>
+          </ul>
+          <span class="tag">REQ-03.17.004</span> <span class="tag">REQ-03.17.005</span> <span class="tag">REQ-03.17.010</span> <span class="tag">REQ-02.01.011</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 4 ============================ -->
+    <section class="slide" data-title="Visão técnica">
+      <span class="eyebrow">04 / Visão técnica</span>
+      <h1>Os componentes, <em>por camada</em></h1>
+      <p class="lead">
+        A solução vive em três lugares: a tela do Admin Portal (React), o Admin Back (Spring Boot, arquitetura em camadas)
+        e serviços de apoio. O núcleo está em <code>infrastructure/ai</code>.
+      </p>
+
+      <div class="layers" style="margin-top:20px">
+        <div class="layer">
+          <div class="lh"><b>Front</b><span>Admin Portal · React</span></div>
+          <div class="lc">
+            <div class="comp"><code>NewJourneyModal.tsx</code><span>Aba IA: pedido, estágios (pedido, perguntas, resumo), log colorido, entrega do fluxo ao editor.</span></div>
+            <div class="comp"><code>AiClarification.tsx</code><span>Perguntas em abas, respostas prontas, &ldquo;Outra resposta&rdquo; e resumo de decisões.</span></div>
+            <div class="comp"><code>api/flows.ts · generateFlow</code><span>Chamada SSE: recebe <code>progress</code>, <code>result</code>, <code>clarification</code> ou <code>error</code>.</span></div>
+            <div class="comp"><code>layoutFlowNodes</code><span>Organiza as posições (que chegam em zero) antes de abrir o canvas.</span></div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="lh"><b>API e aplicação</b><span>interfaces · application</span></div>
+          <div class="lc">
+            <div class="comp"><code>FlowController</code><span><code>POST /journeys/{id}/flow/generate</code>, permissão EDITOR ou ADMIN, thread virtual, SSE de até 600 s.</span></div>
+            <div class="comp"><code>GenerateFlow</code><span>Caso de uso: busca jornada e produto, monta o contexto e chama o gerador. Nunca grava fluxo.</span></div>
+            <div class="comp"><code>AiFlowGenerator · GenerationContext</code><span>Porta do domínio e o pacote com pedido, produto, canal, conectores e rodadas.</span></div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="lh"><b>Núcleo da IA</b><span>infrastructure/ai</span></div>
+          <div class="lc">
+            <div class="comp"><code>LlmFlowGenerator</code><span>O laço: chama o modelo, trata pergunta e recusa, valida e pede correção, até 5 vezes.</span></div>
+            <div class="comp"><code>JourneyGenerationPrompt</code><span>Regras de negócio em português, exemplos e as três ferramentas (gerar, perguntar, recusar).</span></div>
+            <div class="comp"><code>AiModelSelector</code><span>Escolhe provedor, chave e modelo a cada geração, sem reiniciar o servidor.</span></div>
+            <div class="comp"><code>AiModelClient · 4 adaptadores</code><span>Gemini, Anthropic, OpenAI e GitHub Models, todos com chamada de ferramenta obrigatória.</span></div>
+            <div class="comp"><code>AiHttp</code><span>Tentativas automáticas, timeouts e mensagens de erro para o usuário.</span></div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="lh"><b>Montagem</b><span>infrastructure/ai/spec</span></div>
+          <div class="lc">
+            <div class="comp"><code>JourneySpec + JourneySpecSchema</code><span>O contrato compacto e o JSON Schema que o modelo é obrigado a seguir.</span></div>
+            <div class="comp"><code>JourneySpecNormalizer</code><span>Preenche o que dá para inferir: keys, ligações, nomes de campo, fim da jornada.</span></div>
+            <div class="comp"><code>JourneySpecCompiler</code><span>Confere a descrição e monta nós, ligações, telas, seções e anotações.</span></div>
+          </div>
+        </div>
+        <div class="layer layer-ext">
+          <div class="lh"><b>Domínio e apoio</b><span>reuso, nada novo</span></div>
+          <div class="lc">
+            <div class="comp"><code>FlowValidator</code><span>As mesmas regras estruturais do editor e da publicação.</span></div>
+            <div class="comp"><code>SynchronousChainCheck</code><span>Impede um fim alcançado só por chamadas REST em sequência (o motor travaria).</span></div>
+            <div class="comp"><code>Component Registry</code><span>Catálogo SDUI: fornece os padrões de cada componente <code>ui.*</code>.</span></div>
+            <div class="comp"><code>AiProviderCredential</code><span>Credencial e modelo guardados por provedor, editados em Integrações.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 5 ============================ -->
+    <section class="slide" data-title="Diagrama de sequência">
+      <span class="eyebrow">05 / Diagrama de sequência</span>
+      <h1>Uma geração, <em>do pedido ao canvas</em></h1>
+      <p class="lead">
+        Quatro fases. A fase de perguntas é opcional e pode repetir; a de correção repete até 5 vezes.
+        Durante todo o tempo, o servidor envia eventos <code>progress</code> que alimentam o log da tela.
+      </p>
+
+      <div class="dia" style="margin-top:18px">
+        <svg viewBox="0 0 1200 790" role="img" aria-label="Sequência: usuário, tela, API, gerador, modelo de IA e montador com validador, em quatro fases: pedido, perguntas, geração e correção, entrega.">
+          <defs>
+            <marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker>
+          </defs>
+          <!-- faixas de fase -->
+          <rect class="s-band" x="0" y="92" width="1200" height="152" rx="10"/><text class="s-bandt" x="10" y="110">1 · PEDIDO</text>
+          <rect class="s-band" x="0" y="256" width="1200" height="188" rx="10" opacity=".55"/><text class="s-bandt" x="10" y="274">2 · PERGUNTAS (SÓ SE FALTAR DADO DECISIVO; ATÉ 5 RODADAS)</text>
+          <rect class="s-band" x="0" y="456" width="1200" height="188" rx="10"/><text class="s-bandt" x="10" y="474">3 · GERAÇÃO E CORREÇÃO (ATÉ 5 TENTATIVAS)</text>
+          <rect class="s-band" x="0" y="656" width="1200" height="112" rx="10" opacity=".55"/><text class="s-bandt" x="10" y="674">4 · ENTREGA</text>
+          <!-- participantes -->
+          <g>
+            <rect class="s-box" x="30" y="10" width="140" height="46" rx="10"/><text class="s-t" x="100" y="38" text-anchor="middle" style="font-size:13px">Autor</text>
+            <rect class="s-box" x="230" y="10" width="140" height="46" rx="10"/><text class="s-t" x="300" y="38" text-anchor="middle" style="font-size:13px">Tela Nova jornada</text>
+            <rect class="s-box" x="430" y="10" width="140" height="46" rx="10"/><text class="s-t" x="500" y="38" text-anchor="middle" style="font-size:13px">API (Flow)</text>
+            <rect class="s-hub" x="630" y="10" width="140" height="46" rx="10"/><text class="s-w" x="700" y="38" text-anchor="middle" style="font-size:13px">Gerador</text>
+            <rect class="s-box" x="830" y="10" width="140" height="46" rx="10"/><text class="s-t" x="900" y="38" text-anchor="middle" style="font-size:13px">Modelo de IA</text>
+            <rect class="s-box" x="1030" y="10" width="140" height="46" rx="10"/><text class="s-t" x="1100" y="34" text-anchor="middle" style="font-size:12.5px">Montador +</text><text class="s-t" x="1100" y="49" text-anchor="middle" style="font-size:12.5px">Validador</text>
+          </g>
+          <g>
+            <path class="s-life" d="M100 56 V760"/><path class="s-life" d="M300 56 V760"/><path class="s-life" d="M500 56 V760"/>
+            <path class="s-life" d="M700 56 V760"/><path class="s-life" d="M900 56 V760"/><path class="s-life" d="M1100 56 V760"/>
+          </g>
+          <!-- fase 1 -->
+          <path class="s-line" marker-end="url(#sa)" d="M100 130 H298"/><text class="s-msg" x="108" y="123">descreve a jornada</text>
+          <path class="s-line" marker-end="url(#sa)" d="M300 160 H498"/><text class="s-msg" x="308" y="153">POST /generate (pedido, rodadas)</text>
+          <path class="s-line" marker-end="url(#sa)" d="M500 190 H698"/><text class="s-msg" x="508" y="183">monta contexto (produto, canal, conectores)</text>
+          <path class="s-line" marker-end="url(#sa)" d="M700 222 H898"/><text class="s-msg" x="708" y="215">prompt + 3 ferramentas (gerar, perguntar, recusar)</text>
+          <!-- fase 2 -->
+          <path class="s-dash" marker-end="url(#sa)" d="M900 304 H702"/><text class="s-msg" x="716" y="297">ask_clarification (1 a 3 perguntas)</text>
+          <path class="s-dash" marker-end="url(#sa)" d="M700 334 H302"/><text class="s-msg" x="410" y="327">evento clarification (perguntas e respostas prontas)</text>
+          <path class="s-line" marker-end="url(#sa)" d="M300 364 H102" transform="translate(0 0)"/><text class="s-msg" x="110" y="357">mostra as perguntas</text>
+          <path class="s-line" marker-end="url(#sa)" d="M100 394 H298"/><text class="s-msg" x="108" y="387">responde e confirma o resumo</text>
+          <path class="s-line" marker-end="url(#sa)" d="M300 426 H498"/><text class="s-msg" x="308" y="419">novo POST com decisões, rodada + 1 (volta ao passo 1)</text>
+          <!-- fase 3 -->
+          <path class="s-dash" marker-end="url(#sa)" d="M900 510 H702"/><text class="s-msg" x="716" y="503">generate_journey (descrição compacta)</text>
+          <path class="s-line" marker-end="url(#sa)" d="M700 542 H1098"/><text class="s-msg" x="760" y="535">normaliza, confere, monta o fluxo e valida</text>
+          <path class="s-dash" marker-end="url(#sa)" d="M1100 574 H702"/><text class="s-msg" x="770" y="567">fluxo pronto ou lista de problemas</text>
+          <path class="s-line" marker-end="url(#sa)" d="M700 606 H898"/><text class="s-msg" x="708" y="599">se houver problemas: pede para corrigir só eles</text>
+          <!-- fase 4 -->
+          <path class="s-dash" marker-end="url(#sa)" d="M700 706 H302"/><text class="s-msg" x="410" y="699">evento result (fluxo montado)</text>
+          <path class="s-line" marker-end="url(#sa)" d="M300 740 H102"/><text class="s-msg" x="110" y="733">organiza, abre no canvas como rascunho</text>
+        </svg>
+        <p class="cap">Setas contínuas são chamadas; tracejadas são respostas. Eventos <code>progress</code> (andamento) correm do Gerador para a tela em todas as fases e formam o log colorido.</p>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 6 ============================ -->
+    <section class="slide" data-title="O laço de geração">
+      <span class="eyebrow">06 / O laço de geração</span>
+      <h1>Cada tentativa passa por <em>oito passos</em></h1>
+      <p class="lead">
+        O modelo é obrigado a responder chamando <b>uma</b> de três ferramentas. Se for a de gerar, o sistema não confia
+        no resultado: limpa invenções, completa o que dá, monta e valida. Qualquer problema volta ao modelo, e a conversa
+        recomeça limpa a cada tentativa.
+      </p>
+
+      <div class="three" style="margin-top:22px">
+        <div class="card">
+          <h3><code>generate_journey</code></h3>
+          <p>Devolve a descrição compacta da jornada completa. Segue para as conferências ao lado.</p>
+        </div>
+        <div class="card">
+          <h3><code>ask_clarification</code></h3>
+          <p>Falta um dado decisivo. O servidor limpa as perguntas (até 3, com 2 a 4 respostas cada) e as envia ao usuário. Só existe até a 5ª rodada.</p>
+        </div>
+        <div class="card">
+          <h3><code>decline_request</code></h3>
+          <p>O pedido está fora do escopo ou é inseguro. O motivo volta ao autor numa frase curta, sem criar jornada.</p>
+        </div>
+      </div>
+
+      <div class="pipe" style="margin-top:30px">
+        <div class="st"><h3>Descarta invenção</h3><p>Entradas da jornada e início por mensagem só ficam se o pedido falar disso (palavras-chave).</p></div>
+        <div class="st"><h3>Confere dados de API</h3><p>Etapa REST sem endereço ou com campos de resposta chutados: o sistema pergunta ao usuário, uma vez por assunto.</p></div>
+        <div class="st"><h3>Remove o inventado</h3><p>Endereço e campo de resposta que o pedido não cita são apagados. A etapa fica só com o código HTTP.</p></div>
+        <div class="st"><h3>Normaliza</h3><p>Completa keys, ligações, nomes de campo e o fim da jornada. Perguntas viram o campo certo, com valores e escalas.</p></div>
+        <div class="st"><h3>Confere a descrição</h3><p>Keys únicas, destinos que existem, decisões com saída padrão, telas com conteúdo, no máximo 20 telas.</p></div>
+        <div class="st"><h3>Monta o fluxo</h3><p>Gera ids, nós, ligações, árvore de cada tela e a grafia certa de variável em cada lugar.</p></div>
+        <div class="st"><h3>Valida como o editor</h3><p><code>FlowValidator</code> e a checagem de cadeia síncrona. Mesmas regras de um fluxo feito à mão.</p></div>
+        <div class="st end"><h3>Aceita ou corrige</h3><p>Válido: devolve o fluxo. Com problemas: agrupa os repetidos e pede só a correção deles.</p></div>
+      </div>
+
+      <div class="two" style="margin-top:18px;align-items:start">
+        <div class="card">
+          <h2>Como o pedido de correção é escrito</h2>
+          <ul class="rules">
+            <li>Conversa nova por tentativa: o prompt leva o esboço anterior e a lista de problemas como texto.</li>
+            <li>Instrução explícita: &ldquo;corrija somente isso e mantenha todo o resto&rdquo;, porque modelos leves tendem a apagar o que já estava certo.</li>
+            <li>Erros iguais viram uma linha com contagem (&ldquo;e mais 9 iguais&rdquo;), para não inundar o modelo.</li>
+            <li>As mensagens do motor ({{form_x}}) são traduzidas para a forma que o modelo escreve ([[field:x]]).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h2>Quando acaba sem sucesso</h2>
+          <p class="out">Passadas as 5 tentativas, o usuário recebe uma mensagem clara com o último problema e o que fazer: descrever com menos detalhes, escolher um modelo mais capaz em <b>Integrações &gt; Credencial de IA</b> ou criar a jornada em branco. O erro nunca expõe detalhe técnico do provedor.</p>
+          <span class="tag">REQ-03.17.003</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 7 ============================ -->
+    <section class="slide" data-title="Da descrição ao fluxo">
+      <span class="eyebrow">07 / Da descrição ao fluxo</span>
+      <h1>O que cada peça da descrição <em>vira</em></h1>
+      <p class="lead">
+        A descrição fala a língua do autor (&ldquo;tela&rdquo;, &ldquo;integração&rdquo;, &ldquo;decisão&rdquo;).
+        O Montador traduz para os elementos do editor e para os componentes do catálogo de telas.
+      </p>
+
+      <div class="two" style="grid-template-columns:1fr 1fr;margin-top:20px;align-items:start">
+        <div>
+          <h2>Etapas</h2>
+          <div class="tw"><table class="cmp2" style="min-width:0">
+            <thead><tr><th>A IA escreve</th><th>O fluxo recebe</th></tr></thead>
+            <tbody>
+              <tr><td><code>SCREEN</code></td><td>Tarefa de usuário (<code>USER_TASK</code>) com a tela embutida</td></tr>
+              <tr><td><code>INTEGRATION</code></td><td>Tarefa de serviço com conector REST (método, URL, corpo, saídas)</td></tr>
+              <tr><td><code>PUBLISH_MESSAGE</code></td><td>Tarefa de serviço de mensageria, operação de envio</td></tr>
+              <tr><td><code>WAIT_MESSAGE</code></td><td>Tarefa de recebimento, operação de consumo</td></tr>
+              <tr><td><code>DECISION</code></td><td>Decisão (<code>GATEWAY</code>): condições em ordem + saída padrão</td></tr>
+              <tr><td><code>END</code></td><td>Fim; cada caminho ganha o seu, com nome do desfecho</td></tr>
+              <tr><td><code>onFailure</code></td><td>Ligação &ldquo;Se falhar&rdquo; da integração ou do envio</td></tr>
+              <tr><td><code>sections</code>, <code>notes</code></td><td>Seções nomeadas (9+ etapas) e anotações no canvas</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div>
+          <h2>Blocos de tela</h2>
+          <div class="tw"><table class="cmp2" style="min-width:0">
+            <thead><tr><th>A IA escreve</th><th>A tela recebe</th></tr></thead>
+            <tbody>
+              <tr><td><code>TEXT</code></td><td><code>ui.text</code> (título, subtítulo, corpo)</td></tr>
+              <tr><td><code>ALERT</code></td><td><code>ui.alert</code> com severidade</td></tr>
+              <tr><td><code>INPUT</code> · <code>TEXTAREA</code> · <code>DATE</code></td><td><code>ui.textInput</code> · <code>ui.textArea</code> · <code>ui.datePicker</code></td></tr>
+              <tr><td><code>SELECT</code> · <code>CHECKBOX</code></td><td><code>ui.select</code> · <code>ui.checkbox</code></td></tr>
+              <tr><td><code>CARD</code> · <code>DIVIDER</code></td><td><code>ui.card</code> · <code>ui.divider</code></td></tr>
+              <tr><td><code>BUTTON</code></td><td><code>ui.button</code>; sem botão, entra &ldquo;Continuar&rdquo;</td></tr>
+              <tr><td><code>QUESTION</code></td><td>O campo certo conforme a resposta: escolha, nota 1–5, nota 0–10, sim/não, texto curto, texto longo, data ou marcar</td></tr>
+            </tbody>
+          </table></div>
+          <p class="out">Toda tela é um <code>ui.screen</code> com um <code>ui.stack</code> vertical, com os padrões lidos do Component Registry. Quando o pedido deixa o conteúdo em aberto, a IA cria perguntas e opções completas, nunca telas vazias.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>A grafia da variável é garantida pelo sistema, em três formas</h2>
+        <div class="tw" style="margin:0"><table class="cmp2" style="min-width:0">
+          <thead><tr><th>Onde aparece</th><th>Campo de uma tela</th><th>Dado de integração ou entrada</th><th>Canal</th></tr></thead>
+          <tbody>
+            <tr><td>O que a IA escreve</td><td><code>[[field:cpf]]</code></td><td><code>[[data:pedidoId]]</code></td><td><code>[[channel]]</code></td></tr>
+            <tr><td>Dentro da tela (vínculo e texto)</td><td><code>form.cpf</code> · <code>{{form.cpf}}</code></td><td><code>data.pedidoId</code> · <code>{{data.pedidoId}}</code></td><td>n/a</td></tr>
+            <tr><td>Conector, mensageria e decisão</td><td><code>{{form_cpf}}</code></td><td><code>{{data_pedidoId}}</code></td><td><code>{{channel}}</code></td></tr>
+          </tbody>
+        </table></div>
+        <p class="out" style="margin-top:8px">Numa decisão sobre pergunta de escolha, a comparação aceita o texto da escolha (&ldquo;Reagendar BD&rdquo;) ou o valor interno e grava o valor interno. Comparações de maior e menor com número são numéricas. <span class="tag">REQ-03.17.009</span></p>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 8 ============================ -->
+    <section class="slide" data-title="Regras e proteções">
+      <span class="eyebrow">08 / Regras e proteções</span>
+      <h1>O que a IA <em>não pode</em> fazer</h1>
+      <p class="lead">
+        Geração por IA é um ponto de entrada de texto livre. Por isso há regras em três níveis: o que a IA deve recusar,
+        o que o sistema impede mesmo que a IA erre e o que sempre fica para a revisão humana.
+      </p>
+
+      <div class="three" style="margin-top:20px;align-items:start">
+        <div class="card">
+          <h2>1 · A IA recusa (e explica)</h2>
+          <ul class="rules">
+            <li>Pedido que não é criar uma jornada, ou sem relação com o produto e o canal.</li>
+            <li>Tentativa de revelar, ignorar ou mudar as instruções da IA (<i>prompt injection</i>).</li>
+            <li>Coleta de senha, número completo de cartão, CVV, token ou outro segredo.</li>
+            <li>Conteúdo ilegal, golpe, phishing, discriminação ou ofensa.</li>
+            <li>Envio de dados a um endereço que o pedido não informou.</li>
+            <li>Mais de 20 telas.</li>
+          </ul>
+          <span class="tag">REQ-03.17.007</span>
+        </div>
+        <div class="card">
+          <h2>2 · O sistema impede</h2>
+          <ul class="rules">
+            <li>Limite de 20 telas conferido de novo ao montar a jornada.</li>
+            <li>Endereço de API e campo de resposta inventados são descartados.</li>
+            <li>Início por mensagem e entradas só quando o pedido fala disso; entradas que repetem campo de tela são removidas.</li>
+            <li>Aspas escapadas em condição de decisão são recusadas (quebram o motor).</li>
+            <li>Variável de decisão que nenhuma tela define volta à IA.</li>
+            <li>Fim alcançado só por REST em sequência é recusado.</li>
+            <li>Telas só com componentes do catálogo <code>ui.*</code>.</li>
+          </ul>
+          <span class="tag">REQ-03.17.003</span> <span class="tag">REQ-03.17.010</span> <span class="tag">REQ-03.17.011</span>
+        </div>
+        <div class="card">
+          <h2>3 · O autor decide</h2>
+          <ul class="rules">
+            <li>O fluxo é rascunho editável, nunca salvo nem publicado sozinho.</li>
+            <li>Cluster, tópico e credencial de mensageria ficam em branco e sinalizados por anotação.</li>
+            <li>O mapeamento da resposta de uma API é suposição da IA: a anotação pede conferir com &ldquo;Testar API&rdquo;.</li>
+            <li>Não há segredo em cabeçalho ou corpo gerado.</li>
+            <li>A publicação aplica todas as validações de qualquer fluxo.</li>
+          </ul>
+          <span class="tag">REQ-03.17.004</span> <span class="tag ok">REQ-03.09.020</span>
+        </div>
+      </div>
+
+      <div class="analogy" style="margin-top:16px">
+        <div class="ico">!</div>
+        <p><b>Regra de ouro:</b> o que depende do ambiente, ou que o pedido não informou, <b>não se inventa e não é motivo de recusa</b>.
+        Fica em branco, marcado, e o autor completa no editor. Se o dado for decisivo de verdade, a IA pergunta antes.</p>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 9 ============================ -->
+    <section class="slide" data-title="Provedores e resiliência">
+      <span class="eyebrow">09 / Provedores e resiliência</span>
+      <h1>Um contrato, <em>quatro provedores</em></h1>
+      <p class="lead">
+        Todos falam &ldquo;chamada de ferramenta obrigatória&rdquo;: o modelo não responde em texto livre, responde
+        escolhendo uma ferramenta e preenchendo o JSON. A escolha do provedor é feita na tela de Integrações e vale
+        já na próxima geração.
+      </p>
+
+      <div class="two" style="grid-template-columns:1.25fr 1fr;margin-top:20px;align-items:start">
+        <div>
+          <h2>Provedores suportados</h2>
+          <div class="tw"><table class="cmp2" style="min-width:0">
+            <thead><tr><th>Provedor</th><th>Modelo padrão</th><th>Como força a ferramenta</th></tr></thead>
+            <tbody>
+              <tr><td><b>Gemini</b> <span class="tag ok">padrão</span></td><td><code>gemini-3.5-flash-lite</code></td><td><code>functionCallingConfig.mode = ANY</code></td></tr>
+              <tr><td><b>Anthropic</b></td><td><code>claude-sonnet-5-5</code></td><td><code>tool_choice = any</code></td></tr>
+              <tr><td><b>OpenAI</b></td><td><code>gpt-4.1</code></td><td><code>tool_choice = required</code></td></tr>
+              <tr><td><b>GitHub Models</b></td><td><code>openai/gpt-4.1</code></td><td>mesmo adaptador da OpenAI, outro endereço</td></tr>
+            </tbody>
+          </table></div>
+          <p class="out" style="margin-top:8px">Sem provedor ativo, vale o Gemini. Sem credencial ou chave, a geração é recusada com orientação para <b>Integrações &gt; Credencial de IA</b>, sem expor detalhe do provedor. O modelo pode ser trocado por provedor na mesma tela. <span class="tag">REQ-03.17.002</span></p>
+          <div class="card" style="margin-top:12px">
+            <h2>Para acrescentar um provedor novo</h2>
+            <p class="out">Basta um adaptador que implemente <code>AiModelClient.call(...)</code> e devolva o nome da ferramenta e seus argumentos. O gerador, o prompt, o montador e o validador não mudam.</p>
+          </div>
+        </div>
+
+        <div class="stack-gap">
+          <div class="card">
+            <h2>Resiliência</h2>
+            <div class="sev">
+              <div class="i"><b>429 e 5xx</b>: até 2 repetições automáticas, esperando 1,5 s e depois 4 s.</div>
+              <div class="i"><b>Queda de conexão</b> ou resposta ilegível: 1 repetição.</div>
+              <div class="w"><b>401/403</b>: chave recusada. <b>404</b>: modelo inexistente. Sem repetição, mensagem aponta a credencial.</div>
+              <div class="e"><b>Esgotou 5 tentativas</b> de geração: mensagem com o que fazer.</div>
+            </div>
+            <span class="tag" style="margin-top:10px">REQ-03.17.012</span>
+          </div>
+          <div class="card">
+            <h2>Tempos</h2>
+            <div class="stat">
+              <div><b>20 s</b><span>conectar ao provedor</span></div>
+              <div><b>90 s</b><span>ler cada resposta</span></div>
+              <div><b>600 s</b><span>duração do SSE</span></div>
+            </div>
+            <p class="out" style="margin-top:10px">O pior caso (5 tentativas perto do limite) cabe em 450 s, e o SSE de 600 s dá folga para o resultado chegar.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ SLIDE 10 ============================ -->
+    <section class="slide" data-title="Requisitos e limites">
+      <span class="eyebrow">10 / Requisitos e limites</span>
+      <h1>Rastreabilidade e <em>o que ainda é do autor</em></h1>
+      <p class="lead">
+        A funcionalidade está descrita na história <b>US-03.17 · Geração de fluxo assistida por IA</b>, com 16 requisitos
+        (REQ-03.17.001 a 017; não há 006). A tabela liga cada um ao componente que o cumpre.
+      </p>
+
+      <div class="two" style="grid-template-columns:1.5fr 1fr;margin-top:20px;align-items:start">
+        <div class="matrix-wrap" style="max-height:none">
+          <table class="cmp">
+            <thead><tr><th style="width:96px">Requisito</th><th>O que garante</th><th style="width:190px">Onde</th></tr></thead>
+            <tbody>
+              <tr class="row"><td class="t">03.17.001</td><td>Criar jornada completa a partir de texto livre</td><td class="m">NewJourneyModal, GenerateFlow</td></tr>
+              <tr class="row"><td class="t">03.17.002</td><td>Depende de credencial; mensagem clara sem ela</td><td class="m">AiModelSelector</td></tr>
+              <tr class="row"><td class="t">03.17.003</td><td>Descrição compacta, montagem pelo sistema, até 5 correções</td><td class="m">LlmFlowGenerator, JourneySpec*</td></tr>
+              <tr class="row"><td class="t">03.17.004</td><td>Rascunho editável, sujeito às mesmas validações</td><td class="m">GenerateFlow, FlowValidator</td></tr>
+              <tr class="row"><td class="t">03.17.005</td><td>Canvas reposicionado ao concluir</td><td class="m">layoutFlowNodes</td></tr>
+              <tr class="row"><td class="t">03.17.007</td><td>Escopo restrito, recusa com motivo, limite de 20 telas</td><td class="m">JourneyGenerationPrompt, Compiler</td></tr>
+              <tr class="row"><td class="t">03.17.008</td><td>Só componentes do catálogo; questionários completos</td><td class="m">Normalizer, Compiler</td></tr>
+              <tr class="row"><td class="t">03.17.009</td><td>Grafia de variáveis garantida pelo sistema</td><td class="m">JourneySpecCompiler</td></tr>
+              <tr class="row"><td class="t">03.17.010</td><td>Não inventar endereço, cluster, tópico nem mapeamento</td><td class="m">LlmFlowGenerator, Compiler</td></tr>
+              <tr class="row"><td class="t">03.17.011</td><td>Começa pelo canal; sem entradas nem início por mensagem sem pedido</td><td class="m">LlmFlowGenerator</td></tr>
+              <tr class="row"><td class="t">03.17.012</td><td>Repetição de falhas passageiras e mensagens claras</td><td class="m">AiHttp, clientes</td></tr>
+              <tr class="row"><td class="t">03.17.013</td><td>Perguntas em rodadas, abas, respostas prontas</td><td class="m">ask_clarification, AiClarification</td></tr>
+              <tr class="row"><td class="t">03.17.014</td><td>Resumo antes de gerar</td><td class="m">NewJourneyModal</td></tr>
+              <tr class="row"><td class="t">03.17.015</td><td>Falha de publicação de mensagem tratada</td><td class="m">Prompt, Compiler (<code>onFailure</code>)</td></tr>
+              <tr class="row"><td class="t">03.17.016</td><td>Um fim por caminho, com o desfecho no nome</td><td class="m">Prompt, Normalizer</td></tr>
+              <tr class="row"><td class="t">03.17.017</td><td>Log colorido, campo redimensionável</td><td class="m">NewJourneyModal</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="stack-gap">
+          <div class="card">
+            <h2>Limites conhecidos</h2>
+            <ul class="rules">
+              <li>Só jornadas digitais de atendimento; no máximo 20 telas.</li>
+              <li>Integrações geradas: REST e mensageria (Kafka, Event Hubs, Service Bus).</li>
+              <li>O caminho dos dados da resposta de uma API é suposição; precisa ser conferido com &ldquo;Testar API&rdquo;.</li>
+              <li>Qualidade varia com o modelo: modelos leves precisam de mais correções.</li>
+              <li>Posições do desenho vêm em zero; o editor organiza no cliente.</li>
+            </ul>
+          </div>
+          <div class="ask">
+            <h2>Em uma frase</h2>
+            <p>A IA propõe, o código garante, o autor decide. É isso que torna a geração rápida o suficiente para o dia a dia e segura o suficiente para entrar no fluxo oficial de publicação.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav">
+    <div class="steps" id="dots" role="tablist" aria-label="Slides"></div>
+    <div class="hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> navegam · <kbd>Ctrl+P</kbd> imprime tudo</div>
+    <div class="btns">
+      <span class="counter" id="counter">01 / 10</span>
+      <button type="button" id="prev">Anterior</button>
+      <button type="button" id="next">Próximo</button>
+    </div>
+    <span class="title" id="slidetitle" hidden></span>
+  </nav>
+</div>
+
+<script>
+(function(){
+  /* --------------- perspectivas da capa --------------- */
+  var PERSP = [
+    { k:'Negócio', t:'Quem desenha jornadas ganha um primeiro rascunho em segundos, a partir de uma frase. Ele ainda precisa de revisão, mas a página em branco deixa de ser o ponto de partida.' },
+    { k:'Produto', t:'A IA pergunta quando falta algo decisivo, recusa o que está fora do escopo e entrega telas, decisões e integrações coerentes com o catálogo. O autor continua no controle: nada é salvo ou publicado sozinho.' },
+    { k:'Engenharia', t:'O modelo escreve uma descrição compacta via chamada de ferramenta; um montador determinístico gera o fluxo, o validador do editor confere e os problemas voltam ao modelo em até 5 tentativas. Provedor intercambiável.' }
+  ];
+  var seg = document.getElementById('persp'), copy = document.getElementById('persp-copy');
+  PERSP.forEach(function(p, i){
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = p.k; b.setAttribute('aria-pressed', String(i === 0));
+    b.addEventListener('click', function(){
+      Array.prototype.forEach.call(seg.children, function(x, j){ x.setAttribute('aria-pressed', String(i === j)); });
+      copy.textContent = p.t;
+    });
+    seg.appendChild(b);
+  });
+  copy.textContent = PERSP[0].t;
+
+  /* --------------- abas da visão funcional --------------- */
+  var tabs = document.getElementById('tabs-func');
+  tabs.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-p]');
+    if (!b) return;
+    Array.prototype.forEach.call(tabs.querySelectorAll('button'), function(x){ x.setAttribute('aria-selected', String(x === b)); });
+    Array.prototype.forEach.call(document.querySelectorAll('.panel'), function(p){ p.classList.toggle('on', p.id === b.getAttribute('data-p')); });
+  });
+
+  /* ------------------------ tema --------------------------- */
+  var themeBox = document.getElementById('theme');
+  function paintTheme(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    Array.prototype.forEach.call(themeBox.querySelectorAll('button'), function(b){
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-choice') === cur));
+    });
+  }
+  themeBox.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-theme-choice]');
+    if (!b) return;
+    var next = b.getAttribute('data-theme-choice');
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('ia-tema', next); } catch (err) {}
+    paintTheme();
+  });
+  paintTheme();
+
+  /* ---------------------- navegação ------------------------ */
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dots = document.getElementById('dots');
+  var counter = document.getElementById('counter');
+  var bar = document.getElementById('bar');
+  var title = document.getElementById('slidetitle');
+  var prev = document.getElementById('prev');
+  var next = document.getElementById('next');
+  var cur = 0;
+
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+
+  slides.forEach(function(s, i){
+    var d = document.createElement('button');
+    d.type = 'button';
+    d.setAttribute('role','tab');
+    d.innerHTML = '<span class="sn">' + pad(i + 1) + '</span>' + s.getAttribute('data-title');
+    d.setAttribute('aria-label', 'Slide ' + (i + 1) + ': ' + s.getAttribute('data-title'));
+    d.addEventListener('click', function(){ go(i); });
+    dots.appendChild(d);
+  });
+
+  function go(i){
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function(s, j){ s.classList.toggle('is-on', j === cur); });
+    Array.prototype.forEach.call(dots.querySelectorAll('button'), function(d, j){ d.setAttribute('aria-current', String(j === cur)); });
+    counter.textContent = pad(cur + 1) + ' / ' + pad(slides.length);
+    bar.style.transform = 'scaleX(' + ((cur + 1) / slides.length) + ')';
+    title.textContent = slides[cur].getAttribute('data-title');
+    prev.disabled = cur === 0;
+    next.disabled = cur === slides.length - 1;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  prev.addEventListener('click', function(){ go(cur - 1); });
+  next.addEventListener('click', function(){ go(cur + 1); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') go(cur + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(cur - 1);
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+  });
+
+  go(0);
+})();
+</script>
+</body>
+</html>

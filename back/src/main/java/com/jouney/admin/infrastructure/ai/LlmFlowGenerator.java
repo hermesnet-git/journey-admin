@@ -105,6 +105,7 @@ public class LlmFlowGenerator implements AiFlowGenerator {
                         throw missing;
                     }
                 }
+                spec = withoutInventedApiData(spec, context.prompt());
                 if (spec.startMessage() != null && !MESSAGING_WORDS.matcher(context.prompt() + " " + context.journeyDescription()).find()) {
                     spec = new JourneySpec(spec.name(), spec.inputs(), null, spec.steps(), spec.sections(), spec.notes());
                 }
@@ -160,33 +161,90 @@ public class LlmFlowGenerator implements AiFlowGenerator {
      * usuário já respondeu (inclusive "deixar para completar no editor").
      */
     private static AiClarificationNeededException missingApiData(JourneySpec spec, String prompt) {
-        List<AiClarificationNeededException.Question> questions = new java.util.ArrayList<>();
         String lowerPrompt = prompt.toLowerCase(java.util.Locale.ROOT);
+        List<String> noUrl = new java.util.ArrayList<>();
+        List<String> guessedOutputs = new java.util.ArrayList<>();
         for (JourneySpec.StepSpec step : spec.steps() == null ? List.<JourneySpec.StepSpec>of() : spec.steps()) {
             if (step == null || !"INTEGRATION".equalsIgnoreCase(step.kind()) || step.request() == null) {
                 continue;
             }
             String name = step.name() == null || step.name().isBlank() ? String.valueOf(step.key()) : step.name();
-            if (step.request().url() == null || step.request().url().isBlank()) {
-                String question = "Qual é o endereço da API da etapa «" + name + "»?";
-                if (!prompt.contains(question)) {
-                    questions.add(new AiClarificationNeededException.Question(question, "Endereço da API", List.of(
-                            new AiClarificationNeededException.Option("Deixar para completar no editor",
-                                    "A etapa fica sem endereço e uma anotação avisa para preenchê-lo"))));
-                }
+            if (!urlGiven(step.request().url(), lowerPrompt)) {
+                noUrl.add(name);
             }
             boolean guessed = (step.request().outputs() == null ? List.<JourneySpec.OutputSpec>of() : step.request().outputs()).stream()
                     .anyMatch(o -> o != null && o.path() != null && !o.path().trim().startsWith("$httpStatus") && !mentioned(lowerPrompt, o));
             if (guessed) {
-                String question = "Quais dados a resposta da API da etapa «" + name + "» devolve?";
-                if (!prompt.contains(question)) {
-                    questions.add(new AiClarificationNeededException.Question(question, "Resposta da API", List.of(
-                            new AiClarificationNeededException.Option("Só o código HTTP; completar o mapeamento no editor",
-                                    "A jornada usa só se a chamada deu certo; os campos da resposta você mapeia depois com \"Testar API\""))));
-                }
+                guessedOutputs.add(name);
             }
         }
+        // As decisões já respondidas contam por assunto, não pelo texto da pergunta: quem perguntou foi o modelo ou o
+        // sistema, com palavras diferentes, e o usuário não pode ser perguntado duas vezes a mesma coisa.
+        int answeredUrl = answeredDecisions(prompt, ADDRESS_WORDS);
+        int answeredData = answeredDecisions(prompt, RESPONSE_WORDS);
+        List<AiClarificationNeededException.Question> questions = new java.util.ArrayList<>();
+        for (String name : noUrl.stream().skip(answeredUrl).toList()) {
+            questions.add(new AiClarificationNeededException.Question("Qual é o endereço da API da etapa «" + name + "»?",
+                    "Endereço da API", List.of(new AiClarificationNeededException.Option("Deixar para completar no editor",
+                            "A etapa fica sem endereço e uma anotação avisa para preenchê-lo"))));
+        }
+        for (String name : guessedOutputs.stream().skip(answeredData).toList()) {
+            questions.add(new AiClarificationNeededException.Question("Quais dados a resposta da API da etapa «" + name + "» devolve?",
+                    "Resposta da API", List.of(new AiClarificationNeededException.Option("Só o código HTTP; completar o mapeamento no editor",
+                            "A jornada usa só se a chamada deu certo; os campos da resposta você mapeia depois com \"Testar API\""))));
+        }
         return questions.isEmpty() ? null : new AiClarificationNeededException(questions.stream().limit(3).toList());
+    }
+
+    private static final java.util.regex.Pattern HOST = java.util.regex.Pattern.compile("^\\w+://([^/?#{]+)");
+
+    /** O endereço existe e o pedido o informou (o servidor dele aparece no pedido ou nas decisões)? */
+    private static boolean urlGiven(String url, String lowerPrompt) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
+        java.util.regex.Matcher host = HOST.matcher(url.trim());
+        return host.find() && lowerPrompt.contains(host.group(1).toLowerCase(java.util.Locale.ROOT));
+    }
+
+    /**
+     * Modelos leves inventam endereço e campos de resposta (ex.: api.exemplo.com, $.plano) mesmo quando o prompt
+     * proíbe. O que o pedido e as decisões do usuário não informam sai da jornada: a etapa fica sem endereço e só com
+     * o código HTTP, e o montador anota o que o autor precisa completar no editor.
+     */
+    private static JourneySpec withoutInventedApiData(JourneySpec spec, String prompt) {
+        if (spec.steps() == null) {
+            return spec;
+        }
+        String lowerPrompt = prompt.toLowerCase(java.util.Locale.ROOT);
+        List<JourneySpec.StepSpec> steps = spec.steps().stream().map(step -> {
+            if (step == null || !"INTEGRATION".equalsIgnoreCase(step.kind()) || step.request() == null) {
+                return step;
+            }
+            JourneySpec.RequestSpec r = step.request();
+            List<JourneySpec.OutputSpec> outputs = r.outputs() == null ? null : r.outputs().stream()
+                    .filter(o -> o != null && o.path() != null && (o.path().trim().startsWith("$httpStatus") || mentioned(lowerPrompt, o)))
+                    .toList();
+            return new JourneySpec.StepSpec(step.key(), step.kind(), step.name(), step.description(), step.screen(),
+                    new JourneySpec.RequestSpec(r.method(), urlGiven(r.url(), lowerPrompt) ? r.url() : null, r.headers(), r.body(),
+                            r.bodyFields(), outputs, r.readTimeoutMs(), r.retries(), r.background()),
+                    step.message(), step.next(), step.onFailure(), step.branches(), step.otherwise());
+        }).toList();
+        return new JourneySpec(spec.name(), spec.inputs(), spec.startMessage(), steps, spec.sections(), spec.notes());
+    }
+
+    private static final java.util.regex.Pattern ADDRESS_WORDS =
+            java.util.regex.Pattern.compile("endereço|\\burl\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
+    private static final java.util.regex.Pattern RESPONSE_WORDS =
+            java.util.regex.Pattern.compile("dados da resposta|resposta da api|devolve|campos da resposta", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /** Quantas das "Decisões do usuário" do pedido tratam do assunto (a pergunta e a resposta juntas). */
+    private static int answeredDecisions(String prompt, java.util.regex.Pattern topic) {
+        int start = prompt.indexOf("Decisões do usuário:");
+        if (start < 0) {
+            return 0;
+        }
+        return (int) prompt.substring(start).lines().filter(l -> l.startsWith("- ") && topic.matcher(l).find()).count();
     }
 
     /** O pedido cita o nome da saída ou o último trecho do caminho dela (ex.: "valor" em $.fatura.valor)? */

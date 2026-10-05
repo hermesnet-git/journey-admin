@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class KafkaTopicListingAdapter implements MessagingTopicListingPort {
 
-    private static final int TIMEOUT_MS = 5_000;
+    private static final int TIMEOUT_MS = KafkaAdminSupport.TIMEOUT_MS;
 
     private final CredentialResolver credentialResolver;
 
@@ -35,7 +35,13 @@ public class KafkaTopicListingAdapter implements MessagingTopicListingPort {
             return new TopicListingResult(false, "Tipo de broker " + clusterType + " ainda não é suportado neste ambiente.", List.of());
         }
 
-        try (AdminClient adminClient = AdminClient.create(adminClientConfig(connectionAddress, credentialReferenceName))) {
+        if (!KafkaAdminSupport.reachable(connectionAddress)) {
+            return new TopicListingResult(false, KafkaAdminSupport.unreachableMessage(connectionAddress), List.of());
+        }
+
+        AdminClient adminClient = null;
+        try {
+            adminClient = KafkaAdminSupport.create(adminClientConfig(connectionAddress, credentialReferenceName));
             List<String> topics = adminClient.listTopics().names().get(TIMEOUT_MS, TimeUnit.MILLISECONDS)
                     .stream().sorted().toList();
             return new TopicListingResult(true, null, topics);
@@ -46,13 +52,14 @@ public class KafkaTopicListingAdapter implements MessagingTopicListingPort {
             return new TopicListingResult(false, "Listagem de tópicos interrompida.", List.of());
         } catch (ExecutionException | RuntimeException e) {
             return new TopicListingResult(false, "Falha ao listar tópicos: " + rootMessage(e), List.of());
+        } finally {
+            if (adminClient != null) KafkaAdminSupport.close(adminClient);
         }
     }
 
     private Map<String, Object> adminClientConfig(String connectionAddress, String credentialReferenceName) {
         Map<String, Object> config = new HashMap<>();
         config.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, connectionAddress);
-        config.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, TIMEOUT_MS);
         if (credentialReferenceName != null && !credentialReferenceName.isBlank()) {
             credentialResolver.resolve(credentialReferenceName).ifPresent(config::putAll);
         }

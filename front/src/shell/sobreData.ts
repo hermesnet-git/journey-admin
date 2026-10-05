@@ -640,7 +640,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.14.002',
-            'Para REST, o assistente deve ter 4 etapas: Conexão, Headers, Parâmetros & Corpo, e Testar e Mapear. Para Kafka, 3 etapas: Conexão, Payload, e Mapear saída.',
+            'Para REST, o assistente deve ter 4 etapas: Conexão, Headers, Parâmetros & Corpo, e Testar e Mapear. Para Kafka, 3 etapas: Conexão (cluster, credencial, tópico, operação), Payload, e Mapear saída.',
           ),
           d('REQ-03.14.003', 'A navegação entre as etapas do assistente deve ser livre.'),
           d(
@@ -698,7 +698,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.17.003',
-            'O modelo de IA descreve a jornada de forma compacta e o sistema monta o fluxo real (identificadores, telas do catálogo, ligações, grafia das variáveis); o que dá para inferir é preenchido, o que violar as validações volta ao modelo em até três tentativas, com os problemas em termos da descrição e agrupados; esgotadas, mensagem clara ao usuário. Inclui a rejeição de aspas escapadas em condição de decisão.',
+            'O modelo de IA descreve a jornada de forma compacta e o sistema monta o fluxo real (identificadores, telas do catálogo, ligações, grafia das variáveis); o que dá para inferir é preenchido, o que violar as validações volta ao modelo em até cinco tentativas, com os problemas em termos da descrição e agrupados; esgotadas, mensagem clara ao usuário. Inclui a rejeição de aspas escapadas em condição de decisão.',
           ),
           d(
             'REQ-03.17.004',
@@ -722,7 +722,7 @@ export const EPICS: Epic[] = [
           ),
           d(
             'REQ-03.17.010',
-            'O que depende do ambiente ou não foi informado no pedido não é inventado nem motivo de recusa: cluster, tópico e credencial de mensageria, endereço de API ausente e o mapeamento da resposta de uma API (suposto pela IA) ficam em branco ou marcados e sinalizados por anotação no canvas; em chamada com corpo, o corpo leva os dados coletados pelas telas.',
+            'O que depende do ambiente ou não foi informado no pedido não é inventado nem motivo de recusa: cluster, tópico e credencial de mensageria, endereço de API ausente e o mapeamento da resposta de uma API (suposto pela IA) ficam em branco ou marcados e sinalizados por anotação no canvas; em chamada com corpo, o corpo leva os dados coletados pelas telas. Um endereço de API ou um campo de resposta que o modelo inventou, sem constar do pedido nem das respostas do usuário, é descartado pelo sistema.',
           ),
           d(
             'REQ-03.17.011',
@@ -731,6 +731,26 @@ export const EPICS: Epic[] = [
           d(
             'REQ-03.17.012',
             'Falhas passageiras do provedor de IA (excesso de uso, indisponibilidade ou queda de conexão) são repetidas automaticamente; chave recusada, modelo inexistente e excesso de uso têm mensagens claras apontando para a credencial de IA.',
+          ),
+          d(
+            'REQ-03.17.013',
+            'A IA deve perguntar ao usuário, antes de gerar, quando falta um dado decisivo para criar a jornada — o objetivo, o endereço de uma API, os dados que a resposta da API devolve ou o critério de uma decisão —, em vez de supor. Cada rodada traz de uma a três perguntas, em abas (uma por pergunta), cada uma com respostas prontas, a primeira marcada como recomendada, e a opção "Outra resposta" para o usuário escrever a sua. A IA pode perguntar em quantas rodadas forem necessárias, até o limite de cinco, sem repetir uma pergunta já respondida e sem perguntar o que pode decidir sozinha (textos, nomes de etapas, visual das telas).',
+          ),
+          d(
+            'REQ-03.17.014',
+            'Depois de responder às perguntas, o usuário deve ver o resumo do que será enviado à IA — o pedido e as decisões de todas as rodadas até ali — e confirmar antes de gerar; pode voltar às perguntas ou editar o pedido, o que recomeça as perguntas.',
+          ),
+          d(
+            'REQ-03.17.015',
+            'A jornada gerada não trata a falha de publicação de mensagem, que a plataforma ainda não oferece (só a integração REST tem o caminho "Se falhar"): quando o pedido exigir esse tratamento, a IA gera a jornada sem ele e deixa, junto da etapa, uma anotação avisando a limitação.',
+          ),
+          d(
+            'REQ-03.17.016',
+            'Quando a jornada ramifica, cada caminho deve terminar no seu próprio fim, com nome que diz o desfecho (ex.: "Fim — concluído", "Fim — com erro"), em vez de todos convergirem para um único fim, para reduzir as linhas que se cruzam no canvas.',
+          ),
+          d(
+            'REQ-03.17.017',
+            'O andamento da geração aparece num registro que ocupa o espaço restante do modal "Nova jornada", com cor por tipo de mensagem (jornada válida, problema apontado, pedido de correção, erro e andamento comum); o campo do pedido pode ser redimensionado na vertical e o exemplo e o texto digitado têm a mesma cor.',
           ),
         ],
       },
@@ -2256,6 +2276,12 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-10-05 00:00 (não commitado)',
+    source: 'progresso',
+    summary:
+      '**Perguntas de esclarecimento da IA, fins separados e ajustes da geração (US-03.17, US-03.14; 5 REQs novos, 3 reescritos).** REQ-03.17.013 e 014 novos: quando falta um dado decisivo (objetivo, endereço da API, dados da resposta, critério de decisão) a IA pergunta em abas, com respostas prontas (a primeira recomendada) e "Outra resposta", em quantas rodadas forem necessárias até cinco, e o usuário confere o resumo do que será enviado antes de gerar. REQ-03.17.015 novo: falha de mensagem não é tratada pela plataforma, então a IA gera sem ela e anota a limitação. REQ-03.17.016 novo: cada caminho de uma ramificação termina no seu próprio fim. REQ-03.17.017 novo: registro colorido do andamento e campo do pedido redimensionável. REQ-03.17.003 reescrito (até cinco tentativas), REQ-03.17.010 reescrito (endereço e campos de resposta inventados pelo modelo são descartados) e REQ-03.14.002 reescrito (no conector de mensageria a credencial vem logo depois do cluster). Perguntas, rodadas, descarte e fins testados pela API em 2026-10-04; as abas, o resumo e o registro colorido só foram compilados, sem teste no navegador. FT-03: 137 → 142 REQs; total geral: 629 → 634.',
+  },
+  {
     date: '2026-10-04 13:27',
     source: 'progresso',
     summary:
@@ -2739,6 +2765,9 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-04 23:37', source: 'git', summary: 'IA: perguntas de esclarecimento em várias rodadas, cinco tentativas e registro colorido.', epics: ['FT-03'] },
+  { date: '2026-10-04 23:22', source: 'git', summary: 'Conector de mensageria: credencial logo após o cluster no passo Conexão.', epics: ['FT-03'] },
+  { date: '2026-10-04 13:32', source: 'git', summary: 'Requisitos: geração de jornada por IA, provedores de IA e criação confirmada no Salvar.', epics: ['FT-02', 'FT-03', 'FT-14'] },
   { date: '2026-10-04 13:27', source: 'git', summary: 'IA: jornada completa por descrição, quatro provedores e criação confirmada no Salvar.', epics: ['FT-02', 'FT-03', 'FT-14'] },
   { date: '2026-10-04 05:21', source: 'git', summary: 'Requisitos: US-13.10 Novo visual e ideação do novo Dashboard.', epics: ['FT-13'] },
   { date: '2026-10-04 05:21', source: 'git', summary: 'Dashboard: prévia sem a fila de aprovação.', epics: ['FT-13'] },

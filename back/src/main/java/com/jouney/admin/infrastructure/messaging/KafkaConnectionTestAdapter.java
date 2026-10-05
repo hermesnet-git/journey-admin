@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class KafkaConnectionTestAdapter implements MessagingConnectionTestPort {
 
-    private static final int TIMEOUT_MS = 5_000;
+    private static final int TIMEOUT_MS = KafkaAdminSupport.TIMEOUT_MS;
 
     private final CredentialResolver credentialResolver;
 
@@ -34,7 +34,13 @@ public class KafkaConnectionTestAdapter implements MessagingConnectionTestPort {
             return new ConnectionTestResult(false, "Tipo de broker " + clusterType + " ainda não é suportado neste ambiente.");
         }
 
-        try (AdminClient adminClient = AdminClient.create(adminClientConfig(connectionAddress, credentialReferenceName))) {
+        if (!KafkaAdminSupport.reachable(connectionAddress)) {
+            return new ConnectionTestResult(false, KafkaAdminSupport.unreachableMessage(connectionAddress));
+        }
+
+        AdminClient adminClient = null;
+        try {
+            adminClient = KafkaAdminSupport.create(adminClientConfig(connectionAddress, credentialReferenceName));
             adminClient.describeCluster().nodes().get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
             return new ConnectionTestResult(true, "Conexão estabelecida com sucesso.");
         } catch (TimeoutException e) {
@@ -44,13 +50,14 @@ public class KafkaConnectionTestAdapter implements MessagingConnectionTestPort {
             return new ConnectionTestResult(false, "Teste de conexão interrompido.");
         } catch (ExecutionException | RuntimeException e) {
             return new ConnectionTestResult(false, "Falha ao conectar: " + rootMessage(e));
+        } finally {
+            if (adminClient != null) KafkaAdminSupport.close(adminClient);
         }
     }
 
     private Map<String, Object> adminClientConfig(String connectionAddress, String credentialReferenceName) {
         Map<String, Object> config = new HashMap<>();
         config.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, connectionAddress);
-        config.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, TIMEOUT_MS);
         if (credentialReferenceName != null && !credentialReferenceName.isBlank()) {
             credentialResolver.resolve(credentialReferenceName).ifPresent(config::putAll);
         }

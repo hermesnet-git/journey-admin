@@ -114,6 +114,10 @@ final class JourneyGenerationPrompt {
             solicitação). A SCREEN só coleta a resposta; quem ramifica é uma DECISION logo depois, comparando o \
             campo respondido.
             - Haja ao menos um END, e todo caminho precisa terminar num END.
+            - Quando a jornada ramifica (DECISION, "Se falhar"), dê a cada caminho o seu próprio END, em vez de \
+            ligar todos a um único END: o desenho fica sem linhas que se cruzam por cima do fluxo. Cada END tem \
+            uma key própria e um nome que diz como o caminho termina (ex.: "Fim — concluído", "Fim — com erro"). \
+            Um único END só serve quando a jornada não ramifica.
             - Antes de um END que só é alcançado por INTEGRATION em sequência (sem nenhuma SCREEN, WAIT_MESSAGE \
             ou mensagem no caminho), coloque uma SCREEN que mostra o resultado — sem isso o motor de execução \
             trava.

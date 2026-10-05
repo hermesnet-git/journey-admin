@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ClarificationQuestion } from '../api/flows';
 import { useAppTheme } from '../shell/theme';
 
@@ -52,6 +53,8 @@ interface FormProps {
 
 export function ClarificationForm({ questions, answers, onChange, disabled }: FormProps) {
   const { colors: c } = useAppTheme();
+  // Uma aba por pergunta, como no chat: só a pergunta da aba ativa aparece.
+  const [active, setActive] = useState(0);
   const update = (index: number, patch: Partial<AiAnswer>) =>
     onChange(answers.map((a, i) => (i === index ? { ...a, ...patch } : a)));
 
@@ -61,7 +64,30 @@ export function ClarificationForm({ questions, answers, onChange, disabled }: Fo
         A IA precisa de mais informações para montar a jornada. A primeira resposta de cada pergunta é a recomendada;
         escolha outra ou escreva a sua.
       </div>
+      {questions.length > 1 && (
+        <div className="flex gap-1 border-b flex-wrap" role="tablist" style={{ borderColor: c.border }}>
+          {questions.map((q, qi) => {
+            const selected = qi === active;
+            const missing = !answers[qi] || answerText(q, answers[qi]) === '';
+            return (
+              <button
+                key={qi}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setActive(qi)}
+                className="px-3 py-[6px] text-[12.5px] font-semibold bg-transparent border-0 border-b-2 -mb-px cursor-pointer flex items-center gap-[6px]"
+                style={{ borderBottomColor: selected ? c.accent : 'transparent', color: selected ? c.accent : c.textSecondary }}
+              >
+                {q.header || `Pergunta ${qi + 1}`}
+                {missing && <span title="Falta responder" style={{ color: c.warning }}>●</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {questions.map((q, qi) => {
+        if (qi !== active) return null;
         const answer = answers[qi] ?? { choice: 0, other: '' };
         return (
           <fieldset

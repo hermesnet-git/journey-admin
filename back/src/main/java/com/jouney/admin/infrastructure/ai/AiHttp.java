@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.function.Supplier;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -30,6 +31,11 @@ final class AiHttp {
                     throw ex;
                 }
             } catch (ResourceAccessException ex) {
+                if (attempt >= 1) {
+                    throw ex;
+                }
+            } catch (RestClientException ex) {
+                // Resposta que não deu para ler (corpo cortado, tipo de conteúdo inesperado): costuma ser passageiro.
                 if (attempt >= 1) {
                     throw ex;
                 }

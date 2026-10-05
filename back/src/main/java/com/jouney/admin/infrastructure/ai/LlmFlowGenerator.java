@@ -36,7 +36,7 @@ import tools.jackson.databind.ObjectMapper;
 public class LlmFlowGenerator implements AiFlowGenerator {
 
     private static final Logger log = LoggerFactory.getLogger(LlmFlowGenerator.class);
-    private static final int MAX_ATTEMPTS = 3;
+    private static final int MAX_ATTEMPTS = 5;
     // O pedido só fala de mensageria se citar uma destas palavras; fora isso, um início por mensagem é
     // invenção do modelo (modelos leves preenchem objetos opcionais do esquema só porque existem).
     // Entradas da jornada (dados que o canal já envia ao iniciar) só se o pedido disser isso; senão o modelo
@@ -45,11 +45,16 @@ public class LlmFlowGenerator implements AiFlowGenerator {
             "(?i)entrada|par[aâ]metro|recebe|receb|enviad[oa] pelo canal|vem do canal|j[aá] informad|autenticad|logad|identificad");
     private static final java.util.regex.Pattern MESSAGING_WORDS = java.util.regex.Pattern.compile(
             "(?i)mensag|kafka|evento|event ?hubs?|service ?bus|fila|mensageria|webhook|publica|assina");
-    private static final List<AiModelClient.ToolSpec> TOOLS = List.of(
-            new AiModelClient.ToolSpec(JourneyGenerationPrompt.TOOL_NAME, JourneyGenerationPrompt.TOOL_DESCRIPTION,
-                    JourneySpecSchema.schema()),
-            new AiModelClient.ToolSpec(JourneyGenerationPrompt.DECLINE_TOOL_NAME, JourneyGenerationPrompt.DECLINE_TOOL_DESCRIPTION,
-                    JourneySpecSchema.declineSchema()));
+    private static final AiModelClient.ToolSpec GENERATE_TOOL = new AiModelClient.ToolSpec(
+            JourneyGenerationPrompt.TOOL_NAME, JourneyGenerationPrompt.TOOL_DESCRIPTION, JourneySpecSchema.schema());
+    private static final AiModelClient.ToolSpec DECLINE_TOOL = new AiModelClient.ToolSpec(
+            JourneyGenerationPrompt.DECLINE_TOOL_NAME, JourneyGenerationPrompt.DECLINE_TOOL_DESCRIPTION,
+            JourneySpecSchema.declineSchema());
+    private static final AiModelClient.ToolSpec ASK_TOOL = new AiModelClient.ToolSpec(
+            JourneyGenerationPrompt.ASK_TOOL_NAME, JourneyGenerationPrompt.ASK_TOOL_DESCRIPTION, JourneySpecSchema.askSchema());
+    // A IA pode perguntar quantas vezes precisar, até um limite de segurança de rodadas; no limite, só gera ou recusa.
+    private static final List<AiModelClient.ToolSpec> TOOLS_WITH_QUESTIONS = List.of(GENERATE_TOOL, DECLINE_TOOL, ASK_TOOL);
+    private static final List<AiModelClient.ToolSpec> TOOLS_NO_QUESTIONS = List.of(GENERATE_TOOL, DECLINE_TOOL);
 
     private final ObjectMapper objectMapper;
     private final AiModelSelector modelSelector;
@@ -77,9 +82,13 @@ public class LlmFlowGenerator implements AiFlowGenerator {
                     + " (" + selection.model() + ")...");
             long start = System.currentTimeMillis();
             AiModelClient.ToolCall call = selection.client().call(selection.apiKey(), selection.model(),
-                    JourneyGenerationPrompt.SYSTEM_PROMPT, currentPrompt, TOOLS);
+                    JourneyGenerationPrompt.SYSTEM_PROMPT, currentPrompt,
+                    context.rounds() < JourneyGenerationPrompt.MAX_QUESTION_ROUNDS ? TOOLS_WITH_QUESTIONS : TOOLS_NO_QUESTIONS);
             onProgress.accept("Tentativa " + attempt + ": resposta recebida em "
                     + String.format("%.1fs", (System.currentTimeMillis() - start) / 1000.0) + ".");
+            if (JourneyGenerationPrompt.ASK_TOOL_NAME.equals(call.name())) {
+                throw clarificationFrom(call.args());
+            }
             if (JourneyGenerationPrompt.DECLINE_TOOL_NAME.equals(call.name())) {
                 throw new AiRequestDeclinedException(call.args().path("reason").asText());
             }
@@ -89,6 +98,12 @@ public class LlmFlowGenerator implements AiFlowGenerator {
                 JourneySpec spec = objectMapper.treeToValue(call.args(), JourneySpec.class);
                 if (spec.inputs() != null && !INPUT_WORDS.matcher(context.prompt() + " " + context.journeyDescription()).find()) {
                     spec = new JourneySpec(spec.name(), null, spec.startMessage(), spec.steps(), spec.sections(), spec.notes());
+                }
+                if (context.rounds() < JourneyGenerationPrompt.MAX_QUESTION_ROUNDS) {
+                    AiClarificationNeededException missing = missingApiData(spec, context.prompt());
+                    if (missing != null) {
+                        throw missing;
+                    }
                 }
                 if (spec.startMessage() != null && !MESSAGING_WORDS.matcher(context.prompt() + " " + context.journeyDescription()).find()) {
                     spec = new JourneySpec(spec.name(), spec.inputs(), null, spec.steps(), spec.sections(), spec.notes());
@@ -112,6 +127,9 @@ public class LlmFlowGenerator implements AiFlowGenerator {
                 if (ex instanceof AiGenerationException generation) {
                     throw generation;
                 }
+                if (ex instanceof AiClarificationNeededException clarification) {
+                    throw clarification;
+                }
                 problems = List.of("A descrição não está no formato esperado: " + ex.getMessage());
             }
 
@@ -133,6 +151,75 @@ public class LlmFlowGenerator implements AiFlowGenerator {
         throw new AiGenerationException("A IA não montou uma jornada válida em " + MAX_ATTEMPTS + " tentativas. "
                 + "Tente de novo descrevendo com menos detalhes, escolha um modelo mais capaz em Integrações > "
                 + "Credencial de IA, ou crie a jornada em branco. Último problema apontado: " + firstOf(lastProblems));
+    }
+
+    /**
+     * Dado decisivo que falta numa integração, conferido pelo sistema para não depender de o modelo leve lembrar de
+     * perguntar: o endereço da API (a etapa saiu sem url) e os dados da resposta (a IA mapeou campos que nem o pedido
+     * nem as decisões do usuário citam). Cada pergunta só é feita uma vez: se o texto dela já está no pedido, o
+     * usuário já respondeu (inclusive "deixar para completar no editor").
+     */
+    private static AiClarificationNeededException missingApiData(JourneySpec spec, String prompt) {
+        List<AiClarificationNeededException.Question> questions = new java.util.ArrayList<>();
+        String lowerPrompt = prompt.toLowerCase(java.util.Locale.ROOT);
+        for (JourneySpec.StepSpec step : spec.steps() == null ? List.<JourneySpec.StepSpec>of() : spec.steps()) {
+            if (step == null || !"INTEGRATION".equalsIgnoreCase(step.kind()) || step.request() == null) {
+                continue;
+            }
+            String name = step.name() == null || step.name().isBlank() ? String.valueOf(step.key()) : step.name();
+            if (step.request().url() == null || step.request().url().isBlank()) {
+                String question = "Qual é o endereço da API da etapa «" + name + "»?";
+                if (!prompt.contains(question)) {
+                    questions.add(new AiClarificationNeededException.Question(question, "Endereço da API", List.of(
+                            new AiClarificationNeededException.Option("Deixar para completar no editor",
+                                    "A etapa fica sem endereço e uma anotação avisa para preenchê-lo"))));
+                }
+            }
+            boolean guessed = (step.request().outputs() == null ? List.<JourneySpec.OutputSpec>of() : step.request().outputs()).stream()
+                    .anyMatch(o -> o != null && o.path() != null && !o.path().trim().startsWith("$httpStatus") && !mentioned(lowerPrompt, o));
+            if (guessed) {
+                String question = "Quais dados a resposta da API da etapa «" + name + "» devolve?";
+                if (!prompt.contains(question)) {
+                    questions.add(new AiClarificationNeededException.Question(question, "Resposta da API", List.of(
+                            new AiClarificationNeededException.Option("Só o código HTTP; completar o mapeamento no editor",
+                                    "A jornada usa só se a chamada deu certo; os campos da resposta você mapeia depois com \"Testar API\""))));
+                }
+            }
+        }
+        return questions.isEmpty() ? null : new AiClarificationNeededException(questions.stream().limit(3).toList());
+    }
+
+    /** O pedido cita o nome da saída ou o último trecho do caminho dela (ex.: "valor" em $.fatura.valor)? */
+    private static boolean mentioned(String lowerPrompt, JourneySpec.OutputSpec output) {
+        String path = output.path().trim();
+        String last = path.substring(Math.max(path.lastIndexOf('.'), path.lastIndexOf('$')) + 1).replaceAll("\\[\\d+\\]", "");
+        return (output.name() != null && output.name().length() >= 3 && lowerPrompt.contains(output.name().toLowerCase(java.util.Locale.ROOT)))
+                || (last.length() >= 3 && lowerPrompt.contains(last.toLowerCase(java.util.Locale.ROOT)));
+    }
+
+    /** Perguntas da IA já limpas: até 3, cada uma com 2 a 4 respostas; o que vier fora disso é descartado. */
+    private static AiClarificationNeededException clarificationFrom(tools.jackson.databind.JsonNode args) {
+        List<AiClarificationNeededException.Question> questions = new java.util.ArrayList<>();
+        for (tools.jackson.databind.JsonNode q : args.path("questions")) {
+            String text = q.path("question").asText("").trim();
+            List<AiClarificationNeededException.Option> options = new java.util.ArrayList<>();
+            for (tools.jackson.databind.JsonNode o : q.path("options")) {
+                String label = o.path("label").asText("").trim();
+                if (!label.isEmpty() && options.size() < 4) {
+                    String description = o.path("description").asText("").trim();
+                    options.add(new AiClarificationNeededException.Option(label, description.isEmpty() ? null : description));
+                }
+            }
+            if (!text.isEmpty() && options.size() >= 2 && questions.size() < 3) {
+                String header = q.path("header").asText("").trim();
+                questions.add(new AiClarificationNeededException.Question(text, header.isEmpty() ? null : header, options));
+            }
+        }
+        if (questions.isEmpty()) {
+            throw new AiGenerationException("A IA precisou de mais informações, mas não conseguiu formular as perguntas. "
+                    + "Descreva a jornada com mais detalhes (qual o objetivo e para quem é).");
+        }
+        return new AiClarificationNeededException(questions);
     }
 
     // Erros do mesmo tipo (ex.: dez campos sem identificador) viram uma linha só, com a contagem.

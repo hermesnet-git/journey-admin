@@ -11,6 +11,7 @@ import com.jouney.admin.domain.flow.FlowIds;
 import com.jouney.admin.domain.flow.FlowSection;
 import com.jouney.admin.domain.flow.FlowValidationException;
 import com.jouney.admin.domain.flow.FlowValidator;
+import com.jouney.admin.infrastructure.ai.AiClarificationNeededException;
 import com.jouney.admin.infrastructure.ai.AiRequestDeclinedException;
 import com.jouney.admin.interfaces.ApiError;
 import jakarta.validation.Valid;
@@ -107,13 +108,17 @@ public class FlowController {
         SseEmitter emitter = new SseEmitter(600_000L);
         Thread.ofVirtual().start(() -> {
             try {
-                var generated = generateFlow.execute(journeyId, input.prompt(),
+                var generated = generateFlow.execute(journeyId, input.prompt(), input.rounds(),
                         message -> sendEvent(emitter, "progress", message));
                 OffsetDateTime now = OffsetDateTime.now();
                 var flow = new Flow(FlowIds.newFlowId(), journeyId, generated.name(), generated.nodes(),
                         generated.connections(), generated.annotations(), now, now)
                         .withSections(generated.sections());
                 sendEvent(emitter, "result", FlowResponse.from(flow));
+                emitter.complete();
+            } catch (AiClarificationNeededException ex) {
+                // Pedido vago: não é erro, são perguntas para o usuário responder antes de gerar.
+                sendEvent(emitter, "clarification", java.util.Map.of("questions", ex.questions()));
                 emitter.complete();
             } catch (Exception ex) {
                 sendEvent(emitter, "error", errorPayload(ex));

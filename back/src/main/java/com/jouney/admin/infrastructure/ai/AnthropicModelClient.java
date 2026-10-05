@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.databind.JsonNode;
 
@@ -51,6 +52,8 @@ public class AnthropicModelClient implements AiModelClient {
             throw new AiGenerationException(AiHttp.failureMessage("da Anthropic", ex), ex);
         } catch (ResourceAccessException ex) {
             throw new AiGenerationException("Não foi possível conectar à API da Anthropic.", ex);
+        } catch (RestClientException ex) {
+            throw new AiGenerationException("A API da Anthropic devolveu uma resposta que não deu para ler. Tente de novo em instantes.", ex);
         }
 
         for (JsonNode block : response.path("content")) {

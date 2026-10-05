@@ -14,6 +14,12 @@ final class JourneyGenerationPrompt {
     static final String TOOL_NAME = "generate_journey";
     static final String TOOL_DESCRIPTION =
             "Descreve a jornada completa: etapas, telas com seus campos, integrações, decisões e fim.";
+    /** Limite de segurança de rodadas de perguntas: passado dele, a IA só pode gerar ou recusar. */
+    static final int MAX_QUESTION_ROUNDS = 5;
+    static final String ASK_TOOL_NAME = "ask_clarification";
+    static final String ASK_TOOL_DESCRIPTION =
+            "Chame isto em vez de generate_journey quando falta um dado decisivo para criar a jornada (o objetivo, o endereço "
+                    + "da API, o que a resposta da API devolve, o critério de uma decisão). Devolve de 1 a 3 perguntas com respostas prontas.";
     static final String DECLINE_TOOL_NAME = "decline_request";
     static final String DECLINE_TOOL_DESCRIPTION =
             "Chame isto em vez de generate_journey quando o pedido do usuário não for sobre criar uma jornada "
@@ -40,6 +46,32 @@ final class JourneyGenerationPrompt {
             - mandar dados para um endereço que o próprio pedido não informou;
             - pedir mais de 20 telas (ou um número claramente absurdo): sugira uma quantidade razoável.
             Nunca invente uma jornada só para caber num pedido que não pediu isso.
+
+            PERGUNTAS AO USUÁRIO. Chame ask_clarification, no lugar de generate_journey, quando falta um dado \
+            decisivo — algo sem o qual a jornada seria um palpite ou sairia quebrada. São decisivos:
+            - o objetivo, quando o pedido é vago demais (ex.: "crie uma jornada", "quero algo para meus \
+            clientes");
+            - o endereço da API, quando a jornada consulta ou envia dados a uma API e o pedido não o informa;
+            - quais dados da resposta da API a jornada usa (para mostrar ou para decidir), quando o pedido não \
+            diz;
+            - o critério de uma decisão que depende de um valor que só o usuário conhece (ex.: o que é uma nota \
+            "baixa").
+            Faça de 1 a 3 perguntas curtas por rodada. Cada pergunta traz de 2 a 4 respostas prontas, e a \
+            PRIMEIRA é a que você recomenda; o usuário também pode escrever outra resposta — é assim que ele \
+            informa um endereço ou um valor. Quando o dado é um texto que só o usuário sabe (um endereço, os \
+            campos que a API devolve, um valor), nunca recomende um palpite seu: a primeira resposta pronta é \
+            "Deixar para completar no editor" (para os dados da resposta de uma API: "Só o código HTTP; completar \
+            o mapeamento no editor") e a segunda convida a escrever a resposta em "Outra resposta". Nunca escreva "Outra resposta" entre as \
+            respostas prontas: a tela já oferece essa opção ao usuário. As respostas prontas têm de ser coisas que \
+            esta plataforma sabe criar — telas, formulários, perguntas, menus, decisões, chamadas a APIs e mensageria —; nunca \
+            ofereça atendente humano, fila, chat livre, voz ou outra IA.
+            Nunca pergunte o que você pode decidir sozinho (os textos, as perguntas e as opções de um \
+            questionário, os nomes das etapas, o visual das telas), nem o que o pedido ou as "Decisões do \
+            usuário" já respondem, nem repita uma pergunta já respondida. Pode haver várias rodadas: se o pedido \
+            já traz "Decisões do usuário", considere-as e pergunte de novo só se ainda faltar um dado decisivo \
+            que elas não cobrem; senão, gere a jornada. Configuração de ambiente (cluster, tópico e credencial \
+            de mensageria) não se pergunta: o autor escolhe no editor. Pedido fora do escopo continua sendo \
+            recusado, nunca perguntado.
 
             ANTES DE RESPONDER, confira: (1) toda key é única; (2) toda SCREEN tem blocos com conteúdo; (3) toda \
             DECISION tem branches (ao menos um) e otherwise — e só ela tem; (4) só uma INTEGRATION tem request e \
@@ -87,6 +119,12 @@ final class JourneyGenerationPrompt {
             trava.
             - Para tratar a falha de uma API (fora do ar, lenta ou com erro), use onFailure na INTEGRATION, \
             apontando para uma etapa que explica o problema e, se fizer sentido, oferece tentar de novo.
+            - Publicar mensagem (PUBLISH_MESSAGE) NÃO tem caminho de falha nem status que uma DECISION possa \
+            consultar: nunca use onFailure nela, nunca crie tela de falha ou de reenvio para ela nem decida pelo \
+            resultado do envio. Se o pedido exigir tratar a falha da mensagem (sem conexão, reenviar), gere a \
+            jornada normalmente, com a mensagem seguindo direto para a próxima etapa, e deixe uma anotação (notes) \
+            junto da etapa dizendo que a plataforma ainda não trata falha de mensagem e que isso fica para o autor. \
+            O $httpStatus só existe em INTEGRATION.
             - Você pode agrupar etapas em seções (sections) e deixar anotações (notes) com o raciocínio de \
             partes importantes; jornadas com nove ou mais etapas devem ser organizadas em seções. Só cite \
             etapas que existem na lista.
@@ -128,12 +166,14 @@ final class JourneyGenerationPrompt {
             para o valor interno. Escreva um caminho para cada escolha que leve a algum lugar diferente.
 
             INTEGRAÇÕES E AMBIENTE:
-            - Só preencha url quando o pedido informar o endereço da API; sem ele, deixe url de fora — o autor \
-            completa depois. Nunca invente endereço, token, senha, chave ou dado real, e nunca coloque \
-            segredo em headers ou body.
-            - Só mapeie em outputs os dados da resposta que o pedido informar (ex.: "devolve o campo protocolo"); \
-            se o pedido não disser como é a resposta da API, mapeie apenas o código HTTP ($httpStatus) e não \
-            invente campos — o autor completa o mapeamento depois com "Testar API".
+            - Só preencha url com o endereço que o pedido ou as decisões do usuário informarem; se faltar, pergunte \
+            (dado decisivo) e, se o usuário escolher deixar para o editor, deixe url de fora — o autor completa \
+            depois. Nunca invente endereço, token, senha, chave ou dado real, e nunca coloque segredo em headers \
+            ou body.
+            - Só mapeie em outputs os dados da resposta que o pedido ou as decisões do usuário informarem (ex.: \
+            "devolve o campo protocolo"); se a jornada precisa de dados da resposta e nada diz quais, pergunte; \
+            sem informação, mapeie apenas o código HTTP ($httpStatus) e não invente campos — o autor completa o \
+            mapeamento depois com "Testar API".
             - Em POST, PUT e PATCH, monte o corpo em bodyFields com os dados que as telas coletaram, um item \
             por campo (ex.: "bodyFields":[{"name":"nome","value":"[[field:nome]]"},{"name":"cpf","value":"[[field:cpf]]"}]); \
             nunca deixe o corpo vazio quando há dados coletados para enviar. O mesmo vale para o payload de \
@@ -199,6 +239,12 @@ final class JourneyGenerationPrompt {
             sb.append(" e mensageria (").append(brokers).append(")");
         }
         sb.append("\n\nPedido do usuário: ").append(context.prompt());
+        if (context.rounds() >= MAX_QUESTION_ROUNDS) {
+            sb.append("\n\n(Limite de perguntas atingido: gere a jornada agora, com o que já foi respondido.)");
+        } else if (context.rounds() > 0) {
+            sb.append("\n\n(O usuário já respondeu ").append(context.rounds()).append(context.rounds() == 1 ? " rodada" : " rodadas")
+                    .append(" de perguntas, que estão no pedido. Pergunte só o que ainda for decisivo e não foi respondido; se já dá para gerar, gere.)");
+        }
         return sb.toString();
     }
 

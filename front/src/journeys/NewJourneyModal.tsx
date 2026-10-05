@@ -6,12 +6,22 @@ import { Field, TextInput, TextArea, SelectInput, PrimaryButton, SecondaryButton
 import { ChannelTypeChecklist } from '../products/ChannelTypeChecklist';
 import { listProducts, type ChannelType, type Product } from '../api/products';
 import { createJourney, deleteJourney, listJourneyTemplates, type Journey, type JourneyTemplate } from '../api/journeys';
-import { generateFlow, type Flow } from '../api/flows';
+import { generateFlow, type ClarificationQuestion, type Flow } from '../api/flows';
 import { layoutFlowNodes, placeAnnotations } from '../flow-designer/layout';
 import { readNodeDisplayMode } from '../flow-designer/nodeMode';
 import { ApiClientError } from '../api/client';
 import { useAppTheme } from '../shell/theme';
 import { FigmaImportTab, type FigmaImportSelection } from './FigmaImportTab';
+import {
+  ClarificationForm,
+  ClarificationSummary,
+  answersComplete,
+  buildEnrichedPrompt,
+  currentDecisions,
+  initialAnswers,
+  type AiAnswer,
+  type AiDecision,
+} from './AiClarification';
 import { TemplateGallery } from './TemplateGallery';
 import { markTourPending } from '../flow-designer/notes';
 import { buildFigmaFlow } from '../api/figma';
@@ -25,9 +35,41 @@ interface NewJourneyModalProps {
 
 type StartMode = 'blank' | 'template' | 'ai' | 'figma';
 
+// Quando falta um dado decisivo, a IA pergunta, o usuário responde e confere o resumo; se ainda faltar algo, ela
+// pergunta de novo (quantas rodadas forem necessárias, até um limite no servidor), e só então gera.
+type AiStage = 'prompt' | 'questions' | 'summary';
+
 interface AiLogEntry {
   text: string;
   error?: boolean;
+}
+
+// Cor por tipo de linha do log da IA: sucesso (verde), problema apontado pelo validador (âmbar), pedido de correção
+// (azul), erro (vermelho) e andamento normal (cinza).
+function logTone(line: AiLogEntry, c: ReturnType<typeof useAppTheme>['colors']): { color: string; fontWeight?: number } {
+  if (line.error) return { color: c.danger, fontWeight: 600 };
+  if (/jornada válida/.test(line.text)) return { color: c.success, fontWeight: 600 };
+  if (/^Pedindo correção/.test(line.text)) return { color: c.accent, fontWeight: 600 };
+  if (/^Tentativa d+: /.test(line.text) && !/(resposta recebida|montando a jornada)/.test(line.text)) return { color: c.warning };
+  return { color: c.textSecondary };
+}
+
+// O log ocupa o espaço que sobra do modal (o campo do pedido tem a altura que o usuário definir).
+function AiLogBox({ entries, logRef }: { entries: AiLogEntry[]; logRef: React.RefObject<HTMLDivElement | null> }) {
+  const { colors: c } = useAppTheme();
+  return (
+    <div
+      ref={logRef}
+      className="rounded-lg px-3 py-2 text-[12px] font-mono overflow-y-auto flex flex-col gap-[3px] flex-1 min-h-[80px]"
+      style={{ background: c.chipBg, border: `1px solid ${c.border}` }}
+    >
+      {entries.map((line, i) => (
+        <div key={i} style={logTone(line, c)}>
+          {line.text}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 const TABS: { mode: StartMode; label: string }[] = [
@@ -69,6 +111,12 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLog, setAiLog] = useState<AiLogEntry[]>([]);
+  const [aiStage, setAiStage] = useState<AiStage>('prompt');
+  const [aiQuestions, setAiQuestions] = useState<ClarificationQuestion[]>([]);
+  const [aiAnswers, setAiAnswers] = useState<AiAnswer[]>([]);
+  // Decisões das rodadas anteriores (as da rodada em andamento ficam em aiAnswers) e quantas rodadas já foram respondidas.
+  const [aiHistory, setAiHistory] = useState<AiDecision[]>([]);
+  const [aiRounds, setAiRounds] = useState(0);
   const [figmaSelection, setFigmaSelection] = useState<FigmaImportSelection | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +165,10 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
   }
 
   async function submit() {
+    if (mode === 'ai' && aiStage === 'questions') {
+      setAiStage('summary');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -157,9 +209,27 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
           createdJourneyRef.current ??
           (await createJourney({ productId, channelTypes, name, description }));
         createdJourneyRef.current = journey;
-        const flow = await generateFlow(journey.journeyId, aiPrompt, (message) =>
-          setAiLog((log) => [...log, { text: message }]),
+        const confirming = aiStage === 'summary';
+        const decisions = confirming ? [...aiHistory, ...currentDecisions(aiQuestions, aiAnswers)] : [];
+        const rounds = confirming ? aiRounds + 1 : 0;
+        const outcome = await generateFlow(
+          journey.journeyId,
+          confirming ? buildEnrichedPrompt(aiPrompt, decisions) : aiPrompt,
+          (message) => setAiLog((log) => [...log, { text: message }]),
+          rounds,
         );
+        if (outcome.kind === 'questions') {
+          // Ainda falta algo: as decisões até aqui entram no histórico e a próxima rodada de perguntas aparece.
+          setAiHistory(decisions);
+          setAiRounds(rounds);
+          setAiQuestions(outcome.questions);
+          setAiAnswers(initialAnswers(outcome.questions));
+          setAiStage('questions');
+          setAiLog([]);
+          setSaving(false);
+          return;
+        }
+        const flow = outcome.flow;
         const laidOut = await layoutFlowNodes(flow.nodes, flow.connections, readNodeDisplayMode('editor'), flow.sections);
         deliver(journey, {
           flowId: '',
@@ -198,6 +268,17 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
     }
   }
 
+  function goBackInAiFlow() {
+    if (aiStage === 'summary') {
+      setAiStage('questions');
+      return;
+    }
+    // Voltar ao pedido recomeça a conversa: as decisões antigas eram sobre o pedido de antes.
+    setAiHistory([]);
+    setAiRounds(0);
+    setAiStage('prompt');
+  }
+
   const baseFieldsValid = !!productId && channelTypes.length > 0 && !!name.trim() && !!description.trim();
   const canSubmit =
     mode === 'template'
@@ -205,7 +286,7 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
       : mode === 'figma'
         ? baseFieldsValid && !!figmaSelection
         : mode === 'ai'
-          ? baseFieldsValid && !!aiPrompt.trim()
+          ? baseFieldsValid && !!aiPrompt.trim() && (aiStage !== 'questions' || answersComplete(aiQuestions, aiAnswers))
           : baseFieldsValid;
 
   return (
@@ -217,8 +298,19 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
       footer={
         <>
           <SecondaryButton onClick={handleClose}>Cancelar</SecondaryButton>
+          {mode === 'ai' && aiStage !== 'prompt' && (
+            <SecondaryButton onClick={goBackInAiFlow}>
+              {aiStage === 'summary' ? 'Voltar às perguntas' : 'Editar pedido'}
+            </SecondaryButton>
+          )}
           <PrimaryButton onClick={submit} loading={saving} disabled={!canSubmit}>
-            {mode === 'ai' ? 'Gerar e criar jornada' : mode === 'figma' ? 'Importar e criar jornada' : 'Criar jornada'}
+            {mode === 'ai'
+              ? aiStage === 'questions'
+                ? 'Continuar'
+                : 'Gerar e criar jornada'
+              : mode === 'figma'
+                ? 'Importar e criar jornada'
+                : 'Criar jornada'}
           </PrimaryButton>
         </>
       }
@@ -316,7 +408,18 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
             <FigmaImportTab disabled={saving} channelOptions={channelTypes} onChange={setFigmaSelection} />
           </div>
 
-          {mode === 'ai' && (
+          {mode === 'ai' && aiStage === 'questions' && (
+            <div className="mt-3 flex-1 min-h-0 flex flex-col">
+              <ClarificationForm questions={aiQuestions} answers={aiAnswers} onChange={setAiAnswers} disabled={saving} />
+            </div>
+          )}
+          {mode === 'ai' && aiStage === 'summary' && (
+            <div className="mt-3 flex-1 min-h-0 flex flex-col gap-2">
+              <ClarificationSummary original={aiPrompt} decisions={[...aiHistory, ...currentDecisions(aiQuestions, aiAnswers)]} />
+              {aiLog.length > 0 && <AiLogBox entries={aiLog} logRef={logRef} />}
+            </div>
+          )}
+          {mode === 'ai' && aiStage === 'prompt' && (
             <div className="mt-3 flex-1 min-h-0 flex flex-col gap-2">
               <div className="text-[11.5px] leading-[1.4]" style={{ color: c.textSecondary }}>
                 Descreva a jornada em linguagem natural. A IA monta as etapas, as telas e as integrações, e a jornada já nasce em Rascunho para você revisar. O que depende do ambiente, como mensageria e endereços de API, fica anotado no editor.
@@ -343,21 +446,10 @@ export function NewJourneyModal({ onClose, onCreated }: NewJourneyModalProps) {
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 placeholder="Ex.: jornada de abertura de conta digital, com formulário de dados pessoais, validação de documento via serviço REST e uma etapa de aprovação com dois caminhos (aprovado/reprovado)."
-                style={{ flex: 1, minHeight: 140, resize: 'none' }}
+                className="placeholder:text-[inherit] placeholder:opacity-100"
+                style={{ height: 140, minHeight: 80, flexShrink: 0, resize: 'vertical', color: c.textSecondary }}
               />
-              {aiLog.length > 0 && (
-                <div
-                  ref={logRef}
-                  className="rounded-lg px-3 py-2 text-[12px] font-mono max-h-[160px] overflow-y-auto flex flex-col gap-[3px]"
-                  style={{ background: c.chipBg, border: `1px solid ${c.border}`, color: c.textSecondary }}
-                >
-                  {aiLog.map((line, i) => (
-                    <div key={i} style={line.error ? { color: c.danger, fontWeight: 600 } : undefined}>
-                      {line.text}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {aiLog.length > 0 && <AiLogBox entries={aiLog} logRef={logRef} />}
             </div>
           )}
         </div>

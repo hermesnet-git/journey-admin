@@ -114,13 +114,34 @@ export function validateFlow(journeyId: string, input: FlowUpdateInput): Promise
 // nunca persiste nada, o canvas só carrega o resultado como se fosse uma edição manual não salva.
 // Via SSE: o back pode levar até 3 tentativas de correção, cada uma vira um evento "progress"
 // entregue a onProgress conforme acontece, antes do "result" final (ou "error" se todas falharem).
-export function generateFlow(journeyId: string, prompt: string, onProgress: (message: string) => void): Promise<Flow> {
+// A IA acha o pedido vago demais? Devolve perguntas, cada uma com respostas prontas (a primeira é a
+// recomendada). O front responde e chama de novo com o pedido mais as decisões e rounds = quantas rodadas
+// já foram respondidas; a IA pode perguntar de novo se ainda faltar um dado decisivo, até um limite no servidor.
+export interface ClarificationOption {
+  label: string;
+  description?: string | null;
+}
+export interface ClarificationQuestion {
+  question: string;
+  header?: string | null;
+  options: ClarificationOption[];
+}
+export type GenerationOutcome = { kind: 'flow'; flow: Flow } | { kind: 'questions'; questions: ClarificationQuestion[] };
+
+export function generateFlow(
+  journeyId: string,
+  prompt: string,
+  onProgress: (message: string) => void,
+  rounds = 0,
+): Promise<GenerationOutcome> {
   return new Promise((resolve, reject) => {
-    apiPostSse(`/journeys/${journeyId}/flow/generate`, { prompt }, (event, data) => {
+    apiPostSse(`/journeys/${journeyId}/flow/generate`, { prompt, rounds }, (event, data) => {
       if (event === 'progress') {
         onProgress(data);
       } else if (event === 'result') {
-        resolve(JSON.parse(data) as Flow);
+        resolve({ kind: 'flow', flow: JSON.parse(data) as Flow });
+      } else if (event === 'clarification') {
+        resolve({ kind: 'questions', questions: (JSON.parse(data) as { questions: ClarificationQuestion[] }).questions });
       } else if (event === 'error') {
         const err = JSON.parse(data) as {
           status: number;

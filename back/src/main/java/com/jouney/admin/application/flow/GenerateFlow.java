@@ -37,7 +37,7 @@ public class GenerateFlow {
         this.aiFlowGenerator = aiFlowGenerator;
     }
 
-    public GeneratedFlow execute(UUID journeyId, String prompt, Consumer<String> onProgress) {
+    public GeneratedFlow execute(UUID journeyId, String prompt, int rounds, Consumer<String> onProgress) {
         Journey journey = journeyRepository.findById(journeyId)
                 .orElseThrow(() -> new JourneyNotFoundException(journeyId));
         Product product = productRepository.findById(journey.getProductId())
@@ -50,7 +50,7 @@ public class GenerateFlow {
 
 
         var context = new GenerationContext(prompt, journey.getName(), journey.getDescription(), product.getName(),
-                channelType, enabledConnectors);
+                channelType, enabledConnectors, rounds);
         return aiFlowGenerator.generate(context, onProgress);
     }
 }

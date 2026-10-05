@@ -103,6 +103,7 @@ final class JourneySpecNormalizer {
         }
         List<JourneySpec.VariableSpec> inputs = spec.inputs() == null ? null : spec.inputs().stream()
                 .filter(i -> i != null && !screenFields.contains(i.name())).toList();
+        steps = resolveCitedFields(steps, screenFields);
         JourneySpec.StartMessageSpec startMessage = spec.startMessage() == null || blank(spec.startMessage().system())
                 ? null : spec.startMessage();
         return new JourneySpec(blank(spec.name()) ? "Nova jornada" : spec.name().trim(), inputs, startMessage,
@@ -141,6 +142,105 @@ final class JourneySpecNormalizer {
             return step.request() != null;
         }
         return true;
+    }
+
+    // ---------------------------------------------------------------- campos citados que não existem
+
+    private static final Pattern FIELD_REF = Pattern.compile("\\[\\[\\s*field\\s*:\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\]\\]");
+    private static final int MIN_SHARED = 5;
+
+    /**
+     * Um texto ou uma Decisão que cita um campo que nenhuma tela define (ex.: nomeCliente, quando o campo é
+     * nomeCompleto) é um escorregão comum do modelo leve, que ele erra de novo a cada correção. Quando um
+     * único campo existente compartilha ao menos {@code MIN_SHARED} letras seguidas com o citado, passa a
+     * valer esse campo; sem um candidato claro, a citação fica como está e o erro volta ao modelo.
+     */
+    private static List<StepSpec> resolveCitedFields(List<StepSpec> steps, Set<String> definedFields) {
+        if (definedFields.isEmpty()) {
+            return steps;
+        }
+        java.util.function.UnaryOperator<String> name = (cited) -> definedFields.contains(cited) ? cited : closest(cited, definedFields);
+        java.util.function.UnaryOperator<String> text = (value) -> {
+            if (value == null) {
+                return null;
+            }
+            java.util.regex.Matcher m = FIELD_REF.matcher(value);
+            StringBuilder out = new StringBuilder();
+            while (m.find()) {
+                m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement("[[field:" + name.apply(m.group(1)) + "]]"));
+            }
+            m.appendTail(out);
+            return out.toString();
+        };
+        java.util.function.UnaryOperator<String> ref = (value) -> {
+            if (value == null || !value.trim().startsWith("field:")) {
+                return value;
+            }
+            return "field:" + name.apply(value.trim().substring("field:".length()).trim());
+        };
+        List<StepSpec> result = new ArrayList<>();
+        for (StepSpec step : steps) {
+            ScreenSpec screen = step.screen() == null ? null
+                    : new ScreenSpec(text.apply(step.screen().title()), rewriteBlocks(step.screen().blocks(), text));
+            RequestSpec request = step.request() == null ? null : new RequestSpec(step.request().method(), text.apply(step.request().url()),
+                    step.request().headers(), step.request().body(), rewritePairs(step.request().bodyFields(), text), step.request().outputs(),
+                    step.request().readTimeoutMs(), step.request().retries(), step.request().background());
+            JourneySpec.MessageSpec message = step.message() == null ? null : new JourneySpec.MessageSpec(step.message().system(),
+                    step.message().payload(), rewritePairs(step.message().payloadFields(), text), step.message().outputs());
+            List<BranchSpec> branches = step.branches() == null ? null : step.branches().stream()
+                    .map(b -> new BranchSpec(ref.apply(b.ref()), b.op(), b.value(), b.valueType(), ref.apply(b.valueRef()), b.label(), b.to()))
+                    .toList();
+            result.add(new StepSpec(step.key(), step.kind(), step.name(), step.description(), screen, request, message, step.next(),
+                    step.onFailure(), branches, step.otherwise()));
+        }
+        return result;
+    }
+
+    private static List<BlockSpec> rewriteBlocks(List<BlockSpec> blocks, java.util.function.UnaryOperator<String> text) {
+        if (blocks == null) {
+            return null;
+        }
+        return blocks.stream().map(b -> new BlockSpec(b.kind(), text.apply(b.text()), b.style(), b.field(), text.apply(b.label()),
+                text.apply(b.placeholder()), b.inputType(), b.required(), b.options(), b.optionsFrom(), b.severity(), text.apply(b.title()),
+                text.apply(b.message()), b.choice(), b.variant(), rewriteBlocks(b.blocks(), text), b.answer(), b.choices())).toList();
+    }
+
+    private static List<JourneySpec.PairSpec> rewritePairs(List<JourneySpec.PairSpec> pairs, java.util.function.UnaryOperator<String> text) {
+        return pairs == null ? null : pairs.stream().map(p -> new JourneySpec.PairSpec(p.name(), text.apply(p.value()))).toList();
+    }
+
+    /** O campo existente que mais se parece com {@code cited}, só se for um candidato claro (único e com letras seguidas em comum). */
+    private static String closest(String cited, Set<String> defined) {
+        String best = null;
+        int bestScore = 0;
+        boolean tie = false;
+        for (String candidate : defined) {
+            int score = longestCommonRun(cited.toLowerCase(Locale.ROOT), candidate.toLowerCase(Locale.ROOT));
+            if (score > bestScore) {
+                best = candidate;
+                bestScore = score;
+                tie = false;
+            } else if (score == bestScore && score > 0) {
+                tie = true;
+            }
+        }
+        return best != null && bestScore >= MIN_SHARED && !tie ? best : cited;
+    }
+
+    private static int longestCommonRun(String a, String b) {
+        int best = 0;
+        int[] previous = new int[b.length() + 1];
+        for (int i = 1; i <= a.length(); i++) {
+            int[] current = new int[b.length() + 1];
+            for (int j = 1; j <= b.length(); j++) {
+                if (a.charAt(i - 1) == b.charAt(j - 1)) {
+                    current[j] = previous[j - 1] + 1;
+                    best = Math.max(best, current[j]);
+                }
+            }
+            previous = current;
+        }
+        return best;
     }
 
     private static void collectFields(List<BlockSpec> blocks, Set<String> fields) {

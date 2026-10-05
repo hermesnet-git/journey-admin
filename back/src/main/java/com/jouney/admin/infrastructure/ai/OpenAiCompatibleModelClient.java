@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -67,6 +68,8 @@ public class OpenAiCompatibleModelClient implements AiModelClient {
             throw new AiGenerationException(AiHttp.failureMessage(label, ex), ex);
         } catch (ResourceAccessException ex) {
             throw new AiGenerationException("Não foi possível conectar à API " + label + ".", ex);
+        } catch (RestClientException ex) {
+            throw new AiGenerationException("A API " + label + " devolveu uma resposta que não deu para ler. Tente de novo em instantes.", ex);
         }
 
         JsonNode call = response.path("choices").path(0).path("message").path("tool_calls").path(0).path("function");

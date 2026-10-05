@@ -138,6 +138,21 @@ public final class JourneySpecSchema {
                 "name", "steps");
     }
 
+    /** Perguntas ao usuário quando o pedido é vago: cada uma com respostas prontas; a primeira é a recomendada. */
+    public static Map<String, Object> askSchema() {
+        Map<String, Object> option = object(props(
+                "label", string("A resposta pronta, curta, como o usuário a escolheria"),
+                "description", string("Uma frase dizendo o que essa escolha muda na jornada")), "label");
+        Map<String, Object> question = object(props(
+                "question", string("A pergunta, curta e direta, em português"),
+                "header", string("Rótulo de até 3 palavras (ex.: Objetivo, Canal)"),
+                "options", Map.of("type", "array", "description",
+                        "De 2 a 4 respostas prontas. A PRIMEIRA é a que você recomenda.", "items", option)),
+                "question", "options");
+        return object(props("questions", Map.of("type", "array", "description", "De 1 a 3 perguntas", "items", question)),
+                "questions");
+    }
+
     public static Map<String, Object> declineSchema() {
         return object(props("reason", string("Explicação curta, em pt-BR, de por que esse pedido não é sobre criar uma jornada.")), "reason");
     }

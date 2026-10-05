@@ -2294,7 +2294,7 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
     date: '2026-10-05 03:32',
     source: 'progresso',
     summary:
-      '**Alerta de esperas longas no novo Dashboard (REQ-13.10.027 novo, `todo`) e sincronização dos temas de mensageria.** US-13.10: REQ-13.10.027 registra a ideia de alertar sobre instâncias aguardando mensagem há mais que um limiar global (padrão de 1 hora): contagem, lista das mais antigas e abertura do Diagnóstico, sem interromper nada; fica para refinamento, junto com os demais itens da ideação do novo Dashboard. Os temas implementados nesta rodada (perguntas da IA em abas, falha na publicação de mensagem, limite de espera por mensagem e o commit controlado de offset) passam a constar como testados pelo usuário, e as notas dos REQs foram ajustadas. FT-13: 50 → 51 REQs; total geral: 645 → 646.',
+      '**Alerta de esperas longas no novo Dashboard (REQ-13.10.027 novo, `todo`) e sincronização dos temas de mensageria.** US-13.10: REQ-13.10.027 registra a ideia de alertar sobre instâncias aguardando mensagem há mais que um limiar global (padrão de 1 hora): contagem, lista das mais antigas e abertura do Diagnóstico, sem interromper nada; fica para refinamento, junto com os demais itens da ideação do novo Dashboard. Os temas implementados nesta rodada (perguntas da IA em abas, falha na publicação de mensagem, limite de espera por mensagem e o commit controlado de offset) passam a constar como testados pelo usuário, e as notas dos REQs foram ajustadas. FT-13: 50 → 51 REQs; total geral: 645 → 646. A massa de fábrica ganhou ainda a jornada de referência "Falha na espera de mensagem" (produto Laboratorio), publicada também no ambiente atual.',
   },
   {
     date: '2026-10-05 03:11',

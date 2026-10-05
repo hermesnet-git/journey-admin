@@ -648,7 +648,6 @@
       <div><b>Nada salvo sem revisão</b>O autor sempre decide.</div>
     </div>
 
-<h3>O que a figura mostra</h3>
 <ul>
   <li><strong>Quem usa (coluna esquerda).</strong> O <em>autor da jornada</em> é quem pede; ele trabalha na tela &ldquo;Nova jornada&rdquo;, aba <em>IA</em>
     (<code>journeys/NewJourneyModal.tsx</code>). O <em>editor de fluxo</em> é onde o resultado chega: o fluxo gerado abre como uma
@@ -682,8 +681,6 @@
   A jornada em si é criada vazia no início do fluxo (<code>createJourney</code> no modal) e só passa a valer no Salvar; cancelar a exclui.
 </p>
 
-<h3>Em uma frase</h3>
-<p>A IA propõe, o código garante, o autor decide.</p>
 
 <!-- ====================================================== 2 -->
 <h2 id="t2">2. Visão técnica</h2>
@@ -733,8 +730,7 @@
       </svg>
       <p class="cap">Linhas contínuas: chamadas. Tracejadas: consultas. A credencial é lida pelo AiModelSelector; o Registry fornece os padrões que o Compiler usa.</p>
     </div>
-<h3>O que a figura mostra</h3>
-<p>Três zonas coloridas separam onde cada peça vive. Setas contínuas são chamadas; tracejadas são consultas.</p>
+<p>Setas contínuas são chamadas; tracejadas são consultas.</p>
 <ul>
   <li><strong>Zona Front · React.</strong> <code>NewJourneyModal</code> conduz o diálogo e chama <code>generateFlow</code> (<code>api/flows.ts</code>), que abre a conexão SSE com
     <code>apiPostSse</code> e entrega cada evento (<code>progress</code>, <code>clarification</code>, <code>result</code>, <code>error</code>) ao modal.
@@ -774,11 +770,6 @@
           <td class="e"></td><td><span class="chip">Credencial de IA<small>banco</small></span></td><td><span class="chip">Provedor de IA</span></td><td><span class="chip">Component Registry</span></td><td class="e"></td></tr>
       </tbody>
     </table></div>
-<h3>O que a figura mostra</h3>
-<p>
-  É uma matriz: as <strong>colunas</strong> são as cinco etapas de uma geração, na ordem em que acontecem, e as <strong>linhas</strong> são as camadas onde cada peça vive.
-  Uma célula preenchida diz que aquela peça entra em cena naquele momento; célula tracejada vazia significa que a camada não participa daquela etapa.
-</p>
 <ul>
   <li><strong>1 · Pedir.</strong> No <em>Front</em>, <code>NewJourneyModal</code>, <code>AiClarification</code> e <code>generateFlow</code> recolhem o pedido e as respostas. Na <em>API</em>, <code>FlowController.generate</code> recebe o POST e abre o SSE.</li>
   <li><strong>2 · Preparar.</strong> <code>GenerateFlow.execute</code> monta o contexto da jornada. No <em>Núcleo da IA</em>, <code>AiModelSelector.select()</code> resolve provedor, chave e modelo e
@@ -816,9 +807,8 @@
         <tr data-l="Domínio e apoio"><td class="l"><code>AiProviderCredential</code></td><td><span class="lay">Domínio e apoio</span></td><td>Chave e modelo por provedor</td><td>provedor &rarr; credencial</td></tr>
       </tbody>
     </table></div>
-<h3>O que a figura mostra</h3>
 <p>
-  Uma tabela de consulta com <strong>uma linha por peça</strong>. Os botões acima dela filtram por camada (Front, API e aplicação, Núcleo da IA, Montagem, Domínio e apoio);
+  Os botões acima da tabela filtram por camada (Front, API e aplicação, Núcleo da IA, Montagem, Domínio e apoio);
   &ldquo;Todas&rdquo; mostra tudo. As colunas são:
 </p>
 <ul>
@@ -934,67 +924,87 @@
   limpa invenções, completa o que dá, monta e valida. Qualquer problema volta ao modelo, e a conversa recomeça limpa a cada tentativa (o <code>buildRepairPrompt</code> leva o esboço anterior e os problemas como texto).
 </p>
 
-<h3>As três ferramentas (cartões do topo da figura)</h3>
+    <div class="dia" style="margin-top:14px;max-width:960px;margin-left:auto;margin-right:auto">
+      <svg viewBox="0 0 900 740" role="img" aria-label="Fluxograma do laço: chamada ao modelo, escolha da ferramenta, passos de limpeza, montagem, validação, decisão sobre problemas e sobre o limite de tentativas">
+        <defs><marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker></defs>
+        <g class="s-line" style="fill:none">
+          <path marker-end="url(#fa)" d="M300 64 V90"/>
+          <path marker-end="url(#fa)" d="M300 134 V160"/>
+          <path marker-end="url(#fa)" d="M300 240 V282"/>
+          <path marker-end="url(#fa)" d="M300 326 V356"/>
+          <path marker-end="url(#fa)" d="M300 400 V430"/>
+          <path marker-end="url(#fa)" d="M300 474 V490"/>
+          <path marker-end="url(#fa)" d="M300 570 V610"/>
+          <path marker-end="url(#fa)" d="M410 200 L520 160"/>
+          <path marker-end="url(#fa)" d="M410 200 L520 240"/>
+          <path marker-end="url(#fa)" d="M410 530 H520"/>
+          <path marker-end="url(#fa)" d="M410 650 H520"/>
+          <path marker-end="url(#fa)" d="M190 650 H60 V112 H178"/>
+        </g>
+        <rect class="s-box" x="180" y="20" width="240" height="44" rx="10"/><text class="s-t" x="300" y="47" text-anchor="middle" style="font-size:13px">Pedido + contexto da jornada</text>
+        <rect class="s-box" x="180" y="90" width="240" height="44" rx="10"/><text class="s-t" x="300" y="117" text-anchor="middle" style="font-size:13px">Chama o modelo (3 ferramentas)</text>
+        <path class="s-soft" d="M300 160 L410 200 L300 240 L190 200 Z"/><text class="s-t" x="300" y="205" text-anchor="middle" style="font-size:13px">Qual ferramenta?</text>
+        <text class="s-lbl" x="300" y="262" text-anchor="middle">generate_journey</text>
+        <text class="s-lbl" x="466" y="168" transform="rotate(-20 466 168)">ask</text><text class="s-lbl" x="466" y="248" transform="rotate(20 466 248)">decline</text>
+        <rect class="s-box" x="520" y="132" width="330" height="56" rx="10"/><text class="s-t" x="534" y="154" style="font-size:12.5px">Pergunta ao autor</text><text class="s-s" x="534" y="172">evento clarification, até 5 rodadas</text>
+        <rect class="s-box" x="520" y="212" width="330" height="56" rx="10"/><text class="s-t" x="534" y="234" style="font-size:12.5px">Recusa com motivo</text><text class="s-s" x="534" y="252">erro 422 REQUEST_OUT_OF_SCOPE</text>
+        <rect class="s-box" x="180" y="282" width="240" height="44" rx="10"/><text class="s-t" x="192" y="302" style="font-size:12.5px">Limpar e completar</text><text class="s-s" x="192" y="318">invenção, dados de API, normalizar</text>
+        <rect class="s-box" x="180" y="356" width="240" height="44" rx="10"/><text class="s-t" x="192" y="376" style="font-size:12.5px">Conferir e montar</text><text class="s-s" x="192" y="392">check e build do Compiler</text>
+        <rect class="s-box" x="180" y="430" width="240" height="44" rx="10"/><text class="s-t" x="192" y="450" style="font-size:12.5px">Validar como o editor</text><text class="s-s" x="192" y="466">FlowValidator + cadeia síncrona</text>
+        <path class="s-soft" d="M300 490 L410 530 L300 570 L190 530 Z"/><text class="s-t" x="300" y="535" text-anchor="middle" style="font-size:13px">Há problemas?</text>
+        <text class="s-lbl" x="462" y="522">não</text><text class="s-lbl" x="308" y="594">sim</text>
+        <rect class="s-hub" x="520" y="502" width="330" height="56" rx="10"/><text class="s-w" x="534" y="526" style="font-size:13.5px">Aceita a jornada</text><text class="s-ws" x="534" y="544">evento result, jornada ao canvas</text>
+        <path class="s-soft" d="M300 610 L410 650 L300 690 L190 650 Z"/><text class="s-t" x="300" y="655" text-anchor="middle" style="font-size:13px">Tentativa &lt; 5?</text>
+        <text class="s-lbl" x="462" y="642">não</text><text class="s-lbl" x="150" y="642">sim</text>
+        <text class="s-lbl" x="70" y="380" transform="rotate(-90 70 380)" style="fill:#b4235a">pede correção só dos problemas (conversa nova)</text>
+        <rect class="s-box" x="520" y="622" width="330" height="56" rx="10"/><text class="s-t" x="534" y="644" style="font-size:12.5px">Erro claro ao autor</text><text class="s-s" x="534" y="662">AiGenerationException + o que fazer</text>
+      </svg>
+      <p class="cap">O retângulo roxo é a saída de sucesso. As caixas à direita são as quatro formas de sair do laço.</p>
+    </div>
+<h3>O que acontece, caixa por caixa</h3>
+<p>
+  O fluxograma lê-se de cima para baixo pela coluna central. Retângulos são ações, losangos são decisões, as caixas da direita são as formas de <strong>sair</strong> do laço
+  e a seta vermelha lateral é o <strong>retorno</strong> para tentar de novo. Tudo isto acontece dentro do método <code>LlmFlowGenerator.generate</code>.
+</p>
 <ul>
-  <li><strong><code>generate_journey</code></strong> (<code>TOOL_NAME</code>): devolve a descrição compacta da jornada completa. O esquema é <code>JourneySpecSchema.schema()</code>. Segue para os oito passos abaixo.</li>
-  <li><strong><code>ask_clarification</code></strong> (<code>ASK_TOOL_NAME</code>, esquema <code>askSchema()</code>): falta um dado decisivo. Vira <code>AiClarificationNeededException</code>. Só é oferecida enquanto <code>context.rounds() &lt; MAX_QUESTION_ROUNDS</code> (5).</li>
-  <li><strong><code>decline_request</code></strong> (<code>DECLINE_TOOL_NAME</code>, esquema <code>declineSchema()</code>): pedido fora do escopo ou inseguro. Vira <code>AiRequestDeclinedException</code> com o motivo; o controller a traduz em erro 422 <code>REQUEST_OUT_OF_SCOPE</code>.</li>
+  <li><strong>Pedido + contexto da jornada.</strong> O ponto de partida é o <code>GenerationContext</code>: o pedido do autor (já acrescido das respostas às perguntas, se houve), o nome e a descrição da jornada, o produto, o canal e os conectores habilitados.
+    <code>JourneyGenerationPrompt.buildUserPrompt</code> transforma isso no texto enviado ao modelo.</li>
+  <li><strong>Chama o modelo (3 ferramentas).</strong> O gerador chama <code>selection.client().call(apiKey, model, SYSTEM_PROMPT, prompt, tools)</code>, sempre oferecendo ferramentas:
+    <code>generate_journey</code> (devolve o esboço da jornada), <code>ask_clarification</code> (faz perguntas ao autor) e <code>decline_request</code> (recusa o pedido). A pergunta só é oferecida enquanto
+    <code>context.rounds() &lt; MAX_QUESTION_ROUNDS</code> (5); depois disso a lista é só gerar ou recusar. O andamento &ldquo;Tentativa n/5: chamando&hellip;&rdquo; chega ao autor pelo callback <code>onProgress</code>.</li>
+  <li><strong>Qual ferramenta?</strong> O modelo é obrigado a chamar uma ferramenta, e o código olha <code>call.name()</code>.
+    <ul>
+      <li><code>ask_clarification</code> leva à caixa <em>Pergunta ao autor</em>: <code>clarificationFrom</code> limpa as perguntas (até 3, cada uma com 2 a 4 respostas) e lança <code>AiClarificationNeededException</code>; o <code>FlowController</code> envia o evento <code>clarification</code>.</li>
+      <li><code>decline_request</code> leva à caixa <em>Recusa com motivo</em>: o motivo vira <code>AiRequestDeclinedException</code>, que o <code>FlowController.errorPayload</code> traduz em erro 422 <code>REQUEST_OUT_OF_SCOPE</code>.</li>
+      <li><code>generate_journey</code> segue para baixo, pela coluna central. Seu formato é o <code>JourneySpec</code>, imposto ao modelo por <code>JourneySpecSchema.schema()</code>.</li>
+    </ul>
+  </li>
+  <li><strong>Limpar e completar.</strong> Antes de qualquer conferência, o sistema arruma o esboço. Em ordem:
+    <ul>
+      <li><em>Descarta invenção:</em> se o modelo preencheu as entradas da jornada e o pedido não fala disso (<code>INPUT_WORDS</code>), elas são removidas; o mesmo vale para o início por mensagem sem palavras de mensageria (<code>MESSAGING_WORDS</code>). Modelos leves preenchem opcionais só porque existem.</li>
+      <li><em>Confere dados de API:</em> <code>missingApiData</code> olha as etapas de integração. Sem endereço informado (<code>urlGiven</code>) ou com campos de resposta que o pedido não cita (<code>mentioned</code>), em vez de supor ele pergunta ao autor, uma vez por assunto (<code>answeredDecisions</code> evita repetir). Este é o outro caminho que chega à caixa <em>Pergunta ao autor</em>.</li>
+      <li><em>Remove o inventado:</em> <code>withoutInventedApiData</code> apaga o endereço e os campos de resposta que nem o pedido nem as decisões do autor citam. A etapa fica só com o código HTTP, e o montador cria uma anotação para o autor completar.</li>
+      <li><em>Normaliza:</em> <code>JourneySpecNormalizer.normalize</code> completa o que dá para inferir: chave de etapa faltante, etapa seguinte pela ordem da lista, fim da jornada, nome de campo tirado do enunciado e o tipo certo de campo para cada pergunta. Descarta também citações de seções e notas a etapas que não existem.</li>
+    </ul>
+    Nenhuma dessas ações reprova o esboço; elas só o deixam mais completo e mais honesto.
+  </li>
+  <li><strong>Conferir e montar.</strong> <code>JourneySpecCompiler.compile</code> faz duas coisas. <code>check</code> confere a descrição: chaves únicas, destinos que existem, decisão com caminhos e saída padrão, telas com conteúdo, valores de escolha válidos, aspas proibidas em condição e o limite de 20 telas (<code>MAX_SCREENS</code>).
+    Se algo falha, lança <code>SpecProblemException</code> com problemas escritos nos termos da descrição. Passando, <code>build</code> monta o fluxo real: ids, nós, ligações (inclusive &ldquo;Se falhar&rdquo; e a saída padrão da decisão), seções, anotações e a árvore de componentes <code>ui.*</code> de cada tela, com a grafia certa das variáveis.</li>
+  <li><strong>Validar como o editor.</strong> O fluxo montado passa por <code>FlowValidator.validate(nodes, connections, registry)</code>, as mesmas regras de qualquer fluxo feito à mão, e por <code>SynchronousChainCheck.verify</code>, que barra um fim alcançado só por chamadas REST em sequência (o motor travaria).
+    As falhas viram <code>FlowValidationException</code> e <code>SynchronousChainUnsupportedException</code>.</li>
+  <li><strong>Há problemas?</strong> É a decisão central do laço: houve alguma falha em <em>Conferir e montar</em> ou em <em>Validar</em>?
+    <ul>
+      <li><em>Não:</em> segue para <strong>Aceita a jornada</strong>. O gerador registra &ldquo;jornada válida&rdquo; (<code>describe</code> resume etapas, telas, campos e anotações) e devolve o <code>GeneratedFlow</code>; o controller o envia como evento <code>result</code>.</li>
+      <li><em>Sim:</em> vai para a próxima decisão.</li>
+    </ul>
+  </li>
+  <li><strong>Tentativa &lt; 5?</strong> O contador é comparado com <code>MAX_ATTEMPTS = 5</code>.
+    <ul>
+      <li><em>Sim:</em> é a seta vermelha que sobe de volta a <em>Chama o modelo</em>. Os problemas são agrupados por <code>group</code> (erros iguais viram uma linha com contagem, como &ldquo;e mais 9 iguais&rdquo;) e o prompt é refeito por <code>buildRepairPrompt</code>, numa conversa nova.</li>
+      <li><em>Não:</em> o laço termina na caixa <strong>Erro claro ao autor</strong>: <code>AiGenerationException</code> com o último problema apontado e três saídas &mdash; descrever com menos detalhes, escolher um modelo mais capaz em Integrações &gt; Credencial de IA ou criar a jornada em branco.</li>
+    </ul>
+  </li>
 </ul>
-
-      <div class="three" style="margin-top:22px">
-        <div class="card">
-          <h3><code>generate_journey</code></h3>
-          <p>Devolve a descrição compacta da jornada completa. Segue para as conferências ao lado.</p>
-        </div>
-        <div class="card">
-          <h3><code>ask_clarification</code></h3>
-          <p>Falta um dado decisivo. O servidor limpa as perguntas (até 3, com 2 a 4 respostas cada) e as envia ao usuário. Só existe até a 5ª rodada.</p>
-        </div>
-        <div class="card">
-          <h3><code>decline_request</code></h3>
-          <p>O pedido está fora do escopo ou é inseguro. O motivo volta ao autor numa frase curta, sem criar jornada.</p>
-        </div>
-      </div>
-
-      <div class="pipe" style="margin-top:30px">
-        <div class="st"><h3>Descarta invenção</h3><p>Entradas da jornada e início por mensagem só ficam se o pedido falar disso (palavras-chave).</p></div>
-        <div class="st"><h3>Confere dados de API</h3><p>Etapa REST sem endereço ou com campos de resposta chutados: o sistema pergunta ao usuário, uma vez por assunto.</p></div>
-        <div class="st"><h3>Remove o inventado</h3><p>Endereço e campo de resposta que o pedido não cita são apagados. A etapa fica só com o código HTTP.</p></div>
-        <div class="st"><h3>Normaliza</h3><p>Completa keys, ligações, nomes de campo e o fim da jornada. Perguntas viram o campo certo, com valores e escalas.</p></div>
-        <div class="st"><h3>Confere a descrição</h3><p>Keys únicas, destinos que existem, decisões com saída padrão, telas com conteúdo, no máximo 20 telas.</p></div>
-        <div class="st"><h3>Monta o fluxo</h3><p>Gera ids, nós, ligações, árvore de cada tela e a grafia certa de variável em cada lugar.</p></div>
-        <div class="st"><h3>Valida como o editor</h3><p><code>FlowValidator</code> e a checagem de cadeia síncrona. Mesmas regras de um fluxo feito à mão.</p></div>
-        <div class="st end"><h3>Aceita ou corrige</h3><p>Válido: devolve o fluxo. Com problemas: agrupa os repetidos e pede só a correção deles.</p></div>
-      </div>
-
-      <div class="two" style="margin-top:18px;align-items:start">
-        <div class="card">
-          <h2>Como o pedido de correção é escrito</h2>
-          <ul class="rules">
-            <li>Conversa nova por tentativa: o prompt leva o esboço anterior e a lista de problemas como texto.</li>
-            <li>Instrução explícita: &ldquo;corrija somente isso e mantenha todo o resto&rdquo;, porque modelos leves tendem a apagar o que já estava certo.</li>
-            <li>Erros iguais viram uma linha com contagem (&ldquo;e mais 9 iguais&rdquo;), para não inundar o modelo.</li>
-            <li>As mensagens do motor ({{form_x}}) são traduzidas para a forma que o modelo escreve ([[field:x]]).</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h2>Quando acaba sem sucesso</h2>
-          <p class="out">Passadas as 5 tentativas, o usuário recebe uma mensagem clara com o último problema e o que fazer: descrever com menos detalhes, escolher um modelo mais capaz em <b>Integrações &gt; Credencial de IA</b> ou criar a jornada em branco. O erro nunca expõe detalhe técnico do provedor.</p>
-          <span class="tag">REQ-03.17.003</span>
-        </div>
-      </div>
-
-<h3>Os oito passos, em detalhe</h3>
-<ol>
-  <li><strong>Descarta invenção.</strong> Em <code>generate</code>, se o modelo preencheu <code>inputs</code> (entradas da jornada) e o pedido não fala disso (regex <code>INPUT_WORDS</code>), as entradas são removidas. Idem para o início por mensagem sem palavras de mensageria (<code>MESSAGING_WORDS</code>). Modelos leves preenchem objetos opcionais só porque existem.</li>
-  <li><strong>Confere dados de API.</strong> <code>missingApiData(spec, prompt)</code> percorre as etapas <code>INTEGRATION</code>: sem endereço informado (<code>urlGiven</code>) ou com campos de resposta que o pedido não cita (<code>mentioned</code>), gera perguntas &mdash; uma vez por assunto, contando as decisões já respondidas (<code>answeredDecisions</code> com <code>ADDRESS_WORDS</code> e <code>RESPONSE_WORDS</code>).</li>
-  <li><strong>Remove o inventado.</strong> <code>withoutInventedApiData</code> apaga o endereço e os campos de resposta que nem o pedido nem as decisões do usuário citam. A etapa fica só com o código HTTP (<code>$httpStatus</code>) e o montador cria uma anotação para o autor completar.</li>
-  <li><strong>Normaliza.</strong> <code>JourneySpecNormalizer.normalize</code> preenche o que dá para inferir: <em>key</em> faltante, <em>next</em> pela ordem da lista, fim da jornada acrescentado, nome de campo tirado do enunciado (único na tela), bloco <code>QUESTION</code> convertido no campo certo com valores e escalas. Também descarta citações de seções e notas a etapas que não existem e entradas que repetem campo de tela (<code>resolveCitedFields</code> corrige uma citação de campo quase igual a um existente).</li>
-  <li><strong>Confere a descrição.</strong> <code>JourneySpecCompiler.check</code> (privado, chamado por <code>compile</code>): keys únicas, destinos que existem, DECISION com ao menos um caminho e <em>otherwise</em>, telas com conteúdo, no máximo <code>MAX_SCREENS = 20</code> telas, valores de escolha válidos (<code>checkChoice</code>), aspas proibidas em condição (<code>checkDecision</code>). Os problemas são escritos nos termos da descrição.</li>
-  <li><strong>Monta o fluxo.</strong> <code>JourneySpecCompiler.build</code> gera ids (<code>FlowIds</code>), nós, ligações (inclusive &ldquo;Se falhar&rdquo; e a saída padrão da decisão), seções, anotações (<code>pending</code>) e a árvore de cada tela com componentes <code>ui.*</code>, usando os padrões lidos do Registry. Aqui a grafia de variável é garantida (<code>translate</code> com os modos <code>SCREEN</code> e <code>ENGINE</code>).</li>
-  <li><strong>Valida como o editor.</strong> <code>FlowValidator.validate(nodes, connections, registry)</code> aplica as regras estruturais; <code>SynchronousChainCheck.verify</code> impede um fim alcançado só por chamadas REST em sequência (o motor travaria).</li>
-  <li><strong>Aceita ou corrige.</strong> Válido: registra no log e devolve <code>GeneratedFlow</code>. Com problemas: <code>group</code> junta os parecidos (&ldquo;e mais 9 iguais&rdquo;) e <code>buildRepairPrompt</code> pede a correção. Esgotadas as 5 tentativas, lança <code>AiGenerationException</code> com o último problema e três saídas: descrever com menos detalhes, trocar para um modelo mais capaz ou criar em branco.</li>
-</ol>
 
 <h3>Como a correção é pedida</h3>
 <p>
@@ -1125,7 +1135,6 @@
         </div>
       </div>
 
-<h3>Como a figura se lê</h3>
 <ul>
   <li><strong>Tabela de provedores (esquerda).</strong> Cada linha é uma implementação de <code>AiModelClient</code>: <code>GeminiModelClient</code> (padrão; força a ferramenta com <code>functionCallingConfig.mode = ANY</code>),
     <code>AnthropicModelClient</code> (<code>tool_choice = any</code>) e <code>OpenAiCompatibleModelClient</code> (<code>tool_choice = required</code>), esta última instanciada duas vezes em <code>AiModelClientsConfig</code>

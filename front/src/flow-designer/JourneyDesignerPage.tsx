@@ -1387,19 +1387,24 @@ function DesignerInner({
     [edges, c, focusNodeId, edgeShape, routes, variableLabels, editingEdgeId],
   );
 
-  // Seção recolhida mostra só a primeira linha que chega nela; as que saem dela somem — o bloco
-  // resume o trecho, sem a teia de retornos e saídas que ele esconde.
-  const visibleSectionLinkIds = useMemo(() => {
-    const visible = new Set<string>();
-    const entered = new Set<string>();
+  // Seção recolhida: toda ligação que entra ou sai das etapas escondidas passa a ligar no bloco da seção.
+  // A saída de uma seção vai para a etapa de destino (ou para o bloco dela, se também estiver recolhida), e
+  // várias ligações entre os mesmos dois pontos viram uma só: a linha mostra que existe ao menos uma ligação
+  // entre eles. São só desenho — o usuário não seleciona, não apaga, não puxa nem religa essas linhas.
+  const sectionLinks = useMemo(() => {
+    const links = new Map<string, { id: string; source: string; target: string; edges: typeof edges }>();
     for (const e of edges) {
       const s = hiddenBySection.get(e.source);
       const t = hiddenBySection.get(e.target);
-      if (s || !t || entered.has(t)) continue;
-      entered.add(t);
-      visible.add(e.id);
+      if ((!s && !t) || s === t) continue;
+      const source = s ? `Section_${s}` : e.source;
+      const target = t ? `Section_${t}` : e.target;
+      const id = `SectionLink_${source}__${target}`;
+      const link = links.get(id) ?? { id, source, target, edges: [] };
+      link.edges.push(e);
+      links.set(id, link);
     }
-    return visible;
+    return [...links.values()];
   }, [edges, hiddenBySection]);
 
   // O que o roteamento precisa saber das seções recolhidas (lido no efeito das rotas).
@@ -1408,35 +1413,33 @@ function DesignerInner({
     blocks: sectionNodes
       .filter((n) => n.data.variant === 'block')
       .map((n) => ({ id: n.id, type: 'userTask' as NodeType, x: n.position.x, y: n.position.y, width: n.data.width, height: n.data.height })),
-    links: edges.flatMap((e) => {
-      if (!visibleSectionLinkIds.has(e.id)) return [];
-      const t = hiddenBySection.get(e.target);
-      return [{ id: `SectionLink_${e.id}`, source: e.source, target: `Section_${t}`, onError: !!e.data?.onError }];
-    }),
+    links: sectionLinks.map((l) => ({ id: l.id, source: l.source, target: l.target, onError: l.edges.every((e) => isErrorEdge(e)) })),
   };
 
-  // A linha que chega numa seção recolhida passa a ligar no bloco da seção.
   const sectionLinkEdges = useMemo(
     () =>
-      displayEdges.flatMap((e) => {
-        if (!visibleSectionLinkIds.has(e.id)) return [];
-        const t = hiddenBySection.get(e.target);
+      sectionLinks.flatMap((l) => {
+        // Estilo da primeira ligação normal (ou da de falha, se todas forem de falha).
+        const shown = displayEdges.find((d) => l.edges.some((e) => e.id === d.id && !isErrorEdge(e))) ?? displayEdges.find((d) => l.edges.some((e) => e.id === d.id));
+        if (!shown) return [];
+        const onError = l.edges.every((e) => isErrorEdge(e));
         return [
           {
-            id: `SectionLink_${e.id}`,
-            source: e.source,
-            target: `Section_${t}`,
-            sourceHandle: e.sourceHandle,
+            id: l.id,
+            source: l.source,
+            target: l.target,
             type: edgeShape,
             selectable: false,
             deletable: false,
-            style: e.style,
-            markerEnd: e.markerEnd,
-            data: { ...e.data, route: routes.get(`SectionLink_${e.id}`) },
+            focusable: false,
+            reconnectable: false,
+            style: shown.style,
+            markerEnd: shown.markerEnd,
+            data: { route: routes.get(l.id), onError },
           },
         ];
       }),
-    [displayEdges, hiddenBySection, visibleSectionLinkIds, edgeShape, routes],
+    [sectionLinks, displayEdges, edgeShape, routes],
   );
 
   function handleSave() {

@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+/* Mesmo reset que o artifact aplica ao publicar a página. */
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Playbook do Canal</title>
+<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem('ej-doc-tema');if(t==='light'||t==='dark')r.setAttribute('data-theme',t);if(localStorage.getItem('ej-doc-skin')==='mistica'){r.setAttribute('data-skin','mistica');var l=document.createElement('link');l.rel='stylesheet';l.id='ms-font';l.href='https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap';document.head.appendChild(l);}}catch(e){}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
+<style>
+/* Playbook: laço no topo, cartões por situação, apoio técnico abaixo. */
+:root{
+  --bg:#f6f8f7;--surface:#ffffff;--raised:#edf1ef;--ink:#13201b;--ink-2:#4a5952;--ink-3:#84928b;--line:#dfe6e2;--line-2:#c4cfc9;
+  --accent:#0f6e56;--on-accent:#ffffff;--accent-soft:#e0f0ea;--accent-ink:#0b5844;
+  --cache:#2b5fc9;--cache-soft:#e5ecfb;--cache-ink:#214ea6;
+  --warn:#b06900;--warn-soft:#fff1da;--warn-ink:#845000;
+  --ok:#1f7a4c;--ok-soft:#e1f3e8;--ok-ink:#175f3b;
+  --bad:#c0352b;--bad-soft:#fde6e3;--bad-ink:#992a21;
+  --code-bg:#14211c;--code-ink:#e1ebe6;--code-dim:#86998f;--code-key:#86d6b8;--code-str:#c3e88d;--code-num:#ffc777;--code-line:#26372f;
+  --mark-bg:rgba(195,232,141,.2);--mark-ink:#e7f7cf;--src-bg:rgba(255,199,119,.18);--src-ink:#ffdba6;
+  --ph-frame:#13201b;--ph-bg:#ffffff;--ph-ink:#13201b;--ph-dim:#65736c;--ph-line:#d3dcd7;--ph-field:#ffffff;
+  --f-body:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;--f-head:'Public Sans',system-ui,sans-serif;--f-mono:'Spline Sans Mono',ui-monospace,Consolas,monospace;
+  --radius:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1311;--surface:#111b17;--raised:#16231e;--ink:#e2ebe6;--ink-2:#9fb1a8;--ink-3:#66786f;--line:#1e2c26;--line-2:#2c3d35;
+  --accent:#3fbf97;--on-accent:#04201a;--accent-soft:#11302a;--accent-ink:#8fe0c4;
+  --cache:#7ea3f5;--cache-soft:#172443;--cache-ink:#b9cdfa;
+  --warn:#e3a443;--warn-soft:#33260f;--warn-ink:#f3c982;
+  --ok:#52c38a;--ok-soft:#0f2d1e;--ok-ink:#96dfb8;
+  --bad:#f27d73;--bad-soft:#3a1613;--bad-ink:#f8b3ac;
+  --code-bg:#09110e;--code-line:#1d2c25;
+  --ph-frame:#030806;--ph-bg:#111b17;--ph-ink:#e2ebe6;--ph-dim:#8fa299;--ph-line:#2c3d35;--ph-field:#16231e;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1311;--surface:#111b17;--raised:#16231e;--ink:#e2ebe6;--ink-2:#9fb1a8;--ink-3:#66786f;--line:#1e2c26;--line-2:#2c3d35;
+  --accent:#3fbf97;--on-accent:#04201a;--accent-soft:#11302a;--accent-ink:#8fe0c4;
+  --cache:#7ea3f5;--cache-soft:#172443;--cache-ink:#b9cdfa;
+  --warn:#e3a443;--warn-soft:#33260f;--warn-ink:#f3c982;
+  --ok:#52c38a;--ok-soft:#0f2d1e;--ok-ink:#96dfb8;
+  --bad:#f27d73;--bad-soft:#3a1613;--bad-ink:#f8b3ac;
+  --code-bg:#09110e;--code-line:#1d2c25;
+  --ph-frame:#030806;--ph-bg:#111b17;--ph-ink:#e2ebe6;--ph-dim:#8fa299;--ph-line:#2c3d35;--ph-field:#16231e;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--f-body);-webkit-font-smoothing:antialiased}
+code{font-family:var(--f-mono);font-size:.84em;background:var(--raised);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere}
+a{color:var(--accent-ink)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px max(16px,4vw);border-bottom:1px solid var(--line);background:var(--surface)}
+.brand{font-weight:700;letter-spacing:-.01em}.brand span{font-weight:400;color:var(--ink-2);margin-left:8px}
+.chip{font:600 11px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:7px 10px;background:var(--accent);color:var(--on-accent)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:max(16px,4vw);padding-block:0 96px}
+h1,h2,h3{font-family:var(--f-head);text-wrap:balance;letter-spacing:-.02em;line-height:1.2}
+.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:40px;align-items:end;padding:52px 0 34px;border-bottom:1px solid var(--line)}
+.eyebrow{margin:0 0 10px;font:600 12px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink)}
+.hero h1{font-size:clamp(34px,5vw,54px);font-weight:800;margin:0 0 12px}
+.lead{font-size:17.5px;margin:0;color:var(--ink-2);max-width:62ch}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0}
+.facts div{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;background:var(--surface)}
+.facts dt{font:600 10.5px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.facts dd{margin:0;font-size:14px}
+.sec{padding:52px 0 8px;display:grid;gap:18px;scroll-margin-top:12px}
+.sec h2{font-size:clamp(24px,3vw,32px);margin:0}
+.sec h3{font-size:17px;margin:6px 0 0}
+.sec-p{margin:0;color:var(--ink-2);max-width:72ch}
+.loop{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
+.loop-side{display:grid;gap:14px;min-width:0}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters button{font:600 13px/1 var(--f-body);border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.filters button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;display:grid;gap:12px;min-width:0;scroll-margin-top:12px}
+.card header{display:grid;gap:8px}
+.card h3{margin:0;font-size:19px}
+.cat{justify-self:start;font:600 10.5px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;border-radius:5px;padding:5px 7px;background:var(--raised);color:var(--ink-2)}
+.cat-start{background:var(--accent-soft);color:var(--accent-ink)}
+.cat-screen{background:var(--cache-soft);color:var(--cache-ink)}
+.cat-wait{background:var(--warn-soft);color:var(--warn-ink)}
+.cat-err{background:var(--bad-soft);color:var(--bad-ink)}
+.cat-nav,.cat-end{background:var(--raised);color:var(--ink-2)}
+.card b{display:block;font:600 10.5px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.when{margin:0;font-size:14.5px}
+.do ol{margin:0;padding-left:20px;display:grid;gap:5px;font-size:14px}
+.avoid ul{margin:0;padding:0;list-style:none;display:grid;gap:5px;font-size:14px}
+.avoid li{position:relative;padding-left:20px}
+.avoid li::before{content:"";position:absolute;left:3px;top:.62em;width:9px;height:2px;background:var(--bad);transform:rotate(45deg)}
+.avoid li::after{content:"";position:absolute;left:3px;top:.62em;width:9px;height:2px;background:var(--bad);transform:rotate(-45deg)}
+.behind{margin:0;font-size:13.5px;color:var(--ink-2);border-top:1px dashed var(--line-2);padding-top:10px}
+.seq-tabs [role="tabpanel"],.ex-tabs [role="tabpanel"]{display:grid;gap:14px;padding-top:6px}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:8px}
+.steps li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:9px 11px}
+.st-n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);font:700 10px/1 var(--f-mono);color:var(--accent-ink)}
+.steps code{display:block;background:none;padding:0;font-size:11.5px}
+.steps p{margin:3px 0 0;font-size:13px;line-height:1.5;color:var(--ink-2)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+.tbl table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.5}
+.tbl th{text-align:left;font:600 10.5px/1.3 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:9px 12px;background:var(--raised)}
+.tbl td{padding:9px 12px;border-top:1px solid var(--line);vertical-align:top}
+.tbl-s table{font-size:13px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.two>div{display:grid;gap:12px;align-content:start;min-width:0}
+.cl{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:18px;display:grid;gap:12px}
+.cl-bar{display:flex;justify-content:space-between;gap:12px;font-weight:700}
+.cl-n{font:500 13px var(--f-mono);color:var(--ink-2)}
+.cl-n b{color:var(--accent-ink)}
+.cl-prog{height:6px;border-radius:999px;background:var(--raised);overflow:hidden}
+.cl-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s ease}
+.cl ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:6px}
+.cl li{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px}
+.cl li:hover{background:var(--raised)}
+.cl input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--accent);flex:none}
+.cl label{font-size:14px;cursor:pointer}
+.cl-note{margin:0;font-size:12.5px;color:var(--ink-3)}
+.beh{margin:0;display:grid}
+.beh div{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:10px 0;border-top:1px solid var(--line)}
+.beh dt{font-weight:600}.beh dd{margin:0;color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){.cl-prog i{transition:none}}
+@media (max-width:1000px){.hero{grid-template-columns:1fr}.loop{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+@media (max-width:640px){.cards{grid-template-columns:1fr}.facts{grid-template-columns:1fr}.cl ul{grid-template-columns:1fr}.beh div{grid-template-columns:1fr;gap:4px}}
+
+/* ---------- seletor de tema ---------- */
+.skin-sw{display:inline-flex;align-items:center;gap:8px;font:600 12px/1 var(--f-body);color:inherit;background:transparent;border:1px solid var(--sw-line,var(--line-2));border-radius:999px;padding:3px 12px 3px 3px;cursor:pointer}
+.skin-track{position:relative;width:32px;height:20px;border-radius:999px;background:var(--line-2);transition:background .2s ease}
+.skin-knob{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--surface);transition:transform .2s ease,background .2s ease}
+.skin-sw[aria-checked="true"] .skin-track{background:var(--sw-on-bg,var(--accent))}
+.skin-sw[aria-checked="true"] .skin-knob{transform:translateX(12px);background:var(--sw-on-fg,var(--on-accent))}
+.skin-sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.skin-track,.skin-knob{transition:none}}
+.top-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.theme-sw{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--sw-line,var(--line-2));border-radius:999px}
+.theme-sw button{font:600 12px/1 var(--f-body);border:0;background:transparent;color:inherit;padding:6px 12px;border-radius:999px;cursor:pointer;opacity:.72}
+.theme-sw button:hover{opacity:1}
+.theme-sw button[aria-pressed="true"]{background:var(--sw-on-bg,var(--ink));color:var(--sw-on-fg,var(--surface));opacity:1}
+.theme-sw button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* ---------- figuras ---------- */
+.fig{margin:0;display:grid;gap:10px;min-width:0}
+.fig-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius,10px);padding:16px}
+.fig figcaption{font-size:13px;line-height:1.55;color:var(--ink-2);max-width:78ch}
+svg.sq,svg.dg{display:block;width:100%;height:auto;font-family:var(--f-body)}
+svg.sq{min-width:min(var(--w),900px)}
+svg.dg{min-width:720px}
+.sq-box{fill:var(--surface);stroke:var(--line-2);stroke-width:1.2}
+.sq-hub{fill:var(--accent);stroke:var(--accent)}
+.sq-store{fill:var(--cache-soft);stroke:var(--cache);stroke-width:1.4}
+.sq-ext{fill:var(--raised);stroke:var(--line-2);stroke-dasharray:4 3}
+.sq-lt{fill:var(--ink);font-size:13px;font-weight:650}
+.sq-ls{fill:var(--ink-2);font-size:11px}
+.sq-lt.sq-on,.sq-ls.sq-on{fill:var(--on-accent)}
+.sq-life{stroke:var(--line-2);stroke-width:1.2;stroke-dasharray:3 5}
+.sq-a{stroke:var(--ink-2);stroke-width:1.5;fill:none}
+.sq-ret{stroke-dasharray:5 4}
+.sq-cache{stroke:var(--cache)}
+.sq-h{fill:var(--ink-2)}.sq-hc{fill:var(--cache)}.sq-ho{fill:var(--accent)}
+.sq-l{fill:var(--ink);font-size:12px}
+.sq-lr{fill:var(--ink-2)}
+.sq-b{fill:var(--raised);stroke:var(--ink-3);stroke-width:1}
+.sq-bt{fill:var(--ink-2);font-size:9.5px;font-weight:700;font-family:var(--f-mono)}
+.sq-n{fill:var(--accent-soft);stroke:var(--line-2)}
+.sq-nt{fill:var(--accent-ink);font-size:11.5px}
+.sq-ref{fill:var(--raised);stroke:var(--ink-3);stroke-width:1}
+.sq-reftag{fill:var(--ink-3)}
+.sq-reftt{fill:var(--surface);font-size:9px;font-weight:700;font-family:var(--f-mono)}
+.sq-reft{fill:var(--ink);font-size:12px;font-weight:650}
+.sq-f{fill:none;stroke:var(--ink-3);stroke-width:1;stroke-dasharray:4 4}
+.sq-ft{fill:var(--raised);stroke:var(--ink-3)}
+.sq-ftt{fill:var(--ink);font-size:10.5px;font-weight:700;font-family:var(--f-mono)}
+.sq-g{fill:var(--ink-2);font-size:11.5px;font-weight:600}
+.sq-sep{stroke:var(--ink-3);stroke-dasharray:4 4}
+.sq-step.on .sq-a{stroke:var(--accent);stroke-width:2.6}
+.sq-step.on .sq-b{fill:var(--accent);stroke:var(--accent)}
+.sq-step.on .sq-bt{fill:var(--on-accent)}
+.sq-step.on .sq-l{fill:var(--accent-ink);font-weight:700}
+.sq-step.on .sq-n,.sq-step.on .sq-ref{stroke:var(--accent);stroke-width:2.2}
+/* diagramas estáticos */
+.dg-box{fill:var(--surface);stroke:var(--line-2);stroke-width:1.2}
+.dg-hub{fill:var(--accent);stroke:var(--accent)}
+.dg-store{fill:var(--cache-soft);stroke:var(--cache);stroke-width:1.4}
+.dg-ext{fill:var(--raised);stroke:var(--line-2);stroke-dasharray:4 3}
+.dg-pseudo{fill:var(--raised);stroke:var(--ink-3);stroke-dasharray:6 4}
+.dg-warnbox{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.3}
+.dg-okbox{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.3}
+.dg-dia{fill:var(--raised);stroke:var(--line-2);stroke-width:1.2}
+.dg-note{fill:var(--accent-soft);stroke:var(--line-2)}
+.dg-db{fill:var(--raised);stroke:var(--line-2);stroke-width:1.2}
+.dg-t{fill:var(--ink);font-size:13px;font-weight:650}
+.dg-tw{fill:var(--on-accent);font-size:13px;font-weight:650}
+.dg-s{fill:var(--ink-2);font-size:11.5px}
+.dg-sw{fill:var(--on-accent);font-size:11.5px;opacity:.9}
+.dg-m{fill:var(--ink-2);font-size:11px;font-family:var(--f-mono)}
+.dg-mc{fill:var(--cache-ink);font-size:11px;font-family:var(--f-mono)}
+.dg-a{stroke:var(--ink-2);stroke-width:1.5;fill:none}
+.dg-ac{stroke:var(--cache)}
+.dg-ad{stroke-dasharray:5 4}
+.dg-aw{stroke:var(--warn)}
+.dg-l{fill:var(--ink-2);font-size:11px;font-weight:600}
+.dg-lw{fill:var(--warn-ink)}
+.dg-lc{fill:var(--cache-ink)}
+.dg-h{fill:var(--ink-2)}.dg-hc{fill:var(--cache)}.dg-hw{fill:var(--warn)}
+.dg-band{fill:var(--ink-3);font-size:10.5px;font-weight:700;letter-spacing:.1em}
+.dg-dot{fill:var(--accent)}
+/* ---------- código ---------- */
+.cb{background:var(--code-bg);border:1px solid var(--code-line);border-radius:var(--radius,10px);overflow:hidden;min-width:0}
+.cb-h{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 8px 6px 14px;border-bottom:1px solid var(--code-line)}
+.cb-t{font:600 10.5px/1.2 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--code-dim)}
+.cb-copy{font:600 12px/1 var(--f-body);color:var(--code-ink);background:transparent;border:1px solid var(--code-line);border-radius:6px;padding:6px 10px;cursor:pointer}
+.cb-copy:hover{border-color:var(--code-dim)}
+.cb-copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cb-copy.ok{color:var(--code-str);border-color:var(--code-str)}
+.cb-pre{margin:0;padding:14px 16px;font:12.5px/1.65 var(--f-mono);color:var(--code-ink);white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2}
+.cb-pre code{font:inherit;background:none;border:0;padding:0;color:inherit}
+.j-k{color:var(--code-key)}.j-s{color:var(--code-str)}.j-n,.j-b{color:var(--code-num)}
+.sh-c{color:var(--code-key);font-weight:600}.sh-f{color:var(--code-dim)}.sh-m{color:var(--code-num);font-weight:600}.sh-s{color:var(--code-str)}.sh-r{color:var(--code-dim);font-style:italic}
+.cb-pre mark{background:var(--mark-bg);color:var(--mark-ink);border-radius:3px;padding:0 2px}
+.cb-pre i.src{font-style:normal;background:var(--src-bg);color:var(--src-ink);border-radius:3px;padding:0 2px}
+/* ---------- exemplos de resolução ---------- */
+.ex{display:grid;gap:12px;min-width:0}
+.ex-io{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px}
+.ex-io>div{display:flex;flex-direction:column;min-width:0}
+.ex-io>div .cb{flex:1}
+.ex-arrow{font:600 11px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink);display:flex;align-items:center;gap:8px}
+.ex-arrow::before{content:"↓";font-size:15px;letter-spacing:0}
+.ex-rules{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px;line-height:1.55}
+.ex-code{margin:0;font-size:12.5px;color:var(--ink-2)}
+@media (max-width:860px){.ex-io{grid-template-columns:1fr}}
+/* ---------- abas ---------- */
+.tab-list{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.tab-list [role="tab"]{font:600 12px/1 var(--f-body);color:var(--ink-2);background:transparent;border:1px solid var(--line-2);border-radius:999px;padding:7px 12px;cursor:pointer}
+.tab-list [role="tab"][aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.tab-list [role="tab"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* ---------- maquete de tela ---------- */
+.phone{width:296px;max-width:100%;border-radius:34px;padding:9px;background:var(--ph-frame);box-shadow:0 18px 40px -24px rgba(0,0,0,.45);flex:none}
+.phone-in{background:var(--ph-bg);color:var(--ph-ink);border-radius:26px;min-height:520px;overflow:hidden;font-family:var(--f-body);display:flex;flex-direction:column}
+.ph-status{display:flex;justify-content:space-between;padding:10px 20px 4px;font:600 11px var(--f-body);color:var(--ph-dim)}
+.ph-banner{margin:8px 14px 0;padding:9px 11px;border-radius:10px;background:var(--bad-soft);color:var(--bad-ink);font-size:12px;line-height:1.4}
+.ph-scr{padding:8px 16px 18px;display:flex;flex-direction:column;gap:12px;flex:1}
+.ph-title{font:700 19px/1.25 var(--f-head);color:var(--ph-ink);padding-top:6px}
+.ph-body{display:flex;flex-direction:column;gap:12px;flex:1}
+.ph-stack{display:flex;flex-direction:column;gap:10px}.ph-row{flex-direction:row;flex-wrap:wrap}
+.ph-text{margin:0;font-size:13.5px;line-height:1.45;color:var(--ph-ink)}
+.ph-field,.ph-list{display:flex;flex-direction:column;gap:6px}
+.ph-label{font-size:12px;font-weight:600;color:var(--ph-dim)}
+.ph-req{font-style:normal;color:var(--bad);margin-left:2px}
+.ph-input{display:block;border:1.5px solid var(--ph-line);border-radius:10px;padding:10px 12px;font-size:13.5px;color:var(--ph-ink);background:var(--ph-field);min-height:40px}
+.ph-input.ph-ph{color:var(--ph-dim)}
+.ph-select{position:relative;padding-right:28px}
+.ph-select::after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;border-right:2px solid var(--ph-dim);border-bottom:2px solid var(--ph-dim);transform:translateY(-70%) rotate(45deg)}
+.ph-menu{list-style:none;margin:0;padding:4px;border:1px solid var(--ph-line);border-radius:10px;background:var(--ph-field)}
+.ph-menu li{padding:8px 10px;border-radius:7px;font-size:13px}
+.ph-menu li.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.ph-check{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4}
+.ph-box{width:18px;height:18px;border:1.5px solid var(--ph-line);border-radius:5px;flex:none;margin-top:1px}
+.ph-box.on{background:var(--accent);border-color:var(--accent)}
+.ph-item{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--ph-line);border-radius:12px;padding:10px 12px;background:var(--ph-field)}
+.ph-item.on{border-color:var(--accent);background:var(--accent-soft)}
+.ph-item b{display:block;font-size:13px;font-weight:650}
+.ph-item small{display:block;font-size:11.5px;color:var(--ph-dim);margin-top:2px}
+.ph-radio{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--ph-line);flex:none;margin-top:2px}
+.ph-item.on .ph-radio{border:5px solid var(--accent)}
+.ph-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.ph-btn{display:inline-flex;justify-content:center;align-items:center;border-radius:999px;padding:11px 16px;font-size:13px;font-weight:650;background:var(--accent);color:var(--on-accent);border:1.5px solid var(--accent)}
+.ph-body>.ph-btn{align-self:stretch}
+.ph-btn.ph-secondary{background:transparent;color:var(--accent-ink);border-color:var(--ph-line)}
+.ph-btn.ph-danger{background:var(--bad);border-color:var(--bad)}
+.ph-btn.ph-off{opacity:.38}
+.ph-btn.ph-sm{padding:7px 12px;font-size:12px;align-self:flex-start}
+.ph-alert{border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.4;background:var(--accent-soft);color:var(--accent-ink)}
+.ph-alert b{display:block}
+.ph-warning{background:var(--warn-soft);color:var(--warn-ink)}
+.ph-err{border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.4;background:var(--bad-soft);color:var(--bad-ink)}
+.ph-err b{display:block;margin-bottom:2px}
+.ph-hr{border:0;border-top:1px solid var(--ph-line);margin:2px 0}
+.ph-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center}
+.ph-state b{font:700 17px/1.3 var(--f-head)}
+.ph-state small{font-size:12.5px;color:var(--ph-dim);line-height:1.45}
+.ph-spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--ph-line);border-top-color:var(--accent);animation:phspin 1s linear infinite}
+.ph-done{width:38px;height:38px;border-radius:50%;background:var(--ok);position:relative}
+.ph-done::after{content:"";position:absolute;left:13px;top:8px;width:9px;height:17px;border-right:3px solid #fff;border-bottom:3px solid #fff;transform:rotate(45deg)}
+@keyframes phspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.ph-spin{animation:none}}
+
+/* ---------- tema Mística Vivo (skin vivo-evolution) ---------- */
+:root[data-skin="mistica"]{--bg:#f1eff6;--surface:#ffffff;--raised:#f0edf5;--ink:#0e0c14;--ink-2:#665d7a;--ink-3:#9187a8;--line:#e3deeb;--line-2:#c7c1d6;
+  --accent:#660099;--on-accent:#ffffff;--accent-soft:#eee7f3;--accent-ink:#660099;
+  --cache:#5f8c2f;--cache-soft:#edf8e8;--cache-ink:#225c3d;
+  --warn:#e68500;--warn-soft:#ffefe1;--warn-ink:#972a1d;
+  --ok:#5f8c2f;--ok-soft:#edf8e8;--ok-ink:#225c3d;
+  --bad:#cc1f59;--bad-soft:#fce4ef;--bad-ink:#8f2052;
+  --code-bg:#16131e;--code-ink:#eae6f0;--code-dim:#9187a8;--code-key:#c89de2;--code-str:#b7da73;--code-num:#ffc266;--code-line:#2d2a3d;
+  --mark-bg:rgba(183,218,115,.22);--mark-ink:#e4f3d8;--src-bg:rgba(255,194,102,.18);--src-ink:#ffd699;
+  --ph-frame:#16131e;--ph-bg:#ffffff;--ph-ink:#0e0c14;--ph-dim:#665d7a;--ph-line:#dcd8e5;--ph-field:#ffffff;
+  --grid:rgba(102,0,153,.05);--ms-nav-bg:#660099;--ms-nav-ink:#ffffff;--ms-nav-line:#660099;--f-body:'Vivo Type','Roboto',-apple-system,'Segoe UI',Arial,sans-serif;--f-head:'Vivo Type','Roboto',-apple-system,'Segoe UI',Arial,sans-serif;--f-mono:'Roboto Mono',ui-monospace,Consolas,monospace;--radius:16px;}
+@media (prefers-color-scheme:dark){:root[data-skin="mistica"]:not([data-theme="light"]){--bg:#16131e;--surface:#1d1a29;--raised:#252233;--ink:#eae6f0;--ink-2:#c7c1d6;--ink-3:#9187a8;--line:#2d2a3d;--line-2:#423b52;
+  --accent:#7a2fb3;--on-accent:#eae6f0;--accent-soft:#2d2a3d;--accent-ink:#b77ddb;
+  --cache:#99cc33;--cache-soft:#143824;--cache-ink:#b7da73;
+  --warn:#ff9900;--warn-soft:#3d0f0a;--warn-ink:#ffc266;
+  --ok:#7fb029;--ok-soft:#143824;--ok-ink:#b7da73;
+  --bad:#db628b;--bad-soft:#430e27;--bad-ink:#f7b1cb;
+  --code-bg:#0e0c14;--code-line:#2d2a3d;
+  --ph-frame:#0e0c14;--ph-bg:#1d1a29;--ph-ink:#eae6f0;--ph-dim:#b9afcc;--ph-line:#423b52;--ph-field:#252233;
+  --grid:rgba(183,125,219,.06);--ms-nav-bg:#16131e;--ms-nav-ink:#eae6f0;--ms-nav-line:#2d2a3d;color-scheme:dark;}}
+:root[data-skin="mistica"][data-theme="dark"]{--bg:#16131e;--surface:#1d1a29;--raised:#252233;--ink:#eae6f0;--ink-2:#c7c1d6;--ink-3:#9187a8;--line:#2d2a3d;--line-2:#423b52;
+  --accent:#7a2fb3;--on-accent:#eae6f0;--accent-soft:#2d2a3d;--accent-ink:#b77ddb;
+  --cache:#99cc33;--cache-soft:#143824;--cache-ink:#b7da73;
+  --warn:#ff9900;--warn-soft:#3d0f0a;--warn-ink:#ffc266;
+  --ok:#7fb029;--ok-soft:#143824;--ok-ink:#b7da73;
+  --bad:#db628b;--bad-soft:#430e27;--bad-ink:#f7b1cb;
+  --code-bg:#0e0c14;--code-line:#2d2a3d;
+  --ph-frame:#0e0c14;--ph-bg:#1d1a29;--ph-ink:#eae6f0;--ph-dim:#b9afcc;--ph-line:#423b52;--ph-field:#252233;
+  --grid:rgba(183,125,219,.06);--ms-nav-bg:#16131e;--ms-nav-ink:#eae6f0;--ms-nav-line:#2d2a3d;color-scheme:dark;}
+:root[data-skin="mistica"] .top{background:var(--ms-nav-bg);color:var(--ms-nav-ink);border-bottom:1px solid var(--ms-nav-line);backdrop-filter:none}
+:root[data-skin="mistica"] .top .brand,:root[data-skin="mistica"] .top .brand span{color:inherit}
+:root[data-skin="mistica"] .top .brand span{opacity:.82}
+:root[data-skin="mistica"] .top .chip{background:transparent;border:1px solid currentColor;color:inherit;border-radius:999px}
+:root[data-skin="mistica"] .top .chip.opt{background:var(--ms-nav-ink);border-color:var(--ms-nav-ink);color:var(--ms-nav-bg)}
+:root[data-skin="mistica"] .top .theme-sw,:root[data-skin="mistica"] .top .skin-sw{--sw-line:currentColor;--sw-on-bg:var(--ms-nav-ink);--sw-on-fg:var(--ms-nav-bg)}
+:root[data-skin="mistica"] .tab-list [role="tab"][aria-selected="true"],:root[data-skin="mistica"] .filters button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+:root[data-skin="mistica"] .card,:root[data-skin="mistica"] .plate,:root[data-skin="mistica"] .prep,:root[data-skin="mistica"] .sheet,:root[data-skin="mistica"] .cl{border-radius:24px}
+:root[data-skin="mistica"] .ph-input{border-radius:16px}
+</style>
+</head>
+<body>
+<header class="top"><div class="brand">Elastic Journey<span>Playbook do canal</span></div><div class="top-r"><span class="chip">Opção D · Playbook</span><div class="theme-sw" role="group" aria-label="Tema da página"><button type="button" id="tema-claro" data-t="light" aria-pressed="false">Claro</button><button type="button" id="tema-escuro" data-t="dark" aria-pressed="false">Escuro</button></div><button type="button" class="skin-sw" id="tema-mistica" role="switch" aria-checked="false"><span class="skin-track" aria-hidden="true"><span class="skin-knob"></span></span>Mística Vivo</button></div></header>
+<main class="wrap">
+<section class="hero">
+  <div><p class="eyebrow">Integração de canais · ms-journey</p><h1>Playbook do canal</h1>
+  <p class="lead">O que o seu canal faz em cada situação de uma jornada do Elastic Journey: o que chamar, o que esperar de volta e o que evitar. Os diagramas mostram o que a plataforma faz por trás de cada resposta.</p></div>
+  <dl class="facts">
+    <div><dt>Endereço local</dt><dd><code>http://localhost:8085/api/v1</code></dd></div>
+    <div><dt>Etapas</dt><dd><code>USER_TASK</code> · <code>WAITING</code> · <code>ENDED</code></dd></div>
+    <div><dt>Erro de negócio</dt><dd>200 com <code>errorMessage</code></dd></div>
+    <div><dt>Autenticação</dt><dd>em definição; use via BFF</dd></div>
+  </dl>
+</section>
+
+<section class="sec" id="d-loop">
+  <h2>O laço do canal</h2>
+  <p class="sec-p">Todo canal é o mesmo laço: receber a etapa, decidir pelo tipo, agir, receber a próxima. As seis operações do ms-journey cabem nele.</p>
+  <div class="loop"><figure class="fig "><div class="fig-scroll"><svg class="dg" viewBox="0 0 920 640" role="img" aria-label="Laço do canal: iniciar, receber a etapa e, conforme o tipo, desenhar a tela, aguardar em polling ou concluir.">
+<defs><marker id="lp-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="dg-h" d="M0 0L10 5L0 10z"/></marker></defs>
+<rect class="dg-hub" x="360" y="16" width="200" height="44" rx="22"/><text class="dg-tw" x="460" y="43" text-anchor="middle">Iniciar · POST /instances</text>
+<path class="dg-a" d="M460 60 V96" marker-end="url(#lp-h)"/>
+<rect class="dg-box" x="360" y="98" width="200" height="46" rx="10"/><text class="dg-t" x="460" y="126" text-anchor="middle">Etapa recebida</text>
+<path class="dg-a" d="M460 144 V168" marker-end="url(#lp-h)"/>
+<path class="dg-dia" d="M460 170 L560 210 L460 250 L360 210 Z"/><text class="dg-m" x="460" y="214" text-anchor="middle">step.type</text>
+<path class="dg-a" d="M360 210 H302" marker-end="url(#lp-h)"/><text class="dg-l" x="352" y="202" text-anchor="end">WAITING</text>
+<rect class="dg-box" x="120" y="188" width="180" height="44" rx="10"/><text class="dg-t" x="210" y="214" text-anchor="middle" style="font-size:12.5px">Mostrar “aguardando”</text>
+<path class="dg-a" d="M210 232 V266" marker-end="url(#lp-h)"/>
+<rect class="dg-box" x="120" y="268" width="180" height="52" rx="10"/><text class="dg-t" x="210" y="290" text-anchor="middle" style="font-size:12.5px">Esperar 3 s</text><text class="dg-s" x="210" y="308" text-anchor="middle">aumentando até 10 s</text>
+<path class="dg-a" d="M210 320 V354" marker-end="url(#lp-h)"/>
+<rect class="dg-box" x="120" y="356" width="180" height="44" rx="10"/><text class="dg-m" x="210" y="382" text-anchor="middle">GET current-step</text>
+<path class="dg-a" d="M120 378 H96 V121 H358" marker-end="url(#lp-h)"/><text class="dg-l" x="150" y="113">nova etapa</text>
+<path class="dg-a dg-ad" d="M210 400 V420"/>
+<rect class="dg-note" x="40" y="420" width="260" height="64" rx="8"/><text class="dg-t" x="52" y="442" style="font-size:12px">Passou do limite do canal?</text><text class="dg-s" x="52" y="460">avise e permita continuar depois,</text><text class="dg-s" x="52" y="476">com o mesmo processInstanceId</text>
+<rect class="dg-box" x="40" y="500" width="260" height="92" rx="8"/><text class="dg-t" x="52" y="522" style="font-size:12px">Erro HTTP</text><text class="dg-s" x="52" y="542">409: consultar a etapa atual</text><text class="dg-s" x="52" y="560">502 ou 500: tentar de novo depois</text><text class="dg-m" x="52" y="578">corpo { status, code, message }</text>
+<path class="dg-a" d="M560 210 H618" marker-end="url(#lp-h)"/><text class="dg-l" x="568" y="202">ENDED</text>
+<rect class="dg-box" x="620" y="188" width="180" height="44" rx="22"/><text class="dg-t" x="710" y="214" text-anchor="middle" style="font-size:12.5px">Mostrar a conclusão</text>
+<path class="dg-a" d="M460 250 V286" marker-end="url(#lp-h)"/><text class="dg-l" x="468" y="272">USER_TASK</text>
+<path class="dg-dia" d="M460 288 L560 324 L460 360 L360 324 Z"/><text class="dg-t" x="460" y="328" text-anchor="middle" style="font-size:12px">tela compatível?</text>
+<path class="dg-a" d="M560 324 H618" marker-end="url(#lp-h)"/><text class="dg-l" x="568" y="316">não</text>
+<rect class="dg-warnbox" x="620" y="302" width="220" height="44" rx="10"/><text class="dg-t" x="730" y="328" text-anchor="middle" style="font-size:12px">Etapa indisponível no canal</text>
+<path class="dg-a" d="M460 360 V390" marker-end="url(#lp-h)"/><text class="dg-l" x="468" y="380">sim</text>
+<rect class="dg-box" x="360" y="392" width="200" height="52" rx="10"/><text class="dg-t" x="460" y="414" text-anchor="middle" style="font-size:12.5px">Desenhar a tela</text><text class="dg-s" x="460" y="432" text-anchor="middle">mostra errorMessage, se vier</text>
+<path class="dg-a" d="M460 444 V470" marker-end="url(#lp-h)"/>
+<path class="dg-dia" d="M460 472 L560 510 L460 548 L360 510 Z"/><text class="dg-t" x="460" y="514" text-anchor="middle" style="font-size:12px">ação da pessoa</text>
+<path class="dg-a" d="M560 510 H592 M592 457 V593"/>
+<path class="dg-a" d="M592 457 H618" marker-end="url(#lp-h)"/><path class="dg-a" d="M592 525 H618" marker-end="url(#lp-h)"/><path class="dg-a" d="M592 593 H618" marker-end="url(#lp-h)"/>
+<rect class="dg-box" x="620" y="432" width="240" height="50" rx="10"/><text class="dg-t" x="634" y="453" style="font-size:12.5px">Enviar</text><text class="dg-m" x="634" y="471">validar · POST complete</text>
+<rect class="dg-box" x="620" y="500" width="240" height="50" rx="10"/><text class="dg-t" x="634" y="521" style="font-size:12.5px">Voltar</text><text class="dg-m" x="634" y="539">POST back</text>
+<rect class="dg-box" x="620" y="568" width="240" height="50" rx="10"/><text class="dg-t" x="634" y="589" style="font-size:12.5px">Tentar novamente</text><text class="dg-m" x="634" y="607">GET current-step</text>
+<path class="dg-a" d="M860 457 H888 M860 525 H888 M860 593 H888 M888 593 V121"/>
+<path class="dg-a" d="M888 121 H562" marker-end="url(#lp-h)"/><text class="dg-l" x="725" y="113" text-anchor="middle">nova etapa</text>
+</svg></div><figcaption>O laço do canal. Toda resposta das operações é uma etapa; o canal decide pelo tipo.</figcaption></figure><div class="loop-side"><div class="tbl tbl-s"><table><thead><tr><th>Operação</th><th>Rota</th></tr></thead><tbody><tr><td><b>Fluxo da jornada</b></td><td><code>GET /journeys/{journeyId}/flow</code></td></tr><tr><td><b>Iniciar</b></td><td><code>POST /journeys/{journeyId}/instances?channelType=…</code></td></tr><tr><td><b>Etapa atual</b></td><td><code>GET /instances/{processInstanceId}/current-step</code></td></tr><tr><td><b>Concluir a tela</b></td><td><code>POST /instances/{processInstanceId}/tasks/{taskId}/complete</code></td></tr><tr><td><b>Voltar</b></td><td><code>POST /instances/{processInstanceId}/back</code></td></tr><tr><td><b>Encerrar</b></td><td><code>DELETE /instances/{processInstanceId}</code></td></tr></tbody></table></div><div class="cb "><div class="cb-h"><span class="cb-t">O laço em TypeScript</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>const BASE = 'http://localhost:8085/api/v1';
+
+async function chamar(method: string, path: string, body?: unknown) {
+  const resposta = await fetch(BASE + path, {
+    method,
+    headers: { 'content-type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const texto = await resposta.text();
+  const json = texto ? JSON.parse(texto) : null;
+  if (!resposta.ok) throw new Error(json?.message ?? `HTTP ${resposta.status}`);
+  return json;
+}
+
+let { processInstanceId, step } = await chamar(
+  'POST', `/journeys/${journeyId}/instances?channelType=WEB`, { cpf, nomeCliente });
+
+let espera = 3000;
+while (step.type !== 'ENDED') {
+  if (step.type === 'WAITING') {
+    await new Promise((fim) =&gt; setTimeout(fim, espera));
+    espera = Math.min(espera * 1.5, 10000);
+    step = await chamar('GET', `/instances/${processInstanceId}/current-step`);
+    continue;
+  }
+  espera = 3000;
+  const acao = await desenharTela(step.form, step.errorMessage); // a parte do seu canal
+  if (acao.tipo === 'voltar') step = await chamar('POST', `/instances/${processInstanceId}/back`);
+  else if (acao.tipo === 'tentar') step = await chamar('GET', `/instances/${processInstanceId}/current-step`);
+  else step = await chamar('POST', `/instances/${processInstanceId}/tasks/${step.taskId}/complete`, { answers: acao.respostas });
+}</code></pre></div></div></div>
+</section>
+
+<section class="sec" id="d-cards">
+  <h2>Situações</h2>
+  <div class="filters" role="group" aria-label="Filtrar situações"><button type="button" data-f="*" aria-pressed="true">Todas</button><button type="button" data-f="start" aria-pressed="false">Início</button><button type="button" data-f="screen" aria-pressed="false">Tela</button><button type="button" data-f="wait" aria-pressed="false">Espera</button><button type="button" data-f="nav" aria-pressed="false">Navegação</button><button type="button" data-f="end" aria-pressed="false">Fim</button><button type="button" data-f="err" aria-pressed="false">Erros</button></div>
+  <div class="cards"><article class="card" data-cat="start" id="c-start">
+  <header><span class="cat cat-start">Início</span><h3>Iniciar a jornada</h3></header>
+  <p class="when"><b>Quando</b>A pessoa entra no fluxo pelo canal.</p>
+  <div class="do"><b>Faça</b><ol><li>Se precisar saber o que a jornada pede, consulte <code>GET /journeys/{journeyId}/flow</code>: o nó <code>START</code> lista as variáveis de entrada.</li><li>Chame <code>POST /journeys/{journeyId}/instances?channelType=…</code> com as variáveis no corpo.</li><li>Guarde o <code>processInstanceId</code> junto da sessão da pessoa.</li><li>Trate <code>step</code> como qualquer etapa recebida.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Requisição</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code><span class="sh-c">curl</span> <span class="sh-f">-X</span> <span class="sh-m">POST</span> <span class="sh-s">&quot;http://localhost:8085/api/v1/journeys/{journeyId}/instances?channelType=WEB&quot;</span> \
+  <span class="sh-f">-H</span> &quot;content-type: application/json&quot; \
+  <span class="sh-f">-d</span> <span class="sh-s">'{ &quot;cpf&quot;: &quot;12345678900&quot;, &quot;nomeCliente&quot;: &quot;Ana Souza&quot; }'</span></code></pre></div>
+  <div class="avoid"><b>Evite</b><ul><li>Enviar <code>channel</code> no corpo: o nome é reservado e vem de <code>channelType</code>.</li><li>Supor que a primeira etapa é sempre uma tela: ela pode ser uma espera.</li></ul></div>
+  <p class="behind"><b>Por trás</b>O ms-espec-registry tipa as variáveis, o motor executa até a primeira espera e grava o estado no Redis, e o ms-journey resolve a etapa antes de responder. <a href="#d-seq">Ver sequência</a>.</p>
+</article><article class="card" data-cat="start" id="c-resume">
+  <header><span class="cat cat-start">Início</span><h3>Retomar uma jornada</h3></header>
+  <p class="when"><b>Quando</b>O app foi reaberto, a sessão caiu ou a pessoa voltou outro dia.</p>
+  <div class="do"><b>Faça</b><ol><li>Chame <code>GET /instances/{processInstanceId}/current-step</code> com o id guardado.</li><li>Trate a resposta como uma etapa recebida: tela, espera ou fim.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Requisição</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code><span class="sh-c">curl</span> <span class="sh-s">&quot;http://localhost:8085/api/v1/instances/{processInstanceId}/current-step&quot;</span></code></pre></div>
+  <div class="avoid"><b>Evite</b><ul><li>Iniciar uma nova instância para a mesma pessoa sem encerrar a anterior.</li></ul></div>
+  <p class="behind"><b>Por trás</b>Se a instância está parada há mais de 24 h, a chave do Redis já expirou: o ms-journey resolve pelo motor e a resposta é a mesma.</p>
+</article><article class="card" data-cat="err" id="c-vars">
+  <header><span class="cat cat-err">Erros</span><h3>Variável de entrada recusada</h3></header>
+  <p class="when"><b>Quando</b>O início responde 409 com <code>SIMULATION_STATE_ERROR</code>.</p>
+  <div class="do"><b>Faça</b><ol><li>Leia a lista em <code>message</code>: são as variáveis declaradas que faltaram.</li><li>Corrija a chamada. Toda variável declarada no Início é obrigatória.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Resposta 409</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>{
+  <span class="j-k">&quot;timestamp&quot;</span>: <span class="j-s">&quot;2026-10-07T14:30:51.204-03:00&quot;</span>,
+  <span class="j-k">&quot;status&quot;</span>: <span class="j-n">409</span>,
+  <span class="j-k">&quot;code&quot;</span>: <span class="j-s">&quot;SIMULATION_STATE_ERROR&quot;</span>,
+  <span class="j-k">&quot;message&quot;</span>: <span class="j-s">&quot;Variáveis de entrada obrigatórias não informadas: [cpf]&quot;</span>
+}</code></pre></div>
+  
+  <p class="behind"><b>Por trás</b>A mesma resposta vale para jornada sem publicação. Nada é criado no motor.</p>
+</article><article class="card" data-cat="screen" id="c-render">
+  <header><span class="cat cat-screen">Tela</span><h3>Desenhar a tela recebida</h3></header>
+  <p class="when"><b>Quando</b>A etapa é <code>USER_TASK</code>.</p>
+  <div class="do"><b>Faça</b><ol><li>Confira se o alvo do canal está em <code>sdui.supportedTargets</code> e se o renderizador atende <code>minRendererVersion</code>.</li><li>Percorra <code>sdui.data</code>: tuplas <code>[tipo, atributos, filhos]</code> com raiz <code>ui.screen</code>.</li><li>Use textos e valores como vieram: placeholders e vínculos já estão resolvidos.</li><li>Reavalie <code>$visibility</code> e <code>$active</code> enquanto a pessoa preenche. Para <code>data.x</code>, use <code>form.context.data["data_x"]</code>; para <code>channel</code>, o seu canal.</li><li>Se vier <code>errorMessage</code>, mostre a mensagem acima da tela.</li></ol></div>
+  
+  <div class="avoid"><b>Evite</b><ul><li>Desenhar a tela pela metade quando ela não é compatível com o canal.</li><li>Buscar dados por conta própria: <code>dataSources</code> chega vazio porque o servidor já buscou.</li></ul></div>
+  <p class="behind"><b>Por trás</b>A tela foi montada no ms-espec-registry em seis passos. <a href="#d-screen">Ver a tela por dentro</a>.</p>
+</article><article class="card" data-cat="screen" id="c-submit">
+  <header><span class="cat cat-screen">Tela</span><h3>Enviar a tela</h3></header>
+  <p class="when"><b>Quando</b>A pessoa toca num botão com <code>action.submit</code>.</p>
+  <div class="do"><b>Faça</b><ol><li>Valide <code>required</code>, <code>maxLength</code> e as regras de <code>validation</code> dos campos visíveis e ativos.</li><li>Monte <code>answers</code> com os vínculos <code>twoWay</code>, sem o <code>form.</code>: <code>form.email</code> vira <code>email</code>.</li><li>Se o botão tiver <code>params.path</code> e <code>params.value</code>, acrescente esse valor.</li><li>Chame o concluir com o <code>taskId</code> da tela e desabilite o botão até a resposta.</li><li>A resposta é a próxima etapa: trate como etapa recebida.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Requisição</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code><span class="sh-c">curl</span> <span class="sh-f">-X</span> <span class="sh-m">POST</span> <span class="sh-s">&quot;http://localhost:8085/api/v1/instances/{processInstanceId}/tasks/{taskId}/complete&quot;</span> \
+  <span class="sh-f">-H</span> &quot;content-type: application/json&quot; \
+  <span class="sh-f">-d</span> <span class="sh-s">'{ &quot;answers&quot;: { &quot;email&quot;: &quot;ana.souza@exemplo.com&quot;, &quot;aceite&quot;: true } }'</span></code></pre></div>
+  <div class="avoid"><b>Evite</b><ul><li>Enviar campos ocultos ou desabilitados.</li><li>Reaproveitar um <code>taskId</code> antigo: ele muda a cada abertura da tela.</li></ul></div>
+  <p class="behind"><b>Por trás</b>O ms-journey confere o taskId, o ms-espec-registry tipa as respostas e o motor conclui a tarefa, executando as integrações síncronas do trecho. <a href="#d-seq">Ver sequência</a>.</p>
+</article><article class="card" data-cat="screen" id="c-errmsg">
+  <header><span class="cat cat-screen">Tela</span><h3>Recebi errorMessage</h3></header>
+  <p class="when"><b>Quando</b>A resposta é 200, mas traz a mesma etapa com <code>errorMessage</code>.</p>
+  <div class="do"><b>Faça</b><ol><li>Mostre a mensagem para a pessoa.</li><li>Mantenha o que ela já preencheu.</li><li>Permita enviar de novo: o próximo envio repete a operação.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Resposta 200</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>{
+  <span class="j-k">&quot;type&quot;</span>: <span class="j-s">&quot;USER_TASK&quot;</span>,
+  <span class="j-k">&quot;taskId&quot;</span>: <span class="j-s">&quot;8f1c2d4e-8b3d-11f1-9c4e-0242ac120002&quot;</span>,
+  <span class="j-k">&quot;nodeId&quot;</span>: <span class="j-s">&quot;Node_5b0e…&quot;</span>,
+  <span class="j-k">&quot;nodeName&quot;</span>: <span class="j-s">&quot;Seus dados&quot;</span>,
+  <span class="j-k">&quot;nodeType&quot;</span>: <span class="j-s">&quot;USER_TASK&quot;</span>,
+  <span class="j-k">&quot;form&quot;</span>: { <span class="j-k">&quot;name&quot;</span>: <span class="j-s">&quot;Seus dados&quot;</span>, <span class="j-k">&quot;sdui&quot;</span>: { … }, <span class="j-k">&quot;context&quot;</span>: { … } },
+  <span class="j-k">&quot;errorMessage&quot;</span>: <span class="j-s">&quot;<mark>O serviço api.exemplo não respondeu dentro do tempo limite.</mark>&quot;</span>
+}</code></pre></div>
+  
+  <p class="behind"><b>Por trás</b>Aparece quando uma integração síncrona ficou sem resposta e não tinha “Se falhar” (o motor desfez tudo), quando o Voltar é recusado ou num envio simultâneo da mesma tela.</p>
+</article><article class="card" data-cat="screen" id="c-source">
+  <header><span class="cat cat-screen">Tela</span><h3>Uma fonte de dados falhou</h3></header>
+  <p class="when"><b>Quando</b>Um select ou lista chega com <code>loadError</code>.</p>
+  <div class="do"><b>Faça</b><ol><li>Mostre <code>loadError.message</code> no próprio componente.</li><li>Se <code>loadError.required</code> for verdadeiro, ofereça “Tentar novamente” e não deixe enviar a tela.</li><li>“Tentar novamente” é <code>action.retry</code>: chame <code>GET current-step</code> e desenhe a tela de novo.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Componente com loadError</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>{ <span class="j-k">&quot;options&quot;</span>: [], <span class="j-k">&quot;loadError&quot;</span>: { <span class="j-k">&quot;message&quot;</span>: <span class="j-s">&quot;Não foi possível carregar os planos agora.&quot;</span>, <span class="j-k">&quot;required&quot;</span>: <span class="j-b">true</span> } }</code></pre></div>
+  
+  <p class="behind"><b>Por trás</b>A busca acontece no ms-espec-registry a cada montagem da tela e fica registrada em data_source_call. O motor não sabe da falha.</p>
+</article><article class="card" data-cat="nav" id="c-back">
+  <header><span class="cat cat-nav">Navegação</span><h3>Botão Voltar</h3></header>
+  <p class="when"><b>Quando</b>A pessoa toca num botão com <code>action.navigate</code> e <code>params.route</code> igual a <code>"voltar"</code>.</p>
+  <div class="do"><b>Faça</b><ol><li>Chame <code>POST /instances/{processInstanceId}/back</code>.</li><li>Desenhe a etapa recebida: a tela anterior, com os valores que já tinham sido preenchidos.</li><li>Se vier a mesma tela com <code>errorMessage</code>, mostre o motivo e continue nela.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Requisição</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code><span class="sh-c">curl</span> <span class="sh-f">-X</span> <span class="sh-m">POST</span> <span class="sh-s">&quot;http://localhost:8085/api/v1/instances/{processInstanceId}/back&quot;</span></code></pre></div>
+  <div class="avoid"><b>Evite</b><ul><li>Simular o Voltar só no canal, reabrindo uma tela guardada: a tela anterior precisa ser reaberta no motor.</li></ul></div>
+  <p class="behind"><b>Por trás</b>O histórico do motor decide: última tela concluída antes da atual, sem integração de escrita concluída entre as duas. <a href="#d-seq">Ver sequência</a>.</p>
+</article><article class="card" data-cat="nav" id="c-links">
+  <header><span class="cat cat-nav">Navegação</span><h3>Links e outras ações</h3></header>
+  <p class="when"><b>Quando</b>A tela traz <code>action.openUrl</code>, <code>action.navigate</code> para outro destino, <code>action.track</code>, <code>action.setValue</code> ou <code>action.dismiss</code>.</p>
+  <div class="do"><b>Faça</b><ol><li><code>openUrl</code>: abra só URLs http ou https de domínios que o canal permite.</li><li><code>navigate</code> com outro destino: é uma rota do próprio canal.</li><li><code>track</code>: envie <code>params.event</code> para a telemetria, sem dados sensíveis.</li><li><code>setValue</code>: grave <code>params.value</code> em <code>params.path</code> (só <code>form.*</code>).</li><li><code>dismiss</code>: esconda o componente.</li></ol></div>
+  
+  
+  <p class="behind"><b>Por trás</b>Nenhuma dessas ações chama o ms-journey.</p>
+</article><article class="card" data-cat="wait" id="c-wait">
+  <header><span class="cat cat-wait">Espera</span><h3>Recebi WAITING</h3></header>
+  <p class="when"><b>Quando</b>A jornada está processando algo fora da tela: integração em segundo plano, envio Kafka ou espera de mensagem.</p>
+  <div class="do"><b>Faça</b><ol><li>Mostre uma tela de espera do próprio canal. <code>nodeName</code> ajuda a escrever a mensagem.</li><li>Comece o polling com <code>GET current-step</code>.</li><li>Quando vier outra etapa, siga o laço.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Resposta 200</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>{
+  <span class="j-k">&quot;type&quot;</span>: <span class="j-s">&quot;WAITING&quot;</span>,
+  <span class="j-k">&quot;taskId&quot;</span>: <span class="j-b">null</span>,
+  <span class="j-k">&quot;nodeId&quot;</span>: <span class="j-s">&quot;Node_9d3c…&quot;</span>,
+  <span class="j-k">&quot;nodeName&quot;</span>: <span class="j-s">&quot;Solicitar troca&quot;</span>,
+  <span class="j-k">&quot;nodeType&quot;</span>: <span class="j-s">&quot;SERVICE_TASK&quot;</span>,
+  <span class="j-k">&quot;form&quot;</span>: <span class="j-b">null</span>,
+  <span class="j-k">&quot;errorMessage&quot;</span>: <span class="j-b">null</span>
+}</code></pre></div>
+  
+  <p class="behind"><b>Por trás</b>Em espera, cada consulta é respondida pelo Redis, sem chamar o motor. <code>nodeType</code> é SERVICE_TASK (integração ou envio) ou RECEIVE_TASK (espera de mensagem).</p>
+</article><article class="card" data-cat="wait" id="c-howlong">
+  <header><span class="cat cat-wait">Espera</span><h3>Quanto tempo esperar</h3></header>
+  <p class="when"><b>Quando</b>A etapa continua WAITING por mais tempo que o esperado.</p>
+  <div class="do"><b>Faça</b><ol><li>Consulte a cada 3 s, que é o ritmo do worker de mensagens, e aumente até 10 s.</li><li>Tenha um limite de espera definido pela experiência do canal.</li><li>Passado o limite, avise a pessoa e permita continuar depois, com o mesmo <code>processInstanceId</code>.</li></ol></div>
+  
+  <div class="avoid"><b>Evite</b><ul><li>Consultar sem intervalo.</li><li>Esperar para sempre: uma tarefa em incidente fica WAITING até a operação tratar no Diagnóstico.</li></ul></div>
+  <p class="behind"><b>Por trás</b>Envios Kafka tentam até 2 vezes de novo; esgotados, seguem pelo “Se falhar” ou viram incidente. Esperas de mensagem podem ter limite, que leva a outro caminho do fluxo.</p>
+</article><article class="card" data-cat="end" id="c-ended">
+  <header><span class="cat cat-end">Fim</span><h3>Recebi ENDED</h3></header>
+  <p class="when"><b>Quando</b>A jornada terminou.</p>
+  <div class="do"><b>Faça</b><ol><li>Mostre a conclusão no canal.</li><li>Descarte o <code>processInstanceId</code> guardado.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Resposta 200</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>{
+  <span class="j-k">&quot;type&quot;</span>: <span class="j-s">&quot;ENDED&quot;</span>,
+  <span class="j-k">&quot;taskId&quot;</span>: <span class="j-b">null</span>,
+  <span class="j-k">&quot;nodeId&quot;</span>: <span class="j-b">null</span>,
+  <span class="j-k">&quot;nodeName&quot;</span>: <span class="j-b">null</span>,
+  <span class="j-k">&quot;nodeType&quot;</span>: <span class="j-b">null</span>,
+  <span class="j-k">&quot;form&quot;</span>: <span class="j-b">null</span>,
+  <span class="j-k">&quot;errorMessage&quot;</span>: <span class="j-b">null</span>
+}</code></pre></div>
+  <div class="avoid"><b>Evite</b><ul><li>Tratar ENDED como sucesso garantido de negócio: ele também vem para um id que não existe.</li></ul></div>
+  <p class="behind"><b>Por trás</b>No fim, o motor apaga as chaves da instância no Redis; a consulta vai ao motor, que responde 404, e o ms-journey devolve ENDED.</p>
+</article><article class="card" data-cat="end" id="c-quit">
+  <header><span class="cat cat-end">Fim</span><h3>A pessoa desistiu</h3></header>
+  <p class="when"><b>Quando</b>A pessoa cancela o fluxo ou a sessão expira por regra do canal.</p>
+  <div class="do"><b>Faça</b><ol><li>Chame <code>DELETE /instances/{processInstanceId}</code>.</li><li>Encerrar uma instância que já terminou não é erro.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Requisição</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code><span class="sh-c">curl</span> <span class="sh-f">-X</span> <span class="sh-m">DELETE</span> <span class="sh-s">&quot;http://localhost:8085/api/v1/instances/{processInstanceId}&quot;</span></code></pre></div>
+  
+  
+</article><article class="card" data-cat="err" id="c-409">
+  <header><span class="cat cat-err">Erros</span><h3>Recebi 409</h3></header>
+  <p class="when"><b>Quando</b>Um envio ou Voltar responde 409 <code>JOURNEY_STATE_ERROR</code>.</p>
+  <div class="do"><b>Faça</b><ol><li>Chame <code>GET current-step</code>.</li><li>Siga a partir da etapa atual.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Resposta 409</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>{
+  <span class="j-k">&quot;timestamp&quot;</span>: <span class="j-s">&quot;2026-10-07T14:32:08.512-03:00&quot;</span>,
+  <span class="j-k">&quot;status&quot;</span>: <span class="j-n">409</span>,
+  <span class="j-k">&quot;code&quot;</span>: <span class="j-s">&quot;JOURNEY_STATE_ERROR&quot;</span>,
+  <span class="j-k">&quot;message&quot;</span>: <span class="j-s">&quot;Task 8f1c2d4e-… não é o passo ativo atual da instância a41f0c2e-…&quot;</span>
+}</code></pre></div>
+  
+  <p class="behind"><b>Por trás</b>O <code>taskId</code> enviado não é o da tela aberta (envio repetido, aba antiga) ou o Voltar foi pedido fora de uma tela.</p>
+</article><article class="card" data-cat="err" id="c-5xx">
+  <header><span class="cat cat-err">Erros</span><h3>Recebi 502 ou 500</h3></header>
+  <p class="when"><b>Quando</b>O serviço não conseguiu atender.</p>
+  <div class="do"><b>Faça</b><ol><li>Mostre uma mensagem genérica e ofereça tentar de novo mais tarde.</li><li>Registre <code>code</code> e <code>message</code> para suporte.</li><li>No início, <code>SYNCHRONOUS_CHAIN_UNSUPPORTED</code> é um problema da jornada: avise o time que a publicou.</li></ol></div>
+  <div class="cb "><div class="cb-h"><span class="cb-t">Resposta 502</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>{
+  <span class="j-k">&quot;timestamp&quot;</span>: <span class="j-s">&quot;2026-10-07T14:35:12.007-03:00&quot;</span>,
+  <span class="j-k">&quot;status&quot;</span>: <span class="j-n">502</span>,
+  <span class="j-k">&quot;code&quot;</span>: <span class="j-s">&quot;UPSTREAM_UNAVAILABLE&quot;</span>,
+  <span class="j-k">&quot;message&quot;</span>: <span class="j-s">&quot;I/O error on POST request for \&quot;http://localhost:8080/engine-rest/…\&quot;: Connection refused&quot;</span>
+}</code></pre></div>
+  
+  <p class="behind"><b>Por trás</b>UPSTREAM_UNAVAILABLE: ms-espec-registry ou motor fora do ar. Um 5xx com corpo { type, message } no início é uma integração síncrona sem resposta: a instância não foi criada.</p>
+</article></div>
+</section>
+
+<section class="sec" id="d-seq">
+  <h2>Por trás de cada resposta</h2>
+  <p class="sec-p">O que o ms-journey, o ms-espec-registry, o motor e o Redis fazem a cada chamada. Em azul, as interações com o Redis.</p>
+  <div class="tabs seq-tabs" data-tabs><div class="tab-list" role="tablist"><button type="button" role="tab" id="tb7-t0" aria-controls="tb7-p0" aria-selected="true" tabindex="0">Iniciar</button><button type="button" role="tab" id="tb7-t1" aria-controls="tb7-p1" aria-selected="false" tabindex="-1">Etapa atual</button><button type="button" role="tab" id="tb7-t2" aria-controls="tb7-p2" aria-selected="false" tabindex="-1">Resolver a etapa</button><button type="button" role="tab" id="tb7-t3" aria-controls="tb7-p3" aria-selected="false" tabindex="-1">Concluir</button><button type="button" role="tab" id="tb7-t4" aria-controls="tb7-p4" aria-selected="false" tabindex="-1">Voltar</button><button type="button" role="tab" id="tb7-t5" aria-controls="tb7-p5" aria-selected="false" tabindex="-1">REST síncrono</button><button type="button" role="tab" id="tb7-t6" aria-controls="tb7-p6" aria-selected="false" tabindex="-1">Kafka e espera</button><button type="button" role="tab" id="tb7-t7" aria-controls="tb7-p7" aria-selected="false" tabindex="-1">REST em segundo plano</button></div><div role="tabpanel" id="tb7-p0" aria-labelledby="tb7-t0"><figure class="fig "><div class="fig-scroll"><svg class="sq" id="sq-start" viewBox="0 0 990 542" role="img" aria-label="Sequência do início da jornada: conversão das variáveis no ms-espec-registry, início no motor, estado gravado no Redis após o commit, resolução da primeira etapa e fluxo publicado." style="--w:990px"><defs><marker id="sq-start-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-h" d="M0 0L10 5L0 10z"/></marker><marker id="sq-start-hc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-hc" d="M0 0L10 5L0 10z"/></marker><marker id="sq-start-ho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-ho" d="M0 0L10 5L0 10z"/></marker></defs><rect class="sq-box sq-actor" x="16" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="103" y="25" text-anchor="middle">Canal / BFF</text><text class="sq-ls" x="103" y="42" text-anchor="middle">cliente HTTP</text><rect class="sq-box sq-hub" x="212" y="6" width="174" height="46" rx="9"/><text class="sq-lt sq-on" x="299" y="25" text-anchor="middle">ms-journey</text><text class="sq-ls sq-on" x="299" y="42" text-anchor="middle">:8085 · /api/v1</text><rect class="sq-box sq-store" x="408" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="495" y="25" text-anchor="middle">Redis</text><text class="sq-ls" x="495" y="42" text-anchor="middle">estado e versão</text><rect class="sq-box sq-svc" x="604" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="691" y="25" text-anchor="middle">ms-espec-registry</text><text class="sq-ls" x="691" y="42" text-anchor="middle">:8083 · Postgres</text><rect class="sq-box sq-svc" x="800" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="887" y="25" text-anchor="middle">ms-runtime-camunda</text><text class="sq-ls" x="887" y="42" text-anchor="middle">engine-rest · H2</text><path class="sq-life" d="M103 52 V534"/><path class="sq-life" d="M299 52 V534"/><path class="sq-life" d="M495 52 V534"/><path class="sq-life" d="M691 52 V534"/><path class="sq-life" d="M887 52 V534"/><g class="sq-step" data-step="1"><path class="sq-a" d="M103 98 H296" marker-end="url(#sq-start-h)"/><text class="sq-l" x="135" y="90" text-anchor="start">POST /journeys/{jid}/instances?channelType=WEB</text><circle class="sq-b" cx="119.0" cy="86" r="9"/><text class="sq-bt" x="119.0" y="89.6" text-anchor="middle">1</text></g><g class="sq-step" data-step="2"><path class="sq-a" d="M299 132 H688" marker-end="url(#sq-start-h)"/><text class="sq-l" x="495" y="124" text-anchor="middle">POST /journeys/{jid}/start-variables/convert</text><circle class="sq-b" cx="327.9" cy="120" r="9"/><text class="sq-bt" x="327.9" y="123.6" text-anchor="middle">2</text></g><g class="sq-step" data-step="3"><rect class="sq-n" x="703.0" y="148" width="222.1" height="25" rx="5"/><text class="sq-nt" x="714.0" y="165">journey_publication · nó START</text><circle class="sq-b" cx="689.0" cy="160" r="9"/><text class="sq-bt" x="689.0" y="163.6" text-anchor="middle">3</text></g><g class="sq-step" data-step="4"><path class="sq-a sq-ret" d="M691 200 H302" marker-end="url(#sq-start-h)"/><text class="sq-l sq-lr" x="495" y="192" text-anchor="middle">{ data_cpf, data_nomeCliente } tipadas</text><circle class="sq-b" cx="348.8" cy="188" r="9"/><text class="sq-bt" x="348.8" y="191.6" text-anchor="middle">4</text></g><g class="sq-step" data-step="5"><rect class="sq-n" x="311.0" y="216" width="262.1" height="25" rx="5"/><text class="sq-nt" x="322.0" y="233">+ channel = WEB · businessKey = UUID</text><circle class="sq-b" cx="297.0" cy="228" r="9"/><text class="sq-bt" x="297.0" y="231.6" text-anchor="middle">5</text></g><g class="sq-step" data-step="6"><path class="sq-a" d="M299 268 H884" marker-end="url(#sq-start-h)"/><text class="sq-l" x="593" y="260" text-anchor="middle">POST /process-definition/key/Journey_&lt;hex&gt;/start</text><circle class="sq-b" cx="412.0" cy="256" r="9"/><text class="sq-bt" x="412.0" y="259.6" text-anchor="middle">6</text></g><g class="sq-step" data-step="7"><rect class="sq-n" x="646.2" y="284" width="228.8" height="25" rx="5"/><text class="sq-nt" x="657.2" y="301">transação até a primeira espera</text><circle class="sq-b" cx="632.2" cy="296" r="9"/><text class="sq-bt" x="632.2" y="299.6" text-anchor="middle">7</text></g><g class="sq-step" data-step="8"><path class="sq-a sq-cache" d="M887 336 H498" marker-end="url(#sq-start-hc)"/><text class="sq-l" x="691" y="328" text-anchor="middle">após o commit: HSET ej:inst:{pid} · EXPIRE 24 h</text><circle class="sq-b" cx="513.4" cy="324" r="9"/><text class="sq-bt" x="513.4" y="327.6" text-anchor="middle">8</text></g><g class="sq-step" data-step="9"><path class="sq-a sq-ret" d="M887 370 H302" marker-end="url(#sq-start-h)"/><text class="sq-l sq-lr" x="593" y="362" text-anchor="middle">{ id: processInstanceId }</text><circle class="sq-b" cx="492.0" cy="358" r="9"/><text class="sq-bt" x="492.0" y="361.6" text-anchor="middle">9</text></g><g class="sq-step" data-step="10"><rect class="sq-ref" x="271" y="388" width="644" height="30" rx="5"/><rect class="sq-reftag" x="271" y="388" width="30" height="15" rx="3"/><text class="sq-reftt" x="286" y="399" text-anchor="middle">ref</text><text class="sq-reft" x="593" y="408" text-anchor="middle">Resolver a etapa pelo motor</text><circle class="sq-b" cx="256.0" cy="403" r="9"/><text class="sq-bt" x="256.0" y="406.6" text-anchor="middle">10</text></g><g class="sq-step" data-step="11"><path class="sq-a" d="M299 444 H688" marker-end="url(#sq-start-h)"/><text class="sq-l" x="495" y="436" text-anchor="middle">GET /journeys/{jid}/flow</text><circle class="sq-b" cx="397.5" cy="432" r="9"/><text class="sq-bt" x="397.5" y="435.6" text-anchor="middle">11</text></g><g><path class="sq-a sq-ret" d="M691 478 H302" marker-end="url(#sq-start-h)"/><text class="sq-l sq-lr" x="495" y="470" text-anchor="middle">{ channelTypes, flowNodes }</text></g><g class="sq-step" data-step="12"><path class="sq-a sq-ret" d="M299 512 H106" marker-end="url(#sq-start-h)"/><text class="sq-l sq-lr" x="135" y="504" text-anchor="start">200 { processInstanceId, businessKey, flow, step }</text><circle class="sq-b" cx="119.0" cy="500" r="9"/><text class="sq-bt" x="119.0" y="503.6" text-anchor="middle">12</text></g></svg></div></figure><ol class="steps"><li data-step="1"><span class="st-n">1</span><div><code>POST /journeys/{jid}/instances?channelType=WEB</code><p>O canal envia as variáveis de entrada no corpo e informa o canal na query.</p></div></li><li data-step="2"><span class="st-n">2</span><div><code>POST /journeys/{jid}/start-variables/convert</code><p>O ms-journey pede ao ms-espec-registry para validar e tipar as variáveis de entrada.</p></div></li><li data-step="3"><span class="st-n">3</span><div><code>journey_publication · nó START</code><p>O registro lê a publicação atual, confere se a jornada não termina só com integrações síncronas (senão, 502) e aplica os tipos declarados no Início.</p></div></li><li data-step="4"><span class="st-n">4</span><div><code>{ data_cpf, data_nomeCliente } tipadas</code><p>Toda variável declarada é obrigatória: faltando alguma, a resposta é 409 e nada é criado. Chaves extras também entram, como data_<nome>.</p></div></li><li data-step="5"><span class="st-n">5</span><div><code>+ channel = WEB · businessKey = UUID</code><p>O canal vira a variável channel, usada em decisões e na visibilidade das telas. O businessKey é gerado pelo serviço.</p></div></li><li data-step="6"><span class="st-n">6</span><div><code>POST /process-definition/key/Journey_&lt;hex&gt;/start</code><p>Inicia a versão mais recente implantada da jornada. A instância fica presa a essa versão até o fim.</p></div></li><li data-step="7"><span class="st-n">7</span><div><code>transação até a primeira espera</code><p>O motor executa decisões e integrações síncronas até parar numa tela, numa integração em segundo plano, num envio Kafka ou numa espera de mensagem.</p></div></li><li data-step="8"><span class="st-n">8</span><div><code>após o commit: HSET ej:inst:{pid} · EXPIRE 24 h</code><p>Com a transação confirmada, o motor grava o estado da instância no Redis. A validade de 24 h é renovada a cada nova escrita.</p></div></li><li data-step="9"><span class="st-n">9</span><div><code>{ id: processInstanceId }</code><p>O motor devolve o identificador da instância.</p></div></li><li data-step="10"><span class="st-n">10</span><div><code>Resolver a etapa pelo motor</code><p>O ms-journey descobre a primeira etapa direto no motor e, se for uma tela, pede a tela resolvida ao ms-espec-registry.</p></div></li><li data-step="11"><span class="st-n">11</span><div><code>GET /journeys/{jid}/flow</code><p>Busca o fluxo publicado, recortado para o canal: canais atendidos e nós com id, tipo, nome e variáveis de entrada.</p></div></li><li data-step="12"><span class="st-n">12</span><div><code>200 { processInstanceId, businessKey, flow, step }</code><p>A resposta já traz a primeira etapa: o canal começa a desenhar sem outra chamada.</p></div></li></ol></div><div role="tabpanel" id="tb7-p1" aria-labelledby="tb7-t1" hidden><figure class="fig "><div class="fig-scroll"><svg class="sq" id="sq-current" viewBox="0 0 990 572" role="img" aria-label="Sequência da etapa atual com Redis: em espera responde direto do Redis; com tela aberta ou sem chave, resolve pelo motor." style="--w:990px"><defs><marker id="sq-current-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-h" d="M0 0L10 5L0 10z"/></marker><marker id="sq-current-hc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-hc" d="M0 0L10 5L0 10z"/></marker><marker id="sq-current-ho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-ho" d="M0 0L10 5L0 10z"/></marker></defs><rect class="sq-box sq-actor" x="16" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="103" y="25" text-anchor="middle">Canal / BFF</text><text class="sq-ls" x="103" y="42" text-anchor="middle">cliente HTTP</text><rect class="sq-box sq-hub" x="212" y="6" width="174" height="46" rx="9"/><text class="sq-lt sq-on" x="299" y="25" text-anchor="middle">ms-journey</text><text class="sq-ls sq-on" x="299" y="42" text-anchor="middle">:8085 · /api/v1</text><rect class="sq-box sq-store" x="408" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="495" y="25" text-anchor="middle">Redis</text><text class="sq-ls" x="495" y="42" text-anchor="middle">estado e versão</text><rect class="sq-box sq-svc" x="604" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="691" y="25" text-anchor="middle">ms-espec-registry</text><text class="sq-ls" x="691" y="42" text-anchor="middle">:8083 · Postgres</text><rect class="sq-box sq-svc" x="800" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="887" y="25" text-anchor="middle">ms-runtime-camunda</text><text class="sq-ls" x="887" y="42" text-anchor="middle">engine-rest · H2</text><g class="sq-frame"><rect class="sq-f" x="6" y="148" width="978" height="394" rx="6"/><rect class="sq-ft" x="6" y="148" width="42" height="19" rx="4"/><text class="sq-ftt" x="27" y="161.5" text-anchor="middle">alt</text><text class="sq-g" x="58" y="162">[state = WAITING ou FAILED]</text><path class="sq-sep" d="M6 252 H984"/><text class="sq-g" x="18" y="268">[state = USER_TASK]</text><path class="sq-sep" d="M6 396 H984"/><text class="sq-g" x="18" y="412">[sem chave: terminou, expirou ou Redis indisponível]</text></g><path class="sq-life" d="M103 52 V564"/><path class="sq-life" d="M299 52 V564"/><path class="sq-life" d="M495 52 V564"/><path class="sq-life" d="M691 52 V564"/><path class="sq-life" d="M887 52 V564"/><g class="sq-step" data-step="1"><path class="sq-a" d="M103 98 H296" marker-end="url(#sq-current-h)"/><text class="sq-l" x="135" y="90" text-anchor="start">GET /instances/{pid}/current-step</text><circle class="sq-b" cx="119.0" cy="86" r="9"/><text class="sq-bt" x="119.0" y="89.6" text-anchor="middle">1</text></g><g class="sq-step" data-step="2"><path class="sq-a sq-cache" d="M299 132 H492" marker-end="url(#sq-current-hc)"/><text class="sq-l" x="397" y="124" text-anchor="middle">HGETALL ej:inst:{pid}</text><circle class="sq-b" cx="309.9" cy="120" r="9"/><text class="sq-bt" x="309.9" y="123.6" text-anchor="middle">2</text></g><g class="sq-step" data-step="3"><path class="sq-a sq-ret sq-cache" d="M495 204 H302" marker-end="url(#sq-current-hc)"/><text class="sq-l sq-lr" x="331" y="196" text-anchor="start">WAITING · nodeId, nodeName, nodeType</text><circle class="sq-b" cx="315.0" cy="192" r="9"/><text class="sq-bt" x="315.0" y="195.6" text-anchor="middle">3</text></g><g class="sq-step" data-step="4"><path class="sq-a sq-ret" d="M299 238 H106" marker-end="url(#sq-current-h)"/><text class="sq-l sq-lr" x="201" y="230" text-anchor="middle">200 WAITING</text><circle class="sq-b" cx="148.7" cy="226" r="9"/><text class="sq-bt" x="148.7" y="229.6" text-anchor="middle">4</text></g><g class="sq-step" data-step="5"><path class="sq-a sq-ret sq-cache" d="M495 308 H302" marker-end="url(#sq-current-hc)"/><text class="sq-l sq-lr" x="397" y="300" text-anchor="middle">USER_TASK · taskId</text><circle class="sq-b" cx="320.4" cy="296" r="9"/><text class="sq-bt" x="320.4" y="299.6" text-anchor="middle">5</text></g><g class="sq-step" data-step="6"><rect class="sq-ref" x="271" y="326" width="644" height="30" rx="5"/><rect class="sq-reftag" x="271" y="326" width="30" height="15" rx="3"/><text class="sq-reftt" x="286" y="337" text-anchor="middle">ref</text><text class="sq-reft" x="593" y="346" text-anchor="middle">Resolver a etapa pelo motor</text><circle class="sq-b" cx="256.0" cy="341" r="9"/><text class="sq-bt" x="256.0" y="344.6" text-anchor="middle">6</text></g><g><path class="sq-a sq-ret" d="M299 382 H106" marker-end="url(#sq-current-h)"/><text class="sq-l sq-lr" x="135" y="374" text-anchor="start">200 USER_TASK { taskId, form }</text></g><g class="sq-step" data-step="7"><path class="sq-a sq-ret sq-cache" d="M495 452 H302" marker-end="url(#sq-current-hc)"/><text class="sq-l sq-lr" x="397" y="444" text-anchor="middle">(vazio)</text><circle class="sq-b" cx="358.6" cy="440" r="9"/><text class="sq-bt" x="358.6" y="443.6" text-anchor="middle">7</text></g><g class="sq-step" data-step="8"><rect class="sq-ref" x="271" y="470" width="644" height="30" rx="5"/><rect class="sq-reftag" x="271" y="470" width="30" height="15" rx="3"/><text class="sq-reftt" x="286" y="481" text-anchor="middle">ref</text><text class="sq-reft" x="593" y="490" text-anchor="middle">Resolver a etapa pelo motor</text><circle class="sq-b" cx="256.0" cy="485" r="9"/><text class="sq-bt" x="256.0" y="488.6" text-anchor="middle">8</text></g><g><path class="sq-a sq-ret" d="M299 526 H106" marker-end="url(#sq-current-h)"/><text class="sq-l sq-lr" x="135" y="518" text-anchor="start">200 USER_TASK · WAITING · ENDED</text></g></svg></div></figure><ol class="steps"><li data-step="1"><span class="st-n">1</span><div><code>GET /instances/{pid}/current-step</code><p>O canal pergunta onde a instância está. É a chamada do polling, da retomada e do Tentar novamente.</p></div></li><li data-step="2"><span class="st-n">2</span><div><code>HGETALL ej:inst:{pid}</code><p>O ms-journey lê primeiro o estado que o motor gravou no Redis.</p></div></li><li data-step="3"><span class="st-n">3</span><div><code>WAITING · nodeId, nodeName, nodeType</code><p>Em espera, o Redis já tem tudo o que o canal recebe.</p></div></li><li data-step="4"><span class="st-n">4</span><div><code>200 WAITING</code><p>Resposta imediata, sem chamar o motor nem o ms-espec-registry. Um incidente (FAILED) também chega ao canal como WAITING.</p></div></li><li data-step="5"><span class="st-n">5</span><div><code>USER_TASK · taskId</code><p>Há tela aberta. A tela depende das variáveis e das fontes de dados, por isso é montada na hora.</p></div></li><li data-step="6"><span class="st-n">6</span><div><code>Resolver a etapa pelo motor</code><p>A resolução completa de sempre: motor e ms-espec-registry.</p></div></li><li data-step="7"><span class="st-n">7</span><div><code>(vazio)</code><p>Sem chave, o ms-journey não presume nada.</p></div></li><li data-step="8"><span class="st-n">8</span><div><code>Resolver a etapa pelo motor</code><p>O motor é a fonte da verdade: 404 vira ENDED, e uma instância parada há mais de 24 h é resolvida normalmente.</p></div></li></ol></div><div role="tabpanel" id="tb7-p2" aria-labelledby="tb7-t2" hidden><figure class="fig "><div class="fig-scroll"><svg class="sq" id="sq-resolve" viewBox="0 0 990 782" role="img" aria-label="Sequência da resolução da etapa pelo motor: instância, versão em cache, tarefa aberta, variáveis e tela resolvida no ms-espec-registry, ou atividade de espera." style="--w:990px"><defs><marker id="sq-resolve-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-h" d="M0 0L10 5L0 10z"/></marker><marker id="sq-resolve-hc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-hc" d="M0 0L10 5L0 10z"/></marker><marker id="sq-resolve-ho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-ho" d="M0 0L10 5L0 10z"/></marker></defs><rect class="sq-box sq-hub" x="16" y="6" width="174" height="46" rx="9"/><text class="sq-lt sq-on" x="103" y="25" text-anchor="middle">ms-journey</text><text class="sq-ls sq-on" x="103" y="42" text-anchor="middle">:8085 · /api/v1</text><rect class="sq-box sq-store" x="212" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="299" y="25" text-anchor="middle">Redis</text><text class="sq-ls" x="299" y="42" text-anchor="middle">estado e versão</text><rect class="sq-box sq-svc" x="408" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="495" y="25" text-anchor="middle">ms-espec-registry</text><text class="sq-ls" x="495" y="42" text-anchor="middle">:8083 · Postgres</text><rect class="sq-box sq-svc" x="604" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="691" y="25" text-anchor="middle">ms-runtime-camunda</text><text class="sq-ls" x="691" y="42" text-anchor="middle">engine-rest · H2</text><rect class="sq-box sq-ext" x="800" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="887" y="25" text-anchor="middle">Sistemas externos</text><text class="sq-ls" x="887" y="42" text-anchor="middle">REST · Kafka · fontes</text><g class="sq-frame"><rect class="sq-f" x="6" y="182" width="978" height="106" rx="6"/><rect class="sq-ft" x="6" y="182" width="42" height="19" rx="4"/><text class="sq-ftt" x="27" y="195.5" text-anchor="middle">opt</text><text class="sq-g" x="58" y="196">[versão ainda fora do cache]</text></g><g class="sq-frame"><rect class="sq-f" x="6" y="338" width="978" height="414" rx="6"/><rect class="sq-ft" x="6" y="338" width="42" height="19" rx="4"/><text class="sq-ftt" x="27" y="351.5" text-anchor="middle">alt</text><text class="sq-g" x="58" y="352">[há tarefa aberta]</text><path class="sq-sep" d="M6 612 H984"/><text class="sq-g" x="18" y="628">[sem tarefa aberta]</text></g><path class="sq-life" d="M103 52 V774"/><path class="sq-life" d="M299 52 V774"/><path class="sq-life" d="M495 52 V774"/><path class="sq-life" d="M691 52 V774"/><path class="sq-life" d="M887 52 V774"/><g class="sq-step" data-step="1"><path class="sq-a" d="M103 98 H688" marker-end="url(#sq-resolve-h)"/><text class="sq-l" x="397" y="90" text-anchor="middle">GET /process-instance/{pid}</text><circle class="sq-b" cx="289.0" cy="86" r="9"/><text class="sq-bt" x="289.0" y="89.6" text-anchor="middle">1</text></g><g><path class="sq-a sq-ret" d="M691 132 H106" marker-end="url(#sq-resolve-h)"/><text class="sq-l sq-lr" x="397" y="124" text-anchor="middle">definitionKey, definitionId · 404 ⇒ ENDED</text></g><g class="sq-step" data-step="2"><path class="sq-a sq-cache" d="M103 166 H296" marker-end="url(#sq-resolve-hc)"/><text class="sq-l" x="135" y="158" text-anchor="start">GET ej:def:{definitionId}:versionTag</text><circle class="sq-b" cx="119.0" cy="154" r="9"/><text class="sq-bt" x="119.0" y="157.6" text-anchor="middle">2</text></g><g class="sq-step" data-step="3"><path class="sq-a" d="M103 238 H688" marker-end="url(#sq-resolve-h)"/><text class="sq-l" x="397" y="230" text-anchor="middle">GET /process-definition/{definitionId}</text><circle class="sq-b" cx="250.8" cy="226" r="9"/><text class="sq-bt" x="250.8" y="229.6" text-anchor="middle">3</text></g><g class="sq-step" data-step="4"><path class="sq-a sq-cache" d="M103 272 H296" marker-end="url(#sq-resolve-hc)"/><text class="sq-l" x="135" y="264" text-anchor="start">SET ej:def:{definitionId}:versionTag v3</text><circle class="sq-b" cx="119.0" cy="260" r="9"/><text class="sq-bt" x="119.0" y="263.6" text-anchor="middle">4</text></g><g class="sq-step" data-step="5"><path class="sq-a" d="M103 322 H688" marker-end="url(#sq-resolve-h)"/><text class="sq-l" x="397" y="314" text-anchor="middle">GET /task?processInstanceId={pid}</text><circle class="sq-b" cx="268.2" cy="310" r="9"/><text class="sq-bt" x="268.2" y="313.6" text-anchor="middle">5</text></g><g class="sq-step" data-step="6"><path class="sq-a" d="M103 394 H688" marker-end="url(#sq-resolve-h)"/><text class="sq-l" x="397" y="386" text-anchor="middle">GET /process-instance/{pid}/variables</text><circle class="sq-b" cx="254.2" cy="382" r="9"/><text class="sq-bt" x="254.2" y="385.6" text-anchor="middle">6</text></g><g class="sq-step" data-step="7"><path class="sq-a" d="M103 428 H492" marker-end="url(#sq-resolve-h)"/><text class="sq-l" x="299" y="420" text-anchor="middle">POST …/versions/3/nodes/{nodeId}/form/resolve</text><circle class="sq-b" cx="128.4" cy="416" r="9"/><text class="sq-bt" x="128.4" y="419.6" text-anchor="middle">7</text></g><g class="sq-step" data-step="8"><rect class="sq-n" x="507.0" y="444" width="248.8" height="25" rx="5"/><text class="sq-nt" x="518.0" y="461">journey_version · published_screen</text><circle class="sq-b" cx="493.0" cy="456" r="9"/><text class="sq-bt" x="493.0" y="459.6" text-anchor="middle">8</text></g><g class="sq-step" data-step="9"><path class="sq-a" d="M495 496 H884" marker-end="url(#sq-resolve-h)"/><text class="sq-l" x="691" y="488" text-anchor="middle">GET fontes de dados da tela</text><circle class="sq-b" cx="583.0" cy="484" r="9"/><text class="sq-bt" x="583.0" y="487.6" text-anchor="middle">9</text></g><g class="sq-step" data-step="10"><rect class="sq-n" x="507.0" y="512" width="328.8" height="25" rx="5"/><text class="sq-nt" x="518.0" y="529">placeholders · vínculos · listas · fontes = {}</text><circle class="sq-b" cx="493.0" cy="524" r="9"/><text class="sq-bt" x="493.0" y="527.6" text-anchor="middle">10</text></g><g><path class="sq-a sq-ret" d="M495 564 H106" marker-end="url(#sq-resolve-h)"/><text class="sq-l sq-lr" x="299" y="556" text-anchor="middle">FormPayload { name, sdui, context }</text></g><g><rect class="sq-n" x="115.0" y="580" width="122.0" height="25" rx="5"/><text class="sq-nt" x="126.0" y="597">etapa USER_TASK</text></g><g class="sq-step" data-step="11"><path class="sq-a" d="M103 668 H688" marker-end="url(#sq-resolve-h)"/><text class="sq-l" x="397" y="660" text-anchor="middle">GET /process-instance/{pid}/activity-instances</text><circle class="sq-b" cx="222.9" cy="656" r="9"/><text class="sq-bt" x="222.9" y="659.6" text-anchor="middle">11</text></g><g class="sq-step" data-step="12"><path class="sq-a" d="M103 702 H492" marker-end="url(#sq-resolve-h)"/><text class="sq-l" x="299" y="694" text-anchor="middle">GET /journeys/{jid}/flow</text><circle class="sq-b" cx="201.5" cy="690" r="9"/><text class="sq-bt" x="201.5" y="693.6" text-anchor="middle">12</text></g><g><rect class="sq-n" x="115.0" y="718" width="108.7" height="25" rx="5"/><text class="sq-nt" x="126.0" y="735">etapa WAITING</text></g></svg></div></figure><ol class="steps"><li data-step="1"><span class="st-n">1</span><div><code>GET /process-instance/{pid}</code><p>Confirma que a instância existe e obtém a definição. Se o motor responder 404, a etapa é ENDED.</p></div></li><li data-step="2"><span class="st-n">2</span><div><code>GET ej:def:{definitionId}:versionTag</code><p>A versão da definição é imutável e fica em cache no Redis, sem expiração.</p></div></li><li data-step="3"><span class="st-n">3</span><div><code>GET /process-definition/{definitionId}</code><p>Na primeira vez, o ms-journey lê o versionTag ("v3") no motor.</p></div></li><li data-step="4"><span class="st-n">4</span><div><code>SET ej:def:{definitionId}:versionTag v3</code><p>E guarda no cache para as próximas resoluções.</p></div></li><li data-step="5"><span class="st-n">5</span><div><code>GET /task?processInstanceId={pid}</code><p>Procura tarefas de usuário abertas. Só a primeira é entregue.</p></div></li><li data-step="6"><span class="st-n">6</span><div><code>GET /process-instance/{pid}/variables</code><p>Lê as variáveis da instância (form_*, data_*, channel). Listas gravadas como Json são lidas como texto.</p></div></li><li data-step="7"><span class="st-n">7</span><div><code>POST …/versions/3/nodes/{nodeId}/form/resolve</code><p>Pede a tela do nó na versão da instância, com as variáveis atuais.</p></div></li><li data-step="8"><span class="st-n">8</span><div><code>journey_version · published_screen</code><p>O registro lê o snapshot da versão e a tela publicada daquele nó.</p></div></li><li data-step="9"><span class="st-n">9</span><div><code>GET fontes de dados da tela</code><p>Se a tela declara fontes de dados, o registro as chama agora, em sequência, e registra cada consulta em data_source_call.</p></div></li><li data-step="10"><span class="st-n">10</span><div><code>placeholders · vínculos · listas · fontes = {}</code><p>Resolve a árvore e esvazia dataSources: endereço e credencial das fontes nunca saem do servidor.</p></div></li><li data-step="11"><span class="st-n">11</span><div><code>GET /process-instance/{pid}/activity-instances</code><p>Descobre em que atividade o motor está parado.</p></div></li><li data-step="12"><span class="st-n">12</span><div><code>GET /journeys/{jid}/flow</code><p>Busca nome e tipo desse nó no fluxo publicado.</p></div></li></ol></div><div role="tabpanel" id="tb7-p3" aria-labelledby="tb7-t3" hidden><figure class="fig "><div class="fig-scroll"><svg class="sq" id="sq-complete" viewBox="0 0 1114 672" role="img" aria-label="Sequência do envio de uma tela: validação do taskId, conversão das respostas, conclusão no motor com integrações síncronas e os dois desfechos." style="--w:1114px"><defs><marker id="sq-complete-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-h" d="M0 0L10 5L0 10z"/></marker><marker id="sq-complete-hc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-hc" d="M0 0L10 5L0 10z"/></marker><marker id="sq-complete-ho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-ho" d="M0 0L10 5L0 10z"/></marker></defs><rect class="sq-box sq-actor" x="16" y="6" width="162" height="46" rx="9"/><text class="sq-lt" x="97" y="25" text-anchor="middle">Canal / BFF</text><text class="sq-ls" x="97" y="42" text-anchor="middle">cliente HTTP</text><rect class="sq-box sq-hub" x="200" y="6" width="162" height="46" rx="9"/><text class="sq-lt sq-on" x="281" y="25" text-anchor="middle">ms-journey</text><text class="sq-ls sq-on" x="281" y="42" text-anchor="middle">:8085 · /api/v1</text><rect class="sq-box sq-store" x="384" y="6" width="162" height="46" rx="9"/><text class="sq-lt" x="465" y="25" text-anchor="middle">Redis</text><text class="sq-ls" x="465" y="42" text-anchor="middle">estado e versão</text><rect class="sq-box sq-svc" x="568" y="6" width="162" height="46" rx="9"/><text class="sq-lt" x="649" y="25" text-anchor="middle">ms-espec-registry</text><text class="sq-ls" x="649" y="42" text-anchor="middle">:8083 · Postgres</text><rect class="sq-box sq-svc" x="752" y="6" width="162" height="46" rx="9"/><text class="sq-lt" x="833" y="25" text-anchor="middle">ms-runtime-camunda</text><text class="sq-ls" x="833" y="42" text-anchor="middle">engine-rest · H2</text><rect class="sq-box sq-ext" x="936" y="6" width="162" height="46" rx="9"/><text class="sq-lt" x="1017" y="25" text-anchor="middle">Sistemas externos</text><text class="sq-ls" x="1017" y="42" text-anchor="middle">REST · Kafka · fontes</text><g class="sq-frame"><rect class="sq-f" x="6" y="358" width="1102" height="284" rx="6"/><rect class="sq-ft" x="6" y="358" width="42" height="19" rx="4"/><text class="sq-ftt" x="27" y="371.5" text-anchor="middle">alt</text><text class="sq-g" x="58" y="372">[transação confirmada]</text><path class="sq-sep" d="M6 536 H1108"/><text class="sq-g" x="18" y="552">[integração sem resposta e sem “Se falhar”]</text></g><path class="sq-life" d="M97 52 V664"/><path class="sq-life" d="M281 52 V664"/><path class="sq-life" d="M465 52 V664"/><path class="sq-life" d="M649 52 V664"/><path class="sq-life" d="M833 52 V664"/><path class="sq-life" d="M1017 52 V664"/><g class="sq-step" data-step="1"><path class="sq-a" d="M97 98 H278" marker-end="url(#sq-complete-h)"/><text class="sq-l" x="129" y="90" text-anchor="start">POST /instances/{pid}/tasks/{taskId}/complete</text><circle class="sq-b" cx="113.0" cy="86" r="9"/><text class="sq-bt" x="113.0" y="89.6" text-anchor="middle">1</text></g><g class="sq-step" data-step="2"><rect class="sq-ref" x="253" y="116" width="608" height="30" rx="5"/><rect class="sq-reftag" x="253" y="116" width="30" height="15" rx="3"/><text class="sq-reftt" x="268" y="127" text-anchor="middle">ref</text><text class="sq-reft" x="557" y="136" text-anchor="middle">Resolver a etapa pelo motor</text><circle class="sq-b" cx="238.0" cy="131" r="9"/><text class="sq-bt" x="238.0" y="134.6" text-anchor="middle">2</text></g><g class="sq-step" data-step="3"><rect class="sq-n" x="293.0" y="154" width="262.1" height="25" rx="5"/><text class="sq-nt" x="304.0" y="171">taskId é o da tela aberta? senão 409</text><circle class="sq-b" cx="279.0" cy="166" r="9"/><text class="sq-bt" x="279.0" y="169.6" text-anchor="middle">3</text></g><g class="sq-step" data-step="4"><path class="sq-a" d="M281 206 H646" marker-end="url(#sq-complete-h)"/><text class="sq-l" x="313" y="198" text-anchor="start">POST …/versions/3/nodes/{nodeId}/answers/convert</text><circle class="sq-b" cx="297.0" cy="194" r="9"/><text class="sq-bt" x="297.0" y="197.6" text-anchor="middle">4</text></g><g><path class="sq-a sq-ret" d="M649 240 H284" marker-end="url(#sq-complete-h)"/><text class="sq-l sq-lr" x="465" y="232" text-anchor="middle">{ form_email: String, form_aceite: Boolean }</text></g><g class="sq-step" data-step="5"><path class="sq-a" d="M281 274 H830" marker-end="url(#sq-complete-h)"/><text class="sq-l" x="557" y="266" text-anchor="middle">POST /task/{taskId}/complete { variables }</text><circle class="sq-b" cx="396.8" cy="262" r="9"/><text class="sq-bt" x="396.8" y="265.6" text-anchor="middle">5</text></g><g class="sq-step" data-step="6"><rect class="sq-n" x="512.2" y="290" width="308.8" height="25" rx="5"/><text class="sq-nt" x="523.2" y="307">transação: decisões e integrações síncronas</text><circle class="sq-b" cx="498.2" cy="302" r="9"/><text class="sq-bt" x="498.2" y="305.6" text-anchor="middle">6</text></g><g class="sq-step" data-step="7"><path class="sq-a" d="M833 342 H1014" marker-end="url(#sq-complete-h)"/><text class="sq-l" x="865" y="334" text-anchor="start">REST síncrono do trecho</text><circle class="sq-b" cx="849.0" cy="330" r="9"/><text class="sq-bt" x="849.0" y="333.6" text-anchor="middle">7</text></g><g class="sq-step" data-step="8"><path class="sq-a sq-cache" d="M833 414 H468" marker-end="url(#sq-complete-hc)"/><text class="sq-l" x="649" y="406" text-anchor="middle">após o commit: HSET ej:inst:{pid} · EXPIRE 24 h</text><circle class="sq-b" cx="471.4" cy="402" r="9"/><text class="sq-bt" x="471.4" y="405.6" text-anchor="middle">8</text></g><g><path class="sq-a sq-ret" d="M833 448 H284" marker-end="url(#sq-complete-h)"/><text class="sq-l sq-lr" x="557" y="440" text-anchor="middle">204</text></g><g class="sq-step" data-step="9"><rect class="sq-ref" x="253" y="466" width="608" height="30" rx="5"/><rect class="sq-reftag" x="253" y="466" width="30" height="15" rx="3"/><text class="sq-reftt" x="268" y="477" text-anchor="middle">ref</text><text class="sq-reft" x="557" y="486" text-anchor="middle">Resolver a etapa pelo motor</text><circle class="sq-b" cx="238.0" cy="481" r="9"/><text class="sq-bt" x="238.0" y="484.6" text-anchor="middle">9</text></g><g class="sq-step" data-step="10"><path class="sq-a sq-ret" d="M281 522 H100" marker-end="url(#sq-complete-h)"/><text class="sq-l sq-lr" x="189" y="514" text-anchor="middle">200 próxima etapa</text><circle class="sq-b" cx="115.8" cy="510" r="9"/><text class="sq-bt" x="115.8" y="513.6" text-anchor="middle">10</text></g><g class="sq-step" data-step="11"><path class="sq-a sq-ret" d="M833 592 H284" marker-end="url(#sq-complete-h)"/><text class="sq-l sq-lr" x="557" y="584" text-anchor="middle">500 { message } · rollback</text><circle class="sq-b" cx="452.5" cy="580" r="9"/><text class="sq-bt" x="452.5" y="583.6" text-anchor="middle">11</text></g><g class="sq-step" data-step="12"><path class="sq-a sq-ret" d="M281 626 H100" marker-end="url(#sq-complete-h)"/><text class="sq-l sq-lr" x="129" y="618" text-anchor="start">200 mesma etapa + errorMessage</text><circle class="sq-b" cx="113.0" cy="614" r="9"/><text class="sq-bt" x="113.0" y="617.6" text-anchor="middle">12</text></g></svg></div></figure><ol class="steps"><li data-step="1"><span class="st-n">1</span><div><code>POST /instances/{pid}/tasks/{taskId}/complete</code><p>O canal envia { answers } com o que a pessoa preencheu, usando o taskId da tela.</p></div></li><li data-step="2"><span class="st-n">2</span><div><code>Resolver a etapa pelo motor</code><p>O ms-journey resolve a etapa atual para conferir se o taskId ainda é o da tela aberta.</p></div></li><li data-step="3"><span class="st-n">3</span><div><code>taskId é o da tela aberta? senão 409</code><p>Envio repetido ou tela antiga: 409 e nada muda.</p></div></li><li data-step="4"><span class="st-n">4</span><div><code>POST …/versions/3/nodes/{nodeId}/answers/convert</code><p>O registro tipa cada resposta pela tela publicada (número, booleano ou texto) e devolve form_<nome>.</p></div></li><li data-step="5"><span class="st-n">5</span><div><code>POST /task/{taskId}/complete { variables }</code><p>Conclui a tarefa no motor com as variáveis tipadas.</p></div></li><li data-step="6"><span class="st-n">6</span><div><code>transação: decisões e integrações síncronas</code><p>O motor segue o fluxo na mesma transação: decisões e integrações REST síncronas, até a próxima espera.</p></div></li><li data-step="7"><span class="st-n">7</span><div><code>REST síncrono do trecho</code><p>Cada integração síncrona soma seu tempo à chamada do canal.</p></div></li><li data-step="8"><span class="st-n">8</span><div><code>após o commit: HSET ej:inst:{pid} · EXPIRE 24 h</code><p>O novo estado vai para o Redis e a validade é renovada.</p></div></li><li data-step="9"><span class="st-n">9</span><div><code>Resolver a etapa pelo motor</code><p>A próxima etapa é resolvida pelo motor, nunca pelo cache.</p></div></li><li data-step="10"><span class="st-n">10</span><div><code>200 próxima etapa</code><p>USER_TASK, WAITING ou ENDED.</p></div></li><li data-step="11"><span class="st-n">11</span><div><code>500 { message } · rollback</code><p>O motor desfaz a transação inteira: nada avança e o Redis não muda.</p></div></li><li data-step="12"><span class="st-n">12</span><div><code>200 mesma etapa + errorMessage</code><p>O canal mostra a mensagem e mantém o que a pessoa preencheu; um novo envio tenta de novo.</p></div></li></ol></div><div role="tabpanel" id="tb7-p4" aria-labelledby="tb7-t4" hidden><figure class="fig "><div class="fig-scroll"><svg class="sq" id="sq-back" viewBox="0 0 990 638" role="img" aria-label="Sequência do botão Voltar: histórico do motor, integrações de escrita, decisão e reabertura da tela anterior, ou recusa com motivo." style="--w:990px"><defs><marker id="sq-back-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-h" d="M0 0L10 5L0 10z"/></marker><marker id="sq-back-hc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-hc" d="M0 0L10 5L0 10z"/></marker><marker id="sq-back-ho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-ho" d="M0 0L10 5L0 10z"/></marker></defs><rect class="sq-box sq-actor" x="16" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="103" y="25" text-anchor="middle">Canal / BFF</text><text class="sq-ls" x="103" y="42" text-anchor="middle">cliente HTTP</text><rect class="sq-box sq-hub" x="212" y="6" width="174" height="46" rx="9"/><text class="sq-lt sq-on" x="299" y="25" text-anchor="middle">ms-journey</text><text class="sq-ls sq-on" x="299" y="42" text-anchor="middle">:8085 · /api/v1</text><rect class="sq-box sq-store" x="408" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="495" y="25" text-anchor="middle">Redis</text><text class="sq-ls" x="495" y="42" text-anchor="middle">estado e versão</text><rect class="sq-box sq-svc" x="604" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="691" y="25" text-anchor="middle">ms-espec-registry</text><text class="sq-ls" x="691" y="42" text-anchor="middle">:8083 · Postgres</text><rect class="sq-box sq-svc" x="800" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="887" y="25" text-anchor="middle">ms-runtime-camunda</text><text class="sq-ls" x="887" y="42" text-anchor="middle">engine-rest · H2</text><g class="sq-frame"><rect class="sq-f" x="6" y="290" width="978" height="318" rx="6"/><rect class="sq-ft" x="6" y="290" width="42" height="19" rx="4"/><text class="sq-ftt" x="27" y="303.5" text-anchor="middle">alt</text><text class="sq-g" x="58" y="304">[há tela anterior permitida]</text><path class="sq-sep" d="M6 536 H984"/><text class="sq-g" x="18" y="552">[sem tela anterior, ou escrita já registrada]</text></g><path class="sq-life" d="M103 52 V630"/><path class="sq-life" d="M299 52 V630"/><path class="sq-life" d="M495 52 V630"/><path class="sq-life" d="M691 52 V630"/><path class="sq-life" d="M887 52 V630"/><g class="sq-step" data-step="1"><path class="sq-a" d="M103 98 H296" marker-end="url(#sq-back-h)"/><text class="sq-l" x="135" y="90" text-anchor="start">POST /instances/{pid}/back</text><circle class="sq-b" cx="119.0" cy="86" r="9"/><text class="sq-bt" x="119.0" y="89.6" text-anchor="middle">1</text></g><g class="sq-step" data-step="2"><rect class="sq-ref" x="271" y="116" width="644" height="30" rx="5"/><rect class="sq-reftag" x="271" y="116" width="30" height="15" rx="3"/><text class="sq-reftt" x="286" y="127" text-anchor="middle">ref</text><text class="sq-reft" x="593" y="136" text-anchor="middle">Resolver a etapa pelo motor</text><circle class="sq-b" cx="256.0" cy="131" r="9"/><text class="sq-bt" x="256.0" y="134.6" text-anchor="middle">2</text></g><g class="sq-step" data-step="3"><path class="sq-a" d="M299 172 H884" marker-end="url(#sq-back-h)"/><text class="sq-l" x="593" y="164" text-anchor="middle">GET /process-instance/{pid}/variables</text><circle class="sq-b" cx="450.2" cy="160" r="9"/><text class="sq-bt" x="450.2" y="163.6" text-anchor="middle">3</text></g><g class="sq-step" data-step="4"><path class="sq-a" d="M299 206 H884" marker-end="url(#sq-back-h)"/><text class="sq-l" x="593" y="198" text-anchor="middle">GET /history/activity-instance?processInstanceId</text><circle class="sq-b" cx="412.0" cy="194" r="9"/><text class="sq-bt" x="412.0" y="197.6" text-anchor="middle">4</text></g><g class="sq-step" data-step="5"><path class="sq-a" d="M299 240 H688" marker-end="url(#sq-back-h)"/><text class="sq-l" x="495" y="232" text-anchor="middle">GET /journeys/{jid}/flow</text><circle class="sq-b" cx="397.5" cy="228" r="9"/><text class="sq-bt" x="397.5" y="231.6" text-anchor="middle">5</text></g><g class="sq-step" data-step="6"><rect class="sq-n" x="311.0" y="256" width="162.1" height="25" rx="5"/><text class="sq-nt" x="322.0" y="273">BackNavigation.decide</text><circle class="sq-b" cx="297.0" cy="268" r="9"/><text class="sq-bt" x="297.0" y="271.6" text-anchor="middle">6</text></g><g class="sq-step" data-step="7"><path class="sq-a" d="M299 346 H884" marker-end="url(#sq-back-h)"/><text class="sq-l" x="593" y="338" text-anchor="middle">GET /process-instance/{pid}/activity-instances</text><circle class="sq-b" cx="418.9" cy="334" r="9"/><text class="sq-bt" x="418.9" y="337.6" text-anchor="middle">7</text></g><g class="sq-step" data-step="8"><path class="sq-a" d="M299 380 H884" marker-end="url(#sq-back-h)"/><text class="sq-l" x="593" y="372" text-anchor="middle">POST /process-instance/{pid}/modification</text><circle class="sq-b" cx="436.3" cy="368" r="9"/><text class="sq-bt" x="436.3" y="371.6" text-anchor="middle">8</text></g><g class="sq-step" data-step="9"><path class="sq-a sq-cache" d="M887 414 H498" marker-end="url(#sq-back-hc)"/><text class="sq-l" x="691" y="406" text-anchor="middle">após o commit: HSET USER_TASK · novo taskId</text><circle class="sq-b" cx="527.4" cy="402" r="9"/><text class="sq-bt" x="527.4" y="405.6" text-anchor="middle">9</text></g><g class="sq-step" data-step="10"><path class="sq-a" d="M299 448 H884" marker-end="url(#sq-back-h)"/><text class="sq-l" x="593" y="440" text-anchor="middle">PUT …/variables/_voltasConsumidas</text><circle class="sq-b" cx="464.2" cy="436" r="9"/><text class="sq-bt" x="464.2" y="439.6" text-anchor="middle">10</text></g><g class="sq-step" data-step="11"><rect class="sq-ref" x="271" y="466" width="644" height="30" rx="5"/><rect class="sq-reftag" x="271" y="466" width="30" height="15" rx="3"/><text class="sq-reftt" x="286" y="477" text-anchor="middle">ref</text><text class="sq-reft" x="593" y="486" text-anchor="middle">Resolver a etapa pelo motor</text><circle class="sq-b" cx="256.0" cy="481" r="9"/><text class="sq-bt" x="256.0" y="484.6" text-anchor="middle">11</text></g><g><path class="sq-a sq-ret" d="M299 522 H106" marker-end="url(#sq-back-h)"/><text class="sq-l sq-lr" x="201" y="514" text-anchor="middle">200 etapa anterior</text></g><g class="sq-step" data-step="12"><path class="sq-a sq-ret" d="M299 592 H106" marker-end="url(#sq-back-h)"/><text class="sq-l sq-lr" x="135" y="584" text-anchor="start">200 mesma etapa + errorMessage</text><circle class="sq-b" cx="119.0" cy="580" r="9"/><text class="sq-bt" x="119.0" y="583.6" text-anchor="middle">12</text></g></svg></div></figure><ol class="steps"><li data-step="1"><span class="st-n">1</span><div><code>POST /instances/{pid}/back</code><p>Botão com action.navigate e route "voltar".</p></div></li><li data-step="2"><span class="st-n">2</span><div><code>Resolver a etapa pelo motor</code><p>A instância precisa estar numa tela; senão, 409.</p></div></li><li data-step="3"><span class="st-n">3</span><div><code>GET /process-instance/{pid}/variables</code><p>Lê _voltasConsumidas: telas que já foram destino de um Voltar.</p></div></li><li data-step="4"><span class="st-n">4</span><div><code>GET /history/activity-instance?processInstanceId</code><p>Lê o histórico da instância em ordem: telas, integrações e horários.</p></div></li><li data-step="5"><span class="st-n">5</span><div><code>GET /journeys/{jid}/flow</code><p>Identifica as integrações de escrita: toda integração que não é REST GET, inclusive envios Kafka.</p></div></li><li data-step="6"><span class="st-n">6</span><div><code>BackNavigation.decide</code><p>Escolhe a última tela concluída antes da atual e confere se nenhuma escrita foi concluída entre as duas.</p></div></li><li data-step="7"><span class="st-n">7</span><div><code>GET /process-instance/{pid}/activity-instances</code><p>Acha a instância da tela aberta, que será cancelada.</p></div></li><li data-step="8"><span class="st-n">8</span><div><code>POST /process-instance/{pid}/modification</code><p>Reabre a tela anterior e cancela a atual numa operação só.</p></div></li><li data-step="9"><span class="st-n">9</span><div><code>após o commit: HSET USER_TASK · novo taskId</code><p>O Redis passa a apontar a tela reaberta.</p></div></li><li data-step="10"><span class="st-n">10</span><div><code>PUT …/variables/_voltasConsumidas</code><p>Marca a tela de destino, para um segundo Voltar não reabrir a mesma.</p></div></li><li data-step="11"><span class="st-n">11</span><div><code>Resolver a etapa pelo motor</code><p>A tela anterior volta com os valores já preenchidos, pelos vínculos.</p></div></li><li data-step="12"><span class="st-n">12</span><div><code>200 mesma etapa + errorMessage</code><p>O motivo vem em errorMessage e a instância não muda.</p></div></li></ol></div><div role="tabpanel" id="tb7-p5" aria-labelledby="tb7-t5" hidden><figure class="fig "><div class="fig-scroll"><svg class="sq" id="sq-sync" viewBox="0 0 990 716" role="img" aria-label="Sequência de uma integração REST síncrona dentro do envio da tela: tentativas para falhas passageiras e os três desfechos." style="--w:990px"><defs><marker id="sq-sync-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-h" d="M0 0L10 5L0 10z"/></marker><marker id="sq-sync-hc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-hc" d="M0 0L10 5L0 10z"/></marker><marker id="sq-sync-ho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-ho" d="M0 0L10 5L0 10z"/></marker></defs><rect class="sq-box sq-actor" x="16" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="103" y="25" text-anchor="middle">Canal / BFF</text><text class="sq-ls" x="103" y="42" text-anchor="middle">cliente HTTP</text><rect class="sq-box sq-hub" x="212" y="6" width="174" height="46" rx="9"/><text class="sq-lt sq-on" x="299" y="25" text-anchor="middle">ms-journey</text><text class="sq-ls sq-on" x="299" y="42" text-anchor="middle">:8085 · /api/v1</text><rect class="sq-box sq-store" x="408" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="495" y="25" text-anchor="middle">Redis</text><text class="sq-ls" x="495" y="42" text-anchor="middle">estado e versão</text><rect class="sq-box sq-svc" x="604" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="691" y="25" text-anchor="middle">ms-runtime-camunda</text><text class="sq-ls" x="691" y="42" text-anchor="middle">engine-rest · H2</text><rect class="sq-box sq-ext" x="800" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="887" y="25" text-anchor="middle">Sistemas externos</text><text class="sq-ls" x="887" y="42" text-anchor="middle">REST · Kafka · fontes</text><g class="sq-frame"><rect class="sq-f" x="6" y="182" width="978" height="140" rx="6"/><rect class="sq-ft" x="6" y="182" width="42" height="19" rx="4"/><text class="sq-ftt" x="27" y="195.5" text-anchor="middle">loop</text><text class="sq-g" x="58" y="196">[1 + novas tentativas, só falha passageira]</text></g><g class="sq-frame"><rect class="sq-f" x="6" y="338" width="978" height="348" rx="6"/><rect class="sq-ft" x="6" y="338" width="42" height="19" rx="4"/><text class="sq-ftt" x="27" y="351.5" text-anchor="middle">alt</text><text class="sq-g" x="58" y="352">[2xx, 4xx, ou 5xx sem “Se falhar”]</text><path class="sq-sep" d="M6 476 H984"/><text class="sq-g" x="18" y="492">[5xx ou sem resposta, com “Se falhar”]</text><path class="sq-sep" d="M6 580 H984"/><text class="sq-g" x="18" y="596">[sem resposta e sem “Se falhar”]</text></g><path class="sq-life" d="M103 52 V708"/><path class="sq-life" d="M299 52 V708"/><path class="sq-life" d="M495 52 V708"/><path class="sq-life" d="M691 52 V708"/><path class="sq-life" d="M887 52 V708"/><g class="sq-step" data-step="1"><path class="sq-a" d="M103 98 H296" marker-end="url(#sq-sync-h)"/><text class="sq-l" x="135" y="90" text-anchor="start">POST …/tasks/{taskId}/complete</text><circle class="sq-b" cx="119.0" cy="86" r="9"/><text class="sq-bt" x="119.0" y="89.6" text-anchor="middle">1</text></g><g class="sq-step" data-step="2"><path class="sq-a" d="M299 132 H688" marker-end="url(#sq-sync-h)"/><text class="sq-l" x="495" y="124" text-anchor="middle">POST /task/{taskId}/complete</text><circle class="sq-b" cx="383.6" cy="120" r="9"/><text class="sq-bt" x="383.6" y="123.6" text-anchor="middle">2</text></g><g class="sq-step" data-step="3"><rect class="sq-n" x="703.0" y="148" width="208.8" height="25" rx="5"/><text class="sq-nt" x="714.0" y="165">integração REST na transação</text><circle class="sq-b" cx="689.0" cy="160" r="9"/><text class="sq-bt" x="689.0" y="163.6" text-anchor="middle">3</text></g><g class="sq-step" data-step="4"><path class="sq-a" d="M691 238 H884" marker-end="url(#sq-sync-h)"/><text class="sq-l" x="982" y="230" text-anchor="end">POST https://api.exemplo/… · Idempotency-Key</text><circle class="sq-b" cx="661.8" cy="226" r="9"/><text class="sq-bt" x="661.8" y="229.6" text-anchor="middle">4</text></g><g class="sq-step" data-step="5"><path class="sq-a sq-ret" d="M887 272 H694" marker-end="url(#sq-sync-h)"/><text class="sq-l sq-lr" x="982" y="264" text-anchor="end">503 · 429 · 502 · 504 · sem conexão · tempo esgotado</text><circle class="sq-b" cx="606.1" cy="260" r="9"/><text class="sq-bt" x="606.1" y="263.6" text-anchor="middle">5</text></g><g class="sq-step" data-step="6"><rect class="sq-n" x="703.0" y="288" width="235.4" height="25" rx="5"/><text class="sq-nt" x="714.0" y="305">espera 1×, 2× o intervalo (±20%)</text><circle class="sq-b" cx="689.0" cy="300" r="9"/><text class="sq-bt" x="689.0" y="303.6" text-anchor="middle">6</text></g><g class="sq-step" data-step="7"><rect class="sq-n" x="703.0" y="376" width="242.1" height="25" rx="5"/><text class="sq-nt" x="714.0" y="393">segue o fluxo · status disponível</text><circle class="sq-b" cx="689.0" cy="388" r="9"/><text class="sq-bt" x="689.0" y="391.6" text-anchor="middle">7</text></g><g><path class="sq-a sq-cache" d="M691 428 H498" marker-end="url(#sq-sync-hc)"/><text class="sq-l" x="527" y="420" text-anchor="start">após o commit: novo estado</text></g><g class="sq-step" data-step="8"><path class="sq-a sq-ret" d="M299 462 H106" marker-end="url(#sq-sync-h)"/><text class="sq-l sq-lr" x="201" y="454" text-anchor="middle">200 próxima etapa</text><circle class="sq-b" cx="127.8" cy="450" r="9"/><text class="sq-bt" x="127.8" y="453.6" text-anchor="middle">8</text></g><g class="sq-step" data-step="9"><rect class="sq-n" x="703.0" y="514" width="222.1" height="25" rx="5"/><text class="sq-nt" x="714.0" y="531">segue pelo caminho “Se falhar”</text><circle class="sq-b" cx="689.0" cy="526" r="9"/><text class="sq-bt" x="689.0" y="529.6" text-anchor="middle">9</text></g><g><path class="sq-a sq-ret" d="M299 566 H106" marker-end="url(#sq-sync-h)"/><text class="sq-l sq-lr" x="135" y="558" text-anchor="start">200 etapa do caminho de falha</text></g><g class="sq-step" data-step="10"><path class="sq-a sq-ret" d="M691 636 H302" marker-end="url(#sq-sync-h)"/><text class="sq-l sq-lr" x="495" y="628" text-anchor="middle">500 { message } · rollback</text><circle class="sq-b" cx="390.5" cy="624" r="9"/><text class="sq-bt" x="390.5" y="627.6" text-anchor="middle">10</text></g><g class="sq-step" data-step="11"><path class="sq-a sq-ret" d="M299 670 H106" marker-end="url(#sq-sync-h)"/><text class="sq-l sq-lr" x="135" y="662" text-anchor="start">200 mesma etapa + errorMessage</text><circle class="sq-b" cx="119.0" cy="658" r="9"/><text class="sq-bt" x="119.0" y="661.6" text-anchor="middle">11</text></g></svg></div></figure><ol class="steps"><li data-step="1"><span class="st-n">1</span><div><code>POST …/tasks/{taskId}/complete</code><p>O envio da tela dispara o trecho seguinte do fluxo.</p></div></li><li data-step="2"><span class="st-n">2</span><div><code>POST /task/{taskId}/complete</code><p>Validação e conversão das respostas acontecem antes, como em Concluir.</p></div></li><li data-step="3"><span class="st-n">3</span><div><code>integração REST na transação</code><p>A chamada roda dentro da transação, com tempo de conexão (padrão 2 s) e de resposta (padrão 10 s).</p></div></li><li data-step="4"><span class="st-n">4</span><div><code>POST https://api.exemplo/… · Idempotency-Key</code><p>Em POST, a mesma Idempotency-Key vai em todas as tentativas.</p></div></li><li data-step="5"><span class="st-n">5</span><div><code>503 · 429 · 502 · 504 · sem conexão · tempo esgotado</code><p>Só falhas passageiras se repetem, até 2 vezes, se a etapa permitir.</p></div></li><li data-step="6"><span class="st-n">6</span><div><code>espera 1×, 2× o intervalo (±20%)</code><p>Intervalo padrão 1 s, máximo 5 s.</p></div></li><li data-step="7"><span class="st-n">7</span><div><code>segue o fluxo · status disponível</code><p>A resposta é de negócio: o mapeamento de saída roda e as decisões podem usar o status.</p></div></li><li data-step="8"><span class="st-n">8</span><div><code>200 próxima etapa</code><p>O canal recebe a etapa seguinte normalmente.</p></div></li><li data-step="9"><span class="st-n">9</span><div><code>segue pelo caminho “Se falhar”</code><p>O fluxo segue pelo caminho de falha desenhado pelo autor, por exemplo uma tela de erro.</p></div></li><li data-step="10"><span class="st-n">10</span><div><code>500 { message } · rollback</code><p>A transação inteira é desfeita.</p></div></li><li data-step="11"><span class="st-n">11</span><div><code>200 mesma etapa + errorMessage</code><p>Exemplo de mensagem: “O serviço api.exemplo não respondeu dentro do tempo limite (3 tentativas).”</p></div></li></ol></div><div role="tabpanel" id="tb7-p6" aria-labelledby="tb7-t6" hidden><figure class="fig "><div class="fig-scroll"><svg class="sq" id="sq-async" viewBox="0 0 990 766" role="img" aria-label="Sequência assíncrona com Redis: envio Kafka vira tarefa externa, o canal consulta o Redis em polling, o worker publica, a resposta é correlacionada e a próxima tela aparece na consulta seguinte." style="--w:990px"><defs><marker id="sq-async-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-h" d="M0 0L10 5L0 10z"/></marker><marker id="sq-async-hc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-hc" d="M0 0L10 5L0 10z"/></marker><marker id="sq-async-ho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-ho" d="M0 0L10 5L0 10z"/></marker></defs><rect class="sq-box sq-actor" x="16" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="103" y="25" text-anchor="middle">Canal / BFF</text><text class="sq-ls" x="103" y="42" text-anchor="middle">cliente HTTP</text><rect class="sq-box sq-hub" x="212" y="6" width="174" height="46" rx="9"/><text class="sq-lt sq-on" x="299" y="25" text-anchor="middle">ms-journey</text><text class="sq-ls sq-on" x="299" y="42" text-anchor="middle">:8085 · /api/v1</text><rect class="sq-box sq-store" x="408" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="495" y="25" text-anchor="middle">Redis</text><text class="sq-ls" x="495" y="42" text-anchor="middle">estado e versão</text><rect class="sq-box sq-svc" x="604" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="691" y="25" text-anchor="middle">ms-runtime-camunda</text><text class="sq-ls" x="691" y="42" text-anchor="middle">engine-rest · H2</text><rect class="sq-box sq-ext" x="800" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="887" y="25" text-anchor="middle">Sistemas externos</text><text class="sq-ls" x="887" y="42" text-anchor="middle">REST · Kafka · fontes</text><g class="sq-frame"><rect class="sq-f" x="6" y="250" width="978" height="140" rx="6"/><rect class="sq-ft" x="6" y="250" width="42" height="19" rx="4"/><text class="sq-ftt" x="27" y="263.5" text-anchor="middle">loop</text><text class="sq-g" x="58" y="264">[a cada 3 s, até a etapa mudar]</text></g><path class="sq-life" d="M103 52 V758"/><path class="sq-life" d="M299 52 V758"/><path class="sq-life" d="M495 52 V758"/><path class="sq-life" d="M691 52 V758"/><path class="sq-life" d="M887 52 V758"/><g class="sq-step" data-step="1"><path class="sq-a" d="M103 98 H296" marker-end="url(#sq-async-h)"/><text class="sq-l" x="135" y="90" text-anchor="start">POST …/tasks/{taskId}/complete</text><circle class="sq-b" cx="119.0" cy="86" r="9"/><text class="sq-bt" x="119.0" y="89.6" text-anchor="middle">1</text></g><g><path class="sq-a" d="M299 132 H688" marker-end="url(#sq-async-h)"/><text class="sq-l" x="495" y="124" text-anchor="middle">POST /task/{taskId}/complete</text></g><g class="sq-step" data-step="2"><rect class="sq-n" x="703.0" y="148" width="268.8" height="25" rx="5"/><text class="sq-nt" x="714.0" y="165">para na tarefa externa kafka-&lt;nodeId&gt;</text><circle class="sq-b" cx="689.0" cy="160" r="9"/><text class="sq-bt" x="689.0" y="163.6" text-anchor="middle">2</text></g><g class="sq-step" data-step="3"><path class="sq-a sq-cache" d="M691 200 H498" marker-end="url(#sq-async-hc)"/><text class="sq-l" x="527" y="192" text-anchor="start">após o commit: WAITING · KAFKA_SEND PENDING</text><circle class="sq-b" cx="511.0" cy="188" r="9"/><text class="sq-bt" x="511.0" y="191.6" text-anchor="middle">3</text></g><g class="sq-step" data-step="4"><path class="sq-a sq-ret" d="M299 234 H106" marker-end="url(#sq-async-h)"/><text class="sq-l sq-lr" x="135" y="226" text-anchor="start">200 WAITING { nodeName: &quot;Solicitar troca&quot; }</text><circle class="sq-b" cx="119.0" cy="222" r="9"/><text class="sq-bt" x="119.0" y="225.6" text-anchor="middle">4</text></g><g class="sq-step" data-step="5"><path class="sq-a" d="M103 306 H296" marker-end="url(#sq-async-h)"/><text class="sq-l" x="201" y="298" text-anchor="middle">GET current-step</text><circle class="sq-b" cx="131.3" cy="294" r="9"/><text class="sq-bt" x="131.3" y="297.6" text-anchor="middle">5</text></g><g><path class="sq-a sq-cache" d="M299 340 H492" marker-end="url(#sq-async-hc)"/><text class="sq-l" x="397" y="332" text-anchor="middle">HGETALL ej:inst:{pid}</text></g><g><path class="sq-a sq-ret" d="M299 374 H106" marker-end="url(#sq-async-h)"/><text class="sq-l sq-lr" x="201" y="366" text-anchor="middle">200 WAITING</text></g><g class="sq-step" data-step="6"><rect class="sq-n" x="703.0" y="406" width="242.1" height="25" rx="5"/><text class="sq-nt" x="714.0" y="423">worker (a cada 3 s): fetchAndLock</text><circle class="sq-b" cx="689.0" cy="418" r="9"/><text class="sq-bt" x="689.0" y="421.6" text-anchor="middle">6</text></g><g class="sq-step" data-step="7"><path class="sq-a" d="M691 458 H884" marker-end="url(#sq-async-h)"/><text class="sq-l" x="723" y="450" text-anchor="start">produce kafka-&lt;nodeId&gt; · key = pid</text><circle class="sq-b" cx="707.0" cy="446" r="9"/><text class="sq-bt" x="707.0" y="449.6" text-anchor="middle">7</text></g><g class="sq-step" data-step="8"><path class="sq-a sq-cache" d="M691 492 H498" marker-end="url(#sq-async-hc)"/><text class="sq-l" x="527" y="484" text-anchor="start">após o commit: KAFKA_SEND COMPLETED · MESSAGE_WAIT PENDING</text><circle class="sq-b" cx="511.0" cy="480" r="9"/><text class="sq-bt" x="511.0" y="483.6" text-anchor="middle">8</text></g><g class="sq-step" data-step="9"><path class="sq-a sq-ret" d="M887 526 H694" marker-end="url(#sq-async-h)"/><text class="sq-l sq-lr" x="723" y="518" text-anchor="start">mensagem com correlationId = pid</text><circle class="sq-b" cx="707.0" cy="514" r="9"/><text class="sq-bt" x="707.0" y="517.6" text-anchor="middle">9</text></g><g class="sq-step" data-step="10"><rect class="sq-n" x="703.0" y="542" width="262.1" height="25" rx="5"/><text class="sq-nt" x="714.0" y="559">correlate ⇒ segue até a próxima tela</text><circle class="sq-b" cx="689.0" cy="554" r="9"/><text class="sq-bt" x="689.0" y="557.6" text-anchor="middle">10</text></g><g class="sq-step" data-step="11"><path class="sq-a sq-cache" d="M691 594 H498" marker-end="url(#sq-async-hc)"/><text class="sq-l" x="527" y="586" text-anchor="start">após o commit: USER_TASK · taskId</text><circle class="sq-b" cx="511.0" cy="582" r="9"/><text class="sq-bt" x="511.0" y="585.6" text-anchor="middle">11</text></g><g><path class="sq-a" d="M103 628 H296" marker-end="url(#sq-async-h)"/><text class="sq-l" x="201" y="620" text-anchor="middle">GET current-step</text></g><g><path class="sq-a sq-cache" d="M299 662 H492" marker-end="url(#sq-async-hc)"/><text class="sq-l" x="397" y="654" text-anchor="middle">HGETALL ej:inst:{pid}</text></g><g class="sq-step" data-step="12"><rect class="sq-ref" x="271" y="680" width="448" height="30" rx="5"/><rect class="sq-reftag" x="271" y="680" width="30" height="15" rx="3"/><text class="sq-reftt" x="286" y="691" text-anchor="middle">ref</text><text class="sq-reft" x="495" y="700" text-anchor="middle">Resolver a etapa pelo motor</text><circle class="sq-b" cx="256.0" cy="695" r="9"/><text class="sq-bt" x="256.0" y="698.6" text-anchor="middle">12</text></g><g><path class="sq-a sq-ret" d="M299 736 H106" marker-end="url(#sq-async-h)"/><text class="sq-l sq-lr" x="135" y="728" text-anchor="start">200 USER_TASK { taskId, form }</text></g></svg></div></figure><ol class="steps"><li data-step="1"><span class="st-n">1</span><div><code>POST …/tasks/{taskId}/complete</code><p>A pessoa confirma o plano.</p></div></li><li data-step="2"><span class="st-n">2</span><div><code>para na tarefa externa kafka-&lt;nodeId&gt;</code><p>O envio Kafka vira tarefa externa: a transação termina e a instância espera o worker.</p></div></li><li data-step="3"><span class="st-n">3</span><div><code>após o commit: WAITING · KAFKA_SEND PENDING</code><p>O estado de espera e o detalhe da tarefa vão para o Redis.</p></div></li><li data-step="4"><span class="st-n">4</span><div><code>200 WAITING { nodeName: &quot;Solicitar troca&quot; }</code><p>O canal mostra que está processando e começa o polling.</p></div></li><li data-step="5"><span class="st-n">5</span><div><code>GET current-step</code><p>Cada consulta custa uma leitura no Redis.</p></div></li><li data-step="6"><span class="st-n">6</span><div><code>worker (a cada 3 s): fetchAndLock</code><p>O worker Kafka busca as tarefas pendentes e trava cada uma por 30 s.</p></div></li><li data-step="7"><span class="st-n">7</span><div><code>produce kafka-&lt;nodeId&gt; · key = pid</code><p>Publica o envelope { correlationId, payload } com tempo limite de 5 s e até 2 novas tentativas.</p></div></li><li data-step="8"><span class="st-n">8</span><div><code>após o commit: KAFKA_SEND COMPLETED · MESSAGE_WAIT PENDING</code><p>A tarefa externa termina e o fluxo para na espera da resposta.</p></div></li><li data-step="9"><span class="st-n">9</span><div><code>mensagem com correlationId = pid</code><p>O sistema externo responde. A leitura só é confirmada depois de tratada.</p></div></li><li data-step="10"><span class="st-n">10</span><div><code>correlate ⇒ segue até a próxima tela</code><p>O motor correlaciona pela instância (ou pelo businessKey) e segue o fluxo.</p></div></li><li data-step="11"><span class="st-n">11</span><div><code>após o commit: USER_TASK · taskId</code><p>O Redis passa a dizer que há tela aberta.</p></div></li><li data-step="12"><span class="st-n">12</span><div><code>Resolver a etapa pelo motor</code><p>A consulta seguinte encontra USER_TASK e monta a tela pelo caminho completo.</p></div></li></ol></div><div role="tabpanel" id="tb7-p7" aria-labelledby="tb7-t7" hidden><figure class="fig "><div class="fig-scroll"><svg class="sq" id="sq-background" viewBox="0 0 990 456" role="img" aria-label="Sequência de uma integração REST em segundo plano: vira job, o canal vê espera, e o desfecho é o próximo estado ou um incidente." style="--w:990px"><defs><marker id="sq-background-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-h" d="M0 0L10 5L0 10z"/></marker><marker id="sq-background-hc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-hc" d="M0 0L10 5L0 10z"/></marker><marker id="sq-background-ho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="sq-ho" d="M0 0L10 5L0 10z"/></marker></defs><rect class="sq-box sq-actor" x="16" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="103" y="25" text-anchor="middle">Canal / BFF</text><text class="sq-ls" x="103" y="42" text-anchor="middle">cliente HTTP</text><rect class="sq-box sq-hub" x="212" y="6" width="174" height="46" rx="9"/><text class="sq-lt sq-on" x="299" y="25" text-anchor="middle">ms-journey</text><text class="sq-ls sq-on" x="299" y="42" text-anchor="middle">:8085 · /api/v1</text><rect class="sq-box sq-store" x="408" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="495" y="25" text-anchor="middle">Redis</text><text class="sq-ls" x="495" y="42" text-anchor="middle">estado e versão</text><rect class="sq-box sq-svc" x="604" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="691" y="25" text-anchor="middle">ms-runtime-camunda</text><text class="sq-ls" x="691" y="42" text-anchor="middle">engine-rest · H2</text><rect class="sq-box sq-ext" x="800" y="6" width="174" height="46" rx="9"/><text class="sq-lt" x="887" y="25" text-anchor="middle">Sistemas externos</text><text class="sq-ls" x="887" y="42" text-anchor="middle">REST · Kafka · fontes</text><g class="sq-frame"><rect class="sq-f" x="6" y="284" width="978" height="142" rx="6"/><rect class="sq-ft" x="6" y="284" width="42" height="19" rx="4"/><text class="sq-ftt" x="27" y="297.5" text-anchor="middle">alt</text><text class="sq-g" x="58" y="298">[respondeu, ou falhou com “Se falhar”]</text><path class="sq-sep" d="M6 354 H984"/><text class="sq-g" x="18" y="370">[sem resposta e sem “Se falhar”]</text></g><path class="sq-life" d="M103 52 V448"/><path class="sq-life" d="M299 52 V448"/><path class="sq-life" d="M495 52 V448"/><path class="sq-life" d="M691 52 V448"/><path class="sq-life" d="M887 52 V448"/><g class="sq-step" data-step="1"><path class="sq-a" d="M103 98 H296" marker-end="url(#sq-background-h)"/><text class="sq-l" x="135" y="90" text-anchor="start">POST …/tasks/{taskId}/complete</text><circle class="sq-b" cx="119.0" cy="86" r="9"/><text class="sq-bt" x="119.0" y="89.6" text-anchor="middle">1</text></g><g class="sq-step" data-step="2"><rect class="sq-n" x="703.0" y="114" width="182.1" height="25" rx="5"/><text class="sq-nt" x="714.0" y="131">para antes do REST (job)</text><circle class="sq-b" cx="689.0" cy="126" r="9"/><text class="sq-bt" x="689.0" y="129.6" text-anchor="middle">2</text></g><g><path class="sq-a sq-cache" d="M691 166 H498" marker-end="url(#sq-background-hc)"/><text class="sq-l" x="527" y="158" text-anchor="start">após o commit: WAITING · REST_BACKGROUND PENDING</text></g><g class="sq-step" data-step="3"><path class="sq-a sq-ret" d="M299 200 H106" marker-end="url(#sq-background-h)"/><text class="sq-l sq-lr" x="135" y="192" text-anchor="start">200 WAITING { nodeType: SERVICE_TASK }</text><circle class="sq-b" cx="119.0" cy="188" r="9"/><text class="sq-bt" x="119.0" y="191.6" text-anchor="middle">3</text></g><g class="sq-step" data-step="4"><rect class="sq-n" x="703.0" y="216" width="202.1" height="25" rx="5"/><text class="sq-nt" x="714.0" y="233">executor de jobs (até ~5 s)</text><circle class="sq-b" cx="689.0" cy="228" r="9"/><text class="sq-bt" x="689.0" y="231.6" text-anchor="middle">4</text></g><g class="sq-step" data-step="5"><path class="sq-a" d="M691 268 H884" marker-end="url(#sq-background-h)"/><text class="sq-l" x="982" y="260" text-anchor="end">REST com tempo limite e novas tentativas</text><circle class="sq-b" cx="689.6" cy="256" r="9"/><text class="sq-bt" x="689.6" y="259.6" text-anchor="middle">5</text></g><g class="sq-step" data-step="6"><path class="sq-a sq-cache" d="M691 340 H498" marker-end="url(#sq-background-hc)"/><text class="sq-l" x="527" y="332" text-anchor="start">após o commit: próximo estado</text><circle class="sq-b" cx="511.0" cy="328" r="9"/><text class="sq-bt" x="511.0" y="331.6" text-anchor="middle">6</text></g><g class="sq-step" data-step="7"><path class="sq-a sq-cache" d="M691 410 H498" marker-end="url(#sq-background-hc)"/><text class="sq-l" x="527" y="402" text-anchor="start">state = FAILED · REST_BACKGROUND INCIDENT</text><circle class="sq-b" cx="511.0" cy="398" r="9"/><text class="sq-bt" x="511.0" y="401.6" text-anchor="middle">7</text></g></svg></div></figure><ol class="steps"><li data-step="1"><span class="st-n">1</span><div><code>POST …/tasks/{taskId}/complete</code><p>O envio da tela chega a uma integração REST marcada para rodar em segundo plano.</p></div></li><li data-step="2"><span class="st-n">2</span><div><code>para antes do REST (job)</code><p>A integração vira um job: a transação do envio termina antes da chamada.</p></div></li><li data-step="3"><span class="st-n">3</span><div><code>200 WAITING { nodeType: SERVICE_TASK }</code><p>O canal vê espera, como num envio Kafka.</p></div></li><li data-step="4"><span class="st-n">4</span><div><code>executor de jobs (até ~5 s)</code><p>O executor de jobs pega o job em poucos segundos.</p></div></li><li data-step="5"><span class="st-n">5</span><div><code>REST com tempo limite e novas tentativas</code><p>Mesmas regras da integração síncrona.</p></div></li><li data-step="6"><span class="st-n">6</span><div><code>após o commit: próximo estado</code><p>O fluxo segue (caminho normal ou de falha) e o Redis muda.</p></div></li><li data-step="7"><span class="st-n">7</span><div><code>state = FAILED · REST_BACKGROUND INCIDENT</code><p>Vira incidente sem nova tentativa do motor. O canal continua vendo WAITING até a operação usar “Tentar de novo” no Diagnóstico.</p></div></li></ol></div></div>
+</section>
+
+<section class="sec" id="d-screen">
+  <h2>A tela por dentro</h2>
+  <p class="sec-p">A tela chega pronta: o ms-espec-registry monta tudo antes de o ms-journey repassar. O que fica com o canal é estado dos campos, condições, validação e ações.</p>
+  <figure class="fig "><div class="fig-scroll"><svg class="dg" viewBox="0 0 1100 176" role="img" aria-label="Montagem da tela no ms-espec-registry em seis passos: versão, tela publicada, validação, contexto, fontes de dados e resolução.">
+<defs><marker id="pp-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="dg-h" d="M0 0L10 5L0 10z"/></marker></defs>
+<text class="dg-band" x="10" y="20">MS-ESPEC-REGISTRY · ResolveScreenForNode</text>
+<rect class="dg-box" x="10" y="36" width="160" height="96" rx="10"/><text class="dg-m" x="24" y="58">1</text><text class="dg-t" x="24" y="80">Versão</text><text class="dg-s" x="24" y="99">snapshot da versão N</text><text class="dg-m" x="24" y="117">journey_version</text>
+<rect class="dg-box" x="194" y="36" width="160" height="96" rx="10"/><text class="dg-m" x="208" y="58">2</text><text class="dg-t" x="208" y="80">Tela publicada</text><text class="dg-s" x="208" y="99">envelope congelado</text><text class="dg-m" x="208" y="117">published_screen</text>
+<rect class="dg-box" x="378" y="36" width="160" height="96" rx="10"/><text class="dg-m" x="392" y="58">3</text><text class="dg-t" x="392" y="80">Validação</text><text class="dg-s" x="392" y="99">contrato e catálogo</text><text class="dg-m" x="392" y="117">1.0.0 · ui.screen</text>
+<rect class="dg-box" x="562" y="36" width="160" height="96" rx="10"/><text class="dg-m" x="576" y="58">4</text><text class="dg-t" x="576" y="80">Contexto</text><text class="dg-s" x="576" y="99">só variáveis usadas</text><text class="dg-m" x="576" y="117">form_* · data_*</text>
+<rect class="dg-box" x="746" y="36" width="160" height="96" rx="10"/><text class="dg-m" x="760" y="58">5</text><text class="dg-t" x="760" y="80">Fontes de dados</text><text class="dg-s" x="760" y="99">chamadas em sequência</text><text class="dg-m" x="760" y="117">data_source_call</text>
+<rect class="dg-hub" x="930" y="36" width="160" height="96" rx="10"/><text class="dg-sw" x="944" y="58">6</text><text class="dg-tw" x="944" y="80">Resolução</text><text class="dg-sw" x="944" y="99">textos, vínculos,</text><text class="dg-sw" x="944" y="117">listas · fontes = {}</text>
+<path class="dg-a" d="M170 84 H192" marker-end="url(#pp-h)"/><path class="dg-a" d="M354 84 H376" marker-end="url(#pp-h)"/><path class="dg-a" d="M538 84 H560" marker-end="url(#pp-h)"/><path class="dg-a" d="M722 84 H744" marker-end="url(#pp-h)"/><path class="dg-a" d="M906 84 H928" marker-end="url(#pp-h)"/>
+<text class="dg-l dg-lw" x="24" y="156">nó sem tela ⇒ 409</text><text class="dg-l dg-lw" x="208" y="156">sem tela publicada ⇒ 409</text><text class="dg-l dg-lw" x="392" y="156">fora do contrato ⇒ 500</text><text class="dg-l dg-lw" x="760" y="156">falha ⇒ loadError</text>
+</svg></div><figcaption>Montagem da tela, a cada resolução. Em âmbar, o que acontece quando um passo falha.</figcaption></figure>
+  <div class="tbl"><table><thead><tr><th>Recurso</th><th>Na tela publicada</th><th>O que o canal recebe</th></tr></thead><tbody><tr><td><b>Placeholder</b></td><td>{{form.x}}, {{data.x}}, {{form_x}}, {{data_x}} ou {{channel}} em qualquer atributo de texto</td><td>O texto já com o valor. Variável inexistente vira texto vazio.</td></tr><tr><td><b>Vínculo</b></td><td>$bindings.&lt;atributo&gt; com path form.x ou data.x</td><td>O atributo preenchido com o valor e o tipo da variável. $bindings continua na tela.</td></tr><tr><td><b>Condição</b></td><td>$visibility e $active (equals, notEquals, in, notIn)</td><td>Intactas, com a variável da condição no context para o canal avaliar.</td></tr><tr><td><b>Evento</b></td><td>$events (onPress, onAction, onDismiss)</td><td>Intacto. O canal executa a ação.</td></tr><tr><td><b>Fonte de dados</b></td><td>dataSources + vínculo options (ui.select) ou items (ui.selectList)</td><td>dataSources vazio e as opções ou itens já montados.</td></tr><tr><td><b>Lista de seleção</b></td><td>itemTitle, itemDescription, actions com enabledWhen</td><td>items, totalItems e actions, sem as regras.</td></tr><tr><td><b>Falha de fonte</b></td><td>required e errorMessage da fonte</td><td>loadError { message, required } no componente e lista vazia.</td></tr></tbody></table></div>
+  <div class="tabs ex-tabs" data-tabs><div class="tab-list" role="tablist"><button type="button" role="tab" id="tb8-t0" aria-controls="tb8-p0" aria-selected="true" tabindex="0">Placeholders de texto</button><button type="button" role="tab" id="tb8-t1" aria-controls="tb8-p1" aria-selected="false" tabindex="-1">Vínculos e condições</button><button type="button" role="tab" id="tb8-t2" aria-controls="tb8-p2" aria-selected="false" tabindex="-1">Fonte de dados num select</button><button type="button" role="tab" id="tb8-t3" aria-controls="tb8-p3" aria-selected="false" tabindex="-1">Lista de seleção</button><button type="button" role="tab" id="tb8-t4" aria-controls="tb8-p4" aria-selected="false" tabindex="-1">Fonte de dados que falhou</button></div><div role="tabpanel" id="tb8-p0" aria-labelledby="tb8-t0"><div class="ex" id="ex-placeholder"><p>Qualquer atributo de texto pode ter <code>{{…}}</code>. O servidor troca cada placeholder pelo valor da variável antes de entregar a tela.</p><div class="ex-io"><div><div class="cb "><div class="cb-h"><span class="cb-t">Tela publicada</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>["ui.screen", { "id": "s", "version": "1.0.0",
+  "title": "Olá, <i class="src">{{data.nomeCliente}}</i>" }, [
+  ["ui.text", { "id": "t1", "version": "1.0.0",
+    "text": "Plano: <i class="src">{{form.plano}}</i> · canal <i class="src">{{channel}}</i>" }],
+  ["ui.text", { "id": "t2", "version": "1.0.0",
+    "text": "Protocolo: <i class="src">{{data.protocolo}}</i>" }]
+]]</code></pre></div></div><div><div class="cb "><div class="cb-h"><span class="cb-t">Variáveis e chamadas</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>data_nomeCliente  "Ana"            String
+form_plano        "Controle 20GB"  String
+channel           "WEB"            String
+data_cpf          "12345678900"    String
+
+(data_protocolo não existe)</code></pre></div></div></div><div class="ex-arrow">ms-journey → form/resolve → entregue ao canal</div><div class="cb "><div class="cb-h"><span class="cb-t">Entregue ao canal</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>["ui.screen", { "id": "s", "version": "1.0.0",
+  "title": "Olá, <mark>Ana</mark>" }, [
+  ["ui.text", { "id": "t1", "version": "1.0.0", "text": "Plano: <mark>Controle 20GB</mark> · canal <mark>WEB</mark>" }],
+  ["ui.text", { "id": "t2", "version": "1.0.0", "text": "Protocolo: <mark></mark>" }]
+]]
+
+"context": {
+  "form": { "data_nomeCliente": "Ana", "form_plano": "Controle 20GB", "channel": "WEB" },
+  "data": { "data_nomeCliente": "Ana", "form_plano": "Controle 20GB", "channel": "WEB" }
+}</code></pre></div><ul class="ex-rules"><li>Formas aceitas: <code>{{form.x}}</code>, <code>{{data.x}}</code>, o nome no motor (<code>{{form_x}}</code>, <code>{{data_x}}</code>) e <code>{{channel}}</code>. Outras formas a publicação recusa.</li><li>Variável inexistente vira texto vazio, nunca o <code>{{…}}</code> literal.</li><li>Vale para todo atributo de texto cujo nome não começa com <code>$</code>. Parâmetros de <code>$events</code> não são interpolados.</li><li>O <code>context</code> leva só as variáveis que a tela referencia: <code>data_cpf</code> ficou de fora.</li></ul><p class="ex-code">Código: <code>TemplateResolver.resolveTemplate · CanonicalFormat.referencedProcessVariables</code></p></div></div><div role="tabpanel" id="tb8-p1" aria-labelledby="tb8-t1" hidden><div class="ex" id="ex-binding"><p>Um vínculo em <code>$bindings</code> grava o valor da variável no atributo de mesmo nome. Condições seguem intactas para o canal avaliar.</p><div class="ex-io"><div><div class="cb "><div class="cb-h"><span class="cb-t">Tela publicada</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>["ui.textInput", { "id": "email", "version": "1.0.0", "label": "E-mail",
+  "$bindings": { <i class="src">"value"</i>: { "path": "form.email", "mode": "twoWay" } } }],
+["ui.text", { "id": "saldo", "version": "1.0.0", "text": <i class="src">"—"</i>,
+  "$bindings": { <i class="src">"text"</i>: { "path": "data.saldo", "mode": "oneWay" } } }],
+["ui.textInput", { "id": "tel", "version": "1.0.0", "label": "Celular",
+  "$bindings": { "value": { "path": "form.telefone", "mode": "twoWay" } } }],
+["ui.alert", { "id": "aviso", "version": "1.0.0", "severity": "warning", "message": "Saldo baixo",
+  "$visibility": { "rule": "equals", "path": "data.saldoBaixo", "value": true } }]</code></pre></div></div><div><div class="cb "><div class="cb-h"><span class="cb-t">Variáveis e chamadas</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>form_email       "ana@exemplo.com"  String
+data_saldo       42.5               Double
+data_saldoBaixo  true               Boolean
+
+(form_telefone não existe:
+ a tela ainda não foi enviada)</code></pre></div></div></div><div class="ex-arrow">ms-journey → form/resolve → entregue ao canal</div><div class="cb "><div class="cb-h"><span class="cb-t">Entregue ao canal</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>["ui.textInput", { "id": "email", "version": "1.0.0", "label": "E-mail",
+  "$bindings": { "value": { "path": "form.email", "mode": "twoWay" } },
+  <mark>"value": "ana@exemplo.com"</mark> }],
+["ui.text", { "id": "saldo", "version": "1.0.0", "text": <mark>42.5</mark>,
+  "$bindings": { "text": { "path": "data.saldo", "mode": "oneWay" } } }],
+["ui.textInput", { "id": "tel", "version": "1.0.0", "label": "Celular",
+  "$bindings": { "value": { "path": "form.telefone", "mode": "twoWay" } } }],
+["ui.alert", { "id": "aviso", "version": "1.0.0", "severity": "warning", "message": "Saldo baixo",
+  "$visibility": { "rule": "equals", "path": "data.saldoBaixo", "value": true } }]
+
+"context": { "form": { "form_email": "ana@exemplo.com", "data_saldo": 42.5, "data_saldoBaixo": true }, "data": { … } }</code></pre></div><ul class="ex-rules"><li>A chave do vínculo é o atributo que recebe o valor: <code>value</code> num campo, <code>text</code> num texto. O valor mantém o tipo da variável (<code>42.5</code> é número).</li><li><code>oneWay</code> e <code>twoWay</code> são resolvidos do mesmo jeito: um campo revisitado já chega preenchido. O canal só devolve nas respostas os campos <code>twoWay</code> em <code>form.*</code>.</li><li>Sem variável, o atributo não é criado e o campo nasce vazio (<code>tel</code>).</li><li>A variável da condição entra no <code>context</code> (<code>data_saldoBaixo</code>) para o canal reavaliar enquanto a pessoa preenche.</li></ul><p class="ex-code">Código: <code>TemplateResolver.resolveAttributes · BindingResolver.resolve</code></p></div></div><div role="tabpanel" id="tb8-p2" aria-labelledby="tb8-t2" hidden><div class="ex" id="ex-source"><p>O ms-espec-registry chama as fontes da tela a cada montagem e entrega as opções prontas. A configuração da fonte nunca chega ao canal.</p><div class="ex-io"><div><div class="cb "><div class="cb-h"><span class="cb-t">Tela publicada</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code><i class="src">"dataSources": {
+  "planos": {
+    "source": "Catálogo de planos",
+    "url": "https://api.exemplo/planos?linha={linha}",
+    "params": { "linha": "{{form.linha}}" },
+    "itemsPath": "$.itens",
+    "exposedFields": ["label", "value"],
+    "timeoutMs": 3000,
+    "required": true
+  }
+}</i>,
+"data": ["ui.screen", { … }, [
+  ["ui.select", { "id": "plano", "version": "1.0.0", "label": "Novo plano",
+    "$bindings": {
+      <i class="src">"options": { "path": "data.planos", "mode": "oneWay" }</i>,
+      "value": { "path": "form.plano", "mode": "twoWay" } } }]
+]]</code></pre></div></div><div><div class="cb "><div class="cb-h"><span class="cb-t">Variáveis e chamadas</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>form_linha  "11999990001"  String
+
+GET https://api.exemplo/planos?linha=11999990001
+
+200 {
+  "itens": [
+    { "label": "Controle 30GB", "value": "CTRL30", "preco": 79.9 },
+    { "label": "Pós 60GB", "value": "POS60", "preco": 149.9 }
+  ]
+}</code></pre></div></div></div><div class="ex-arrow">ms-journey → form/resolve → entregue ao canal</div><div class="cb "><div class="cb-h"><span class="cb-t">Entregue ao canal</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code><mark>"dataSources": {}</mark>,
+"data": ["ui.screen", { … }, [
+  ["ui.select", { "id": "plano", "version": "1.0.0", "label": "Novo plano",
+    "$bindings": { "value": { "path": "form.plano", "mode": "twoWay" } },
+    <mark>"options": [ { "label": "Controle 30GB", "value": "CTRL30" }, { "label": "Pós 60GB", "value": "POS60" } ]</mark> }]
+]]
+
+"context": { "form": { "form_linha": "11999990001",
+  "data_planos": "[{\"label\":\"Controle 30GB\",\"value\":\"CTRL30\"}, …]" }, "data": { … } }</code></pre></div><ul class="ex-rules"><li>Cada <code>{nome}</code> da URL é trocado pelo parâmetro de mesmo nome, já interpolado e codificado.</li><li><code>itemsPath</code> aponta a lista na resposta (<code>$</code> ou <code>$.a.b</code>). Só os <code>exposedFields</code> passam (<code>preco</code> foi descartado). No select, só entram itens com <code>label</code> e <code>value</code>.</li><li>O resultado vale só para esta montagem: aparece no <code>context</code> como <code>data_&lt;apelido&gt;</code> e nunca vira variável da instância.</li><li>As fontes são chamadas em sequência, com conexão de 3 s e o <code>timeoutMs</code> da fonte (padrão 5 s). Cada chamada grava uma linha em <code>data_source_call</code>.</li></ul><p class="ex-code">Código: <code>ScreenDataSourceFetcher.fetchAll · ListMaterializer.selectOptions</code></p></div></div><div role="tabpanel" id="tb8-p3" aria-labelledby="tb8-t3" hidden><div class="ex" id="ex-list"><p><code>ui.selectList</code> é montada inteira no servidor: cada item vira <code>value</code>, <code>title</code> e <code>description</code>, e as regras que liberam cada ação são avaliadas item a item.</p><div class="ex-io"><div><div class="cb "><div class="cb-h"><span class="cb-t">Tela publicada</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>["ui.selectList", { "id": "linhas", "version": "1.0.0",
+  "label": "Qual linha vai trocar de plano?",
+  <i class="src">"itemValue": "numero",
+  "itemTitle": "{{item.apelido}} · {{item.numero}}",
+  "itemDescription": "Plano {{item.plano}}",
+  "actions": [
+    { "id": "trocar", "label": "Trocar plano", "variant": "primary",
+      "enabledWhen": "{{item.elegivel}} == true" } ]</i>,
+  "$bindings": {
+    <i class="src">"items": { "path": "data.linhas", "mode": "oneWay" }</i>,
+    "value":  { "path": "form.linha", "mode": "twoWay" },
+    "action": { "path": "form.acao",  "mode": "twoWay" } },
+  "$events": { "onAction": { "action": "action.submit" } } }]</code></pre></div></div><div><div class="cb "><div class="cb-h"><span class="cb-t">Variáveis e chamadas</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>data_linhas  Json
+[
+  { "numero": "11999990001", "apelido": "Pessoal",
+    "plano": "Controle 20GB", "elegivel": true },
+  { "numero": "11999990002", "apelido": "Trabalho",
+    "plano": "Pós 50GB", "elegivel": false }
+]
+
+(gravada pela integração “Consultar linhas”)</code></pre></div></div></div><div class="ex-arrow">ms-journey → form/resolve → entregue ao canal</div><div class="cb "><div class="cb-h"><span class="cb-t">Entregue ao canal</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>["ui.selectList", { "id": "linhas", "version": "1.0.0", "label": "Qual linha vai trocar de plano?",
+  "$bindings": { "value": { "path": "form.linha", "mode": "twoWay" },
+                 "action": { "path": "form.acao", "mode": "twoWay" } },
+  "$events": { "onAction": { "action": "action.submit" } },
+  <mark>"items": [
+    { "value": "11999990001", "title": "Pessoal · 11999990001", "description": "Plano Controle 20GB",
+      "enabledActions": ["trocar"] },
+    { "value": "11999990002", "title": "Trabalho · 11999990002", "description": "Plano Pós 50GB",
+      "enabledActions": [] } ],
+  "totalItems": 2,
+  "actions": [ { "id": "trocar", "label": "Trocar plano", "variant": "primary" } ]</mark> }]</code></pre></div><ul class="ex-rules"><li><code>itemValue</code>, <code>itemTitle</code>, <code>itemDescription</code>, <code>itemHint</code>, <code>maxItems</code> e as regras <code>enabledWhen</code> nunca saem do servidor.</li><li><code>enabledWhen</code> aceita <code>{{item.campo}} == literal</code> ou <code>!=</code> (booleano, número ou texto entre aspas). Ação sem regra fica liberada para todos os itens.</li><li>Vão no máximo <code>maxItems</code> itens (padrão 50); <code>totalItems</code> diz quantos existiam.</li><li>Ao escolher, o canal envia o item (vínculo <code>value</code>) e a ação (vínculo <code>action</code>): <code>{ "linha": "11999990001", "acao": "trocar" }</code>.</li></ul><p class="ex-code">Código: <code>ListMaterializer.selectList · ListMaterializer.isEnabled</code></p></div></div><div role="tabpanel" id="tb8-p4" aria-labelledby="tb8-t4" hidden><div class="ex" id="ex-fail"><p>Se a fonte não responde, responde fora de 2xx ou devolve algo ilegível, a tela é entregue mesmo assim: a lista vem vazia e o componente recebe <code>loadError</code>.</p><div class="ex-io"><div><div class="cb "><div class="cb-h"><span class="cb-t">Tela publicada</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>"dataSources": {
+  "planos": { "url": "https://api.exemplo/planos?linha={linha}",
+              "params": { "linha": "{{form.linha}}" },
+              "timeoutMs": 3000, "required": true,
+              <i class="src">"errorMessage": "Não foi possível carregar os planos agora."</i> }
+},
+"data": ["ui.screen", { … }, [
+  ["ui.select", { "id": "plano", "version": "1.0.0", "label": "Novo plano",
+    "$bindings": { "options": { "path": "data.planos", "mode": "oneWay" },
+                   "value": { "path": "form.plano", "mode": "twoWay" } } }]
+]]</code></pre></div></div><div><div class="cb "><div class="cb-h"><span class="cb-t">Variáveis e chamadas</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>GET https://api.exemplo/planos?linha=11999990001
+
+... sem resposta em 3000 ms
+
+INSERT espec_registry.data_source_call
+  alias        planos
+  status       TIMEOUT
+  duration_ms  3001
+  error        A fonte não respondeu em até 3000 ms</code></pre></div></div></div><div class="ex-arrow">ms-journey → form/resolve → entregue ao canal</div><div class="cb "><div class="cb-h"><span class="cb-t">Entregue ao canal</span><button type="button" class="cb-copy">Copiar</button></div><pre class="cb-pre"><code>["ui.select", { "id": "plano", "version": "1.0.0", "label": "Novo plano",
+  "$bindings": { "value": { "path": "form.plano", "mode": "twoWay" } },
+  <mark>"options": []</mark>,
+  <mark>"loadError": { "message": "Não foi possível carregar os planos agora.", "required": true }</mark> }]</code></pre></div><ul class="ex-rules"><li>A mensagem vem de <code>errorMessage</code> da fonte; sem ela, “Não foi possível carregar as informações agora.”.</li><li>Com <code>required: true</code>, a etapa não pode ser enviada enquanto a fonte não carregar. O canal oferece “Tentar novamente” no próprio componente.</li><li>“Tentar novamente” dispara <code>action.retry</code>, que é um novo <code>GET current-step</code>: a tela é montada de novo e a fonte é chamada outra vez.</li><li>A falha não vira erro HTTP nem toca a instância: o motor não sabe que a fonte falhou.</li></ul><p class="ex-code">Código: <code>ScreenDataSourceFetcher.fetch · ListMaterializer.putLoadError</code></p></div></div></div>
+</section>
+
+<section class="sec" id="d-int">
+  <h2>Integrações e o tempo do canal</h2>
+  <div class="two">
+    <div><h3>Síncronas</h3><p class="sec-p">Rodam dentro do início ou do envio da tela: o canal espera por elas.</p><div class="tbl tbl-s"><table><thead><tr><th>Resultado</th><th>Com “Se falhar”</th><th>Sem “Se falhar”</th></tr></thead><tbody><tr><td><b>2xx ou 4xx</b></td><td>Segue o fluxo. Status e corpo ficam disponíveis para o mapeamento de saída e as decisões.</td><td>Igual.</td></tr><tr><td><b>5xx, depois das tentativas</b></td><td>Segue pelo caminho “Se falhar”.</td><td>Segue o fluxo normal, com o status disponível para as decisões.</td></tr><tr><td><b>Sem resposta: conexão recusada ou tempo esgotado</b></td><td>Segue pelo caminho “Se falhar”.</td><td>A etapa falha e a transação é desfeita. Ao concluir uma tela: a mesma tela volta com errorMessage. No início: erro HTTP e a instância não é criada.</td></tr></tbody></table></div><div class="tbl tbl-s"><table><thead><tr><th>Configuração</th><th>Padrão</th><th>Limite</th></tr></thead><tbody><tr><td>Tempo de conexão</td><td>2 s</td><td>até 10 s</td></tr><tr><td>Tempo de resposta</td><td>10 s</td><td>até 30 s</td></tr><tr><td>Novas tentativas</td><td>0</td><td>até 2, só para falha passageira: sem conexão, tempo esgotado, 429, 502, 503, 504</td></tr><tr><td>Intervalo entre tentativas</td><td>1 s, dobrando a cada tentativa (±20%)</td><td>até 5 s</td></tr><tr><td>Idempotency-Key</td><td>automática em POST, a mesma em todas as tentativas</td><td>—</td></tr></tbody></table></div></div>
+    <div><h3>Assíncronas</h3><p class="sec-p">Não seguram a chamada: a etapa fica WAITING até o motor retomar.</p><div class="tbl tbl-s"><table><thead><tr><th>Tipo</th><th>O canal vê</th><th>Falha</th></tr></thead><tbody><tr><td><b>REST em segundo plano</b></td><td><code>WAITING · SERVICE_TASK</code></td><td>Sem resposta: segue pelo “Se falhar” ou vira incidente, sem nova tentativa do motor.</td></tr><tr><td><b>Envio de mensagem (Kafka)</b></td><td><code>WAITING · SERVICE_TASK</code></td><td>Esgotou: segue pelo “Se falhar” ou vira incidente. Erro definitivo (tópico inválido, credencial, mensagem grande demais) não se repete.</td></tr><tr><td><b>Espera de mensagem</b></td><td><code>WAITING · RECEIVE_TASK</code></td><td>Limite de espera esgotado: segue pelo caminho “Se falhar” do limite.</td></tr></tbody></table></div></div>
+  </div>
+  <figure class="fig "><div class="fig-scroll"><svg class="dg" viewBox="0 0 840 552" role="img" aria-label="Estados internos das tarefas assíncronas: envio Kafka, REST em segundo plano e espera de mensagem.">
+<defs><marker id="sa-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="dg-h" d="M0 0L10 5L0 10z"/></marker></defs>
+<text class="dg-band" x="20" y="16">ENVIO KAFKA · KAFKA_SEND</text>
+<rect class="dg-box" x="20" y="40" width="130" height="42" rx="21"/><text class="dg-t" x="85" y="66" text-anchor="middle" style="font-size:12px">PENDING</text>
+<rect class="dg-box" x="240" y="40" width="160" height="42" rx="21"/><text class="dg-t" x="320" y="66" text-anchor="middle" style="font-size:12px">IN_PROGRESS</text>
+<rect class="dg-okbox" x="490" y="40" width="150" height="42" rx="21"/><text class="dg-t" x="565" y="66" text-anchor="middle" style="font-size:12px">COMPLETED</text>
+<rect class="dg-box" x="240" y="132" width="160" height="42" rx="21"/><text class="dg-t" x="320" y="158" text-anchor="middle" style="font-size:12px">RETRYING</text>
+<rect class="dg-pseudo" x="490" y="132" width="150" height="42" rx="21"/><text class="dg-t" x="565" y="158" text-anchor="middle" style="font-size:12px">FAILED_HANDLED</text>
+<rect class="dg-warnbox" x="690" y="132" width="130" height="42" rx="21"/><text class="dg-t" x="755" y="158" text-anchor="middle" style="font-size:12px">INCIDENT</text>
+<path class="dg-a" d="M150 61 H238" marker-end="url(#sa-h)"/><text class="dg-l" x="194" y="53" text-anchor="middle">fetchAndLock</text>
+<path class="dg-a" d="M400 61 H488" marker-end="url(#sa-h)"/><text class="dg-l" x="444" y="53" text-anchor="middle">publicado</text>
+<path class="dg-a" d="M300 82 V130" marker-end="url(#sa-h)"/><text class="dg-l" x="292" y="112" text-anchor="end">falha passageira</text>
+<path class="dg-a" d="M345 132 V84" marker-end="url(#sa-h)"/><text class="dg-l" x="353" y="112">nova tentativa</text>
+<path class="dg-a" d="M400 74 L488 140" marker-end="url(#sa-h)"/><text class="dg-l" x="456" y="96">esgotou ou erro definitivo, com “Se falhar”</text>
+<path class="dg-a" d="M320 40 V26 H755 V130" marker-end="url(#sa-h)"/><text class="dg-l" x="560" y="20" text-anchor="middle">esgotou ou erro definitivo, sem “Se falhar”</text>
+<text class="dg-band" x="20" y="214">REST EM SEGUNDO PLANO · REST_BACKGROUND</text>
+<rect class="dg-box" x="20" y="230" width="130" height="42" rx="21"/><text class="dg-t" x="85" y="256" text-anchor="middle" style="font-size:12px">PENDING</text>
+<rect class="dg-box" x="240" y="230" width="160" height="42" rx="21"/><text class="dg-t" x="320" y="256" text-anchor="middle" style="font-size:12px">IN_PROGRESS</text>
+<rect class="dg-okbox" x="490" y="230" width="150" height="42" rx="21"/><text class="dg-t" x="565" y="256" text-anchor="middle" style="font-size:12px">COMPLETED</text>
+<rect class="dg-pseudo" x="490" y="322" width="150" height="42" rx="21"/><text class="dg-t" x="565" y="348" text-anchor="middle" style="font-size:12px">FAILED_HANDLED</text>
+<rect class="dg-warnbox" x="690" y="322" width="130" height="42" rx="21"/><text class="dg-t" x="755" y="348" text-anchor="middle" style="font-size:12px">INCIDENT</text>
+<path class="dg-a" d="M150 251 H238" marker-end="url(#sa-h)"/><text class="dg-l" x="194" y="243" text-anchor="middle">job (≤ ~5 s)</text>
+<path class="dg-a" d="M400 251 H488" marker-end="url(#sa-h)"/><text class="dg-l" x="444" y="243" text-anchor="middle">respondeu</text>
+<path class="dg-a" d="M400 264 L488 330" marker-end="url(#sa-h)"/><text class="dg-l" x="456" y="288">falhou, com “Se falhar”</text>
+<path class="dg-a" d="M320 272 V390 H755 V366" marker-end="url(#sa-h)"/><text class="dg-l" x="538" y="408" text-anchor="middle">sem resposta, sem “Se falhar”</text>
+<text class="dg-band" x="20" y="446">ESPERA DE MENSAGEM · MESSAGE_WAIT</text>
+<rect class="dg-box" x="20" y="462" width="130" height="42" rx="21"/><text class="dg-t" x="85" y="488" text-anchor="middle" style="font-size:12px">PENDING</text>
+<rect class="dg-okbox" x="240" y="462" width="160" height="42" rx="21"/><text class="dg-t" x="320" y="488" text-anchor="middle" style="font-size:12px">COMPLETED</text>
+<rect class="dg-warnbox" x="490" y="462" width="150" height="42" rx="21"/><text class="dg-t" x="565" y="488" text-anchor="middle" style="font-size:12px">TIMED_OUT</text>
+<path class="dg-a" d="M150 483 H238" marker-end="url(#sa-h)"/><text class="dg-l" x="194" y="475" text-anchor="middle">correlate</text>
+<path class="dg-a" d="M85 504 V526 H565 V506" marker-end="url(#sa-h)"/><text class="dg-l" x="325" y="542" text-anchor="middle">limite de espera esgotado</text>
+</svg></div><figcaption>Estados internos de cada tarefa assíncrona, gravados no Redis para o Diagnóstico. O canal recebe só WAITING.</figcaption></figure>
+</section>
+
+<section class="sec" id="d-check">
+  <h2>Checklist de produção</h2>
+  <div class="cl" data-cl><div class="cl-bar"><span>Pronto para produção</span><span class="cl-n"><b data-done>0</b> de 15</span></div><div class="cl-prog"><i data-prog></i></div>
+<ul><li><input type="checkbox" id="cl-0" data-i="0"><label for="cl-0">Guarda o processInstanceId para retomar a jornada com GET current-step.</label></li><li><input type="checkbox" id="cl-1" data-i="1"><label for="cl-1">Trata os três tipos de etapa, inclusive quando o início já devolve espera ou fim.</label></li><li><input type="checkbox" id="cl-2" data-i="2"><label for="cl-2">Confere supportedTargets e minRendererVersion antes de desenhar.</label></li><li><input type="checkbox" id="cl-3" data-i="3"><label for="cl-3">Desenha todos os componentes do catálogo v1 usados pelas jornadas do canal.</label></li><li><input type="checkbox" id="cl-4" data-i="4"><label for="cl-4">Reavalia $visibility e $active enquanto a pessoa preenche, inclusive em contêineres.</label></li><li><input type="checkbox" id="cl-5" data-i="5"><label for="cl-5">Valida antes de enviar e envia só campos visíveis e ativos.</label></li><li><input type="checkbox" id="cl-6" data-i="6"><label for="cl-6">Envia o valor do botão escolhido quando o action.submit traz params.</label></li><li><input type="checkbox" id="cl-7" data-i="7"><label for="cl-7">Desabilita o envio enquanto a chamada está em andamento.</label></li><li><input type="checkbox" id="cl-8" data-i="8"><label for="cl-8">Mostra errorMessage mantendo o que a pessoa já preencheu.</label></li><li><input type="checkbox" id="cl-9" data-i="9"><label for="cl-9">Em espera, consulta a etapa num intervalo crescente e tem um limite de espera.</label></li><li><input type="checkbox" id="cl-10" data-i="10"><label for="cl-10">Implementa o Voltar e o Tentar novamente.</label></li><li><input type="checkbox" id="cl-11" data-i="11"><label for="cl-11">Abre só URLs http ou https de domínios permitidos.</label></li><li><input type="checkbox" id="cl-12" data-i="12"><label for="cl-12">Trata 409 consultando a etapa atual, e 502 ou 500 com opção de tentar de novo.</label></li><li><input type="checkbox" id="cl-13" data-i="13"><label for="cl-13">Define tempo limite no BFF para todas as chamadas.</label></li><li><input type="checkbox" id="cl-14" data-i="14"><label for="cl-14">Encerra a instância quando a pessoa desiste (DELETE).</label></li></ul>
+<p class="cl-note">As marcações ficam salvas só neste navegador.</p></div>
+  <h3>Comportamentos a considerar</h3>
+  <dl class="beh"><div><dt>Instância inexistente</dt><dd>GET current-step de um processInstanceId que não existe devolve ENDED, não 404.</dd></div><div><dt>Telas em paralelo</dt><dd>Só a primeira tarefa de usuário aberta é entregue.</dd></div><div><dt>Incidente em espera</dt><dd>Uma tarefa assíncrona que esgotou as tentativas fica em incidente. O canal continua vendo WAITING até a operação tratar no Diagnóstico.</dd></div><div><dt>Versão</dt><dd>As telas vêm da versão da instância. GET /flow, a checagem de escritas do Voltar e o nome de uma espera resolvida pelo motor usam a publicação atual.</dd></div><div><dt>Autenticação</dt><dd>O ms-journey ainda não exige credencial (forma em definição). Exponha-o só por trás do BFF do canal.</dd></div><div><dt>Tempo limite</dt><dd>O ms-journey não define tempo limite próprio nas chamadas ao motor e ao registro. Defina o do BFF considerando as integrações síncronas da jornada.</dd></div><div><dt>Canal informado</dt><dd>channelType não é conferido contra flow.channelTypes. Use um dos canais que a jornada atende.</dd></div><div><dt>Envio duplo</dt><dd>Dois envios simultâneos da mesma tela: o segundo recebe 200 com errorMessage do motor, não 409.</dd></div><div><dt>Redis indisponível</dt><dd>Sem efeito funcional: o ms-journey resolve pelo motor e o polling volta a custar chamadas ao motor.</dd></div></dl>
+</section></main>
+<script>
+(function(){
+  var root=document.documentElement;
+  var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+  var buttons=[].slice.call(document.querySelectorAll('.theme-sw button'));
+  function current(){return root.getAttribute('data-theme')||(mq&&mq.matches?'dark':'light');}
+  function paint(){var t=current();buttons.forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-t')===t?'true':'false');});}
+  buttons.forEach(function(b){b.addEventListener('click',function(){var t=b.getAttribute('data-t');root.setAttribute('data-theme',t);try{localStorage.setItem('ej-doc-tema',t);}catch(e){}paint();});});
+  if(mq){if(mq.addEventListener)mq.addEventListener('change',paint);else if(mq.addListener)mq.addListener(paint);}
+  paint();
+})();
+(function(){
+  var root=document.documentElement,btn=document.getElementById('tema-mistica');
+  if(!btn)return;
+  function font(){if(!document.getElementById('ms-font')){var l=document.createElement('link');l.rel='stylesheet';l.id='ms-font';l.href='https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap';document.head.appendChild(l);}}
+  function paint(){btn.setAttribute('aria-checked',root.getAttribute('data-skin')==='mistica'?'true':'false');}
+  btn.addEventListener('click',function(){
+    var on=root.getAttribute('data-skin')!=='mistica';
+    if(on){root.setAttribute('data-skin','mistica');font();}else{root.removeAttribute('data-skin');}
+    try{localStorage.setItem('ej-doc-skin',on?'mistica':'off');}catch(e){}
+    paint();
+  });
+  paint();
+})();
+(function(){
+  function selectText(pre){try{var r=document.createRange();r.selectNodeContents(pre);var s=window.getSelection();s.removeAllRanges();s.addRange(r);}catch(e){}}
+  document.querySelectorAll('.cb').forEach(function(cb){
+    var btn=cb.querySelector('.cb-copy'),pre=cb.querySelector('pre');
+    if(!btn||!pre)return;
+    btn.addEventListener('click',function(){
+      var text=pre.textContent;
+      function done(ok){btn.textContent=ok?'Copiado':'Texto selecionado';btn.classList.toggle('ok',ok);setTimeout(function(){btn.textContent='Copiar';btn.classList.remove('ok');},1800);}
+      try{navigator.clipboard.writeText(text).then(function(){done(true);},function(){selectText(pre);done(false);});}
+      catch(e){selectText(pre);done(false);}
+    });
+  });
+  document.querySelectorAll('[data-tabs]').forEach(function(box){
+    var tabs=box.querySelectorAll('[role="tab"]');
+    tabs.forEach(function(t){
+      t.addEventListener('click',function(){
+        tabs.forEach(function(o){var on=o===t;o.setAttribute('aria-selected',on?'true':'false');o.tabIndex=on?0:-1;var p=document.getElementById(o.getAttribute('aria-controls'));if(p)p.hidden=!on;});
+      });
+    });
+  });
+})();
+
+(function(){
+  var box=document.querySelector('.filters');
+  if(box){box.addEventListener('click',function(e){var b=e.target.closest('button[data-f]');if(!b)return;var f=b.getAttribute('data-f');
+    [].forEach.call(box.querySelectorAll('button'),function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
+    [].forEach.call(document.querySelectorAll('.card'),function(c){c.hidden=!(f==='*'||c.getAttribute('data-cat')===f);});});}
+  var cl=document.querySelector('[data-cl]');
+  if(cl){var key='ej-playbook-checklist';var saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(e){saved={};}
+    var boxes=[].slice.call(cl.querySelectorAll('input[type=checkbox]'));
+    function paint(){var n=boxes.filter(function(b){return b.checked;}).length;cl.querySelector('[data-done]').textContent=n;cl.querySelector('[data-prog]').style.width=(n/boxes.length*100)+'%';}
+    boxes.forEach(function(b){b.checked=!!saved[b.getAttribute('data-i')];b.addEventListener('change',function(){saved[b.getAttribute('data-i')]=b.checked;try{localStorage.setItem(key,JSON.stringify(saved));}catch(e){}paint();});});
+    paint();}
+})();</script>
+</body>
+</html>

@@ -1,0 +1,1222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Entrega da tela SDUI · Elastic Journey</title>
+<style>
+  :root{
+    --brand:#660099;
+    --brand-700:#4d0073;
+    --brand-400:#8433ab;
+    --brand-100:#e5d4ef;
+    --brand-050:#f2ebfa;
+    --brand-025:#f8f5fc;
+    --lime:#99cc33;
+    --page:#f4f2f8;
+    --surface:#ffffff;
+    --text:#313235;
+    --text-2:#6b6b73;
+    --border:#e9e6f0;
+    --error-low:#fce4ef;
+    --warn-low:#fdf1de;
+    --info-low:#eef3fb;
+    --brand-ink:#660099;
+    --on-brand:#ffffff;
+    --text-high:#252233;
+    --text-3:#736b80;
+    --nav-bg:rgba(255,255,255,.92);
+    
+    
+    --error-border:#f2c2d5;
+    --error-ink:#8d143c;
+    --warn-border:#ecd2a6;
+    --warn-ink:#7d4b00;
+    --info-border:#c8d8ef;
+    --info-ink:#1f4478;
+    --code-bg:#2a0b3d;
+    --code-fg:#e9dcf3;
+    
+    
+    --arch-bg:linear-gradient(160deg,#fcfcfe 0%,#ebe9f2 100%);
+    --arch-border:#e2e0e9;
+    --ax-stroke:#e5d4ef;
+    --ax-hub:#660099;
+    --ax-line:#8433ab;
+    --ax-accent:#50691a;
+    --ax-band:#660099;
+    --shadow:0 18px 44px -22px rgba(56,0,87,.28);
+    --radius:18px;
+    --pad:clamp(28px,4.2vw,76px);
+    --font:"Vivo Type","Segoe UI",Arial,sans-serif;
+    --mono:"Cascadia Code",Consolas,monospace;
+    color-scheme:light;
+  }
+
+  /* Base dos dois temas escuros. Os tokens de roxo invertem de papel: --brand continua sendo o
+     preenchimento (texto branco por cima) e --brand-ink/--brand-700 passam a ser os tons claros
+     usados em texto. O tema Grafite reaproveita tudo isto e só troca as cores de fundo. */
+  :root[data-theme="dark"],:root[data-theme="graphite"]{
+    --brand:#7a23b3;
+    --brand-ink:#d0a6ec;
+    --brand-700:#d0a6ec;
+    --brand-400:#b273db;
+    --brand-100:#3d3352;
+    --brand-050:#2a2339;
+    --brand-025:#221c2f;
+    --lime:#a8d94a;
+    --page:#161320;
+    --surface:#1e1a2b;
+    --text:#ece9f3;
+    --text-2:#a79fb8;
+    --text-high:#ffffff;
+    --text-3:#a29ab3;
+    --border:#322a45;
+    --nav-bg:rgba(22,19,32,.93);
+    
+    
+    
+    --error-low:#39182a;
+    --error-border:#5d2b40;
+    --error-ink:#ffb3c8;
+    --warn-low:#36291a;
+    --warn-border:#5a452a;
+    --warn-ink:#f0c58a;
+    --info-low:#1c2739;
+    --info-border:#33456b;
+    --info-ink:#a9c6ef;
+    --code-bg:#120c1c;
+    --code-fg:#e4d8ef;
+    
+    
+    --arch-bg:linear-gradient(160deg,#241f2e 0%,#191622 100%);
+    --arch-border:#332c42;
+    --ax-stroke:transparent;
+    --ax-hub:#4d0073;
+    --ax-line:#ffffff;
+    --ax-accent:#a8d94a;
+    --ax-band:#d9b8ec;
+    --shadow:0 18px 44px -22px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+
+  /* Grafite: mesmo tema escuro, com os neutros sem temperatura roxa. O roxo fica só nos acentos. */
+  :root[data-theme="graphite"]{
+    --arch-bg:linear-gradient(160deg,#232328 0%,#18181c 100%);
+    --arch-border:#2f2f35;
+    --page:#0f0f11;
+    --surface:#1a1a1d;
+    --border:#2c2c31;
+    --text:#ededf0;
+    --text-2:#a0a0a8;
+    --text-3:#98929f;
+    --brand-ink:#c78ce8;
+    --brand-700:#c78ce8;
+    --brand-100:#33303a;
+    --brand-050:#26232b;
+    --brand-025:#1f1d23;
+    --nav-bg:rgba(15,15,17,.93);
+    --code-bg:#111013;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    background:var(--page);
+    color:var(--text);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- moldura ---------- */
+  .deck{min-height:100vh;display:flex;flex-direction:column}
+  .progress{height:3px;background:var(--brand-100)}
+  .progress i{display:block;height:100%;width:100%;background:var(--brand);transform-origin:left center;transition:transform .35s cubic-bezier(.2,.7,.3,1)}
+  .masthead{
+    min-height:100px;display:flex;align-items:center;justify-content:space-between;gap:24px;
+    padding:24px var(--pad);flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface);
+  }
+  .lockup{display:flex;align-items:center;gap:21px;font-size:12px;letter-spacing:.17em;font-weight:700;color:var(--text-high)}
+  .lockup svg{width:104px;height:38px;display:block;color:var(--brand)}
+  .lockup .rule{width:1px;height:29px;background:currentColor;opacity:.22}
+  .lockup small{display:block;font-weight:500;letter-spacing:.02em;font-size:12px;margin-top:4px;color:var(--text-2)}
+  .mast-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .proposal{font-size:12px;color:var(--text-2)}
+  .switch{display:flex;gap:3px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--brand-025)}
+  .switch button{font:inherit;cursor:pointer;border:0;background:transparent;color:var(--text-2);border-radius:999px;padding:6px 13px;font-size:11.5px;font-weight:700;transition:background .16s ease,color .16s ease}
+  .switch button:hover{background:var(--brand-050);color:var(--brand-ink)}
+  .switch button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand)}
+
+  .steps{display:flex;gap:2px;align-items:center;flex-wrap:wrap}
+  .steps button{
+    font:inherit;cursor:pointer;border:0;background:transparent;color:var(--text-2);
+    border-radius:999px;padding:8px 13px;font-size:12.5px;font-weight:600;
+    display:flex;align-items:center;gap:9px;transition:background .16s ease,color .16s ease;
+  }
+  .steps button .sn{font-size:11px;font-weight:700;opacity:.6;letter-spacing:.04em}
+  .steps button:hover{background:var(--brand-050);color:var(--brand-ink)}
+  .steps button[aria-current="true"]{color:var(--brand-ink);font-weight:700}
+  .steps button[aria-current="true"] .sn{opacity:1}
+  .counter{font-size:12px;font-weight:700;color:var(--text-2);letter-spacing:.04em}
+
+  /* ---------- capa (slide 1) ---------- */
+
+  .cover{display:grid;grid-template-columns:minmax(0,560px) 1fr;gap:clamp(26px,2.6vw,46px);align-items:center}
+
+  /* Diagrama de runtime da capa. As superfícies ficam claras em todos os temas porque a capa
+     é escura nos três; só o fundo dela muda. */
+  .arch{background:var(--arch-bg);border:1px solid var(--arch-border);border-radius:20px;padding:24px 24px 22px;box-shadow:var(--shadow)}
+  .arch-title{margin:0 0 14px;font-size:17px;font-weight:700;letter-spacing:-.015em;color:var(--text-high)}
+  .arch svg{width:100%;height:auto;display:block}
+  .ax-card{fill:#ffffff;stroke:var(--ax-stroke);stroke-width:1;filter:url(#ax-sombra)}
+  .ax-soft{fill:#f5f0fa;stroke:var(--ax-stroke);stroke-width:1;filter:url(#ax-sombra)}
+  .ax-hub{fill:var(--ax-hub);filter:url(#ax-sombra)}
+  .ax-line{stroke:var(--ax-line);stroke-width:1.6;fill:none;opacity:.9}
+  .ax-back{stroke:var(--ax-accent);stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+  .ax-t{fill:#252233;font-size:15px;font-weight:700}
+  .ax-s{fill:#6b6b73;font-size:12px}
+  .ax-m{font-family:var(--mono);fill:#660099;font-size:11px;font-weight:600}
+  .ax-band{fill:var(--ax-band);font-size:11px;font-weight:700;letter-spacing:.14em}
+  .ax-w{fill:#ffffff;font-size:20px;font-weight:700}
+  .ax-ws{fill:#e0cceb;font-size:12.5px}
+  .ax-note{fill:#a8d94a;font-size:12px;font-weight:600}
+  .ax-chip{fill:#3b0a59;stroke:var(--ax-accent);stroke-width:1}
+  .ax-code{font-family:var(--mono);fill:#e9dcf3;font-size:11.5px}
+  .cover .eyebrow{font-size:11px;letter-spacing:.2em;margin-bottom:24px}
+  .cover h1{font-size:clamp(40px,3.9vw,62px);line-height:1.08;letter-spacing:-.03em;margin:0}
+  .cover .lead{font-size:clamp(18px,1.5vw,24px);line-height:1.45;max-width:470px;margin-top:22px}
+  .metrics{display:flex;gap:clamp(34px,4.6vw,64px);margin:34px 0 30px;flex-wrap:wrap}
+  .metrics b{display:inline-block;background:var(--surface);color:var(--text);font-size:clamp(32px,2.9vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1;padding:12px 18px;border-radius:14px;box-shadow:0 2px 8px -2px rgba(40,10,60,.18),0 0 0 1px rgba(40,10,60,.05)}
+  .metrics span{display:block;font-size:13.5px;color:var(--text-2);margin-top:10px;max-width:160px;line-height:1.35;text-align:left}
+  .persp{border-top:1px solid var(--border);padding-top:23px;max-width:540px}
+  .persp .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .persp .seg button{font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);color:var(--brand-700);border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;transition:all .18s ease}
+  .persp .seg button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .persp .seg button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .persp p{font-size:16px;line-height:1.5;margin:16px 0 0;min-height:72px;color:var(--text-2)}
+
+
+  main{flex:1;display:flex;justify-content:center;padding:20px var(--pad) 90px}
+  .slide{display:none;width:100%;max-width:1680px}
+  .slide.is-on{display:block;animation:rise .36s cubic-bezier(.2,.7,.3,1) both}
+  /* só a capa centraliza na vertical; slides densos continuam a partir do topo, para não
+     empurrar o próprio começo para fora da tela quando o conteúdo passa da altura útil. */
+  .cover-slide.is-on{display:flex;flex-direction:column;justify-content:center}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ---------- tipografia ---------- */
+  .eyebrow{
+    display:block;margin-bottom:12px;
+    font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--brand-ink);
+  }
+  h1{font-size:clamp(28px,3.1vw,46px);line-height:1.12;letter-spacing:-.025em;font-weight:700;margin:0 0 14px;color:var(--text-high)}
+  h1 em{font-style:normal;color:var(--brand-ink)}
+  .lead{max-width:860px;font-size:16px;line-height:1.6;color:var(--text-2);margin:0}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-ink);margin:0 0 12px;font-weight:800}
+  h3{font-size:15px;margin:0 0 6px;font-weight:700;color:var(--text-high)}
+  p{margin:0 0 10px;line-height:1.55}
+  code{font-family:var(--mono);font-size:.92em;background:var(--brand-025);border:1px solid var(--brand-100);border-radius:6px;padding:1px 5px;color:var(--brand-700)}
+
+  /* ---------- blocos ---------- */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px}
+  .grid{display:grid;gap:16px}
+  .targets{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .targets button{
+    font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);
+    border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--brand-700);
+    display:flex;align-items:center;gap:8px;transition:all .18s ease;
+  }
+  .targets button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .targets button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .targets button i{width:7px;height:7px;border-radius:50%;background:var(--lime);font-style:normal}
+  .targets button[aria-pressed="true"] i{background:var(--on-brand)}
+
+  pre{
+    margin:0;font-family:var(--mono);font-size:12.5px;line-height:1.7;
+    background:var(--code-bg);color:var(--code-fg);border-radius:14px;padding:18px 20px;overflow:auto;
+  }
+
+  ul.rules{margin:0;padding-left:18px;font-size:13.2px;line-height:1.75;color:var(--text)}
+  ul.rules li::marker{color:var(--brand-400)}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:13px}
+  table.cmp th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-2);padding:0 10px 8px;font-weight:800}
+  table.cmp td{border-top:1px solid var(--border);padding:9px 10px;vertical-align:top}
+  table.cmp tr.head td{background:var(--brand-050);font-weight:800;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--brand-700);padding:6px 10px;border-top:1px solid var(--brand-100)}
+  table.cmp td.t{font-family:var(--mono);font-size:12px;color:var(--brand-700);white-space:nowrap}
+  table.cmp td.m{color:var(--text-2);line-height:1.45}
+  table.cmp tr.row:hover td{background:var(--brand-025)}
+  table.cmp .props{display:block;font-family:var(--mono);font-size:11px;color:var(--text-3);margin-top:3px}
+  .matrix-wrap{max-height:460px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:14px 8px 8px}
+  .lvl{display:inline-block;font-size:10.5px;font-weight:800;color:var(--on-brand);background:var(--brand-400);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+
+  .sev{display:flex;flex-direction:column;gap:8px}
+  .sev div{border-radius:10px;padding:9px 12px;font-size:12.5px;line-height:1.45;border:1px solid}
+  .sev .e{background:var(--error-low);border-color:var(--error-border);color:var(--error-ink)}
+  .sev .w{background:var(--warn-low);border-color:var(--warn-border);color:var(--warn-ink)}
+  .sev .i{background:var(--info-low);border-color:var(--info-border);color:var(--info-ink)}
+  .sev b{font-family:var(--mono);font-size:11.5px}
+
+  .ask{background:linear-gradient(135deg,var(--brand),var(--brand-700));color:var(--on-brand);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+  .ask h2{color:#d9b8ec}
+  .ask p{font-size:13.5px;color:#f0e4f7;line-height:1.55}
+  .ask ul{margin:0;padding-left:18px;font-size:13.2px;line-height:1.7;color:#f0e4f7}
+  .ask ul li::marker{color:var(--lime)}
+  .ask code{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:var(--on-brand)}
+
+  .out{font-size:12.5px;color:var(--text-2);line-height:1.6}
+  .out b{color:var(--text)}
+
+  /* ---------- slide 4: documento integral ---------- */
+  .doclayout{display:grid;grid-template-columns:268px 1fr;gap:16px;margin-top:22px;align-items:start}
+  .toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px 14px 14px;max-height:calc(100vh - 250px);overflow:auto;position:sticky;top:16px}
+  .toc h2{padding-left:4px}
+  .toc a{display:block;font-size:12.5px;line-height:1.35;color:var(--text-2);text-decoration:none;padding:6px 8px;border-radius:8px;transition:background .14s ease,color .14s ease}
+  .toc a:hover{background:var(--brand-025);color:var(--brand-700)}
+  .toc a.on{background:var(--brand-050);color:var(--brand-700);font-weight:700}
+  .docpane{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px 30px 30px;max-height:calc(100vh - 250px);overflow:auto}
+  .doc{font-size:13.6px;line-height:1.68;color:var(--text);max-width:960px}
+  .doc h1{font-size:25px;line-height:1.2;margin:22px 0 10px;letter-spacing:-.02em}
+  .doc h2{font-size:19px;text-transform:none;letter-spacing:-.01em;color:var(--text-high);margin:34px 0 12px;padding-top:16px;border-top:1px solid var(--border);scroll-margin-top:12px}
+  .doc h2:first-child{border-top:0;padding-top:0;margin-top:8px}
+  .doc h3{font-size:15.5px;color:var(--brand-700);margin:24px 0 8px}
+  .doc h4{font-size:12.5px;color:var(--text-2);margin:18px 0 6px;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+  .doc p{margin:0 0 12px}
+  .doc ul,.doc ol{margin:0 0 14px;padding-left:22px}
+  .doc li{margin-bottom:5px}
+  .doc li::marker{color:var(--brand-400)}
+  .doc strong{color:var(--text-high)}
+  .doc pre{font-size:11.8px;line-height:1.6;margin:0 0 16px}
+  .doc code{white-space:nowrap}
+  .tw{overflow-x:auto;margin:0 0 16px;border:1px solid var(--border);border-radius:12px}
+  .doc table{border-collapse:collapse;width:100%;font-size:12.2px;min-width:540px}
+  .doc th{text-align:left;background:var(--brand-050);color:var(--brand-700);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding:9px 12px;border-bottom:1px solid var(--brand-100)}
+  .doc td{padding:9px 12px;border-top:1px solid var(--border);vertical-align:top;line-height:1.5;color:var(--text-2)}
+  .doc tbody tr:hover td{background:var(--brand-025)}
+
+  /* ---------- navegação ---------- */
+  .nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    background:var(--nav-bg);backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px var(--pad);flex-wrap:wrap;
+  }
+  .nav .btns{align-items:center;gap:12px}
+  .nav .hint{font-size:11.5px;color:var(--text-2)}
+  @media (max-width:1420px){.nav .hint{display:none}}
+  .nav .hint kbd{font-family:var(--mono);font-size:11px;background:var(--brand-025);border:1px solid var(--brand-100);border-radius:5px;padding:1px 6px;color:var(--brand-700)}
+  .nav .btns{display:flex;gap:8px}
+  .nav button{
+    font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);
+    border-radius:999px;padding:9px 20px;font-size:13.5px;font-weight:700;color:var(--brand-700);transition:all .16s ease;
+  }
+  .nav button:hover:not(:disabled){background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .nav button:disabled{opacity:.38;cursor:not-allowed}
+  .nav .title{font-size:12.5px;font-weight:700;color:var(--text-2)}
+
+  @media (max-width:1040px){
+    .two,.doclayout,.cover{grid-template-columns:1fr!important}
+    .cover{gap:28px}
+    .arch{max-width:760px}
+    .toc{position:static;max-height:220px}
+    .docpane{max-height:calc(100vh - 200px)}
+  }
+  @media (min-width:1100px) and (max-height:860px){
+    .cover h1{font-size:54px}
+    .cover .lead{font-size:19px;margin-top:18px}
+    .metrics{margin:22px 0 20px}
+    .metrics b{font-size:46px}
+    .metrics span{font-size:12.5px}
+    .persp{padding-top:16px}
+    .persp p{font-size:15px;min-height:58px;margin-top:10px}
+  }
+  @media print{
+    /* Impressão sempre em claro, com os blocos de código sobre fundo leve, qualquer que seja
+       o tema na tela. Mesma especificidade do bloco escuro, declarado depois: prevalece. */
+    :root[data-theme]{
+      --page:#fff;--surface:#fff;--text:#313235;--text-high:#252233;--text-3:#736b80;
+      --border:#e9e6f0;--text-2:#6b6b73;--brand:#660099;--brand-ink:#660099;--brand-700:#4d0073;--brand-400:#8433ab;
+      --brand-100:#e5d4ef;--brand-050:#f2ebfa;--brand-025:#f8f5fc;
+      --nav-bg:#fff;
+      --code-bg:#f7f4fb;--code-fg:#33124a;--arch-bg:linear-gradient(160deg,#fcfcfe,#ebe9f2);--arch-border:#e2e0e9;--ax-stroke:#e5d4ef;--ax-hub:#660099;--ax-line:#8433ab;--ax-accent:#50691a;--ax-band:#660099;
+      --error-low:#fce4ef;--error-border:#f2c2d5;--error-ink:#8d143c;
+      --warn-low:#fdf1de;--warn-border:#ecd2a6;--warn-ink:#7d4b00;
+      --info-low:#eef3fb;--info-border:#c8d8ef;--info-ink:#1f4478;
+      color-scheme:light;
+    }
+    pre{border:1px solid var(--brand-100)}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .nav,.dots,.progress,.toc,.switch{display:none}
+    .slide{display:block!important;break-after:page;max-width:none}
+    body{background:#fff}
+    .matrix-wrap{max-height:none}
+    .doclayout{display:block}
+    .docpane{max-height:none;overflow:visible;border:0;padding:0}
+    .doc h2{break-before:page}
+  }
+
+  /* ================= específico desta apresentação ================= */
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .four{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .stack-gap{display:flex;flex-direction:column;gap:16px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:2px 8px;background:var(--brand-050);color:var(--brand-700);border:1px solid var(--brand-100)}
+  .tag.ok{background:#e8f3d3;color:#3d5a0a;border-color:#cfe3a3}
+  .tag.warn{background:var(--warn-low);color:var(--warn-ink);border-color:var(--warn-border)}
+  :root[data-theme="dark"] .tag.ok,:root[data-theme="graphite"] .tag.ok{background:#27341a;color:#b9e06a;border-color:#3d5224}
+  .card p,.card li{font-size:13.2px;line-height:1.55;color:var(--text-2)}
+  .card h3{margin-bottom:8px}
+  .big{font-size:13.5px;line-height:1.6;color:var(--text)}
+  .analogy{display:flex;gap:14px;align-items:flex-start;background:var(--brand-025);border:1px dashed var(--brand-400);border-radius:var(--radius);padding:16px 18px}
+  .analogy .ico{flex:none;width:38px;height:38px;border-radius:12px;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;font-weight:800;font-size:18px}
+  .analogy p{margin:0;font-size:13.4px;color:var(--text)}
+  .analogy b{color:var(--brand-ink)}
+
+  /* diagramas SVG que acompanham o tema */
+  .dia{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+  .dia svg{width:100%;height:auto;display:block}
+  .dia .cap{font-size:12px;color:var(--text-2);margin:10px 2px 0}
+  .s-box{fill:var(--surface);stroke:var(--brand-100);stroke-width:1.2}
+  .s-soft{fill:var(--brand-025);stroke:var(--brand-100);stroke-width:1.2}
+  .s-hub{fill:var(--brand)}
+  .s-line{stroke:var(--brand-400);stroke-width:1.6;fill:none}
+  .s-dash{stroke:var(--brand-400);stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+  .s-lime{stroke:#6f9a1c;stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+  .s-t{fill:var(--text-high);font-size:14px;font-weight:700}
+  .s-s{fill:var(--text-2);font-size:11.5px}
+  .s-m{fill:var(--brand-ink);font-size:11px;font-family:var(--mono);font-weight:600}
+  .s-w{fill:#fff;font-size:17px;font-weight:700}
+  .s-ws{fill:#e6d3f2;font-size:12px}
+  .s-lbl{fill:var(--text-2);font-size:11px;font-weight:600}
+  .s-band{fill:var(--brand-050)}
+  .s-bandt{fill:var(--brand-ink);font-size:11px;font-weight:800;letter-spacing:.1em}
+  .s-life{stroke:var(--border);stroke-width:1.4;stroke-dasharray:3 5}
+  .s-msg{fill:var(--text);font-size:12.5px}
+  .s-note{fill:var(--info-low);stroke:var(--info-border)}
+  .s-notet{fill:var(--info-ink);font-size:11.5px}
+
+  /* jornada funcional: abas clicáveis */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .tabs button{font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);border-radius:14px;padding:10px 14px;text-align:left;min-width:150px;flex:1;transition:all .16s ease;color:var(--text)}
+  .tabs button b{display:block;font-size:11px;letter-spacing:.08em;color:var(--brand-ink);margin-bottom:2px}
+  .tabs button span{font-size:13px;font-weight:700}
+  .tabs button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .tabs button[aria-selected="true"]{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+  .tabs button[aria-selected="true"] b{color:#e0cceb}
+  .panel{display:none}
+  .panel.on{display:grid;animation:rise .3s both}
+  .mock{background:var(--page);border:1px solid var(--border);border-radius:14px;padding:14px;font-size:12.5px}
+  .mock .bar{display:flex;gap:6px;margin-bottom:10px}
+  .mock .bar i{width:9px;height:9px;border-radius:50%;background:var(--brand-100)}
+  .mock .field{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:9px 11px;color:var(--text-2);margin-bottom:8px;line-height:1.5}
+  .mock .opt{display:flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 11px;margin-bottom:6px}
+  .mock .opt.rec{border-color:var(--brand-400)}
+  .mock .opt i{width:12px;height:12px;border-radius:50%;border:2px solid var(--brand-400);flex:none}
+  .mock .opt em{margin-left:auto;font-style:normal;font-size:10px;font-weight:800;color:var(--brand-ink);background:var(--brand-050);border-radius:5px;padding:1px 6px}
+  .mock .btn{display:inline-block;background:var(--brand);color:var(--on-brand);font-weight:700;border-radius:999px;padding:6px 16px;font-size:12px}
+  .mock .log{font-family:var(--mono);font-size:11.5px;line-height:1.8}
+  .mock .log .g{color:#4b7a0a}.mock .log .a{color:var(--warn-ink)}.mock .log .b{color:var(--info-ink)}.mock .log .r{color:var(--error-ink)}
+  :root[data-theme="dark"] .mock .log .g,:root[data-theme="graphite"] .mock .log .g{color:#b9e06a}
+
+  /* esteira do laço de geração */
+  .pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;counter-reset:p}
+  .pipe .st{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 14px 12px;counter-increment:p}
+  .pipe .st::before{content:counter(p);position:absolute;top:-11px;left:14px;width:24px;height:24px;border-radius:50%;background:var(--brand);color:var(--on-brand);font-size:12px;font-weight:800;display:grid;place-items:center}
+  .pipe .st h3{margin:6px 0 4px;font-size:14px}
+  .pipe .st p{font-size:12.4px;line-height:1.5;color:var(--text-2);margin:0}
+  .pipe .st.back{border-style:dashed;border-color:var(--brand-400);background:var(--brand-025)}
+  .pipe .st.end{background:var(--brand);border-color:var(--brand)}
+  .pipe .st.end h3,.pipe .st.end p{color:#fff}.pipe .st.end p{color:#e6d3f2}
+  .pipe .st.end::before{background:#fff;color:var(--brand)}
+
+  /* camadas técnicas */
+  .layers{display:flex;flex-direction:column;gap:12px}
+  .layer{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:stretch}
+  .layer .lh{background:var(--brand);color:var(--on-brand);border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:center}
+  .layer .lh b{font-size:13px}.layer .lh span{font-size:11.5px;color:#e0cceb;margin-top:3px;line-height:1.4}
+  .layer .lc{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .comp{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+  .comp code{display:block;white-space:normal;border:0;background:none;padding:0;font-weight:700;font-size:12px;color:var(--brand-700);margin-bottom:3px;word-break:break-word}
+  .comp span{font-size:12px;line-height:1.45;color:var(--text-2)}
+  .layer-ext .lh{background:var(--brand-050);color:var(--brand-700);border:1px solid var(--brand-100)}
+  .layer-ext .lh span{color:var(--text-2)}
+
+  .cmp2 td:first-child{white-space:nowrap}
+  .cmp2 code{white-space:nowrap}
+  table.cmp td{font-size:12.8px}
+  pre .k{color:#e8b7ff}pre .s{color:#b9e06a}pre .c{color:#9a8fb0}
+
+  .stat{display:flex;gap:10px;flex-wrap:wrap}
+  .stat div{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;min-width:130px}
+  .stat b{display:block;font-size:26px;letter-spacing:-.02em;color:var(--brand-ink);line-height:1.1}
+  .stat span{font-size:12px;color:var(--text-2)}
+  @media (max-width:1040px){.three,.four,.pipe,.layer{grid-template-columns:1fr}}
+  .arrow{display:grid;place-items:center;color:var(--brand-400);font-size:30px;font-weight:700}
+  .pill{display:inline-block;background:var(--brand);color:var(--on-brand);font-size:12px;font-weight:700;border-radius:999px;padding:5px 14px}
+  .bubble{background:var(--brand-050);border:1px solid var(--brand-100);border-radius:18px 18px 18px 4px;padding:16px 18px;font-size:14.5px;line-height:1.55;color:var(--text-high)}
+  .bubble small{display:block;margin-top:8px;color:var(--text-2);font-size:11.5px}
+  .steps4{display:grid;grid-template-columns:repeat(4,1fr);gap:0;align-items:stretch}
+  .steps4 .s{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 18px 16px;margin-right:26px}
+  .steps4 .s:last-child{margin-right:0}
+  .steps4 .s::after{content:"\203A";position:absolute;right:-24px;top:50%;transform:translateY(-50%);font-size:30px;font-weight:800;color:var(--brand-400)}
+  .steps4 .s:last-child::after{display:none}
+  .steps4 .n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--brand);color:var(--on-brand);margin-bottom:10px}
+  .steps4 h3{font-size:16px;margin-bottom:6px}
+  .steps4 p{font-size:13px;color:var(--text-2);margin:0}
+  .steps4 .who{margin-top:10px}
+  .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .role{border-radius:20px;padding:22px;border:1px solid var(--border);background:var(--surface)}
+  .role .ic{font-size:11px;letter-spacing:.14em;font-weight:800;text-transform:uppercase;color:var(--brand-ink)}
+  .role h3{font-size:22px;margin:6px 0 4px}
+  .role .sub{font-size:13px;color:var(--text-2);margin:0 0 14px}
+  .role h4{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2);margin:12px 0 4px}
+  .role ul{margin:0;padding-left:18px;font-size:13px;line-height:1.65}
+  .role li::marker{color:var(--brand-400)}
+  .role.hub{background:var(--brand);border-color:var(--brand);color:#fff}
+  .role.hub .ic,.role.hub h4{color:#d9b8ec}.role.hub .sub{color:#e6d3f2}.role.hub li::marker{color:var(--lime)}
+  .bp{display:grid;grid-template-columns:210px 1fr 250px;gap:22px;align-items:center}
+  .bp .col{display:flex;flex-direction:column;gap:12px}
+  .bp .lab{font-size:11px;letter-spacing:.14em;font-weight:800;color:var(--brand-ink);text-transform:uppercase}
+  .bp .box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;font-size:13px;box-shadow:0 1px 2px rgba(40,10,60,.06)}
+  .bp .box b{display:block;font-size:14px;color:var(--text-high);margin-bottom:2px}
+  .bp .box span{color:var(--text-2);font-size:12px;line-height:1.4}
+  .bp .plat{background:var(--brand);border-radius:22px;padding:22px;color:#fff;position:relative}
+  .bp .plat h3{color:#fff;font-size:21px;margin-bottom:2px}
+  .bp .plat>p{color:#e6d3f2;font-size:13px;margin:0 0 14px}
+  .bp .sub4{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .bp .sub4 div{background:rgba(255,255,255,.95);color:#252233;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.4}
+  .bp .sub4 b{display:block;font-size:13px}
+  .results{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+  .results div{background:var(--brand-050);border:1px solid var(--brand-100);border-radius:14px;padding:12px 16px;font-size:13px;color:var(--text)}
+  .results b{display:block;color:var(--brand-ink);font-size:14px;margin-bottom:2px}
+  .story{display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+  .story figure{margin:0;position:relative}
+  .story figure::after{content:"\203A";position:absolute;right:-20px;top:70px;font-size:28px;font-weight:800;color:var(--brand-400)}
+  .story figure:last-child::after{display:none}
+  .story figcaption{margin-top:10px;font-size:13px;line-height:1.45;color:var(--text-2)}
+  .story figcaption b{display:block;color:var(--text-high);font-size:14px}
+  .mini{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;min-height:150px;font-size:12px;box-shadow:var(--shadow)}
+  .mini .bar{display:flex;gap:5px;margin-bottom:8px}.mini .bar i{width:8px;height:8px;border-radius:50%;background:var(--brand-100)}
+  .mini .f{border:1px solid var(--border);border-radius:8px;padding:7px 9px;margin-bottom:6px;color:var(--text-2);line-height:1.45;background:var(--page)}
+  .mini .o{display:flex;gap:7px;align-items:center;border:1px solid var(--border);border-radius:8px;padding:6px 9px;margin-bottom:5px;background:var(--page)}
+  .mini .o i{width:10px;height:10px;border-radius:50%;border:2px solid var(--brand-400);flex:none}
+  .mini .o.r{border-color:var(--brand-400)}
+  .mini .l{font-family:var(--mono);font-size:10.5px;line-height:1.8}
+  .mini .l .g{color:#4b7a0a}.mini .l .a{color:var(--warn-ink)}.mini .l .b{color:var(--info-ink)}
+  :root[data-theme="dark"] .mini .l .g,:root[data-theme="graphite"] .mini .l .g{color:#b9e06a}
+
+  /* camadas A: pilha com setas */
+  .pile{display:flex;flex-direction:column;align-items:stretch}
+  .pband{display:grid;grid-template-columns:160px 1fr;border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface)}
+  .pband .h{background:var(--brand);color:#fff;padding:12px 14px;display:flex;flex-direction:column;justify-content:center}
+  .pband .h b{font-size:13.5px}.pband .h span{font-size:11.5px;color:#e0cceb}
+  .pband .b{padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chip{background:var(--brand-025);border:1px solid var(--brand-100);border-radius:9px;padding:5px 10px;font-family:var(--mono);font-size:11.8px;font-weight:600;color:var(--brand-700)}
+  .chip small{display:block;font-family:var(--font);font-weight:500;font-size:11px;color:var(--text-2)}
+  .pband.ext .h{background:var(--brand-050);color:var(--brand-700);border-right:1px solid var(--brand-100)}.pband.ext .h span{color:var(--text-2)}
+  .pass{display:flex;justify-content:center;gap:34px;padding:5px 0;font-size:12px;color:var(--text-2)}
+  .pass span{display:flex;align-items:center;gap:6px}.pass b{color:var(--brand-400);font-size:16px}
+  /* camadas C: raias */
+  .swim{width:100%;border-collapse:separate;border-spacing:6px;font-size:12px}
+  .swim th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--brand-ink);text-align:left;padding:4px 8px}
+  .swim th.r{background:var(--brand);color:#fff;border-radius:10px;padding:10px 12px;width:130px;font-size:11.5px}
+  .swim th.r.x{background:var(--brand-050);color:var(--brand-700)}
+  .swim td{vertical-align:top;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:150px}
+  .swim td.e{background:transparent;border:1px dashed var(--border)}
+  .swim td .chip{display:block;margin-bottom:5px}
+  .swim td .chip:last-child{margin-bottom:0}
+  /* camadas D: matriz */
+  .filt{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .filt button{font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);color:var(--brand-700);border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:700}
+  .filt button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .mx td.l{white-space:nowrap}
+  .lay{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;padding:2px 8px;background:var(--brand-050);color:var(--brand-700)}
+  /* camadas E: cebola */
+  .onion{display:grid;grid-template-columns:200px 1fr 220px;gap:20px;align-items:center}
+  .ring{border-radius:26px;padding:42px 18px 18px;position:relative;border:1.5px solid var(--brand-100)}
+  .ring>.rt{position:absolute;top:12px;left:18px;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--brand-ink)}
+  .ring.r1{background:var(--brand-025)}
+  .ring.r2{background:var(--brand-050)}
+  .ring.r3{background:var(--brand-100)}
+  .ring.r4{background:var(--brand);border-color:var(--brand);color:#fff}
+  .ring.r4>.rt{color:#d9b8ec}
+  .ring .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .ring.r4 .chip{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff}
+  .dep{font-size:12px;color:var(--text-2);text-align:center;margin-top:10px}
+  @media (max-width:1040px){.steps4,.roles,.bp,.results,.story,.onion{grid-template-columns:1fr}.steps4 .s{margin:0 0 20px}.steps4 .s::after,.story figure::after{display:none}.pband{grid-template-columns:1fr}}
+  /* ===== layout de documento: sumário + conteúdo (como o documento de referência do SDUI) ===== */
+  main{padding:20px var(--pad) 40px}
+  .doclayout{margin-top:0;grid-template-columns:268px minmax(0,1fr);width:100%;max-width:1680px}
+  .toc{max-height:calc(100vh - 150px);top:16px}
+  .docpane{max-height:calc(100vh - 150px)}
+  .doc{max-width:1100px}
+  .doc h2{font-size:21px}
+  .doc .card h2,.doc .ask h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-ink);margin:0 0 12px;padding-top:0;border-top:0}
+  .doc .ask h2{color:#d9b8ec}
+  .doc .card h3,.doc .pipe h3{color:var(--text-high)}
+  .doc .dia,.doc .bp,.doc .three,.doc .two,.doc .pipe,.doc .results{margin-top:16px;margin-bottom:18px}
+  .doc .swim th,.doc .mx th{background:none}
+  .doc .swim th.r{background:var(--brand);color:#fff}
+  .doc .swim th.r.x{background:var(--brand-050);color:var(--brand-700)}
+  .doc .swim td,.doc .mx td{border-radius:10px}
+  .doc .mx td{border-radius:0}
+  .doc .dia p.arch-title{display:none}
+  @media (max-width:1040px){.toc{max-height:220px}.docpane{max-height:calc(100vh - 120px)}}
+  /* ---------- exemplos entra / sai ---------- */
+  .flow4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .flow4 div{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;position:relative}
+  .flow4 b{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--brand-ink);margin-bottom:6px}
+  .doc .flow4 code{white-space:normal;overflow-wrap:anywhere;display:inline-block;margin-bottom:5px}
+  .flow4 span{display:block;font-size:12px;color:var(--text-2)}
+  .flow4 div:not(:last-child)::after{content:"→";position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:var(--brand-400);font-weight:800}
+  .io{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-top:14px}
+  .io>div{display:flex;flex-direction:column;min-width:0}
+  .io>div pre{flex:1}
+  .io-l{display:block;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:0 0 6px 2px}
+  .doc pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.65;margin:0}
+  .io-arrow{display:flex;align-items:center;gap:8px;margin:14px 0 8px 2px;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--brand-ink)}
+  .io-arrow::before{content:"↓";font-size:16px;letter-spacing:0}
+  .doc pre mark{background:rgba(153,204,51,.2);color:#dff2b0;border-radius:4px;padding:0 2px;box-shadow:inset 0 0 0 1px rgba(153,204,51,.5)}
+  .doc pre i.src{font-style:normal;background:rgba(240,197,138,.14);color:#f3d29f;border-radius:4px;padding:0 2px;box-shadow:inset 0 0 0 1px rgba(240,197,138,.4)}
+  .lg{display:inline-block;border-radius:5px;padding:0 6px;font-weight:700;font-size:12px}
+  .lg.src{background:var(--warn-low);color:var(--warn-ink);border:1px solid var(--warn-border)}
+  .lg.ok{background:rgba(153,204,51,.2);color:var(--text);border:1px solid rgba(153,204,51,.55)}
+  .doc ul.rules{margin-top:14px}
+  @media (max-width:900px){.flow4{grid-template-columns:1fr 1fr}.io{grid-template-columns:1fr}}
+  @media (max-width:520px){.flow4{grid-template-columns:1fr}.flow4 div::after{display:none}}
+  /* ---------- sequências e melhoria ---------- */
+  .s-frame{fill:none;stroke:var(--text-3);stroke-width:1;stroke-dasharray:4 4}
+  .s-frtag{fill:var(--brand-050);stroke:var(--text-3);stroke-width:1}
+  .s-frt{fill:var(--text-high);font-size:11px;font-weight:800}
+  .s-frc{fill:var(--text-2);font-size:11.5px;font-weight:700}
+  .s-new{fill:rgba(153,204,51,.2);stroke:var(--lime);stroke-width:1.6}
+  .s-newnote{fill:rgba(153,204,51,.16);stroke:var(--lime)}
+  .newbox{border:1.5px solid var(--lime);background:rgba(153,204,51,.08);border-radius:var(--radius);padding:16px 20px;margin-top:12px}
+  .newbox p{margin:10px 0 0}
+  .tag.new{background:var(--lime);color:#1c2a00;border-color:transparent}
+</style>
+<script>
+  /* Tema aplicado antes da primeira pintura, para não piscar: usa a escolha gravada e,
+     na primeira visita, o tema do sistema operacional. */
+  (function(){
+    var t = null;
+    try {
+      t = localStorage.getItem('plataforma-tema') ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } catch (e) {}
+    if (['light','dark','graphite'].indexOf(t) < 0) t = 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+</head>
+<body>
+<div class="deck">
+  <div class="progress"><i id="bar" style="transform:scaleX(0)"></i></div>
+  <header class="masthead">
+    <div class="lockup">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 195 72" fill="currentColor" aria-hidden="true" focusable="false"><path d="M23.3761 61.4297H26.5561C27.0861 61.4297 29.1472 61.1549 30.266 59.0938L43.4176 35.7743C44.7721 33.301 43.1821 31.2006 41.7688 30.6903L38.2748 29.1199C36.3904 28.2759 34.133 29.1592 33.2693 31.1417L25.0054 47.7481H24.8876L16.6433 31.1417C15.7992 29.1788 13.5222 28.2759 11.6575 29.1199L8.16346 30.6903C6.75015 31.2006 5.16018 33.301 6.5146 35.7743L19.6858 59.0938C20.8047 61.1549 22.8462 61.4297 23.3761 61.4297Z" /><path d="M81.204 61.4297H84.3839C84.9139 61.4297 86.975 61.1549 88.0939 59.0938L101.265 35.7743C102.62 33.301 101.03 31.2006 99.6163 30.6903L96.1223 29.1199C94.2378 28.2759 91.9805 29.1592 91.1364 31.1417L82.8725 47.7481H82.7547L74.4908 31.1417C73.6467 29.1788 71.3697 28.2759 69.5049 29.1199L66.0109 30.6903C64.5976 31.2006 63.0077 33.301 64.3621 35.7743L77.5137 59.0938C78.6129 61.1549 80.674 61.4297 81.204 61.4297Z" /><path d="M119.815 28.904C110.746 28.904 103.385 36.265 103.385 45.3337C103.385 54.4024 110.746 61.7634 119.815 61.7634C128.884 61.7634 136.244 54.4024 136.244 45.3337C136.244 36.265 128.903 28.904 119.815 28.904ZM119.815 51.8114C116.242 51.8114 113.337 48.9062 113.337 45.3337C113.337 41.7612 116.242 38.8561 119.815 38.8561C123.387 38.8561 126.292 41.7612 126.292 45.3337C126.312 48.9062 123.407 51.8114 119.815 51.8114Z" /><path d="M60.3184 19.5603C60.3184 23.1132 57.4329 25.9987 53.88 25.9987C50.3271 25.9987 47.4416 23.1132 47.4416 19.5603C47.4416 16.0074 50.3271 13.1219 53.88 13.1219C57.4329 13.1219 60.3184 16.0074 60.3184 19.5603Z" /><path d="M48.2661 33.2226C48.2661 31.0241 50.0327 29.2574 52.2312 29.2574H55.5485C57.747 29.2574 59.5136 31.0241 59.5136 33.2226V57.4647C59.5136 59.6632 57.7274 61.4298 55.5485 61.4298H52.2312C50.0327 61.4298 48.2661 59.6632 48.2661 57.4647V33.2226Z" /><path d="M178.919 19.5409C178.919 21.5627 178.192 24.7427 175.974 26.9608C175.189 27.746 174.502 28.2171 173.952 28.5704C172.912 29.2574 172.146 29.7285 172.559 30.867C172.971 31.9859 174.266 31.6326 175.503 31.3577C175.896 31.2596 183.61 29.4144 183.708 29.4144C185.769 29.0219 187.771 30.337 188.262 32.3588C188.262 32.3588 188.871 34.9499 188.89 34.9695C189.381 36.9913 188.184 39.0721 186.162 39.6609C186.083 39.7002 177.662 41.722 177.643 41.722C176.053 42.1342 175.11 42.9194 175.11 44.4701C175.11 45.1571 175.503 45.903 175.994 46.5312C175.994 46.5312 185.141 57.8769 185.18 57.9554C186.417 59.6632 186.103 62.0187 184.493 63.3338C184.493 63.3338 182.432 65.0023 182.413 65.0219C180.803 66.3371 178.408 66.1604 177.014 64.5901C176.936 64.5312 171.263 57.5432 170.655 56.7973C170.046 56.0514 169.3 54.9325 168.24 54.9325C167.18 54.9325 166.434 56.0514 165.826 56.7973C165.217 57.5432 159.544 64.5116 159.466 64.5901C158.053 66.1604 155.677 66.3371 154.068 65.0219C154.048 65.0023 151.987 63.3338 151.987 63.3338C150.378 62.0187 150.044 59.6435 151.3 57.9554C151.339 57.8769 160.487 46.5312 160.487 46.5312C160.977 45.903 161.37 45.1571 161.37 44.4701C161.37 42.9194 160.428 42.1342 158.838 41.722C158.818 41.722 150.397 39.7002 150.319 39.6609C148.297 39.0721 147.119 36.9913 147.59 34.9695C147.59 34.9499 148.218 32.3785 148.218 32.3588C148.709 30.337 150.711 29.0219 152.772 29.4144C152.87 29.4144 160.565 31.2596 160.977 31.3577C162.214 31.6326 163.51 31.9859 163.922 30.867C164.354 29.7285 163.588 29.2574 162.528 28.5704C161.978 28.2171 161.311 27.746 160.526 26.9608C158.288 24.723 157.562 21.5627 157.562 19.5409C157.562 13.7307 162.41 9 168.24 9C174.07 9 178.919 13.711 178.919 19.5409Z" /></svg>
+      <span class="rule"></span>
+      <span>ELASTIC JOURNEY<small>Entrega da tela SDUI</small></span>
+    </div>
+    <div class="mast-actions">
+      <span class="proposal">Visão de engenharia</span>
+      <div class="switch" id="theme" role="group" aria-label="Tema da apresentação">
+        <button type="button" data-theme-choice="light" aria-pressed="true">Claro</button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false">Escuro</button>
+        <button type="button" data-theme-choice="graphite" aria-pressed="false">Grafite</button>
+      </div>
+    </div>
+  </header>
+
+
+  <main>
+    <div class="doclayout">
+      <aside class="toc"><h2>Sumário</h2><nav id="toc"></nav></aside>
+      <div class="docpane" id="docpane"><article class="doc" id="doc">
+
+<h1 style="margin-top:22px">Como o ms-journey <em>entrega a tela</em></h1>
+<p class="lead" style="margin-bottom:6px">
+  Quando a instância está numa tarefa de usuário, o <strong>ms-journey</strong> lê no motor a tarefa aberta e as variáveis da instância e pede a tela daquele nó ao
+  <strong>ms-espec-registry</strong>. É lá que a tela publicada recebe os valores: placeholders, vínculos, fontes de dados e listas.
+  O ms-journey devolve o resultado ao canal sem alterar nada. Os cinco exemplos mostram, para cada recurso, o que entra e o que sai; em seguida, cinco diagramas de sequência mostram a conversa entre ms-journey, ms-espec-registry e ms-runtime-camunda, e a página fecha com uma melhoria proposta: o estado das tarefas assíncronas em Redis.
+</p>
+
+    <div class="flow4" style="margin-top:18px">
+      <div><b>1 · Tarefa</b><code>GET /task?processInstanceId</code><span>nó da tela aberta</span></div>
+      <div><b>2 · Variáveis</b><code>GET /process-instance/{id}/variables</code><span>form_*, data_*, channel</span></div>
+      <div><b>3 · Tela</b><code>POST …/nodes/{nodeId}/form/resolve</code><span>versão da instância + variáveis</span></div>
+      <div><b>4 · Entrega</b><code>step.form.sdui</code><span>repassado ao canal sem alteração</span></div>
+    </div>
+<p class="out" style="margin-top:10px">Nos exemplos, <span class="lg src">âmbar</span> marca o que o servidor consome (some ou é substituído) e <span class="lg ok">verde</span> marca o valor que chega resolvido. Variáveis aparecem com o nome que têm no motor: <code>form.plano</code> na tela é <code>form_plano</code> no motor.</p>
+
+<!-- ====================================================== 1 -->
+<h2 id="t1">1. Placeholders de texto</h2>
+<p>Qualquer atributo de texto pode ter <code>{{…}}</code>. O servidor troca cada placeholder pelo valor da variável antes de entregar a tela.</p>
+    <div class="io">
+      <div><span class="io-l">Tela publicada</span><pre>["ui.screen", { "id": "s", "version": "1.0.0",
+  "title": "Olá, <i class="src">{{data.nomeCliente}}</i>" }, [
+  ["ui.text", { "id": "t1", "version": "1.0.0",
+    "text": "Plano: <i class="src">{{form.plano}}</i> · canal <i class="src">{{channel}}</i>" }],
+  ["ui.text", { "id": "t2", "version": "1.0.0",
+    "text": "Protocolo: <i class="src">{{data.protocolo}}</i>" }]
+]]</pre></div>
+      <div><span class="io-l">Variáveis da instância</span><pre>data_nomeCliente  "Ana"            String
+form_plano        "Controle 20GB"  String
+channel           "WEB"            String
+data_cpf          "12345678900"    String
+
+(data_protocolo não existe)</pre></div>
+    </div>
+    <div class="io-arrow">ms-journey &rarr; form/resolve &rarr; entregue ao canal</div>
+<pre>"sdui": { …, "data": ["ui.screen", { "id": "s", "version": "1.0.0",
+  "title": "Olá, <mark>Ana</mark>" }, [
+  ["ui.text", { "id": "t1", "version": "1.0.0", "text": "Plano: <mark>Controle 20GB</mark> · canal <mark>WEB</mark>" }],
+  ["ui.text", { "id": "t2", "version": "1.0.0", "text": "Protocolo: <mark></mark>" }]
+]] },
+"context": {
+  "form": { "data_nomeCliente": "Ana", "form_plano": "Controle 20GB", "channel": "WEB" },
+  "data": { "data_nomeCliente": "Ana", "form_plano": "Controle 20GB", "channel": "WEB" }
+}</pre>
+<ul class="rules">
+  <li>Formas aceitas: <code>{{form.x}}</code>, <code>{{data.x}}</code>, o nome no motor (<code>{{form_x}}</code>, <code>{{data_x}}</code>) e <code>{{channel}}</code>. Qualquer outra forma vira texto vazio, e a publicação já recusa.</li>
+  <li>Variável inexistente vira texto vazio, nunca o <code>{{…}}</code> literal.</li>
+  <li>Vale para todo atributo de texto cujo nome não começa com <code>$</code>. Parâmetros de <code>$events</code> não são interpolados.</li>
+  <li>O <code>context</code> leva só as variáveis que a tela referencia: <code>data_cpf</code> ficou de fora. <code>form</code> e <code>data</code> trazem o mesmo mapa.</li>
+</ul>
+<p class="out">Código: <code>TemplateResolver.resolveTemplate</code>, <code>BindingResolver.engineVariableNameOfPlaceholder</code>, <code>CanonicalFormat.referencedProcessVariables</code>.</p>
+
+<!-- ====================================================== 2 -->
+<h2 id="t2">2. Vínculos e condições</h2>
+<p>Um vínculo em <code>$bindings</code> grava o valor da variável no atributo de mesmo nome. Condições (<code>$visibility</code>, <code>$active</code>) seguem intactas para o canal avaliar.</p>
+    <div class="io">
+      <div><span class="io-l">Tela publicada</span><pre>["ui.textInput", { "id": "email", "version": "1.0.0", "label": "E-mail",
+  "$bindings": { <i class="src">"value"</i>: { "path": "form.email", "mode": "twoWay" } } }],
+["ui.text", { "id": "saldo", "version": "1.0.0", "text": <i class="src">"—"</i>,
+  "$bindings": { <i class="src">"text"</i>: { "path": "data.saldo", "mode": "oneWay" } } }],
+["ui.textInput", { "id": "tel", "version": "1.0.0", "label": "Celular",
+  "$bindings": { "value": { "path": "form.telefone", "mode": "twoWay" } } }],
+["ui.alert", { "id": "aviso", "version": "1.0.0",
+  "severity": "warning", "message": "Saldo baixo",
+  "$visibility": { "rule": "equals", "path": "data.saldoBaixo", "value": true } }]</pre></div>
+      <div><span class="io-l">Variáveis da instância</span><pre>form_email       "ana@exemplo.com"  String
+data_saldo       42.5               Double
+data_saldoBaixo  true               Boolean
+
+(form_telefone não existe:
+ a tela ainda não foi enviada)</pre></div>
+    </div>
+    <div class="io-arrow">ms-journey &rarr; form/resolve &rarr; entregue ao canal</div>
+<pre>["ui.textInput", { "id": "email", "version": "1.0.0", "label": "E-mail",
+  "$bindings": { "value": { "path": "form.email", "mode": "twoWay" } },
+  <mark>"value": "ana@exemplo.com"</mark> }],
+["ui.text", { "id": "saldo", "version": "1.0.0", "text": <mark>42.5</mark>,
+  "$bindings": { "text": { "path": "data.saldo", "mode": "oneWay" } } }],
+["ui.textInput", { "id": "tel", "version": "1.0.0", "label": "Celular",
+  "$bindings": { "value": { "path": "form.telefone", "mode": "twoWay" } } }],
+["ui.alert", { "id": "aviso", "version": "1.0.0",
+  "severity": "warning", "message": "Saldo baixo",
+  "$visibility": { "rule": "equals", "path": "data.saldoBaixo", "value": true } }]
+
+"context": { "form": { "form_email": "ana@exemplo.com", "data_saldo": 42.5, "data_saldoBaixo": true }, "data": { … } }</pre>
+<ul class="rules">
+  <li>A chave do vínculo é o atributo que recebe o valor: <code>value</code> num campo, <code>text</code> num texto. O valor sai com o tipo da variável (<code>42.5</code> é número, não texto).</li>
+  <li><code>oneWay</code> e <code>twoWay</code> são resolvidos do mesmo jeito: um campo revisitado já chega preenchido. A diferença fica com o canal, que só devolve nas respostas os campos <code>twoWay</code> em <code>form.*</code>.</li>
+  <li>Sem variável, o atributo não é criado e o campo nasce vazio (<code>tel</code>).</li>
+  <li><code>$bindings</code>, <code>$events</code>, <code>$visibility</code> e <code>$active</code> não são removidos. A variável da condição entra no <code>context</code> (<code>data_saldoBaixo</code>) para o canal reavaliar enquanto a pessoa preenche.</li>
+</ul>
+<p class="out">Código: <code>TemplateResolver.resolveAttributes</code>, <code>BindingResolver.resolve</code>.</p>
+
+<!-- ====================================================== 3 -->
+<h2 id="t3">3. Fonte de dados num select</h2>
+<p>A tela pode declarar fontes de dados. O ms-espec-registry as chama a cada montagem da tela e entrega as opções prontas; a configuração da fonte nunca chega ao canal.</p>
+    <div class="io">
+      <div><span class="io-l">Tela publicada (envelope)</span><pre><i class="src">"dataSources": {
+  "ufs": {
+    "source": "Catálogo de UFs",
+    "url": "https://api.exemplo/ufs?cliente={cpf}",
+    "params": { "cpf": "{{data.cpf}}" },
+    "itemsPath": "$.itens",
+    "exposedFields": ["label", "value"],
+    "timeoutMs": 3000,
+    "required": true
+  }
+}</i>,
+"data": ["ui.screen", { … }, [
+  ["ui.select", { "id": "uf", "version": "1.0.0", "label": "Estado",
+    "$bindings": {
+      <i class="src">"options": { "path": "data.ufs", "mode": "oneWay" }</i>,
+      "value": { "path": "form.uf", "mode": "twoWay" } } }]
+]]</pre></div>
+      <div><span class="io-l">Variáveis e chamada à fonte</span><pre>data_cpf  "12345678900"  String
+
+GET https://api.exemplo/ufs?cliente=12345678900
+
+200 {
+  "itens": [
+    { "label": "São Paulo", "value": "SP", "ibge": 35 },
+    { "label": "Rio de Janeiro", "value": "RJ", "ibge": 33 }
+  ]
+}</pre></div>
+    </div>
+    <div class="io-arrow">ms-journey &rarr; form/resolve &rarr; entregue ao canal</div>
+<pre><mark>"dataSources": {}</mark>,
+"data": ["ui.screen", { … }, [
+  ["ui.select", { "id": "uf", "version": "1.0.0", "label": "Estado",
+    "$bindings": { "value": { "path": "form.uf", "mode": "twoWay" } },
+    <mark>"options": [ { "label": "São Paulo", "value": "SP" }, { "label": "Rio de Janeiro", "value": "RJ" } ]</mark> }]
+]]
+
+"context": { "form": { "data_cpf": "12345678900",
+  "data_ufs": "[{\"label\":\"São Paulo\",\"value\":\"SP\"},{\"label\":\"Rio de Janeiro\",\"value\":\"RJ\"}]" }, "data": { … } }</pre>
+<ul class="rules">
+  <li>Cada <code>{nome}</code> da URL é trocado pelo parâmetro de mesmo nome, já interpolado e codificado (<code>{{data.cpf}}</code> &rarr; <code>12345678900</code>).</li>
+  <li><code>itemsPath</code> aponta a lista na resposta (<code>$</code> ou <code>$.a.b</code>); só os <code>exposedFields</code> passam (<code>ibge</code> foi descartado). No select, só entram itens com <code>label</code> e <code>value</code>.</li>
+  <li>O resultado vale só para esta montagem: aparece no <code>context</code> como <code>data_&lt;apelido&gt;</code> e nunca vira variável da instância. O vínculo <code>options</code> sai de <code>$bindings</code>.</li>
+  <li>As fontes são chamadas em sequência, com conexão de 3 s e o <code>timeoutMs</code> da fonte (padrão 5 s). Cada chamada grava uma linha em <code>espec_registry.data_source_call</code>.</li>
+</ul>
+<p class="out">Código: <code>ScreenDataSourceFetcher.fetchAll</code>, <code>ListMaterializer.selectOptions</code>, <code>ResolveScreenForNode.resolveEnvelope</code>.</p>
+
+<!-- ====================================================== 4 -->
+<h2 id="t4">4. Lista de seleção</h2>
+<p><code>ui.selectList</code> é montada inteira no servidor: cada item vira <code>value</code>, <code>title</code> e <code>description</code>, e as regras que liberam cada ação são avaliadas item a item.</p>
+    <div class="io">
+      <div><span class="io-l">Tela publicada</span><pre>["ui.selectList", { "id": "linhas", "version": "1.0.0",
+  "label": "Escolha a linha",
+  <i class="src">"itemValue": "numero",
+  "itemTitle": "{{item.apelido}} · {{item.numero}}",
+  "itemDescription": "Plano {{item.plano}}",
+  "actions": [
+    { "id": "portar", "label": "Portar", "variant": "primary",
+      "enabledWhen": "{{item.portavel}} == true" },
+    { "id": "cancelar", "label": "Cancelar", "variant": "danger" } ]</i>,
+  "$bindings": {
+    <i class="src">"items": { "path": "data.linhas", "mode": "oneWay" }</i>,
+    "value":  { "path": "form.linha", "mode": "twoWay" },
+    "action": { "path": "form.acao",  "mode": "twoWay" } },
+  "$events": { "onAction": { "action": "action.submit" } } }]</pre></div>
+      <div><span class="io-l">Variáveis da instância</span><pre>data_linhas  Json
+[
+  { "numero": "11999990001", "apelido": "Pessoal",
+    "plano": "Controle", "portavel": true },
+  { "numero": "11999990002", "apelido": "Trabalho",
+    "plano": "Pós", "portavel": false }
+]
+
+(gravada por uma integração anterior
+ ou por uma fonte de dados da tela)</pre></div>
+    </div>
+    <div class="io-arrow">ms-journey &rarr; form/resolve &rarr; entregue ao canal</div>
+<pre>["ui.selectList", { "id": "linhas", "version": "1.0.0", "label": "Escolha a linha",
+  "$bindings": { "value": { "path": "form.linha", "mode": "twoWay" },
+                 "action": { "path": "form.acao", "mode": "twoWay" } },
+  "$events": { "onAction": { "action": "action.submit" } },
+  <mark>"items": [
+    { "value": "11999990001", "title": "Pessoal · 11999990001", "description": "Plano Controle",
+      "enabledActions": ["portar", "cancelar"] },
+    { "value": "11999990002", "title": "Trabalho · 11999990002", "description": "Plano Pós",
+      "enabledActions": ["cancelar"] } ],
+  "totalItems": 2,
+  "actions": [ { "id": "portar", "label": "Portar", "variant": "primary" },
+               { "id": "cancelar", "label": "Cancelar", "variant": "danger" } ]</mark> }]</pre>
+<ul class="rules">
+  <li><code>itemValue</code>, <code>itemTitle</code>, <code>itemDescription</code>, <code>itemHint</code>, <code>maxItems</code> e as regras <code>enabledWhen</code> nunca saem do servidor.</li>
+  <li><code>{{item.campo}}</code> é resolvido por item; depois, <code>{{form.x}}</code> e <code>{{data.x}}</code> como em qualquer texto.</li>
+  <li><code>enabledWhen</code> aceita <code>{{item.campo}} == literal</code> ou <code>!=</code> (booleano, número ou texto entre aspas). Ação sem regra fica liberada para todos os itens.</li>
+  <li>Vão no máximo <code>maxItems</code> itens (padrão 50); <code>totalItems</code> diz quantos existiam. Se <code>form_linha</code> e <code>form_acao</code> já existirem, chegam em <code>value</code> e <code>action</code>.</li>
+</ul>
+<p class="out">Código: <code>ListMaterializer.selectList</code>, <code>ListMaterializer.isEnabled</code>.</p>
+
+<!-- ====================================================== 5 -->
+<h2 id="t5">5. Fonte de dados que falhou</h2>
+<p>Se a fonte não responde, responde fora de 2xx ou devolve algo ilegível, a tela é entregue mesmo assim: a lista vem vazia e o componente recebe <code>loadError</code>.</p>
+    <div class="io">
+      <div><span class="io-l">Tela publicada</span><pre>"dataSources": {
+  "ufs": { "url": "https://api.exemplo/ufs?cliente={cpf}",
+           "params": { "cpf": "{{data.cpf}}" },
+           "timeoutMs": 3000, "required": true,
+           <i class="src">"errorMessage": "Não foi possível carregar os estados agora."</i> }
+},
+"data": ["ui.screen", { … }, [
+  ["ui.select", { "id": "uf", "version": "1.0.0", "label": "Estado",
+    "$bindings": { "options": { "path": "data.ufs", "mode": "oneWay" },
+                   "value": { "path": "form.uf", "mode": "twoWay" } } }],
+  ["ui.button", { "id": "retry", "version": "1.0.0", "label": "Tentar novamente",
+    "$events": { "onPress": { "action": "action.retry" } } }]
+]]</pre></div>
+      <div><span class="io-l">Chamada à fonte</span><pre>GET https://api.exemplo/ufs?cliente=12345678900
+
+... sem resposta em 3000 ms
+
+INSERT espec_registry.data_source_call
+  alias        ufs
+  status       TIMEOUT
+  duration_ms  3001
+  error        A fonte não respondeu em até 3000 ms</pre></div>
+    </div>
+    <div class="io-arrow">ms-journey &rarr; form/resolve &rarr; entregue ao canal</div>
+<pre>["ui.select", { "id": "uf", "version": "1.0.0", "label": "Estado",
+  "$bindings": { "value": { "path": "form.uf", "mode": "twoWay" } },
+  <mark>"options": []</mark>,
+  <mark>"loadError": { "message": "Não foi possível carregar os estados agora.", "required": true }</mark> }],
+["ui.button", { "id": "retry", "version": "1.0.0", "label": "Tentar novamente",
+  "$events": { "onPress": { "action": "action.retry" } } }]</pre>
+<ul class="rules">
+  <li>A mensagem vem de <code>errorMessage</code> da fonte; sem ela, &ldquo;Não foi possível carregar as informações agora.&rdquo;.</li>
+  <li><code>required: true</code> diz ao canal que a etapa não pode ser enviada enquanto a fonte não carregar.</li>
+  <li><code>action.retry</code> é só um novo <code>GET /instances/{id}/current-step</code>: o ms-journey refaz os passos 1 a 4 e a fonte é chamada de novo.</li>
+  <li>A falha não vira erro HTTP nem toca a instância: o motor não sabe que a fonte falhou.</li>
+</ul>
+<p class="out">Código: <code>ScreenDataSourceFetcher.fetch</code>, <code>ListMaterializer.putLoadError</code>.</p>
+
+<!-- ====================================================== resumo -->
+<h2 id="t6">Resumo</h2>
+    <div class="tw"><table style="min-width:720px">
+      <thead><tr><th>Recurso</th><th>Na tela publicada</th><th>O que o canal recebe</th></tr></thead>
+      <tbody>
+        <tr><td><b>Placeholder</b></td><td><code>{{form.x}}</code>, <code>{{data.x}}</code>, <code>{{channel}}</code> em texto</td><td>texto com o valor; vazio se a variável não existe</td></tr>
+        <tr><td><b>Vínculo</b></td><td><code>$bindings.&lt;atributo&gt;</code></td><td>o atributo preenchido com o valor e o tipo da variável; <code>$bindings</code> mantido</td></tr>
+        <tr><td><b>Condição</b></td><td><code>$visibility</code>, <code>$active</code></td><td>intactas, com a variável no <code>context</code></td></tr>
+        <tr><td><b>Evento</b></td><td><code>$events</code></td><td>intacto; o canal executa a ação</td></tr>
+        <tr><td><b>Fonte de dados</b></td><td><code>dataSources</code> + vínculo <code>options</code> ou <code>items</code></td><td><code>dataSources: {}</code>, opções ou itens prontos</td></tr>
+        <tr><td><b>Lista de seleção</b></td><td><code>itemTitle</code>, <code>actions</code>, <code>enabledWhen</code></td><td><code>items</code>, <code>totalItems</code>, <code>actions</code> sem as regras</td></tr>
+        <tr><td><b>Falha de fonte</b></td><td><code>required</code>, <code>errorMessage</code></td><td><code>loadError</code> no componente, lista vazia</td></tr>
+      </tbody>
+    </table></div>
+<p class="out">Tudo isso roda em <code>ResolveScreenForNode.execute</code> (ms-espec-registry), a cada <code>current-step</code>, início, envio ou voltar que caia numa tarefa de usuário. O ms-journey só encaminha: o <code>sdui</code> chega a ele como objeto opaco (<code>FormPayload</code>) e segue igual para o canal.</p>
+
+
+<!-- ====================================================== sequências -->
+<h2 id="s1">6. Sequência · Iniciar a jornada</h2>
+<p>O canal cria a instância. O ms-espec-registry valida e tipa as variáveis de entrada, o motor executa até a primeira espera e o ms-journey resolve essa primeira etapa antes de responder.</p>
+      <div class="dia" style="margin-top:12px">
+        <svg viewBox="0 0 1000 445" role="img" aria-label="Sequência do início: conversão das variáveis de entrada, início da instância no motor, resolução da primeira etapa e fluxo.">
+          <defs><marker id="q1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker></defs>
+          <rect class="s-box" x="5" y="10" width="170" height="46" rx="10"/><text class="s-t" x="90" y="38" text-anchor="middle" style="font-size:13px">Canal / BFF</text>
+          <rect class="s-hub" x="255" y="10" width="170" height="46" rx="10"/><text class="s-w" x="340" y="38" text-anchor="middle" style="font-size:13px">ms-journey</text>
+          <rect class="s-box" x="515" y="10" width="170" height="46" rx="10"/><text class="s-t" x="600" y="38" text-anchor="middle" style="font-size:13px">ms-espec-registry</text>
+          <rect class="s-box" x="775" y="10" width="170" height="46" rx="10"/><text class="s-t" x="860" y="38" text-anchor="middle" style="font-size:13px">ms-runtime-camunda</text>
+          <path class="s-life" d="M90 56 V440"/><path class="s-life" d="M340 56 V440"/><path class="s-life" d="M600 56 V440"/><path class="s-life" d="M860 56 V440"/>
+          <path class="s-line" marker-end="url(#q1)" d="M90 100 H338"/><text class="s-msg" x="98" y="93">POST /journeys/{jid}/instances?channelType=WEB</text>
+          <path class="s-line" marker-end="url(#q1)" d="M340 130 H598"/><text class="s-msg" x="348" y="123">POST /journeys/{jid}/start-variables/convert</text>
+          <rect class="s-note" x="608" y="142" width="236" height="24" rx="6"/><text class="s-notet" x="616" y="158">journey_publication · nó START</text>
+          <path class="s-dash" marker-end="url(#q1)" d="M600 186 H342"/><text class="s-lbl" x="348" y="180">{ data_cpf: String } · faltou variável ⇒ 409</text>
+          <rect class="s-note" x="348" y="200" width="244" height="24" rx="6"/><text class="s-notet" x="356" y="216">+ channel = WEB · businessKey = UUID</text>
+          <path class="s-line" marker-end="url(#q1)" d="M340 248 H858"/><text class="s-msg" x="348" y="241">POST /process-definition/key/Journey_&lt;hex&gt;/start</text>
+          <rect class="s-note" x="616" y="258" width="236" height="24" rx="6"/><text class="s-notet" x="624" y="274">transação até a primeira espera</text>
+          <path class="s-dash" marker-end="url(#q1)" d="M860 300 H342"/><text class="s-lbl" x="348" y="294">{ id: processInstanceId }</text>
+          <rect class="s-note" x="348" y="314" width="244" height="24" rx="6"/><text class="s-notet" x="356" y="330">resolve(pid): sequência 7</text>
+          <path class="s-line" marker-end="url(#q1)" d="M340 362 H598"/><text class="s-msg" x="348" y="355">GET /journeys/{jid}/flow</text>
+          <path class="s-dash" marker-end="url(#q1)" d="M600 390 H342"/><text class="s-lbl" x="348" y="384">{ channelTypes, flowNodes }</text>
+          <path class="s-dash" marker-end="url(#q1)" d="M340 422 H92"/><text class="s-lbl" x="98" y="416">{ processInstanceId, businessKey, flow, step }</text>
+        </svg>
+        <p class="cap">Variáveis declaradas no Início são obrigatórias; as extras também entram, como <code>data_&lt;nome&gt;</code>. Código: <code>JourneyController.start</code>, <code>VariableConversion.fromDeclaredVariables</code>.</p>
+      </div>
+
+<h2 id="s2">7. Sequência · Etapa atual numa tela</h2>
+<p>É a sequência que todas as outras reaproveitam (<code>JourneyStepResolver.resolve</code>): quatro leituras no motor e uma chamada ao ms-espec-registry, que monta a tela como nos exemplos 1 a 5.</p>
+      <div class="dia" style="margin-top:12px">
+        <svg viewBox="0 0 1000 495" role="img" aria-label="Sequência do current-step: instância, versão, tarefa, variáveis no motor e resolução da tela no ms-espec-registry.">
+          <defs><marker id="q2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker></defs>
+          <rect class="s-box" x="5" y="10" width="170" height="46" rx="10"/><text class="s-t" x="90" y="38" text-anchor="middle" style="font-size:13px">Canal / BFF</text>
+          <rect class="s-hub" x="255" y="10" width="170" height="46" rx="10"/><text class="s-w" x="340" y="38" text-anchor="middle" style="font-size:13px">ms-journey</text>
+          <rect class="s-box" x="515" y="10" width="170" height="46" rx="10"/><text class="s-t" x="600" y="38" text-anchor="middle" style="font-size:13px">ms-espec-registry</text>
+          <rect class="s-box" x="775" y="10" width="170" height="46" rx="10"/><text class="s-t" x="860" y="38" text-anchor="middle" style="font-size:13px">ms-runtime-camunda</text>
+          <path class="s-life" d="M90 56 V490"/><path class="s-life" d="M340 56 V490"/><path class="s-life" d="M600 56 V490"/><path class="s-life" d="M860 56 V490"/>
+          <path class="s-line" marker-end="url(#q2)" d="M90 100 H338"/><text class="s-msg" x="98" y="93">GET /instances/{pid}/current-step</text>
+          <path class="s-line" marker-end="url(#q2)" d="M340 130 H858"/><text class="s-msg" x="348" y="123">GET /process-instance/{pid}</text>
+          <path class="s-dash" marker-end="url(#q2)" d="M860 156 H342"/><text class="s-lbl" x="348" y="150">definitionKey, definitionId · 404 ⇒ ENDED</text>
+          <path class="s-line" marker-end="url(#q2)" d="M340 186 H858"/><text class="s-msg" x="348" y="179">GET /process-definition/{definitionId}</text>
+          <path class="s-dash" marker-end="url(#q2)" d="M860 212 H342"/><text class="s-lbl" x="348" y="206">versionTag "v3" ⇒ versão 3</text>
+          <path class="s-line" marker-end="url(#q2)" d="M340 242 H858"/><text class="s-msg" x="348" y="235">GET /task?processInstanceId={pid}</text>
+          <path class="s-dash" marker-end="url(#q2)" d="M860 268 H342"/><text class="s-lbl" x="348" y="262">[{ id, taskDefinitionKey }] · vazio ⇒ sequência 9</text>
+          <path class="s-line" marker-end="url(#q2)" d="M340 298 H858"/><text class="s-msg" x="348" y="291">GET /process-instance/{pid}/variables</text>
+          <path class="s-dash" marker-end="url(#q2)" d="M860 324 H342"/><text class="s-lbl" x="348" y="318">form_*, data_*, channel</text>
+          <path class="s-line" marker-end="url(#q2)" d="M340 354 H598"/><text class="s-msg" x="348" y="347">POST …/versions/3/nodes/{nodeId}/form/resolve</text>
+          <rect class="s-note" x="608" y="366" width="240" height="24" rx="6"/><text class="s-notet" x="616" y="382">journey_version · published_screen</text>
+          <rect class="s-note" x="608" y="396" width="240" height="24" rx="6"/><text class="s-notet" x="616" y="412">fontes · placeholders · vínculos · listas</text>
+          <path class="s-dash" marker-end="url(#q2)" d="M600 440 H342"/><text class="s-lbl" x="348" y="434">FormPayload { name, sdui, context }</text>
+          <path class="s-dash" marker-end="url(#q2)" d="M340 472 H92"/><text class="s-lbl" x="98" y="466">USER_TASK { taskId, nodeId, form }</text>
+        </svg>
+        <p class="cap">Com variável do tipo <code>Json</code> (listas), há uma leitura extra de <code>/variables?deserializeValues=false</code>. Nada é guardado entre chamadas: cada consulta refaz tudo.</p>
+      </div>
+
+<h2 id="s3">8. Sequência · Concluir a tela e avançar</h2>
+<p>O envio confere se a tarefa ainda é a aberta, converte as respostas pela tela publicada e conclui no motor. A resposta já é a próxima etapa; se uma integração síncrona falhar, o motor desfaz tudo e a mesma tela volta com a mensagem.</p>
+      <div class="dia" style="margin-top:12px">
+        <svg viewBox="0 0 1000 530" role="img" aria-label="Sequência do complete: validação da tarefa, conversão das respostas, conclusão no motor e os dois desfechos, sucesso ou falha com rollback.">
+          <defs><marker id="q3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker></defs>
+          <rect class="s-box" x="5" y="10" width="170" height="46" rx="10"/><text class="s-t" x="90" y="38" text-anchor="middle" style="font-size:13px">Canal / BFF</text>
+          <rect class="s-hub" x="255" y="10" width="170" height="46" rx="10"/><text class="s-w" x="340" y="38" text-anchor="middle" style="font-size:13px">ms-journey</text>
+          <rect class="s-box" x="515" y="10" width="170" height="46" rx="10"/><text class="s-t" x="600" y="38" text-anchor="middle" style="font-size:13px">ms-espec-registry</text>
+          <rect class="s-box" x="775" y="10" width="170" height="46" rx="10"/><text class="s-t" x="860" y="38" text-anchor="middle" style="font-size:13px">ms-runtime-camunda</text>
+          <path class="s-life" d="M90 56 V525"/><path class="s-life" d="M340 56 V525"/><path class="s-life" d="M600 56 V525"/><path class="s-life" d="M860 56 V525"/>
+          <path class="s-line" marker-end="url(#q3)" d="M90 100 H338"/><text class="s-msg" x="98" y="93">POST …/tasks/{taskId}/complete { answers }</text>
+          <rect class="s-note" x="348" y="112" width="244" height="24" rx="6"/><text class="s-notet" x="356" y="128">resolve(pid) · outro taskId ⇒ 409</text>
+          <path class="s-line" marker-end="url(#q3)" d="M340 160 H858"/><text class="s-msg" x="348" y="153">GET /process-instance · GET /process-definition</text>
+          <path class="s-dash" marker-end="url(#q3)" d="M860 186 H342"/><text class="s-lbl" x="348" y="180">jid, versão 3</text>
+          <path class="s-line" marker-end="url(#q3)" d="M340 216 H598"/><text class="s-msg" x="348" y="209">POST …/nodes/{nodeId}/answers/convert</text>
+          <path class="s-dash" marker-end="url(#q3)" d="M600 242 H342"/><text class="s-lbl" x="348" y="236">{ form_nome: "Ana" String, form_aceite: true Boolean }</text>
+          <path class="s-line" marker-end="url(#q3)" d="M340 272 H858"/><text class="s-msg" x="348" y="265">POST /task/{taskId}/complete { variables }</text>
+          <rect class="s-note" x="616" y="284" width="236" height="24" rx="6"/><text class="s-notet" x="624" y="300">transação até a próxima espera</text>
+          <rect class="s-frame" x="20" y="318" width="960" height="196" rx="8"/>
+          <rect class="s-frtag" x="20" y="318" width="38" height="18" rx="4"/><text class="s-frt" x="28" y="331">alt</text>
+          <text class="s-frc" x="68" y="332">[transação confirmada]</text>
+          <path class="s-dash" marker-end="url(#q3)" d="M860 352 H342"/><text class="s-lbl" x="348" y="346">204</text>
+          <rect class="s-note" x="348" y="364" width="244" height="24" rx="6"/><text class="s-notet" x="356" y="380">resolve(pid) da próxima etapa</text>
+          <path class="s-dash" marker-end="url(#q3)" d="M340 410 H92"/><text class="s-lbl" x="98" y="404">próxima step: USER_TASK · WAITING · ENDED</text>
+          <path class="s-frame" d="M20 426 H980"/>
+          <text class="s-frc" x="68" y="444">[integração síncrona falhou sem “Se falhar”]</text>
+          <path class="s-dash" marker-end="url(#q3)" d="M860 470 H342"/><text class="s-lbl" x="348" y="464">500 { message } · rollback, nada avança</text>
+          <path class="s-dash" marker-end="url(#q3)" d="M340 500 H92"/><text class="s-lbl" x="98" y="494">200: mesma step + errorMessage</text>
+        </svg>
+        <p class="cap">O resolve inicial monta a tela atual inteira (inclusive fontes de dados) só para validar o <code>taskId</code>. Código: <code>JourneyController.completeTask</code>, <code>VariableConversion.fromAnswers</code>.</p>
+      </div>
+
+<h2 id="s4">9. Sequência · Tarefa assíncrona e espera</h2>
+<p>Quando o fluxo envia para o Kafka e aguarda a resposta, o motor para numa tarefa externa e depois numa espera de mensagem. O ms-journey só enxerga <code>WAITING</code>, e o canal descobre que acabou consultando de novo.</p>
+      <div class="dia" style="margin-top:12px">
+        <svg viewBox="0 0 1000 615" role="img" aria-label="Sequência assíncrona: complete para numa tarefa externa Kafka, canal consulta em laço, worker publica, resposta é correlacionada e a próxima tela aparece no polling seguinte.">
+          <defs><marker id="q4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker></defs>
+          <rect class="s-box" x="0" y="10" width="160" height="46" rx="10"/><text class="s-t" x="80" y="38" text-anchor="middle" style="font-size:13px">Canal / BFF</text>
+          <rect class="s-hub" x="210" y="10" width="160" height="46" rx="10"/><text class="s-w" x="290" y="38" text-anchor="middle" style="font-size:13px">ms-journey</text>
+          <rect class="s-box" x="420" y="10" width="160" height="46" rx="10"/><text class="s-t" x="500" y="38" text-anchor="middle" style="font-size:13px">ms-espec-registry</text>
+          <rect class="s-box" x="630" y="10" width="160" height="46" rx="10"/><text class="s-t" x="710" y="38" text-anchor="middle" style="font-size:13px">ms-runtime-camunda</text>
+          <rect class="s-box" x="840" y="10" width="160" height="46" rx="10"/><text class="s-t" x="920" y="38" text-anchor="middle" style="font-size:13px">Kafka</text>
+          <path class="s-life" d="M80 56 V610"/><path class="s-life" d="M290 56 V610"/><path class="s-life" d="M500 56 V610"/><path class="s-life" d="M710 56 V610"/><path class="s-life" d="M920 56 V610"/>
+          <path class="s-line" marker-end="url(#q4)" d="M80 100 H288"/><text class="s-msg" x="88" y="93">POST …/complete</text>
+          <path class="s-line" marker-end="url(#q4)" d="M290 128 H708"/><text class="s-msg" x="298" y="121">POST /task/{taskId}/complete</text>
+          <rect class="s-note" x="718" y="140" width="196" height="24" rx="6"/><text class="s-notet" x="726" y="156">para na externalTask kafka-&lt;nodeId&gt;</text>
+          <path class="s-dash" marker-end="url(#q4)" d="M710 184 H292"/><text class="s-lbl" x="298" y="178">204</text>
+          <rect class="s-note" x="298" y="196" width="196" height="24" rx="6"/><text class="s-notet" x="306" y="212">sem tarefa ⇒ activity-instances</text>
+          <path class="s-line" marker-end="url(#q4)" d="M290 242 H498"/><text class="s-msg" x="298" y="235">GET /journeys/{jid}/flow</text>
+          <path class="s-dash" marker-end="url(#q4)" d="M500 268 H292"/><text class="s-lbl" x="298" y="262">nome e tipo do nó</text>
+          <path class="s-dash" marker-end="url(#q4)" d="M290 298 H82"/><text class="s-lbl" x="88" y="292">WAITING { nodeName, nodeType }</text>
+          <rect class="s-frame" x="10" y="314" width="500" height="82" rx="8"/>
+          <rect class="s-frtag" x="10" y="314" width="44" height="18" rx="4"/><text class="s-frt" x="17" y="327">loop</text>
+          <text class="s-frc" x="62" y="328">[a cada N segundos]</text>
+          <path class="s-line" marker-end="url(#q4)" d="M80 352 H288"/><text class="s-msg" x="88" y="345">GET current-step</text>
+          <path class="s-dash" marker-end="url(#q4)" d="M290 382 H82"/><text class="s-lbl" x="88" y="376">WAITING · 4 chamadas ao motor + 1 ao espec</text>
+          <rect class="s-note" x="718" y="410" width="196" height="24" rx="6"/><text class="s-notet" x="726" y="426">worker (3 s): fetchAndLock</text>
+          <path class="s-line" marker-end="url(#q4)" d="M710 456 H918"/><text class="s-msg" x="718" y="449">produce(topic, key = pid)</text>
+          <rect class="s-note" x="718" y="468" width="196" height="24" rx="6"/><text class="s-notet" x="726" y="484">complete ⇒ para na receiveTask</text>
+          <path class="s-dash" marker-end="url(#q4)" d="M920 514 H712"/><text class="s-lbl" x="718" y="508">resposta com correlationId</text>
+          <rect class="s-note" x="718" y="524" width="196" height="24" rx="6"/><text class="s-notet" x="726" y="540">correlate ⇒ avança até a tela</text>
+          <path class="s-line" marker-end="url(#q4)" d="M80 570 H288"/><text class="s-msg" x="88" y="563">GET current-step</text>
+          <path class="s-dash" marker-end="url(#q4)" d="M290 598 H82"/><text class="s-lbl" x="88" y="592">USER_TASK (sequência 7)</text>
+        </svg>
+        <p class="cap">Entre o fim da espera e a próxima consulta, o canal não sabe de nada; e <code>WAITING</code> não diz se o envio está pendente, foi feito, falhou ou se a resposta ainda não chegou. É o que a melhoria da seção 11 resolve. Código: <code>KafkaConnectorWorker</code> (<code>@Scheduled(fixedDelay = 3000)</code>, <code>correlate</code>).</p>
+      </div>
+
+<h2 id="s5">10. Sequência · Voltar à tela anterior</h2>
+<p>O Voltar decide pelo histórico do motor qual tela reabrir e recusa se houver uma integração de escrita concluída entre as duas telas.</p>
+      <div class="dia" style="margin-top:12px">
+        <svg viewBox="0 0 1000 565" role="img" aria-label="Sequência do voltar: variáveis, histórico, integrações de escrita, decisão e modificação da instância, ou recusa.">
+          <defs><marker id="q5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker></defs>
+          <rect class="s-box" x="5" y="10" width="170" height="46" rx="10"/><text class="s-t" x="90" y="38" text-anchor="middle" style="font-size:13px">Canal / BFF</text>
+          <rect class="s-hub" x="255" y="10" width="170" height="46" rx="10"/><text class="s-w" x="340" y="38" text-anchor="middle" style="font-size:13px">ms-journey</text>
+          <rect class="s-box" x="515" y="10" width="170" height="46" rx="10"/><text class="s-t" x="600" y="38" text-anchor="middle" style="font-size:13px">ms-espec-registry</text>
+          <rect class="s-box" x="775" y="10" width="170" height="46" rx="10"/><text class="s-t" x="860" y="38" text-anchor="middle" style="font-size:13px">ms-runtime-camunda</text>
+          <path class="s-life" d="M90 56 V560"/><path class="s-life" d="M340 56 V560"/><path class="s-life" d="M600 56 V560"/><path class="s-life" d="M860 56 V560"/>
+          <path class="s-line" marker-end="url(#q5)" d="M90 100 H338"/><text class="s-msg" x="98" y="93">POST /instances/{pid}/back</text>
+          <rect class="s-note" x="348" y="112" width="244" height="24" rx="6"/><text class="s-notet" x="356" y="128">resolve(pid): precisa estar numa tela</text>
+          <path class="s-line" marker-end="url(#q5)" d="M340 160 H858"/><text class="s-msg" x="348" y="153">GET /process-instance/{pid}/variables</text>
+          <path class="s-dash" marker-end="url(#q5)" d="M860 186 H342"/><text class="s-lbl" x="348" y="180">_voltasConsumidas</text>
+          <path class="s-line" marker-end="url(#q5)" d="M340 216 H858"/><text class="s-msg" x="348" y="209">GET /history/activity-instance?processInstanceId</text>
+          <path class="s-dash" marker-end="url(#q5)" d="M860 242 H342"/><text class="s-lbl" x="348" y="236">ACT_HI_ACTINST: telas e integrações, com horários</text>
+          <path class="s-line" marker-end="url(#q5)" d="M340 272 H598"/><text class="s-msg" x="348" y="265">GET /journeys/{jid}/flow</text>
+          <path class="s-dash" marker-end="url(#q5)" d="M600 298 H342"/><text class="s-lbl" x="348" y="292">integrações de escrita (tudo que não é REST GET)</text>
+          <rect class="s-note" x="348" y="310" width="244" height="24" rx="6"/><text class="s-notet" x="356" y="326">BackNavigation.decide</text>
+          <rect class="s-frame" x="20" y="344" width="960" height="204" rx="8"/>
+          <rect class="s-frtag" x="20" y="344" width="38" height="18" rx="4"/><text class="s-frt" x="28" y="357">alt</text>
+          <text class="s-frc" x="68" y="358">[há tela anterior]</text>
+          <path class="s-line" marker-end="url(#q5)" d="M340 382 H858"/><text class="s-msg" x="348" y="375">GET /process-instance/{pid}/activity-instances</text>
+          <path class="s-line" marker-end="url(#q5)" d="M340 410 H858"/><text class="s-msg" x="348" y="403">POST /process-instance/{pid}/modification</text>
+          <rect class="s-note" x="616" y="420" width="236" height="24" rx="6"/><text class="s-notet" x="624" y="436">startBefore(anterior) + cancel(atual)</text>
+          <path class="s-line" marker-end="url(#q5)" d="M340 462 H858"/><text class="s-msg" x="348" y="455">PUT /variables/_voltasConsumidas</text>
+          <path class="s-dash" marker-end="url(#q5)" d="M340 490 H92"/><text class="s-lbl" x="98" y="484">step da tela anterior (resolve)</text>
+          <path class="s-frame" d="M20 502 H980"/>
+          <text class="s-frc" x="68" y="520">[sem tela anterior ou escrita já registrada]</text>
+          <path class="s-dash" marker-end="url(#q5)" d="M340 538 H92"/><text class="s-lbl" x="98" y="532">mesma step + errorMessage</text>
+        </svg>
+        <p class="cap">O fluxo consultado é o da publicação atual, não o da versão da instância. Código: <code>JourneyController.back</code>, <code>BackNavigation.decide</code>, <code>CamundaEngineClient.reopenActivity</code>.</p>
+      </div>
+
+<!-- ====================================================== redis -->
+<h2 id="r1">11. Melhoria proposta · Estado assíncrono em Redis</h2>
+    <div class="newbox">
+      <span class="tag new">Novo · proposta</span>
+      <p>O ms-runtime-camunda passa a publicar num Redis exclusivo da plataforma o estado de cada instância e de cada tarefa assíncrona, sempre depois que a transação do motor é confirmada.
+        O ms-journey lê o Redis primeiro: em espera, responde sem tocar o motor. O estado de cada tarefa assíncrona fica dentro da plataforma, para o Diagnóstico e o monitoramento. O motor continua sendo a fonte da verdade.</p>
+    </div>
+
+<h3>O problema hoje</h3>
+<ul>
+  <li><strong>Só polling.</strong> Em <code>WAITING</code>, o canal consulta de novo sem saber quando vale a pena (sequência 9).</li>
+  <li><strong>Polling caro.</strong> Cada consulta em espera faz 4 chamadas ao motor (instância, versão, tarefas, atividade atual) e 1 ao ms-espec-registry.</li>
+  <li><strong>Sem visibilidade.</strong> <code>WAITING</code> traz só nome e tipo do nó. Não diz se o envio ao Kafka está na fila, em tentativa, concluído ou falhou, nem se a resposta esperada já chegou.</li>
+</ul>
+
+<h3>Como fica a sequência</h3>
+      <div class="dia" style="margin-top:12px">
+        <svg viewBox="0 0 1000 680" role="img" aria-label="Sequência com Redis: o motor grava o estado a cada commit; o ms-journey lê o Redis, responde WAITING sem chamar o motor e só faz o resolve completo quando o estado muda.">
+          <defs><marker id="q6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker></defs>
+          <rect class="s-box" x="0" y="10" width="160" height="46" rx="10"/><text class="s-t" x="80" y="38" text-anchor="middle" style="font-size:13px">Canal / BFF</text>
+          <rect class="s-hub" x="210" y="10" width="160" height="46" rx="10"/><text class="s-w" x="290" y="38" text-anchor="middle" style="font-size:13px">ms-journey</text>
+          <rect class="s-new" x="420" y="10" width="160" height="46" rx="10"/><text class="s-t" x="500" y="38" text-anchor="middle" style="font-size:13px">Redis</text>
+          <rect class="s-box" x="630" y="10" width="160" height="46" rx="10"/><text class="s-t" x="710" y="38" text-anchor="middle" style="font-size:13px">ms-runtime-camunda</text>
+          <rect class="s-box" x="840" y="10" width="160" height="46" rx="10"/><text class="s-t" x="920" y="38" text-anchor="middle" style="font-size:13px">Kafka</text>
+          <path class="s-life" d="M80 56 V675"/><path class="s-life" d="M290 56 V675"/><path class="s-life" d="M500 56 V675" style="stroke:var(--lime)"/><path class="s-life" d="M710 56 V675"/><path class="s-life" d="M920 56 V675"/>
+          <rect class="s-note" x="718" y="80" width="196" height="24" rx="6"/><text class="s-notet" x="726" y="96">complete para na externalTask</text>
+          <path class="s-line" marker-end="url(#q6)" d="M710 126 H502"/><text class="s-msg" x="508" y="119">commit: WAITING · KAFKA_SEND PENDING</text>
+          <path class="s-line" marker-end="url(#q6)" d="M80 166 H288"/><text class="s-msg" x="88" y="159">GET current-step</text>
+          <path class="s-line" marker-end="url(#q6)" d="M290 194 H498"/><text class="s-msg" x="298" y="187">HGETALL ej:inst:{pid}</text>
+          <path class="s-dash" marker-end="url(#q6)" d="M500 220 H292"/><text class="s-lbl" x="298" y="214">WAITING · rev 7 · PENDING</text>
+          <path class="s-dash" marker-end="url(#q6)" d="M290 250 H82"/><text class="s-lbl" x="88" y="244">WAITING { nodeName, nodeType }</text>
+          <rect class="s-newnote" x="298" y="262" width="196" height="24" rx="6"/><text class="s-notet" x="306" y="278">nenhuma chamada ao motor</text>
+          <rect class="s-note" x="718" y="300" width="196" height="24" rx="6"/><text class="s-notet" x="726" y="316">worker (3 s): fetchAndLock</text>
+          <path class="s-line" marker-end="url(#q6)" d="M710 346 H502"/><text class="s-msg" x="508" y="339">KAFKA_SEND IN_PROGRESS · tentativa 1</text>
+          <path class="s-line" marker-end="url(#q6)" d="M710 376 H918"/><text class="s-msg" x="718" y="369">produce(topic, key = pid)</text>
+          <path class="s-line" marker-end="url(#q6)" d="M710 406 H502"/><text class="s-msg" x="508" y="399">commit: COMPLETED · MESSAGE_WAIT</text>
+          <path class="s-dash" marker-end="url(#q6)" d="M920 436 H712"/><text class="s-lbl" x="718" y="430">resposta com correlationId</text>
+          <path class="s-line" marker-end="url(#q6)" d="M710 466 H502"/><text class="s-msg" x="508" y="459">commit: USER_TASK · taskId · rev 9</text>
+          <path class="s-line" marker-end="url(#q6)" d="M80 506 H288"/><text class="s-msg" x="88" y="499">GET current-step</text>
+          <path class="s-line" marker-end="url(#q6)" d="M290 534 H498"/><text class="s-msg" x="298" y="527">HGETALL ej:inst:{pid}</text>
+          <path class="s-dash" marker-end="url(#q6)" d="M500 560 H292"/><text class="s-lbl" x="298" y="554">USER_TASK · rev 9 (mudou)</text>
+          <path class="s-line" marker-end="url(#q6)" d="M290 600 H708"/><text class="s-msg" x="298" y="593">resolve completo: motor + espec (sequência 7)</text>
+          <path class="s-dash" marker-end="url(#q6)" d="M290 640 H82"/><text class="s-lbl" x="88" y="634">USER_TASK { taskId, form }</text>
+        </svg>
+        <p class="cap">Em verde, o que é novo. A tela continua sendo montada na hora (depende das variáveis e das fontes de dados); o Redis guarda só o estado.</p>
+      </div>
+
+<h3>Estados de uma tarefa assíncrona</h3>
+      <div class="dia" style="margin-top:12px">
+        <svg viewBox="0 0 860 340" role="img" aria-label="Estados da tarefa assíncrona: envio Kafka e espera de mensagem.">
+          <defs><marker id="q7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker></defs>
+          <text class="s-bandt" x="20" y="22">KAFKA_SEND</text>
+          <rect class="s-box" x="20" y="40" width="140" height="46" rx="23"/><text class="s-t" x="90" y="68" text-anchor="middle" style="font-size:12.5px">PENDING</text>
+          <rect class="s-box" x="230" y="40" width="160" height="46" rx="23"/><text class="s-t" x="310" y="68" text-anchor="middle" style="font-size:12.5px">IN_PROGRESS</text>
+          <rect class="s-hub" x="470" y="40" width="150" height="46" rx="23"/><text class="s-w" x="545" y="68" text-anchor="middle" style="font-size:12.5px">COMPLETED</text>
+          <rect class="s-box" x="230" y="140" width="160" height="46" rx="23"/><text class="s-t" x="310" y="168" text-anchor="middle" style="font-size:12.5px">RETRYING</text>
+          <rect class="s-soft" x="470" y="140" width="150" height="46" rx="23"/><text class="s-t" x="545" y="168" text-anchor="middle" style="font-size:12.5px">FAILED_HANDLED</text>
+          <rect class="s-box" x="680" y="140" width="150" height="46" rx="23" style="stroke:var(--warn-ink)"/><text class="s-t" x="755" y="168" text-anchor="middle" style="font-size:12.5px">INCIDENT</text>
+          <path class="s-line" marker-end="url(#q7)" d="M160 63 H228"/><text class="s-lbl" x="164" y="34">fetchAndLock</text>
+          <path class="s-line" marker-end="url(#q7)" d="M390 63 H468"/><text class="s-lbl" x="400" y="55">complete</text>
+          <path class="s-line" marker-end="url(#q7)" d="M290 86 V138"/><text class="s-lbl" x="282" y="118" text-anchor="end">handleFailure, sobram tentativas</text>
+          <path class="s-line" marker-end="url(#q7)" d="M335 140 V88"/><text class="s-lbl" x="343" y="118">nova tentativa</text>
+          <path class="s-line" marker-end="url(#q7)" d="M390 80 L470 146"/><text class="s-lbl" x="440" y="102">Se falhar</text>
+          <path class="s-line" marker-end="url(#q7)" d="M310 40 V22 H755 V138"/><text class="s-lbl" x="640" y="16">tentativas esgotadas</text>
+          <text class="s-bandt" x="20" y="230">MESSAGE_WAIT</text>
+          <rect class="s-box" x="20" y="246" width="140" height="46" rx="23"/><text class="s-t" x="90" y="274" text-anchor="middle" style="font-size:12.5px">PENDING</text>
+          <rect class="s-hub" x="230" y="246" width="160" height="46" rx="23"/><text class="s-w" x="310" y="274" text-anchor="middle" style="font-size:12.5px">COMPLETED</text>
+          <rect class="s-box" x="470" y="246" width="150" height="46" rx="23" style="stroke:var(--warn-ink)"/><text class="s-t" x="545" y="274" text-anchor="middle" style="font-size:12.5px">TIMED_OUT</text>
+          <path class="s-line" marker-end="url(#q7)" d="M160 262 H228"/><text class="s-lbl" x="166" y="254">correlate</text>
+          <path class="s-line" marker-end="url(#q7)" d="M90 292 V314 H545 V294"/><text class="s-lbl" x="250" y="332">limite de espera</text>
+        </svg>
+        <p class="cap">Cada transição corresponde a um ponto que já existe no ms-runtime-camunda (tabela abaixo). <code>FAILED_HANDLED</code> segue pela saída &ldquo;Se falhar&rdquo;; <code>INCIDENT</code> e <code>TIMED_OUT</code> sem saída desenhada param a instância.</p>
+      </div>
+
+<h3>Chaves no Redis</h3>
+    <div class="tw"><table style="min-width:780px">
+      <thead><tr><th>Chave</th><th>Tipo</th><th>Conteúdo</th><th>Validade</th></tr></thead>
+      <tbody>
+        <tr><td><code>ej:inst:{pid}</code></td><td>HASH</td><td><code>state</code> (USER_TASK, WAITING, FAILED), <code>nodeId</code>, <code>nodeType</code>, <code>taskId</code>, <code>journeyId</code>, <code>journeyVersion</code>, <code>rev</code>, <code>updatedAt</code></td><td>24 h, renovada a cada escrita do motor; apagada no fim</td></tr>
+        <tr><td><code>ej:inst:{pid}:async</code></td><td>HASH</td><td>um campo por <code>activityInstanceId</code>, com JSON <code>{ kind, nodeId, status, attempts, startedAt, endedAt, error }</code></td><td>24 h, renovada a cada escrita do motor; apagada no fim</td></tr>
+        <tr><td><code>ej:def:{definitionId}:versionTag</code></td><td>STRING</td><td>a versão da definição (<code>"v3"</code>), imutável; tira 1 chamada ao motor de todo resolve</td><td>sem expiração</td></tr>
+      </tbody>
+    </table></div>
+
+<h3>Onde gravar no ms-runtime-camunda</h3>
+    <div class="tw"><table style="min-width:780px">
+      <thead><tr><th>Evento</th><th>Ponto no código</th><th>Escrita no Redis</th></tr></thead>
+      <tbody>
+        <tr><td>Tela aberta</td><td>criação de <code>userTask</code> (listener do motor)</td><td><code>state=USER_TASK</code>, <code>taskId</code>, <code>rev+1</code></td></tr>
+        <tr><td>Envio Kafka criado</td><td>início da <code>externalTask kafka-&lt;nodeId&gt;</code></td><td><code>state=WAITING</code>; async <code>KAFKA_SEND PENDING</code></td></tr>
+        <tr><td>Envio em andamento</td><td><code>KafkaConnectorWorker</code>, depois do <code>fetchAndLock</code></td><td><code>IN_PROGRESS</code>, <code>attempts</code></td></tr>
+        <tr><td>Envio concluído</td><td><code>externalTaskService.complete</code></td><td><code>COMPLETED</code></td></tr>
+        <tr><td>Nova tentativa</td><td><code>handleFailure</code> com tentativas restantes</td><td><code>RETRYING</code>, <code>attempts</code>, <code>error</code></td></tr>
+        <tr><td>Saída &ldquo;Se falhar&rdquo;</td><td><code>handleBpmnError(INTEGRACAO_FALHOU)</code></td><td><code>FAILED_HANDLED</code></td></tr>
+        <tr><td>Tentativas esgotadas</td><td><code>handleFailure</code> com 0 tentativas (incidente)</td><td><code>INCIDENT</code>; <code>state=FAILED</code></td></tr>
+        <tr><td>Espera de mensagem</td><td>início da <code>receiveTask</code></td><td>async <code>MESSAGE_WAIT PENDING</code></td></tr>
+        <tr><td>Mensagem recebida</td><td><code>KafkaConnectorWorker.correlate</code></td><td><code>COMPLETED</code></td></tr>
+        <tr><td>Limite de espera</td><td>temporizador de limite dispara</td><td><code>TIMED_OUT</code></td></tr>
+        <tr><td>Fim</td><td>fim da instância ou <code>DELETE</code></td><td>apaga <code>ej:inst:{pid}</code> e <code>ej:inst:{pid}:async</code></td></tr>
+      </tbody>
+    </table></div>
+<p class="out">Os eventos do motor (tarefa criada, atividade iniciada, temporizador, fim) cabem num único <code>HistoryEventHandler</code> registrado por <code>ProcessEnginePlugin</code>, ao lado do handler padrão. As tentativas e o erro de envio saem do próprio <code>KafkaConnectorWorker</code>.</p>
+
+<h3>Regras do desenho</h3>
+<ul>
+  <li><strong>Gravar só depois do commit.</strong> A escrita é registrada com <code>addTransactionListener(TransactionState.COMMITTED, …)</code>. Assim, um rollback (sequência 8) nunca aparece no Redis.</li>
+  <li><strong>Redis é cache, o motor é a verdade.</strong> Chave ausente ou Redis fora do ar: o ms-journey faz o resolve completo de hoje. Como as chaves são apagadas no fim, uma instância encerrada cai nesse caminho e o motor responde <code>ENDED</code>. Uma espera de mais de 24 h sem nenhum evento também cai nele até o motor gravar de novo, na retomada. Nada quebra sem o Redis.</li>
+  <li><strong>Ordem garantida pelo <code>rev</code>.</strong> Worker e executor de jobs escrevem em threads diferentes; um script Lua só aplica a escrita se o <code>updatedAt</code> do evento for mais novo que o gravado.</li>
+  <li><strong>O canal continua no polling.</strong> Nada muda nas rotas: o canal consulta <code>current-step</code> como hoje, mas a consulta em espera passa a custar uma leitura no Redis em vez de 4 chamadas ao motor e 1 ao ms-espec-registry.</li>
+  <li><strong>O detalhe fica na plataforma.</strong> O canal continua recebendo só <code>WAITING</code>, com nome e tipo do nó; o contrato não muda. O estado das tarefas assíncronas (<code>kind</code>, <code>status</code>, <code>attempts</code>, <code>error</code>) serve ao Diagnóstico do admin e ao monitoramento.</li>
+</ul>
+
+<h3>Decisões</h3>
+    <div class="tw"><table style="min-width:680px">
+      <thead><tr><th>Tema</th><th>Decisão</th></tr></thead>
+      <tbody>
+        <tr><td><b>Redis</b></td><td><span class="tag ok">Decidido</span> Exclusivo da plataforma.</td></tr>
+        <tr><td><b>Como o canal acompanha a espera</b></td><td><span class="tag ok">Decidido</span> Só polling em <code>current-step</code>; sem long-polling, SSE ou Pub/Sub.</td></tr>
+        <tr><td><b>Versão da definição</b></td><td><span class="tag ok">Decidido</span> Cache de <code>versionTag</code> por <code>definitionId</code>, sem expiração.</td></tr>
+        <tr><td><b>Detalhe da tarefa assíncrona</b></td><td><span class="tag ok">Decidido</span> Só dentro da plataforma (Diagnóstico e monitoramento). O canal recebe só <code>WAITING</code>, como hoje.</td></tr>
+        <tr><td><b>Prazos de validade</b></td><td><span class="tag ok">Decidido</span> 24 h, renovadas a cada escrita do motor (início, retomada, mudança de estado). As chaves são apagadas quando a instância termina ou é encerrada; as 24 h limpam o que sobrar se essa remoção se perder.</td></tr>
+      </tbody>
+    </table></div>
+
+      </article></div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  /* ------------------------ tema --------------------------- */
+  var themeBox = document.getElementById('theme');
+  function paintTheme(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    Array.prototype.forEach.call(themeBox.querySelectorAll('button'), function(b){
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-choice') === cur));
+    });
+  }
+  themeBox.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-theme-choice]');
+    if (!b) return;
+    var next = b.getAttribute('data-theme-choice');
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('plataforma-tema', next); } catch (err) {}
+    paintTheme();
+  });
+  paintTheme();
+
+  /* ------------- sumário e rolagem do documento -------------- */
+  var pane = document.getElementById('docpane');
+  var toc = document.getElementById('toc');
+  var heads = Array.prototype.slice.call(document.querySelectorAll('#doc h2[id]'));
+  var bar = document.getElementById('bar');
+  heads.forEach(function(h){
+    var a = document.createElement('a');
+    a.href = '#' + h.id; a.textContent = h.textContent;
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      pane.scrollTo({ top: h.offsetTop - 12, behavior: 'smooth' });
+    });
+    toc.appendChild(a);
+  });
+  function paintScroll(){
+    var cur = 0;
+    heads.forEach(function(h, i){ if (h.offsetTop - 40 <= pane.scrollTop) cur = i; });
+    Array.prototype.forEach.call(toc.children, function(a, i){ a.classList.toggle('on', i === cur); });
+    var max = pane.scrollHeight - pane.clientHeight;
+    bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, pane.scrollTop / max) : 1) + ')';
+  }
+  pane.addEventListener('scroll', paintScroll);
+  window.addEventListener('resize', paintScroll);
+  paintScroll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1068 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Integração de canais · Elastic Journey</title>
+<style>
+  :root{
+    --brand:#660099;
+    --brand-700:#4d0073;
+    --brand-400:#8433ab;
+    --brand-100:#e5d4ef;
+    --brand-050:#f2ebfa;
+    --brand-025:#f8f5fc;
+    --lime:#99cc33;
+    --page:#f4f2f8;
+    --surface:#ffffff;
+    --text:#313235;
+    --text-2:#6b6b73;
+    --border:#e9e6f0;
+    --error-low:#fce4ef;
+    --warn-low:#fdf1de;
+    --info-low:#eef3fb;
+    --brand-ink:#660099;
+    --on-brand:#ffffff;
+    --text-high:#252233;
+    --text-3:#736b80;
+    --nav-bg:rgba(255,255,255,.92);
+    
+    
+    --error-border:#f2c2d5;
+    --error-ink:#8d143c;
+    --warn-border:#ecd2a6;
+    --warn-ink:#7d4b00;
+    --info-border:#c8d8ef;
+    --info-ink:#1f4478;
+    --code-bg:#2a0b3d;
+    --code-fg:#e9dcf3;
+    
+    
+    --arch-bg:linear-gradient(160deg,#fcfcfe 0%,#ebe9f2 100%);
+    --arch-border:#e2e0e9;
+    --ax-stroke:#e5d4ef;
+    --ax-hub:#660099;
+    --ax-line:#8433ab;
+    --ax-accent:#50691a;
+    --ax-band:#660099;
+    --shadow:0 18px 44px -22px rgba(56,0,87,.28);
+    --radius:18px;
+    --pad:clamp(28px,4.2vw,76px);
+    --font:"Vivo Type","Segoe UI",Arial,sans-serif;
+    --mono:"Cascadia Code",Consolas,monospace;
+    color-scheme:light;
+  }
+
+  /* Base dos dois temas escuros. Os tokens de roxo invertem de papel: --brand continua sendo o
+     preenchimento (texto branco por cima) e --brand-ink/--brand-700 passam a ser os tons claros
+     usados em texto. O tema Grafite reaproveita tudo isto e só troca as cores de fundo. */
+  :root[data-theme="dark"],:root[data-theme="graphite"]{
+    --brand:#7a23b3;
+    --brand-ink:#d0a6ec;
+    --brand-700:#d0a6ec;
+    --brand-400:#b273db;
+    --brand-100:#3d3352;
+    --brand-050:#2a2339;
+    --brand-025:#221c2f;
+    --lime:#a8d94a;
+    --page:#161320;
+    --surface:#1e1a2b;
+    --text:#ece9f3;
+    --text-2:#a79fb8;
+    --text-high:#ffffff;
+    --text-3:#a29ab3;
+    --border:#322a45;
+    --nav-bg:rgba(22,19,32,.93);
+    
+    
+    
+    --error-low:#39182a;
+    --error-border:#5d2b40;
+    --error-ink:#ffb3c8;
+    --warn-low:#36291a;
+    --warn-border:#5a452a;
+    --warn-ink:#f0c58a;
+    --info-low:#1c2739;
+    --info-border:#33456b;
+    --info-ink:#a9c6ef;
+    --code-bg:#120c1c;
+    --code-fg:#e4d8ef;
+    
+    
+    --arch-bg:linear-gradient(160deg,#241f2e 0%,#191622 100%);
+    --arch-border:#332c42;
+    --ax-stroke:transparent;
+    --ax-hub:#4d0073;
+    --ax-line:#ffffff;
+    --ax-accent:#a8d94a;
+    --ax-band:#d9b8ec;
+    --shadow:0 18px 44px -22px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+
+  /* Grafite: mesmo tema escuro, com os neutros sem temperatura roxa. O roxo fica só nos acentos. */
+  :root[data-theme="graphite"]{
+    --arch-bg:linear-gradient(160deg,#232328 0%,#18181c 100%);
+    --arch-border:#2f2f35;
+    --page:#0f0f11;
+    --surface:#1a1a1d;
+    --border:#2c2c31;
+    --text:#ededf0;
+    --text-2:#a0a0a8;
+    --text-3:#98929f;
+    --brand-ink:#c78ce8;
+    --brand-700:#c78ce8;
+    --brand-100:#33303a;
+    --brand-050:#26232b;
+    --brand-025:#1f1d23;
+    --nav-bg:rgba(15,15,17,.93);
+    --code-bg:#111013;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    background:var(--page);
+    color:var(--text);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- moldura ---------- */
+  .deck{min-height:100vh;display:flex;flex-direction:column}
+  .progress{height:3px;background:var(--brand-100)}
+  .progress i{display:block;height:100%;width:100%;background:var(--brand);transform-origin:left center;transition:transform .35s cubic-bezier(.2,.7,.3,1)}
+  .masthead{
+    min-height:100px;display:flex;align-items:center;justify-content:space-between;gap:24px;
+    padding:24px var(--pad);flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface);
+  }
+  .lockup{display:flex;align-items:center;gap:21px;font-size:12px;letter-spacing:.17em;font-weight:700;color:var(--text-high)}
+  .lockup svg{width:104px;height:38px;display:block;color:var(--brand)}
+  .lockup .rule{width:1px;height:29px;background:currentColor;opacity:.22}
+  .lockup small{display:block;font-weight:500;letter-spacing:.02em;font-size:12px;margin-top:4px;color:var(--text-2)}
+  .mast-actions{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .proposal{font-size:12px;color:var(--text-2)}
+  .switch{display:flex;gap:3px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--brand-025)}
+  .switch button{font:inherit;cursor:pointer;border:0;background:transparent;color:var(--text-2);border-radius:999px;padding:6px 13px;font-size:11.5px;font-weight:700;transition:background .16s ease,color .16s ease}
+  .switch button:hover{background:var(--brand-050);color:var(--brand-ink)}
+  .switch button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand)}
+
+  .steps{display:flex;gap:2px;align-items:center;flex-wrap:wrap}
+  .steps button{
+    font:inherit;cursor:pointer;border:0;background:transparent;color:var(--text-2);
+    border-radius:999px;padding:8px 13px;font-size:12.5px;font-weight:600;
+    display:flex;align-items:center;gap:9px;transition:background .16s ease,color .16s ease;
+  }
+  .steps button .sn{font-size:11px;font-weight:700;opacity:.6;letter-spacing:.04em}
+  .steps button:hover{background:var(--brand-050);color:var(--brand-ink)}
+  .steps button[aria-current="true"]{color:var(--brand-ink);font-weight:700}
+  .steps button[aria-current="true"] .sn{opacity:1}
+  .counter{font-size:12px;font-weight:700;color:var(--text-2);letter-spacing:.04em}
+
+  /* ---------- capa (slide 1) ---------- */
+
+  .cover{display:grid;grid-template-columns:minmax(0,560px) 1fr;gap:clamp(26px,2.6vw,46px);align-items:center}
+
+  /* Diagrama de runtime da capa. As superfícies ficam claras em todos os temas porque a capa
+     é escura nos três; só o fundo dela muda. */
+  .arch{background:var(--arch-bg);border:1px solid var(--arch-border);border-radius:20px;padding:24px 24px 22px;box-shadow:var(--shadow)}
+  .arch-title{margin:0 0 14px;font-size:17px;font-weight:700;letter-spacing:-.015em;color:var(--text-high)}
+  .arch svg{width:100%;height:auto;display:block}
+  .ax-card{fill:#ffffff;stroke:var(--ax-stroke);stroke-width:1;filter:url(#ax-sombra)}
+  .ax-soft{fill:#f5f0fa;stroke:var(--ax-stroke);stroke-width:1;filter:url(#ax-sombra)}
+  .ax-hub{fill:var(--ax-hub);filter:url(#ax-sombra)}
+  .ax-line{stroke:var(--ax-line);stroke-width:1.6;fill:none;opacity:.9}
+  .ax-back{stroke:var(--ax-accent);stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+  .ax-t{fill:#252233;font-size:15px;font-weight:700}
+  .ax-s{fill:#6b6b73;font-size:12px}
+  .ax-m{font-family:var(--mono);fill:#660099;font-size:11px;font-weight:600}
+  .ax-band{fill:var(--ax-band);font-size:11px;font-weight:700;letter-spacing:.14em}
+  .ax-w{fill:#ffffff;font-size:20px;font-weight:700}
+  .ax-ws{fill:#e0cceb;font-size:12.5px}
+  .ax-note{fill:#a8d94a;font-size:12px;font-weight:600}
+  .ax-chip{fill:#3b0a59;stroke:var(--ax-accent);stroke-width:1}
+  .ax-code{font-family:var(--mono);fill:#e9dcf3;font-size:11.5px}
+  .cover .eyebrow{font-size:11px;letter-spacing:.2em;margin-bottom:24px}
+  .cover h1{font-size:clamp(40px,3.9vw,62px);line-height:1.08;letter-spacing:-.03em;margin:0}
+  .cover .lead{font-size:clamp(18px,1.5vw,24px);line-height:1.45;max-width:470px;margin-top:22px}
+  .metrics{display:flex;gap:clamp(34px,4.6vw,64px);margin:34px 0 30px;flex-wrap:wrap}
+  .metrics b{display:inline-block;background:var(--surface);color:var(--text);font-size:clamp(32px,2.9vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1;padding:12px 18px;border-radius:14px;box-shadow:0 2px 8px -2px rgba(40,10,60,.18),0 0 0 1px rgba(40,10,60,.05)}
+  .metrics span{display:block;font-size:13.5px;color:var(--text-2);margin-top:10px;max-width:160px;line-height:1.35;text-align:left}
+  .persp{border-top:1px solid var(--border);padding-top:23px;max-width:540px}
+  .persp .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .persp .seg button{font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);color:var(--brand-700);border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;transition:all .18s ease}
+  .persp .seg button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .persp .seg button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .persp p{font-size:16px;line-height:1.5;margin:16px 0 0;min-height:72px;color:var(--text-2)}
+
+
+  main{flex:1;display:flex;justify-content:center;padding:20px var(--pad) 90px}
+  .slide{display:none;width:100%;max-width:1680px}
+  .slide.is-on{display:block;animation:rise .36s cubic-bezier(.2,.7,.3,1) both}
+  /* só a capa centraliza na vertical; slides densos continuam a partir do topo, para não
+     empurrar o próprio começo para fora da tela quando o conteúdo passa da altura útil. */
+  .cover-slide.is-on{display:flex;flex-direction:column;justify-content:center}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  /* ---------- tipografia ---------- */
+  .eyebrow{
+    display:block;margin-bottom:12px;
+    font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--brand-ink);
+  }
+  h1{font-size:clamp(28px,3.1vw,46px);line-height:1.12;letter-spacing:-.025em;font-weight:700;margin:0 0 14px;color:var(--text-high)}
+  h1 em{font-style:normal;color:var(--brand-ink)}
+  .lead{max-width:860px;font-size:16px;line-height:1.6;color:var(--text-2);margin:0}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-ink);margin:0 0 12px;font-weight:800}
+  h3{font-size:15px;margin:0 0 6px;font-weight:700;color:var(--text-high)}
+  p{margin:0 0 10px;line-height:1.55}
+  code{font-family:var(--mono);font-size:.92em;background:var(--brand-025);border:1px solid var(--brand-100);border-radius:6px;padding:1px 5px;color:var(--brand-700)}
+
+  /* ---------- blocos ---------- */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px}
+  .grid{display:grid;gap:16px}
+  .targets{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .targets button{
+    font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);
+    border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--brand-700);
+    display:flex;align-items:center;gap:8px;transition:all .18s ease;
+  }
+  .targets button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .targets button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .targets button i{width:7px;height:7px;border-radius:50%;background:var(--lime);font-style:normal}
+  .targets button[aria-pressed="true"] i{background:var(--on-brand)}
+
+  pre{
+    margin:0;font-family:var(--mono);font-size:12.5px;line-height:1.7;
+    background:var(--code-bg);color:var(--code-fg);border-radius:14px;padding:18px 20px;overflow:auto;
+  }
+
+  ul.rules{margin:0;padding-left:18px;font-size:13.2px;line-height:1.75;color:var(--text)}
+  ul.rules li::marker{color:var(--brand-400)}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:13px}
+  table.cmp th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-2);padding:0 10px 8px;font-weight:800}
+  table.cmp td{border-top:1px solid var(--border);padding:9px 10px;vertical-align:top}
+  table.cmp tr.head td{background:var(--brand-050);font-weight:800;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--brand-700);padding:6px 10px;border-top:1px solid var(--brand-100)}
+  table.cmp td.t{font-family:var(--mono);font-size:12px;color:var(--brand-700);white-space:nowrap}
+  table.cmp td.m{color:var(--text-2);line-height:1.45}
+  table.cmp tr.row:hover td{background:var(--brand-025)}
+  table.cmp .props{display:block;font-family:var(--mono);font-size:11px;color:var(--text-3);margin-top:3px}
+  .matrix-wrap{max-height:460px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:14px 8px 8px}
+  .lvl{display:inline-block;font-size:10.5px;font-weight:800;color:var(--on-brand);background:var(--brand-400);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+
+  .sev{display:flex;flex-direction:column;gap:8px}
+  .sev div{border-radius:10px;padding:9px 12px;font-size:12.5px;line-height:1.45;border:1px solid}
+  .sev .e{background:var(--error-low);border-color:var(--error-border);color:var(--error-ink)}
+  .sev .w{background:var(--warn-low);border-color:var(--warn-border);color:var(--warn-ink)}
+  .sev .i{background:var(--info-low);border-color:var(--info-border);color:var(--info-ink)}
+  .sev b{font-family:var(--mono);font-size:11.5px}
+
+  .ask{background:linear-gradient(135deg,var(--brand),var(--brand-700));color:var(--on-brand);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+  .ask h2{color:#d9b8ec}
+  .ask p{font-size:13.5px;color:#f0e4f7;line-height:1.55}
+  .ask ul{margin:0;padding-left:18px;font-size:13.2px;line-height:1.7;color:#f0e4f7}
+  .ask ul li::marker{color:var(--lime)}
+  .ask code{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:var(--on-brand)}
+
+  .out{font-size:12.5px;color:var(--text-2);line-height:1.6}
+  .out b{color:var(--text)}
+
+  /* ---------- slide 4: documento integral ---------- */
+  .doclayout{display:grid;grid-template-columns:268px 1fr;gap:16px;margin-top:22px;align-items:start}
+  .toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px 14px 14px;max-height:calc(100vh - 250px);overflow:auto;position:sticky;top:16px}
+  .toc h2{padding-left:4px}
+  .toc a{display:block;font-size:12.5px;line-height:1.35;color:var(--text-2);text-decoration:none;padding:6px 8px;border-radius:8px;transition:background .14s ease,color .14s ease}
+  .toc a:hover{background:var(--brand-025);color:var(--brand-700)}
+  .toc a.on{background:var(--brand-050);color:var(--brand-700);font-weight:700}
+  .docpane{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px 30px 30px;max-height:calc(100vh - 250px);overflow:auto}
+  .doc{font-size:13.6px;line-height:1.68;color:var(--text);max-width:960px}
+  .doc h1{font-size:25px;line-height:1.2;margin:22px 0 10px;letter-spacing:-.02em}
+  .doc h2{font-size:19px;text-transform:none;letter-spacing:-.01em;color:var(--text-high);margin:34px 0 12px;padding-top:16px;border-top:1px solid var(--border);scroll-margin-top:12px}
+  .doc h2:first-child{border-top:0;padding-top:0;margin-top:8px}
+  .doc h3{font-size:15.5px;color:var(--brand-700);margin:24px 0 8px}
+  .doc h4{font-size:12.5px;color:var(--text-2);margin:18px 0 6px;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+  .doc p{margin:0 0 12px}
+  .doc ul,.doc ol{margin:0 0 14px;padding-left:22px}
+  .doc li{margin-bottom:5px}
+  .doc li::marker{color:var(--brand-400)}
+  .doc strong{color:var(--text-high)}
+  .doc pre{font-size:11.8px;line-height:1.6;margin:0 0 16px}
+  .doc code{white-space:nowrap}
+  .tw{overflow-x:auto;margin:0 0 16px;border:1px solid var(--border);border-radius:12px}
+  .doc table{border-collapse:collapse;width:100%;font-size:12.2px;min-width:540px}
+  .doc th{text-align:left;background:var(--brand-050);color:var(--brand-700);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding:9px 12px;border-bottom:1px solid var(--brand-100)}
+  .doc td{padding:9px 12px;border-top:1px solid var(--border);vertical-align:top;line-height:1.5;color:var(--text-2)}
+  .doc tbody tr:hover td{background:var(--brand-025)}
+
+  /* ---------- navegação ---------- */
+  .nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    background:var(--nav-bg);backdrop-filter:blur(8px);
+    border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px var(--pad);flex-wrap:wrap;
+  }
+  .nav .btns{align-items:center;gap:12px}
+  .nav .hint{font-size:11.5px;color:var(--text-2)}
+  @media (max-width:1420px){.nav .hint{display:none}}
+  .nav .hint kbd{font-family:var(--mono);font-size:11px;background:var(--brand-025);border:1px solid var(--brand-100);border-radius:5px;padding:1px 6px;color:var(--brand-700)}
+  .nav .btns{display:flex;gap:8px}
+  .nav button{
+    font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);
+    border-radius:999px;padding:9px 20px;font-size:13.5px;font-weight:700;color:var(--brand-700);transition:all .16s ease;
+  }
+  .nav button:hover:not(:disabled){background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .nav button:disabled{opacity:.38;cursor:not-allowed}
+  .nav .title{font-size:12.5px;font-weight:700;color:var(--text-2)}
+
+  @media (max-width:1040px){
+    .two,.doclayout,.cover{grid-template-columns:1fr!important}
+    .cover{gap:28px}
+    .arch{max-width:760px}
+    .toc{position:static;max-height:220px}
+    .docpane{max-height:calc(100vh - 200px)}
+  }
+  @media (min-width:1100px) and (max-height:860px){
+    .cover h1{font-size:54px}
+    .cover .lead{font-size:19px;margin-top:18px}
+    .metrics{margin:22px 0 20px}
+    .metrics b{font-size:46px}
+    .metrics span{font-size:12.5px}
+    .persp{padding-top:16px}
+    .persp p{font-size:15px;min-height:58px;margin-top:10px}
+  }
+  @media print{
+    /* Impressão sempre em claro, com os blocos de código sobre fundo leve, qualquer que seja
+       o tema na tela. Mesma especificidade do bloco escuro, declarado depois: prevalece. */
+    :root[data-theme]{
+      --page:#fff;--surface:#fff;--text:#313235;--text-high:#252233;--text-3:#736b80;
+      --border:#e9e6f0;--text-2:#6b6b73;--brand:#660099;--brand-ink:#660099;--brand-700:#4d0073;--brand-400:#8433ab;
+      --brand-100:#e5d4ef;--brand-050:#f2ebfa;--brand-025:#f8f5fc;
+      --nav-bg:#fff;
+      --code-bg:#f7f4fb;--code-fg:#33124a;--arch-bg:linear-gradient(160deg,#fcfcfe,#ebe9f2);--arch-border:#e2e0e9;--ax-stroke:#e5d4ef;--ax-hub:#660099;--ax-line:#8433ab;--ax-accent:#50691a;--ax-band:#660099;
+      --error-low:#fce4ef;--error-border:#f2c2d5;--error-ink:#8d143c;
+      --warn-low:#fdf1de;--warn-border:#ecd2a6;--warn-ink:#7d4b00;
+      --info-low:#eef3fb;--info-border:#c8d8ef;--info-ink:#1f4478;
+      color-scheme:light;
+    }
+    pre{border:1px solid var(--brand-100)}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .nav,.dots,.progress,.toc,.switch{display:none}
+    .slide{display:block!important;break-after:page;max-width:none}
+    body{background:#fff}
+    .matrix-wrap{max-height:none}
+    .doclayout{display:block}
+    .docpane{max-height:none;overflow:visible;border:0;padding:0}
+    .doc h2{break-before:page}
+  }
+
+  /* ================= específico desta apresentação ================= */
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .four{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .stack-gap{display:flex;flex-direction:column;gap:16px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:2px 8px;background:var(--brand-050);color:var(--brand-700);border:1px solid var(--brand-100)}
+  .tag.ok{background:#e8f3d3;color:#3d5a0a;border-color:#cfe3a3}
+  .tag.warn{background:var(--warn-low);color:var(--warn-ink);border-color:var(--warn-border)}
+  :root[data-theme="dark"] .tag.ok,:root[data-theme="graphite"] .tag.ok{background:#27341a;color:#b9e06a;border-color:#3d5224}
+  .card p,.card li{font-size:13.2px;line-height:1.55;color:var(--text-2)}
+  .card h3{margin-bottom:8px}
+  .big{font-size:13.5px;line-height:1.6;color:var(--text)}
+  .analogy{display:flex;gap:14px;align-items:flex-start;background:var(--brand-025);border:1px dashed var(--brand-400);border-radius:var(--radius);padding:16px 18px}
+  .analogy .ico{flex:none;width:38px;height:38px;border-radius:12px;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;font-weight:800;font-size:18px}
+  .analogy p{margin:0;font-size:13.4px;color:var(--text)}
+  .analogy b{color:var(--brand-ink)}
+
+  /* diagramas SVG que acompanham o tema */
+  .dia{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+  .dia svg{width:100%;height:auto;display:block}
+  .dia .cap{font-size:12px;color:var(--text-2);margin:10px 2px 0}
+  .s-box{fill:var(--surface);stroke:var(--brand-100);stroke-width:1.2}
+  .s-soft{fill:var(--brand-025);stroke:var(--brand-100);stroke-width:1.2}
+  .s-hub{fill:var(--brand)}
+  .s-line{stroke:var(--brand-400);stroke-width:1.6;fill:none}
+  .s-dash{stroke:var(--brand-400);stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+  .s-lime{stroke:#6f9a1c;stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+  .s-t{fill:var(--text-high);font-size:14px;font-weight:700}
+  .s-s{fill:var(--text-2);font-size:11.5px}
+  .s-m{fill:var(--brand-ink);font-size:11px;font-family:var(--mono);font-weight:600}
+  .s-w{fill:#fff;font-size:17px;font-weight:700}
+  .s-ws{fill:#e6d3f2;font-size:12px}
+  .s-lbl{fill:var(--text-2);font-size:11px;font-weight:600}
+  .s-band{fill:var(--brand-050)}
+  .s-bandt{fill:var(--brand-ink);font-size:11px;font-weight:800;letter-spacing:.1em}
+  .s-life{stroke:var(--border);stroke-width:1.4;stroke-dasharray:3 5}
+  .s-msg{fill:var(--text);font-size:12.5px}
+  .s-note{fill:var(--info-low);stroke:var(--info-border)}
+  .s-notet{fill:var(--info-ink);font-size:11.5px}
+
+  /* jornada funcional: abas clicáveis */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .tabs button{font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);border-radius:14px;padding:10px 14px;text-align:left;min-width:150px;flex:1;transition:all .16s ease;color:var(--text)}
+  .tabs button b{display:block;font-size:11px;letter-spacing:.08em;color:var(--brand-ink);margin-bottom:2px}
+  .tabs button span{font-size:13px;font-weight:700}
+  .tabs button:hover{border-color:var(--brand-400);transform:translateY(-1px)}
+  .tabs button[aria-selected="true"]{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+  .tabs button[aria-selected="true"] b{color:#e0cceb}
+  .panel{display:none}
+  .panel.on{display:grid;animation:rise .3s both}
+  .mock{background:var(--page);border:1px solid var(--border);border-radius:14px;padding:14px;font-size:12.5px}
+  .mock .bar{display:flex;gap:6px;margin-bottom:10px}
+  .mock .bar i{width:9px;height:9px;border-radius:50%;background:var(--brand-100)}
+  .mock .field{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:9px 11px;color:var(--text-2);margin-bottom:8px;line-height:1.5}
+  .mock .opt{display:flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 11px;margin-bottom:6px}
+  .mock .opt.rec{border-color:var(--brand-400)}
+  .mock .opt i{width:12px;height:12px;border-radius:50%;border:2px solid var(--brand-400);flex:none}
+  .mock .opt em{margin-left:auto;font-style:normal;font-size:10px;font-weight:800;color:var(--brand-ink);background:var(--brand-050);border-radius:5px;padding:1px 6px}
+  .mock .btn{display:inline-block;background:var(--brand);color:var(--on-brand);font-weight:700;border-radius:999px;padding:6px 16px;font-size:12px}
+  .mock .log{font-family:var(--mono);font-size:11.5px;line-height:1.8}
+  .mock .log .g{color:#4b7a0a}.mock .log .a{color:var(--warn-ink)}.mock .log .b{color:var(--info-ink)}.mock .log .r{color:var(--error-ink)}
+  :root[data-theme="dark"] .mock .log .g,:root[data-theme="graphite"] .mock .log .g{color:#b9e06a}
+
+  /* esteira do laço de geração */
+  .pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;counter-reset:p}
+  .pipe .st{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 14px 12px;counter-increment:p}
+  .pipe .st::before{content:counter(p);position:absolute;top:-11px;left:14px;width:24px;height:24px;border-radius:50%;background:var(--brand);color:var(--on-brand);font-size:12px;font-weight:800;display:grid;place-items:center}
+  .pipe .st h3{margin:6px 0 4px;font-size:14px}
+  .pipe .st p{font-size:12.4px;line-height:1.5;color:var(--text-2);margin:0}
+  .pipe .st.back{border-style:dashed;border-color:var(--brand-400);background:var(--brand-025)}
+  .pipe .st.end{background:var(--brand);border-color:var(--brand)}
+  .pipe .st.end h3,.pipe .st.end p{color:#fff}.pipe .st.end p{color:#e6d3f2}
+  .pipe .st.end::before{background:#fff;color:var(--brand)}
+
+  /* camadas técnicas */
+  .layers{display:flex;flex-direction:column;gap:12px}
+  .layer{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:stretch}
+  .layer .lh{background:var(--brand);color:var(--on-brand);border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:center}
+  .layer .lh b{font-size:13px}.layer .lh span{font-size:11.5px;color:#e0cceb;margin-top:3px;line-height:1.4}
+  .layer .lc{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .comp{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+  .comp code{display:block;white-space:normal;border:0;background:none;padding:0;font-weight:700;font-size:12px;color:var(--brand-700);margin-bottom:3px;word-break:break-word}
+  .comp span{font-size:12px;line-height:1.45;color:var(--text-2)}
+  .layer-ext .lh{background:var(--brand-050);color:var(--brand-700);border:1px solid var(--brand-100)}
+  .layer-ext .lh span{color:var(--text-2)}
+
+  .cmp2 td:first-child{white-space:nowrap}
+  .cmp2 code{white-space:nowrap}
+  table.cmp td{font-size:12.8px}
+  pre .k{color:#e8b7ff}pre .s{color:#b9e06a}pre .c{color:#9a8fb0}
+
+  .stat{display:flex;gap:10px;flex-wrap:wrap}
+  .stat div{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;min-width:130px}
+  .stat b{display:block;font-size:26px;letter-spacing:-.02em;color:var(--brand-ink);line-height:1.1}
+  .stat span{font-size:12px;color:var(--text-2)}
+  @media (max-width:1040px){.three,.four,.pipe,.layer{grid-template-columns:1fr}}
+  .arrow{display:grid;place-items:center;color:var(--brand-400);font-size:30px;font-weight:700}
+  .pill{display:inline-block;background:var(--brand);color:var(--on-brand);font-size:12px;font-weight:700;border-radius:999px;padding:5px 14px}
+  .bubble{background:var(--brand-050);border:1px solid var(--brand-100);border-radius:18px 18px 18px 4px;padding:16px 18px;font-size:14.5px;line-height:1.55;color:var(--text-high)}
+  .bubble small{display:block;margin-top:8px;color:var(--text-2);font-size:11.5px}
+  .steps4{display:grid;grid-template-columns:repeat(4,1fr);gap:0;align-items:stretch}
+  .steps4 .s{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 18px 16px;margin-right:26px}
+  .steps4 .s:last-child{margin-right:0}
+  .steps4 .s::after{content:"\203A";position:absolute;right:-24px;top:50%;transform:translateY(-50%);font-size:30px;font-weight:800;color:var(--brand-400)}
+  .steps4 .s:last-child::after{display:none}
+  .steps4 .n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--brand);color:var(--on-brand);margin-bottom:10px}
+  .steps4 h3{font-size:16px;margin-bottom:6px}
+  .steps4 p{font-size:13px;color:var(--text-2);margin:0}
+  .steps4 .who{margin-top:10px}
+  .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .role{border-radius:20px;padding:22px;border:1px solid var(--border);background:var(--surface)}
+  .role .ic{font-size:11px;letter-spacing:.14em;font-weight:800;text-transform:uppercase;color:var(--brand-ink)}
+  .role h3{font-size:22px;margin:6px 0 4px}
+  .role .sub{font-size:13px;color:var(--text-2);margin:0 0 14px}
+  .role h4{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2);margin:12px 0 4px}
+  .role ul{margin:0;padding-left:18px;font-size:13px;line-height:1.65}
+  .role li::marker{color:var(--brand-400)}
+  .role.hub{background:var(--brand);border-color:var(--brand);color:#fff}
+  .role.hub .ic,.role.hub h4{color:#d9b8ec}.role.hub .sub{color:#e6d3f2}.role.hub li::marker{color:var(--lime)}
+  .bp{display:grid;grid-template-columns:210px 1fr 250px;gap:22px;align-items:center}
+  .bp .col{display:flex;flex-direction:column;gap:12px}
+  .bp .lab{font-size:11px;letter-spacing:.14em;font-weight:800;color:var(--brand-ink);text-transform:uppercase}
+  .bp .box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;font-size:13px;box-shadow:0 1px 2px rgba(40,10,60,.06)}
+  .bp .box b{display:block;font-size:14px;color:var(--text-high);margin-bottom:2px}
+  .bp .box span{color:var(--text-2);font-size:12px;line-height:1.4}
+  .bp .plat{background:var(--brand);border-radius:22px;padding:22px;color:#fff;position:relative}
+  .bp .plat h3{color:#fff;font-size:21px;margin-bottom:2px}
+  .bp .plat>p{color:#e6d3f2;font-size:13px;margin:0 0 14px}
+  .bp .sub4{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .bp .sub4 div{background:rgba(255,255,255,.95);color:#252233;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.4}
+  .bp .sub4 b{display:block;font-size:13px}
+  .results{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+  .results div{background:var(--brand-050);border:1px solid var(--brand-100);border-radius:14px;padding:12px 16px;font-size:13px;color:var(--text)}
+  .results b{display:block;color:var(--brand-ink);font-size:14px;margin-bottom:2px}
+  .story{display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+  .story figure{margin:0;position:relative}
+  .story figure::after{content:"\203A";position:absolute;right:-20px;top:70px;font-size:28px;font-weight:800;color:var(--brand-400)}
+  .story figure:last-child::after{display:none}
+  .story figcaption{margin-top:10px;font-size:13px;line-height:1.45;color:var(--text-2)}
+  .story figcaption b{display:block;color:var(--text-high);font-size:14px}
+  .mini{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;min-height:150px;font-size:12px;box-shadow:var(--shadow)}
+  .mini .bar{display:flex;gap:5px;margin-bottom:8px}.mini .bar i{width:8px;height:8px;border-radius:50%;background:var(--brand-100)}
+  .mini .f{border:1px solid var(--border);border-radius:8px;padding:7px 9px;margin-bottom:6px;color:var(--text-2);line-height:1.45;background:var(--page)}
+  .mini .o{display:flex;gap:7px;align-items:center;border:1px solid var(--border);border-radius:8px;padding:6px 9px;margin-bottom:5px;background:var(--page)}
+  .mini .o i{width:10px;height:10px;border-radius:50%;border:2px solid var(--brand-400);flex:none}
+  .mini .o.r{border-color:var(--brand-400)}
+  .mini .l{font-family:var(--mono);font-size:10.5px;line-height:1.8}
+  .mini .l .g{color:#4b7a0a}.mini .l .a{color:var(--warn-ink)}.mini .l .b{color:var(--info-ink)}
+  :root[data-theme="dark"] .mini .l .g,:root[data-theme="graphite"] .mini .l .g{color:#b9e06a}
+
+  /* camadas A: pilha com setas */
+  .pile{display:flex;flex-direction:column;align-items:stretch}
+  .pband{display:grid;grid-template-columns:160px 1fr;border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface)}
+  .pband .h{background:var(--brand);color:#fff;padding:12px 14px;display:flex;flex-direction:column;justify-content:center}
+  .pband .h b{font-size:13.5px}.pband .h span{font-size:11.5px;color:#e0cceb}
+  .pband .b{padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chip{background:var(--brand-025);border:1px solid var(--brand-100);border-radius:9px;padding:5px 10px;font-family:var(--mono);font-size:11.8px;font-weight:600;color:var(--brand-700)}
+  .chip small{display:block;font-family:var(--font);font-weight:500;font-size:11px;color:var(--text-2)}
+  .pband.ext .h{background:var(--brand-050);color:var(--brand-700);border-right:1px solid var(--brand-100)}.pband.ext .h span{color:var(--text-2)}
+  .pass{display:flex;justify-content:center;gap:34px;padding:5px 0;font-size:12px;color:var(--text-2)}
+  .pass span{display:flex;align-items:center;gap:6px}.pass b{color:var(--brand-400);font-size:16px}
+  /* camadas C: raias */
+  .swim{width:100%;border-collapse:separate;border-spacing:6px;font-size:12px}
+  .swim th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--brand-ink);text-align:left;padding:4px 8px}
+  .swim th.r{background:var(--brand);color:#fff;border-radius:10px;padding:10px 12px;width:130px;font-size:11.5px}
+  .swim th.r.x{background:var(--brand-050);color:var(--brand-700)}
+  .swim td{vertical-align:top;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;min-width:150px}
+  .swim td.e{background:transparent;border:1px dashed var(--border)}
+  .swim td .chip{display:block;margin-bottom:5px}
+  .swim td .chip:last-child{margin-bottom:0}
+  /* camadas D: matriz */
+  .filt{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .filt button{font:inherit;cursor:pointer;border:1px solid var(--brand-100);background:var(--surface);color:var(--brand-700);border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:700}
+  .filt button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+  .mx td.l{white-space:nowrap}
+  .lay{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;padding:2px 8px;background:var(--brand-050);color:var(--brand-700)}
+  /* camadas E: cebola */
+  .onion{display:grid;grid-template-columns:200px 1fr 220px;gap:20px;align-items:center}
+  .ring{border-radius:26px;padding:42px 18px 18px;position:relative;border:1.5px solid var(--brand-100)}
+  .ring>.rt{position:absolute;top:12px;left:18px;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--brand-ink)}
+  .ring.r1{background:var(--brand-025)}
+  .ring.r2{background:var(--brand-050)}
+  .ring.r3{background:var(--brand-100)}
+  .ring.r4{background:var(--brand);border-color:var(--brand);color:#fff}
+  .ring.r4>.rt{color:#d9b8ec}
+  .ring .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .ring.r4 .chip{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff}
+  .dep{font-size:12px;color:var(--text-2);text-align:center;margin-top:10px}
+  @media (max-width:1040px){.steps4,.roles,.bp,.results,.story,.onion{grid-template-columns:1fr}.steps4 .s{margin:0 0 20px}.steps4 .s::after,.story figure::after{display:none}.pband{grid-template-columns:1fr}}
+  /* ===== layout de documento: sumário + conteúdo (como o documento de referência do SDUI) ===== */
+  main{padding:20px var(--pad) 40px}
+  .doclayout{margin-top:0;grid-template-columns:268px minmax(0,1fr);width:100%;max-width:1680px}
+  .toc{max-height:calc(100vh - 150px);top:16px}
+  .docpane{max-height:calc(100vh - 150px)}
+  .doc{max-width:1100px}
+  .doc h2{font-size:21px}
+  .doc .card h2,.doc .ask h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-ink);margin:0 0 12px;padding-top:0;border-top:0}
+  .doc .ask h2{color:#d9b8ec}
+  .doc .card h3,.doc .pipe h3{color:var(--text-high)}
+  .doc .dia,.doc .bp,.doc .three,.doc .two,.doc .pipe,.doc .results{margin-top:16px;margin-bottom:18px}
+  .doc .swim th,.doc .mx th{background:none}
+  .doc .swim th.r{background:var(--brand);color:#fff}
+  .doc .swim th.r.x{background:var(--brand-050);color:var(--brand-700)}
+  .doc .swim td,.doc .mx td{border-radius:10px}
+  .doc .mx td{border-radius:0}
+  .doc .dia p.arch-title{display:none}
+  @media (max-width:1040px){.toc{max-height:220px}.docpane{max-height:calc(100vh - 120px)}}
+  /* ---------- bloco de código com barra e botão Copiar ---------- */
+  .doc .code{margin:12px 0 18px;border-radius:14px;overflow:hidden;background:var(--code-bg);border:1px solid var(--brand-100);box-shadow:var(--shadow)}
+  .doc .code-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 8px 7px 16px;background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.08)}
+  .doc .code-bar span{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#cdb4e2}
+  .doc .code-bar button{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:5px 11px;transition:background .15s,border-color .15s,color .15s}
+  .doc .code-bar button:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.4)}
+  .doc .code-bar button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+  .doc .code-bar button.ok{color:var(--lime);border-color:var(--lime)}
+  .doc .code-bar svg{width:14px;height:14px;flex:none}
+  .doc .code pre{margin:0;border:0;border-radius:0;padding:16px 18px;font-size:12.5px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;overflow:visible}
+  .doc .code pre code{white-space:inherit;background:none;border:0;padding:0;color:inherit;font-size:inherit}
+  .doc ul.checks{list-style:none;padding-left:0}
+  .doc ul.checks li{position:relative;padding-left:30px}
+  .doc ul.checks li::before{content:"";position:absolute;left:0;top:3px;width:16px;height:16px;border:1.6px solid var(--brand-400);border-radius:5px}
+</style>
+<script>
+  /* Tema aplicado antes da primeira pintura, para não piscar: usa a escolha gravada e,
+     na primeira visita, o tema do sistema operacional. */
+  (function(){
+    var t = null;
+    try {
+      t = localStorage.getItem('plataforma-tema') ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } catch (e) {}
+    if (['light','dark','graphite'].indexOf(t) < 0) t = 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+</head>
+<body>
+<div class="deck">
+  <div class="progress"><i id="bar" style="transform:scaleX(0)"></i></div>
+  <header class="masthead">
+    <div class="lockup">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 195 72" fill="currentColor" aria-hidden="true" focusable="false"><path d="M23.3761 61.4297H26.5561C27.0861 61.4297 29.1472 61.1549 30.266 59.0938L43.4176 35.7743C44.7721 33.301 43.1821 31.2006 41.7688 30.6903L38.2748 29.1199C36.3904 28.2759 34.133 29.1592 33.2693 31.1417L25.0054 47.7481H24.8876L16.6433 31.1417C15.7992 29.1788 13.5222 28.2759 11.6575 29.1199L8.16346 30.6903C6.75015 31.2006 5.16018 33.301 6.5146 35.7743L19.6858 59.0938C20.8047 61.1549 22.8462 61.4297 23.3761 61.4297Z" /><path d="M81.204 61.4297H84.3839C84.9139 61.4297 86.975 61.1549 88.0939 59.0938L101.265 35.7743C102.62 33.301 101.03 31.2006 99.6163 30.6903L96.1223 29.1199C94.2378 28.2759 91.9805 29.1592 91.1364 31.1417L82.8725 47.7481H82.7547L74.4908 31.1417C73.6467 29.1788 71.3697 28.2759 69.5049 29.1199L66.0109 30.6903C64.5976 31.2006 63.0077 33.301 64.3621 35.7743L77.5137 59.0938C78.6129 61.1549 80.674 61.4297 81.204 61.4297Z" /><path d="M119.815 28.904C110.746 28.904 103.385 36.265 103.385 45.3337C103.385 54.4024 110.746 61.7634 119.815 61.7634C128.884 61.7634 136.244 54.4024 136.244 45.3337C136.244 36.265 128.903 28.904 119.815 28.904ZM119.815 51.8114C116.242 51.8114 113.337 48.9062 113.337 45.3337C113.337 41.7612 116.242 38.8561 119.815 38.8561C123.387 38.8561 126.292 41.7612 126.292 45.3337C126.312 48.9062 123.407 51.8114 119.815 51.8114Z" /><path d="M60.3184 19.5603C60.3184 23.1132 57.4329 25.9987 53.88 25.9987C50.3271 25.9987 47.4416 23.1132 47.4416 19.5603C47.4416 16.0074 50.3271 13.1219 53.88 13.1219C57.4329 13.1219 60.3184 16.0074 60.3184 19.5603Z" /><path d="M48.2661 33.2226C48.2661 31.0241 50.0327 29.2574 52.2312 29.2574H55.5485C57.747 29.2574 59.5136 31.0241 59.5136 33.2226V57.4647C59.5136 59.6632 57.7274 61.4298 55.5485 61.4298H52.2312C50.0327 61.4298 48.2661 59.6632 48.2661 57.4647V33.2226Z" /><path d="M178.919 19.5409C178.919 21.5627 178.192 24.7427 175.974 26.9608C175.189 27.746 174.502 28.2171 173.952 28.5704C172.912 29.2574 172.146 29.7285 172.559 30.867C172.971 31.9859 174.266 31.6326 175.503 31.3577C175.896 31.2596 183.61 29.4144 183.708 29.4144C185.769 29.0219 187.771 30.337 188.262 32.3588C188.262 32.3588 188.871 34.9499 188.89 34.9695C189.381 36.9913 188.184 39.0721 186.162 39.6609C186.083 39.7002 177.662 41.722 177.643 41.722C176.053 42.1342 175.11 42.9194 175.11 44.4701C175.11 45.1571 175.503 45.903 175.994 46.5312C175.994 46.5312 185.141 57.8769 185.18 57.9554C186.417 59.6632 186.103 62.0187 184.493 63.3338C184.493 63.3338 182.432 65.0023 182.413 65.0219C180.803 66.3371 178.408 66.1604 177.014 64.5901C176.936 64.5312 171.263 57.5432 170.655 56.7973C170.046 56.0514 169.3 54.9325 168.24 54.9325C167.18 54.9325 166.434 56.0514 165.826 56.7973C165.217 57.5432 159.544 64.5116 159.466 64.5901C158.053 66.1604 155.677 66.3371 154.068 65.0219C154.048 65.0023 151.987 63.3338 151.987 63.3338C150.378 62.0187 150.044 59.6435 151.3 57.9554C151.339 57.8769 160.487 46.5312 160.487 46.5312C160.977 45.903 161.37 45.1571 161.37 44.4701C161.37 42.9194 160.428 42.1342 158.838 41.722C158.818 41.722 150.397 39.7002 150.319 39.6609C148.297 39.0721 147.119 36.9913 147.59 34.9695C147.59 34.9499 148.218 32.3785 148.218 32.3588C148.709 30.337 150.711 29.0219 152.772 29.4144C152.87 29.4144 160.565 31.2596 160.977 31.3577C162.214 31.6326 163.51 31.9859 163.922 30.867C164.354 29.7285 163.588 29.2574 162.528 28.5704C161.978 28.2171 161.311 27.746 160.526 26.9608C158.288 24.723 157.562 21.5627 157.562 19.5409C157.562 13.7307 162.41 9 168.24 9C174.07 9 178.919 13.711 178.919 19.5409Z" /></svg>
+      <span class="rule"></span>
+      <span>ELASTIC JOURNEY<small>Guia de integração de canais</small></span>
+    </div>
+    <div class="mast-actions">
+      <span class="proposal">Guia de integração</span>
+      <div class="switch" id="theme" role="group" aria-label="Tema da apresentação">
+        <button type="button" data-theme-choice="light" aria-pressed="true">Claro</button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false">Escuro</button>
+        <button type="button" data-theme-choice="graphite" aria-pressed="false">Grafite</button>
+      </div>
+    </div>
+  </header>
+
+
+  <main>
+    <div class="doclayout">
+      <aside class="toc"><h2>Sumário</h2><nav id="toc"></nav></aside>
+      <div class="docpane" id="docpane"><article class="doc" id="doc">
+
+<h1 style="margin-top:22px">Integre seu canal <em>ao Elastic Journey</em></h1>
+<p class="lead" style="margin-bottom:6px">
+  Este guia mostra como um canal digital (site, app ou WhatsApp) executa as jornadas publicadas no Elastic Journey. Seu canal faz poucas chamadas
+  ao <strong>serviço de jornadas</strong>: inicia a jornada, recebe a etapa atual, desenha a tela que vem descrita na resposta e devolve o que a pessoa preencheu.
+  A ordem das telas, as decisões e as integrações ficam na plataforma.
+</p>
+<p class="out">Comece pelo <b>Começo rápido</b> para ver uma jornada rodando. <b>Conceitos</b> explica os termos usados no guia, <b>Tarefas</b> mostra como resolver cada situação e <b>Referência</b> detalha rotas, campos e erros.</p>
+
+<!-- ====================================================== 1 -->
+<h2 id="t1">1. Começo rápido</h2>
+<p>Você vai precisar do endereço do serviço de jornadas (no ambiente local, <code>http://localhost:8085/api/v1</code>) e do identificador (<code>journeyId</code>) de uma jornada publicada para o seu canal.</p>
+
+<h3>1. Inicie uma instância</h3>
+<p>Mande as variáveis de entrada que a jornada pede e diga de qual canal você está chamando.</p>
+<pre data-label="Terminal"><code>curl -X POST "http://localhost:8085/api/v1/journeys/{journeyId}/instances?channelType=WEB" \
+  -H "content-type: application/json" \
+  -d '{ "cpf": "12345678900" }'</code></pre>
+<p>A resposta traz o identificador da instância e a primeira etapa:</p>
+<pre data-label="Resposta"><code>{
+  "processInstanceId": "a41f0c2e-…",
+  "businessKey": "6d2b9e10-…",
+  "flow": { "channelTypes": ["WEB", "MOBILE"], "flowNodes": [ … ] },
+  "step": {
+    "type": "USER_TASK",
+    "taskId": "8f1c2d4e-…",
+    "nodeId": "Node_5b0e…",
+    "nodeName": "Seus dados",
+    "nodeType": "USER_TASK",
+    "form": { "name": "Seus dados", "sdui": { … }, "context": { … } },
+    "errorMessage": null
+  }
+}</code></pre>
+<p>Guarde o <code>processInstanceId</code>: ele identifica a instância em todas as chamadas seguintes.</p>
+
+<h3>2. Desenhe a etapa</h3>
+<p>Quando <code>step.type</code> é <code>USER_TASK</code>, a tela está em <code>step.form.sdui</code>. Os textos já chegam preenchidos; seu canal desenha os componentes, cuida dos campos, da validação e dos botões (veja <a href="#t3">Desenhar uma tela</a>).</p>
+
+<h3>3. Envie as respostas</h3>
+<p>Quando a pessoa tocar no botão de envio, mande o que ela preencheu junto com o <code>taskId</code> da etapa.</p>
+<pre data-label="Terminal"><code>curl -X POST "http://localhost:8085/api/v1/instances/{processInstanceId}/tasks/{taskId}/complete" \
+  -H "content-type: application/json" \
+  -d '{ "answers": { "nome": "Ana Souza" } }'</code></pre>
+<p>A resposta já é a <strong>próxima etapa</strong>, no mesmo formato de <code>step</code>. Se ela vier com <code>errorMessage</code>, é a mesma tela de novo: mostre a mensagem e deixe a pessoa tentar outra vez.</p>
+
+<h3>4. Repita até o fim</h3>
+<p>Em <code>WAITING</code>, a jornada está processando algo e ainda não há tela; consulte a etapa de novo depois de alguns segundos. Em <code>ENDED</code>, a jornada terminou.</p>
+<pre data-label="Terminal"><code>curl "http://localhost:8085/api/v1/instances/{processInstanceId}/current-step"</code></pre>
+
+<h3>O laço inteiro</h3>
+<p>O mesmo roteiro em TypeScript, usando apenas <code>fetch</code>. A função <code>desenharTela</code> é a parte do seu canal: desenha a tela e resolve quando a pessoa enviar.</p>
+<pre data-label="TypeScript"><code>const BASE = 'http://localhost:8085/api/v1';
+
+async function chamar(method: string, path: string, body?: unknown) {
+  const resposta = await fetch(BASE + path, {
+    method,
+    headers: { 'content-type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const texto = await resposta.text();
+  const json = texto ? JSON.parse(texto) : null;
+  if (!resposta.ok) throw new Error(json?.message ?? `HTTP ${resposta.status}`);
+  return json;
+}
+
+let { processInstanceId, step } = await chamar(
+  'POST', `/journeys/${journeyId}/instances?channelType=WEB`, { cpf: '12345678900' });
+
+while (step.type !== 'ENDED') {
+  if (step.type === 'WAITING') {
+    await new Promise((fim) =&gt; setTimeout(fim, 3000));
+    step = await chamar('GET', `/instances/${processInstanceId}/current-step`);
+    continue;
+  }
+  const answers = await desenharTela(step.form, step.errorMessage);
+  step = await chamar('POST', `/instances/${processInstanceId}/tasks/${step.taskId}/complete`, { answers });
+}</code></pre>
+
+<!-- ====================================================== 2 -->
+<h2 id="t2">2. Conceitos</h2>
+<p>Seu canal conversa só com o serviço de jornadas e só precisa conhecer os termos abaixo.</p>
+    <div class="tw"><table style="min-width:680px">
+      <thead><tr><th>Termo</th><th>O que é</th><th>Na API</th></tr></thead>
+      <tbody>
+        <tr><td><b>Jornada publicada</b></td><td>Um fluxo de telas e decisões montado e publicado no Elastic Journey para um ou mais canais.</td><td><code>journeyId</code>, <code>flow.channelTypes</code></td></tr>
+        <tr><td><b>Versão</b></td><td>Cada publicação cria uma versão nova. Uma instância segue sempre a versão com que começou: republicar não muda quem já está no meio da jornada.</td><td><code>sdui.journeyVersion</code></td></tr>
+        <tr><td><b>Instância</b></td><td>Uma execução da jornada para uma pessoa, do início ao fim.</td><td><code>processInstanceId</code></td></tr>
+        <tr><td><b>Etapa</b></td><td>Onde a instância está agora: numa tela, numa espera ou no fim.</td><td><code>step.type</code></td></tr>
+        <tr><td><b>Tela</b></td><td>A descrição da tela da etapa, em componentes do catálogo SDUI. Seu canal desenha cada componente com os seus próprios componentes visuais.</td><td><code>step.form.sdui</code></td></tr>
+        <tr><td><b>Respostas</b></td><td>O que a pessoa preencheu ou escolheu na tela, enviado ao concluir a etapa.</td><td><code>answers</code></td></tr>
+        <tr><td><b>Variáveis de entrada</b></td><td>Dados que o canal informa ao iniciar, como o CPF de quem está logado.</td><td>corpo do iniciar</td></tr>
+        <tr><td><b>Canal</b></td><td>De onde a jornada está sendo executada. A jornada pode mostrar conteúdo e seguir caminhos diferentes por canal.</td><td><code>channelType</code>: <code>WEB</code>, <code>MOBILE</code>, <code>WHATSAPP</code></td></tr>
+      </tbody>
+    </table></div>
+
+<h3>O ciclo de uma etapa</h3>
+      <div class="dia" style="margin-top:14px">
+        <svg viewBox="0 0 900 172" role="img" aria-label="Ciclo da etapa: iniciar leva a uma tela; concluir leva a outra tela, a uma espera ou ao fim; da espera, consultar de novo leva a uma tela ou ao fim.">
+          <defs><marker id="ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-400)"/></marker></defs>
+          <rect class="s-box" x="10" y="50" width="130" height="56" rx="12"/><text class="s-t" x="75" y="83" text-anchor="middle" style="font-size:13px">Iniciar</text>
+          <rect class="s-hub" x="210" y="40" width="190" height="76" rx="12"/><text class="s-w" x="305" y="72" text-anchor="middle" style="font-size:14px">USER_TASK</text><text class="s-ws" x="305" y="94" text-anchor="middle">tela para a pessoa</text>
+          <rect class="s-soft" x="490" y="40" width="190" height="76" rx="12"/><text class="s-t" x="585" y="72" text-anchor="middle" style="font-size:14px">WAITING</text><text class="s-s" x="585" y="94" text-anchor="middle">a jornada está processando</text>
+          <rect class="s-box" x="770" y="50" width="120" height="56" rx="12"/><text class="s-t" x="830" y="83" text-anchor="middle" style="font-size:13px">ENDED</text>
+          <path class="s-line" marker-end="url(#ca)" d="M140 78 H208"/>
+          <path class="s-line" marker-end="url(#ca)" d="M400 62 H488"/><text class="s-lbl" x="444" y="54" text-anchor="middle">concluir</text>
+          <path class="s-dash" marker-end="url(#ca)" d="M490 96 H402"/><text class="s-lbl" x="446" y="112" text-anchor="middle">consultar de novo</text>
+          <path class="s-line" marker-end="url(#ca)" d="M680 78 H768"/><text class="s-lbl" x="724" y="70" text-anchor="middle">fim</text>
+          <path class="s-line" marker-end="url(#ca)" d="M305 116 V152 H830 V108"/><text class="s-lbl" x="568" y="146" text-anchor="middle">concluir a última tela</text>
+          <path class="s-line" marker-end="url(#ca)" d="M250 40 V20 H360 V38"/><text class="s-lbl" x="305" y="14" text-anchor="middle">concluir &rarr; próxima tela</text>
+        </svg>
+        <p class="cap">Iniciar também pode levar direto a uma espera ou ao fim, quando a jornada começa processando algo. Trate sempre os três tipos.</p>
+      </div>
+
+<!-- ====================================================== 3 -->
+<h2 id="t3">3. Tarefas</h2>
+
+<h3 id="t3-1">3.1 Iniciar com variáveis de entrada</h3>
+<p>
+  Para saber quais variáveis a jornada espera, consulte o fluxo e procure o nó com <code>type</code> igual a <code>START</code>: o campo <code>startVariables</code> lista nome e tipo de cada uma.
+  Confira também se o seu canal está em <code>channelTypes</code>.
+</p>
+<pre data-label="Terminal"><code>curl "http://localhost:8085/api/v1/journeys/{journeyId}/flow"</code></pre>
+<pre data-label="Resposta"><code>{
+  "channelTypes": ["WEB", "MOBILE"],
+  "flowNodes": [
+    { "id": "Node_01a…", "type": "START", "name": "Início",
+      "startVariables": [ { "name": "cpf", "type": "string" }, { "name": "limite", "type": "number" } ] },
+    …
+  ]
+}</code></pre>
+<ul>
+  <li><strong>Todas as variáveis declaradas são obrigatórias.</strong> Faltando alguma, a instância não é criada e a resposta é 409 com a lista do que faltou.</li>
+  <li><strong>Tipos.</strong> <code>number</code> e <code>boolean</code> são convertidos (aceitam número ou texto); <code>string</code>, <code>date</code> e <code>datetime</code> são guardados como texto. Para datas, envie no padrão ISO 8601.</li>
+  <li><strong>Variáveis extras</strong>, que a jornada não declara, também são aceitas e ficam disponíveis para ela.</li>
+  <li><strong><code>channel</code> é reservado.</strong> O serviço o preenche com o <code>channelType</code> da chamada; não envie no corpo.</li>
+</ul>
+
+<h3 id="t3-2">3.2 Desenhar uma tela</h3>
+<p>Numa etapa <code>USER_TASK</code>, o campo <code>form</code> traz a tela (<code>sdui</code>) e os valores que ela usa (<code>context</code>). Exemplo abreviado:</p>
+<pre data-label="JSON"><code>"form": {
+  "name": "Seus dados",
+  "context": { "data": { "data_cpf": "12345678900" }, "form": { "data_cpf": "12345678900" } },
+  "sdui": {
+    "schemaVersion": "1.0.0",
+    "catalogVersion": "1.0.0",
+    "journeyVersion": 3,
+    "uiStepId": "Node_5b0e…",
+    "supportedTargets": ["react.web", "react.mobile", "flutter.web", "flutter.mobile", "whatsapp"],
+    "minRendererVersion": {},
+    "dataSources": {},
+    "data": ["ui.screen", { "id": "tela", "version": "1.0.0", "title": "Seus dados" }, [
+      ["ui.text", { "id": "t1", "version": "1.0.0", "text": "Confirme seus dados, CPF 12345678900" }],
+      ["ui.textInput", { "id": "nome", "version": "1.0.0", "label": "Nome completo", "required": true,
+        "$bindings": { "value": { "path": "form.nome", "mode": "twoWay" } } }],
+      ["ui.button", { "id": "ok", "version": "1.0.0", "label": "Continuar",
+        "$events": { "onPress": { "action": "action.submit" } } }]
+    ]]
+  }
+}</code></pre>
+<p><strong>1. Confira a compatibilidade.</strong> O seu alvo (<code>react.web</code>, <code>react.mobile</code>, <code>flutter.web</code>, <code>flutter.mobile</code> ou <code>whatsapp</code>) precisa estar em <code>supportedTargets</code>, e a versão do seu renderizador precisa atender <code>minRendererVersion</code>. Se não atender, não desenhe a tela pela metade: mostre que a etapa não está disponível neste canal.</p>
+<p><strong>2. Percorra a árvore.</strong> <code>sdui.data</code> é uma árvore de tuplas <code>[tipo, atributos]</code> ou <code>[tipo, atributos, filhos]</code>, com raiz <code>ui.screen</code>. Todo componente tem <code>id</code> e <code>version</code>. Associe cada tipo a um componente seu (lista em <a href="#t4-5">Componentes</a>).</p>
+<p><strong>3. Use o que já veio pronto.</strong> O serviço já resolveu a tela antes de entregar:</p>
+<ul>
+  <li>textos com <code>{{form.x}}</code> e <code>{{data.x}}</code> já chegam com o valor no lugar;</li>
+  <li>cada vínculo de <code>$bindings</code> já traz o valor atual no atributo de mesmo nome (um campo revisitado chega com <code>value</code> preenchido);</li>
+  <li>opções de <code>ui.select</code> e itens de <code>ui.selectList</code> já vêm montados;</li>
+  <li><code>dataSources</code> vem sempre vazio: o canal nunca busca dados por conta própria.</li>
+</ul>
+<p><strong>4. Faça a sua parte.</strong></p>
+<ul>
+  <li><strong>Estado dos campos.</strong> Guarde o que a pessoa digita nos campos com vínculo <code>twoWay</code> em <code>form.*</code>. É isso que vira resposta.</li>
+  <li><strong>Visibilidade e habilitação.</strong> <code>$visibility</code> e <code>$active</code> são condições <code>{ rule, path, value }</code> com as regras <code>equals</code>, <code>notEquals</code>, <code>in</code> e <code>notIn</code>. Reavalie enquanto a pessoa preenche.
+    Para <code>form.x</code>, use o valor atual do campo; para <code>data.x</code>, o valor em <code>form.context.data</code> com o nome <code>data_x</code>; para <code>channel</code>, o seu canal. Num contêiner, a condição vale para tudo o que está dentro.
+    <code>disabled: true</code> sempre prevalece sobre <code>$active</code>.</li>
+  <li><strong>Validação.</strong> Antes de enviar, valide os campos visíveis e ativos: <code>required</code>, <code>maxLength</code> e as regras da lista <code>validation</code> (cada uma com <code>rule</code>, <code>value</code> e <code>message</code>, como <code>required</code> e <code>minLength</code>).</li>
+  <li><strong>Eventos.</strong> <code>$events</code> liga um evento do componente (<code>onPress</code>, <code>onDismiss</code>, <code>onAction</code>) a uma ação. O que cada ação faz está em <a href="#t4-4">Ações</a>.</li>
+</ul>
+
+<h3 id="t3-3">3.3 Enviar as respostas</h3>
+<p>Na ação <code>action.submit</code>, valide e chame o concluir com o <code>taskId</code> da etapa:</p>
+<pre data-label="Terminal"><code>curl -X POST "http://localhost:8085/api/v1/instances/{processInstanceId}/tasks/{taskId}/complete" \
+  -H "content-type: application/json" \
+  -d '{ "answers": { "nome": "Ana Souza", "aceite": true, "botao": "confirmar" } }'</code></pre>
+<ul>
+  <li><strong>Chaves.</strong> Cada chave é o caminho do vínculo sem o <code>form.</code>: o campo ligado a <code>form.nome</code> vai como <code>nome</code>.</li>
+  <li><strong>Só o que está à vista.</strong> Campos ocultos ou desabilitados não entram. Valores nulos são ignorados.</li>
+  <li><strong>Qual botão foi usado.</strong> Se o <code>action.submit</code> tiver <code>params: { "path": "form.botao", "value": "confirmar" }</code>, acrescente <code>botao: "confirmar"</code>. É assim que a jornada sabe qual botão a pessoa escolheu.</li>
+  <li><strong>Lista de seleção.</strong> Envie o item escolhido (vínculo <code>value</code>) e a ação escolhida (vínculo <code>action</code>).</li>
+  <li><strong>Tipos.</strong> Campo de texto com <code>inputMode</code> <code>number</code> ou <code>decimal</code> é guardado como número; <code>ui.checkbox</code>, como verdadeiro ou falso; os demais, como texto.</li>
+</ul>
+<p>Use sempre o <code>taskId</code> da etapa que está na tela. Se ele não for mais o da etapa aberta (por exemplo, num segundo toque no botão), a resposta é 409 e nada muda. Desabilite o botão enquanto o envio estiver em andamento.</p>
+
+<h3 id="t3-4">3.4 Tratar uma etapa em espera</h3>
+<p>
+  <code>WAITING</code> quer dizer que a jornada está processando algo fora da tela: aguardando uma mensagem, uma integração ou um prazo. A etapa traz <code>nodeName</code> e <code>nodeType</code>, só para informação.
+  O serviço não avisa quando a espera termina: mostre um estado de aguardando e consulte <code>current-step</code> de novo, num intervalo adequado à jornada, até vir uma tela ou o fim.
+</p>
+
+<h3 id="t3-5">3.5 Botão Voltar</h3>
+<p>Um botão com <code>action.navigate</code> e <code>params: { "route": "voltar" }</code> pede a tela anterior, sem concluir a atual:</p>
+<pre data-label="Terminal"><code>curl -X POST "http://localhost:8085/api/v1/instances/{processInstanceId}/back"</code></pre>
+<p>
+  A resposta é a etapa anterior, já com os valores preenchidos antes. Quando não dá para voltar, a resposta é a <strong>mesma etapa com <code>errorMessage</code></strong>, por exemplo
+  &ldquo;Não há tela anterior para voltar.&rdquo; ou &ldquo;Não é possível voltar: a operação desta etapa já foi registrada.&rdquo; (o que já foi gravado num sistema não se desfaz).
+  Outros valores de <code>route</code> são destinos do seu próprio canal.
+</p>
+
+<h3 id="t3-6">3.6 Tentar novamente</h3>
+<p>
+  Alguns componentes mostram dados buscados na hora em que a tela é montada. Se essa busca falhar, o componente chega com <code>loadError: { message, required }</code>.
+  Mostre a mensagem e ofereça a ação <code>action.retry</code>, que é só consultar <code>current-step</code> de novo: a tela é montada outra vez. Quando <code>required</code> é <code>true</code>, a etapa não pode ser enviada até a busca dar certo.
+</p>
+
+<h3 id="t3-7">3.7 Encerrar</h3>
+<p>Para cancelar uma instância em andamento (a pessoa desistiu, a sessão expirou):</p>
+<pre data-label="Terminal"><code>curl -X DELETE "http://localhost:8085/api/v1/instances/{processInstanceId}"</code></pre>
+<p>Encerrar uma instância que já terminou não é erro. Depois disso, consultar a etapa devolve <code>ENDED</code>.</p>
+
+<h3 id="t3-8">3.8 Tratar erros</h3>
+<p>Os erros chegam de dois jeitos, e o seu canal precisa tratar os dois:</p>
+<ul>
+  <li><strong>Resposta 200 com <code>errorMessage</code>.</strong> A etapa voltou igual, com uma mensagem para a pessoa. Acontece quando uma integração falhou ao concluir a tela (nada foi gravado; dá para tentar de novo) ou quando o Voltar foi recusado. Mostre a mensagem e mantenha o que a pessoa já preencheu.</li>
+  <li><strong>Resposta HTTP de erro.</strong> O pedido não foi atendido. A tabela de <a href="#t4-6">códigos de erro</a> diz o que cada um significa.</li>
+</ul>
+
+<!-- ====================================================== 4 -->
+<h2 id="t4">4. Referência</h2>
+
+<h3 id="t4-1">4.1 Rotas</h3>
+<p>Todas as rotas ficam sob <code>/api/v1</code>. Corpo e resposta são JSON (<code>content-type: application/json</code>). A forma de autenticação está em definição.</p>
+    <div class="tw"><table style="min-width:760px">
+      <thead><tr><th>Operação</th><th>Método e rota</th><th>Corpo</th><th>Resposta</th></tr></thead>
+      <tbody>
+        <tr><td><b>Fluxo da jornada</b></td><td><code>GET /journeys/{journeyId}/flow</code></td><td>&mdash;</td><td><code>{ channelTypes, flowNodes }</code></td></tr>
+        <tr><td><b>Iniciar</b></td><td><code>POST /journeys/{journeyId}/instances?channelType=…</code></td><td>variáveis de entrada</td><td>instância (4.2)</td></tr>
+        <tr><td><b>Etapa atual</b></td><td><code>GET /instances/{processInstanceId}/current-step</code></td><td>&mdash;</td><td>etapa (4.3)</td></tr>
+        <tr><td><b>Concluir a tela</b></td><td><code>POST /instances/{processInstanceId}/tasks/{taskId}/complete</code></td><td><code>{ "answers": { … } }</code></td><td>próxima etapa (4.3)</td></tr>
+        <tr><td><b>Voltar</b></td><td><code>POST /instances/{processInstanceId}/back</code></td><td>&mdash;</td><td>etapa anterior, ou a mesma com <code>errorMessage</code></td></tr>
+        <tr><td><b>Encerrar</b></td><td><code>DELETE /instances/{processInstanceId}</code></td><td>&mdash;</td><td>200, sem corpo</td></tr>
+      </tbody>
+    </table></div>
+
+<h3 id="t4-2">4.2 Instância</h3>
+    <div class="tw"><table style="min-width:600px">
+      <thead><tr><th>Campo</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td><code>processInstanceId</code></td><td>Identificador da instância, usado em todas as chamadas seguintes.</td></tr>
+        <tr><td><code>businessKey</code></td><td>Identificador gerado pelo serviço para a instância. Informativo.</td></tr>
+        <tr><td><code>flow</code></td><td>O mesmo conteúdo de <code>GET /journeys/{journeyId}/flow</code>.</td></tr>
+        <tr><td><code>step</code></td><td>A primeira etapa (4.3).</td></tr>
+      </tbody>
+    </table></div>
+
+<h3 id="t4-3">4.3 Etapa</h3>
+    <div class="tw"><table style="min-width:680px">
+      <thead><tr><th>Campo</th><th>Quando vem</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td><code>type</code></td><td>sempre</td><td><code>USER_TASK</code> (tela), <code>WAITING</code> (espera) ou <code>ENDED</code> (fim).</td></tr>
+        <tr><td><code>taskId</code></td><td><code>USER_TASK</code></td><td>Identifica esta tela. Vai na rota do concluir.</td></tr>
+        <tr><td><code>nodeId</code>, <code>nodeName</code></td><td><code>USER_TASK</code>, <code>WAITING</code></td><td>Identificador e nome da etapa no fluxo. Úteis em registros e telemetria.</td></tr>
+        <tr><td><code>nodeType</code></td><td><code>USER_TASK</code>, <code>WAITING</code></td><td>Tipo da etapa no fluxo. Informativo.</td></tr>
+        <tr><td><code>form.name</code></td><td><code>USER_TASK</code></td><td>Nome da tela.</td></tr>
+        <tr><td><code>form.sdui</code></td><td><code>USER_TASK</code></td><td>A tela (4.4).</td></tr>
+        <tr><td><code>form.context</code></td><td><code>USER_TASK</code></td><td>Valores atuais que a tela usa, com o nome com que estão guardados: <code>data_x</code> para <code>data.x</code>, <code>form_x</code> para <code>form.x</code>.</td></tr>
+        <tr><td><code>errorMessage</code></td><td>quando houver</td><td>Mensagem para a pessoa: a etapa voltou igual (3.8).</td></tr>
+      </tbody>
+    </table></div>
+<p class="out"><code>form.id</code> e <code>form.description</code> existem na resposta, mas chegam vazios (<code>null</code>).</p>
+
+<h3 id="t4-4">4.4 Tela, atributos reservados e ações</h3>
+    <div class="tw"><table style="min-width:680px">
+      <thead><tr><th>Campo da tela</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td><code>schemaVersion</code>, <code>catalogVersion</code></td><td>Versão do formato e do catálogo de componentes. Hoje, <code>1.0.0</code>.</td></tr>
+        <tr><td><code>journeyId</code>, <code>journeyVersion</code>, <code>uiStepId</code></td><td>Jornada, versão e etapa a que a tela pertence.</td></tr>
+        <tr><td><code>status</code>, <code>publishedAt</code></td><td>Situação e data da publicação.</td></tr>
+        <tr><td><code>supportedTargets</code>, <code>minRendererVersion</code></td><td>Alvos que podem desenhar a tela e a versão mínima do renderizador em cada um.</td></tr>
+        <tr><td><code>dataSources</code></td><td>Sempre <code>{}</code> para o canal.</td></tr>
+        <tr><td><code>data</code></td><td>Árvore de componentes, com raiz <code>ui.screen</code>.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tw" style="margin-top:14px"><table style="min-width:680px">
+      <thead><tr><th>Atributo reservado</th><th>Forma</th><th>Uso</th></tr></thead>
+      <tbody>
+        <tr><td><code>$bindings</code></td><td><code>{ atributo: { path, mode } }</code></td><td>Liga um atributo a um valor. <code>oneWay</code> só mostra; <code>twoWay</code> mostra e devolve o que a pessoa editar (sempre em <code>form.*</code>).</td></tr>
+        <tr><td><code>$events</code></td><td><code>{ evento: { action, params } }</code></td><td>Liga um evento do componente a uma ação.</td></tr>
+        <tr><td><code>$visibility</code></td><td><code>{ rule, path, value }</code></td><td>Se o componente aparece. Ausente: aparece.</td></tr>
+        <tr><td><code>$active</code></td><td><code>{ rule, path, value }</code></td><td>Se o componente aceita interação. Ausente: aceita.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tw" style="margin-top:14px"><table style="min-width:680px">
+      <thead><tr><th>Ação</th><th>O que o canal faz</th></tr></thead>
+      <tbody>
+        <tr><td><code>action.submit</code></td><td>Valida e conclui a etapa com as respostas (3.3).</td></tr>
+        <tr><td><code>action.navigate</code></td><td>Com <code>route: "voltar"</code>, chama o Voltar (3.5). Outros destinos são do canal.</td></tr>
+        <tr><td><code>action.retry</code></td><td>Consulta a etapa atual de novo, remontando a tela (3.6).</td></tr>
+        <tr><td><code>action.openUrl</code></td><td>Abre a URL de <code>params.url</code>, só se for http ou https e de um domínio permitido pelo canal.</td></tr>
+        <tr><td><code>action.setValue</code></td><td>Grava <code>params.value</code> no caminho <code>params.path</code> (só <code>form.*</code>), sem falar com o serviço.</td></tr>
+        <tr><td><code>action.track</code></td><td>Envia <code>params.event</code> para a telemetria do canal, sem dados sensíveis.</td></tr>
+        <tr><td><code>action.dismiss</code></td><td>Esconde o componente (por exemplo, um aviso dispensável).</td></tr>
+      </tbody>
+    </table></div>
+
+<h3 id="t4-5">4.5 Componentes</h3>
+<p>O catálogo v1 tem 20 componentes. Atributos obrigatórios em negrito; os demais são opcionais.</p>
+    <div class="tw"><table style="min-width:760px">
+      <thead><tr><th>Tipo</th><th>Grupo</th><th>Atributos</th><th>Evento</th></tr></thead>
+      <tbody>
+        <tr><td><code>ui.screen</code></td><td>Layout</td><td>title, backgroundToken, scrollable, paddingToken</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.container</code></td><td>Layout</td><td>backgroundToken, paddingToken, borderRadiusToken</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.stack</code></td><td>Layout</td><td>direction, spacingToken, alignment</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.card</code></td><td>Layout</td><td>variant, paddingToken, elevationToken</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.text</code></td><td>Conteúdo</td><td><b>text</b>, variant, colorToken, align, maxLines</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.image</code></td><td>Conteúdo</td><td><b>source</b>, <b>alt</b>, fit, aspectRatio</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.icon</code></td><td>Conteúdo</td><td><b>name</b>, <b>accessibilityLabel</b>, sizeToken, colorToken</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.divider</code></td><td>Conteúdo</td><td>orientation, colorToken, spacingToken</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.spacer</code></td><td>Conteúdo</td><td><b>sizeToken</b>, axis</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.textInput</code></td><td>Entrada</td><td><b>label</b>, placeholder, inputMode, required, readOnly, maxLength, validation</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.textArea</code></td><td>Entrada</td><td><b>label</b>, placeholder, required, readOnly, minLines, maxLines, maxLength, validation</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.select</code></td><td>Entrada</td><td><b>label</b>, <b>options</b>, placeholder, required, searchable, loadError</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.checkbox</code></td><td>Entrada</td><td><b>label</b>, required, indeterminate</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.datePicker</code></td><td>Entrada</td><td><b>label</b>, <b>mode</b>, minDate, maxDate, format, required, validation</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.selectList</code></td><td>Entrada</td><td><b>label</b>, <b>items</b>, totalItems, actions, emptyMessage, loadError, required</td><td><code>onAction</code></td></tr>
+        <tr><td><code>ui.button</code></td><td>Ação</td><td><b>label</b>, variant, size, fullWidth, loading, disabled</td><td><code>onPress</code></td></tr>
+        <tr><td><code>ui.link</code></td><td>Ação</td><td><b>label</b>, emphasis, external, accessibilityLabel</td><td><code>onPress</code></td></tr>
+        <tr><td><code>ui.alert</code></td><td>Feedback</td><td><b>severity</b>, <b>message</b>, title, dismissible</td><td><code>onDismiss</code></td></tr>
+        <tr><td><code>ui.progress</code></td><td>Feedback</td><td><b>value</b>, label, showValue</td><td>&mdash;</td></tr>
+        <tr><td><code>ui.loading</code></td><td>Feedback</td><td>label, sizeToken, overlay</td><td>&mdash;</td></tr>
+      </tbody>
+    </table></div>
+<p class="out">Componentes de entrada exigem o vínculo <code>$bindings.value</code> em modo <code>twoWay</code>. Datas usam ISO 8601; <code>format</code> só muda a apresentação. Atributos terminados em <code>Token</code> são nomes de tokens do design system, não valores literais.</p>
+
+<h3 id="t4-6">4.6 Códigos de erro</h3>
+<p>O corpo de erro é <code>{ "timestamp", "status", "code", "message" }</code>; mostre ou registre o <code>message</code>. Em alguns erros internos o corpo traz só <code>type</code> e <code>message</code>.</p>
+    <div class="tw"><table style="min-width:680px">
+      <thead><tr><th>Status</th><th>Quando</th><th>O que fazer</th></tr></thead>
+      <tbody>
+        <tr><td><b>409</b></td><td>O <code>taskId</code> não é o da etapa aberta; a instância não está numa tela (Voltar); faltou variável de entrada obrigatória; a jornada não está publicada.</td><td>Consulte a etapa atual e siga a partir dela. No iniciar, confira o <code>journeyId</code> e as variáveis.</td></tr>
+        <tr><td><b>502</b></td><td>A plataforma não conseguiu completar a operação agora.</td><td>Ofereça tentar de novo mais tarde.</td></tr>
+        <tr><td><b>500</b></td><td>Erro inesperado.</td><td>Registre o <code>message</code> e ofereça tentar de novo.</td></tr>
+      </tbody>
+    </table></div>
+<p class="out">Consultar a etapa de uma instância que não existe devolve <code>ENDED</code>, não 404. Guarde o <code>processInstanceId</code> com cuidado.</p>
+
+<!-- ====================================================== 5 -->
+<h2 id="t5">5. Checklist de prontidão</h2>
+<p>Antes de levar a integração para produção, confira:</p>
+<ul class="checks">
+  <li>Trata os três tipos de etapa, inclusive quando o iniciar já devolve espera ou fim.</li>
+  <li>Confere <code>supportedTargets</code> e <code>minRendererVersion</code> antes de desenhar.</li>
+  <li>Desenha todos os componentes do catálogo v1 usados pelas jornadas do canal.</li>
+  <li>Reavalia <code>$visibility</code> e <code>$active</code> enquanto a pessoa preenche, inclusive em contêineres.</li>
+  <li>Valida antes de enviar e envia só campos visíveis e ativos.</li>
+  <li>Envia o valor do botão escolhido quando o <code>action.submit</code> traz <code>params</code>.</li>
+  <li>Desabilita o envio enquanto a chamada está em andamento.</li>
+  <li>Mostra <code>errorMessage</code> mantendo o que a pessoa já preencheu.</li>
+  <li>Em espera, consulta a etapa de novo num intervalo definido, com limite de tempo.</li>
+  <li>Implementa o Voltar e o Tentar novamente.</li>
+  <li>Abre só URLs http/https de domínios permitidos.</li>
+  <li>Trata 409 consultando a etapa atual, e 502/500 com opção de tentar de novo.</li>
+  <li>Tem tempo limite em todas as chamadas.</li>
+  <li>Guarda o <code>processInstanceId</code> para retomar a jornada e encerra a instância quando a pessoa desiste.</li>
+</ul>
+
+      </article></div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  /* ------------------------ tema --------------------------- */
+  var themeBox = document.getElementById('theme');
+  function paintTheme(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    Array.prototype.forEach.call(themeBox.querySelectorAll('button'), function(b){
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-choice') === cur));
+    });
+  }
+  themeBox.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-theme-choice]');
+    if (!b) return;
+    var next = b.getAttribute('data-theme-choice');
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('plataforma-tema', next); } catch (err) {}
+    paintTheme();
+  });
+  paintTheme();
+
+  /* --------- blocos de código: barra com rótulo e botão Copiar --------- */
+  var ICON_COPY = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg>';
+  var ICON_OK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>';
+  function copyText(text){
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function(ok, fail){
+      var t = document.createElement('textarea');
+      t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      try { document.execCommand('copy') ? ok() : fail(); } catch (err) { fail(err); }
+      document.body.removeChild(t);
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#doc pre'), function(pre){
+    var box = document.createElement('div'); box.className = 'code';
+    var bar = document.createElement('div'); bar.className = 'code-bar';
+    var label = document.createElement('span'); label.textContent = pre.getAttribute('data-label') || 'Código';
+    var btn = document.createElement('button'); btn.type = 'button';
+    btn.setAttribute('aria-label', 'Copiar ' + label.textContent.toLowerCase());
+    function idle(){ btn.classList.remove('ok'); btn.innerHTML = ICON_COPY + '<b>Copiar</b>'; }
+    idle();
+    btn.addEventListener('click', function(){
+      copyText(pre.textContent).then(function(){
+        btn.classList.add('ok'); btn.innerHTML = ICON_OK + '<b>Copiado</b>';
+      }, function(){ btn.innerHTML = ICON_COPY + '<b>Não foi possível copiar</b>'; })
+        .then(function(){ setTimeout(idle, 1800); });
+    });
+    bar.appendChild(label); bar.appendChild(btn);
+    pre.parentNode.insertBefore(box, pre);
+    box.appendChild(bar); box.appendChild(pre);
+  });
+
+  /* ------------- sumário e rolagem do documento -------------- */
+  var pane = document.getElementById('docpane');
+  var toc = document.getElementById('toc');
+  var heads = Array.prototype.slice.call(document.querySelectorAll('#doc h2[id]'));
+  var bar = document.getElementById('bar');
+  heads.forEach(function(h){
+    var a = document.createElement('a');
+    a.href = '#' + h.id; a.textContent = h.textContent;
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      pane.scrollTo({ top: h.offsetTop - 12, behavior: 'smooth' });
+    });
+    toc.appendChild(a);
+  });
+  function paintScroll(){
+    var cur = 0;
+    heads.forEach(function(h, i){ if (h.offsetTop - 40 <= pane.scrollTop) cur = i; });
+    Array.prototype.forEach.call(toc.children, function(a, i){ a.classList.toggle('on', i === cur); });
+    var max = pane.scrollHeight - pane.clientHeight;
+    bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, pane.scrollTop / max) : 1) + ')';
+  }
+  pane.addEventListener('scroll', paintScroll);
+  window.addEventListener('resize', paintScroll);
+  paintScroll();
+})();
+</script>
+</body>
+</html>

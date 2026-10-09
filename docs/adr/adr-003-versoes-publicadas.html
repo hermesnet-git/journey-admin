@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="pt-BR" data-skin="mistica">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ADR-003: discussão sobre publicação de versões de jornadas executáveis, continuidade das instâncias e comparação entre os modelos restritivo e dinâmico.">
+  <title>ADR-003 · Versões publicadas de jornadas</title>
+  <script>
+    (function () {
+      var theme;
+      try { theme = localStorage.getItem('adr-003-theme'); } catch (_) {}
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;family=Roboto+Mono:wght@400;500;700&amp;display=swap">
+  <style>
+    /* Estrutura: ADR External Task. Tema Vivo / Mística alinhado aos tokens locais de Vivo Evolution. */
+    :root {
+      color-scheme: light;
+      --bg: #f1eff6; --surface: #ffffff; --surface-2: #f0edf5; --surface-3: #eae6f0;
+      --border: #e3deeb; --border-strong: #c7c1d6;
+      --text: #0e0c14; --text-muted: #665d7a; --text-faint: #736880;
+      --accent: #660099; --accent-soft: #eee7f3; --brand: #660099;
+      --accent-2: #660099; --accent-2-soft: #eee7f3;
+      --good: #225c3d; --good-soft: #edf8e8; --bad: #8f2052; --bad-soft: #fce4ef; --warn: #972a1d; --warn-soft: #ffefe1;
+      --shadow: 0 1px 2px rgba(56,0,87,.04), 0 12px 30px -18px rgba(56,0,87,.18);
+      --font-display: 'Vivo Type', 'Roboto', -apple-system, 'Segoe UI', Arial, sans-serif;
+      --font-body: 'Vivo Type', 'Roboto', -apple-system, 'Segoe UI', Arial, sans-serif;
+      --font-mono: 'Roboto Mono', ui-monospace, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) {
+        color-scheme: dark;
+        --bg: #16131e; --surface: #1d1a29; --surface-2: #252233; --surface-3: #2d2a3d;
+        --border: #2d2a3d; --border-strong: #423b52;
+        --text: #eae6f0; --text-muted: #c7c1d6; --text-faint: #b0a5c2;
+        --accent: #b77ddb; --accent-soft: #2d2a3d; --brand: #7a2fb3;
+        --accent-2: #b77ddb; --accent-2-soft: #2d2a3d;
+        --good: #b7da73; --good-soft: #143824; --bad: #f7b1cb; --bad-soft: #430e27; --warn: #ffc266; --warn-soft: #3d0f0a;
+        --shadow: 0 1px 2px rgba(0,0,0,.5), 0 14px 34px -16px rgba(0,0,0,.65);
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #16131e; --surface: #1d1a29; --surface-2: #252233; --surface-3: #2d2a3d;
+      --border: #2d2a3d; --border-strong: #423b52;
+      --text: #eae6f0; --text-muted: #c7c1d6; --text-faint: #b0a5c2;
+      --accent: #b77ddb; --accent-soft: #2d2a3d; --brand: #7a2fb3;
+      --accent-2: #b77ddb; --accent-2-soft: #2d2a3d;
+      --good: #b7da73; --good-soft: #143824; --bad: #f7b1cb; --bad-soft: #430e27; --warn: #ffc266; --warn-soft: #3d0f0a;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 14px 34px -16px rgba(0,0,0,.65);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+    body { margin: 0; border-top: 4px solid var(--brand); background: var(--bg); color: var(--text); font: 16px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+    ::selection { background: var(--accent-2-soft); color: var(--text); }
+    a { color: var(--accent-2); text-underline-offset: 3px; overflow-wrap: anywhere; }
+    a:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+    .skip { position: absolute; left: 16px; top: -100px; padding: 10px; background: var(--surface); z-index: 3; }
+    .skip:focus { top: 12px; }
+    .page { max-width: 1180px; margin: 0 auto; padding: 3.5rem 1.75rem 6rem; }
+    .doc-header { max-width: 720px; margin: 0 auto 2.75rem; }
+    .theme-controls { display: flex; justify-content: flex-end; align-items: center; gap: .7rem; margin-bottom: 1.5rem; }
+    .theme-controls[hidden] { display: none; }
+    .theme-label { font-size: .8rem; color: var(--text-muted); }
+    .theme-switch { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); }
+    .theme-switch button { min-height: 44px; padding: .5rem 1.1rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-muted); font: 500 .85rem var(--font-body); cursor: pointer; }
+    .theme-switch button:hover { background: var(--accent-soft); color: var(--accent); }
+    .theme-switch button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+    .theme-switch button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    .eyebrow { display: flex; align-items: center; gap: .6rem; margin-bottom: .9rem; color: var(--accent); font: 500 .78rem var(--font-body); letter-spacing: .09em; text-transform: uppercase; }
+    .eyebrow::before { content: ''; display: inline-block; flex-shrink: 0; width: 22px; height: 2px; background: var(--accent); }
+    h1 { margin: 0 0 1.1rem; font: 700 clamp(1.9rem,4vw,2.6rem)/1.14 var(--font-display); letter-spacing: -.01em; text-wrap: balance; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: .6rem .5rem; align-items: center; margin-bottom: 1.6rem; }
+    .pill { display: inline-block; padding: .3rem .68rem; border-radius: 999px; border: 1px solid var(--border); color: var(--text-muted); background: var(--surface); font: 500 .76rem/1.5 var(--font-body); letter-spacing: .03em; }
+    .pill.status { color: var(--accent); border-color: color-mix(in srgb,var(--accent) 45%,var(--border)); background: var(--accent-soft); font-weight: 600; }
+    .summary-box { padding: 1.2rem 1.4rem; border-radius: 16px; border: 1px solid color-mix(in srgb,var(--accent-2) 35%,var(--border)); background: var(--accent-2-soft); box-shadow: var(--shadow); }
+    .summary-box p { margin: 0; }.summary-box p + p { margin-top: .7rem; }
+    .label { display: block; margin-bottom: .5rem; color: var(--text-muted); font: .74rem/1.5 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+    .summary-box .label { color: var(--accent-2); }
+    .label.pros { color: var(--good); }.label.cons { color: var(--bad); }
+    main { min-width: 0; }
+    section.doc-section { max-width: 720px; margin: 3.4rem auto 0; }
+    section.doc-section.wide { max-width: 1180px; }
+    .section-head { display: flex; align-items: baseline; gap: .7rem; margin-bottom: 1.1rem; }
+    .section-num { color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .25rem .6rem; font: 500 .8rem var(--font-body); }
+    h2 { margin: 0; font: 700 1.5rem/1.3 var(--font-display); letter-spacing: -.005em; text-wrap: balance; }
+    h3 { margin: 1.6rem 0 .6rem; font: 600 1.08rem/1.4 var(--font-display); }
+    p { margin: 0 0 1rem; }.doc-section > p { max-width: 68ch; }
+    ul,ol { margin: 0 0 1.1rem; padding-left: 1.25rem; }li { margin-bottom: .55rem; }ul li::marker { color: var(--accent-2); }
+    .callout { padding: 1.2rem 1.4rem; border: 1px solid var(--border); border-left: 3px solid var(--accent-2); background: var(--accent-2-soft); border-radius: 16px; margin: 1.4rem 0; }
+    .callout p { margin: .5rem 0 0; }.warning { background: var(--warn-soft); border-left-color: var(--warn); }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin: 1.2rem 0; }
+    .card { padding: 1.3rem 1.4rem; border: 1px solid var(--border); background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); min-width: 0; }
+    .card h3 { margin: 0 0 .9rem; font-size: 1.15rem; }.card p:last-child,.card ul:last-child { margin-bottom: 0; }
+    .card.recommended { border-color: var(--accent-2); }.card .pill { margin-bottom: .8rem; color: var(--accent-2); background: var(--accent-2-soft); }
+    .table-wrap { overflow-x: auto; margin: 1.2rem 0 .6rem; border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow); }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); min-width: 640px; }
+    caption { padding: .8rem .9rem; background: var(--surface); text-align: left; color: var(--text-muted); font-size: .85rem; }
+    th,td { text-align: left; padding: .75rem .9rem; border-bottom: 1px solid var(--border); vertical-align: top; font-size: .92rem; }
+    thead th { background: var(--surface-2); color: var(--accent); font: 700 .72rem/1.5 var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
+    tbody th { font-weight: 600; }tbody tr:last-child > * { border-bottom: none; }
+    .flow { margin: 1.4rem 0; padding: 1.8rem 1.6rem 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow); }
+    .flow figcaption { margin: 0 0 1.4rem; color: var(--text-muted); font: .78rem/1.6 var(--font-mono); }
+    .lane { display: grid; grid-template-columns: 150px 1fr; gap: 1rem; align-items: center; margin: .8rem 0; }.lane strong { font-size: .9rem; }
+    .track { padding: .9rem 1rem; border: 1px solid var(--border-strong); border-radius: 16px; background: var(--surface-2); font-size: .9rem; }.track.new { border-color: var(--accent-2); background: var(--accent-2-soft); }
+    .flow-note { margin: 1.3rem 0 0; padding-top: 1rem; border-top: 1px dashed var(--border); color: var(--accent-2); font: .82rem/1.6 var(--font-mono); }
+    .sources li { font-size: .92rem; }.muted { color: var(--text-muted); }
+    .note { font-size: .88rem; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: .8rem; margin-top: .9rem; }
+    .verdict { margin-top: 1.6rem; padding: 1.2rem 1.4rem; border: 1px solid var(--accent-2); border-radius: 16px; background: var(--accent-2-soft); }
+    .footer { max-width: 720px; margin: 3.4rem auto 0; padding-top: 1.6rem; border-top: 1px solid var(--border); font: .75rem/1.6 var(--font-mono); color: var(--text-muted); }
+    @media(max-width:700px) { .page { padding: 2.5rem 1.25rem 4rem; }.cards { grid-template-columns: 1fr; }.lane { grid-template-columns: 1fr; gap: .4rem; }.flow { padding: 1.2rem; }.eyebrow { font-size: .68rem; } }
+    @media(prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } }
+    @media print {
+      :root, :root[data-theme], :root:not([data-theme]) { color-scheme: light; --bg: #fff; --surface: #fff; --surface-2: #f0edf5; --surface-3: #eae6f0; --text: #0e0c14; --text-muted: #665d7a; --text-faint: #736880; --border: #e3deeb; --border-strong: #c7c1d6; --accent: #660099; --accent-soft: #eee7f3; --brand: #660099; --accent-2: #660099; --accent-2-soft: #eee7f3; --good: #225c3d; --good-soft: #edf8e8; --bad: #8f2052; --bad-soft: #fce4ef; --warn: #972a1d; --warn-soft: #ffefe1; --shadow: none; }
+      .theme-controls { display: none; }
+      body { font-size: 10pt; }.page { padding: 0; max-width: none; }.skip { display: none; }.doc-header,section.doc-section,.footer { max-width: none; }h1 { font-size: 25pt; }h2 { font-size: 16pt; }.section-head,h3 { break-after: avoid; }tr,.card,.callout,.lane { break-inside: avoid; }.table-wrap { overflow: visible; }table { min-width: 0; }th,td { font-size: 9pt; }.cards { grid-template-columns: 1fr 1fr; }section.doc-section { margin-top: 2rem; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#conteudo">Ir para o conteúdo</a>
+  <div class="page">
+    <header class="doc-header" id="resumo">
+      <div class="theme-controls" hidden>
+        <span class="theme-label">Aparência</span>
+        <div class="theme-switch" role="group" aria-label="Tema da página">
+          <button type="button" data-theme-option="light" aria-pressed="false">Claro</button>
+          <button type="button" data-theme-option="dark" aria-pressed="false">Escuro</button>
+        </div>
+      </div>
+      <div class="eyebrow">ADR-003 · Elastic Journey Admin Portal</div>
+      <h1>Versões publicadas de jornadas e continuidade das instâncias</h1>
+      <div class="meta-row"><span class="pill status">Proposta</span><span class="pill">09 out 2026</span><span class="pill">Publicação e execução de jornadas</span></div>
+      <div class="summary-box">
+        <span class="label">Resumo da proposta</span>
+        <p>Recomenda-se que <strong>instâncias já iniciadas continuem na versão em que nasceram</strong> e que novas instâncias sejam vinculadas à versão vigente para novas entradas. Há uma única versão de entrada por jornada; as anteriores permanecem executáveis para concluir suas instâncias.</p>
+        <p>A publicação de uma nova versão não deve exigir, por padrão, a conclusão ou o cancelamento de todas as instâncias anteriores. A exigência de esvaziamento deve ser reservada a mudanças que comprovadamente não suportem coexistência.</p>
+      </div>
+      <p class="note">Esta ADR registra uma recomendação em discussão, ainda não uma decisão aprovada. O modelo proposto não oferece escolha livre de versões ao usuário.</p>
+    </header>
+    <main id="conteudo">
+
+      <section class="doc-section" id="contexto">
+        <div class="section-head"><span class="section-num">01</span><h2>Contexto e conceitos</h2></div>
+        <p>Uma jornada é um fluxo executável com etapas, regras, tarefas e possíveis aprovações. Cada solicitação que percorre esse fluxo é uma instância. A dúvida arquitetural é como publicar uma mudança enquanto outras solicitações ainda estão em execução.</p>
+        <p class="muted">Impactos a avaliar: editor e publicação, catálogo de definições, motor de execução, telas e formulários, regras, integrações, subprocessos, monitoramento e auditoria. Este documento não afirma que esses recursos já estejam implementados.</p>
+        <div class="table-wrap"><table>
+          <caption>Conceitos que precisam ser separados</caption>
+          <thead><tr><th scope="col">Conceito</th><th scope="col">Significado nesta ADR</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Jornada</th><td>Identidade do processo de negócio, como “Solicitação de compra”. Jornadas distintas podem ter ciclos de publicação independentes.</td></tr>
+            <tr><th scope="row">Versão publicada</th><td>Definição imutável de uma jornada. Estar publicada não significa necessariamente aceitar novas instâncias.</td></tr>
+            <tr><th scope="row">Versão vigente para entrada</th><td>Versão selecionada para criar novas instâncias. Normalmente é a última publicada e ativada; uma reversão controlada pode voltar a selecionar uma anterior.</td></tr>
+            <tr><th scope="row">Instância</th><td>Execução concreta, com dados, tarefas e histórico próprios, vinculada a uma versão específica.</td></tr>
+            <tr><th scope="row">Variante de negócio</th><td>Diferença permanente por país, produto ou unidade. Deve ser avaliada como configuração, subprocesso ou jornada distinta, em vez de ser representada indefinidamente por versões antigas.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Guardar o histórico de versões, executar instâncias antigas e permitir novas entradas em versões diferentes são três capacidades distintas. Esta proposta contempla as duas primeiras. Roteamento simultâneo de novas entradas por público ou percentual fica fora do escopo inicial.</p>
+      </section>
+
+      <section class="doc-section wide" id="alternativas">
+        <div class="section-head"><span class="section-num">02</span><h2>Opções consideradas</h2></div>
+        <div class="cards">
+          <article class="card"><div class="label">Alternativa A · Restritiva</div><h3>Publicar somente sem instâncias abertas</h3><p>A nova versão só entra em produção quando a anterior não tiver mais instâncias em andamento.</p><p><strong>Esperar a conclusão</strong> pode exigir suspender novas entradas para esvaziar a jornada. Instâncias paradas podem adiar a publicação indefinidamente.</p><p><strong>Cancelar e reiniciar</strong> é outra política: implica retrabalho, tratamento de efeitos já realizados e preservação do vínculo entre os históricos. Não equivale a uma conclusão normal.</p></article>
+          <article class="card recommended"><div class="label">Alternativa B · Dinâmica</div><h3>Publicar preservando as execuções existentes</h3><p>A nova versão passa a receber novas instâncias. As anteriores continuam vinculadas à definição original até seu encerramento.</p><p>O motor pode executar diferentes versões de uma mesma jornada ao mesmo tempo, sem permitir que novas solicitações escolham livremente a versão.</p><p>Essa opção exige identificação da versão, compatibilidade das dependências e acompanhamento das instâncias remanescentes.</p></article>
+        </div>
+        <h3>Exemplo: uma nova aprovação em compras</h3>
+        <p>Há 500 solicitações abertas na v1, com duas aprovações. A v2 acrescenta uma terceira aprovação para as próximas solicitações. No modelo dinâmico, a regra nova não é aplicada retroativamente por efeito da publicação.</p>
+        <figure class="flow">
+          <figcaption>Após ativar a v2 para novas entradas</figcaption>
+          <div class="lane"><strong>500 já iniciadas</strong><div class="track">v1 · Duas aprovações → seguem o fluxo original → conclusão</div></div>
+          <div class="lane"><strong>Novas solicitações</strong><div class="track new">v2 · Três aprovações → seguem o novo fluxo → conclusão</div></div>
+          <p class="flow-note">Publicar não migra instâncias. Se a terceira aprovação também precisar atingir casos abertos, será necessário um tratamento específico.</p>
+        </figure>
+      </section>
+
+      <section class="doc-section" id="negocio">
+        <div class="section-head"><span class="section-num">03</span><h2>Consequências para o negócio</h2></div>
+        <p>O principal benefício é permitir que melhorias sejam publicadas sem fazer a operação esperar pela última solicitação pendente. Em contrapartida, o negócio precisa entender por que dois casos podem apresentar etapas diferentes.</p>
+        <ul>
+          <li><strong>Compras e financeiro:</strong> aplicar um novo fluxo de aprovação às próximas solicitações, preservando os casos anteriores quando a política permitir.</li>
+          <li><strong>RH:</strong> atualizar a admissão para novos colaboradores sem reiniciar admissões já em andamento.</li>
+          <li><strong>Atendimento e operações:</strong> mudar etapas ou verificações para novos chamados enquanto os abertos seguem o procedimento original.</li>
+          <li><strong>Comercial:</strong> preservar a jornada associada a uma proposta em andamento. A validade de condições comerciais deve ser governada explicitamente; o número da versão, sozinho, não define essas condições.</li>
+        </ul>
+        <p class="muted">Esses cenários são exemplos ilustrativos de aplicação, não relatos de clientes específicos.</p>
+        <h3>Limites da proposta</h3>
+        <p>Uma implantação por filial, contrato ou percentual de tráfego pode exigir que novas instâncias entrem simultaneamente em versões diferentes. Isso amplia o escopo: requer regras de roteamento, critérios de elegibilidade e acompanhamento por grupo. Não é necessário para preservar instâncias já iniciadas.</p>
+        <h3>Indicadores e atendimento</h3>
+        <p>Relatórios devem permitir filtrar a versão e explicar mudanças de etapas, prazos e critérios. Comparar o tempo médio da v1 com o da v2 exige considerar o perfil dos casos e o período observado. O suporte deve conseguir identificar a versão sem exigir que o solicitante a escolha.</p>
+      </section>
+
+      <section class="doc-section" id="tecnologia">
+        <div class="section-head"><span class="section-num">04</span><h2>Aspectos técnicos e dependências</h2></div>
+        <ol>
+          <li><strong>Definições imutáveis.</strong> Uma alteração em conteúdo publicado gera outra versão. Cada instância registra a identidade da jornada e a versão atribuída na criação.</li>
+          <li><strong>Ativação consistente.</strong> Publicação e ativação são conceitos distintos, ainda que a interface os reúna numa operação. A troca da versão de entrada deve ter um ponto de efetivação definido, sem criações ambíguas durante a transição.</li>
+          <li><strong>Continuação pela versão da instância.</strong> Retomadas de tarefas, temporizadores, mensagens e novas tentativas usam a versão vinculada à execução, sem consultar a versão mais recente para decidir seu próximo passo.</li>
+          <li><strong>Compatibilidade de dados e serviços.</strong> A evolução do armazenamento e dos contratos de integração precisa atender às instâncias ainda abertas. Uma mudança incompatível pode exigir coexistência de contratos, adaptação ou migração planejada.</li>
+          <li><strong>Dependências explícitas.</strong> Formulários, telas, regras e subprocessos precisam de referências fixadas ou de uma política verificável de compatibilidade. Consultar sempre o recurso “mais recente” pode alterar o comportamento de uma jornada antiga.</li>
+          <li><strong>Testes representativos.</strong> Verificar novas entradas, continuidade de versões anteriores e publicação durante a criação de instâncias. Incluir esperas longas, callbacks, tarefas humanas e alterações nas dependências relevantes.</li>
+        </ol>
+        <div class="callout warning"><strong>Versionar o desenho não congela todo o ambiente.</strong><p>Uma v1 pode continuar intacta e falhar porque o serviço que ela chama mudou. Nem todo componente precisa ser duplicado por versão, mas toda dependência relevante precisa ter uma estratégia de compatibilidade.</p></div>
+        <p>Chamadas entre jornadas também precisam de uma regra: qual versão do subprocesso será usada quando a instância chegar àquela etapa? A resolução deve ser explícita e rastreável. O simples fato de duas jornadas possuírem versões não define essa relação.</p>
+      </section>
+
+      <section class="doc-section" id="operacao">
+        <div class="section-head"><span class="section-num">05</span><h2>Operação e exceções</h2></div>
+        <div class="table-wrap"><table>
+          <caption>Estados operacionais propostos para uma versão</caption>
+          <thead><tr><th scope="col">Estado</th><th scope="col">Novas instâncias</th><th scope="col">Instâncias existentes</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Rascunho</th><td>Não recebe em produção.</td><td>Não possui execuções de produção.</td></tr>
+            <tr><th scope="row">Publicada, aguardando ativação</th><td>Não recebe.</td><td>Definição pronta para ativação após as verificações necessárias.</td></tr>
+            <tr><th scope="row">Vigente para entrada</th><td>Recebe todas as novas entradas da jornada.</td><td>Executa normalmente.</td></tr>
+            <tr><th scope="row">Em conclusão</th><td>Não recebe.</td><td>Continua atendendo suas instâncias abertas.</td></tr>
+            <tr><th scope="row">Arquivada para consulta</th><td>Não recebe.</td><td>Não possui instâncias abertas; definição e histórico permanecem conforme a política de retenção.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Ao ativar a v2, a v1 passa a “Em conclusão” se ainda tiver instâncias abertas. A versão não pode ser descartada enquanto houver trabalho pendente, incluindo tarefas, temporizadores, mensagens ou novas tentativas capazes de retomar uma execução.</p>
+        <h3>Instâncias que nunca terminam</h3>
+        <p>A coexistência precisa de gestão: acompanhar volume e idade por versão, atribuir responsáveis pelos casos parados e definir critérios de escalonamento. Um prazo operacional não autoriza cancelamento automático sem uma política de negócio aprovada.</p>
+        <h3>Correções críticas e mudanças obrigatórias</h3>
+        <p>Se a v1 contiver um erro grave ou se uma mudança precisar atingir casos abertos, publicar a v2 só resolve as novas entradas. As instâncias antigas exigem análise própria: correção compatível de uma dependência, migração explícita, suspensão ou cancelamento com tratamento dos efeitos já produzidos.</p>
+        <p>Migrar exige mapear etapas e dados, verificar tarefas ativas e registrar origem, destino, motivo e resultado. É uma capacidade separada da publicação; não precisa ser automática para que o modelo dinâmico seja adotado.</p>
+        <h3>Reversão da versão de entrada</h3>
+        <p>Se a v2 apresentar problemas, pode-se voltar a direcionar novas entradas para a v1, desde que ela continue compatível com o ambiente. As instâncias já criadas na v2 precisam de tratamento próprio. A reversão não desfaz pagamentos, notificações ou outras ações externas já realizadas.</p>
+      </section>
+
+      <section class="doc-section" id="mercado">
+        <div class="section-head"><span class="section-num">06</span><h2>Referências de mercado</h2></div>
+        <p>Os exemplos abaixo demonstram comportamentos disponíveis nos produtos. Não estabelecem uma estatística de adoção pelas empresas nem significam que as plataformas tenham arquiteturas equivalentes.</p>
+        <ul class="sources">
+          <li><strong>Salesforce Flow:</strong> ativar uma versão desativa a anterior, mas execuções em andamento continuam na versão em que começaram. É uma referência para separar ativação de novas entradas da continuidade de execuções. <a href="https://help.salesforce.com/s/articleView?id=ls_activate_flow.htm&amp;language=en_US&amp;type=5">Documentação: Activate or Deactivate a Flow</a>.</li>
+          <li><strong>Camunda:</strong> por padrão, novas instâncias usam a definição mais recente e as existentes continuam na original. A migração é explícita, e a documentação ressalta a necessidade de considerar mudanças nos recursos de implementação. <a href="https://docs.camunda.io/docs/components/best-practices/operations/versioning-process-definitions/">Documentação: Versioning process definitions</a>.</li>
+          <li><strong>AWS Step Functions:</strong> suporta versões imutáveis e aliases que podem direcionar novas execuções entre versões por percentual. Essa capacidade atende à implantação gradual e vai além do escopo inicial proposto aqui. <a href="https://docs.aws.amazon.com/step-functions/latest/dg/concepts-cd-aliasing-versioning.html">Documentação: Versions and aliases</a> e <a href="https://docs.aws.amazon.com/step-functions/latest/dg/concepts-state-machine-alias.html">configuração de aliases</a>.</li>
+        </ul>
+        <p class="muted">Referências consultadas na discussão em 09/10/2026.</p>
+      </section>
+
+      <section class="doc-section" id="decisao">
+        <div class="section-head"><span class="section-num">07</span><h2>Critérios e decisão proposta</h2></div>
+        <p><strong>O modelo restritivo é viável</strong> quando as jornadas são curtas, há períodos naturais sem instâncias abertas e o negócio aceita esperar ou suspender entradas para publicar. Também pode ser necessário numa mudança específica cuja infraestrutura ou dependências não permitam coexistência.</p>
+        <p><strong>O modelo dinâmico é preferível</strong> quando há tarefas humanas, esperas externas, jornadas de dias ou semanas, entradas contínuas ou mudanças frequentes. Quanto maior a duração dos casos mais demorados, maior tende a ser o custo operacional de esvaziar antes de cada publicação.</p>
+        <h3>Pontos a validar antes de aprovar a ADR</h3>
+        <ul>
+          <li>Qual é a duração típica das jornadas e qual a idade dos casos mais antigos?</li>
+          <li>O negócio aceita interromper novas entradas? Por quanto tempo e com qual frequência?</li>
+          <li>Quais telas, regras, integrações e estruturas de dados são compartilhadas entre versões?</li>
+          <li>Quem decide o tratamento de casos antigos quando uma mudança precisa atingi-los?</li>
+          <li>Como serão acompanhadas versões em conclusão e quem será responsável pelos casos parados?</li>
+        </ul>
+        <div class="callout"><strong>Escopo inicial recomendado</strong><p>Definições imutáveis, vínculo da instância com a versão, uma única versão de entrada, continuidade das anteriores e visibilidade operacional. Escolha livre de versão, roteamento por público e migração automática não fazem parte desta proposta inicial.</p></div>
+      </section>
+
+      <section class="doc-section wide" id="comparativo">
+        <div class="section-head"><span class="section-num">08</span><h2>Comparativo final — prós e contras</h2></div>
+        <div class="cards">
+          <article class="card">
+            <h3>Modelo restritivo</h3>
+            <div class="label pros">Prós</div>
+            <ul><li>Uma única definição em execução por vez.</li><li>Menos combinações de versões para testar e diagnosticar.</li><li>Menor necessidade de sustentar simultaneamente dependências antigas.</li><li>Publicação simples em operações que já possuem janelas sem instâncias.</li></ul>
+            <div class="label cons">Contras</div>
+            <ul><li>Publicação depende da última instância pendente.</li><li>Pode exigir suspensão de novas entradas.</li><li>Cancelamento e reinício podem gerar retrabalho e repetição de efeitos externos.</li><li>Jornadas longas ou paradas podem bloquear melhorias urgentes.</li><li>A simplicidade do motor transfere parte do custo para a operação do negócio.</li></ul>
+          </article>
+          <article class="card recommended">
+            <span class="pill">Recomendado como padrão</span>
+            <h3>Modelo dinâmico</h3>
+            <div class="label pros">Prós</div>
+            <ul><li>Permite publicar sem aguardar a conclusão de todos os casos.</li><li>Preserva a continuidade e o contexto das solicitações existentes.</li><li>Mantém uma única versão para novas entradas.</li><li>Favorece mudanças frequentes em jornadas longas.</li><li>Permite rastrear qual definição conduziu cada execução.</li></ul>
+            <div class="label cons">Contras</div>
+            <ul><li>Exige vínculo consistente entre instância e versão.</li><li>Amplia os cenários de teste, suporte e monitoramento.</li><li>Requer compatibilidade de telas, regras, dados e integrações.</li><li>Instâncias antigas podem prolongar a manutenção de uma versão.</li><li>Correções críticas precisam tratar separadamente as execuções anteriores.</li></ul>
+          </article>
+        </div>
+        <div class="table-wrap"><table>
+          <caption>Síntese dos impactos na operação e na tecnologia</caption>
+          <thead><tr><th scope="col">Critério</th><th scope="col">Restritivo</th><th scope="col">Dinâmico</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Momento da publicação</th><td>Após esvaziar a versão anterior.</td><td>Independe da conclusão dos casos anteriores, se houver compatibilidade.</td></tr>
+            <tr><th scope="row">Instâncias em andamento</th><td>Precisam terminar ou receber tratamento de encerramento antes da publicação.</td><td>Continuam na versão original por padrão.</td></tr>
+            <tr><th scope="row">Novas entradas</th><td>Podem precisar ser suspensas durante o esvaziamento.</td><td>Passam à nova versão no momento da ativação.</td></tr>
+            <tr><th scope="row">Complexidade predominante</th><td>Coordenação da janela e tratamento dos casos pendentes.</td><td>Compatibilidade e operação de versões coexistentes.</td></tr>
+            <tr><th scope="row">Histórico e auditoria</th><td>Devem ser preservados mesmo após encerrar as instâncias.</td><td>Devem registrar a versão e eventuais migrações de cada instância.</td></tr>
+            <tr><th scope="row">Melhor adequação</th><td>Jornadas curtas com janelas naturais sem execução.</td><td>Jornadas contínuas, longas ou com intervenções humanas.</td></tr>
+          </tbody>
+        </table></div>
+        <p class="verdict"><strong>Recomendação proposta:</strong> adotar o modelo dinâmico como padrão e exigir esvaziamento apenas quando a mudança não suportar coexistência. O benefício de continuidade deve vir acompanhado de uma política explícita de compatibilidade e de gestão das instâncias antigas.</p>
+      </section>
+      <footer class="footer">ADR-003 · Journey Admin · Proposta para discussão entre negócio e tecnologia · 09/10/2026</footer>
+    </main>
+  </div>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var buttons = document.querySelectorAll('[data-theme-option]');
+      function applyTheme(theme) {
+        root.setAttribute('data-theme', theme);
+        buttons.forEach(function (button) {
+          button.setAttribute('aria-pressed', String(button.getAttribute('data-theme-option') === theme));
+        });
+      }
+      buttons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          var theme = button.getAttribute('data-theme-option');
+          applyTheme(theme);
+          try { localStorage.setItem('adr-003-theme', theme); } catch (_) {}
+        });
+      });
+      applyTheme(root.getAttribute('data-theme'));
+      document.querySelector('.theme-controls').hidden = false;
+    })();
+  </script>
+</body>
+</html>

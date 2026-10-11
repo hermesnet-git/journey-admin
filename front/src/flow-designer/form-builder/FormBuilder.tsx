@@ -10,7 +10,7 @@ import { createNode, findNode, findParent, insertNode, insertNodeNear, removeNod
 import { ComponentPalette, type PaletteDragData } from './ComponentPalette';
 import { FormCanvas, type CanvasDragData, type CanvasDropData } from './FormCanvas';
 import { LayerPanel } from './LayerPanel';
-import { PropertyInspector, bindingConfiguration, type InspectorFocusRequest, type InspectorSection } from './PropertyInspector';
+import { PropertyInspector, bindingConfiguration, inspectorPageTitle, isMissingPropValue, type InspectorFocusRequest, type InspectorSection } from './PropertyInspector';
 import { iconFor, labelFor } from '../../sdui/componentMeta';
 import { tokensForGroup } from '../../sdui/designTokens';
 import { compatibilityForDesignChannel, compatibilityMessage, type DesignChannel } from './designChannel';
@@ -480,7 +480,7 @@ export function FormBuilder({ root, onChange, onPushHistory, variables, channelT
                   </span>
                   <span className="block mt-0.5" style={{ color: c.textSecondary }}>{issue.message}</span>
                   <span className="block mt-0.5 text-[9.5px]" style={{ color: tone.border }}>
-                    {INSPECTOR_SECTION_LABEL[issue.section]}{issue.fieldLabel ? ` · ${issue.fieldLabel}` : ''}
+                    {issue.location}{issue.fieldLabel ? ` · ${issue.fieldLabel}` : ''}
                   </span>
                 </button>
                 );
@@ -601,6 +601,8 @@ interface AuthoringIssue {
   field?: string;
   fieldLabel?: string;
   message: string;
+  /** Página do painel de propriedades onde a pendência se corrige. */
+  location: string;
 }
 
 const ISSUE_SEVERITY_LABEL: Record<AuthoringIssueSeverity, string> = {
@@ -609,28 +611,22 @@ const ISSUE_SEVERITY_LABEL: Record<AuthoringIssueSeverity, string> = {
   info: 'Info',
 };
 
-const INSPECTOR_SECTION_LABEL: Record<InspectorSection, string> = {
-  identification: 'Identificação',
-  configuration: 'Configurações',
-  advancedProperties: 'Avançado',
-  bindings: 'Valor',
-  events: 'Ações',
-  visibility: 'Visibilidade',
-  active: 'Estado',
-};
-
 /** Lista operacional das pendências que o autor consegue corrigir no próprio Form Builder. */
 function collectAuthoringIssues(root: SduiNode, registry: Map<string, ComponentDefinition>, channel: DesignChannel): AuthoringIssue[] {
   const issues: AuthoringIssue[] = [];
   function visit(node: SduiNode) {
     const definition = registry.get(registryKey(node.type, node.version));
     const componentLabel = labelFor(node.type);
-    const addIssue = (suffix: string, issue: string | Omit<AuthoringIssue, 'id' | 'nodeId' | 'componentLabel'>) => issues.push({
-      id: `${node.id}:${suffix}`,
-      nodeId: node.id,
-      componentLabel,
-      ...(typeof issue === 'string' ? normalizeAuthoringIssue(suffix, issue, node, definition, channel) : issue),
-    });
+    const addIssue = (suffix: string, issue: string | Omit<AuthoringIssue, 'id' | 'nodeId' | 'componentLabel' | 'location'>) => {
+      const normalized = typeof issue === 'string' ? normalizeAuthoringIssue(suffix, issue, node, definition, channel) : issue;
+      issues.push({
+        id: `${node.id}:${suffix}`,
+        nodeId: node.id,
+        componentLabel,
+        ...normalized,
+        location: definition ? inspectorPageTitle(definition, normalized.section, normalized.field) : 'Componente',
+      });
+    };
     if (!definition) {
       addIssue('definition', 'componente ausente no catálogo');
       return;
@@ -646,12 +642,13 @@ function collectAuthoringIssues(root: SduiNode, registry: Map<string, ComponentD
       // ms-espec-registry — resolve o literal primeiro, o binding só sobrescreve se resolver), só
       // deixa de ser obrigatório.
       const hasBinding = !!node.bindings?.[prop.name]?.path;
-      if (prop.required && !hasBinding && isMissingValue(node.props[prop.name])) {
+      const missing = isMissingPropValue(node.type, prop.name, node.props[prop.name]);
+      if (prop.required && !hasBinding && missing) {
         addIssue(`prop:${prop.name}`, `preencha ${prop.name}`);
       }
       const presentation = propertyPresentation(node.type, prop);
-      const message = propertyIssueMessage(prop, node.props[prop.name], presentation);
-      if (message && !hasBinding && !(prop.required && isMissingValue(node.props[prop.name]))) {
+      const message = propertyIssueMessage(node.type, prop, node.props[prop.name], presentation);
+      if (message && !hasBinding && !(prop.required && missing)) {
         addIssue(`prop:${prop.name}:value`, {
           severity: 'error',
           section: presentation.advanced ? 'advancedProperties' : 'configuration',
@@ -663,6 +660,18 @@ function collectAuthoringIssues(root: SduiNode, registry: Map<string, ComponentD
     });
     if (definition.category === 'INPUT' && !node.bindings?.value?.path) addIssue('binding:value', 'configure o campo Valor');
     if ((definition.type === 'ui.button' || definition.type === 'ui.link') && !node.events?.onPress) addIssue('event:onPress', 'configure a ação principal');
+    if (definition.type === 'ui.selectList') {
+      // Catálogo §7.1.6 — as mesmas regras que a publicação cobra (FlowValidator.validateSelectList).
+      const actions = Array.isArray(node.props.actions) ? node.props.actions : [];
+      if (actions.length > 0 && !node.bindings?.action?.path?.replace(/^form\./, '')) {
+        addIssue('binding:action', { severity: 'error', section: 'bindings', field: 'action', fieldLabel: 'Onde gravar a ação escolhida', message: 'Configure onde gravar a ação escolhida.' });
+      }
+      const onAction = node.events?.onAction;
+      const submitOnly = onAction?.action === 'action.submit' && Object.values(onAction.params ?? {}).every((v) => v === undefined || v === null || String(v).trim() === '');
+      if (!submitOnly) {
+        addIssue('event:onAction', { severity: 'error', section: 'events', message: 'Esta lista precisa concluir a etapa ao tocar numa ação.' });
+      }
+    }
     (node.children ?? []).forEach(visit);
   }
   visit(root);
@@ -675,7 +684,7 @@ function normalizeAuthoringIssue(
   node: SduiNode,
   definition: ComponentDefinition | undefined,
   channel: DesignChannel,
-): Omit<AuthoringIssue, 'id' | 'nodeId' | 'componentLabel'> {
+): Omit<AuthoringIssue, 'id' | 'nodeId' | 'componentLabel' | 'location'> {
   if (suffix === 'definition') {
     return {
       severity: 'error',
@@ -733,10 +742,11 @@ function normalizeAuthoringIssue(
   };
 }
 
-function propertyIssueMessage(prop: PropDescriptor, value: unknown, presentation: PropertyPresentation): string | null {
-  if (prop.required && isMissingValue(value)) return `Informe ${lowerFirst(presentation.label)}.`;
+function propertyIssueMessage(type: string, prop: PropDescriptor, value: unknown, presentation: PropertyPresentation): string | null {
+  if (prop.required && isMissingPropValue(type, prop.name, value)) return `Informe ${lowerFirst(presentation.label)}.`;
   if (isMissingValue(value)) return null;
   if (prop.kind === 'NUMBER' && (typeof value !== 'number' || !Number.isFinite(value))) return `Informe um número válido em ${lowerFirst(presentation.label)}.`;
+  if (type === 'ui.progress' && prop.name === 'value' && typeof value === 'number' && (value < 0 || value > 1)) return `Informe ${lowerFirst(presentation.label)} entre 0 e 1.`;
   if (prop.kind === 'ENUM' && !(prop.enumValues ?? []).includes(String(value))) return `Escolha uma opção disponível em ${lowerFirst(presentation.label)}.`;
   if (prop.kind === 'TOKEN' && !tokensForGroup(prop.tokenGroup).includes(String(value))) return `Escolha um valor previsto para ${lowerFirst(presentation.label)}.`;
   if (prop.kind === 'OPTIONS_LIST') {

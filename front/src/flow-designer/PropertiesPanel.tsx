@@ -214,7 +214,9 @@ export function VariablePickerButton({
           >
             {groups.map(([label, vars]) => (
               <div key={label} style={{ marginBottom: 6 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: c.textSecondary, padding: '2px 6px' }}>{label}</div>
+                {/* O grupo (de onde vem o dado) é o que orienta a escolha: fica em destaque, e os
+                    campos, mais discretos, abaixo dele. */}
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: c.textPrimary, padding: '3px 6px' }}>{label}</div>
                 {vars.map((v) => {
                   const token = tokenFor(v);
                   // Mostra o nome que o autor reconhece quando ele existe; o que é escrito no campo
@@ -233,17 +235,23 @@ export function VariablePickerButton({
                         display: 'block',
                         width: '100%',
                         textAlign: 'left',
-                        padding: '4px 6px',
+                        padding: '4px 6px 4px 14px',
                         border: 'none',
                         background: 'transparent',
-                        color: c.textPrimary,
-                        fontSize: 12.5,
+                        color: c.textSecondary,
+                        fontSize: 12,
                         fontFamily: exibicao === token ? 'monospace' : undefined,
                         cursor: 'pointer',
                         borderRadius: 4,
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = c.canvasBg)}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = c.canvasBg;
+                        e.currentTarget.style.color = c.textPrimary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = c.textSecondary;
+                      }}
                     >
                       {exibicao}
                     </button>

@@ -322,7 +322,10 @@ export function SduiRenderer({ runtime, submitting = false, iconRegistry, onDiag
                     <input type="radio" name={node.id} checked={checked} disabled={!active} onChange={() => void change(node, item.value)} style={{ marginTop: 3 }} />
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <Text size={15} weight="medium">{item.title}</Text>
-                      {item.description ? <Text size={13} color={skinVars.colors.textSecondary}>{item.description}</Text> : null}
+                      {/* Descrição em linhas: cada quebra de linha vira uma linha embaixo da outra. */}
+                      {item.description?.split('\n').map((line, index) => (
+                        <Text key={index} size={13} color={skinVars.colors.textSecondary}>{line}</Text>
+                      ))}
                       {checked && item.hint ? <Text size={13} color={skinVars.colors.textSecondary}>{item.hint}</Text> : null}
                     </span>
                   </label>

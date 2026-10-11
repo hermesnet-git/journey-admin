@@ -69,7 +69,10 @@ export function SelectListView({
               <input type="radio" name={`select-list-${label}`} checked={checked} disabled={disabled} onChange={() => onSelect(item.value)} style={{ marginTop: 3 }} />
               <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                 <Text size={14} weight="medium" color={skinVars.colors.textPrimary}>{item.title}</Text>
-                {item.description && <Text size={12.5} color={skinVars.colors.textSecondary}>{item.description}</Text>}
+                {/* Descrição em linhas: cada quebra de linha vira uma linha embaixo da outra. */}
+                {item.description?.split('\n').map((line, index) => (
+                  <Text key={index} size={12.5} color={skinVars.colors.textSecondary}>{line}</Text>
+                ))}
                 {checked && item.hint && <Text size={12.5} color={skinVars.colors.textSecondary}>{item.hint}</Text>}
               </span>
             </label>

@@ -145,6 +145,8 @@ export function BindingEditor({
   fixedMode,
   modeByName,
   variables,
+  labels,
+  compact = false,
   onChange,
 }: {
   root: SduiNode | null;
@@ -155,6 +157,10 @@ export function BindingEditor({
   /** Modo fixo por vínculo quando o componente mistura leitura e gravação (lista de seleção). */
   modeByName?: Record<string, SduiBinding['mode']>;
   variables: VariableOrigin[];
+  /** Nome de cada vínculo na tela; sem ele aparece o nome técnico. */
+  labels?: Record<string, string>;
+  /** Sem o texto de introdução — o vínculo aparece dentro da página do assunto, junto da propriedade. */
+  compact?: boolean;
   onChange: (bindings: Record<string, SduiBinding> | null) => void;
 }) {
   const { c } = useFlowTheme();
@@ -168,22 +174,26 @@ export function BindingEditor({
 
   return (
     <div className="p-2 flex flex-col gap-[6px]">
-      <div className="text-[11.5px]" style={{ color: c.textSecondary }}>
-        Um binding conecta esta propriedade a um caminho do contexto de dados da jornada:{' '}
-        <strong style={{ color: c.textPrimary }}>form</strong> ou{' '}
-        <strong style={{ color: c.textPrimary }}>data</strong> (passe o mouse sobre o namespace
-        escolhido pra ver o que cada um significa).
-      </div>
+      {!compact && (
+        <div className="text-[11.5px]" style={{ color: c.textSecondary }}>
+          Um binding conecta esta propriedade a um caminho do contexto de dados da jornada:{' '}
+          <strong style={{ color: c.textPrimary }}>form</strong> ou{' '}
+          <strong style={{ color: c.textPrimary }}>data</strong> (passe o mouse sobre o namespace
+          escolhido pra ver o que cada um significa).
+        </div>
+      )}
       {bindingNames.map((name) => {
         const binding = bindings?.[name] ?? null;
-        const { namespace, suffix } = splitPath(binding?.path);
         const mode = modeByName?.[name] ?? fixedMode ?? binding?.mode ?? 'oneWay';
         // Itens/opções só podem vir de uma lista (saída de integração do tipo lista ou fonte de dados da tela).
         const listOnly = name === 'items' || name === 'options';
+        // Obrigatório e ainda sem vínculo (ex.: a ação da lista de seleção, que passa a ser exigida
+        // quando a lista ganha ações): o campo já aparece para preencher.
+        const { namespace, suffix } = binding ? splitPath(binding.path) : { namespace: listOnly ? ('data' as const) : ('form' as const), suffix: '' };
         const pathVariables = listOnly ? variables.filter((v) => v.type === 'list') : variables;
         const required = requiredBindingNames.includes(name);
         return (
-          <div key={name} className="flex flex-col gap-[4px]">
+          <div key={name} className="flex flex-col gap-[4px]" title={name}>
             <label className="flex items-center gap-[5px] text-[11.5px] font-medium" style={{ color: c.textPrimary }}>
               {required ? (
                 <span
@@ -200,9 +210,9 @@ export function BindingEditor({
                   onChange={(e) => setBinding(name, e.target.checked ? { path: listOnly ? 'data.' : 'form.', mode } : null)}
                 />
               )}
-              {name}{required ? ' *' : ''}
+              {labels?.[name] ?? name}{required ? ' *' : ''}
             </label>
-            {binding && <>
+            {(binding || required) && <>
           <NamespacePathInput
             namespace={namespace}
             suffix={suffix}
@@ -215,7 +225,7 @@ export function BindingEditor({
             <div className="flex items-center gap-1 text-[10.5px]" style={{ color: c.textSecondary }} title={MODE_HELP[mode]}>
               {MODE_LABEL[mode]} <span style={{ opacity: 0.7 }}>(fixo para este componente)</span>
             </div>
-          ) : (
+          ) : binding && (
             <select
               style={{ ...gridInputStyle(c), cursor: 'pointer' }}
               value={mode}

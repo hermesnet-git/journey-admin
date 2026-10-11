@@ -4,7 +4,7 @@ import type { SduiEvent } from '../../sdui/model';
 
 export const AVAILABLE_ACTIONS = ['action.submit', 'action.navigate', 'action.openUrl', 'action.setValue', 'action.track', 'action.dismiss'] as const;
 
-const ACTION_LABEL: Record<string, string> = {
+export const ACTION_LABEL: Record<string, string> = {
   'action.submit': 'Enviar formulário',
   'action.navigate': 'Navegar',
   'action.openUrl': 'Abrir endereço',
@@ -13,7 +13,7 @@ const ACTION_LABEL: Record<string, string> = {
   'action.dismiss': 'Dispensar',
 };
 
-const EVENT_LABEL: Record<string, string> = {
+export const EVENT_LABEL: Record<string, string> = {
   onPress: 'Ao acionar o componente',
   onChange: 'Ao alterar o valor',
   onBlur: 'Ao sair do campo',

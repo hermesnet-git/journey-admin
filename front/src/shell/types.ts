@@ -26,4 +26,7 @@ export interface Tab {
   // selecionada (StartPanel visível, pronta pra clicar Executar), em vez da busca em branco — cada
   // clique ganha sua própria aba dedicada.
   initialJourney?: JourneySummary;
+  // Abas 'journeys': jornada aberta no editor desta aba (ausente = aba mostrando a lista). O menu
+  // "Jornadas" reaproveita uma aba com a lista e uma jornada só fica aberta numa aba por vez.
+  editingJourneyId?: string;
 }

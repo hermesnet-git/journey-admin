@@ -130,7 +130,14 @@ function AppShell() {
       return;
     }
     if (navKey === 'jornadas') {
-      openTab(JOURNEYS_TAB);
+      // Vai para uma aba de Jornadas que esteja mostrando a lista; se todas estão com uma jornada
+      // aberta, abre outra.
+      const listTab = tabs.find((t) => t.kind === 'journeys' && !t.editingJourneyId);
+      if (listTab) {
+        setActiveKey(listTab.key);
+        return;
+      }
+      openTab({ ...JOURNEYS_TAB, key: tabs.some((t) => t.key === JOURNEYS_TAB.key) ? `jornadas-${crypto.randomUUID()}` : JOURNEYS_TAB.key });
       return;
     }
     if (navKey === 'execucoes') {
@@ -182,6 +189,21 @@ function AppShell() {
     });
   }
 
+  // A aba de Jornadas leva o nome da jornada aberta nela; voltar à lista volta a "Jornadas".
+  function setJourneyTabEditing(key: string, journey: { journeyId: string; name: string } | null) {
+    setTabs((prev) => prev.map((t) => (t.key === key
+      ? { ...t, editingJourneyId: journey?.journeyId, title: journey ? `${JOURNEYS_TAB.title} · ${journey.name}` : JOURNEYS_TAB.title }
+      : t)));
+  }
+
+  // Uma jornada fica aberta numa aba só: abrir de novo leva para a aba que já tem ela.
+  function requestJourneyEdit(key: string, journeyId: string): boolean {
+    const other = tabs.find((t) => t.kind === 'journeys' && t.key !== key && t.editingJourneyId === journeyId);
+    if (!other) return true;
+    setActiveKey(other.key);
+    return false;
+  }
+
   const activeTab = tabs.find((t) => t.key === activeKey) ?? DASHBOARD_TAB;
   const activeNavKey =
     activeTab.kind === 'placeholder'
@@ -230,7 +252,11 @@ function AppShell() {
                   {tab.kind === 'catalog' && <CatalogPage />}
                   {tab.kind === 'component-catalog' && <ComponentCatalogPage />}
                   {tab.kind === 'journeys' && (
-                    <JourneysPage onExecuteJourney={openExecuteJourneyTab} />
+                    <JourneysPage
+                      onExecuteJourney={openExecuteJourneyTab}
+                      onEditingChange={(journey) => setJourneyTabEditing(tab.key, journey)}
+                      onRequestEdit={(journeyId) => requestJourneyEdit(tab.key, journeyId)}
+                    />
                   )}
                   {tab.kind === 'execution' && (
                     <ExecutionsPage active={tab.key === activeKey} initialJourney={tab.initialJourney} />

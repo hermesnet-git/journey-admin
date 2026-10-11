@@ -122,17 +122,21 @@ function formatDate(iso: string | null): string {
 
 interface JourneysPageProps {
   onExecuteJourney: (journey: Journey) => void;
+  /** Avisa a aba qual jornada está aberta no editor (null = lista). */
+  onEditingChange: (journey: { journeyId: string; name: string } | null) => void;
+  /** Pergunta à aba se a jornada pode abrir aqui; false = ela já está aberta em outra aba, que vira a ativa. */
+  onRequestEdit: (journeyId: string) => boolean;
 }
 
-export function JourneysPage({ onExecuteJourney }: JourneysPageProps) {
+export function JourneysPage(props: JourneysPageProps) {
   return (
     <ToastProvider>
-      <JourneysPageContent onExecuteJourney={onExecuteJourney} />
+      <JourneysPageContent {...props} />
     </ToastProvider>
   );
 }
 
-function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
+function JourneysPageContent({ onExecuteJourney, onEditingChange, onRequestEdit }: JourneysPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [journeys, setJourneys] = useState<Journey[]>([]);
@@ -168,6 +172,14 @@ function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  useEffect(() => {
+    onEditingChange(editingJourney ? { journeyId: editingJourney.journeyId, name: editingJourney.name } : null);
+  }, [editingJourney?.journeyId, editingJourney?.name]);
+
+  function openEditor(journey: Journey) {
+    if (onRequestEdit(journey.journeyId)) setEditingJourney(journey);
+  }
 
   const filtered = useMemo(
     () =>
@@ -372,7 +384,7 @@ function JourneysPageContent({ onExecuteJourney }: JourneysPageProps) {
                 <JourneyDetailRow
                   key={j.journeyId}
                   journey={j}
-                  onEdit={() => setEditingJourney(j)}
+                  onEdit={() => openEditor(j)}
                   onDelete={() => setDeletingJourney(j)}
                   onUnpublish={() => setUnpublishingJourney(j)}
                   onViewPublication={() => setViewingPublicationJourney(j)}

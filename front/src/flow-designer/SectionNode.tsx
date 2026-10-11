@@ -40,7 +40,7 @@ const HANDLES: { dir: ResizeDirection; style: React.CSSProperties; cursor: strin
 
 // Seção do canvas: moldura com o nome do grupo em maiúsculas atrás das etapas. Arrasta pelo cabeçalho
 // (as etapas de dentro vão junto), redimensiona pelas bordas e cantos e, recolhida, vira um bloco com a
-// contagem ("4 etapas recolhidas") que abre ao clicar e recebe a linha que chega no grupo. De longe,
+// contagem ("4 etapas recolhidas") que se arrasta, abre pelo ícone e recebe a linha que chega no grupo. De longe,
 // quando as etapas viram pontos, o nome cresce para continuar legível.
 export const SectionNode = memo(function SectionNode({ data }: NodeProps<WFSectionNode>) {
   const { c } = useFlowTheme();
@@ -48,7 +48,6 @@ export const SectionNode = memo(function SectionNode({ data }: NodeProps<WFSecti
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(data.name);
   const inputRef = useRef<HTMLInputElement>(null);
-  const pressRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (editing) inputRef.current?.select();
@@ -144,17 +143,8 @@ export const SectionNode = memo(function SectionNode({ data }: NodeProps<WFSecti
     const tone = data.tone === 'danger' ? c.danger : c.accent;
     return (
       <div
-        onPointerDown={(e) => {
-          pressRef.current = { x: e.clientX, y: e.clientY };
-        }}
-        onClick={(e) => {
-          // Arrastar o bloco não conta como clique.
-          const press = pressRef.current;
-          if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 4) return;
-          if (!editing) data.onToggle();
-        }}
-        title="Clique para abrir a seção; arraste para mover"
-        className="group/section rounded-[14px] px-[18px] py-[12px] flex flex-col justify-center cursor-pointer"
+        title="Arraste para mover a seção"
+        className="group/section rounded-[14px] px-[18px] py-[12px] flex flex-col justify-center cursor-grab active:cursor-grabbing"
         style={{
           width: data.width,
           height: data.height,
@@ -166,7 +156,17 @@ export const SectionNode = memo(function SectionNode({ data }: NodeProps<WFSecti
       >
         <Handle type="target" position={Position.Left} isConnectable={false} style={{ opacity: 0 }} />
         <div className="flex items-center gap-[8px] min-w-0">
-          <Maximize2 size={far ? titleSize : 14} style={{ color: tone, flexShrink: 0 }} />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              data.onToggle();
+            }}
+            title="Abrir seção"
+            className="nodrag shrink-0 border-0 bg-transparent cursor-pointer p-[2px] -m-[2px] flex rounded"
+            style={{ color: tone }}
+          >
+            <Maximize2 size={far ? titleSize : 14} />
+          </button>
           <span className="truncate font-bold uppercase" style={{ color: tone, fontSize: far ? titleSize : 14, letterSpacing: '0.1em' }}>
             {data.name}
           </span>
@@ -179,7 +179,7 @@ export const SectionNode = memo(function SectionNode({ data }: NodeProps<WFSecti
               {data.count} {data.count === 1 ? 'etapa recolhida' : 'etapas recolhidas'}
             </span>
             <span className="text-[13.5px]" style={{ color: c.textSecondary }}>
-              Clique para abrir
+              Abra pelo ícone ao lado do nome
             </span>
           </>
         )}

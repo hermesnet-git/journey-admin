@@ -31,6 +31,9 @@ interface Props {
   /** Altura do modo docked, mantida em JourneyDesignerPage (não como state interno). */
   height: number;
   onHeightChange: (height: number) => void;
+  /** Recolhido, mantido em JourneyDesignerPage pelo mesmo motivo da altura. */
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
   /** Fixado: dock continua mostrando a última User Task mesmo depois de selecionar outra coisa. */
   pinned: boolean;
   onPinnedChange: (pinned: boolean) => void;
@@ -40,6 +43,7 @@ interface Props {
 
 const MIN_HEIGHT = 160;
 export const DOCK_DEFAULT_HEIGHT = 320;
+export const DOCK_COLLAPSED_HEIGHT = 44;
 const MIN_VISIBLE_FLOW = 140;
 
 type ScreenMode = 'edit' | 'preview';
@@ -67,13 +71,14 @@ export function FormDesignerDock({
   onNavigateTask,
   height,
   onHeightChange,
+  collapsed,
+  onCollapsedChange: setCollapsed,
   pinned,
   onPinnedChange,
   hasUnsavedChanges,
 }: Props) {
   const { c } = useFlowTheme();
   const [expanded, setExpanded] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const [mode, setMode] = useState<ScreenMode>('edit');
   const [designChannel, setDesignChannel] = useState<DesignChannel>(channelTypes[0] ?? 'WEB');
   // Itens de exemplo por apelido de fonte, vindos do "Testar" no painel de fontes — o preview usa
@@ -269,8 +274,8 @@ export function FormDesignerDock({
   if (collapsed) {
     return (
       <div
-        className="absolute bottom-0 left-0 right-0 w-full z-20 flex items-center justify-between gap-3 px-4 py-[10px]"
-        style={{ background: c.cardBg, borderTop: `1px solid ${c.border}` }}
+        className="absolute bottom-0 left-0 right-0 w-full z-20 flex items-center justify-between gap-3 px-4"
+        style={{ height: DOCK_COLLAPSED_HEIGHT, background: c.cardBg, borderTop: `1px solid ${c.border}` }}
       >
         <div className="min-w-0">
           <span className="text-[11px] font-semibold" style={{ color: c.textPrimary }}>Form Designer</span>

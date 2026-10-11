@@ -30,7 +30,7 @@ import { WorkflowNode } from './WorkflowNode';
 import { AnnotationNode } from './AnnotationNode';
 import { Palette } from './Palette';
 import { PropertiesDock } from './PropertiesDock';
-import { FormDesignerDock, DOCK_DEFAULT_HEIGHT } from './FormDesignerDock';
+import { FormDesignerDock, DOCK_COLLAPSED_HEIGHT, DOCK_DEFAULT_HEIGHT } from './FormDesignerDock';
 import { ErrorModal } from './ErrorModal';
 import { EditJourneyChannelsModal } from '../journeys/EditJourneyChannelsModal';
 import { Toolbar } from './Toolbar';
@@ -291,6 +291,8 @@ function DesignerInner({
   // Vive aqui (não dentro do FormDesignerDock) porque o dock desmonta toda vez que a seleção sai de
   // uma User Task — um state interno perderia o redimensionamento do usuário a cada troca de nó.
   const [dockHeight, setDockHeight] = useState(DOCK_DEFAULT_HEIGHT);
+  // Mesmo motivo: recolhido continua recolhido ao selecionar outra User Task.
+  const [dockCollapsed, setDockCollapsed] = useState(false);
   // "Fixar" o editor de tela: enquanto ativo, o dock continua mostrando a última User Task válida
   // mesmo depois de selecionar outra coisa (ou nada) no canvas — ver previewNode mais abaixo.
   const [dockPinned, setDockPinned] = useState(false);
@@ -1584,7 +1586,9 @@ function DesignerInner({
     : dockPinned
       ? (nodes.find((n) => n.id === pinnedPreviewNodeId) ?? null)
       : null;
-  const previewVariables = previewNode ? availableVariableOriginsAt(previewNode.id, nodes, edges) : [];
+  // Altura que o dock cobre na parte de baixo do canvas (descontada ao centralizar o fluxo).
+  const dockOccupied = previewNode ? (dockCollapsed ? DOCK_COLLAPSED_HEIGHT : dockHeight) : 0;
+  const previewVariables =previewNode ? availableVariableOriginsAt(previewNode.id, nodes, edges) : [];
   const userTasks = orderedUserTasks(nodes, edges);
   const hasUnsavedChanges = savedSnapshotRef.current !== null
     && savedSnapshotRef.current !== buildFlowSnapshot(name, description, nodes, edges, annotations, liveSections);
@@ -1615,8 +1619,7 @@ function DesignerInner({
       const { zoom: currentZoom } = getViewport();
       // Mesma correção do "Ajustar à tela" (fitToVisibleArea): descontar a altura do Form Builder
       // quando aberto, senão o recentro considera espaço que na prática está coberto pelo dock.
-      const occupiedBottom = previewNode ? dockHeight : 0;
-      const visibleHeight = Math.max(paneHeight - occupiedBottom, 1);
+      const visibleHeight = Math.max(paneHeight - dockOccupied, 1);
       setViewport(
         {
           x: paneWidth / 2 - (bounds.x + bounds.width / 2) * currentZoom,
@@ -1626,7 +1629,7 @@ function DesignerInner({
         { duration: 200 },
       );
     });
-  }, [pushHistory, getNodesBounds, getViewport, setViewport, previewNode, dockHeight]);
+  }, [pushHistory, getNodesBounds, getViewport, setViewport, dockOccupied]);
 
   // Trocar de modo reorganiza o fluxo no espaçamento do novo modo (também quando o modo muda em
   // outra tela, já que a preferência é compartilhada).
@@ -1656,12 +1659,8 @@ function DesignerInner({
     if (bounds.width === 0 && bounds.height === 0) return;
     const { width: paneWidth, height: paneHeight } = paneEl.getBoundingClientRect();
     if (!paneWidth || !paneHeight) return;
-    // ponytail: usa a altura do dock no modo docked padrão — não distingue dock recolhido (bem
-    // menor, resultado só fica um pouco mais afastado do que precisaria) nem expandido em tela
-    // cheia (cobre o canvas inteiro, botão fica inacessível de qualquer forma). Ajustar se o estado
-    // recolhido/expandido algum dia subir de FormDesignerDock pra este componente.
-    const occupiedBottom = previewNode ? dockHeight : 0;
-    const visibleHeight = Math.max(paneHeight - occupiedBottom, 1);
+    // Tela cheia não entra na conta: o dock cobre o canvas inteiro e o botão fica inacessível.
+    const visibleHeight = Math.max(paneHeight - dockOccupied, 1);
     const padding = 0.2;
     const zoom = Math.min(
       (paneWidth * (1 - padding)) / bounds.width,
@@ -1672,7 +1671,7 @@ function DesignerInner({
     const x = paneWidth / 2 - (bounds.x + bounds.width / 2) * boundedZoom;
     const y = visibleHeight / 2 - (bounds.y + bounds.height / 2) * boundedZoom;
     setViewport({ x, y, zoom: boundedZoom }, { duration: 200 });
-  }, [getNodesBounds, setViewport, previewNode, dockHeight]);
+  }, [getNodesBounds, setViewport, dockOccupied]);
 
   // Leva a etapa ao centro da tela (Guia/tour), sem afastar além do zoom atual.
   const focusOnNode = useCallback(
@@ -1906,6 +1905,8 @@ function DesignerInner({
                   onNavigateTask={selectOnlyNode}
                   height={dockHeight}
                   onHeightChange={setDockHeight}
+                  collapsed={dockCollapsed}
+                  onCollapsedChange={setDockCollapsed}
                   pinned={dockPinned}
                   onPinnedChange={setDockPinned}
                   hasUnsavedChanges={hasUnsavedChanges}

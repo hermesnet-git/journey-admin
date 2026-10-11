@@ -78,7 +78,7 @@ import { createNode as createSduiNode, type SduiNode } from '../sdui/model';
 import { COLLAPSED_SECTION, computeLayout, computeLayoutForSection, computeLayoutForSelection, computeRoutes } from './layout';
 import type { EdgeRoute } from './edgeRouter';
 import { nodeSize, useNodeDisplayMode, type NodeDisplayMode } from './nodeMode';
-import { fitBox, freeSectionSpot, memberBounds, refitSections, SECTION_DEFAULT, SECTION_HEADER, SECTION_PAD, toSectionState, withMembers, type SectionState } from './sections';
+import { fitBox, freeSectionSpot, memberBounds, pushAside, refitSections, SECTION_DEFAULT, SECTION_HEADER, SECTION_PAD, toSectionState, withMembers, type SectionState } from './sections';
 import { readableCondition, screenVariableLabels } from './conditionLabel';
 import { clearTourPending, guideNotes, isTourPending } from './notes';
 import { GuidePanel } from './GuidePanel';
@@ -1188,9 +1188,9 @@ function DesignerInner({
     setSections((prev) => [...prev, { id: `Section_${crypto.randomUUID()}`, name: `Seção ${prev.length + 1}`, nodeIds: [], ...box }]);
   }, [pushHistory]);
 
-  // Recolher ou abrir uma seção. Ao recolher, ela guarda as etapas que tinha (ficam escondidas); ao
-  // abrir, só o conteúdo dela é reorganizado, a partir do canto da moldura — o resto do fluxo não se
-  // mexe (o "Organizar" é que recalcula tudo).
+  // Recolher ou abrir uma seção. Ao recolher, ela guarda as etapas que tinha (ficam escondidas) e puxa
+  // de volta o que estava à direita e abaixo dela; ao abrir, só o conteúdo dela é reorganizado, a
+  // partir do canto da moldura, e o que está à direita e abaixo é empurrado pelo quanto ela cresceu.
   const toggleSection = useCallback(
     (sectionId: string) => {
       const section = liveSectionsRef.current.find((x) => x.id === sectionId);
@@ -1202,19 +1202,48 @@ function DesignerInner({
         return next;
       });
       if (!section) return;
+      const blockRight = section.x + COLLAPSED_SECTION.width;
+      const blockBottom = section.y + COLLAPSED_SECTION.height;
+      const apply = (pushed: { sections: SectionState[]; nodes: WFNode[]; annotations: WFAnnotation[] }, box: Partial<SectionState>) => {
+        setNodes(pushed.nodes);
+        setAnnotations(pushed.annotations);
+        setSections(pushed.sections.map((x) => (x.id === sectionId ? { ...x, ...box } : x)));
+      };
       if (!opening) {
-        setSections((prev) => prev.map((x) => (x.id === sectionId ? { ...x, nodeIds: section.nodeIds } : x)));
+        const right = section.x + section.width;
+        const bottom = section.y + section.height;
+        const dx = Math.min(0, blockRight - right);
+        const dy = Math.min(0, blockBottom - bottom);
+        if (dx || dy) pushHistory();
+        apply(
+          pushAside(sectionId, section.nodeIds, liveSectionsRef.current, nodesRef.current, annotationsRef.current, { right, bottom }, dx, dy),
+          { nodeIds: section.nodeIds },
+        );
         return;
       }
-      if (section.nodeIds.length === 0) return;
       pushHistory();
+      // Vazia: reabre com a moldura que tinha.
+      if (section.nodeIds.length === 0) {
+        const dx = Math.max(0, section.x + section.width - blockRight);
+        const dy = Math.max(0, section.y + section.height - blockBottom);
+        apply(pushAside(sectionId, [], liveSectionsRef.current, nodesRef.current, annotationsRef.current, { right: blockRight, bottom: blockBottom }, dx, dy), {});
+        return;
+      }
       computeLayoutForSection(nodesRef.current, edgesRef.current, section.nodeIds, nodeModeRef.current, {
         x: section.x + SECTION_PAD,
         y: section.y + SECTION_HEADER,
       }).then((laid) => {
-        setNodes(laid);
         const box = fitBox(laid.filter((n) => section.nodeIds.includes(n.id)), nodeModeRef.current);
-        if (box) setSections((prev) => prev.map((x) => (x.id === sectionId ? { ...x, ...box } : x)));
+        if (!box) {
+          setNodes(laid);
+          return;
+        }
+        const dx = Math.max(0, box.x + box.width - blockRight);
+        const dy = Math.max(0, box.y + box.height - blockBottom);
+        apply(
+          pushAside(sectionId, section.nodeIds, liveSectionsRef.current, laid, annotationsRef.current, { right: blockRight, bottom: blockBottom }, dx, dy),
+          box,
+        );
       });
     },
     [pushHistory],

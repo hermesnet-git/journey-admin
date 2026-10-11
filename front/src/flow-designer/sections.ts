@@ -124,6 +124,39 @@ export function refitSections(
   });
 }
 
+type Positioned = { id: string; position: { x: number; y: number } };
+
+// Abrir uma seção abre espaço e recolher fecha: o que começa à direita de `edge.right` anda `dx` e o
+// que começa abaixo de `edge.bottom` anda `dy` (negativos puxam de volta). Outra seção anda inteira,
+// com as etapas dela; as etapas da própria seção (`ownIds`) ficam onde estão.
+export function pushAside<N extends Positioned, A extends Positioned>(
+  sectionId: string,
+  ownIds: string[],
+  sections: SectionState[],
+  nodes: N[],
+  annotations: A[],
+  edge: { right: number; bottom: number },
+  dx: number,
+  dy: number,
+): { sections: SectionState[]; nodes: N[]; annotations: A[] } {
+  const shift = (x: number, y: number) => ({ x: x >= edge.right ? dx : 0, y: y >= edge.bottom ? dy : 0 });
+  const own = new Set(ownIds);
+  const bySection = new Map<string, { x: number; y: number }>();
+  const movedSections = sections.map((s) => {
+    if (s.id === sectionId) return s;
+    const d = shift(s.x, s.y);
+    s.nodeIds.forEach((id) => bySection.set(id, d));
+    return d.x || d.y ? { ...s, x: s.x + d.x, y: s.y + d.y } : s;
+  });
+  const move = <T extends Positioned>(items: T[]) =>
+    items.map((n) => {
+      if (own.has(n.id)) return n;
+      const d = bySection.get(n.id) ?? shift(n.position.x, n.position.y);
+      return d.x || d.y ? { ...n, position: { x: n.position.x + d.x, y: n.position.y + d.y } } : n;
+    });
+  return { sections: movedSections, nodes: move(nodes), annotations: move(annotations) };
+}
+
 // Primeiro lugar livre para uma moldura nova: de preferência à esquerda e abaixo do início do desenho,
 // descendo pela coluna da esquerda e só então andando para a direita, onde não haja etapa (com o nome embaixo), outra seção nem
 // trecho de linha.

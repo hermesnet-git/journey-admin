@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronUp, MessageCircle, Maximize2, Minimize2, Monitor, Pin, PinOff, Smartphone } from 'lucide-react';
 import { useFlowTheme } from './theme';
 import { FormBuilder } from './form-builder/FormBuilder';
@@ -39,6 +40,8 @@ interface Props {
   onPinnedChange: (pinned: boolean) => void;
   /** Indica que o desenho atual ainda não foi salvo na jornada. */
   hasUnsavedChanges: boolean;
+  /** Área da aba da jornada: o "Expandir" ocupa só ela, sem cobrir o menu lateral nem as abas. */
+  expandContainer: HTMLElement | null;
 }
 
 const MIN_HEIGHT = 160;
@@ -76,6 +79,7 @@ export function FormDesignerDock({
   pinned,
   onPinnedChange,
   hasUnsavedChanges,
+  expandContainer,
 }: Props) {
   const { c } = useFlowTheme();
   const [expanded, setExpanded] = useState(false);
@@ -260,15 +264,16 @@ export function FormDesignerDock({
   );
 
   if (expanded) {
-    return (
+    const expandedView = (
       <div
-        className="fixed inset-0 z-[1000] w-screen h-screen flex flex-col animate-[modal-panel-in_180ms_cubic-bezier(0.16,1,0.3,1)]"
+        className="absolute inset-0 z-[1000] flex flex-col animate-[modal-panel-in_180ms_cubic-bezier(0.16,1,0.3,1)]"
         style={{ background: c.cardBg }}
       >
         {navigatorRow}
         {body}
       </div>
     );
+    return expandContainer ? createPortal(expandedView, expandContainer) : expandedView;
   }
 
   if (collapsed) {

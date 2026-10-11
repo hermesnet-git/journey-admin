@@ -296,6 +296,8 @@ function DesignerInner({
   // "Fixar" o editor de tela: enquanto ativo, o dock continua mostrando a última User Task válida
   // mesmo depois de selecionar outra coisa (ou nada) no canvas — ver previewNode mais abaixo.
   const [dockPinned, setDockPinned] = useState(false);
+  // Área desta aba de jornada: o editor de telas expandido ocupa só ela.
+  const [designerArea, setDesignerArea] = useState<HTMLDivElement | null>(null);
   const [pinnedPreviewNodeId, setPinnedPreviewNodeId] = useState<string | null>(null);
   // Client-only, purely visual: highlights the path through the flow connected to whichever node
   // is hovered or selected, dimming the rest so a busy diagram stays readable.
@@ -1735,7 +1737,7 @@ function DesignerInner({
   return (
     <FlowThemeContext.Provider value={flowTheme}>
       <WorkflowActionsContext.Provider value={actions}>
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div ref={setDesignerArea} className="relative flex-1 flex flex-col overflow-hidden">
           <Toolbar
             canUndo={undoStack.current.length > 0}
             canRedo={redoStack.current.length > 0}
@@ -1910,6 +1912,7 @@ function DesignerInner({
                   pinned={dockPinned}
                   onPinnedChange={setDockPinned}
                   hasUnsavedChanges={hasUnsavedChanges}
+                  expandContainer={designerArea}
                 />
               )}
             </div>

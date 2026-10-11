@@ -215,6 +215,7 @@ export function JourneyDesignerPage({
   onClose,
   onDiscard,
   onSaved,
+  onUnsavedChange,
 }: {
   journey: Journey;
   isNew?: boolean;
@@ -222,10 +223,12 @@ export function JourneyDesignerPage({
   onClose: () => void;
   onDiscard?: () => void | Promise<void>;
   onSaved: () => void;
+  /** Avisa quem abriu o editor se há o que perder ao sair: jornada nova ainda não salva ou alterações. */
+  onUnsavedChange?: (state: 'new' | 'changes' | null) => void;
 }) {
   return (
     <ReactFlowProvider>
-      <DesignerInner journey={journey} isNew={isNew} draft={draft} onClose={onClose} onDiscard={onDiscard} onSaved={onSaved} />
+      <DesignerInner journey={journey} isNew={isNew} draft={draft} onClose={onClose} onDiscard={onDiscard} onSaved={onSaved} onUnsavedChange={onUnsavedChange} />
     </ReactFlowProvider>
   );
 }
@@ -237,6 +240,7 @@ function DesignerInner({
   onClose,
   onDiscard,
   onSaved,
+  onUnsavedChange,
 }: {
   journey: Journey;
   isNew: boolean;
@@ -244,6 +248,7 @@ function DesignerInner({
   onClose: () => void;
   onDiscard?: () => void | Promise<void>;
   onSaved: () => void;
+  onUnsavedChange?: (state: 'new' | 'changes' | null) => void;
 }) {
   const { dark, colors: appColors } = useAppTheme();
   const c = dark ? DARK_COLORS : LIGHT_COLORS;
@@ -1594,6 +1599,10 @@ function DesignerInner({
   const userTasks = orderedUserTasks(nodes, edges);
   const hasUnsavedChanges = savedSnapshotRef.current !== null
     && savedSnapshotRef.current !== buildFlowSnapshot(name, description, nodes, edges, annotations, liveSections);
+  const unsavedState = isNew ? 'new' : hasUnsavedChanges ? 'changes' : null;
+  useEffect(() => {
+    onUnsavedChange?.(unsavedState);
+  }, [unsavedState]);
 
   // 2+ selecionados: organiza só o grupo (mantém o resto do canvas onde está). 0 ou 1 selecionado:
   // organiza o canvas inteiro, comportamento de sempre.

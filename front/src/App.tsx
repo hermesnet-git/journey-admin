@@ -21,6 +21,8 @@ import { HelpPage } from './shell/HelpPage';
 import { SobrePage } from './shell/SobrePage';
 import { APP_VERSION } from './shell/appInfo';
 import { AppErrorBoundary } from './shell/AppErrorBoundary';
+import { ConfirmDialog } from './products/ConfirmDialog';
+import { deleteJourney } from './api/journeys';
 
 const DASHBOARD_TAB: Tab = { key: 'dashboard', title: 'Dashboard', kind: 'dashboard', closable: false };
 const JOURNEYS_TAB: Tab = { key: 'jornadas', title: 'Jornadas', kind: 'journeys', closable: true };
@@ -86,6 +88,9 @@ function AppShell() {
   const skin = getSkinByName(skinName);
   const [tabs, setTabs] = useState<Tab[]>([DASHBOARD_TAB]);
   const [activeKey, setActiveKey] = useState('dashboard');
+  // Aba com jornada não salva esperando a confirmação para fechar.
+  const [closingTab, setClosingTab] = useState<Tab | null>(null);
+  const [closingBusy, setClosingBusy] = useState(false);
 
   // O AppShell continua montado entre logout/login (só a <LoginPage> troca de lugar), então sem
   // isso as abas abertas da sessão anterior — incluindo jornadas/formulários em edição — ficariam
@@ -110,6 +115,29 @@ function AppShell() {
       }
       return next;
     });
+  }
+
+  // Fechar uma aba com jornada não salva pede confirmação antes; o resto fecha direto.
+  function requestCloseTab(key: string) {
+    const tab = tabs.find((t) => t.key === key);
+    if (tab?.unsaved) setClosingTab(tab);
+    else closeTab(key);
+  }
+
+  async function confirmCloseTab() {
+    if (!closingTab) return;
+    // Jornada nova não salva: fechar é desistir de criá-la, como o Cancelar do editor — exclui.
+    if (closingTab.unsaved === 'new' && closingTab.editingJourneyId) {
+      setClosingBusy(true);
+      try {
+        await deleteJourney(closingTab.editingJourneyId);
+      } catch {
+        // Sem excluir, a jornada continua na lista e pode ser excluída por lá; a aba fecha igual.
+      }
+      setClosingBusy(false);
+    }
+    closeTab(closingTab.key);
+    setClosingTab(null);
   }
 
   function handleNavigate(navKey: string) {
@@ -192,8 +220,12 @@ function AppShell() {
   // A aba de Jornadas leva o nome da jornada aberta nela; voltar à lista volta a "Jornadas".
   function setJourneyTabEditing(key: string, journey: { journeyId: string; name: string } | null) {
     setTabs((prev) => prev.map((t) => (t.key === key
-      ? { ...t, editingJourneyId: journey?.journeyId, title: journey ? `${JOURNEYS_TAB.title} · ${journey.name}` : JOURNEYS_TAB.title }
+      ? { ...t, editingJourneyId: journey?.journeyId, title: journey ? `${JOURNEYS_TAB.title} · ${journey.name}` : JOURNEYS_TAB.title, ...(journey ? {} : { unsaved: undefined }) }
       : t)));
+  }
+
+  function setJourneyTabUnsaved(key: string, unsaved: 'new' | 'changes' | null) {
+    setTabs((prev) => prev.map((t) => (t.key === key ? { ...t, unsaved: unsaved ?? undefined } : t)));
   }
 
   // Uma jornada fica aberta numa aba só: abrir de novo leva para a aba que já tem ela.
@@ -242,7 +274,7 @@ function AppShell() {
         >
           <Sidebar activeKey={activeNavKey} onNavigate={handleNavigate} />
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-            <TabBar tabs={tabs} activeKey={activeKey} onSelect={setActiveKey} onClose={closeTab} />
+            <TabBar tabs={tabs} activeKey={activeKey} onSelect={setActiveKey} onClose={requestCloseTab} />
             <div className="flex-1 flex flex-col overflow-hidden">
               {tabs.map((tab) => (
                 <div key={tab.key} className="flex-1 flex flex-col overflow-hidden" style={{ display: tab.key === activeKey ? 'flex' : 'none' }}>
@@ -256,6 +288,7 @@ function AppShell() {
                       onExecuteJourney={openExecuteJourneyTab}
                       onEditingChange={(journey) => setJourneyTabEditing(tab.key, journey)}
                       onRequestEdit={(journeyId) => requestJourneyEdit(tab.key, journeyId)}
+                      onUnsavedChange={(unsaved) => setJourneyTabUnsaved(tab.key, unsaved)}
                     />
                   )}
                   {tab.kind === 'execution' && (
@@ -269,6 +302,19 @@ function AppShell() {
               ))}
             </div>
           </div>
+          {closingTab && (
+            <ConfirmDialog
+              title={closingTab.unsaved === 'new' ? 'Descartar a nova jornada?' : 'Fechar sem salvar?'}
+              message={closingTab.unsaved === 'new'
+                ? 'A jornada ainda não foi salva. Se você fechar a aba agora, ela será excluída como se nunca tivesse sido criada.'
+                : 'As alterações desta jornada ainda não foram salvas e serão perdidas ao fechar a aba.'}
+              confirmLabel={closingTab.unsaved === 'new' ? 'Descartar' : 'Fechar sem salvar'}
+              cancelLabel="Continuar editando"
+              loading={closingBusy}
+              onConfirm={() => void confirmCloseTab()}
+              onCancel={() => setClosingTab(null)}
+            />
+          )}
         </div>
         )}
       </ThemeContextProvider>

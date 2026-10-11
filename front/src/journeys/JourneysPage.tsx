@@ -126,6 +126,8 @@ interface JourneysPageProps {
   onEditingChange: (journey: { journeyId: string; name: string } | null) => void;
   /** Pergunta à aba se a jornada pode abrir aqui; false = ela já está aberta em outra aba, que vira a ativa. */
   onRequestEdit: (journeyId: string) => boolean;
+  /** Avisa a aba se fechá-la agora perderia algo: jornada nova não salva ou alterações. */
+  onUnsavedChange: (state: 'new' | 'changes' | null) => void;
 }
 
 export function JourneysPage(props: JourneysPageProps) {
@@ -136,7 +138,7 @@ export function JourneysPage(props: JourneysPageProps) {
   );
 }
 
-function JourneysPageContent({ onExecuteJourney, onEditingChange, onRequestEdit }: JourneysPageProps) {
+function JourneysPageContent({ onExecuteJourney, onEditingChange, onRequestEdit, onUnsavedChange }: JourneysPageProps) {
   const { colors: c } = useAppTheme();
   const { showToast } = useToast();
   const [journeys, setJourneys] = useState<Journey[]>([]);
@@ -224,6 +226,7 @@ function JourneysPageContent({ onExecuteJourney, onEditingChange, onRequestEdit 
         journey={editingJourney}
         isNew={newJourneyDraft !== null}
         draft={newJourneyDraft?.flow}
+        onUnsavedChange={onUnsavedChange}
         onClose={async () => {
           setEditingJourney(null);
           setNewJourneyDraft(null);

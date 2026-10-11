@@ -127,6 +127,14 @@ export const EPICS: Epic[] = [
             'REQ-02.01.011',
             'O fluxo gerado por IA ou importado do Figma deve abrir no editor como alteração ainda não salva; "Salvar" grava o fluxo e deixa o rascunho (versão DRAFT) para publicação posterior, e numa jornada recém-criada confirma a criação mesmo quando nada mais foi alterado.',
           ),
+          d(
+            'REQ-02.01.012',
+            'Várias jornadas abertas ao mesmo tempo, cada uma na sua aba; o menu "Jornadas" vai para uma aba com a lista e só abre outra quando todas têm jornada aberta; a aba mostra o nome da jornada; uma jornada fica aberta numa aba só.',
+          ),
+          d(
+            'REQ-02.01.013',
+            'Fechar aba com alterações não salvas pede confirmação; jornada recém-criada não salva: fechar a aba equivale a cancelar (confirma e exclui).',
+          ),
         ],
       },
       {
@@ -682,6 +690,7 @@ export const EPICS: Epic[] = [
             'Ao selecionar, no canvas, uma USER_TASK, o editor deve exibir automaticamente um dock com o editor da tela embutida do nó, ancorado à base do canvas, sem exigir uma ação dedicada de clique.',
           ),
           d('REQ-03.16.002', 'Ao selecionar qualquer outro elemento do canvas, o dock deve deixar de ser exibido.'),
+          d('REQ-03.16.003', 'O dock expandido ocupa toda a área da aba da jornada, sem cobrir o menu lateral nem as abas do sistema, e volta ao tamanho anterior.'),
         ],
       },
       {
@@ -823,7 +832,7 @@ export const EPICS: Epic[] = [
             notes: 'Reescrito em 2026-10-03 — salvar, Execução e Diagnóstico conferidos no navegador.',
           },
           d('REQ-03.20.006', 'Mover a moldura com as etapas e redimensionar pelas bordas e cantos, sem ficar menor que as etapas; etapa pertence à seção onde está o centro dela; seção pode ficar vazia.'),
-          d('REQ-03.20.007', 'Organizar trata a seção recolhida como bloco; reabrir reorganiza só o conteúdo, a partir do canto da moldura; Organizar ajusta cada moldura.'),
+          d('REQ-03.20.007', 'Organizar trata a seção recolhida como bloco; reabrir reorganiza só o conteúdo, a partir do canto da moldura, e empurra para a direita e para baixo o que estava à direita e abaixo, pelo quanto a seção cresceu (outra seção anda inteira); recolher puxa de volta; Organizar ajusta cada moldura.'),
         ],
       },
     ],
@@ -944,8 +953,13 @@ export const EPICS: Epic[] = [
           d('REQ-04.09.008', 'O usuário deve poder editar as propriedades do componente selecionado num painel dedicado, com o campo de entrada apropriado ao tipo de cada propriedade declarada pelo catálogo.'),
           d('REQ-04.09.009', 'No modo de construção da tela, os componentes não devem aceitar digitação de valores reais — não é o formulário sendo preenchido, é uma prancheta de montagem.'),
           d('REQ-04.09.010', 'O sistema deve oferecer um modo de pré-visualização que renderiza a árvore como seria apresentada ao usuário final, alternável a qualquer momento com o modo de construção.'),
-          d('REQ-04.09.011', 'O sistema deve sinalizar pendências de preenchimento da tela — propriedade obrigatória vazia, valor incompatível com o schema, componente de entrada sem vínculo de dados, botão ou link sem ação associada, ou componente incompatível com o canal selecionado — classificadas por severidade, permitindo ao usuário navegar de uma pendência até o campo correspondente.'),
+          d('REQ-04.09.011', 'Sinalizar pendências de preenchimento (propriedade obrigatória, valor fora do schema, vínculo ausente, ação ausente, lista de seleção sem conclusão da etapa ou com ações sem onde gravar a ação, incompatibilidade de canal), com severidade, navegação da pendência até o campo e a página do painel onde se corrige.'),
           d('REQ-04.09.012', 'No modo de construção da tela, uma propriedade que tenha um vínculo de dados configurado deve ser exibida no canvas pelo próprio vínculo — o nome da variável de processo que será lida em execução — no lugar do valor literal ou do texto de exemplo do componente.'),
+          d('REQ-04.09.013', 'Painel de propriedades em níveis: página inicial com o nome e um cartão por assunto (Conteúdo, Itens da lista, Escolha, Resposta, Aparência, Comportamento, Ações, Regras), resumo em frase com valores em destaque e marca de situação (erro, atenção, configurado, não configurado); cada cartão abre a página do assunto, com caminho para voltar; vínculo junto da propriedade; "Mais opções" recolhido.'),
+          d('REQ-04.09.014', 'Painel redimensionável pela borda esquerda, 300–640 px, com a largura lembrada no navegador.'),
+          d('REQ-04.09.015', 'Descrição de ícone e de imagem marcável como decorativa (vazia por escolha não é pendência; não preenchida continua).'),
+          d('REQ-04.09.016', 'Cada opção de um seletor pode ser marcada como desabilitada.'),
+          d('REQ-04.09.017', 'Valor de barra de progresso fora de 0 a 1 apontado no próprio campo.'),
         ],
       },
       {
@@ -999,6 +1013,12 @@ export const EPICS: Epic[] = [
             status: 'done',
             notes: 'Novo em 2026-10-03; dois \"voltar\" seguidos testados na Execução; a recusa por escrita não é alcançável pela interface da jornada de teste.',
           },
+          {
+            code: 'REQ-04.11.009',
+            description: 'Evento de fechar do alerta só oferecido quando o alerta permite fechar.',
+            status: 'done',
+            notes: 'Novo em 2026-10-11.',
+          },
         ],
       },
       {
@@ -1051,7 +1071,7 @@ export const EPICS: Epic[] = [
         requirements: [
           d('REQ-04.15.001', 'Componente lista de seleção: escolher um item de uma lista vinda da jornada e, opcionalmente, uma ação sobre ele.'),
           d('REQ-04.15.002', 'Itens vêm, por vínculo somente leitura, de uma variável do tipo lista (saída de integração ou fonte de dados da tela); outro tipo é recusado na publicação.'),
-          d('REQ-04.15.003', 'Campo gravado e textos do item (título, descrição, aviso) com {{item.campo}}; prefixo item só nesses textos.'),
+          d('REQ-04.15.003', 'Campo gravado e textos do item (título, descrição, aviso) com {{item.campo}}; prefixo item só nesses textos; campos por um só botão (campos de cada item e dados da jornada); descrição em várias linhas, mostradas uma embaixo da outra.'),
           d('REQ-04.15.004', 'A escolha grava o campo configurado do item numa variável do formulário (leitura-e-escrita).'),
           d('REQ-04.15.005', 'Ações com id, rótulo, estilo e regra "liberada quando" contra um campo do item.'),
           d('REQ-04.15.006', 'A ação escolhida é gravada numa segunda variável do formulário e conclui a etapa.'),
@@ -1061,6 +1081,7 @@ export const EPICS: Epic[] = [
           d('REQ-04.15.010', 'Com WhatsApp na jornada, recusa mais de 3 ações ou rótulo de ação acima de 20 caracteres.'),
           d('REQ-04.15.011', 'Mensagem configurável para lista vazia.'),
           d('REQ-04.15.012', 'O fluxo seguinte confirma no sistema de origem, pelo identificador do item, se a ação é permitida.'),
+          d('REQ-04.15.013', 'Painel: uma página por ação; conclusão da etapa fixa, sem escolha de outra ação; com ações, onde gravar a ação é obrigatório; avisos dos limites do WhatsApp no painel.'),
         ],
       },
       {
@@ -2291,6 +2312,12 @@ export interface ChangelogEntry {
 // acrescente no topo as linhas novas dessa tabela — não edite as existentes.
 const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
   {
+    date: '2026-10-11 02:22',
+    source: 'progresso',
+    summary:
+      '**Painel de propriedades em níveis, jornadas em várias abas e seções que abrem espaço (10 REQs novos, 3 reescritos).** US-04.09: REQ-04.09.013 (painel em níveis: cartões por assunto com resumo e marca de situação, página por assunto, "Mais opções"), REQ-04.09.014 (painel redimensionável, largura lembrada), REQ-04.09.015 (ícone e imagem decorativos), REQ-04.09.016 (opção de seletor desabilitada) e REQ-04.09.017 (faixa 0–1 da barra de progresso no campo); REQ-04.09.011 reescrito (pendências da lista de seleção e página do painel onde se corrige). US-04.11: REQ-04.11.009 (fechar alerta só com "Permitir fechar"). US-04.15: REQ-04.15.013 (página por ação, conclusão da etapa fixa, gravação da ação obrigatória com ações, avisos do WhatsApp) e REQ-04.15.003 reescrito (campos por um só botão, descrição em linhas). US-03.16: REQ-03.16.003 (editor de telas expandido dentro da aba da jornada). US-03.20: REQ-03.20.007 reescrito (reabrir seção empurra o resto do fluxo; recolher puxa de volta). US-02.01: REQ-02.01.012 (várias jornadas em abas) e REQ-02.01.013 (confirmação ao fechar aba sem salvar; jornada nova é excluída). Divergências entre o catálogo SDUI e o código registradas e decididas com o usuário: `readOnly` da área de texto fica fora do Registry; `options` do seletor ligado a lista (ADR-002) continua sem registro no catálogo; valores fechados de estilo, alinhamento e severidade, hoje texto livre no Registry, ficam para refinar. Catálogo SDUI e massa de fábrica não alterados. Implementado no front e no renderer web do emulador; testado no navegador. FT-02: 56 → 58; FT-03: 153 → 154; FT-04: 97 → 104; total geral: 646 → 656 REQs, 569 → 579 concluídos.',
+  },
+  {
     date: '2026-10-05 03:32',
     source: 'progresso',
     summary:
@@ -2804,6 +2831,17 @@ const CHANGELOG_PROGRESSO: ChangelogEntry[] = [
 // Gerado a partir de `git log --reverse --pretty=format:'%ad|%s' --date=short` na branch main.
 // Ordem: mais recente primeiro. Ao ressincronizar, apenas acrescente os commits novos no topo.
 const CHANGELOG_GIT: ChangelogEntry[] = [
+  { date: '2026-10-11 02:10', source: 'git', summary: 'Jornadas em várias abas.', epics: ['FT-02'] },
+  { date: '2026-10-11 02:10', source: 'git', summary: 'Editor de telas: expandir ocupa só a área da aba da jornada.', epics: ['FT-03'] },
+  { date: '2026-10-11 02:10', source: 'git', summary: 'Editor de telas: painel de propriedades em níveis, redimensionável e alinhado ao catálogo.', epics: ['FT-04'] },
+  { date: '2026-10-11 00:30', source: 'git', summary: 'Canvas: seção recolhida arrasta e só abre pelo ícone; editor de telas recolhido continua recolhido.', epics: ['FT-03'] },
+  { date: '2026-10-11 00:00', source: 'git', summary: 'Canvas: abrir seção empurra o resto do fluxo e recolher puxa de volta; banner do back.', epics: ['FT-03'] },
+  { date: '2026-10-09 01:36', source: 'git', summary: 'ADR-003: versões publicadas de jornadas.' },
+  { date: '2026-10-07 00:58', source: 'git', summary: 'Documentação da plataforma: apresentação em apresentacao/ e remoção de versões antigas.' },
+  { date: '2026-10-07 00:55', source: 'git', summary: 'Documentação da plataforma: integração de canais com o ms-journey.' },
+  { date: '2026-10-05 03:56', source: 'git', summary: 'Massa de fábrica: jornada Falha na espera de mensagem (Laboratório).' },
+  { date: '2026-10-05 03:38', source: 'git', summary: 'Documentação da IA: fluxograma do laço de geração e textos de apoio revisados.', epics: ['FT-03'] },
+  { date: '2026-10-05 03:32', source: 'git', summary: 'Espera por mensagem: tempo limite com "Se falhar", leitura confirmada só após tratar e alerta no Dashboard (ideação).', epics: ['FT-03', 'FT-13'] },
   { date: '2026-10-05 03:12', source: 'git', summary: 'Documentação: apresentação técnica da geração de jornada por IA.', epics: ['FT-03'] },
   { date: '2026-10-05 02:07', source: 'git', summary: 'Falha na publicação de mensagem: tempo limite, novas tentativas, "Se falhar" e incidente.', epics: ['FT-03', 'FT-15'] },
   { date: '2026-10-05 00:42', source: 'git', summary: 'Requisitos: perguntas da IA independentes e seção recolhida com todas as ligações; OpenAPI da IA.', epics: ['FT-03'] },

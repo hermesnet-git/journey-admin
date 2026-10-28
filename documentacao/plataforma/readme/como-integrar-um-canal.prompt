@@ -1,0 +1,167 @@
+Crie o arquivo `documentacao/plataforma/readme/como-integrar-um-canal-v2.html`: uma página HTML única e autocontida (HTML, CSS e JS inline, sem build) que ensina um time de canal a integrar com o Elastic Journey. Escreva o código do zero, com a sua própria estrutura. O conteúdo, as chamadas e o comportamento abaixo são fixos. Não copie nem leia `como-integrar-um-canal.html` antes de terminar a sua versão. Depois de pronta, compare as duas só para conferir se o conteúdo bate.
+
+Responda em português do Brasil. Não faça commit. Não suba, pare nem reinicie nenhum serviço. Não escreva testes.
+
+## Público e objetivo
+
+Quem lê é dev, QA e negócio. A página mostra o que o canal faz, em que ordem e com qual chamada, para iniciar uma jornada, apresentar cada tela ao usuário, enviar as respostas e concluir. Escreva em português claro. Termos técnicos (endpoint, nome de método, nome de pacote) são bem-vindos, porque o documento é de integração para devs.
+
+## Modelo mental (respeite exatamente)
+
+- **Canal** é a aplicação cliente que usa o Elastic Journey: o front (navegador ou app) mais o seu BFF. Quem apresenta a tela ao usuário é o canal.
+- **SDK** é uma biblioteca que roda DENTRO do front do canal. Ele interpreta o formato SDUI e entrega ao canal a tela a apresentar. Ele não fala com o usuário e não é um ator separado nos diagramas: aparece como passos em verde na raia do front do canal.
+- O front nunca chama o `ms-journey` direto. O BFF do canal expõe as rotas e as repassa ao `ms-journey`, sem interpretar a tela (`form.sdui` é opaco para ele).
+- O parâmetro `channelType` é obrigatório ao iniciar a instância. Não existe canal padrão.
+
+## Restrições de texto
+
+- Não cite "emulador de canais" nem "Channel Lab".
+- Não use a palavra "Camunda". Use "Runtime Engine" ou "Engine".
+- Não escreva descrições por ausência ("sem X") nem narre a implementação ("continua igual a antes").
+- Sem emoji. Sem metadiscurso sobre o próprio documento.
+
+## Estrutura da página
+
+1. **Cabeçalho:** título "Como integrar um canal ao Elastic Journey", um parágrafo de abertura, quatro blocos curtos ("O canal é o cliente", "O SDK mora no canal", "O BFF repassa", "O canal é informado"), e um menu de âncoras para as três seções. À direita do título, o seletor de tema.
+2. **Sequência completa:** diagrama de sequência numerado, de ponta a ponta.
+3. **Passo a passo com código:** três fases, cada uma com explicação, diagrama curto e trecho de código, com seletor Web (React) e Mobile (React Native).
+4. **Tabela SDK e HTTP:** uma linha por passo, mais três etiquetas dos tipos de passo.
+
+Não crie seção de "pontos de atenção" nem de avisos.
+
+## Tema e aparência
+
+- Dois temas, escolhidos por um seletor de dois botões ("Vivo" e "Escuro") com `aria-pressed`. O padrão é "Vivo". Na primeira visita, se o sistema do visitante estiver no tema escuro, abre no escuro. Guarde a escolha em `localStorage` dentro de `try/catch`, e a página precisa funcionar sem ele.
+- Paleta "Vivo" (clara): fundo `#f4f2f8`, superfície `#ffffff`, superfície 2 `#eee9f4`, texto `#252233`, texto 2 `#575063`, texto 3 `#7a7388`, linha `#ddd6e8`, destaque `#660099`, destaque suave `#f0e6f7`, verde do SDK `#12805c` com fundo `#dff3ea`, código com fundo `#2a0b3d`, texto `#e9dcf3` e comentário `#a98fc0`.
+- Paleta "Escuro": fundo `#0f1620`, superfície `#17212d`, superfície 2 `#1e2a38`, texto `#e6ecf3`, texto 2 `#a7b4c3`, texto 3 `#7d8b9b`, linha `#2c3a4a`, destaque `#5aa7f5`, destaque suave `#16304d`, verde `#4cc79b` com fundo `#14352b`, código com fundo `#0a121c`.
+- Defina todas as cores como variáveis CSS e dê ao `body` um fundo explícito.
+- Fontes: Figtree para texto e JetBrains Mono para código e endpoints, carregadas do Google Fonts, com pilha de reserva.
+- A página usa quase toda a largura da janela (máximo 1800 px), com margem lateral mínima de 16 px, e funciona em celular.
+
+## Os diagramas de sequência
+
+Desenhe com SVG inline gerado por JavaScript, a partir de uma lista de atores e de mensagens. Não use biblioteca.
+
+- **Sem rolagem horizontal nos diagramas.** O SVG usa `viewBox` e ocupa 100% da largura do contêiner, redimensionando junto com a janela (as fontes escalam proporcionalmente). Os blocos de código podem rolar na horizontal.
+- Fontes grandes (referência no espaço do `viewBox`): texto da seta 15 px, endpoint abaixo da seta em fonte monoespaçada 12,5 px, nome do ator 15 px (negrito), subtítulo do ator 12 px.
+- Cada mensagem tem um texto em português acima da seta e, opcionalmente, o endpoint ou o método abaixo. Setas de resposta são tracejadas. Chamada para si mesmo é um laço curto ao lado da raia.
+- Quando o autor do laço é o último ator, abra o laço e o texto para a esquerda, para não ser cortado na borda.
+- O texto da seta nunca pode se sobrepor ao selo numerado.
+- Os passos do SDK usam o verde (seta, texto e selo).
+- Quadro tracejado com etiqueta ("enquanto step.type = USER_TASK") envolve a parte que repete. Faixas horizontais rotuladas separam as fases.
+- Linhas de vida tracejadas e discretas. Ator do `ms-journey` com destaque (fundo suave e borda de destaque).
+- Cada diagrama tem `role="img"` e `aria-label`.
+- Acima do diagrama completo, mostre uma legenda curta: chamada (linha cheia), resposta (tracejada) e passo do SDK (verde).
+
+## Seção 2: sequência completa
+
+Atores, da esquerda para a direita: **Usuário**; **Front do canal** (subtítulo "seu código + SDK"); **BFF do canal** ("seu código"); **ms-journey** ("Elastic Journey", em destaque); **Registro de telas** ("ms-espec-registry"); **Engine** ("Runtime Engine"). Numere as mensagens em sequência.
+
+Faixa "INICIAR A JORNADA":
+1. Front → BFF: "Inicia a jornada" / `client.startJourney(id, channelType)`
+2. BFF → ms-journey: "Repassa a chamada" / `POST /journeys/{id}/instances?channelType=`
+3. ms-journey → Registro: "Prepara os dados iniciais" / `POST …/start-variables/convert`
+4. ms-journey → Engine: "Abre a instância" / `POST /process-definition/key/{key}/start`
+5. Engine → Engine (laço): "Executa etapas automáticas" / "integrações REST ou eventos"
+6. ms-journey → Registro: "Monta a tela do passo" / `…/nodes/{nid}/form/resolve`
+7. ms-journey → BFF (resposta): "Instância + 1ª tela" / `{ processInstanceId, step, form }`
+8. BFF → Front (resposta): "Instância + 1ª tela"
+
+Faixa "EXIBIR E RESPONDER (REPETE ATÉ O FIM)", dentro do quadro "enquanto step.type = USER_TASK":
+9. Front → Front, verde: "SDK interpreta a tela" / `parseSduiDocument + createSduiRuntime`
+10. Front → Front, verde: "SDK devolve a tela ao canal" / `<SduiRenderer runtime>`
+11. Front → Usuário: "Canal apresenta a tela" / "UI do navegador ou do app"
+12. Usuário → Front (resposta): "Preenche e confirma"
+13. Front → Front, verde: "SDK avisa o canal" / `handlers.submit(answers)`
+14. Front → BFF: "Envia as respostas" / `client.completeTask(pid, taskId, { answers })`
+15. BFF → ms-journey: "Repassa a chamada" / `POST /instances/{pid}/tasks/{taskId}/complete`
+16. ms-journey → Registro: "Valida e converte as respostas" / `…/answers/convert`
+17. ms-journey → Engine: "Conclui a tarefa" / `POST /task/{taskId}/complete`
+18. Engine → Engine (laço): "Executa as próximas etapas" / "integrações automáticas"
+19. ms-journey → BFF (resposta): "Próximo passo" / `USER_TASK | WAITING | ENDED`
+20. BFF → Front (resposta): "Próximo passo"
+
+Faixa "CONCLUIR":
+21. Front → Usuário: "Canal mostra a conclusão" / `step.type = ENDED`
+
+## Seção 3: passo a passo com código
+
+Seletor de dois botões: "Web (React)" e "Mobile (React Native)". Ao trocar, reescreva os diagramas e os códigos das três fases. Cada fase mostra: o número e o título, um parágrafo, um diagrama curto (atores Usuário, Front do canal, BFF do canal, ms-journey, sem numeração) e um bloco de código escuro com comentários em tom mais claro. O que muda por alvo:
+
+| | Web (React) | Mobile (React Native) |
+|---|---|---|
+| `channelType` | `WEB` | `MOBILE` |
+| alvo da tela (`supportedTargets`) | `react.web` | `react.mobile` |
+| componente do renderer | `<SduiRenderer runtime={runtime} submitting={submitting} />` | `<SduiRendererNative runtime={runtime} submitting={submitting} />` |
+
+**Fase 1, Iniciar.** Texto: o front cria o cliente apontando para o BFF do canal e confere se a jornada está publicada para o seu canal. Em seguida pede a instância e recebe o identificador e a primeira tela. Diagrama: Front → BFF `client.startJourney` (verde), BFF → ms-journey `POST …/instances`, e as duas respostas. Código:
+```
+// o BFF do canal é a única URL que o front conhece
+const client = new JourneyClient({ baseUrl: BFF_URL });
+const flow = await client.getFlow(journeyId);
+if (!flow.channelTypes.includes('<CHANNEL>')) throw new Error('Jornada não publicada para <CHANNEL>');
+const instance = await client.startJourney(journeyId, '<CHANNEL>', variaveis);
+// guarde instance.processInstanceId; instance.step diz o que fazer
+```
+
+**Fase 2, Exibir e responder.** Texto: para cada passo do tipo tela, o canal usa o SDK para interpretar o SDUI e obter a tela. Quem apresenta ao usuário é o canal. Os handlers do SDK avisam o canal, que decide o que chamar. Diagrama: quadro "enquanto USER_TASK" com SDK devolve a tela (verde), canal apresenta, usuário responde, SDK avisa o canal (verde), envio ao BFF, repasse ao ms-journey e a resposta com o próximo passo. Código:
+```
+const { valid, document } = parseSduiDocument(step.form.sdui);
+if (!valid || !document.supportedTargets.includes('<TARGET>')) return mostrarTelaIncompativel();
+
+const runtime = createSduiRuntime({
+  document,
+  context: { ...step.form.context, channel: '<CHANNEL>' },  // o mesmo valor do channelType
+  handlers: {
+    submit:   async (answers) => setStep(await client.completeTask(pid, step.taskId, { answers })),
+    navigate: async ({ route }) => route === 'voltar' && setStep(await client.goBack(pid)),
+    retry:    async () => setStep(await client.getCurrentStep(pid)),
+    openUrl, track,
+  },
+});
+<COMPONENTE>
+```
+
+**Fase 3, Concluir.** Texto: o canal trata os três tipos de passo. Se for espera, consulta de novo. Se terminou, mostra a própria conclusão. Diagrama: ms-journey → BFF → Front (respostas) e Front → Usuário "Canal mostra a conclusão". Código:
+```
+switch (step.type) {
+  case 'USER_TASK': return renderTela(step);
+  case 'WAITING':   return aguardar(() => client.getCurrentStep(pid));
+  case 'ENDED':     return mostrarConclusao();
+}
+```
+
+No layout largo, o texto da fase fica à esquerda (cerca de 220 px) e o diagrama com o código à direita. No celular, empilhe.
+
+## Seção 4: tabela SDK e HTTP
+
+Colunas: **Passo**, **O que o seu código chama (SDK)**, **O que vai pelo HTTP**, **O que volta e o que fazer**. Use fonte monoespaçada nos nomes de método e rotas. Linhas:
+
+| Passo | SDK | HTTP | O que volta |
+|---|---|---|---|
+| Conferir canais | `client.getFlow(journeyId)` | `GET /journeys/{journeyId}/flow` | `flow.channelTypes` com os canais em que a jornada está publicada. Conferir antes de iniciar |
+| Iniciar | `client.startJourney(id, 'WEB' \| 'MOBILE', variáveis)` | `POST /journeys/{journeyId}/instances?channelType=` | `processInstanceId` e `step`. Guardar o id e seguir para exibir |
+| Exibir | `parseSduiDocument` → `createSduiRuntime` → `<SduiRenderer>` | Nenhuma. Roda dentro do front do canal | O SDK devolve a tela e o canal a apresenta. Se o alvo não for compatível, o canal mostra o erro de tela incompatível |
+| Responder | Handler `submit(answers)` chama `client.completeTask(pid, taskId, { answers })` | `POST /instances/{pid}/tasks/{taskId}/complete` | Novo `step`. Se vier `errorMessage`, avisar e deixar tentar de novo |
+| Voltar | Handler `navigate({ route: 'voltar' })` chama `client.goBack(pid)` | `POST /instances/{pid}/back` | Tela anterior, ou o mesmo passo com o motivo em `errorMessage` |
+| Tentar de novo | Handler `retry()` chama `client.getCurrentStep(pid)` | `GET /instances/{pid}/current-step` | Passo atual, com a tela montada de novo |
+| Esperar | Passo `WAITING`: `client.getCurrentStep(pid)` quando o usuário pedir ou por tempo | `GET /instances/{pid}/current-step` | Continua `WAITING`, ou vira `USER_TASK` / `ENDED` |
+| Concluir | Passo `ENDED`: o canal mostra a própria conclusão | Nenhuma | Jornada encerrada |
+
+Abaixo da tabela, três etiquetas: `USER_TASK` apresentar a tela e esperar a resposta; `WAITING` aguardar e consultar de novo; `ENDED` jornada concluída.
+
+A tabela é a única parte que pode rolar na horizontal em tela estreita.
+
+## Fatos que conferem com o código (não invente outros)
+
+- Rotas do `ms-journey` sob `/api/v1`: `GET /journeys/{id}/flow`, `POST /journeys/{id}/instances?channelType=`, `GET /instances/{pid}/current-step`, `POST /instances/{pid}/tasks/{taskId}/complete`, `POST /instances/{pid}/back`. No front, o `JourneyClient` aponta para o BFF do canal, que expõe as mesmas rotas.
+- O tipo do passo (`step.type`) vale `USER_TASK`, `WAITING` ou `ENDED`. O passo também traz `taskId`, `nodeId`, `form` e `errorMessage`.
+- O `ms-journey` só aceita concluir a tarefa que for o passo ativo da instância.
+- Se a conclusão falhar numa integração, nada avança: a resposta traz o mesmo passo com `errorMessage`.
+
+## Antes de entregar
+
+- Valide que o `<script>` não tem erro de sintaxe (por exemplo, com `new Function` em Node).
+- Confira que nenhum diagrama tem rolagem horizontal em 1200, 900 e 400 px de largura.
+- Confira que os dois temas ficam legíveis e que o seletor funciona.
+- Diga na resposta o que conferiu e o que não conseguiu conferir (por exemplo, que não abriu a página no navegador).

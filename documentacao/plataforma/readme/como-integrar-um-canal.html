@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Como integrar um canal · Elastic Journey</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+<style>
+  :root{
+    --bg:#f4f2f8; --surface:#ffffff; --surface2:#eee9f4; --fg:#252233; --fg2:#575063; --fg3:#7a7388; --line:#ddd6e8;
+    --accent:#660099; --accent-soft:#f0e6f7; --ok:#12805c; --ok-soft:#dff3ea; --warn-ink:#7d4b00; --warn-soft:#fdf1de; --warn-line:#ecd2a6;
+    --code:#2a0b3d; --code-fg:#e9dcf3; --code-dim:#a98fc0;
+    --sans:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif; --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme]){
+    --bg:#0f1620; --surface:#17212d; --surface2:#1e2a38; --fg:#e6ecf3; --fg2:#a7b4c3; --fg3:#7d8b9b; --line:#2c3a4a;
+    --accent:#5aa7f5; --accent-soft:#16304d; --ok:#4cc79b; --ok-soft:#14352b; --warn-ink:#f0a35e; --warn-soft:#3a2a18; --warn-line:#5a4220;
+    --code:#0a121c; --code-fg:#dbe6f3; --code-dim:#7f93aa; color-scheme:dark}}
+  :root[data-theme="dark"]{
+    --bg:#0f1620; --surface:#17212d; --surface2:#1e2a38; --fg:#e6ecf3; --fg2:#a7b4c3; --fg3:#7d8b9b; --line:#2c3a4a;
+    --accent:#5aa7f5; --accent-soft:#16304d; --ok:#4cc79b; --ok-soft:#14352b; --warn-ink:#f0a35e; --warn-soft:#3a2a18; --warn-line:#5a4220;
+    --code:#0a121c; --code-fg:#dbe6f3; --code-dim:#7f93aa; color-scheme:dark}
+  .top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:12px 24px}
+  .themes{display:flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+  .themes button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-size:.82rem}
+  .themes button.on{background:var(--accent);color:#fff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.55;
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 72px}
+  main{max-width:1800px;margin:0 auto;display:flex;flex-direction:column;gap:48px}
+  h1{font-size:1.9rem;margin:0 0 8px;text-wrap:balance}
+  h2{font-size:1.3rem;margin:0;text-wrap:balance}
+  h3{margin:0 0 4px;font-size:1rem}
+  p{margin:0}
+  .lead{color:var(--fg2);max-width:68ch}
+  nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  nav a{padding:6px 12px;border:1px solid var(--line);border-radius:999px;color:var(--fg);text-decoration:none;font-size:.85rem;background:var(--surface)}
+  nav a:hover,nav a:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+  section{display:flex;flex-direction:column;gap:14px;scroll-margin-top:16px}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+  .stack{display:flex;flex-direction:column;gap:16px}
+  .scroll{min-width:0}
+  .scroll>svg{display:block;width:100%;height:auto}
+  code{font-family:var(--mono);font-size:.82em}
+  .intro{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}
+  @media(max-width:900px){.intro{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:520px){.intro{grid-template-columns:1fr}}
+  .intro div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:.88rem;color:var(--fg2)}
+  .intro b{display:block;color:var(--fg);font-size:.95rem;margin-bottom:2px}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.82rem;color:var(--fg2);align-items:center}
+  .sw{display:inline-block;width:22px;height:0;border-top:2px solid var(--fg2);vertical-align:middle;margin-right:6px}
+  .sw.d{border-top-style:dashed} .sw.g{border-top-color:var(--ok)}
+  button{font:600 .85rem var(--sans);padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  pre{margin:0;background:var(--code);color:var(--code-fg);border-radius:8px;padding:12px 14px;overflow-x:auto;font:400 .78rem/1.6 var(--mono)}
+  pre .c{color:var(--code-dim)}
+  .phase{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:18px;align-items:start;padding-top:18px;border-top:1px solid var(--line)}
+  .phase:first-child{border-top:0;padding-top:0}
+  .phase .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:.8rem;margin-right:8px}
+  .phase p{color:var(--fg2);font-size:.9rem}
+  .phase .body{display:flex;flex-direction:column;gap:10px;min-width:0}
+  @media(max-width:760px){.phase{grid-template-columns:1fr}}
+  table{border-collapse:collapse;width:100%;font-size:.86rem}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);font-weight:600}
+  td:first-child{font-weight:600;white-space:nowrap}
+  td code{overflow-wrap:anywhere}
+  .pills{display:flex;flex-wrap:wrap;gap:8px}
+  .pill{font:500 .78rem var(--mono);padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+
+  svg text{font-family:var(--sans)}
+  .lf{stroke:var(--line);stroke-dasharray:3 5;stroke-width:1.2}
+  .actor rect{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+  .actor.core rect{fill:var(--accent-soft);stroke:var(--accent)}
+  .actor text{fill:var(--fg);font-size:15px;font-weight:600;text-anchor:middle}
+  .actor .s{fill:var(--fg3);font-size:12px;font-weight:400}
+  .m line,.m path{stroke:var(--fg2);stroke-width:1.5;fill:none}
+  .m.ret line,.m.ret path{stroke-dasharray:5 4}
+  .m .lbl{fill:var(--fg);font-size:15px;font-weight:500;text-anchor:middle}
+  .m.self .lbl,.m.self .sub{text-anchor:start} .m.self.left .lbl,.m.self.left .sub{text-anchor:end}
+  .m .sub{fill:var(--fg3);font:400 12.5px var(--mono);text-anchor:middle}
+  .m .badge circle{fill:var(--surface);stroke:var(--fg2);stroke-width:1.2}
+  .m .badge text{fill:var(--fg);font-size:11.5px;font-weight:700;text-anchor:middle}
+  .m.sdk line,.m.sdk path{stroke:var(--ok)} .m.sdk .lbl{fill:var(--ok);font-weight:600} .m.sdk .badge circle{stroke:var(--ok)}
+  .arrowhead{fill:var(--fg2)} .arrowhead.g{fill:var(--ok)}
+  .frame{fill:none;stroke:var(--accent);stroke-width:1.2;stroke-dasharray:6 4}
+  .ftag rect{fill:var(--accent)} .ftag text{fill:#fff;font-size:13px;font-weight:600}
+  .band rect{fill:var(--accent-soft)} .band text{fill:var(--accent);font-size:14px;font-weight:700;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="top"><h1>Como integrar um canal ao Elastic Journey</h1>
+      <div class="themes" id="themes" role="group" aria-label="Tema"><button data-t="vivo">Vivo</button><button data-t="dark">Escuro</button></div></div>
+    <p class="lead">Este guia mostra o que o canal faz, em que ordem e com qual chamada, para iniciar uma jornada, apresentar cada tela ao usuário, enviar as respostas e concluir. Ele serve a quem desenvolve, a quem testa e a quem acompanha o negócio.</p>
+    <div class="intro">
+      <div><b>O canal é o cliente</b>O canal é a aplicação que usa o Elastic Journey: o front (navegador ou app) mais o seu BFF. É ele quem apresenta a tela ao usuário.</div>
+      <div><b>O SDK mora no canal</b>É uma biblioteca dentro do front. Ela interpreta o SDUI e entrega a tela que o canal deve apresentar. Não fala com o usuário.</div>
+      <div><b>O BFF repassa</b>O front nunca chama o <code>ms-journey</code> direto. O BFF expõe as rotas e as repassa, sem interpretar a tela.</div>
+      <div><b>O canal é informado</b>O parâmetro <code>channelType</code> é obrigatório ao iniciar a instância. Não existe canal padrão.</div>
+    </div>
+    <nav aria-label="Seções">
+      <a href="#sequencia">Sequência completa</a><a href="#codigo">Passo a passo com código</a><a href="#tabela">Tabela SDK e HTTP</a>
+    </nav>
+  </header>
+
+  <section id="sequencia">
+    <h2>Sequência completa</h2>
+    <p class="lead">O fluxo de ponta a ponta, da criação da instância à conclusão. Cada número é uma chamada ou um passo; o endpoint aparece abaixo do texto.</p>
+    <div class="panel stack">
+      <div class="legend"><span><i class="sw"></i>chamada</span><span><i class="sw d"></i>resposta</span><span><i class="sw g"></i>passo do SDK, executado dentro do canal</span></div>
+      <div class="scroll" id="viz-seq"></div>
+    </div>
+  </section>
+
+  <section id="codigo">
+    <h2>Passo a passo com código</h2>
+    <p class="lead">As mesmas chamadas em três fases, com o trecho de código do canal. Escolha o alvo para trocar o <code>channelType</code> e o componente do renderer.</p>
+    <div class="panel stack">
+      <div class="seg" id="seg" role="tablist" aria-label="Alvo do canal"></div>
+      <div class="stack" id="phases"></div>
+    </div>
+  </section>
+
+  <section id="tabela">
+    <h2>Tabela SDK e HTTP</h2>
+    <p class="lead">Para cada passo, o que o código do canal chama, o que trafega pelo HTTP e o que fazer com a resposta.</p>
+    <div class="panel scroll">
+      <table>
+        <thead><tr><th>Passo</th><th>O que o seu código chama (SDK)</th><th>O que vai pelo HTTP</th><th>O que volta e o que fazer</th></tr></thead>
+        <tbody>
+          <tr><td>Conferir canais</td><td><code>client.getFlow(journeyId)</code></td><td><code>GET /journeys/{journeyId}/flow</code></td><td><code>flow.channelTypes</code> com os canais em que a jornada está publicada. Conferir antes de iniciar</td></tr>
+          <tr><td>Iniciar</td><td><code>client.startJourney(id, 'WEB' | 'MOBILE', variáveis)</code></td><td><code>POST /journeys/{journeyId}/instances?channelType=</code></td><td><code>processInstanceId</code> e <code>step</code>. Guardar o id e seguir para exibir</td></tr>
+          <tr><td>Exibir</td><td><code>parseSduiDocument</code> → <code>createSduiRuntime</code> → <code>&lt;SduiRenderer&gt;</code></td><td>Nenhuma. Roda dentro do front do canal</td><td>O SDK devolve a tela e o canal a apresenta. Se o alvo não for compatível, o canal mostra o erro de tela incompatível</td></tr>
+          <tr><td>Responder</td><td>Handler <code>submit(answers)</code> chama <code>client.completeTask(pid, taskId, { answers })</code></td><td><code>POST /instances/{pid}/tasks/{taskId}/complete</code></td><td>Novo <code>step</code>. Se vier <code>errorMessage</code>, avisar e deixar tentar de novo</td></tr>
+          <tr><td>Voltar</td><td>Handler <code>navigate({ route: 'voltar' })</code> chama <code>client.goBack(pid)</code></td><td><code>POST /instances/{pid}/back</code></td><td>Tela anterior, ou o mesmo passo com o motivo em <code>errorMessage</code></td></tr>
+          <tr><td>Tentar de novo</td><td>Handler <code>retry()</code> chama <code>client.getCurrentStep(pid)</code></td><td><code>GET /instances/{pid}/current-step</code></td><td>Passo atual, com a tela montada de novo</td></tr>
+          <tr><td>Esperar</td><td>Passo <code>WAITING</code>: <code>client.getCurrentStep(pid)</code> quando o usuário pedir ou por tempo</td><td><code>GET /instances/{pid}/current-step</code></td><td>Continua <code>WAITING</code>, ou vira <code>USER_TASK</code> / <code>ENDED</code></td></tr>
+          <tr><td>Concluir</td><td>Passo <code>ENDED</code>: o canal mostra a própria conclusão</td><td>Nenhuma</td><td>Jornada encerrada</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pills"><span class="pill">USER_TASK · apresentar a tela e esperar a resposta</span><span class="pill">WAITING · aguardar e consultar de novo</span><span class="pill">ENDED · jornada concluída</span></div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+const root=document.documentElement,tb=document.querySelectorAll('#themes button');
+function setTheme(t,save){root.setAttribute('data-theme',t);tb.forEach(b=>{const on=b.dataset.t===t;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});if(save)try{localStorage.setItem('ej-howto-tema',t)}catch(e){}}
+let saved=null;try{saved=localStorage.getItem('ej-howto-tema')}catch(e){}
+setTheme(['vivo','dark'].includes(saved)?saved:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'vivo'));
+tb.forEach(b=>b.onclick=()=>setTheme(b.dataset.t,true));
+const NS='http://www.w3.org/2000/svg'; let uid=0;
+function el(tag,attrs,text,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;if(parent)parent.appendChild(e);return e}
+function h(tag,cls,html,parent){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;if(parent)parent.appendChild(e);return e}
+
+function seq(host,cfg){
+  const id='ah'+(++uid), sp=cfg.spacing||190, n=cfg.actors.length, W=sp*n;
+  const ix={}; cfg.actors.forEach((a,i)=>ix[a.id]=sp/2+i*sp);
+  const svg=el('svg',{viewBox:'0 0 10 10',role:'img','aria-label':cfg.label});
+  const defs=el('defs',{},null,svg);
+  [['', 'arrowhead'],['g','arrowhead g']].forEach(([k,c])=>{const mk=el('marker',{id:id+k,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto'},null,defs);
+    el('polygon',{points:'0,0 10,5 0,10','class':c},null,mk);});
+  const life=el('g',{},null,svg), body=el('g',{},null,svg);
+  let y=70, openY=null, openLabel='', count=0;
+  cfg.items.forEach(it=>{
+    if(it.k==='band'){const g=el('g',{'class':'band'},null,body);
+      el('rect',{x:8,y:y,width:W-16,height:30,rx:5},null,g);el('text',{x:18,y:y+20},it.text,g);y+=46;}
+    else if(it.k==='open'){openY=y;openLabel=it.text;y+=30;}
+    else if(it.k==='close'){const g=el('g',{},null,body);
+      el('rect',{x:6,y:openY,width:W-12,height:y-openY,rx:6,'class':'frame'},null,g);
+      const t=el('g',{'class':'ftag'},null,g),tw=openLabel.length*8+22;
+      el('rect',{x:6,y:openY,width:tw,height:24,rx:5},null,t);el('text',{x:16,y:openY+16.5},openLabel,t);y+=12;}
+    else{
+      count++; const x1=ix[it.from],x2=ix[it.to],self=it.from===it.to,row=it.sub?66:50,ly=y+34,mkr=`url(#${id}${it.sdk?'g':''})`;
+      const g=el('g',{'class':'m'+(it.ret?' ret':'')+(self?' self':'')+(it.sdk?' sdk':'')},null,body);
+      if(self){const L=cfg.actors[n-1].id===it.from,d=L?-1:1;g.classList.toggle('left',L);
+        el('path',{d:`M${x1} ${ly-6} h${38*d} v22 h${-38*d}`,'marker-end':mkr},null,g);
+        el('text',{x:x1+48*d,y:ly+3,'class':'lbl'},it.text,g); if(it.sub)el('text',{x:x1+48*d,y:ly+22,'class':'sub'},it.sub,g);
+        if(cfg.num!==false){const b=el('g',{'class':'badge'},null,g);el('circle',{cx:x1-18*d,cy:ly+4,r:10},null,b);el('text',{x:x1-18*d,y:ly+7.5},String(count),b);}}
+      else{const d=x2>x1?1:-1; el('line',{x1:x1+d*3,y1:ly,x2:x2-d*3,y2:ly,'marker-end':mkr},null,g);
+        const mx=(x1+x2)/2; el('text',{x:mx,y:ly-15,'class':'lbl'},it.text,g);
+        if(it.sub)el('text',{x:mx,y:ly+20,'class':'sub'},it.sub,g);
+        if(cfg.num!==false){const b=el('g',{'class':'badge'},null,g);el('circle',{cx:x1+d*20,cy:ly,r:10},null,b);el('text',{x:x1+d*20,y:ly+4},String(count),b);}}
+      y+=row;}
+  });
+  const H=y+10; svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  cfg.actors.forEach(a=>{const x=ix[a.id];
+    el('line',{x1:x,y1:52,x2:x,y2:H,'class':'lf'},null,life);
+    const g=el('g',{'class':'actor'+(a.core?' core':'')},null,life);
+    el('rect',{x:x-82,y:4,width:164,height:48,rx:8},null,g);
+    el('text',{x:x,y:a.sub?24:33},a.label,g); if(a.sub)el('text',{x:x,y:42,'class':'s'},a.sub,g);});
+  host.appendChild(svg);
+}
+
+const A={
+  U:{id:'U',label:'Usuário'},
+  H:{id:'H',label:'Front do canal',sub:'seu código + SDK'},
+  B:{id:'B',label:'BFF do canal',sub:'seu código'},
+  J:{id:'J',label:'ms-journey',sub:'Elastic Journey',core:true},
+  R:{id:'R',label:'Registro de telas',sub:'ms-espec-registry'},
+  E:{id:'E',label:'Engine',sub:'Runtime Engine'}
+};
+const m=(from,to,text,sub,ret,sdk)=>({k:'msg',from,to,text,sub,ret,sdk});
+
+/* Sequência completa */
+seq(document.getElementById('viz-seq'),{label:'Sequência completa entre o canal e o Elastic Journey',actors:[A.U,A.H,A.B,A.J,A.R,A.E],spacing:200,items:[
+ {k:'band',text:'INICIAR A JORNADA'},
+ m('H','B','Inicia a jornada','client.startJourney(id, channelType)'),
+ m('B','J','Repassa a chamada','POST /journeys/{id}/instances?channelType='),
+ m('J','R','Prepara os dados iniciais','POST …/start-variables/convert'),
+ m('J','E','Abre a instância','POST /process-definition/key/{key}/start'),
+ m('E','E','Executa etapas automáticas','integrações REST ou eventos'),
+ m('J','R','Monta a tela do passo','…/nodes/{nid}/form/resolve'),
+ m('J','B','Instância + 1ª tela','{ processInstanceId, step, form }',1),
+ m('B','H','Instância + 1ª tela','',1),
+ {k:'band',text:'EXIBIR E RESPONDER (REPETE ATÉ O FIM)'},
+ {k:'open',text:'enquanto step.type = USER_TASK'},
+ m('H','H','SDK interpreta a tela','parseSduiDocument + createSduiRuntime',0,1),
+ m('H','H','SDK devolve a tela ao canal','<SduiRenderer runtime>',0,1),
+ m('H','U','Canal apresenta a tela','UI do navegador ou do app'),
+ m('U','H','Preenche e confirma','',1),
+ m('H','H','SDK avisa o canal','handlers.submit(answers)',0,1),
+ m('H','B','Envia as respostas','client.completeTask(pid, taskId, { answers })'),
+ m('B','J','Repassa a chamada','POST /instances/{pid}/tasks/{taskId}/complete'),
+ m('J','R','Valida e converte as respostas','…/answers/convert'),
+ m('J','E','Conclui a tarefa','POST /task/{taskId}/complete'),
+ m('E','E','Executa as próximas etapas','integrações automáticas'),
+ m('J','B','Próximo passo','USER_TASK | WAITING | ENDED',1),
+ m('B','H','Próximo passo','',1),
+ {k:'close'},
+ {k:'band',text:'CONCLUIR'},
+ m('H','U','Canal mostra a conclusão','step.type = ENDED')
+]});
+
+/* Passo a passo com código */
+const CH={
+ web:{n:'Web (React)',type:'WEB',target:'react.web',tag:'<SduiRenderer runtime={runtime} submitting={submitting} />'},
+ mob:{n:'Mobile (React Native)',type:'MOBILE',target:'react.mobile',tag:'<SduiRendererNative runtime={runtime} submitting={submitting} />'}
+};
+const P=[
+ {t:'Iniciar',d:'O front cria o cliente apontando para o BFF do canal e confere se a jornada está publicada para o seu canal. Em seguida pede a instância e recebe o identificador e a primeira tela.',
+  items:[m('H','B','Inicia a jornada','client.startJourney',0,0),m('B','J','Repassa a chamada','POST …/instances'),m('J','B','Instância + 1ª tela','',1),m('B','H','Instância + 1ª tela','',1)],
+  code:c=>`<span class="c">// o BFF do canal é a única URL que o front conhece</span>
+const client = new JourneyClient({ baseUrl: BFF_URL });
+const flow = await client.getFlow(journeyId);
+if (!flow.channelTypes.includes('${c.type}')) throw new Error('Jornada não publicada para ${c.type}');
+const instance = await client.startJourney(journeyId, '${c.type}', variaveis);
+<span class="c">// guarde instance.processInstanceId; instance.step diz o que fazer</span>`},
+ {t:'Exibir e responder',d:'Para cada passo do tipo tela, o canal usa o SDK para interpretar o SDUI e obter a tela. Quem apresenta ao usuário é o canal. Os handlers do SDK avisam o canal, que decide o que chamar.',
+  items:[{k:'open',text:'enquanto USER_TASK'},m('H','H','SDK devolve a tela ao canal','<SduiRenderer>',0,1),m('H','U','Canal apresenta a tela'),m('U','H','Responde','',1),m('H','H','SDK avisa o canal','handlers.submit',0,1),m('H','B','Envia as respostas','client.completeTask'),m('B','J','Repassa a chamada','POST …/complete'),m('J','B','Próximo passo','USER_TASK | WAITING | ENDED',1),{k:'close'}],
+  code:c=>`const { valid, document } = parseSduiDocument(step.form.sdui);
+if (!valid || !document.supportedTargets.includes('${c.target}')) return mostrarTelaIncompativel();
+
+const runtime = createSduiRuntime({
+  document,
+  context: { ...step.form.context, channel: '${c.type}' },  <span class="c">// o mesmo valor do channelType</span>
+  handlers: {
+    submit:   async (answers) => setStep(await client.completeTask(pid, step.taskId, { answers })),
+    navigate: async ({ route }) => route === 'voltar' &amp;&amp; setStep(await client.goBack(pid)),
+    retry:    async () => setStep(await client.getCurrentStep(pid)),
+    openUrl, track,
+  },
+});
+${c.tag}`},
+ {t:'Concluir',d:'O canal trata os três tipos de passo. Se for espera, consulta de novo. Se terminou, mostra a própria conclusão.',
+  items:[m('J','B','Passo recebido','step.type',1),m('B','H','Passo recebido','',1),m('H','U','Canal mostra a conclusão','ENDED')],
+  code:c=>`switch (step.type) {
+  case 'USER_TASK': return renderTela(step);
+  case 'WAITING':   return aguardar(() =&gt; client.getCurrentStep(pid));
+  case 'ENDED':     return mostrarConclusao();
+}`}
+];
+const seg=document.getElementById('seg'),ph=document.getElementById('phases');
+function draw(k){const c=CH[k];seg.querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.k===k);b.setAttribute('aria-selected',b.dataset.k===k)});ph.innerHTML='';
+  P.forEach((p,i)=>{const w=h('div','phase',null,ph);
+    h('div',null,`<h3><span class="n">${i+1}</span>${p.t}</h3><p>${p.d}</p>`,w);
+    const b=h('div','body',null,w);const s=h('div','scroll',null,b);
+    seq(s,{label:'Fase '+p.t,actors:[A.U,A.H,A.B,A.J],spacing:200,items:p.items,num:false});
+    h('pre',null,p.code(c),b);});}
+Object.keys(CH).forEach(k=>{const b=h('button',null,CH[k].n,seg);b.dataset.k=k;b.setAttribute('role','tab');b.onclick=()=>draw(k)});
+draw('web');
+})();
+</script>
+</body>
+</html>

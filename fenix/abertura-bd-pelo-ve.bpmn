@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<definitions xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="definitions_5a3a6581-864a-4fc3-ac34-d5b0ba5d44da" targetNamespace="http://bpmn.io/schema/bpmn" xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <category id="Category_Sec_Consultas"><categoryValue id="CategoryValue_Sec_Consultas" value="Consultas e impedimentos"/></category><category id="Category_Sec_Reinicio"><categoryValue id="CategoryValue_Sec_Reinicio" value="Reinício do modem"/></category><category id="Category_Sec_Diagnostico"><categoryValue id="CategoryValue_Sec_Diagnostico" value="Diagnóstico automático"/></category><category id="Category_Sec_ReinicieNovamente"><categoryValue id="CategoryValue_Sec_ReinicieNovamente" value="Reiniciar novamente (ID 06, 07 ou 10)"/></category><category id="Category_Sec_SemEnergia"><categoryValue id="CategoryValue_Sec_SemEnergia" value="Sem energia (ID 09)"/></category><category id="Category_Sec_AberturaBD"><categoryValue id="CategoryValue_Sec_AberturaBD" value="Abertura de BD"/></category><process camunda:historyTimeToLive="180" camunda:versionTag="v2" id="Journey_c4de98d785254ffd8cdece66c0660830" isExecutable="true" name="Abertura de BD pelo VE">
+    <startEvent id="Node_Start" name="Início">
+      <outgoing>Flow_Start_ConsultaPendencia</outgoing>
+    </startEvent>
+    <serviceTask camunda:delegateExpression="${httpConnectorDelegate}" id="Node_ConsultaPendencia" name="Consulta pendência financeira">
+      <extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="readTimeoutMs">30000</camunda:inputParameter>
+          <camunda:inputParameter name="retries">1</camunda:inputParameter>
+          <camunda:inputParameter name="retryIntervalMs">1000</camunda:inputParameter>
+          <camunda:inputParameter name="hasErrorPath">true</camunda:inputParameter>
+          <camunda:inputParameter name="url">http://localhost:8084/v1/clientes/${execution.getVariable('data_designador')}/pendencias-financeiras</camunda:inputParameter>
+          <camunda:inputParameter name="method">GET</camunda:inputParameter>
+          <camunda:inputParameter name="headers">{"Accept":"application/json"}</camunda:inputParameter>
+          <camunda:outputParameter name="data_pendenciaHttpStatus">${statusCode}</camunda:outputParameter>
+          <camunda:outputParameter name="data_faturasEmAtraso">${listOutput.extract(statusCode, response, "$.faturasPendentes", "referencia,valor,vencimento")}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </extensionElements>
+      <incoming>Flow_Start_ConsultaPendencia</incoming>
+      <outgoing>Flow_ConsultaPendencia_ConsultaMassiva</outgoing>
+    </serviceTask>
+    <serviceTask camunda:delegateExpression="${httpConnectorDelegate}" id="Node_ConsultaMassiva" name="Consulta massiva">
+      <extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="readTimeoutMs">30000</camunda:inputParameter>
+          <camunda:inputParameter name="retries">1</camunda:inputParameter>
+          <camunda:inputParameter name="retryIntervalMs">1000</camunda:inputParameter>
+          <camunda:inputParameter name="hasErrorPath">true</camunda:inputParameter>
+          <camunda:inputParameter name="url">http://localhost:8084/v1/clientes/${execution.getVariable('data_designador')}/manutencoes-massivas</camunda:inputParameter>
+          <camunda:inputParameter name="method">GET</camunda:inputParameter>
+          <camunda:inputParameter name="headers">{"Accept":"application/json"}</camunda:inputParameter>
+          <camunda:outputParameter name="data_massivaHttpStatus">${statusCode}</camunda:outputParameter>
+          <camunda:outputParameter name="data_massivaProtocolo">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.protocoloManutencao").element().value() : null}</camunda:outputParameter>
+          <camunda:outputParameter name="data_massivaPrevisaoConclusao">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.previsaoConclusao").element().value() : null}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </extensionElements>
+      <incoming>Flow_ConsultaPendencia_ConsultaMassiva</incoming>
+      <outgoing>Flow_ConsultaMassiva_ConsultaBD</outgoing>
+    </serviceTask>
+    <serviceTask camunda:delegateExpression="${httpConnectorDelegate}" id="Node_ConsultaBD" name="Consulta BD aberto">
+      <extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="readTimeoutMs">30000</camunda:inputParameter>
+          <camunda:inputParameter name="retries">1</camunda:inputParameter>
+          <camunda:inputParameter name="retryIntervalMs">1000</camunda:inputParameter>
+          <camunda:inputParameter name="hasErrorPath">true</camunda:inputParameter>
+          <camunda:inputParameter name="url">http://localhost:8084/v1/clientes/${execution.getVariable('data_designador')}/bilhetes-defeito</camunda:inputParameter>
+          <camunda:inputParameter name="method">GET</camunda:inputParameter>
+          <camunda:inputParameter name="headers">{"Accept":"application/json"}</camunda:inputParameter>
+          <camunda:outputParameter name="data_bdHttpStatus">${statusCode}</camunda:outputParameter>
+          <camunda:outputParameter name="data_bdNumero">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.numeroBilhete").element().value() : null}</camunda:outputParameter>
+          <camunda:outputParameter name="data_bdProtocoloAtendimento">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.protocoloAtendimento").element().value() : null}</camunda:outputParameter>
+          <camunda:outputParameter name="data_bdPrevisaoConclusao">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.previsaoConclusao").element().value() : null}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </extensionElements>
+      <incoming>Flow_ConsultaMassiva_ConsultaBD</incoming>
+      <outgoing>Flow_ConsultaBD_DecImpedimento</outgoing>
+    </serviceTask>
+    <exclusiveGateway default="Flow_DecImpedimento_Reinicie" id="Node_DecImpedimento" name="Cliente tem algum ponto de impedimento do serviço?">
+      <incoming>Flow_ConsultaBD_DecImpedimento</incoming>
+      <outgoing>Flow_DecImpedimento_StatusMassivaAtraso</outgoing>
+      <outgoing>Flow_DecImpedimento_StatusMassivaVisita</outgoing>
+      <outgoing>Flow_DecImpedimento_StatusMassiva</outgoing>
+      <outgoing>Flow_DecImpedimento_StatusAtraso</outgoing>
+      <outgoing>Flow_DecImpedimento_StatusVisita</outgoing>
+      <outgoing>Flow_DecImpedimento_Reinicie</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_StatusMassivaAtraso" name="Massiva + atraso em pagamentos">
+      <incoming>Flow_DecImpedimento_StatusMassivaAtraso</incoming>
+      <outgoing>Flow_StatusMassivaAtraso_End_Impedimento</outgoing>
+    </userTask>
+    <userTask id="Node_StatusMassivaVisita" name="Massiva + visita técnica">
+      <incoming>Flow_DecImpedimento_StatusMassivaVisita</incoming>
+      <outgoing>Flow_StatusMassivaVisita_End_Impedimento</outgoing>
+    </userTask>
+    <userTask id="Node_StatusMassiva" name="Massiva">
+      <incoming>Flow_DecImpedimento_StatusMassiva</incoming>
+      <outgoing>Flow_StatusMassiva_End_Impedimento</outgoing>
+    </userTask>
+    <userTask id="Node_StatusAtraso" name="Atraso em pagamentos">
+      <incoming>Flow_DecImpedimento_StatusAtraso</incoming>
+      <outgoing>Flow_StatusAtraso_End_Impedimento</outgoing>
+    </userTask>
+    <userTask id="Node_StatusVisita" name="Visita técnica agendada">
+      <incoming>Flow_DecImpedimento_StatusVisita</incoming>
+      <outgoing>Flow_StatusVisita_End_Impedimento</outgoing>
+    </userTask>
+    <endEvent id="Node_End_Impedimento" name="Fim — impedimento">
+      <incoming>Flow_StatusMassivaAtraso_End_Impedimento</incoming>
+      <incoming>Flow_StatusMassivaVisita_End_Impedimento</incoming>
+      <incoming>Flow_StatusMassiva_End_Impedimento</incoming>
+      <incoming>Flow_StatusAtraso_End_Impedimento</incoming>
+      <incoming>Flow_StatusVisita_End_Impedimento</incoming>
+    </endEvent>
+    <userTask id="Node_Reinicie" name="Reinicie o modem">
+      <incoming>Flow_DecImpedimento_Reinicie</incoming>
+      <outgoing>Flow_Reinicie_DecReinicio</outgoing>
+    </userTask>
+    <exclusiveGateway default="Flow_DecReinicio_VoltouReinicio" id="Node_DecReinicio" name="Conseguiu reiniciar?">
+      <incoming>Flow_Reinicie_DecReinicio</incoming>
+      <outgoing>Flow_DecReinicio_TesteConexao</outgoing>
+      <outgoing>Flow_DecReinicio_VoltouReinicio</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_VoltouReinicio" name="A internet voltou?">
+      <incoming>Flow_DecReinicio_VoltouReinicio</incoming>
+      <outgoing>Flow_VoltouReinicio_DecVoltouReinicio</outgoing>
+    </userTask>
+    <exclusiveGateway default="Flow_DecVoltouReinicio_TesteConexao" id="Node_DecVoltouReinicio" name="Voltou após reiniciar?">
+      <incoming>Flow_VoltouReinicio_DecVoltouReinicio</incoming>
+      <outgoing>Flow_DecVoltouReinicio_InternetVoltou</outgoing>
+      <outgoing>Flow_DecVoltouReinicio_TesteConexao</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_InternetVoltou" name="Sua internet voltou">
+      <incoming>Flow_DecVoltouReinicio_InternetVoltou</incoming>
+      <incoming>Flow_DecVoltouNovamente_InternetVoltou</incoming>
+      <incoming>Flow_DecVoltouEnergia_InternetVoltou</incoming>
+      <outgoing>Flow_InternetVoltou_End_Resolvido</outgoing>
+    </userTask>
+    <endEvent id="Node_End_Resolvido" name="Fim — problema resolvido">
+      <incoming>Flow_InternetVoltou_End_Resolvido</incoming>
+    </endEvent>
+    <userTask id="Node_TesteConexao" name="Vamos testar a sua conexão">
+      <incoming>Flow_DecReinicio_TesteConexao</incoming>
+      <incoming>Flow_DecVoltouReinicio_TesteConexao</incoming>
+      <outgoing>Flow_TesteConexao_DecTeste</outgoing>
+    </userTask>
+    <exclusiveGateway default="Flow_DecTeste_SolicitaDiagnostico" id="Node_DecTeste" name="Cliente quer testar?">
+      <incoming>Flow_TesteConexao_DecTeste</incoming>
+      <outgoing>Flow_DecTeste_End_Desistiu</outgoing>
+      <outgoing>Flow_DecTeste_SolicitaDiagnostico</outgoing>
+    </exclusiveGateway>
+    <endEvent id="Node_End_Desistiu" name="Fim — cliente voltou ao início">
+      <incoming>Flow_DecTeste_End_Desistiu</incoming>
+    </endEvent>
+    <serviceTask camunda:delegateExpression="${httpConnectorDelegate}" id="Node_SolicitaDiagnostico" name="Solicita diagnóstico (HPSD)">
+      <extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="readTimeoutMs">30000</camunda:inputParameter>
+          <camunda:inputParameter name="retries">1</camunda:inputParameter>
+          <camunda:inputParameter name="retryIntervalMs">1000</camunda:inputParameter>
+          <camunda:inputParameter name="hasErrorPath">true</camunda:inputParameter>
+          <camunda:inputParameter name="url">http://localhost:8084/v1/diagnosticos/solicitacoes</camunda:inputParameter>
+          <camunda:inputParameter name="method">POST</camunda:inputParameter>
+          <camunda:inputParameter name="headers">{"Content-Type":"application/json"}</camunda:inputParameter>
+          <camunda:inputParameter name="payload">{"designador":"${execution.getVariable('data_designador')}","tipoAvaliacao":"CONECTIVIDADE_E_SINAL"}</camunda:inputParameter>
+          <camunda:outputParameter name="data_diagnosticoProtocolo">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.protocolo").element().value() : null}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </extensionElements>
+      <incoming>Flow_DecTeste_SolicitaDiagnostico</incoming>
+      <outgoing>Flow_SolicitaDiagnostico_AguardaDiagnostico</outgoing>
+    </serviceTask>
+    <receiveTask id="Node_AguardaDiagnostico" messageRef="Message_Node_AguardaDiagnostico" name="Aguarda resultado do diagnóstico">
+      <extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="credentialRef">teste</camunda:inputParameter>
+          <camunda:inputParameter name="connectorType">KAFKA</camunda:inputParameter>
+          <camunda:inputParameter name="topic">eljy.eventos.entrada</camunda:inputParameter>
+          <camunda:inputParameter name="clusterId">6590dbdc-6ab8-433f-9baf-0c271486157b</camunda:inputParameter>
+          <camunda:inputParameter name="operation">CONSUME</camunda:inputParameter>
+          <camunda:inputParameter name="waitTimeoutMs">180000</camunda:inputParameter>
+          <camunda:inputParameter name="outputMapping.idRetornoDiagnostico">$.payload.data.idRetorno</camunda:inputParameter>
+          <camunda:inputParameter name="outputMapping.idRetornoDiagnostico.type">string</camunda:inputParameter>
+          <camunda:outputParameter name="data_idRetornoDiagnostico">${execution.getVariable('idRetornoDiagnostico')}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </extensionElements>
+      <incoming>Flow_SolicitaDiagnostico_AguardaDiagnostico</incoming>
+      <outgoing>Flow_AguardaDiagnostico_DecIdDiagnostico</outgoing>
+    </receiveTask>
+    <exclusiveGateway default="Flow_DecIdDiagnostico_AgendarVisita" id="Node_DecIdDiagnostico" name="IDs de respostas do diagnóstico">
+      <incoming>Flow_AguardaDiagnostico_DecIdDiagnostico</incoming>
+      <outgoing>Flow_DecIdDiagnostico_ReinicieNovamente</outgoing>
+      <outgoing>Flow_DecIdDiagnostico_SemEnergia</outgoing>
+      <outgoing>Flow_DecIdDiagnostico_AgendarVisita</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_ReinicieNovamente" name="Reinicie de novo">
+      <incoming>Flow_DecIdDiagnostico_ReinicieNovamente</incoming>
+      <outgoing>Flow_ReinicieNovamente_VoltouNovamente</outgoing>
+    </userTask>
+    <userTask id="Node_VoltouNovamente" name="A internet voltou?">
+      <incoming>Flow_ReinicieNovamente_VoltouNovamente</incoming>
+      <outgoing>Flow_VoltouNovamente_DecVoltouNovamente</outgoing>
+    </userTask>
+    <exclusiveGateway default="Flow_DecVoltouNovamente_AgendarVisita" id="Node_DecVoltouNovamente" name="Voltou após o ajuste?">
+      <incoming>Flow_VoltouNovamente_DecVoltouNovamente</incoming>
+      <outgoing>Flow_DecVoltouNovamente_InternetVoltou</outgoing>
+      <outgoing>Flow_DecVoltouNovamente_AgendarVisita</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_SemEnergia" name="Modem sem energia">
+      <incoming>Flow_DecIdDiagnostico_SemEnergia</incoming>
+      <outgoing>Flow_SemEnergia_DecEnergia</outgoing>
+    </userTask>
+    <exclusiveGateway default="Flow_DecEnergia_VoltouEnergia" id="Node_DecEnergia" name="Conseguiu verificar?">
+      <incoming>Flow_SemEnergia_DecEnergia</incoming>
+      <outgoing>Flow_DecEnergia_AgendarVisita</outgoing>
+      <outgoing>Flow_DecEnergia_VoltouEnergia</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_VoltouEnergia" name="A internet voltou?">
+      <incoming>Flow_DecEnergia_VoltouEnergia</incoming>
+      <outgoing>Flow_VoltouEnergia_DecVoltouEnergia</outgoing>
+    </userTask>
+    <exclusiveGateway default="Flow_DecVoltouEnergia_TemEnergia" id="Node_DecVoltouEnergia" name="Voltou após verificar?">
+      <incoming>Flow_VoltouEnergia_DecVoltouEnergia</incoming>
+      <outgoing>Flow_DecVoltouEnergia_InternetVoltou</outgoing>
+      <outgoing>Flow_DecVoltouEnergia_TemEnergia</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_TemEnergia" name="Tem energia no endereço?">
+      <incoming>Flow_DecVoltouEnergia_TemEnergia</incoming>
+      <outgoing>Flow_TemEnergia_DecTemEnergia</outgoing>
+    </userTask>
+    <exclusiveGateway default="Flow_DecTemEnergia_RedeEletrica" id="Node_DecTemEnergia" name="Há energia no endereço?">
+      <incoming>Flow_TemEnergia_DecTemEnergia</incoming>
+      <outgoing>Flow_DecTemEnergia_AgendarVisita</outgoing>
+      <outgoing>Flow_DecTemEnergia_RedeEletrica</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_RedeEletrica" name="Problema na rede elétrica">
+      <incoming>Flow_DecTemEnergia_RedeEletrica</incoming>
+      <outgoing>Flow_RedeEletrica_End_RedeEletrica</outgoing>
+    </userTask>
+    <endEvent id="Node_End_RedeEletrica" name="Fim — rede elétrica">
+      <incoming>Flow_RedeEletrica_End_RedeEletrica</incoming>
+    </endEvent>
+    <userTask id="Node_AgendarVisita" name="Vamos agendar uma visita técnica">
+      <incoming>Flow_AguardaDiagnostico_AgendarVisita_Falha</incoming>
+      <incoming>Flow_DecIdDiagnostico_AgendarVisita</incoming>
+      <incoming>Flow_DecVoltouNovamente_AgendarVisita</incoming>
+      <incoming>Flow_DecEnergia_AgendarVisita</incoming>
+      <incoming>Flow_DecTemEnergia_AgendarVisita</incoming>
+      <outgoing>Flow_AgendarVisita_DecAgendar</outgoing>
+    </userTask>
+    <exclusiveGateway default="Flow_DecAgendar_ConsultaSlots" id="Node_DecAgendar" name="Cliente quer agendar?">
+      <incoming>Flow_AgendarVisita_DecAgendar</incoming>
+      <outgoing>Flow_DecAgendar_End_SemAgendar</outgoing>
+      <outgoing>Flow_DecAgendar_ConsultaSlots</outgoing>
+    </exclusiveGateway>
+    <endEvent id="Node_End_SemAgendar" name="Fim — sem agendamento">
+      <incoming>Flow_DecAgendar_End_SemAgendar</incoming>
+    </endEvent>
+    <serviceTask camunda:delegateExpression="${httpConnectorDelegate}" id="Node_ConsultaSlots" name="Consulta horários (WFM)">
+      <extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="readTimeoutMs">30000</camunda:inputParameter>
+          <camunda:inputParameter name="retries">1</camunda:inputParameter>
+          <camunda:inputParameter name="retryIntervalMs">1000</camunda:inputParameter>
+          <camunda:inputParameter name="hasErrorPath">true</camunda:inputParameter>
+          <camunda:inputParameter name="url">http://localhost:8084/v1/instalacoes/horarios-disponiveis?designador=${execution.getVariable('data_designador')}</camunda:inputParameter>
+          <camunda:inputParameter name="method">GET</camunda:inputParameter>
+          <camunda:inputParameter name="headers">{"Accept":"application/json"}</camunda:inputParameter>
+          <camunda:outputParameter name="data_horariosVisita">${listOutput.extract(statusCode, response, "$.horarios", "value,label")}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </extensionElements>
+      <incoming>Flow_DecAgendar_ConsultaSlots</incoming>
+      <incoming>Flow_HorarioOcupado_ConsultaSlots</incoming>
+      <outgoing>Flow_ConsultaSlots_EscolheHorario</outgoing>
+    </serviceTask>
+    <userTask id="Node_EscolheHorario" name="Escolha do horário">
+      <incoming>Flow_ConsultaSlots_EscolheHorario</incoming>
+      <outgoing>Flow_EscolheHorario_CriaWO</outgoing>
+    </userTask>
+    <serviceTask camunda:delegateExpression="${httpConnectorDelegate}" id="Node_CriaWO" name="Cria WO (WFM)">
+      <extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="readTimeoutMs">30000</camunda:inputParameter>
+          <camunda:inputParameter name="retries">1</camunda:inputParameter>
+          <camunda:inputParameter name="retryIntervalMs">1000</camunda:inputParameter>
+          <camunda:inputParameter name="hasErrorPath">true</camunda:inputParameter>
+          <camunda:inputParameter name="url">http://localhost:8084/v1/instalacoes/agendamentos</camunda:inputParameter>
+          <camunda:inputParameter name="method">POST</camunda:inputParameter>
+          <camunda:inputParameter name="headers">{"Content-Type":"application/json"}</camunda:inputParameter>
+          <camunda:inputParameter name="payload">{"data":"${execution.getVariable('form_dataVisita')}","horario":"${execution.getVariable('form_horarioVisita')}","designador":"${execution.getVariable('data_designador')}","avisarHorarioMaisCedo":"${execution.getVariable('form_avisarHorarioMaisCedo')}"}</camunda:inputParameter>
+          <camunda:outputParameter name="data_woNumero">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.protocolo").element().value() : null}</camunda:outputParameter>
+          <camunda:outputParameter name="data_woStatus">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.status").element().value() : null}</camunda:outputParameter>
+          <camunda:outputParameter name="data_woHorario">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.horario").element().value() : null}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </extensionElements>
+      <incoming>Flow_EscolheHorario_CriaWO</incoming>
+      <outgoing>Flow_CriaWO_DecAgendado</outgoing>
+    </serviceTask>
+    <exclusiveGateway default="Flow_DecAgendado_HorarioOcupado" id="Node_DecAgendado" name="Agendado com sucesso?">
+      <incoming>Flow_CriaWO_DecAgendado</incoming>
+      <outgoing>Flow_DecAgendado_CriaBD</outgoing>
+      <outgoing>Flow_DecAgendado_HorarioOcupado</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_HorarioOcupado" name="Horário ocupado">
+      <incoming>Flow_DecAgendado_HorarioOcupado</incoming>
+      <outgoing>Flow_HorarioOcupado_ConsultaSlots</outgoing>
+    </userTask>
+    <serviceTask camunda:delegateExpression="${httpConnectorDelegate}" id="Node_CriaBD" name="Cria BD">
+      <extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="readTimeoutMs">30000</camunda:inputParameter>
+          <camunda:inputParameter name="retries">1</camunda:inputParameter>
+          <camunda:inputParameter name="retryIntervalMs">1000</camunda:inputParameter>
+          <camunda:inputParameter name="hasErrorPath">true</camunda:inputParameter>
+          <camunda:inputParameter name="url">http://localhost:8084/v1/suporte/chamados</camunda:inputParameter>
+          <camunda:inputParameter name="method">POST</camunda:inputParameter>
+          <camunda:inputParameter name="headers">{"Content-Type":"application/json"}</camunda:inputParameter>
+          <camunda:inputParameter name="payload">{"numeroWO":"${execution.getVariable('data_woNumero')}","designador":"${execution.getVariable('data_designador')}","protocoloDiagnostico":"${execution.getVariable('data_diagnosticoProtocolo')}"}</camunda:inputParameter>
+          <camunda:outputParameter name="data_bdCriadoHttpStatus">${statusCode}</camunda:outputParameter>
+          <camunda:outputParameter name="data_bdCriadoNumero">${statusCode &gt;= 200 &amp;&amp; statusCode &lt; 300 ? S(response).jsonPath("$.numeroChamado").element().value() : null}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </extensionElements>
+      <incoming>Flow_DecAgendado_CriaBD</incoming>
+      <outgoing>Flow_CriaBD_DecBDCriado</outgoing>
+    </serviceTask>
+    <exclusiveGateway default="Flow_DecBDCriado_CancelaWO" id="Node_DecBDCriado" name="BD criado?">
+      <incoming>Flow_CriaBD_DecBDCriado</incoming>
+      <outgoing>Flow_DecBDCriado_VisitaAgendada</outgoing>
+      <outgoing>Flow_DecBDCriado_CancelaWO</outgoing>
+    </exclusiveGateway>
+    <userTask id="Node_VisitaAgendada" name="Você agendou a visita técnica">
+      <incoming>Flow_DecBDCriado_VisitaAgendada</incoming>
+      <outgoing>Flow_VisitaAgendada_End_Agendado</outgoing>
+    </userTask>
+    <endEvent id="Node_End_Agendado" name="Fim — visita agendada e BD criado">
+      <incoming>Flow_VisitaAgendada_End_Agendado</incoming>
+    </endEvent>
+    <serviceTask camunda:asyncBefore="true" camunda:delegateExpression="${httpConnectorDelegate}" id="Node_CancelaWO" name="Cancela WO (WFM)">
+      <extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="hasErrorPath">false</camunda:inputParameter>
+          <camunda:inputParameter name="url">http://localhost:8084/v1/ordens-servico/${execution.getVariable('data_woNumero')}/encerramento</camunda:inputParameter>
+          <camunda:inputParameter name="method">POST</camunda:inputParameter>
+          <camunda:inputParameter name="headers">{"Content-Type":"application/json"}</camunda:inputParameter>
+          <camunda:inputParameter name="payload">{"motivo":"BD não criado"}</camunda:inputParameter>
+        </camunda:inputOutput>
+        <camunda:failedJobRetryTimeCycle>R1/PT1S</camunda:failedJobRetryTimeCycle>
+      </extensionElements>
+      <incoming>Flow_CriaBD_CancelaWO_Falha</incoming>
+      <incoming>Flow_DecBDCriado_CancelaWO</incoming>
+      <outgoing>Flow_CancelaWO_BDNaoCriado</outgoing>
+    </serviceTask>
+    <userTask id="Node_BDNaoCriado" name="BD não criado">
+      <incoming>Flow_CancelaWO_BDNaoCriado</incoming>
+      <outgoing>Flow_BDNaoCriado_End_BDNaoCriado</outgoing>
+    </userTask>
+    <endEvent id="Node_End_BDNaoCriado" name="Fim — BD não criado">
+      <incoming>Flow_BDNaoCriado_End_BDNaoCriado</incoming>
+    </endEvent>
+    <userTask id="Node_FalhaConsulta" name="Não conseguimos verificar">
+      <incoming>Flow_ConsultaPendencia_FalhaConsulta_Falha</incoming>
+      <incoming>Flow_ConsultaMassiva_FalhaConsulta_Falha</incoming>
+      <incoming>Flow_ConsultaBD_FalhaConsulta_Falha</incoming>
+      <incoming>Flow_SolicitaDiagnostico_FalhaConsulta_Falha</incoming>
+      <incoming>Flow_ConsultaSlots_FalhaConsulta_Falha</incoming>
+      <incoming>Flow_CriaWO_FalhaConsulta_Falha</incoming>
+      <outgoing>Flow_FalhaConsulta_End_Falha</outgoing>
+    </userTask>
+    <endEvent id="Node_End_Falha" name="Fim — falha de integração">
+      <incoming>Flow_FalhaConsulta_End_Falha</incoming>
+    </endEvent>
+    <sequenceFlow id="Flow_Start_ConsultaPendencia" sourceRef="Node_Start" targetRef="Node_ConsultaPendencia"/>
+    <sequenceFlow id="Flow_ConsultaPendencia_ConsultaMassiva" sourceRef="Node_ConsultaPendencia" targetRef="Node_ConsultaMassiva"/>
+    <boundaryEvent attachedToRef="Node_ConsultaPendencia" cancelActivity="true" id="Boundary_Flow_ConsultaPendencia_FalhaConsulta_Falha" name="Se falhar">
+      <outgoing>Flow_ConsultaPendencia_FalhaConsulta_Falha</outgoing>
+      <errorEventDefinition errorRef="Error_IntegracaoFalhou" id="errorEventDefinition_2e585f94-d9d4-453a-9727-0653563d1825"/>
+    </boundaryEvent>
+    <sequenceFlow id="Flow_ConsultaPendencia_FalhaConsulta_Falha" sourceRef="Boundary_Flow_ConsultaPendencia_FalhaConsulta_Falha" targetRef="Node_FalhaConsulta"/>
+    <sequenceFlow id="Flow_ConsultaMassiva_ConsultaBD" sourceRef="Node_ConsultaMassiva" targetRef="Node_ConsultaBD"/>
+    <boundaryEvent attachedToRef="Node_ConsultaMassiva" cancelActivity="true" id="Boundary_Flow_ConsultaMassiva_FalhaConsulta_Falha" name="Se falhar">
+      <outgoing>Flow_ConsultaMassiva_FalhaConsulta_Falha</outgoing>
+      <errorEventDefinition errorRef="Error_IntegracaoFalhou" id="errorEventDefinition_3e93f391-83bd-44ad-8c2d-20403567b478"/>
+    </boundaryEvent>
+    <sequenceFlow id="Flow_ConsultaMassiva_FalhaConsulta_Falha" sourceRef="Boundary_Flow_ConsultaMassiva_FalhaConsulta_Falha" targetRef="Node_FalhaConsulta"/>
+    <sequenceFlow id="Flow_ConsultaBD_DecImpedimento" sourceRef="Node_ConsultaBD" targetRef="Node_DecImpedimento"/>
+    <boundaryEvent attachedToRef="Node_ConsultaBD" cancelActivity="true" id="Boundary_Flow_ConsultaBD_FalhaConsulta_Falha" name="Se falhar">
+      <outgoing>Flow_ConsultaBD_FalhaConsulta_Falha</outgoing>
+      <errorEventDefinition errorRef="Error_IntegracaoFalhou" id="errorEventDefinition_d6b186de-9b78-41b6-a389-863a3a26eb47"/>
+    </boundaryEvent>
+    <sequenceFlow id="Flow_ConsultaBD_FalhaConsulta_Falha" sourceRef="Boundary_Flow_ConsultaBD_FalhaConsulta_Falha" targetRef="Node_FalhaConsulta"/>
+    <sequenceFlow id="Flow_DecImpedimento_StatusMassivaAtraso" sourceRef="Node_DecImpedimento" targetRef="Node_StatusMassivaAtraso" name="Massiva + atraso">
+      <conditionExpression id="conditionExpression_a01e3670-72ae-484f-98bd-c2d1072bb8b4">${execution.getVariable('data_massivaHttpStatus') == 200 &amp;&amp; execution.getVariable('data_pendenciaHttpStatus') == 200}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecImpedimento_StatusMassivaVisita" sourceRef="Node_DecImpedimento" targetRef="Node_StatusMassivaVisita" name="Massiva + visita">
+      <conditionExpression id="conditionExpression_918fe8d9-f50e-4f49-b5a2-f9e927536fc2">${execution.getVariable('data_massivaHttpStatus') == 200 &amp;&amp; execution.getVariable('data_bdHttpStatus') == 200}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecImpedimento_StatusMassiva" sourceRef="Node_DecImpedimento" targetRef="Node_StatusMassiva" name="Massiva">
+      <conditionExpression id="conditionExpression_6d8ee90a-8343-42e6-af7a-000c98f7448e">${execution.getVariable('data_massivaHttpStatus') == 200}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecImpedimento_StatusAtraso" sourceRef="Node_DecImpedimento" targetRef="Node_StatusAtraso" name="Atraso em pagamentos">
+      <conditionExpression id="conditionExpression_8b72ea5e-1297-43ac-81ab-f78e57e174df">${execution.getVariable('data_pendenciaHttpStatus') == 200}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecImpedimento_StatusVisita" sourceRef="Node_DecImpedimento" targetRef="Node_StatusVisita" name="Visita técnica (BD aberto)">
+      <conditionExpression id="conditionExpression_ff0e198a-e142-4c31-a293-762de92bb5c5">${execution.getVariable('data_bdHttpStatus') == 200}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecImpedimento_Reinicie" sourceRef="Node_DecImpedimento" targetRef="Node_Reinicie" name="Não"/>
+    <sequenceFlow id="Flow_StatusMassivaAtraso_End_Impedimento" sourceRef="Node_StatusMassivaAtraso" targetRef="Node_End_Impedimento"/>
+    <sequenceFlow id="Flow_StatusMassivaVisita_End_Impedimento" sourceRef="Node_StatusMassivaVisita" targetRef="Node_End_Impedimento"/>
+    <sequenceFlow id="Flow_StatusMassiva_End_Impedimento" sourceRef="Node_StatusMassiva" targetRef="Node_End_Impedimento"/>
+    <sequenceFlow id="Flow_StatusAtraso_End_Impedimento" sourceRef="Node_StatusAtraso" targetRef="Node_End_Impedimento"/>
+    <sequenceFlow id="Flow_StatusVisita_End_Impedimento" sourceRef="Node_StatusVisita" targetRef="Node_End_Impedimento"/>
+    <sequenceFlow id="Flow_Reinicie_DecReinicio" sourceRef="Node_Reinicie" targetRef="Node_DecReinicio"/>
+    <sequenceFlow id="Flow_DecReinicio_TesteConexao" sourceRef="Node_DecReinicio" targetRef="Node_TesteConexao" name="Não consigo reiniciar">
+      <conditionExpression id="conditionExpression_3d85864d-b1f7-4172-984b-41a60a0693eb">${execution.getVariable('form_acaoReinicio') == "nao_consigo"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecReinicio_VoltouReinicio" sourceRef="Node_DecReinicio" targetRef="Node_VoltouReinicio" name="Já reiniciei"/>
+    <sequenceFlow id="Flow_VoltouReinicio_DecVoltouReinicio" sourceRef="Node_VoltouReinicio" targetRef="Node_DecVoltouReinicio"/>
+    <sequenceFlow id="Flow_DecVoltouReinicio_InternetVoltou" sourceRef="Node_DecVoltouReinicio" targetRef="Node_InternetVoltou" name="Sim">
+      <conditionExpression id="conditionExpression_7a71c156-048d-4818-9dee-759cdb069e9f">${execution.getVariable('form_voltouReinicio') == "sim"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecVoltouReinicio_TesteConexao" sourceRef="Node_DecVoltouReinicio" targetRef="Node_TesteConexao" name="Não"/>
+    <sequenceFlow id="Flow_InternetVoltou_End_Resolvido" sourceRef="Node_InternetVoltou" targetRef="Node_End_Resolvido"/>
+    <sequenceFlow id="Flow_TesteConexao_DecTeste" sourceRef="Node_TesteConexao" targetRef="Node_DecTeste"/>
+    <sequenceFlow id="Flow_DecTeste_End_Desistiu" sourceRef="Node_DecTeste" targetRef="Node_End_Desistiu" name="Ir para o início">
+      <conditionExpression id="conditionExpression_c81658a2-4c15-4931-9e06-2f465a850c5e">${execution.getVariable('form_acaoTeste') == "inicio"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecTeste_SolicitaDiagnostico" sourceRef="Node_DecTeste" targetRef="Node_SolicitaDiagnostico" name="Continuar"/>
+    <sequenceFlow id="Flow_SolicitaDiagnostico_AguardaDiagnostico" sourceRef="Node_SolicitaDiagnostico" targetRef="Node_AguardaDiagnostico"/>
+    <boundaryEvent attachedToRef="Node_SolicitaDiagnostico" cancelActivity="true" id="Boundary_Flow_SolicitaDiagnostico_FalhaConsulta_Falha" name="Se falhar">
+      <outgoing>Flow_SolicitaDiagnostico_FalhaConsulta_Falha</outgoing>
+      <errorEventDefinition errorRef="Error_IntegracaoFalhou" id="errorEventDefinition_160d80c2-00ea-4566-995c-b8a301d3efff"/>
+    </boundaryEvent>
+    <sequenceFlow id="Flow_SolicitaDiagnostico_FalhaConsulta_Falha" sourceRef="Boundary_Flow_SolicitaDiagnostico_FalhaConsulta_Falha" targetRef="Node_FalhaConsulta"/>
+    <sequenceFlow id="Flow_AguardaDiagnostico_DecIdDiagnostico" sourceRef="Node_AguardaDiagnostico" targetRef="Node_DecIdDiagnostico"/>
+    <boundaryEvent attachedToRef="Node_AguardaDiagnostico" cancelActivity="true" id="Boundary_Flow_AguardaDiagnostico_AgendarVisita_Falha" name="Se falhar">
+      <outgoing>Flow_AguardaDiagnostico_AgendarVisita_Falha</outgoing>
+      <timerEventDefinition id="timerEventDefinition_cdf1d3fb-9f36-4297-b9b8-5e088a3ffa42">
+        <timeDuration id="timeDuration_57f9d9b4-5451-4182-a734-626863ec65f4">PT180S</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="Flow_AguardaDiagnostico_AgendarVisita_Falha" sourceRef="Boundary_Flow_AguardaDiagnostico_AgendarVisita_Falha" targetRef="Node_AgendarVisita" name="Sem resposta em 3 min"/>
+    <sequenceFlow id="Flow_DecIdDiagnostico_ReinicieNovamente" sourceRef="Node_DecIdDiagnostico" targetRef="Node_ReinicieNovamente" name="IDs 06, 07 ou 10">
+      <conditionExpression id="conditionExpression_481a4b01-1dfa-4f3a-8103-32777eee2d1a">${execution.getVariable('data_idRetornoDiagnostico') == "06" || execution.getVariable('data_idRetornoDiagnostico') == "07" || execution.getVariable('data_idRetornoDiagnostico') == "10"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecIdDiagnostico_SemEnergia" sourceRef="Node_DecIdDiagnostico" targetRef="Node_SemEnergia" name="ID 09">
+      <conditionExpression id="conditionExpression_593d08c1-ab3a-45f9-a072-40853e091d73">${execution.getVariable('data_idRetornoDiagnostico') == "09"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecIdDiagnostico_AgendarVisita" sourceRef="Node_DecIdDiagnostico" targetRef="Node_AgendarVisita" name="IDs 01, 02, 08 ou outro"/>
+    <sequenceFlow id="Flow_ReinicieNovamente_VoltouNovamente" sourceRef="Node_ReinicieNovamente" targetRef="Node_VoltouNovamente"/>
+    <sequenceFlow id="Flow_VoltouNovamente_DecVoltouNovamente" sourceRef="Node_VoltouNovamente" targetRef="Node_DecVoltouNovamente"/>
+    <sequenceFlow id="Flow_DecVoltouNovamente_InternetVoltou" sourceRef="Node_DecVoltouNovamente" targetRef="Node_InternetVoltou" name="Sim">
+      <conditionExpression id="conditionExpression_80b161d9-a271-46a3-8c40-a5e469f6b59e">${execution.getVariable('form_voltouNovamente') == "sim"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecVoltouNovamente_AgendarVisita" sourceRef="Node_DecVoltouNovamente" targetRef="Node_AgendarVisita" name="Não"/>
+    <sequenceFlow id="Flow_SemEnergia_DecEnergia" sourceRef="Node_SemEnergia" targetRef="Node_DecEnergia"/>
+    <sequenceFlow id="Flow_DecEnergia_AgendarVisita" sourceRef="Node_DecEnergia" targetRef="Node_AgendarVisita" name="Não consigo verificar">
+      <conditionExpression id="conditionExpression_5f538e80-ca9e-43d2-b236-4b7c3d1961ab">${execution.getVariable('form_acaoEnergia') == "nao_consigo"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecEnergia_VoltouEnergia" sourceRef="Node_DecEnergia" targetRef="Node_VoltouEnergia" name="Já verifiquei"/>
+    <sequenceFlow id="Flow_VoltouEnergia_DecVoltouEnergia" sourceRef="Node_VoltouEnergia" targetRef="Node_DecVoltouEnergia"/>
+    <sequenceFlow id="Flow_DecVoltouEnergia_InternetVoltou" sourceRef="Node_DecVoltouEnergia" targetRef="Node_InternetVoltou" name="Sim">
+      <conditionExpression id="conditionExpression_bdf05c12-f85f-4adc-8d6e-572265f8e6b7">${execution.getVariable('form_voltouEnergia') == "sim"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecVoltouEnergia_TemEnergia" sourceRef="Node_DecVoltouEnergia" targetRef="Node_TemEnergia" name="Não"/>
+    <sequenceFlow id="Flow_TemEnergia_DecTemEnergia" sourceRef="Node_TemEnergia" targetRef="Node_DecTemEnergia"/>
+    <sequenceFlow id="Flow_DecTemEnergia_AgendarVisita" sourceRef="Node_DecTemEnergia" targetRef="Node_AgendarVisita" name="Sim">
+      <conditionExpression id="conditionExpression_4b4528e0-070a-4a25-8d83-4f939ac57688">${execution.getVariable('form_temEnergia') == "sim"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecTemEnergia_RedeEletrica" sourceRef="Node_DecTemEnergia" targetRef="Node_RedeEletrica" name="Não"/>
+    <sequenceFlow id="Flow_RedeEletrica_End_RedeEletrica" sourceRef="Node_RedeEletrica" targetRef="Node_End_RedeEletrica"/>
+    <sequenceFlow id="Flow_AgendarVisita_DecAgendar" sourceRef="Node_AgendarVisita" targetRef="Node_DecAgendar"/>
+    <sequenceFlow id="Flow_DecAgendar_End_SemAgendar" sourceRef="Node_DecAgendar" targetRef="Node_End_SemAgendar" name="Ir para o início">
+      <conditionExpression id="conditionExpression_aed906b8-9ca3-49bb-8b82-17e47b8d7e9e">${execution.getVariable('form_acaoAgendar') == "inicio"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecAgendar_ConsultaSlots" sourceRef="Node_DecAgendar" targetRef="Node_ConsultaSlots" name="Agendar visita"/>
+    <sequenceFlow id="Flow_ConsultaSlots_EscolheHorario" sourceRef="Node_ConsultaSlots" targetRef="Node_EscolheHorario"/>
+    <boundaryEvent attachedToRef="Node_ConsultaSlots" cancelActivity="true" id="Boundary_Flow_ConsultaSlots_FalhaConsulta_Falha" name="Se falhar">
+      <outgoing>Flow_ConsultaSlots_FalhaConsulta_Falha</outgoing>
+      <errorEventDefinition errorRef="Error_IntegracaoFalhou" id="errorEventDefinition_33a824d8-0ec1-42f6-964a-f0600cf7b9dc"/>
+    </boundaryEvent>
+    <sequenceFlow id="Flow_ConsultaSlots_FalhaConsulta_Falha" sourceRef="Boundary_Flow_ConsultaSlots_FalhaConsulta_Falha" targetRef="Node_FalhaConsulta"/>
+    <sequenceFlow id="Flow_EscolheHorario_CriaWO" sourceRef="Node_EscolheHorario" targetRef="Node_CriaWO"/>
+    <sequenceFlow id="Flow_CriaWO_DecAgendado" sourceRef="Node_CriaWO" targetRef="Node_DecAgendado"/>
+    <boundaryEvent attachedToRef="Node_CriaWO" cancelActivity="true" id="Boundary_Flow_CriaWO_FalhaConsulta_Falha" name="Se falhar">
+      <outgoing>Flow_CriaWO_FalhaConsulta_Falha</outgoing>
+      <errorEventDefinition errorRef="Error_IntegracaoFalhou" id="errorEventDefinition_ed9c322c-e14e-4ae3-8b10-36bd6963d10b"/>
+    </boundaryEvent>
+    <sequenceFlow id="Flow_CriaWO_FalhaConsulta_Falha" sourceRef="Boundary_Flow_CriaWO_FalhaConsulta_Falha" targetRef="Node_FalhaConsulta"/>
+    <sequenceFlow id="Flow_DecAgendado_CriaBD" sourceRef="Node_DecAgendado" targetRef="Node_CriaBD" name="Sim">
+      <conditionExpression id="conditionExpression_dee3d03a-6797-493b-af82-f45449463717">${execution.getVariable('data_woStatus') == "AGENDADO"}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecAgendado_HorarioOcupado" sourceRef="Node_DecAgendado" targetRef="Node_HorarioOcupado" name="Não (horário ocupado)"/>
+    <sequenceFlow id="Flow_HorarioOcupado_ConsultaSlots" sourceRef="Node_HorarioOcupado" targetRef="Node_ConsultaSlots"/>
+    <sequenceFlow id="Flow_CriaBD_DecBDCriado" sourceRef="Node_CriaBD" targetRef="Node_DecBDCriado"/>
+    <boundaryEvent attachedToRef="Node_CriaBD" cancelActivity="true" id="Boundary_Flow_CriaBD_CancelaWO_Falha" name="Se falhar">
+      <outgoing>Flow_CriaBD_CancelaWO_Falha</outgoing>
+      <errorEventDefinition errorRef="Error_IntegracaoFalhou" id="errorEventDefinition_c8919095-e466-4172-a702-e51517464521"/>
+    </boundaryEvent>
+    <sequenceFlow id="Flow_CriaBD_CancelaWO_Falha" sourceRef="Boundary_Flow_CriaBD_CancelaWO_Falha" targetRef="Node_CancelaWO"/>
+    <sequenceFlow id="Flow_DecBDCriado_VisitaAgendada" sourceRef="Node_DecBDCriado" targetRef="Node_VisitaAgendada" name="Sim">
+      <conditionExpression id="conditionExpression_d56ae126-cf48-48f0-b43b-323d26616270">${execution.getVariable('data_bdCriadoHttpStatus') == 200 || execution.getVariable('data_bdCriadoHttpStatus') == 201}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_DecBDCriado_CancelaWO" sourceRef="Node_DecBDCriado" targetRef="Node_CancelaWO" name="Não"/>
+    <sequenceFlow id="Flow_VisitaAgendada_End_Agendado" sourceRef="Node_VisitaAgendada" targetRef="Node_End_Agendado"/>
+    <sequenceFlow id="Flow_CancelaWO_BDNaoCriado" sourceRef="Node_CancelaWO" targetRef="Node_BDNaoCriado"/>
+    <sequenceFlow id="Flow_BDNaoCriado_End_BDNaoCriado" sourceRef="Node_BDNaoCriado" targetRef="Node_End_BDNaoCriado"/>
+    <sequenceFlow id="Flow_FalhaConsulta_End_Falha" sourceRef="Node_FalhaConsulta" targetRef="Node_End_Falha"/>
+  <group id="Group_Sec_Consultas" categoryValueRef="CategoryValue_Sec_Consultas"/><group id="Group_Sec_Reinicio" categoryValueRef="CategoryValue_Sec_Reinicio"/><group id="Group_Sec_Diagnostico" categoryValueRef="CategoryValue_Sec_Diagnostico"/><group id="Group_Sec_ReinicieNovamente" categoryValueRef="CategoryValue_Sec_ReinicieNovamente"/><group id="Group_Sec_SemEnergia" categoryValueRef="CategoryValue_Sec_SemEnergia"/><group id="Group_Sec_AberturaBD" categoryValueRef="CategoryValue_Sec_AberturaBD"/></process>
+  <message id="Message_Node_AguardaDiagnostico" name="Message_Node_AguardaDiagnostico"/>
+  <error errorCode="INTEGRACAO_FALHOU" id="Error_IntegracaoFalhou" name="Falha de integração"/>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1"><bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Journey_c4de98d785254ffd8cdece66c0660830"><bpmndi:BPMNShape id="Group_Sec_Consultas_di" bpmnElement="Group_Sec_Consultas"><dc:Bounds x="148" y="40" width="1029" height="589"/><bpmndi:BPMNLabel><dc:Bounds x="148" y="40" width="155" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Group_Sec_Reinicio_di" bpmnElement="Group_Sec_Reinicio"><dc:Bounds x="1331" y="336" width="683" height="156"/><bpmndi:BPMNLabel><dc:Bounds x="1331" y="336" width="111" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Group_Sec_Diagnostico_di" bpmnElement="Group_Sec_Diagnostico"><dc:Bounds x="2280" y="349" width="839" height="212"/><bpmndi:BPMNLabel><dc:Bounds x="2280" y="349" width="142" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Group_Sec_ReinicieNovamente_di" bpmnElement="Group_Sec_ReinicieNovamente"><dc:Bounds x="3916" y="87" width="426" height="145"/><bpmndi:BPMNLabel><dc:Bounds x="3916" y="87" width="235" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Group_Sec_SemEnergia_di" bpmnElement="Group_Sec_SemEnergia"><dc:Bounds x="3355" y="277" width="1269" height="178"/><bpmndi:BPMNLabel><dc:Bounds x="3355" y="277" width="124" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Group_Sec_AberturaBD_di" bpmnElement="Group_Sec_AberturaBD"><dc:Bounds x="4889" y="188" width="1823" height="360"/><bpmndi:BPMNLabel><dc:Bounds x="4889" y="188" width="93" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_Start_di" bpmnElement="Node_Start"><dc:Bounds x="40" y="120" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="40" y="120" width="43" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_ConsultaPendencia_di" bpmnElement="Node_ConsultaPendencia"><dc:Bounds x="173" y="98" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_ConsultaMassiva_di" bpmnElement="Node_ConsultaMassiva"><dc:Bounds x="293" y="98" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_ConsultaBD_di" bpmnElement="Node_ConsultaBD"><dc:Bounds x="413" y="98" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecImpedimento_di" bpmnElement="Node_DecImpedimento" isMarkerVisible="true"><dc:Bounds x="533" y="113" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="533" y="113" width="130" height="42"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_StatusMassivaAtraso_di" bpmnElement="Node_StatusMassivaAtraso"><dc:Bounds x="910" y="180" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_StatusMassivaVisita_di" bpmnElement="Node_StatusMassivaVisita"><dc:Bounds x="910" y="280" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_StatusMassiva_di" bpmnElement="Node_StatusMassiva"><dc:Bounds x="910" y="380" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_StatusAtraso_di" bpmnElement="Node_StatusAtraso"><dc:Bounds x="910" y="480" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_StatusVisita_di" bpmnElement="Node_StatusVisita"><dc:Bounds x="910" y="80" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_End_Impedimento_di" bpmnElement="Node_End_Impedimento"><dc:Bounds x="1040" y="302" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="1040" y="302" width="111" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_Reinicie_di" bpmnElement="Node_Reinicie"><dc:Bounds x="1356" y="384" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecReinicio_di" bpmnElement="Node_DecReinicio" isMarkerVisible="true"><dc:Bounds x="1476" y="399" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="1476" y="399" width="130" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_VoltouReinicio_di" bpmnElement="Node_VoltouReinicio"><dc:Bounds x="1727" y="376" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecVoltouReinicio_di" bpmnElement="Node_DecVoltouReinicio" isMarkerVisible="true"><dc:Bounds x="1847" y="391" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="1847" y="391" width="142" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_InternetVoltou_di" bpmnElement="Node_InternetVoltou"><dc:Bounds x="5320" y="63" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_End_Resolvido_di" bpmnElement="Node_End_Resolvido"><dc:Bounds x="6777" y="85" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="6777" y="85" width="93" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_TesteConexao_di" bpmnElement="Node_TesteConexao"><dc:Bounds x="2305" y="397" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecTeste_di" bpmnElement="Node_DecTeste" isMarkerVisible="true"><dc:Bounds x="2425" y="412" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="2425" y="412" width="130" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_End_Desistiu_di" bpmnElement="Node_End_Desistiu"><dc:Bounds x="2701" y="500" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2701" y="500" width="130" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_SolicitaDiagnostico_di" bpmnElement="Node_SolicitaDiagnostico"><dc:Bounds x="2716" y="389" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_AguardaDiagnostico_di" bpmnElement="Node_AguardaDiagnostico"><dc:Bounds x="2851" y="389" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecIdDiagnostico_di" bpmnElement="Node_DecIdDiagnostico" isMarkerVisible="true"><dc:Bounds x="2971" y="404" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="2971" y="404" width="124" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_ReinicieNovamente_di" bpmnElement="Node_ReinicieNovamente"><dc:Bounds x="3941" y="127" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_VoltouNovamente_di" bpmnElement="Node_VoltouNovamente"><dc:Bounds x="4061" y="127" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecVoltouNovamente_di" bpmnElement="Node_DecVoltouNovamente" isMarkerVisible="true"><dc:Bounds x="4181" y="142" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="4181" y="142" width="136" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_SemEnergia_di" bpmnElement="Node_SemEnergia"><dc:Bounds x="3380" y="342" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecEnergia_di" bpmnElement="Node_DecEnergia" isMarkerVisible="true"><dc:Bounds x="3500" y="357" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="3500" y="357" width="130" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_VoltouEnergia_di" bpmnElement="Node_VoltouEnergia"><dc:Bounds x="3756" y="334" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecVoltouEnergia_di" bpmnElement="Node_DecVoltouEnergia" isMarkerVisible="true"><dc:Bounds x="3876" y="349" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="3876" y="349" width="142" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_TemEnergia_di" bpmnElement="Node_TemEnergia"><dc:Bounds x="4083" y="325" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecTemEnergia_di" bpmnElement="Node_DecTemEnergia" isMarkerVisible="true"><dc:Bounds x="4203" y="340" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="4203" y="340" width="87" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_RedeEletrica_di" bpmnElement="Node_RedeEletrica"><dc:Bounds x="4354" y="317" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_End_RedeEletrica_di" bpmnElement="Node_End_RedeEletrica"><dc:Bounds x="4474" y="339" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="4474" y="339" width="124" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_AgendarVisita_di" bpmnElement="Node_AgendarVisita"><dc:Bounds x="4914" y="417" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecAgendar_di" bpmnElement="Node_DecAgendar" isMarkerVisible="true"><dc:Bounds x="5034" y="432" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="5034" y="432" width="136" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_End_SemAgendar_di" bpmnElement="Node_End_SemAgendar"><dc:Bounds x="5316" y="228" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="5316" y="228" width="136" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_ConsultaSlots_di" bpmnElement="Node_ConsultaSlots"><dc:Bounds x="5316" y="412" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_EscolheHorario_di" bpmnElement="Node_EscolheHorario"><dc:Bounds x="5472" y="412" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_CriaWO_di" bpmnElement="Node_CriaWO"><dc:Bounds x="5592" y="412" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecAgendado_di" bpmnElement="Node_DecAgendado" isMarkerVisible="true"><dc:Bounds x="5712" y="427" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="5712" y="427" width="136" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_HorarioOcupado_di" bpmnElement="Node_HorarioOcupado"><dc:Bounds x="6024" y="421" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_CriaBD_di" bpmnElement="Node_CriaBD"><dc:Bounds x="6024" y="284" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_DecBDCriado_di" bpmnElement="Node_DecBDCriado" isMarkerVisible="true"><dc:Bounds x="6144" y="299" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="6144" y="299" width="68" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_VisitaAgendada_di" bpmnElement="Node_VisitaAgendada"><dc:Bounds x="6287" y="421" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_End_Agendado_di" bpmnElement="Node_End_Agendado"><dc:Bounds x="6407" y="443" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="6407" y="443" width="136" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_CancelaWO_di" bpmnElement="Node_CancelaWO"><dc:Bounds x="6287" y="321" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_BDNaoCriado_di" bpmnElement="Node_BDNaoCriado"><dc:Bounds x="6425" y="321" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_End_BDNaoCriado_di" bpmnElement="Node_End_BDNaoCriado"><dc:Bounds x="6563" y="343" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="6563" y="343" width="124" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_FalhaConsulta_di" bpmnElement="Node_FalhaConsulta"><dc:Bounds x="6777" y="535" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Node_End_Falha_di" bpmnElement="Node_End_Falha"><dc:Bounds x="6937" y="557" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="6937" y="557" width="93" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Boundary_Flow_ConsultaPendencia_FalhaConsulta_Falha_di" bpmnElement="Boundary_Flow_ConsultaPendencia_FalhaConsulta_Falha"><dc:Bounds x="205" y="160" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="237" y="190" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Boundary_Flow_ConsultaMassiva_FalhaConsulta_Falha_di" bpmnElement="Boundary_Flow_ConsultaMassiva_FalhaConsulta_Falha"><dc:Bounds x="325" y="160" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="357" y="190" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Boundary_Flow_ConsultaBD_FalhaConsulta_Falha_di" bpmnElement="Boundary_Flow_ConsultaBD_FalhaConsulta_Falha"><dc:Bounds x="445" y="160" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="477" y="190" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Boundary_Flow_SolicitaDiagnostico_FalhaConsulta_Falha_di" bpmnElement="Boundary_Flow_SolicitaDiagnostico_FalhaConsulta_Falha"><dc:Bounds x="2748" y="451" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2780" y="481" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Boundary_Flow_AguardaDiagnostico_AgendarVisita_Falha_di" bpmnElement="Boundary_Flow_AguardaDiagnostico_AgendarVisita_Falha"><dc:Bounds x="2883" y="451" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2915" y="481" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Boundary_Flow_ConsultaSlots_FalhaConsulta_Falha_di" bpmnElement="Boundary_Flow_ConsultaSlots_FalhaConsulta_Falha"><dc:Bounds x="5348" y="474" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="5380" y="504" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Boundary_Flow_CriaWO_FalhaConsulta_Falha_di" bpmnElement="Boundary_Flow_CriaWO_FalhaConsulta_Falha"><dc:Bounds x="5624" y="474" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="5656" y="504" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape id="Boundary_Flow_CriaBD_CancelaWO_Falha_di" bpmnElement="Boundary_Flow_CriaBD_CancelaWO_Falha"><dc:Bounds x="6056" y="346" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="6088" y="376" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNEdge id="Flow_Start_ConsultaPendencia_di" bpmnElement="Flow_Start_ConsultaPendencia"><di:waypoint x="76" y="138"/><di:waypoint x="143" y="138"/><di:waypoint x="173" y="138"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_ConsultaPendencia_ConsultaMassiva_di" bpmnElement="Flow_ConsultaPendencia_ConsultaMassiva"><di:waypoint x="273" y="138"/><di:waypoint x="293" y="138"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_ConsultaPendencia_FalhaConsulta_Falha_di" bpmnElement="Flow_ConsultaPendencia_FalhaConsulta_Falha"><di:waypoint x="223" y="196"/><di:waypoint x="223" y="603"/><di:waypoint x="1202" y="603"/><di:waypoint x="1202" y="607"/><di:waypoint x="6737" y="607"/><di:waypoint x="6737" y="604"/><di:waypoint x="6777" y="604"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_ConsultaMassiva_ConsultaBD_di" bpmnElement="Flow_ConsultaMassiva_ConsultaBD"><di:waypoint x="393" y="138"/><di:waypoint x="413" y="138"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_ConsultaMassiva_FalhaConsulta_Falha_di" bpmnElement="Flow_ConsultaMassiva_FalhaConsulta_Falha"><di:waypoint x="343" y="196"/><di:waypoint x="343" y="581"/><di:waypoint x="6777" y="581"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_ConsultaBD_DecImpedimento_di" bpmnElement="Flow_ConsultaBD_DecImpedimento"><di:waypoint x="513" y="138"/><di:waypoint x="533" y="138"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_ConsultaBD_FalhaConsulta_Falha_di" bpmnElement="Flow_ConsultaBD_FalhaConsulta_Falha"><di:waypoint x="463" y="196"/><di:waypoint x="463" y="592"/><di:waypoint x="1202" y="592"/><di:waypoint x="1202" y="594"/><di:waypoint x="6737" y="594"/><di:waypoint x="6737" y="592"/><di:waypoint x="6777" y="592"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecImpedimento_StatusMassivaAtraso_di" bpmnElement="Flow_DecImpedimento_StatusMassivaAtraso"><di:waypoint x="583" y="127"/><di:waypoint x="713" y="127"/><di:waypoint x="713" y="220"/><di:waypoint x="910" y="220"/><bpmndi:BPMNLabel><dc:Bounds x="754" y="223" width="105" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecImpedimento_StatusMassivaVisita_di" bpmnElement="Flow_DecImpedimento_StatusMassivaVisita"><di:waypoint x="583" y="134"/><di:waypoint x="703" y="134"/><di:waypoint x="703" y="320"/><di:waypoint x="910" y="320"/><bpmndi:BPMNLabel><dc:Bounds x="754" y="323" width="105" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecImpedimento_StatusMassiva_di" bpmnElement="Flow_DecImpedimento_StatusMassiva"><di:waypoint x="583" y="141"/><di:waypoint x="693" y="141"/><di:waypoint x="693" y="420"/><di:waypoint x="910" y="420"/><bpmndi:BPMNLabel><dc:Bounds x="782" y="423" width="49" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecImpedimento_StatusAtraso_di" bpmnElement="Flow_DecImpedimento_StatusAtraso"><di:waypoint x="583" y="149"/><di:waypoint x="683" y="149"/><di:waypoint x="683" y="520"/><di:waypoint x="910" y="520"/><bpmndi:BPMNLabel><dc:Bounds x="742" y="523" width="130" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecImpedimento_StatusVisita_di" bpmnElement="Flow_DecImpedimento_StatusVisita"><di:waypoint x="583" y="120"/><di:waypoint x="910" y="120"/><bpmndi:BPMNLabel><dc:Bounds x="723" y="123" width="167" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecImpedimento_Reinicie_di" bpmnElement="Flow_DecImpedimento_Reinicie"><di:waypoint x="583" y="156"/><di:waypoint x="673" y="156"/><di:waypoint x="673" y="570"/><di:waypoint x="1202" y="570"/><di:waypoint x="1202" y="424"/><di:waypoint x="1326" y="424"/><di:waypoint x="1356" y="424"/><bpmndi:BPMNLabel><dc:Bounds x="1242" y="407" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_StatusMassivaAtraso_End_Impedimento_di" bpmnElement="Flow_StatusMassivaAtraso_End_Impedimento"><di:waypoint x="1010" y="220"/><di:waypoint x="1020" y="220"/><di:waypoint x="1020" y="314"/><di:waypoint x="1040" y="314"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_StatusMassivaVisita_End_Impedimento_di" bpmnElement="Flow_StatusMassivaVisita_End_Impedimento"><di:waypoint x="1010" y="320"/><di:waypoint x="1040" y="320"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_StatusMassiva_End_Impedimento_di" bpmnElement="Flow_StatusMassiva_End_Impedimento"><di:waypoint x="1010" y="420"/><di:waypoint x="1020" y="420"/><di:waypoint x="1020" y="326"/><di:waypoint x="1040" y="326"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_StatusAtraso_End_Impedimento_di" bpmnElement="Flow_StatusAtraso_End_Impedimento"><di:waypoint x="1010" y="520"/><di:waypoint x="1030" y="520"/><di:waypoint x="1030" y="332"/><di:waypoint x="1040" y="332"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_StatusVisita_End_Impedimento_di" bpmnElement="Flow_StatusVisita_End_Impedimento"><di:waypoint x="1010" y="120"/><di:waypoint x="1030" y="120"/><di:waypoint x="1030" y="308"/><di:waypoint x="1040" y="308"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_Reinicie_DecReinicio_di" bpmnElement="Flow_Reinicie_DecReinicio"><di:waypoint x="1456" y="424"/><di:waypoint x="1476" y="424"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecReinicio_TesteConexao_di" bpmnElement="Flow_DecReinicio_TesteConexao"><di:waypoint x="1526" y="433"/><di:waypoint x="1616" y="433"/><di:waypoint x="1616" y="466"/><di:waypoint x="2039" y="466"/><di:waypoint x="2039" y="451"/><di:waypoint x="2275" y="451"/><di:waypoint x="2305" y="451"/><bpmndi:BPMNLabel><dc:Bounds x="2079" y="454" width="136" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecReinicio_VoltouReinicio_di" bpmnElement="Flow_DecReinicio_VoltouReinicio"><di:waypoint x="1526" y="416"/><di:waypoint x="1727" y="416"/><bpmndi:BPMNLabel><dc:Bounds x="1626" y="399" width="80" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_VoltouReinicio_DecVoltouReinicio_di" bpmnElement="Flow_VoltouReinicio_DecVoltouReinicio"><di:waypoint x="1827" y="416"/><di:waypoint x="1847" y="416"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecVoltouReinicio_InternetVoltou_di" bpmnElement="Flow_DecVoltouReinicio_InternetVoltou"><di:waypoint x="1897" y="408"/><di:waypoint x="2019" y="408"/><di:waypoint x="2039" y="408"/><di:waypoint x="2039" y="66"/><di:waypoint x="4844" y="66"/><di:waypoint x="4844" y="83"/><di:waypoint x="5320" y="83"/><bpmndi:BPMNLabel><dc:Bounds x="3225" y="69" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecVoltouReinicio_TesteConexao_di" bpmnElement="Flow_DecVoltouReinicio_TesteConexao"><di:waypoint x="1897" y="424"/><di:waypoint x="2019" y="424"/><di:waypoint x="2305" y="424"/><bpmndi:BPMNLabel><dc:Bounds x="2135" y="407" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_InternetVoltou_End_Resolvido_di" bpmnElement="Flow_InternetVoltou_End_Resolvido"><di:waypoint x="5420" y="103"/><di:waypoint x="6777" y="103"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_TesteConexao_DecTeste_di" bpmnElement="Flow_TesteConexao_DecTeste"><di:waypoint x="2405" y="437"/><di:waypoint x="2425" y="437"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecTeste_End_Desistiu_di" bpmnElement="Flow_DecTeste_End_Desistiu"><di:waypoint x="2475" y="446"/><di:waypoint x="2565" y="446"/><di:waypoint x="2565" y="518"/><di:waypoint x="2701" y="518"/><bpmndi:BPMNLabel><dc:Bounds x="2575" y="521" width="105" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecTeste_SolicitaDiagnostico_di" bpmnElement="Flow_DecTeste_SolicitaDiagnostico"><di:waypoint x="2475" y="429"/><di:waypoint x="2716" y="429"/><bpmndi:BPMNLabel><dc:Bounds x="2597" y="412" width="62" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_SolicitaDiagnostico_AguardaDiagnostico_di" bpmnElement="Flow_SolicitaDiagnostico_AguardaDiagnostico"><di:waypoint x="2816" y="429"/><di:waypoint x="2851" y="429"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_SolicitaDiagnostico_FalhaConsulta_Falha_di" bpmnElement="Flow_SolicitaDiagnostico_FalhaConsulta_Falha"><di:waypoint x="2766" y="487"/><di:waypoint x="2766" y="490"/><di:waypoint x="3144" y="490"/><di:waypoint x="3144" y="568"/><di:waypoint x="6737" y="568"/><di:waypoint x="6737" y="569"/><di:waypoint x="6777" y="569"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_AguardaDiagnostico_DecIdDiagnostico_di" bpmnElement="Flow_AguardaDiagnostico_DecIdDiagnostico"><di:waypoint x="2951" y="429"/><di:waypoint x="2971" y="429"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_AguardaDiagnostico_AgendarVisita_Falha_di" bpmnElement="Flow_AguardaDiagnostico_AgendarVisita_Falha"><di:waypoint x="2901" y="487"/><di:waypoint x="2901" y="479"/><di:waypoint x="3154" y="479"/><di:waypoint x="3154" y="530"/><di:waypoint x="4854" y="530"/><di:waypoint x="4854" y="484"/><di:waypoint x="4914" y="484"/><bpmndi:BPMNLabel><dc:Bounds x="3921" y="533" width="136" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecIdDiagnostico_ReinicieNovamente_di" bpmnElement="Flow_DecIdDiagnostico_ReinicieNovamente"><di:waypoint x="3021" y="417"/><di:waypoint x="3124" y="417"/><di:waypoint x="3144" y="417"/><di:waypoint x="3144" y="167"/><di:waypoint x="3941" y="167"/><bpmndi:BPMNLabel><dc:Bounds x="3184" y="170" width="105" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecIdDiagnostico_SemEnergia_di" bpmnElement="Flow_DecIdDiagnostico_SemEnergia"><di:waypoint x="3021" y="429"/><di:waypoint x="3154" y="429"/><di:waypoint x="3154" y="382"/><di:waypoint x="3380" y="382"/><bpmndi:BPMNLabel><dc:Bounds x="3218" y="385" width="37" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecIdDiagnostico_AgendarVisita_di" bpmnElement="Flow_DecIdDiagnostico_AgendarVisita"><di:waypoint x="3021" y="442"/><di:waypoint x="3124" y="442"/><di:waypoint x="3164" y="442"/><di:waypoint x="3164" y="517"/><di:waypoint x="4844" y="517"/><di:waypoint x="4844" y="471"/><di:waypoint x="4884" y="471"/><di:waypoint x="4914" y="471"/><bpmndi:BPMNLabel><dc:Bounds x="3915" y="500" width="149" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_ReinicieNovamente_VoltouNovamente_di" bpmnElement="Flow_ReinicieNovamente_VoltouNovamente"><di:waypoint x="4041" y="167"/><di:waypoint x="4061" y="167"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_VoltouNovamente_DecVoltouNovamente_di" bpmnElement="Flow_VoltouNovamente_DecVoltouNovamente"><di:waypoint x="4161" y="167"/><di:waypoint x="4181" y="167"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecVoltouNovamente_InternetVoltou_di" bpmnElement="Flow_DecVoltouNovamente_InternetVoltou"><di:waypoint x="4231" y="159"/><di:waypoint x="4347" y="159"/><di:waypoint x="4648" y="159"/><di:waypoint x="4648" y="103"/><di:waypoint x="5320" y="103"/><bpmndi:BPMNLabel><dc:Bounds x="4744" y="106" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecVoltouNovamente_AgendarVisita_di" bpmnElement="Flow_DecVoltouNovamente_AgendarVisita"><di:waypoint x="4231" y="175"/><di:waypoint x="4347" y="175"/><di:waypoint x="4864" y="175"/><di:waypoint x="4864" y="431"/><di:waypoint x="4884" y="431"/><di:waypoint x="4914" y="431"/><bpmndi:BPMNLabel><dc:Bounds x="4744" y="178" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_SemEnergia_DecEnergia_di" bpmnElement="Flow_SemEnergia_DecEnergia"><di:waypoint x="3480" y="382"/><di:waypoint x="3500" y="382"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecEnergia_AgendarVisita_di" bpmnElement="Flow_DecEnergia_AgendarVisita"><di:waypoint x="3550" y="390"/><di:waypoint x="3640" y="390"/><di:waypoint x="3640" y="429"/><di:waypoint x="4648" y="429"/><di:waypoint x="4648" y="457"/><di:waypoint x="4884" y="457"/><di:waypoint x="4914" y="457"/><bpmndi:BPMNLabel><dc:Bounds x="4688" y="460" width="136" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecEnergia_VoltouEnergia_di" bpmnElement="Flow_DecEnergia_VoltouEnergia"><di:waypoint x="3550" y="374"/><di:waypoint x="3756" y="374"/><bpmndi:BPMNLabel><dc:Bounds x="3650" y="357" width="87" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_VoltouEnergia_DecVoltouEnergia_di" bpmnElement="Flow_VoltouEnergia_DecVoltouEnergia"><di:waypoint x="3856" y="374"/><di:waypoint x="3876" y="374"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecVoltouEnergia_InternetVoltou_di" bpmnElement="Flow_DecVoltouEnergia_InternetVoltou"><di:waypoint x="3926" y="382"/><di:waypoint x="4029" y="382"/><di:waypoint x="4029" y="418"/><di:waypoint x="4658" y="418"/><di:waypoint x="4658" y="427"/><di:waypoint x="4854" y="427"/><di:waypoint x="4854" y="123"/><di:waypoint x="5320" y="123"/><bpmndi:BPMNLabel><dc:Bounds x="4744" y="430" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecVoltouEnergia_TemEnergia_di" bpmnElement="Flow_DecVoltouEnergia_TemEnergia"><di:waypoint x="3926" y="365"/><di:waypoint x="4083" y="365"/><bpmndi:BPMNLabel><dc:Bounds x="4039" y="348" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_TemEnergia_DecTemEnergia_di" bpmnElement="Flow_TemEnergia_DecTemEnergia"><di:waypoint x="4183" y="365"/><di:waypoint x="4203" y="365"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecTemEnergia_AgendarVisita_di" bpmnElement="Flow_DecTemEnergia_AgendarVisita"><di:waypoint x="4253" y="374"/><di:waypoint x="4300" y="374"/><di:waypoint x="4300" y="407"/><di:waypoint x="4648" y="407"/><di:waypoint x="4648" y="397"/><di:waypoint x="4844" y="397"/><di:waypoint x="4844" y="444"/><di:waypoint x="4914" y="444"/><bpmndi:BPMNLabel><dc:Bounds x="4744" y="400" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecTemEnergia_RedeEletrica_di" bpmnElement="Flow_DecTemEnergia_RedeEletrica"><di:waypoint x="4253" y="357"/><di:waypoint x="4354" y="357"/><bpmndi:BPMNLabel><dc:Bounds x="4310" y="340" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_RedeEletrica_End_RedeEletrica_di" bpmnElement="Flow_RedeEletrica_End_RedeEletrica"><di:waypoint x="4454" y="357"/><di:waypoint x="4474" y="357"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_AgendarVisita_DecAgendar_di" bpmnElement="Flow_AgendarVisita_DecAgendar"><di:waypoint x="5014" y="457"/><di:waypoint x="5034" y="457"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecAgendar_End_SemAgendar_di" bpmnElement="Flow_DecAgendar_End_SemAgendar"><di:waypoint x="5084" y="449"/><di:waypoint x="5181" y="449"/><di:waypoint x="5181" y="246"/><di:waypoint x="5316" y="246"/><bpmndi:BPMNLabel><dc:Bounds x="5191" y="229" width="105" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecAgendar_ConsultaSlots_di" bpmnElement="Flow_DecAgendar_ConsultaSlots"><di:waypoint x="5084" y="466"/><di:waypoint x="5316" y="466"/><bpmndi:BPMNLabel><dc:Bounds x="5197" y="469" width="93" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_ConsultaSlots_EscolheHorario_di" bpmnElement="Flow_ConsultaSlots_EscolheHorario"><di:waypoint x="5416" y="452"/><di:waypoint x="5472" y="452"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_ConsultaSlots_FalhaConsulta_Falha_di" bpmnElement="Flow_ConsultaSlots_FalhaConsulta_Falha"><di:waypoint x="5366" y="510"/><di:waypoint x="5366" y="522"/><di:waypoint x="6717" y="522"/><di:waypoint x="6737" y="522"/><di:waypoint x="6737" y="558"/><di:waypoint x="6777" y="558"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_EscolheHorario_CriaWO_di" bpmnElement="Flow_EscolheHorario_CriaWO"><di:waypoint x="5572" y="452"/><di:waypoint x="5592" y="452"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_CriaWO_DecAgendado_di" bpmnElement="Flow_CriaWO_DecAgendado"><di:waypoint x="5692" y="452"/><di:waypoint x="5712" y="452"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_CriaWO_FalhaConsulta_Falha_di" bpmnElement="Flow_CriaWO_FalhaConsulta_Falha"><di:waypoint x="5642" y="510"/><di:waypoint x="5642" y="511"/><di:waypoint x="6717" y="511"/><di:waypoint x="6747" y="511"/><di:waypoint x="6747" y="546"/><di:waypoint x="6777" y="546"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecAgendado_CriaBD_di" bpmnElement="Flow_DecAgendado_CriaBD"><di:waypoint x="5762" y="444"/><di:waypoint x="5858" y="444"/><di:waypoint x="5858" y="324"/><di:waypoint x="6024" y="324"/><bpmndi:BPMNLabel><dc:Bounds x="5924" y="327" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecAgendado_HorarioOcupado_di" bpmnElement="Flow_DecAgendado_HorarioOcupado"><di:waypoint x="5762" y="461"/><di:waypoint x="6024" y="461"/><bpmndi:BPMNLabel><dc:Bounds x="5868" y="464" width="136" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_HorarioOcupado_ConsultaSlots_di" bpmnElement="Flow_HorarioOcupado_ConsultaSlots"><di:waypoint x="6124" y="461"/><di:waypoint x="6134" y="461"/><di:waypoint x="6134" y="274"/><di:waypoint x="5306" y="274"/><di:waypoint x="5306" y="439"/><di:waypoint x="5316" y="439"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_CriaBD_DecBDCriado_di" bpmnElement="Flow_CriaBD_DecBDCriado"><di:waypoint x="6124" y="324"/><di:waypoint x="6144" y="324"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_CriaBD_CancelaWO_Falha_di" bpmnElement="Flow_CriaBD_CancelaWO_Falha"><di:waypoint x="6074" y="382"/><di:waypoint x="6074" y="374"/><di:waypoint x="6287" y="374"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecBDCriado_VisitaAgendada_di" bpmnElement="Flow_DecBDCriado_VisitaAgendada"><di:waypoint x="6194" y="332"/><di:waypoint x="6267" y="332"/><di:waypoint x="6267" y="461"/><di:waypoint x="6287" y="461"/><bpmndi:BPMNLabel><dc:Bounds x="6232" y="335" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_DecBDCriado_CancelaWO_di" bpmnElement="Flow_DecBDCriado_CancelaWO"><di:waypoint x="6194" y="316"/><di:waypoint x="6222" y="316"/><di:waypoint x="6222" y="304"/><di:waypoint x="6277" y="304"/><di:waypoint x="6277" y="347"/><di:waypoint x="6287" y="347"/><bpmndi:BPMNLabel><dc:Bounds x="6232" y="307" width="25" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_VisitaAgendada_End_Agendado_di" bpmnElement="Flow_VisitaAgendada_End_Agendado"><di:waypoint x="6387" y="461"/><di:waypoint x="6407" y="461"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_CancelaWO_BDNaoCriado_di" bpmnElement="Flow_CancelaWO_BDNaoCriado"><di:waypoint x="6387" y="361"/><di:waypoint x="6425" y="361"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_BDNaoCriado_End_BDNaoCriado_di" bpmnElement="Flow_BDNaoCriado_End_BDNaoCriado"><di:waypoint x="6525" y="361"/><di:waypoint x="6563" y="361"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="Flow_FalhaConsulta_End_Falha_di" bpmnElement="Flow_FalhaConsulta_End_Falha"><di:waypoint x="6877" y="575"/><di:waypoint x="6937" y="575"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

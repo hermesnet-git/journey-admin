@@ -1,0 +1,2275 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Gtw Redes Service Test Management",
+    "description": "## TMF API Reference: TMF653 - Service Test Management\n\n### Release : 20.0 - April 2020\n\nService Test Management API goal is to provide the ability to manage tests of provisioned Services. This OpenAPI specification contains the endpoints and attributes which are supported by this implementation of the TMF standard \n\n### Resource \n- ServiceTest \n- ServiceTestSpecification\n\n### Operations\nService Test Management API performs the following operations on the resources :\n- Retrieve an entity or a collection of entities depending on filter criteria\n- Create an entity (including default values and creation rules)\n- Delete an entity (for administration purposes)\n\n### Tracing Headers\nBoth `X-Vivo-Transaction-Id` and `X-Vivo-Correlation-Id` are **required** for `POST /serviceTest`, as this operation triggers an asynchronous diagnostic flow where both IDs are essential for end-to-end correlation with the callback. For all other synchronous `serviceTest` operations (`GET`, `GET/{id}`, `DELETE/{id}`) both headers are optional but recommended for traceability. `serviceTestSpecification` operations do not use these headers.\n\n### ExternalId — Correlação entre Request e Callback\nO campo `relatedParty` do `ServiceTest` deve incluir uma entrada com `role: ExternalId` contendo o identificador gerado pelo sistema consumidor (SalesForce ou ServiceNow). Este ID é enviado no request, ecoado pelo HPSD no callback e utilizado para correlação ponta a ponta, mitigando o risco de timing entre o callback e a persistência do ID interno do HPSD nos sistemas consumidores. O ID interno do HPSD (`body.id`) permanece como identificador oficial para consultas históricas.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Schaidt Patriota",
+      "email": "schaidt.patriota@sysmap.com.br"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.telefonica.com.br/gtw-redes/serviceTestManagement/v1",
+      "description": "Produção"
+    },
+    {
+      "url": "https://api-prodlike.telefonica.com.br/gtw-redes/serviceTestManagement/v1",
+      "description": "Prod Like"
+    },
+    {
+      "url": "https://api-hml.telefonica.com.br/gtw-redes/serviceTestManagement/v1",
+      "description": "Pre-Prod"
+    },
+    {
+      "url": "https://api-qa2.telefonica.com.br/gtw-redes/serviceTestManagement/v1",
+      "description": "Esteira 2"
+    },
+    {
+      "url": "https://api-qa1.telefonica.com.br/gtw-redes/serviceTestManagement/v1",
+      "description": "Esteira 1"
+    },
+    {
+      "url": "https://api-dev.telefonica.com.br/gtw-redes/serviceTestManagement/v1",
+      "description": "DEV"
+    }
+  ],
+  "tags": [
+    {
+      "name": "serviceTest"
+    },
+    {
+      "name": "serviceTestSpecification"
+    }
+  ],
+  "paths": {
+    "/serviceTest": {
+      "get": {
+        "tags": [
+          "serviceTest"
+        ],
+        "summary": "List or find ServiceTest objects",
+        "description": "This operation list or find ServiceTest entities",
+        "operationId": "listServiceTest",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Bearer Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Vivo-Transaction-Id",
+            "in": "header",
+            "description": "Unique identifier for the transaction. Should be a UUID v4. Optional for synchronous operations.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Vivo-Correlation-Id",
+            "in": "header",
+            "description": "Correlation identifier. Should be a UUID v4. Optional for synchronous operations.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Comma-separated properties to be provided in response",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Requested index for start of resources to be provided in response",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Requested number of resources to be provided in response",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Total number of items matching criteria",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Vivo-Correlation-Id": {
+                "description": "Echo of the X-Vivo-Correlation-Id received in the request, if provided",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Result-Count": {
+                "description": "Actual number of items returned in the response body",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Vivo-Transaction-Id": {
+                "description": "Echo of the X-Vivo-Transaction-Id received in the request, if provided",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceTest"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not allowed",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "serviceTest"
+        ],
+        "summary": "Creates a ServiceTest",
+        "description": "This operation creates a ServiceTest entity.",
+        "operationId": "createServiceTest",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Bearer Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Vivo-Transaction-Id",
+            "in": "header",
+            "description": "Unique identifier for the transaction, generated by the originating system (e.g. SalesForce, ServiceNow). Used for end-to-end traceability across all integrated systems. Should be a UUID v4.\n\n**Obrigatório no `POST /serviceTest`** pois o fluxo é assíncrono e ambos os IDs são necessários para correlação com o callback. Nos demais endpoints síncronos é opcional, porém recomendado para rastreabilidade.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Vivo-Correlation-Id",
+            "in": "header",
+            "description": "Correlation identifier used to link asynchronous events and callbacks to the originating request. Must be echoed back in the callback event body field 'correlationId'. Should be a UUID v4.\n\n**Obrigatório no `POST /serviceTest`** pois o fluxo é assíncrono — sem este ID não é possível correlacionar o callback com a requisição original. Nos demais endpoints síncronos é opcional.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The ServiceTest to be created",
+          "content": {
+            "application/json;charset=utf-8": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceTest_Create"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "X-Vivo-Correlation-Id": {
+                "description": "Echo of the X-Vivo-Correlation-Id received in the request, if provided",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Vivo-Transaction-Id": {
+                "description": "Echo of the X-Vivo-Transaction-Id received in the request",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceTest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not allowed",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/serviceTest/{id}": {
+      "get": {
+        "tags": [
+          "serviceTest"
+        ],
+        "summary": "Retrieves a ServiceTest by ID",
+        "description": "This operation retrieves a ServiceTest entity. Attribute selection is enabled for all first level attributes.",
+        "operationId": "retrieveServiceTest",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Bearer Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Vivo-Transaction-Id",
+            "in": "header",
+            "description": "Unique identifier for the transaction. Should be a UUID v4. Optional for synchronous operations.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Vivo-Correlation-Id",
+            "in": "header",
+            "description": "Correlation identifier. Should be a UUID v4. Optional for synchronous operations.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the ServiceTest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Comma-separated properties to provide in response",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Vivo-Correlation-Id": {
+                "description": "Echo of the X-Vivo-Correlation-Id received in the request, if provided",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Vivo-Transaction-Id": {
+                "description": "Echo of the X-Vivo-Transaction-Id received in the request, if provided",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceTest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not allowed",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "serviceTest"
+        ],
+        "summary": "Deletes a ServiceTest",
+        "description": "This operation deletes a ServiceTest entity.",
+        "operationId": "deleteServiceTest",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Bearer Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Vivo-Transaction-Id",
+            "in": "header",
+            "description": "Unique identifier for the transaction. Should be a UUID v4. Optional for synchronous operations.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Vivo-Correlation-Id",
+            "in": "header",
+            "description": "Correlation identifier. Should be a UUID v4. Optional for synchronous operations.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the ServiceTest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not allowed",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/serviceTestSpecification": {
+      "get": {
+        "tags": [
+          "serviceTestSpecification"
+        ],
+        "summary": "List or find ServiceTestSpecification objects",
+        "description": "This operation list or find ServiceTestSpecification entities",
+        "operationId": "listServiceTestSpecification",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Bearer Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Comma-separated properties to be provided in response",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Requested index for start of resources to be provided in response",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Requested number of resources to be provided in response",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Total number of items matching criteria",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Result-Count": {
+                "description": "Actual number of items returned in the response body",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceTestSpecification"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not allowed",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "serviceTestSpecification"
+        ],
+        "summary": "Creates a ServiceTestSpecification",
+        "description": "This operation creates a ServiceTestSpecification entity.",
+        "operationId": "createServiceTestSpecification",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Bearer Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The ServiceTestSpecification to be created",
+          "content": {
+            "application/json;charset=utf-8": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceTestSpecification_Create"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceTestSpecification"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not allowed",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/serviceTestSpecification/{id}": {
+      "get": {
+        "tags": [
+          "serviceTestSpecification"
+        ],
+        "summary": "Retrieves a ServiceTestSpecification by ID",
+        "description": "This operation retrieves a ServiceTestSpecification entity. Attribute selection is enabled for all first level attributes.",
+        "operationId": "retrieveServiceTestSpecification",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Bearer Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the ServiceTestSpecification",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Comma-separated properties to provide in response",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceTestSpecification"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not allowed",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "serviceTestSpecification"
+        ],
+        "summary": "Deletes a ServiceTestSpecification",
+        "description": "This operation deletes a ServiceTestSpecification entity.",
+        "operationId": "deleteServiceTestSpecification",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Bearer Token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identifier of the ServiceTestSpecification",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not allowed",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json;charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Any": {
+        "type": "object"
+      },
+      "AppliedConsequence": {
+        "type": "object",
+        "properties": {
+          "appliedAction": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "repeatAction": {
+            "type": "boolean"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        },
+        "description": "An Applied Consequence defines the action (prescribed action or notification) to take when a MeasureThresholdRuleViolation occurs."
+      },
+      "Characteristic": {
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "valueType": {
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/Any"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        },
+        "description": "Describes a given characteristic of an object or entity through a name/value pair."
+      },
+      "CharacteristicSpecification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "configurable": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "extensible": {
+            "type": "boolean"
+          },
+          "isUnique": {
+            "type": "boolean"
+          },
+          "maxCardinality": {
+            "type": "integer"
+          },
+          "minCardinality": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "regex": {
+            "type": "string"
+          },
+          "valueType": {
+            "type": "string"
+          },
+          "characteristicValueSpecification": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacteristicValueSpecification"
+            }
+          },
+          "validFor": {
+            "$ref": "#/components/schemas/TimePeriod"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          },
+          "@valueSchemaLocation": {
+            "type": "string"
+          }
+        },
+        "description": "This class defines a characteristic specification."
+      },
+      "CharacteristicValueSpecification": {
+        "type": "object",
+        "properties": {
+          "isDefault": {
+            "type": "boolean"
+          },
+          "rangeInterval": {
+            "type": "string"
+          },
+          "regex": {
+            "type": "string"
+          },
+          "unitOfMeasure": {
+            "type": "string"
+          },
+          "valueFrom": {
+            "type": "integer"
+          },
+          "valueTo": {
+            "type": "integer"
+          },
+          "valueType": {
+            "type": "string"
+          },
+          "validFor": {
+            "$ref": "#/components/schemas/TimePeriod"
+          },
+          "value": {
+            "$ref": "#/components/schemas/Any"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        }
+      },
+      "Duration": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "integer"
+          },
+          "units": {
+            "type": "string"
+          }
+        },
+        "description": "A time interval in a given unit of time"
+      },
+      "MeasureThresholdRuleViolation": {
+        "type": "object",
+        "properties": {
+          "conformanceComparatorExact": {
+            "type": "boolean"
+          },
+          "conformanceComparatorLower": {
+            "type": "string"
+          },
+          "conformanceComparatorUpper": {
+            "type": "string"
+          },
+          "conformanceTargetExact": {
+            "type": "string"
+          },
+          "conformanceTargetLower": {
+            "type": "string"
+          },
+          "conformanceTargetUpper": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "numberOfAllowedCrossing": {
+            "type": "integer"
+          },
+          "thresholdRuleSeverity": {
+            "type": "string"
+          },
+          "appliedConsequence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppliedConsequence"
+            }
+          },
+          "tolerancePeriod": {
+            "$ref": "#/components/schemas/Duration"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        }
+      },
+      "MetricDefMeasureConsequence": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prescribeAction": {
+            "type": "string"
+          },
+          "repeatAction": {
+            "type": "boolean"
+          },
+          "validFor": {
+            "$ref": "#/components/schemas/TimePeriod"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        }
+      },
+      "MetricDefMeasureThresholdRule": {
+        "type": "object",
+        "properties": {
+          "conformanceComparatorExact": {
+            "type": "boolean"
+          },
+          "conformanceComparatorLower": {
+            "type": "string"
+          },
+          "conformanceComparatorUpper": {
+            "type": "string"
+          },
+          "conformanceTargetExact": {
+            "type": "string"
+          },
+          "conformanceTargetLower": {
+            "type": "string"
+          },
+          "conformanceTargetUpper": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "numberOfAllowedCrossing": {
+            "type": "integer"
+          },
+          "thresholdRuleSeverity": {
+            "type": "string"
+          },
+          "consequence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricDefMeasureConsequence"
+            }
+          },
+          "tolerancePeriod": {
+            "$ref": "#/components/schemas/Duration"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        }
+      },
+      "RelatedParty": {
+        "required": [
+          "id",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          },
+          "@referredType": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceRef": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "name": {
+            "type": "string"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          },
+          "@referredType": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceSpecificationRef": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          },
+          "@referredType": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceTest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": {
+            "type": "string"
+          },
+          "endDateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startDateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string",
+            "description": "Possible values: acknowledged, rejected, pending, inProgress, cancelled, completed, failed"
+          },
+          "characteristic": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Characteristic"
+            }
+          },
+          "relatedParty": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedParty"
+            }
+          },
+          "relatedService": {
+            "$ref": "#/components/schemas/ServiceRef"
+          },
+          "testMeasure": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestMeasure"
+            }
+          },
+          "testSpecification": {
+            "$ref": "#/components/schemas/ServiceTestSpecificationRef"
+          },
+          "validFor": {
+            "$ref": "#/components/schemas/TimePeriod"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        },
+        "description": "A service test is an entity that exists for a controlled test invocation on a service."
+      },
+      "ServiceTest_Create": {
+        "required": [
+          "name",
+          "relatedService",
+          "testSpecification"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "endDateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "startDateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "characteristic": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Characteristic"
+            }
+          },
+          "relatedParty": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedParty"
+            }
+          },
+          "relatedService": {
+            "$ref": "#/components/schemas/ServiceRef"
+          },
+          "testMeasure": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestMeasure"
+            }
+          },
+          "testSpecification": {
+            "$ref": "#/components/schemas/ServiceTestSpecificationRef"
+          },
+          "validFor": {
+            "$ref": "#/components/schemas/TimePeriod"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        },
+        "description": "Skipped properties: id, href"
+      },
+      "ServiceTestSpecification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": {
+            "type": "string"
+          },
+          "isBundle": {
+            "type": "boolean"
+          },
+          "lastUpdate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lifecycleStatus": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "relatedParty": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedParty"
+            }
+          },
+          "relatedServiceSpecification": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceSpecificationRef"
+            }
+          },
+          "specCharacteristic": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacteristicSpecification"
+            }
+          },
+          "testMeasureDefinition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestMeasureDefinition"
+            }
+          },
+          "validFor": {
+            "$ref": "#/components/schemas/TimePeriod"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceTestSpecification_Create": {
+        "required": [
+          "name",
+          "relatedServiceSpecification"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "isBundle": {
+            "type": "boolean"
+          },
+          "lastUpdate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lifecycleStatus": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "relatedParty": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RelatedParty"
+            }
+          },
+          "relatedServiceSpecification": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceSpecificationRef"
+            }
+          },
+          "specCharacteristic": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacteristicSpecification"
+            }
+          },
+          "testMeasureDefinition": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestMeasureDefinition"
+            }
+          },
+          "validFor": {
+            "$ref": "#/components/schemas/TimePeriod"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        },
+        "description": "Skipped properties: id, href"
+      },
+      "ServiceTestSpecificationRef": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          },
+          "@referredType": {
+            "type": "string"
+          }
+        }
+      },
+      "TestMeasure": {
+        "type": "object",
+        "properties": {
+          "accuracy": {
+            "type": "number",
+            "format": "float"
+          },
+          "captureDateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "captureMethod": {
+            "type": "string"
+          },
+          "metricDescription": {
+            "type": "string"
+          },
+          "metricHref": {
+            "type": "string"
+          },
+          "metricName": {
+            "type": "string"
+          },
+          "unitOfMeasure": {
+            "type": "string"
+          },
+          "ruleViolation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasureThresholdRuleViolation"
+            }
+          },
+          "value": {
+            "$ref": "#/components/schemas/Characteristic"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        }
+      },
+      "TestMeasureDefinition": {
+        "type": "object",
+        "properties": {
+          "captureFrequency": {
+            "type": "string"
+          },
+          "captureMethod": {
+            "type": "string"
+          },
+          "metricDescription": {
+            "type": "string"
+          },
+          "metricHref": {
+            "type": "string"
+          },
+          "metricName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unitOfMeasure": {
+            "type": "string"
+          },
+          "valueType": {
+            "type": "string"
+          },
+          "capturePeriod": {
+            "$ref": "#/components/schemas/Duration"
+          },
+          "thresholdRule": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricDefMeasureThresholdRule"
+            }
+          },
+          "validFor": {
+            "$ref": "#/components/schemas/TimePeriod"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        }
+      },
+      "TimePeriod": {
+        "type": "object",
+        "properties": {
+          "endDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "1985-04-12T23:20:50.52Z"
+          },
+          "startDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "1985-04-12T23:20:50.52Z"
+          }
+        }
+      },
+      "ServiceTestCreateEvent": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/ServiceTestCreateEventPayload"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string",
+            "description": "Must match the X-Vivo-Correlation-Id header sent in the originating request.",
+            "format": "uuid"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "timeOcurred": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceTestCreateEventPayload": {
+        "type": "object",
+        "properties": {
+          "serviceTest": {
+            "$ref": "#/components/schemas/ServiceTest"
+          }
+        }
+      },
+      "ServiceTestAttributeValueChangeEvent": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "eventTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string",
+            "description": "Must match the X-Vivo-Correlation-Id header sent in the originating request.",
+            "format": "uuid"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "timeOcurred": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fieldPath": {
+            "type": "string"
+          },
+          "event": {
+            "$ref": "#/components/schemas/ServiceTestAttributeValueChangeEventPayload"
+          }
+        }
+      },
+      "ServiceTestAttributeValueChangeEventPayload": {
+        "type": "object",
+        "properties": {
+          "serviceTest": {
+            "$ref": "#/components/schemas/ServiceTest"
+          }
+        }
+      },
+      "ServiceTestDeleteEvent": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/ServiceTestDeleteEventPayload"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string",
+            "description": "Must match the X-Vivo-Correlation-Id header sent in the originating request.",
+            "format": "uuid"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "timeOcurred": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceTestDeleteEventPayload": {
+        "type": "object",
+        "properties": {
+          "serviceTest": {
+            "$ref": "#/components/schemas/ServiceTest"
+          }
+        }
+      },
+      "ServiceTestSpecificationCreateEvent": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/ServiceTestSpecificationCreateEventPayload"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "timeOcurred": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceTestSpecificationCreateEventPayload": {
+        "type": "object",
+        "properties": {
+          "serviceTestSpecification": {
+            "$ref": "#/components/schemas/ServiceTestSpecification"
+          }
+        }
+      },
+      "ServiceTestSpecificationAttributeValueChangeEvent": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "eventTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "timeOcurred": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fieldPath": {
+            "type": "string"
+          },
+          "event": {
+            "$ref": "#/components/schemas/ServiceTestSpecificationAttributeValueChangeEventPayload"
+          }
+        }
+      },
+      "ServiceTestSpecificationAttributeValueChangeEventPayload": {
+        "type": "object",
+        "properties": {
+          "serviceTestSpecification": {
+            "$ref": "#/components/schemas/ServiceTestSpecification"
+          }
+        }
+      },
+      "ServiceTestSpecificationDeleteEvent": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/ServiceTestSpecificationDeleteEventPayload"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "timeOcurred": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceTestSpecificationDeleteEventPayload": {
+        "type": "object",
+        "properties": {
+          "serviceTestSpecification": {
+            "$ref": "#/components/schemas/ServiceTestSpecification"
+          }
+        }
+      },
+      "Error": {
+        "required": [
+          "code",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "referenceError": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@baseType": {
+            "type": "string"
+          },
+          "@schemaLocation": {
+            "type": "string",
+            "format": "uri"
+          },
+          "@type": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "XVivoTransactionIdRequired": {
+        "name": "X-Vivo-Transaction-Id",
+        "in": "header",
+        "description": "Unique identifier for the transaction, generated by the originating system (e.g. SalesForce, ServiceNow). Used for end-to-end traceability across all integrated systems. Should be a UUID v4.\n\n**Obrigatório no `POST /serviceTest`** pois o fluxo é assíncrono e ambos os IDs são necessários para correlação com o callback. Nos demais endpoints síncronos é opcional, porém recomendado para rastreabilidade.",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "XVivoCorrelationIdRequired": {
+        "name": "X-Vivo-Correlation-Id",
+        "in": "header",
+        "description": "Correlation identifier used to link asynchronous events and callbacks to the originating request. Must be echoed back in the callback event body field 'correlationId'. Should be a UUID v4.\n\n**Obrigatório no `POST /serviceTest`** pois o fluxo é assíncrono — sem este ID não é possível correlacionar o callback com a requisição original. Nos demais endpoints síncronos é opcional.",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    }
+  },
+  "x-original-swagger-version": "2.0"
+}
